@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Trash2 } from "lucide-react";
+import { AlertCircle, Trash2, Clock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 export default function AccountSettings() {
   const [user, setUser] = useState(null);
@@ -30,10 +31,26 @@ export default function AccountSettings() {
   const handleDeleteAccount = async () => {
     setLoading(true);
     try {
-      await base44.functions.invoke('deleteAccount');
-      window.location.href = '/login';
+      const response = await base44.functions.invoke('deleteAccount');
+      // Refresh user data to show scheduled deletion
+      const updatedUser = await base44.auth.me();
+      setUser(updatedUser);
     } catch (error) {
-      alert('Failed to delete account: ' + error.message);
+      alert('Failed to schedule account deletion: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelDeletion = async () => {
+    setLoading(true);
+    try {
+      await base44.auth.updateMe({ deletion_scheduled_date: null });
+      const updatedUser = await base44.auth.me();
+      setUser(updatedUser);
+    } catch (error) {
+      alert('Failed to cancel deletion: ' + error.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -46,6 +63,8 @@ export default function AccountSettings() {
     );
   }
 
+  const isDeletionScheduled = user.deletion_scheduled_date;
+
   return (
     <div className="min-h-screen bg-[#FFFBF5] py-12 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -53,6 +72,30 @@ export default function AccountSettings() {
           <h1 className="text-3xl font-bold text-[#1A1A1A]">Account Settings</h1>
           <p className="text-[#1A1A1A]/60 mt-2">Manage your account preferences</p>
         </div>
+
+        {isDeletionScheduled && (
+          <Card className="border-yellow-200 bg-yellow-50/50">
+            <CardHeader>
+              <CardTitle className="text-yellow-700 flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Account Deletion Scheduled
+              </CardTitle>
+              <CardDescription>
+                Your account is scheduled to be permanently deleted on{' '}
+                <strong>{format(new Date(isDeletionScheduled), 'MMMM d, yyyy')}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleCancelDeletion}
+                variant="outline"
+                disabled={loading}
+              >
+                {loading ? "Canceling..." : "Cancel Deletion"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-[#B8956A]/20">
           <CardHeader>
@@ -77,44 +120,47 @@ export default function AccountSettings() {
           </CardContent>
         </Card>
 
-        <Card className="border-red-200 bg-red-50/50">
-          <CardHeader>
-            <CardTitle className="text-red-700 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
-              Danger Zone
-            </CardTitle>
-            <CardDescription>Irreversible account actions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="gap-2" disabled={loading}>
-                  <Trash2 className="w-4 h-4" />
-                  Delete Account
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your account
-                    and remove all of your data from our servers.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDeleteAccount}
-                    className="bg-red-600 hover:bg-red-700"
-                    disabled={loading}
-                  >
-                    {loading ? "Deleting..." : "Yes, delete my account"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardContent>
-        </Card>
+        {!isDeletionScheduled && (
+          <Card className="border-red-200 bg-red-50/50">
+            <CardHeader>
+              <CardTitle className="text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>Irreversible account actions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="gap-2" disabled={loading}>
+                    <Trash2 className="w-4 h-4" />
+                    Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Schedule Account Deletion?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Your account will be scheduled for deletion in 30 days. You can cancel
+                      this at any time before the deletion date. An email will be sent to the
+                      administrator for confirmation.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      className="bg-red-600 hover:bg-red-700"
+                      disabled={loading}
+                    >
+                      {loading ? "Scheduling..." : "Yes, schedule deletion"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
