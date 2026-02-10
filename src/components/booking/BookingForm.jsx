@@ -91,8 +91,12 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
               <div className="bg-[#B8956A]/10 rounded-lg p-4 border border-[#B8956A]/30">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm text-[#1A1A1A]/60">Selected Package</p>
-                    <p className="text-lg font-semibold text-[#1A1A1A]">{selectedPackage?.name}</p>
+                    <p className="text-sm text-[#1A1A1A]/60">
+                      {selectedPackage ? "Selected Package" : "Cart Total"}
+                    </p>
+                    {selectedPackage && (
+                      <p className="text-lg font-semibold text-[#1A1A1A]">{selectedPackage.name}</p>
+                    )}
                   </div>
                   <p className="text-2xl font-bold text-[#B8956A]">${formData.total_price}</p>
                 </div>

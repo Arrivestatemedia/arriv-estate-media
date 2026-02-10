@@ -308,9 +308,9 @@ export default function BookingPage() {
             onClick={() => setShowBookingForm(true)}
             size="lg"
             className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white px-12 py-6 text-lg"
-            disabled={!selectedPackage}
+            disabled={!selectedPackage && cartAddOns.length === 0}
           >
-            {selectedPackage ? "Take me to my cart" : "Select a package to continue"}
+            {selectedPackage || cartAddOns.length > 0 ? "Take me to my cart" : "Select items to continue"}
           </Button>
         </div>
       </div>
