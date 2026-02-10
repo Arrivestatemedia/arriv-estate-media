@@ -73,11 +73,12 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Create calendar event
+    // Create calendar event and send notifications
     try {
       await base44.functions.invoke('createCalendarEvent', { booking: formData });
+      await base44.functions.invoke('sendBookingNotifications', { booking: formData });
     } catch (error) {
-      console.error('Failed to create calendar event:', error);
+      console.error('Failed to create calendar event or send notifications:', error);
     }
     
     onSubmit(formData);

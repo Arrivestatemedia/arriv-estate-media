@@ -37,7 +37,10 @@ Deno.serve(async (req) => {
                 dateTime: endDateTime.toISOString(),
                 timeZone: 'America/New_York'
             },
-            location: booking.property_address
+            location: booking.property_address,
+            attendees: [
+                { email: booking.client_email }
+            ]
         };
 
         const response = await fetch(
