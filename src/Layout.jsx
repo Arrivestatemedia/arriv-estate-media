@@ -19,8 +19,12 @@ export default function Layout({ children, currentPageName }) {
     ? [
         { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
         { label: "Job Board", page: "JobBoard", icon: Briefcase },
+        { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
       ]
-    : [{ label: "Available Jobs", page: "JobBoard", icon: Briefcase }];
+    : [
+        { label: "Available Jobs", page: "JobBoard", icon: Briefcase },
+        { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
+      ];
 
   return (
     <div className="min-h-screen bg-[#FFFBF5]">

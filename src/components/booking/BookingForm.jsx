@@ -1,0 +1,279 @@
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Clock } from "lucide-react";
+import { format, isWeekend, setHours, setMinutes } from "date-fns";
+
+const timeSlots = {
+  weekday: ["3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM"],
+  weekend: [
+    "9:00 AM",
+    "9:30 AM",
+    "10:00 AM",
+    "10:30 AM",
+    "11:00 AM",
+    "11:30 AM",
+    "12:00 PM",
+    "12:30 PM",
+    "1:00 PM",
+    "1:30 PM",
+    "2:00 PM",
+    "2:30 PM",
+    "3:00 PM",
+    "3:30 PM",
+    "4:00 PM",
+    "4:30 PM",
+    "5:00 PM",
+  ],
+};
+
+export default function BookingForm({ selectedPackage, addOns, onSubmit, onCancel }) {
+  const [formData, setFormData] = useState({
+    client_name: "",
+    client_email: "",
+    client_phone: "",
+    property_address: "",
+    preferred_date: null,
+    preferred_time: "",
+    notes: "",
+    package: selectedPackage?.id || "",
+    add_ons: [],
+    total_price: selectedPackage?.price || 0,
+  });
+
+  const [selectedAddOns, setSelectedAddOns] = useState([]);
+
+  const handleAddOnToggle = (addon) => {
+    const isSelected = selectedAddOns.find((a) => a.id === addon.id);
+    let newAddOns;
+    if (isSelected) {
+      newAddOns = selectedAddOns.filter((a) => a.id !== addon.id);
+    } else {
+      newAddOns = [...selectedAddOns, addon];
+    }
+    setSelectedAddOns(newAddOns);
+    
+    const totalAddOnPrice = newAddOns.reduce((sum, a) => sum + a.price, 0);
+    setFormData({
+      ...formData,
+      add_ons: newAddOns.map((a) => a.id),
+      total_price: (selectedPackage?.price || 0) + totalAddOnPrice,
+    });
+  };
+
+  const handleDateSelect = (date) => {
+    setFormData({ ...formData, preferred_date: format(date, "yyyy-MM-dd"), preferred_time: "" });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const availableTimeSlots = formData.preferred_date
+    ? isWeekend(new Date(formData.preferred_date))
+      ? timeSlots.weekend
+      : timeSlots.weekday
+    : [];
+
+  const isDateDisabled = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FFFBF5] py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Button
+          onClick={onCancel}
+          variant="ghost"
+          className="mb-6 text-[#1A1A1A]/60 hover:text-[#1A1A1A]"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Packages
+        </Button>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Card className="border-2 border-[#B8956A]/20">
+            <CardHeader>
+              <CardTitle className="text-2xl text-[#1A1A1A]">Complete Your Booking</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-[#B8956A]/10 rounded-lg p-4 border border-[#B8956A]/30">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-[#1A1A1A]/60">Selected Package</p>
+                    <p className="text-lg font-semibold text-[#1A1A1A]">{selectedPackage?.name}</p>
+                  </div>
+                  <p className="text-2xl font-bold text-[#B8956A]">${formData.total_price}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                    Full Name *
+                  </label>
+                  <Input
+                    required
+                    value={formData.client_name}
+                    onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                    className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                    Email Address *
+                  </label>
+                  <Input
+                    type="email"
+                    required
+                    value={formData.client_email}
+                    onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
+                    className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                  Phone Number
+                </label>
+                <Input
+                  type="tel"
+                  value={formData.client_phone}
+                  onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
+                  className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                  Property Address *
+                </label>
+                <Input
+                  required
+                  value={formData.property_address}
+                  onChange={(e) => setFormData({ ...formData, property_address: e.target.value })}
+                  className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                  placeholder="123 Main St, City, State ZIP"
+                />
+              </div>
+
+              {selectedAddOns.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[#1A1A1A]">Selected Add-Ons:</p>
+                  {selectedAddOns.map((addon) => (
+                    <div key={addon.id} className="flex justify-between text-sm text-[#1A1A1A]/70">
+                      <span>• {addon.name}</span>
+                      <span className="font-semibold">${addon.price}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-3">
+                  Add-Ons (Optional)
+                </label>
+                <div className="space-y-3">
+                  {addOns.map((addon) => (
+                    <div key={addon.id} className="flex items-center justify-between p-3 border border-[#B8956A]/20 rounded-lg hover:bg-[#B8956A]/5">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedAddOns.some((a) => a.id === addon.id)}
+                          onCheckedChange={() => handleAddOnToggle(addon)}
+                        />
+                        <span className="text-sm text-[#1A1A1A]">{addon.name}</span>
+                      </div>
+                      <span className="text-sm font-semibold text-[#B8956A]">${addon.price}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-3">
+                  Preferred Date *
+                </label>
+                <Calendar
+                  mode="single"
+                  selected={formData.preferred_date ? new Date(formData.preferred_date) : undefined}
+                  onSelect={handleDateSelect}
+                  disabled={isDateDisabled}
+                  className="border-2 border-[#B8956A]/20 rounded-lg p-3"
+                />
+              </div>
+
+              {formData.preferred_date && (
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-3">
+                    <Clock className="w-4 h-4 inline mr-2" />
+                    Available Time Slots *
+                  </label>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {availableTimeSlots.map((time) => (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, preferred_time: time })}
+                        className={`p-2 text-sm rounded-lg border-2 transition-all ${
+                          formData.preferred_time === time
+                            ? "bg-[#B8956A] text-white border-[#B8956A]"
+                            : "border-[#B8956A]/20 hover:border-[#B8956A] text-[#1A1A1A]"
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-[#1A1A1A]/50 mt-2">
+                    {isWeekend(new Date(formData.preferred_date))
+                      ? "Weekend: All day availability"
+                      : "Weekday: Available after 3:00 PM"}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                  Additional Notes
+                </label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="border-[#B8956A]/30 focus:border-[#B8956A] h-24"
+                  placeholder="Any special requests or details we should know..."
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  className="flex-1 border-[#1A1A1A]/20"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+                  disabled={!formData.preferred_date || !formData.preferred_time}
+                >
+                  Submit Booking Request
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+      </div>
+    </div>
+  );
+}
