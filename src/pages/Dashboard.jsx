@@ -66,7 +66,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-[#1A1A1A]">Job Dashboard</h1>
-            <p className="text-[#1A1A1A]/60 mt-1">Manage your photo and video gigs</p>
+            <p className="text-[#1A1A1A]/60 mt-1">Manage your gigs</p>
           </div>
           <Button
             onClick={() => {
