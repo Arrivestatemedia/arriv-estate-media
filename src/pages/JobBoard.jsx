@@ -3,8 +3,11 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Briefcase } from "lucide-react";
+import { Search, Briefcase, LayoutDashboard } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "../utils";
 import JobCard from "../components/jobs/JobCard";
 import {
   Dialog,
@@ -14,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 
 export default function JobBoard() {
   const [filter, setFilter] = useState("all");
@@ -133,9 +135,19 @@ export default function JobBoard() {
   return (
     <div className="min-h-screen bg-[#FFFBF5]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Available Gigs</h1>
-          <p className="text-[#1A1A1A]/60">Browse and book photo & video jobs</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Available Gigs</h1>
+            <p className="text-[#1A1A1A]/60">Browse and book photo & video jobs</p>
+          </div>
+          {user?.user_type === "contractor" && (
+            <Link to={createPageUrl("ContractorDashboard")}>
+              <Button className="bg-[#B8956A] hover:bg-[#A68559] text-white">
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                My Dashboard
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
