@@ -233,7 +233,7 @@ export default function BookingPage() {
                     
                     // Check if add-on requires a package
                     const requiresPackage = ['ai_staging', 'twilight', 'rush_delivery'].includes(addon.id);
-                    const requiresPhotoPackage = addon.id === 'twilight';
+                    const requiresPhotoPackage = ['twilight', 'ai_staging'].includes(addon.id);
                     
                     const hasPackage = !!selectedPackage;
                     const hasPhotoPackage = selectedPackage && ['photo_essentials', 'photo_cinematic', 'premium_bundle'].includes(selectedPackage.id);
