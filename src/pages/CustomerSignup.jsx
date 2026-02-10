@@ -1,17 +1,18 @@
 import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, CheckCircle2 } from "lucide-react";
+import { Camera } from "lucide-react";
+import { createPageUrl } from "../utils";
 
 export default function CustomerSignup() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const phoneNumber = searchParams.get('phone_number');
   const [formData, setFormData] = useState({ email: "", full_name: "", phone_number: phoneNumber || "" });
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -21,29 +22,13 @@ export default function CustomerSignup() {
 
     try {
       await base44.functions.invoke('signupCustomer', formData);
-      setSuccess(true);
+      // Redirect to login page with email pre-filled
+      window.location.href = `${window.location.origin}/login?email=${encodeURIComponent(formData.email)}&next=${createPageUrl("BookingPage")}`;
     } catch (err) {
-      setError(err.message || "Failed to send invitation");
-    } finally {
+      setError(err.message || "Failed to create account");
       setLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-2 border-[#B8956A]/20">
-          <CardContent className="text-center py-12">
-            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-600" />
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">Check Your Email!</h2>
-            <p className="text-[#1A1A1A]/60">
-              We've sent you an invitation link. Check your inbox to complete registration and book your shoot.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
@@ -90,6 +75,7 @@ export default function CustomerSignup() {
               </label>
               <Input
                 type="tel"
+                required
                 value={formData.phone_number}
                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                 className="border-[#B8956A]/30 focus:border-[#B8956A]"
@@ -106,7 +92,7 @@ export default function CustomerSignup() {
               disabled={loading}
               className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
             >
-              {loading ? "Sending Invitation..." : "Sign Up to Book"}
+              {loading ? "Creating Account..." : "Sign Up"}
             </Button>
           </form>
         </CardContent>

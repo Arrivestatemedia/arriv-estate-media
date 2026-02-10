@@ -1,17 +1,18 @@
 import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Briefcase, CheckCircle2 } from "lucide-react";
+import { Briefcase } from "lucide-react";
+import { createPageUrl } from "../utils";
 
 export default function ContractorSignup() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const phoneNumber = searchParams.get('phone_number');
   const [formData, setFormData] = useState({ email: "", full_name: "", phone_number: phoneNumber || "" });
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -21,29 +22,13 @@ export default function ContractorSignup() {
 
     try {
       await base44.functions.invoke('signupContractor', formData);
-      setSuccess(true);
+      // Redirect to login page with email pre-filled
+      window.location.href = `${window.location.origin}/login?email=${encodeURIComponent(formData.email)}&next=${createPageUrl("ContractorDashboard")}`;
     } catch (err) {
-      setError(err.message || "Failed to send invitation");
-    } finally {
+      setError(err.message || "Failed to create account");
       setLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-2 border-[#B8956A]/20">
-          <CardContent className="text-center py-12">
-            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-600" />
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">Check Your Email!</h2>
-            <p className="text-[#1A1A1A]/60">
-              We've sent you an invitation link to join as a contractor. Check your inbox to complete registration.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
@@ -52,9 +37,9 @@ export default function ContractorSignup() {
           <div className="mx-auto mb-4 w-16 h-16 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
             <Briefcase className="w-8 h-8 text-[#B8956A]" />
           </div>
-          <CardTitle className="text-2xl text-[#1A1A1A]">Join as a Contractor</CardTitle>
+          <CardTitle className="text-2xl text-[#1A1A1A]">Join Our Team</CardTitle>
           <p className="text-[#1A1A1A]/60 mt-2">
-            Sign up to access available jobs and start booking gigs
+            Sign up to become a contractor and start taking jobs
           </p>
         </CardHeader>
         <CardContent>
@@ -90,6 +75,7 @@ export default function ContractorSignup() {
               </label>
               <Input
                 type="tel"
+                required
                 value={formData.phone_number}
                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                 className="border-[#B8956A]/30 focus:border-[#B8956A]"
@@ -104,9 +90,9 @@ export default function ContractorSignup() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
+              className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
             >
-              {loading ? "Sending Invitation..." : "Sign Up as Contractor"}
+              {loading ? "Creating Account..." : "Sign Up"}
             </Button>
           </form>
         </CardContent>

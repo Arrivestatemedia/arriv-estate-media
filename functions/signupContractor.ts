@@ -9,8 +9,8 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Email and full name are required' }, { status: 400 });
         }
 
-        // Invite the user as a regular user (contractor)
-        await base44.users.inviteUser(email, "user");
+        // Invite the user as a regular user
+        await base44.asServiceRole.users.inviteUser(email, "user");
 
         // Update their user_type to contractor
         const users = await base44.asServiceRole.entities.User.filter({ email });
@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
 
         return Response.json({ 
             success: true, 
-            message: 'Contractor invitation sent successfully' 
+            message: 'Contractor account created successfully',
+            login_url: `/login?email=${encodeURIComponent(email)}`
         });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
