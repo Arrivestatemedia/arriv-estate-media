@@ -40,6 +40,20 @@ export default function JobBoard() {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+
+  const backupMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+
   const handleBook = (job) => {
     setBookingJob(job);
   };
@@ -58,10 +72,52 @@ export default function JobBoard() {
     }
   };
 
+  const handleCancel = (job) => {
+    if (!user) return;
+    
+    // If there's a backup, promote them to primary
+    if (job.backup_booked_by) {
+      cancelMutation.mutate({
+        id: job.id,
+        data: {
+          ...job,
+          booked_by: job.backup_booked_by,
+          booked_by_name: job.backup_booked_by_name,
+          backup_booked_by: null,
+          backup_booked_by_name: null,
+          status: "booked",
+        },
+      });
+    } else {
+      // No backup, return to open
+      cancelMutation.mutate({
+        id: job.id,
+        data: {
+          ...job,
+          booked_by: null,
+          booked_by_name: null,
+          status: "open",
+        },
+      });
+    }
+  };
+
+  const handleBookBackup = (job) => {
+    if (!user) return;
+    backupMutation.mutate({
+      id: job.id,
+      data: {
+        ...job,
+        backup_booked_by: user.email,
+        backup_booked_by_name: user.full_name,
+      },
+    });
+  };
+
   const filteredJobs = jobs
     .filter((job) => {
       if (filter === "open") return job.status === "open";
-      if (filter === "booked") return job.booked_by === user?.email;
+      if (filter === "booked") return job.booked_by === user?.email || job.backup_booked_by === user?.email;
       return true;
     })
     .filter((job) => {
@@ -121,7 +177,15 @@ export default function JobBoard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredJobs.map((job) => (
-              <JobCard key={job.id} job={job} isAdmin={false} onBook={handleBook} currentUserEmail={user?.email} />
+              <JobCard 
+                key={job.id} 
+                job={job} 
+                isAdmin={false} 
+                onBook={handleBook} 
+                onCancel={handleCancel}
+                onBookBackup={handleBookBackup}
+                currentUserEmail={user?.email} 
+              />
             ))}
           </div>
         )}
