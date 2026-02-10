@@ -103,17 +103,10 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected }) {
               ))}
               <Button
                 onClick={() => onSelect(pkg)}
-                className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white mt-4"
-                disabled={isSelected}
+                variant={isSelected ? "outline" : "default"}
+                className={isSelected ? "w-full border-red-300 text-red-600 hover:bg-red-50 mt-4" : "w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white mt-4"}
               >
-                {isSelected ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Selected
-                  </>
-                ) : (
-                  "Select Package"
-                )}
+                {isSelected ? "Remove from Cart" : "Select Package"}
               </Button>
             </div>
           </motion.div>
@@ -140,7 +133,11 @@ export default function BookingPage() {
   });
 
   const handleSelectPackage = (pkg) => {
-    setSelectedPackage(pkg);
+    if (selectedPackage?.id === pkg.id) {
+      setSelectedPackage(null);
+    } else {
+      setSelectedPackage(pkg);
+    }
   };
 
   const handleAddToCart = (addon) => {
