@@ -273,12 +273,30 @@ export default function BookingPage() {
                           >
                             Remove
                           </Button>
+                        ) : isDisabled ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Button
+                                    size="sm"
+                                    className="bg-[#B8956A] hover:bg-[#A68559] text-white"
+                                    disabled={true}
+                                  >
+                                    Add
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{disabledReason}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : (
                           <Button
                             size="sm"
                             onClick={() => handleAddToCart(addon)}
                             className="bg-[#B8956A] hover:bg-[#A68559] text-white"
-                            disabled={isDisabled}
                           >
                             Add
                           </Button>
