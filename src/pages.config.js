@@ -50,6 +50,8 @@
 import BookingPage from './pages/BookingPage';
 import Dashboard from './pages/Dashboard';
 import JobBoard from './pages/JobBoard';
+import ContractorSignup from './pages/ContractorSignup';
+import CustomerSignup from './pages/CustomerSignup';
 import __Layout from './Layout.jsx';
 
 
@@ -57,6 +59,8 @@ export const PAGES = {
     "BookingPage": BookingPage,
     "Dashboard": Dashboard,
     "JobBoard": JobBoard,
+    "ContractorSignup": ContractorSignup,
+    "CustomerSignup": CustomerSignup,
 }
 
 export const pagesConfig = {
