@@ -1,10 +1,25 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History, DollarSign, Calendar } from "lucide-react";
-import { format } from "date-fns";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { History, DollarSign, Calendar, Clock } from "lucide-react";
+import { format, addDays, nextFriday } from "date-fns";
 
 export default function PayoutHistoryList({ payoutHistory }) {
+  const getNextPayoutDate = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    
+    // If it's Friday and before 4am, payout is today
+    if (dayOfWeek === 5 && now.getHours() < 4) {
+      return now;
+    }
+    
+    // Otherwise, get next Friday
+    return nextFriday(now);
+  };
+
+  const nextPayout = getNextPayoutDate();
   if (!payoutHistory || payoutHistory.length === 0) {
     return (
       <Card className="border-[#B8956A]/20">
@@ -17,6 +32,12 @@ export default function PayoutHistoryList({ payoutHistory }) {
           </div>
         </CardHeader>
         <CardContent>
+          <Alert className="bg-blue-50 border-blue-200 mb-4">
+            <Clock className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-sm text-blue-900">
+              <strong>Next payout:</strong> {format(nextPayout, 'EEEE, MMMM d, yyyy')} at 4:00 AM
+            </AlertDescription>
+          </Alert>
           <p className="text-[#1A1A1A]/60 text-center py-8">
             No payout history yet. Your first payout will occur on the next Friday at 4am.
           </p>
@@ -36,6 +57,12 @@ export default function PayoutHistoryList({ payoutHistory }) {
         </div>
       </CardHeader>
       <CardContent>
+        <Alert className="bg-blue-50 border-blue-200 mb-4">
+          <Clock className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-sm text-blue-900">
+            <strong>Next payout:</strong> {format(nextPayout, 'EEEE, MMMM d, yyyy')} at 4:00 AM
+          </AlertDescription>
+        </Alert>
         <div className="space-y-3">
           {payoutHistory.map((payout) => (
             <div
