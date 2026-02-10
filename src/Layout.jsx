@@ -14,6 +14,8 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   const isAdmin = user?.role === "admin";
+  const isCustomer = user?.user_type === "customer";
+  const isContractor = user?.user_type === "contractor";
 
   const navItems = isAdmin
     ? [
@@ -21,10 +23,15 @@ export default function Layout({ children, currentPageName }) {
         { label: "Job Board", page: "JobBoard", icon: Briefcase },
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
       ]
-    : [
-        { label: "Available Jobs", page: "JobBoard", icon: Briefcase },
+    : isCustomer
+    ? [
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
-      ];
+      ]
+    : isContractor
+    ? [
+        { label: "Available Jobs", page: "JobBoard", icon: Briefcase },
+      ]
+    : [];
 
   return (
     <div className="min-h-screen bg-[#FFFBF5]">
@@ -39,7 +46,7 @@ export default function Layout({ children, currentPageName }) {
       <header className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to={createPageUrl(isAdmin ? "Dashboard" : "JobBoard")} className="flex items-center gap-3">
+            <Link to={createPageUrl(isAdmin ? "Dashboard" : isCustomer ? "BookingPage" : "JobBoard")} className="flex items-center gap-3">
               <img 
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
                 alt="Arriv" 
