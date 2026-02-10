@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import JobForm from "../components/jobs/JobForm";
 import JobCard from "../components/jobs/JobCard";
 import PendingBookingCard from "../components/booking/PendingBookingCard";
+import InviteUsersCard from "../components/dashboard/InviteUsersCard";
 import { AnimatePresence } from "framer-motion";
 
 export default function Dashboard() {
@@ -134,54 +135,60 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="border-2 border-[#B8956A]/20 bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
-                Total Jobs
-                <Briefcase className="w-4 h-4 text-[#B8956A]" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-[#1A1A1A]">{stats.total}</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-2 border-[#B8956A]/20 bg-white">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
+                  Total Jobs
+                  <Briefcase className="w-4 h-4 text-[#B8956A]" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-[#1A1A1A]">{stats.total}</p>
+              </CardContent>
+            </Card>
 
-          <Card className="border-2 border-[#B8956A]/20 bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
-                Open Jobs
-                <Calendar className="w-4 h-4 text-emerald-600" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-emerald-600">{stats.open}</p>
-            </CardContent>
-          </Card>
+            <Card className="border-2 border-[#B8956A]/20 bg-white">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
+                  Open Jobs
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-emerald-600">{stats.open}</p>
+              </CardContent>
+            </Card>
 
-          <Card className="border-2 border-[#B8956A]/20 bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
-                Booked
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-blue-600">{stats.booked}</p>
-            </CardContent>
-          </Card>
+            <Card className="border-2 border-[#B8956A]/20 bg-white">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
+                  Booked
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-blue-600">{stats.booked}</p>
+              </CardContent>
+            </Card>
 
-          <Card className="border-2 border-[#B8956A]/20 bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
-                Total Paid
-                <DollarSign className="w-4 h-4 text-[#B8956A]" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-[#B8956A]">${stats.totalPayout.toFixed(0)}</p>
-            </CardContent>
-          </Card>
+            <Card className="border-2 border-[#B8956A]/20 bg-white">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
+                  Total Paid
+                  <DollarSign className="w-4 h-4 text-[#B8956A]" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-[#B8956A]">${stats.totalPayout.toFixed(0)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-1">
+            <InviteUsersCard />
+          </div>
         </div>
 
         <AnimatePresence>
