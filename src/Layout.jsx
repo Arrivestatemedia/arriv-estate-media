@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, currentPageName }) {
@@ -76,6 +76,19 @@ export default function Layout({ children, currentPageName }) {
                   </Link>
                 );
               })}
+              {user && (
+                <Link
+                  to={createPageUrl("AccountSettings")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    currentPageName === "AccountSettings"
+                      ? "bg-[#B8956A] text-[#1A1A1A]"
+                      : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </Link>
+              )}
             </nav>
 
             <div className="flex items-center gap-3">
@@ -129,13 +142,27 @@ export default function Layout({ children, currentPageName }) {
               );
             })}
             {user && (
-              <button
-                onClick={() => base44.auth.logout()}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
+              <>
+                <Link
+                  to={createPageUrl("AccountSettings")}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                    currentPageName === "AccountSettings"
+                      ? "bg-[#B8956A] text-[#1A1A1A]"
+                      : "text-[#FFFBF5]/70 hover:bg-[#FFFBF5]/10"
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </Link>
+                <button
+                  onClick={() => base44.auth.logout()}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </>
             )}
           </div>
         )}
