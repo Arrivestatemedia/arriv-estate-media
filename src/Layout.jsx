@@ -34,7 +34,7 @@ export default function Layout({ children, currentPageName }) {
       ]
     : [];
 
-  const dashboardPage = isAdmin ? "Dashboard" : isCustomer ? "BookingPage" : "ContractorDashboard";
+  const dashboardPage = isAdmin ? "Dashboard" : isCustomer ? "BookingPage" : "JobBoard";
 
   return (
     <div className="min-h-screen bg-[#FFFBF5]">
