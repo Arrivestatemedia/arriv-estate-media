@@ -232,10 +232,38 @@ export default function BookingPage() {
                 <div className="px-6 pb-6 space-y-2">
                   {addOns.map((addon) => {
                     const isInCart = cartAddOns.find(a => a.id === addon.id);
+                    
+                    // Check if add-on requires a package
+                    const requiresPackage = ['ai_staging', 'twilight', 'rush_delivery'].includes(addon.id);
+                    const requiresPhotoPackage = addon.id === 'twilight';
+                    
+                    const hasPackage = !!selectedPackage;
+                    const hasPhotoPackage = selectedPackage && ['photo_essentials', 'photo_cinematic', 'premium_bundle'].includes(selectedPackage.id);
+                    
+                    let isDisabled = false;
+                    let disabledReason = "";
+                    
+                    if (requiresPackage && !hasPackage) {
+                      isDisabled = true;
+                      disabledReason = "Requires a package";
+                    } else if (requiresPhotoPackage && !hasPhotoPackage) {
+                      isDisabled = true;
+                      disabledReason = "Requires Photo Essentials or above";
+                    }
+                    
                     return (
                       <div key={addon.id} className="flex items-center justify-between py-2 gap-4">
-                        <span className="text-sm text-[#1A1A1A]/70 flex-1">{addon.name}</span>
-                        <span className="text-sm font-semibold text-[#1A1A1A]">${addon.price}</span>
+                        <div className="flex-1">
+                          <span className={`text-sm ${isDisabled ? 'text-[#1A1A1A]/40' : 'text-[#1A1A1A]/70'}`}>
+                            {addon.name}
+                          </span>
+                          {isDisabled && (
+                            <p className="text-xs text-[#1A1A1A]/40 italic">{disabledReason}</p>
+                          )}
+                        </div>
+                        <span className={`text-sm font-semibold ${isDisabled ? 'text-[#1A1A1A]/40' : 'text-[#1A1A1A]'}`}>
+                          ${addon.price}
+                        </span>
                         {isInCart ? (
                           <Button
                             size="sm"
@@ -250,6 +278,7 @@ export default function BookingPage() {
                             size="sm"
                             onClick={() => handleAddToCart(addon)}
                             className="bg-[#B8956A] hover:bg-[#A68559] text-white"
+                            disabled={isDisabled}
                           >
                             Add
                           </Button>
