@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const { email, full_name } = await req.json();
+        const { email, full_name, phone_number } = await req.json();
 
         if (!email || !full_name) {
             return Response.json({ error: 'Email and full name are required' }, { status: 400 });
