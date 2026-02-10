@@ -1,0 +1,121 @@
+import React from "react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film } from "lucide-react";
+import { format } from "date-fns";
+import { motion } from "framer-motion";
+
+const typeConfig = {
+  photo: { label: "Photo", icon: Camera, color: "bg-[#B8956A]/10 text-[#B8956A] border-[#B8956A]/30" },
+  video: { label: "Video", icon: Video, color: "bg-[#B8956A]/10 text-[#B8956A] border-[#B8956A]/30" },
+  photo_video: { label: "Photo + Video", icon: Film, color: "bg-[#B8956A]/20 text-[#B8956A] border-[#B8956A]/40" },
+};
+
+const statusConfig = {
+  open: { label: "Open", color: "bg-emerald-50 text-emerald-700 border-emerald-300" },
+  booked: { label: "Booked", color: "bg-blue-50 text-blue-700 border-blue-300" },
+  in_progress: { label: "In Progress", color: "bg-amber-50 text-amber-700 border-amber-300" },
+  completed: { label: "Completed", color: "bg-gray-100 text-gray-600 border-gray-300" },
+  cancelled: { label: "Cancelled", color: "bg-red-50 text-red-600 border-red-300" },
+};
+
+export default function JobCard({ job, isAdmin, onBook, onManage, currentUserEmail }) {
+  const type = typeConfig[job.type] || typeConfig.photo;
+  const status = statusConfig[job.status] || statusConfig.open;
+  const TypeIcon = type.icon;
+  const isBookedByMe = job.booked_by === currentUserEmail;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card className="group overflow-hidden border-2 border-[#B8956A]/20 hover:border-[#B8956A] hover:shadow-xl transition-all duration-300 bg-white">
+        <div className="h-1 bg-gradient-to-r from-[#B8956A] via-[#C4A15C] to-[#B8956A]" />
+
+        <div className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-[#1A1A1A] truncate">{job.title}</h3>
+              <div className="flex items-center gap-1.5 mt-1 text-[#1A1A1A]/50 text-sm">
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{job.location}</span>
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-2xl font-bold text-[#B8956A]">${job.pay_rate}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Badge variant="outline" className={type.color}>
+              <TypeIcon className="w-3 h-3 mr-1" />
+              {type.label}
+            </Badge>
+            <Badge variant="outline" className={status.color}>
+              {status.label}
+            </Badge>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 text-sm text-[#1A1A1A]/60 mb-4">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              {format(new Date(job.date), "MMM d, yyyy")}
+            </div>
+            {job.start_time && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                {job.start_time}
+              </div>
+            )}
+            {job.duration_hours && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                {job.duration_hours}h
+              </div>
+            )}
+          </div>
+
+          {job.description && (
+            <p className="text-sm text-[#1A1A1A]/60 line-clamp-2 mb-4">{job.description}</p>
+          )}
+
+          {job.booked_by_name && (
+            <p className="text-xs text-[#1A1A1A]/40 mb-4">
+              Booked by <span className="font-medium text-[#B8956A]">{job.booked_by_name}</span>
+            </p>
+          )}
+
+          <div className="flex gap-2">
+            {isAdmin ? (
+              <Button
+                onClick={() => onManage(job)}
+                variant="outline"
+                className="w-full text-sm font-medium border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white"
+              >
+                Manage
+              </Button>
+            ) : job.status === "open" ? (
+              <Button
+                onClick={() => onBook(job)}
+                className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
+              >
+                Book This Gig
+              </Button>
+            ) : isBookedByMe ? (
+              <Button variant="outline" disabled className="w-full text-sm">
+                You booked this
+              </Button>
+            ) : (
+              <Button variant="outline" disabled className="w-full text-sm">
+                Unavailable
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
