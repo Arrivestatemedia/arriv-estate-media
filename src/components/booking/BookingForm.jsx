@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Clock } from "lucide-react";
-import { format, isWeekend, setHours, setMinutes } from "date-fns";
+import { format, isWeekend, setHours, setMinutes, parse } from "date-fns";
 
 const timeSlots = {
   weekday: ["3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM"],
@@ -47,21 +48,64 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
     total_price: totalPrice,
   });
 
+  const [busySlots, setBusySlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
+  useEffect(() => {
+    if (formData.preferred_date) {
+      setLoadingSlots(true);
+      base44.functions.invoke('getAvailableTimeSlots', { date: formData.preferred_date })
+        .then(response => {
+          setBusySlots(response.data.busySlots || []);
+          setLoadingSlots(false);
+        })
+        .catch(() => {
+          setBusySlots([]);
+          setLoadingSlots(false);
+        });
+    }
+  }, [formData.preferred_date]);
 
   const handleDateSelect = (date) => {
     setFormData({ ...formData, preferred_date: format(date, "yyyy-MM-dd"), preferred_time: "" });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Create calendar event
+    try {
+      await base44.functions.invoke('createCalendarEvent', { booking: formData });
+    } catch (error) {
+      console.error('Failed to create calendar event:', error);
+    }
+    
     onSubmit(formData);
+  };
+
+  const isTimeSlotBusy = (timeSlot) => {
+    if (!formData.preferred_date) return false;
+    
+    const [time, period] = timeSlot.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    
+    const slotDateTime = new Date(formData.preferred_date);
+    slotDateTime.setHours(hours, minutes, 0, 0);
+    
+    return busySlots.some(busy => {
+      const busyStart = new Date(busy.start);
+      const busyEnd = new Date(busy.end);
+      return slotDateTime >= busyStart && slotDateTime < busyEnd;
+    });
   };
 
   const availableTimeSlots = formData.preferred_date
     ? isWeekend(new Date(formData.preferred_date))
-      ? timeSlots.weekend
-      : timeSlots.weekday
+      ? timeSlots.weekend.filter(slot => !isTimeSlotBusy(slot))
+      : timeSlots.weekday.filter(slot => !isTimeSlotBusy(slot))
     : [];
 
   const isDateDisabled = (date) => {
@@ -185,8 +229,13 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                     <Clock className="w-4 h-4 inline mr-2" />
                     Available Time Slots *
                   </label>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {availableTimeSlots.map((time) => (
+                  {loadingSlots ? (
+                    <p className="text-sm text-[#1A1A1A]/50">Checking availability...</p>
+                  ) : availableTimeSlots.length === 0 ? (
+                    <p className="text-sm text-[#1A1A1A]/50">No available time slots for this date</p>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {availableTimeSlots.map((time) => (
                       <button
                         key={time}
                         type="button"
@@ -199,15 +248,16 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                       >
                         {time}
                       </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-[#1A1A1A]/50 mt-2">
-                    {isWeekend(new Date(formData.preferred_date))
-                      ? "Weekend: All day availability"
-                      : "Weekday: Available after 3:00 PM"}
-                  </p>
-                </div>
-              )}
+                      ))}
+                      </div>
+                      )}
+                      <p className="text-xs text-[#1A1A1A]/50 mt-2">
+                      {isWeekend(new Date(formData.preferred_date))
+                      ? "Weekend: All day availability (excluding booked times)"
+                      : "Weekday: Available after 3:00 PM (excluding booked times)"}
+                      </p>
+                      </div>
+                      )}
 
               <div>
                 <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
