@@ -20,11 +20,21 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-600 border-red-300" },
 };
 
-export default function JobCard({ job, isAdmin, onBook, onManage, currentUserEmail }) {
+export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail }) {
   const type = typeConfig[job.type] || typeConfig.photo;
   const status = statusConfig[job.status] || statusConfig.open;
   const TypeIcon = type.icon;
   const isBookedByMe = job.booked_by === currentUserEmail;
+  const isBackupByMe = job.backup_booked_by === currentUserEmail;
+
+  // Check if within 2.5 hours of job start
+  const canCancel = () => {
+    if (!job.date || !job.start_time) return true;
+    const jobDateTime = new Date(`${job.date}T${job.start_time}`);
+    const now = new Date();
+    const hoursUntilJob = (jobDateTime - now) / (1000 * 60 * 60);
+    return hoursUntilJob > 2.5;
+  };
 
   return (
     <motion.div
@@ -83,9 +93,16 @@ export default function JobCard({ job, isAdmin, onBook, onManage, currentUserEma
           )}
 
           {job.booked_by_name && (
-            <p className="text-xs text-[#1A1A1A]/40 mb-4">
-              Booked by <span className="font-medium text-[#B8956A]">{job.booked_by_name}</span>
-            </p>
+            <div className="text-xs text-[#1A1A1A]/40 mb-4">
+              <p>
+                Booked by <span className="font-medium text-[#B8956A]">{job.booked_by_name}</span>
+              </p>
+              {job.backup_booked_by_name && (
+                <p className="mt-1">
+                  Backup: <span className="font-medium text-[#B8956A]/70">{job.backup_booked_by_name}</span>
+                </p>
+              )}
+            </div>
           )}
 
           <div className="flex gap-2">
@@ -105,12 +122,29 @@ export default function JobCard({ job, isAdmin, onBook, onManage, currentUserEma
                 Book This Gig
               </Button>
             ) : isBookedByMe ? (
+              <Button
+                onClick={() => onCancel(job)}
+                disabled={!canCancel()}
+                variant="outline"
+                className="w-full text-sm border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
+              >
+                {canCancel() ? "Cancel My Booking" : "Too late to cancel"}
+              </Button>
+            ) : isBackupByMe ? (
               <Button variant="outline" disabled className="w-full text-sm">
-                You booked this
+                You're backup
+              </Button>
+            ) : job.backup_booked_by ? (
+              <Button variant="outline" disabled className="w-full text-sm">
+                Backup taken
               </Button>
             ) : (
-              <Button variant="outline" disabled className="w-full text-sm">
-                Unavailable
+              <Button
+                onClick={() => onBookBackup(job)}
+                variant="outline"
+                className="w-full text-sm border-[#B8956A] text-[#B8956A] hover:bg-[#B8956A]/10"
+              >
+                Book as Backup
               </Button>
             )}
           </div>
