@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Plus, Briefcase, DollarSign, Calendar, TrendingUp } from "lucide-react";
+import { Plus, Briefcase, DollarSign, Calendar, TrendingUp, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import JobForm from "../components/jobs/JobForm";
 import JobCard from "../components/jobs/JobCard";
+import PendingBookingCard from "../components/booking/PendingBookingCard";
 import { AnimatePresence } from "framer-motion";
 
 export default function Dashboard() {
@@ -23,6 +24,11 @@ export default function Dashboard() {
     queryFn: () => base44.auth.me(),
   });
 
+  const { data: pendingBookings = [] } = useQuery({
+    queryKey: ["pendingBookings"],
+    queryFn: () => base44.entities.Booking.filter({ status: "pending" }, "-created_date"),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Job.create(data),
     onSuccess: () => {
@@ -37,6 +43,54 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setShowForm(false);
       setEditingJob(null);
+    },
+  });
+
+  const postToJobBoardMutation = useMutation({
+    mutationFn: async (booking) => {
+      const job = await base44.entities.Job.create({
+        title: `${booking.package} - ${booking.property_address}`,
+        type: "photo_video",
+        description: booking.notes || "Booking approved from client request",
+        location: booking.property_address,
+        date: booking.preferred_date,
+        start_time: booking.preferred_time,
+        duration_hours: 2,
+        pay_rate: booking.total_price,
+        status: "open",
+        notes: `Client: ${booking.client_name} (${booking.client_email})`
+      });
+      await base44.entities.Booking.update(booking.id, { status: "confirmed" });
+      return job;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["pendingBookings"] });
+    },
+  });
+
+  const acceptForMyselfMutation = useMutation({
+    mutationFn: async (booking) => {
+      const job = await base44.entities.Job.create({
+        title: `${booking.package} - ${booking.property_address}`,
+        type: "photo_video",
+        description: booking.notes || "Accepted directly by admin",
+        location: booking.property_address,
+        date: booking.preferred_date,
+        start_time: booking.preferred_time,
+        duration_hours: 2,
+        pay_rate: booking.total_price,
+        status: "booked",
+        booked_by: user?.email,
+        booked_by_name: user?.full_name,
+        notes: `Client: ${booking.client_name} (${booking.client_email})`
+      });
+      await base44.entities.Booking.update(booking.id, { status: "confirmed" });
+      return job;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["pendingBookings"] });
     },
   });
 
@@ -144,6 +198,27 @@ export default function Dashboard() {
             </div>
           )}
         </AnimatePresence>
+
+        {pendingBookings.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-5 h-5 text-yellow-600" />
+              <h2 className="text-xl font-semibold text-[#1A1A1A]">
+                Pending Bookings ({pendingBookings.length})
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pendingBookings.map((booking) => (
+                <PendingBookingCard
+                  key={booking.id}
+                  booking={booking}
+                  onPostToJobBoard={(booking) => postToJobBoardMutation.mutate(booking)}
+                  onAcceptForMyself={(booking) => acceptForMyselfMutation.mutate(booking)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-[#1A1A1A]">All Jobs</h2>
