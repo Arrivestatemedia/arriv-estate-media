@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Briefcase, CheckCircle2 } from "lucide-react";
 
 export default function ContractorSignup() {
-  const [formData, setFormData] = useState({ email: "", full_name: "" });
+  const [searchParams] = useSearchParams();
+  const phoneNumber = searchParams.get('phone_number');
+  const [formData, setFormData] = useState({ email: "", full_name: "", phone_number: phoneNumber || "" });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -79,6 +82,18 @@ export default function ContractorSignup() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="border-[#B8956A]/30 focus:border-[#B8956A]"
                 placeholder="john@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                Phone Number
+              </label>
+              <Input
+                type="tel"
+                value={formData.phone_number}
+                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                placeholder="+1 (555) 123-4567"
               />
             </div>
             {error && (

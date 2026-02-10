@@ -17,7 +17,8 @@ Deno.serve(async (req) => {
         if (users.length > 0) {
             await base44.asServiceRole.entities.User.update(users[0].id, {
                 user_type: "contractor",
-                full_name
+                full_name,
+                phone_number
             });
         }
 
