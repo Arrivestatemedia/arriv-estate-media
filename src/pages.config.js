@@ -52,6 +52,7 @@ import ContractorSignup from './pages/ContractorSignup';
 import CustomerSignup from './pages/CustomerSignup';
 import Dashboard from './pages/Dashboard';
 import JobBoard from './pages/JobBoard';
+import ContractorDashboard from './pages/ContractorDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -61,6 +62,7 @@ export const PAGES = {
     "CustomerSignup": CustomerSignup,
     "Dashboard": Dashboard,
     "JobBoard": JobBoard,
+    "ContractorDashboard": ContractorDashboard,
 }
 
 export const pagesConfig = {
