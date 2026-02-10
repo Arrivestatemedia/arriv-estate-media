@@ -31,7 +31,9 @@ const timeSlots = {
   ],
 };
 
-export default function BookingForm({ selectedPackage, addOns, onSubmit, onCancel }) {
+export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSubmit, onCancel }) {
+  const totalPrice = (selectedPackage?.price || 0) + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
+  
   const [formData, setFormData] = useState({
     client_name: "",
     client_email: "",
@@ -41,29 +43,11 @@ export default function BookingForm({ selectedPackage, addOns, onSubmit, onCance
     preferred_time: "",
     notes: "",
     package: selectedPackage?.id || "",
-    add_ons: [],
-    total_price: selectedPackage?.price || 0,
+    add_ons: (cartAddOns || []).map(a => a.id),
+    total_price: totalPrice,
   });
 
-  const [selectedAddOns, setSelectedAddOns] = useState([]);
 
-  const handleAddOnToggle = (addon) => {
-    const isSelected = selectedAddOns.find((a) => a.id === addon.id);
-    let newAddOns;
-    if (isSelected) {
-      newAddOns = selectedAddOns.filter((a) => a.id !== addon.id);
-    } else {
-      newAddOns = [...selectedAddOns, addon];
-    }
-    setSelectedAddOns(newAddOns);
-    
-    const totalAddOnPrice = newAddOns.reduce((sum, a) => sum + a.price, 0);
-    setFormData({
-      ...formData,
-      add_ons: newAddOns.map((a) => a.id),
-      total_price: (selectedPackage?.price || 0) + totalAddOnPrice,
-    });
-  };
 
   const handleDateSelect = (date) => {
     setFormData({ ...formData, preferred_date: format(date, "yyyy-MM-dd"), preferred_time: "" });
@@ -166,10 +150,10 @@ export default function BookingForm({ selectedPackage, addOns, onSubmit, onCance
                 />
               </div>
 
-              {selectedAddOns.length > 0 && (
+              {cartAddOns && cartAddOns.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-[#1A1A1A]">Selected Add-Ons:</p>
-                  {selectedAddOns.map((addon) => (
+                  {cartAddOns.map((addon) => (
                     <div key={addon.id} className="flex justify-between text-sm text-[#1A1A1A]/70">
                       <span>• {addon.name}</span>
                       <span className="font-semibold">${addon.price}</span>
@@ -177,26 +161,6 @@ export default function BookingForm({ selectedPackage, addOns, onSubmit, onCance
                   ))}
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-medium text-[#1A1A1A] mb-3">
-                  Add-Ons (Optional)
-                </label>
-                <div className="space-y-3">
-                  {addOns.map((addon) => (
-                    <div key={addon.id} className="flex items-center justify-between p-3 border border-[#B8956A]/20 rounded-lg hover:bg-[#B8956A]/5">
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          checked={selectedAddOns.some((a) => a.id === addon.id)}
-                          onCheckedChange={() => handleAddOnToggle(addon)}
-                        />
-                        <span className="text-sm text-[#1A1A1A]">{addon.name}</span>
-                      </div>
-                      <span className="text-sm font-semibold text-[#B8956A]">${addon.price}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-[#1A1A1A] mb-3">

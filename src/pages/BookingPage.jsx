@@ -59,7 +59,7 @@ const addOns = [
   { id: "ai_staging", name: "AI Staging", price: 150 },
 ];
 
-function PackageCard({ pkg, isExpanded, onToggle, onSelect }) {
+function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -103,8 +103,16 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect }) {
               <Button
                 onClick={() => onSelect(pkg)}
                 className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white mt-4"
+                disabled={isSelected}
               >
-                Select Package
+                {isSelected ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Selected
+                  </>
+                ) : (
+                  "Select Package"
+                )}
               </Button>
             </div>
           </motion.div>
@@ -119,6 +127,7 @@ export default function BookingPage() {
   const [expandedAddOns, setExpandedAddOns] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [cartAddOns, setCartAddOns] = useState([]);
 
   const createBookingMutation = useMutation({
     mutationFn: (data) => base44.entities.Booking.create(data),
@@ -131,8 +140,19 @@ export default function BookingPage() {
 
   const handleSelectPackage = (pkg) => {
     setSelectedPackage(pkg);
-    setShowBookingForm(true);
   };
+
+  const handleAddToCart = (addon) => {
+    if (!cartAddOns.find(a => a.id === addon.id)) {
+      setCartAddOns([...cartAddOns, addon]);
+    }
+  };
+
+  const handleRemoveFromCart = (addonId) => {
+    setCartAddOns(cartAddOns.filter(a => a.id !== addonId));
+  };
+
+  const totalPrice = (selectedPackage?.price || 0) + cartAddOns.reduce((sum, a) => sum + a.price, 0);
 
   const handleSubmitBooking = (bookingData) => {
     createBookingMutation.mutate(bookingData);
@@ -142,11 +162,11 @@ export default function BookingPage() {
     return (
       <BookingForm
         selectedPackage={selectedPackage}
+        cartAddOns={cartAddOns}
         addOns={addOns}
         onSubmit={handleSubmitBooking}
         onCancel={() => {
           setShowBookingForm(false);
-          setSelectedPackage(null);
         }}
       />
     );
@@ -184,6 +204,7 @@ export default function BookingPage() {
               isExpanded={expandedPackage === pkg.id}
               onToggle={() => setExpandedPackage(expandedPackage === pkg.id ? null : pkg.id)}
               onSelect={handleSelectPackage}
+              isSelected={selectedPackage?.id === pkg.id}
             />
           ))}
         </div>
@@ -209,12 +230,33 @@ export default function BookingPage() {
                 className="overflow-hidden"
               >
                 <div className="px-6 pb-6 space-y-2">
-                  {addOns.map((addon) => (
-                    <div key={addon.id} className="flex items-center justify-between py-2">
-                      <span className="text-sm text-[#1A1A1A]/70">{addon.name}</span>
-                      <span className="text-sm font-semibold text-[#1A1A1A]">${addon.price}</span>
-                    </div>
-                  ))}
+                  {addOns.map((addon) => {
+                    const isInCart = cartAddOns.find(a => a.id === addon.id);
+                    return (
+                      <div key={addon.id} className="flex items-center justify-between py-2 gap-4">
+                        <span className="text-sm text-[#1A1A1A]/70 flex-1">{addon.name}</span>
+                        <span className="text-sm font-semibold text-[#1A1A1A]">${addon.price}</span>
+                        {isInCart ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemoveFromCart(addon.id)}
+                            className="border-red-300 text-red-600 hover:bg-red-50"
+                          >
+                            Remove
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddToCart(addon)}
+                            className="bg-[#B8956A] hover:bg-[#A68559] text-white"
+                          >
+                            Add
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
@@ -239,13 +281,36 @@ export default function BookingPage() {
           </p>
         </div>
 
+        {(selectedPackage || cartAddOns.length > 0) && (
+          <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A] p-6 mb-8">
+            <h3 className="font-semibold text-[#1A1A1A] mb-4">Your Cart</h3>
+            {selectedPackage && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[#1A1A1A]">{selectedPackage.name}</span>
+                <span className="font-semibold text-[#B8956A]">${selectedPackage.price}</span>
+              </div>
+            )}
+            {cartAddOns.map((addon) => (
+              <div key={addon.id} className="flex justify-between items-center mb-2">
+                <span className="text-[#1A1A1A]/70 text-sm">+ {addon.name}</span>
+                <span className="font-semibold text-[#1A1A1A] text-sm">${addon.price}</span>
+              </div>
+            ))}
+            <div className="border-t border-[#1A1A1A]/10 mt-4 pt-4 flex justify-between items-center">
+              <span className="font-semibold text-[#1A1A1A]">Total</span>
+              <span className="text-2xl font-bold text-[#B8956A]">${totalPrice}</span>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mt-12">
           <Button
             onClick={() => setShowBookingForm(true)}
             size="lg"
             className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white px-12 py-6 text-lg"
+            disabled={!selectedPackage}
           >
-            REQUEST AVAILABILITY
+            {selectedPackage ? "Take me to my cart" : "Select a package to continue"}
           </Button>
         </div>
       </div>
