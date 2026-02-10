@@ -23,7 +23,7 @@ export default function ContractorSignup() {
     try {
       await base44.functions.invoke('signupContractor', formData);
       // Redirect to login page with email pre-filled
-      window.location.href = `${window.location.origin}/login?email=${encodeURIComponent(formData.email)}&next=${createPageUrl("ContractorDashboard")}`;
+      window.location.href = `${window.location.origin}/login?email=${encodeURIComponent(formData.email)}&next=${createPageUrl("JobBoard")}`;
     } catch (err) {
       setError(err.message || "Failed to create account");
       setLoading(false);

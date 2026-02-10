@@ -29,8 +29,8 @@ export default function Layout({ children, currentPageName }) {
       ]
     : isContractor
     ? [
-        { label: "My Dashboard", page: "ContractorDashboard", icon: LayoutDashboard },
         { label: "Available Jobs", page: "JobBoard", icon: Briefcase },
+        { label: "Dashboard", page: "ContractorDashboard", icon: LayoutDashboard },
       ]
     : [];
 

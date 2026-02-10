@@ -138,7 +138,7 @@ export default function JobBoard() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Available Gigs</h1>
-            <p className="text-[#1A1A1A]/60">Browse and book photo & video jobs</p>
+            <p className="text-[#1A1A1A]/60">Browse and book jobs</p>
           </div>
           {user?.user_type === "contractor" && (
             <Link to={createPageUrl("ContractorDashboard")}>
