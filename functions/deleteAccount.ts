@@ -17,30 +17,36 @@ Deno.serve(async (req) => {
             deletion_scheduled_date: deletionDate.toISOString().split('T')[0]
         });
 
-        // Get admin email from environment or use a default
-        const adminEmail = Deno.env.get('ADMIN_EMAIL') || 'admin@arrivestatemedia.com';
+        // Get admin users
+        const adminUsers = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
         const confirmUrl = `https://${appDomain}/confirmDeleteUser?user_id=${user.id}`;
 
-        // Send email to admin
-        await base44.asServiceRole.integrations.Core.SendEmail({
-            to: adminEmail,
-            subject: `Account Deletion Request - ${user.full_name}`,
-            body: `
-                <h2>Account Deletion Request</h2>
-                <p><strong>User:</strong> ${user.full_name}</p>
-                <p><strong>Email:</strong> ${user.email}</p>
-                <p><strong>Account Type:</strong> ${user.user_type || 'user'}</p>
-                <p><strong>Scheduled Deletion Date:</strong> ${deletionDate.toLocaleDateString()}</p>
-                
-                <p>The user has requested to delete their account. The account is scheduled for automatic deletion in 30 days.</p>
-                
-                <p>To delete this account immediately, click the link below:</p>
-                <a href="${confirmUrl}" style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Delete Account Now</a>
-                
-                <p style="color: #666; font-size: 12px;">Or copy this link: ${confirmUrl}</p>
-            `
-        });
+        // Send email to all admins
+        for (const admin of adminUsers) {
+            try {
+                await base44.asServiceRole.integrations.Core.SendEmail({
+                    to: admin.email,
+                    subject: `Account Deletion Request - ${user.full_name}`,
+                    body: `
+                        <h2>Account Deletion Request</h2>
+                        <p><strong>User:</strong> ${user.full_name}</p>
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>Account Type:</strong> ${user.user_type || 'user'}</p>
+                        <p><strong>Scheduled Deletion Date:</strong> ${deletionDate.toLocaleDateString()}</p>
+                        
+                        <p>The user has requested to delete their account. The account is scheduled for automatic deletion in 30 days.</p>
+                        
+                        <p>To delete this account immediately, click the link below:</p>
+                        <a href="${confirmUrl}" style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Delete Account Now</a>
+                        
+                        <p style="color: #666; font-size: 12px;">Or copy this link: ${confirmUrl}</p>
+                    `
+                });
+            } catch (emailError) {
+                console.error('Failed to send email to admin:', admin.email, emailError);
+            }
+        }
 
         return Response.json({ 
             success: true, 
