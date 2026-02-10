@@ -1,4 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "../../utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, MapPin, Calendar, Clock, DollarSign } from "lucide-react";
@@ -43,7 +45,14 @@ export default function BookedJobsList({ jobs, loading }) {
         </CardHeader>
         <CardContent>
           <p className="text-[#1A1A1A]/60 text-center py-8">
-            You haven't booked any jobs yet. Check the Available Jobs page to find work!
+            You haven't booked any jobs yet. Check the{" "}
+            <Link 
+              to={createPageUrl("JobBoard")} 
+              className="text-[#B8956A] hover:text-[#A68559] font-semibold underline"
+            >
+              Available Jobs
+            </Link>{" "}
+            page to find work!
           </p>
         </CardContent>
       </Card>
