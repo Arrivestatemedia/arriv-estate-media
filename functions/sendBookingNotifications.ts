@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { booking } = await req.json();
+        const { booking, type = 'confirmation' } = await req.json();
         
         // Send SMS via Twilio
         if (booking.client_phone) {
@@ -17,7 +17,11 @@ Deno.serve(async (req) => {
             const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
             const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
             
-            const message = `Hi ${booking.client_name}! Your booking at ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been confirmed. You'll also receive a calendar invite via email. - Arriv`;
+            const messageText = type === 'cancellation'
+                ? `Hi ${booking.client_name}! Your booking at ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been cancelled. - Arriv`
+                : `Hi ${booking.client_name}! Your booking at ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been confirmed. You'll also receive a calendar invite via email. - Arriv`;
+            
+            const message = messageText;
             
             const twilioResponse = await fetch(
                 `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
@@ -45,8 +49,10 @@ Deno.serve(async (req) => {
         const adminEmail = 'BradCBurke@arrivestatemedia.com';
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-        const emailSubject = 'Your Booking Confirmation - Arriv';
-        const emailBody = `Hi ${booking.client_name},\n\nYour booking has been confirmed!\n\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\n\nYou should receive a calendar invite shortly. We'll contact you if there are any changes.\n\nThank you,\nArriv Team`;
+        const emailSubject = type === 'cancellation' ? 'Your Booking Has Been Cancelled - Arriv' : 'Your Booking Confirmation - Arriv';
+        const emailBody = type === 'cancellation'
+            ? `Hi ${booking.client_name},\n\nYour booking has been cancelled.\n\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\n\nIf you have any questions, please contact us.\n\nThank you,\nArriv Team`
+            : `Hi ${booking.client_name},\n\nYour booking has been confirmed!\n\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\n\nYou should receive a calendar invite shortly. We'll contact you if there are any changes.\n\nThank you,\nArriv Team`;
 
         const messageLines = [
             `To: ${booking.client_email}`,
