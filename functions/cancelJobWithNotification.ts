@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         if (job.backup_booked_by !== 'BradCBurke@arrivestatemedia.com' && job.backup_booked_by_phone) {
           // Send email
           const adminEmail = 'BradCBurke@arrivestatemedia.com';
-          const accessToken = await base44.connectors.getAccessToken('gmail');
+          const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
           const emailSubject = `You've been assigned to: ${job.title}`;
           const emailBody = `Hi ${job.backup_booked_by_name},\n\nGreat news! The primary contractor for "${job.title}" has cancelled, and you've been assigned as the main contractor for this job.\n\nProperty: ${job.location}\nDate: ${job.date}\nTime: ${job.start_time}\nPay: $${job.pay_rate}\n\nPlease confirm your availability.\n\nThank you,\nArriv Team`;
