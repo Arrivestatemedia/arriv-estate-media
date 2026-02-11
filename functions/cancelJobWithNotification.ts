@@ -16,15 +16,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job ID is required' }, { status: 400 });
     }
 
-    // --- DIAGNOSTIC CODE ---
-    try {
-      const testUsers = await base44.asServiceRole.entities.User.list();
-      console.log(`[DIAGNOSTIC] Successfully fetched ${testUsers.length} users via asServiceRole`);
-    } catch (diagnosticError) {
-      console.error('[DIAGNOSTIC] Failed to list users via asServiceRole:', diagnosticError);
-      return Response.json({ error: `[DIAGNOSTIC] asServiceRole failed: ${diagnosticError.message}` }, { status: 500 });
-    }
-    // --- END DIAGNOSTIC ---
+
 
     // Get the job
     let job;
@@ -55,46 +47,7 @@ Deno.serve(async (req) => {
         status: "booked",
       });
 
-      // Send SMS to Bradley's number (always)
-      // Send SMS notifications
-      const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
-      const message = `Hi ${job.backup_booked_by_name}! You've been assigned to: ${job.title} on ${job.date} at ${job.start_time}. Pay: $${job.pay_rate}. - Arriv`;
 
-      if (accountSid && authToken && twilioPhone) {
-        const auth = btoa(`${accountSid}:${authToken}`);
-        
-        // Always send to Bradley's number
-        await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            From: twilioPhone,
-            To: '4047891107',
-            Body: message,
-          }).toString(),
-        });
-
-        // Send SMS to backup contractor if not Bradley
-        if (job.backup_booked_by !== 'BradCBurke@arrivestatemedia.com' && job.backup_booked_by_phone) {
-          await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Basic ${auth}`,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              From: twilioPhone,
-              To: job.backup_booked_by_phone,
-              Body: message,
-            }).toString(),
-          });
-        }
-      }
     } else {
       // No backup, just return to open
       await base44.asServiceRole.entities.Job.update(jobId, {
