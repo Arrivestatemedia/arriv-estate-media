@@ -174,7 +174,7 @@ export default function AdminBookings() {
         )}
       </div>
 
-      <Dialog open={!!selectedBooking && !showDenyModal} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+      <Dialog open={!!selectedBooking && !showDenyModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedBooking && (
             <>
