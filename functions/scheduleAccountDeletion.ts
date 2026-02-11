@@ -21,8 +21,10 @@ Deno.serve(async (req) => {
         const deletionDate = new Date();
         deletionDate.setDate(deletionDate.getDate() + 30);
 
-        // Update user with deletion details
+        // Generate token first
         const deletionToken = generateToken();
+
+        // Update user with deletion details
         await base44.asServiceRole.entities.PendingSignup.update(user.id, {
             deletion_requested_date: new Date().toISOString(),
             deletion_token: deletionToken
