@@ -140,13 +140,42 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
                 Backup taken
               </Button>
             ) : (
-              <Button
-                onClick={() => onBookBackup(job)}
-                variant="outline"
-                className="w-full text-sm border-[#B8956A] text-[#B8956A] hover:bg-[#B8956A]/10"
-              >
-                Book as Backup
-              </Button>
+              <div className="w-full">
+                {showPhoneInput ? (
+                  <div className="space-y-2">
+                    <input
+                      type="tel"
+                      placeholder="Your phone number"
+                      value={backupPhone}
+                      onChange={(e) => setBackupPhone(e.target.value)}
+                      className="w-full px-3 py-2 border border-[#B8956A]/30 rounded-md text-sm focus:border-[#B8956A] outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleBackupWithPhone}
+                        className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white text-xs"
+                      >
+                        Confirm
+                      </Button>
+                      <Button
+                        onClick={() => setShowPhoneInput(false)}
+                        variant="outline"
+                        className="flex-1 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setShowPhoneInput(true)}
+                    variant="outline"
+                    className="w-full text-sm border-[#B8956A] text-[#B8956A] hover:bg-[#B8956A]/10"
+                  >
+                    Book as Backup
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>
