@@ -44,6 +44,7 @@ export default function Layout({ children, currentPageName }) {
         { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
         { label: "Job Board", page: "JobBoard", icon: Briefcase },
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
+        { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
       ]
     : isCustomer
     ? [
