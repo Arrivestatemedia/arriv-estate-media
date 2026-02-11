@@ -33,10 +33,23 @@ Deno.serve(async (req) => {
         });
 
         // Send signup email
-        await base44.asServiceRole.functions.invoke('sendSignupEmail', {
-            email,
-            full_name,
-            setup_token: tokenString
+        const setupLink = `https://${Deno.env.get('BASE44_APP_DOMAIN')}/PasswordSetup?token=${tokenString}`;
+
+        await base44.asServiceRole.integrations.Core.SendEmail({
+            to: email,
+            subject: "Complete Your Arriv Estate Media Account Setup",
+            body: `Hello ${full_name},
+
+        Welcome to Arriv Estate Media! To complete your account setup, please click the link below to create your password:
+
+        ${setupLink}
+
+        This link will expire in 24 hours.
+
+        Once you've set your password, you'll be able to log in and start using Arriv Estate Media.
+
+        Best regards,
+        Arriv Estate Media Team`
         });
 
         return Response.json({ 
