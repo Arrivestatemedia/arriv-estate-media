@@ -44,7 +44,7 @@ export default function JobBoard() {
       }
       return base44.entities.Job.filter({ from_booking: true }, "-created_date");
     },
-    enabled: !userLoading && (filter !== "booked" || !!user?.email),
+    enabled: !userLoading,
   });
 
   const bookMutation = useMutation({
