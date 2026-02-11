@@ -115,7 +115,7 @@ export default function Dashboard() {
 
   const now = new Date();
   
-  const approvedJobs = jobs.filter((j) => j.status === "open" || j.status === "booked");
+  const approvedJobs = jobs.filter((j) => j.from_booking === true);
   
   const stats = {
     total: approvedJobs.length,
