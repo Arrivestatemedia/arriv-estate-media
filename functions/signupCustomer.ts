@@ -10,9 +10,9 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'All fields are required' }, { status: 400 });
         }
 
-        // Check if user already exists in Base44
-        const existingUsers = await base44.asServiceRole.entities.User.filter({ email });
-        if (existingUsers.length > 0) {
+        // Check if user already exists
+        const existingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email });
+        if (existingSignups.length > 0) {
             return Response.json({ error: 'Email already registered' }, { status: 400 });
         }
 
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
 
         return Response.json({ 
             success: true, 
-            message: 'Account created successfully. Check your email to verify your account.'
+            message: 'Account created successfully'
         });
     } catch (error) {
         console.error('Signup error:', error);
