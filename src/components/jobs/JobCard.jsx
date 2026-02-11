@@ -27,14 +27,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const isBookedByMe = job.booked_by === currentUserEmail;
   const isBackupByMe = job.backup_booked_by === currentUserEmail;
 
-  // Check if within 2.5 hours of job start
-  const canCancel = () => {
-    if (!job.date || !job.start_time) return true;
-    const jobDateTime = new Date(`${job.date}T${job.start_time}`);
-    const now = new Date();
-    const hoursUntilJob = (jobDateTime - now) / (1000 * 60 * 60);
-    return hoursUntilJob > 2.5;
-  };
+
 
   return (
     <motion.div
@@ -124,11 +117,10 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
             ) : isBookedByMe ? (
               <Button
                 onClick={() => onCancel(job)}
-                disabled={!canCancel()}
                 variant="outline"
-                className="w-full text-sm border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                className="w-full text-sm border-red-300 text-red-600 hover:bg-red-50"
               >
-                {canCancel() ? "Cancel My Booking" : "Too late to cancel"}
+                Cancel My Booking
               </Button>
             ) : isBackupByMe ? (
               <Button variant="outline" disabled className="w-full text-sm">
