@@ -20,10 +20,18 @@ import { format } from "date-fns";
 export default function AccountSettings() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {
+    base44.auth.me().then(u => {
+      setUser(u);
+      // Check if redirected here to change password
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('change_password') === 'true' && u?.needs_password_change) {
+        setShowPasswordPrompt(true);
+      }
+    }).catch(() => {
       base44.auth.redirectToLogin();
     });
   }, []);
@@ -65,6 +73,13 @@ export default function AccountSettings() {
 
   const isDeletionScheduled = user.deletion_scheduled_date;
 
+  const dismissPasswordPrompt = async () => {
+    await base44.auth.updateMe({ needs_password_change: false });
+    setShowPasswordPrompt(false);
+    const updatedUser = await base44.auth.me();
+    setUser(updatedUser);
+  };
+
   return (
     <div className="min-h-screen bg-[#FFFBF5] py-12 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -72,6 +87,28 @@ export default function AccountSettings() {
           <h1 className="text-3xl font-bold text-[#1A1A1A]">Account Settings</h1>
           <p className="text-[#1A1A1A]/60 mt-2">Manage your account preferences</p>
         </div>
+
+        {showPasswordPrompt && (
+          <Card className="border-[#B8956A] bg-[#B8956A]/5">
+            <CardHeader>
+              <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-[#B8956A]" />
+                Please Change Your Password
+              </CardTitle>
+              <CardDescription>
+                For security, you need to set a permanent password. You received an email with instructions to set your password. Please check your inbox and follow the link to create your permanent password.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={dismissPasswordPrompt}
+                className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+              >
+                I've Changed My Password
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {isDeletionScheduled && (
           <Card className="border-yellow-200 bg-yellow-50/50">
