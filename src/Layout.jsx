@@ -190,7 +190,7 @@ export default function Layout({ children, currentPageName }) {
                   Settings
                 </Link>
                 <button
-                  onClick={() => base44.auth.logout()}
+                  onClick={() => base44.auth.logout(createPageUrl("SignIn"))}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full"
                 >
                   <LogOut className="w-4 h-4" />
