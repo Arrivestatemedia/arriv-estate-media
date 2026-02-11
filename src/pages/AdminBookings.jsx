@@ -71,13 +71,19 @@ export default function AdminBookings() {
 
   const handleApprove = async () => {
     if (selectedBooking) {
+      // Optimistically update the UI
+      const updatedBooking = { ...selectedBooking, status: 'approved' };
+      queryClient.setQueryData(['adminBookings'], (old) => 
+        old.map(b => b.id === selectedBooking.id ? updatedBooking : b)
+      );
+      setSelectedBooking(updatedBooking);
       setLoadingBookingId(selectedBooking.id);
+      
       try {
         await base44.functions.invoke('approveBooking', { bookingId: selectedBooking.id });
-        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-        setSelectedBooking(null);
       } catch (error) {
         console.error('Failed to approve booking:', error);
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       } finally {
         setLoadingBookingId(null);
       }
@@ -90,15 +96,21 @@ export default function AdminBookings() {
 
   const handleDenySubmit = async () => {
     if (selectedBooking) {
+      // Optimistically update the UI
+      const updatedBooking = { ...selectedBooking, status: 'denied' };
+      queryClient.setQueryData(['adminBookings'], (old) => 
+        old.map(b => b.id === selectedBooking.id ? updatedBooking : b)
+      );
       setLoadingBookingId(selectedBooking.id);
+      
       try {
         await base44.functions.invoke('denyBooking', { bookingId: selectedBooking.id, reason: denyReason });
-        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
         setSelectedBooking(null);
         setShowDenyModal(false);
         setDenyReason('');
       } catch (error) {
         console.error('Failed to deny booking:', error);
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       } finally {
         setLoadingBookingId(null);
       }
@@ -106,24 +118,36 @@ export default function AdminBookings() {
   };
 
   const handlePostToJobBoard = async (booking) => {
+    // Optimistically update the UI
+    const updatedBooking = { ...booking, status: 'approved' };
+    queryClient.setQueryData(['adminBookings'], (old) => 
+      old.map(b => b.id === booking.id ? updatedBooking : b)
+    );
     setLoadingBookingId(booking.id);
+    
     try {
       await base44.functions.invoke('postBookingToJobBoard', { bookingId: booking.id });
-      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     } catch (error) {
       console.error('Failed to post to job board:', error);
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     } finally {
       setLoadingBookingId(null);
     }
   };
 
   const handleAcceptForMyself = async (booking) => {
+    // Optimistically update the UI
+    const updatedBooking = { ...booking, status: 'approved' };
+    queryClient.setQueryData(['adminBookings'], (old) => 
+      old.map(b => b.id === booking.id ? updatedBooking : b)
+    );
     setLoadingBookingId(booking.id);
+    
     try {
       await base44.functions.invoke('acceptBookingForMyself', { bookingId: booking.id });
-      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     } catch (error) {
       console.error('Failed to accept booking:', error);
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     } finally {
       setLoadingBookingId(null);
     }
