@@ -54,8 +54,8 @@ import ContractorSignup from './pages/ContractorSignup';
 import CustomerSignup from './pages/CustomerSignup';
 import Dashboard from './pages/Dashboard';
 import JobBoard from './pages/JobBoard';
-import confirmDeleteUser from './pages/confirmDeleteUser';
 import PasswordSetup from './pages/PasswordSetup';
+import confirmDeleteUser from './pages/confirmDeleteUser';
 import __Layout from './Layout.jsx';
 
 
@@ -67,8 +67,8 @@ export const PAGES = {
     "CustomerSignup": CustomerSignup,
     "Dashboard": Dashboard,
     "JobBoard": JobBoard,
-    "confirmDeleteUser": confirmDeleteUser,
     "PasswordSetup": PasswordSetup,
+    "confirmDeleteUser": confirmDeleteUser,
 }
 
 export const pagesConfig = {
