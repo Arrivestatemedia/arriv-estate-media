@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
         const tempPassword = Math.random().toString(36).slice(-8).toUpperCase() + Math.floor(Math.random() * 100);
         
         // Create user account
-        await base44.users.inviteUser(email, "user");
+        await base44.asServiceRole.users.inviteUser(email, "user");
         
         // Wait for user to be created and update profile
         await new Promise(resolve => setTimeout(resolve, 2000));
