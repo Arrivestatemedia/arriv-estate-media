@@ -113,11 +113,18 @@ export default function Dashboard() {
     setShowForm(true);
   };
 
+  const now = new Date();
+  
   const stats = {
-    total: jobs.length,
+    total: jobs.filter((j) => j.status === "booked").length,
     open: jobs.filter((j) => j.status === "open").length,
     booked: jobs.filter((j) => j.status === "booked").length,
-    totalPayout: jobs.filter((j) => j.status === "completed").reduce((sum, j) => sum + (j.pay_rate || 0), 0),
+    totalPayout: allBookings
+      .filter((b) => {
+        const bookingDateTime = new Date(`${b.preferred_date}T${b.preferred_time || '00:00'}`);
+        return bookingDateTime <= now && (b.status === "approved" || b.status === "confirmed");
+      })
+      .reduce((sum, b) => sum + (b.total_price || 0), 0),
   };
 
   return (
