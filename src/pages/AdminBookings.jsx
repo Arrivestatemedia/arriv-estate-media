@@ -166,9 +166,17 @@ export default function AdminBookings() {
                       <span className="text-[#1A1A1A]/60 font-semibold">${booking.total_price}</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-              </div>
+                  </CardContent>
+                  <div className="px-6 pb-4">
+                  <Button
+                    onClick={() => setSelectedBooking(booking)}
+                    className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
+                  >
+                    See More Details
+                  </Button>
+                  </div>
+                  </Card>
+                  </div>
               ))}
               </div>
         )}
