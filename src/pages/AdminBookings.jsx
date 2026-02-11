@@ -165,12 +165,27 @@ export default function AdminBookings() {
                       <span className="text-[#1A1A1A]/60 font-semibold">${booking.total_price}</span>
                     </div>
                   </div>
-                  <Button
-                    onClick={() => setSelectedBooking(booking)}
-                    className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
-                  >
-                    See More Details
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setSelectedBooking(booking)}
+                      variant="outline"
+                      className="flex-1 border-[#B8956A]/30"
+                    >
+                      Details
+                    </Button>
+                    <Button
+                      onClick={() => handlePostToJobBoard(booking)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Post to Job Board
+                    </Button>
+                    <Button
+                      onClick={() => handleAcceptForMyself(booking)}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Accept for Myself
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
