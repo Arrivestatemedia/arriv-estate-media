@@ -103,22 +103,23 @@ Deno.serve(async (req) => {
         booked_by_name: null,
         status: "open",
       });
-
-      // Send cancellation notification
-      const bookingForNotification = {
-        client_name: job.booked_by_name,
-        client_email: job.booked_by,
-        property_address: job.location,
-        preferred_date: job.date,
-        preferred_time: job.start_time,
-        package: job.type
-      };
-
-      await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
-        booking: bookingForNotification,
-        type: 'cancellation'
-      });
     }
+
+    // Send cancellation notification
+    const cancelledByName = user.full_name || user.email;
+    const bookingForNotification = {
+      client_name: job.booked_by_name,
+      client_email: job.booked_by,
+      property_address: job.location,
+      preferred_date: job.date,
+      preferred_time: job.start_time,
+      package: job.type
+    };
+
+    await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
+      booking: bookingForNotification,
+      type: 'cancellation'
+    });
 
     return Response.json({ success: true, message: 'Job cancelled successfully' });
   } catch (error) {
