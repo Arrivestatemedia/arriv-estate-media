@@ -223,7 +223,7 @@ export default function JobBoard() {
                 onBook={handleBook} 
                 onCancel={handleCancel}
                 onBookBackup={handleBookBackup}
-                currentUserEmail={user?.email} 
+                currentUserEmail={userEmail || user?.email} 
               />
             ))}
           </div>
