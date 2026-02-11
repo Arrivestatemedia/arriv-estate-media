@@ -45,7 +45,7 @@ export default function CustomerSignup() {
         password: formData.password,
         user_type: "customer"
       });
-      navigate(createPageUrl('Login'));
+      navigate(createPageUrl('SignIn'));
     } catch (err) {
       console.error('Signup error:', err);
       const errorMessage = err.response?.data?.error || err.message || "Failed to create account";
@@ -148,7 +148,7 @@ export default function CustomerSignup() {
               Already have an account?{" "}
               <button
                 type="button"
-                onClick={() => navigate(createPageUrl('Login'))}
+                onClick={() => navigate(createPageUrl('SignIn'))}
                 className="text-[#B8956A] hover:underline font-medium"
               >
                 Log In

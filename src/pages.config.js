@@ -56,6 +56,7 @@ import Dashboard from './pages/Dashboard';
 import JobBoard from './pages/JobBoard';
 import PasswordSetup from './pages/PasswordSetup';
 import confirmDeleteUser from './pages/confirmDeleteUser';
+import SignIn from './pages/SignIn';
 import __Layout from './Layout.jsx';
 
 
@@ -69,6 +70,7 @@ export const PAGES = {
     "JobBoard": JobBoard,
     "PasswordSetup": PasswordSetup,
     "confirmDeleteUser": confirmDeleteUser,
+    "SignIn": SignIn,
 }
 
 export const pagesConfig = {
