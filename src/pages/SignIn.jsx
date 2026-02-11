@@ -123,6 +123,14 @@ export default function SignIn() {
                   Contractor Sign Up
                 </Button>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-[#B8956A] hover:text-[#B8956A]/80 hover:bg-transparent"
+                onClick={() => window.location.href = '/PublicAccountSettings'}
+              >
+                Manage Account Settings
+              </Button>
             </div>
           </form>
         </CardContent>
