@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
             email,
             full_name,
             phone_number,
-            user_type: "customer",
+            user_type,
             password_hash: hashHex,
             status: "pending"
         });
