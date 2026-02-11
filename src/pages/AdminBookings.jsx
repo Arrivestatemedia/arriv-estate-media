@@ -128,10 +128,13 @@ export default function AdminBookings() {
         ) : (
           <div className="grid gap-4">
             {filteredBookings.map((booking) => (
-              <Card
+              <div
                 key={booking.id}
-                className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => setSelectedBooking(booking)}
+                className="cursor-pointer"
+              >
+              <Card
+                className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow"
               >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
