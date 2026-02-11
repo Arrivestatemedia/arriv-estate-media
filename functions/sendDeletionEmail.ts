@@ -14,8 +14,8 @@ Deno.serve(async (req) => {
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
         const deleteUrl = `https://${appDomain}/confirmDeleteUser?token=${userId}&email=${encodeURIComponent(userEmail)}`;
 
-        // Get Google access token
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+        // Get Gmail access token
+        const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
         // Construct RFC 5322 formatted email
         const emailBody = `Account Deletion Request\n\nUser: ${userName}\nEmail: ${userEmail}\nUser Type: ${userType}\nScheduled Deletion Date: ${deletionDate}\n\nTo delete immediately: ${deleteUrl}`;
