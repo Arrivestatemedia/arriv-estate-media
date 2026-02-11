@@ -41,6 +41,7 @@ export default function JobBoard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setBookingJob(null);
+      navigate(createPageUrl("ContractorDashboard"));
     },
   });
 
