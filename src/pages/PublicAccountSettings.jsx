@@ -269,9 +269,9 @@ export default function PublicAccountSettings() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        An email will be sent to the administrator with a link to approve the deletion. Your account will be deleted after confirmation.
+                        Your account will be scheduled for deletion in 30 days. An email will be sent to the administrator with a link to delete your account immediately if needed.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -281,7 +281,7 @@ export default function PublicAccountSettings() {
                         className="bg-red-600 hover:bg-red-700"
                         disabled={loading}
                       >
-                        {loading ? "Requesting..." : "Yes, delete my account"}
+                        {loading ? "Scheduling..." : "Yes, schedule deletion"}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
