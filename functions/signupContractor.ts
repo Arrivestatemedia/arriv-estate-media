@@ -32,7 +32,12 @@ Deno.serve(async (req) => {
             status: "pending"
         });
 
-        // Note: Email will be sent separately via sendSignupEmail function
+        // Send signup email
+        await base44.asServiceRole.functions.invoke('sendSignupEmail', {
+            email,
+            full_name,
+            setup_token: tokenString
+        });
 
         return Response.json({ 
             success: true, 
