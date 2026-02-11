@@ -1,8 +1,11 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClient } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
     try {
-        const base44 = createClientFromRequest(req);
+        const base44 = createClient({
+            appId: Deno.env.get('BASE44_APP_ID'),
+        });
+
         const { email, full_name, phone_number } = await req.json();
 
         if (!email || !full_name) {
@@ -15,8 +18,8 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'User with this email already exists' }, { status: 400 });
         }
 
-        // Invite user through Base44 auth system
-        await base44.users.inviteUser(email, "user");
+        // Invite user through Base44 auth system (using service role for public signup)
+        await base44.asServiceRole.users.inviteUser(email, "user");
         
         // Wait a bit and update their profile with additional info
         await new Promise(resolve => setTimeout(resolve, 1000));
