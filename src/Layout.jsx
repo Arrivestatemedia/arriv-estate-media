@@ -135,11 +135,12 @@ export default function Layout({ children, currentPageName }) {
                   </div>
                   <Button
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
                     onClick={() => base44.auth.logout()}
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Log Out
                   </Button>
                 </div>
               )}
