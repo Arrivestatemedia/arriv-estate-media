@@ -23,11 +23,14 @@ Deno.serve(async (req) => {
 
     const user = users[0];
     return Response.json({
-      id: user.id,
-      email: user.email,
-      full_name: user.full_name,
-      phone_number: user.phone_number,
-      user_type: user.user_type,
+      success: true,
+      account: {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        phone_number: user.phone_number,
+        user_type: user.user_type,
+      }
     });
   } catch (error) {
     console.error('Error:', error);
