@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
       pay_rate: booking.total_price,
       status: 'booked',
       booked_by: user.email,
-      booked_by_name: user.full_name
+      booked_by_name: user.full_name,
+      from_booking: true
     });
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
