@@ -180,7 +180,7 @@ export default function Layout({ children, currentPageName }) {
                   </Link>
                 );
               })}
-            {!["SignIn", "CustomerSignup", "ContractorSignup"].includes(currentPageName) && (
+            {user && !["SignIn", "CustomerSignup", "ContractorSignup"].includes(currentPageName) && (
               <Link
                 to={createPageUrl("PublicAccountSettings")}
                 onClick={() => setMobileOpen(false)}
