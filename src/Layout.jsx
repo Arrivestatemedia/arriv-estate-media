@@ -43,12 +43,13 @@ export default function Layout({ children, currentPageName }) {
     ? [
         { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
         { label: "Job Board", page: "JobBoard", icon: Briefcase },
-        { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
+        { label: "Bookings", page: "AdminBookings", icon: Briefcase },
         { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
       ]
     : isCustomer
     ? [
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
+        { label: "My Bookings", page: "CustomerBookings", icon: Briefcase },
       ]
     : isContractor
     ? [
