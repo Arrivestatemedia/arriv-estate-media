@@ -97,43 +97,12 @@ Deno.serve(async (req) => {
       console.error('Admin email error:', error);
     }
 
-    // Send customer approval email and calendar invite
+    // Send customer approval email
     try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-
-      const emailSubject = 'Your Booking Has Been Approved - Arriv';
-      const emailBody = `Great news, ${booking.client_name}!\n\nYour booking has been approved. Here are the details:\n\nPackage: ${booking.package}\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nTotal Price: $${booking.total_price}\n\nA calendar invite has also been sent to this email. We look forward to working with you!\n\nIf you have any questions, please don't hesitate to reach out.\n\nBest regards,\nArriv State Media`;
-
-      const messageLines = [
-        `To: ${booking.client_email}`,
-        `From: ${adminEmail}`,
-        `Subject: ${emailSubject}`,
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset="UTF-8"',
-        '',
-        emailBody
-      ];
-
-      const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
-      const messageBytes = messageParts.reduce((acc, part) => {
-        const newAcc = new Uint8Array(acc.length + part.length);
-        newAcc.set(acc);
-        newAcc.set(part, acc.length);
-        return newAcc;
-      }, new Uint8Array());
-
-      const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-
-      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ raw: base64urlMessage })
+      await base44.integrations.Core.SendEmail({
+        to: booking.client_email,
+        subject: 'Your Booking Has Been Approved - Arriv',
+        body: `Great news, ${booking.client_name}!\n\nYour booking has been approved. Here are the details:\n\nPackage: ${booking.package}\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nTotal Price: $${booking.total_price}\n\nA calendar invite has also been sent to this email. We look forward to working with you!\n\nIf you have any questions, please don't hesitate to reach out.\n\nBest regards,\nArriv State Media`
       });
     } catch (error) {
       console.error('Customer email error:', error);
