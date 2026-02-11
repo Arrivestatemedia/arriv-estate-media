@@ -381,6 +381,18 @@ export default function AdminBookings() {
                     </Button>
                   </div>
                 )}
+                {(selectedBooking.status === 'approved' || selectedBooking.status === 'denied') && (
+                  <div className="flex gap-3 pt-4 border-t border-[#B8956A]/20">
+                    <Button
+                      onClick={() => deleteMutation.mutate(selectedBooking.id)}
+                      variant="outline"
+                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      disabled={loadingBookingId === selectedBooking.id}
+                    >
+                      {loadingBookingId === selectedBooking.id ? 'Deleting...' : 'Delete Booking'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}
