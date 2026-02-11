@@ -51,6 +51,10 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
   const [busySlots, setBusySlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [predictions, setPredictions] = useState([]);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const autocompleteService = useRef(null);
+  const placesService = useRef(null);
 
   useEffect(() => {
     if (formData.preferred_date) {
