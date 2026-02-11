@@ -14,6 +14,7 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
   const [reason, setReason] = useState("");
 
   const handleSubmit = () => {
+    if (!job) return;
     onSubmit(job.id, reason);
     setReason("");
     onOpenChange(false);
@@ -29,10 +30,12 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
-          <div>
-            <p className="text-sm font-medium text-[#1A1A1A] mb-2">{job.title}</p>
-            <p className="text-xs text-[#1A1A1A]/60">{job.location}</p>
-          </div>
+          {job && (
+            <div>
+              <p className="text-sm font-medium text-[#1A1A1A] mb-2">{job.title}</p>
+              <p className="text-xs text-[#1A1A1A]/60">{job.location}</p>
+            </div>
+          )}
           <div>
             <label className="text-sm font-medium text-[#1A1A1A] block mb-2">
               Reason for cancellation
