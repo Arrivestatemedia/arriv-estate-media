@@ -124,7 +124,7 @@ export default function JobBoard() {
     cancelMutation.mutate({ jobId, reason });
   };
 
-  const handleBookBackup = (job) => {
+  const handleBookBackup = (job, phoneNumber) => {
     if (!user) return;
     backupMutation.mutate({
       id: job.id,
@@ -132,6 +132,7 @@ export default function JobBoard() {
         ...job,
         backup_booked_by: user.email,
         backup_booked_by_name: user.full_name,
+        backup_booked_by_phone: phoneNumber,
       },
     });
   };
