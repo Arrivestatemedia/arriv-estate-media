@@ -73,6 +73,10 @@ export default function JobBoard() {
       setCancelJob(null);
       navigate(createPageUrl("JobBoard"));
     },
+    onError: (error) => {
+      console.error('Cancel mutation error:', error);
+      alert('Failed to cancel job: ' + (error.response?.data?.error || error.message));
+    },
   });
 
   const backupMutation = useMutation({
