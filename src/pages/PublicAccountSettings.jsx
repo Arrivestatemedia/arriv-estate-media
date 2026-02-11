@@ -305,13 +305,13 @@ export default function PublicAccountSettings() {
         )}
 
         {step === "success" && (
-          <Card className="border-green-200 bg-green-50/50">
+          <Card className="border-yellow-200 bg-yellow-50/50">
             <CardHeader>
-              <CardTitle className="text-green-700">Deletion Request Submitted</CardTitle>
+              <CardTitle className="text-yellow-700">Account Deletion Scheduled</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-[#1A1A1A]">
-                An email has been sent to the administrator with your account deletion request. You'll receive confirmation once the deletion is processed.
+                Your account will be deleted in 30 days. An email has been sent to the administrator with a link to delete your account immediately if needed.
               </p>
               <a
                 href={createPageUrl("SignIn")}
