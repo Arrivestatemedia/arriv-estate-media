@@ -1,0 +1,328 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, Trash2, Mail, ArrowLeft } from "lucide-react";
+import { createPageUrl } from "../utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+export default function PublicAccountSettings() {
+  const [step, setStep] = useState("lookup"); // lookup, edit, success
+  const [email, setEmail] = useState("");
+  const [accountData, setAccountData] = useState(null);
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLookup = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    
+    try {
+      const response = await base44.functions.invoke('lookupAccount', {
+        email: email.toLowerCase()
+      });
+      
+      if (response.data.success) {
+        setAccountData(response.data.account);
+        setEditEmail(response.data.account.email);
+        setEditPhone(response.data.account.phone_number || "");
+        setStep("edit");
+      } else {
+        setError(response.data.error || "Account not found");
+      }
+    } catch (err) {
+      setError("Failed to find account. Please check your email.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateEmail = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      const response = await base44.functions.invoke('updateAccountDetails', {
+        accountId: accountData.id,
+        email: editEmail,
+        phoneNumber: editPhone
+      });
+      
+      if (response.data.success) {
+        setAccountData({ ...accountData, email: editEmail, phone_number: editPhone });
+        alert('Account updated successfully');
+      } else {
+        setError(response.data.error || 'Failed to update account');
+      }
+    } catch (err) {
+      setError('Failed to update account: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePhone = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      const response = await base44.functions.invoke('updateAccountDetails', {
+        accountId: accountData.id,
+        email: editEmail,
+        phoneNumber: editPhone
+      });
+      
+      if (response.data.success) {
+        setAccountData({ ...accountData, email: editEmail, phone_number: editPhone });
+        alert('Phone number updated successfully');
+      } else {
+        setError(response.data.error || 'Failed to update account');
+      }
+    } catch (err) {
+      setError('Failed to update account: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteRequest = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      const response = await base44.functions.invoke('requestAccountDeletion', {
+        email: accountData.email
+      });
+      
+      if (response.data.success) {
+        setStep("success");
+      } else {
+        setError(response.data.error || 'Failed to request deletion');
+      }
+    } catch (err) {
+      setError('Failed to request deletion: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FFFBF5] py-12 px-4">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <a href={createPageUrl("SignIn")} className="text-[#B8956A] hover:text-[#B8956A]/80 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </a>
+          <div>
+            <h1 className="text-3xl font-bold text-[#1A1A1A]">Manage Your Account</h1>
+            <p className="text-[#1A1A1A]/60 mt-1">Update your information or delete your account</p>
+          </div>
+        </div>
+
+        {step === "lookup" && (
+          <Card className="border-[#B8956A]/20">
+            <CardHeader>
+              <CardTitle className="text-[#1A1A1A]">Find Your Account</CardTitle>
+              <CardDescription>Enter your email to access your account settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLookup} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-2">Email Address</label>
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                    placeholder="your@email.com"
+                  />
+                </div>
+                {error && (
+                  <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    {error}
+                  </div>
+                )}
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+                >
+                  {loading ? "Looking up..." : "Access My Account"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {step === "edit" && accountData && (
+          <>
+            <Card className="border-[#B8956A]/20">
+              <CardHeader>
+                <CardTitle className="text-[#1A1A1A]">Account Information</CardTitle>
+                <CardDescription>Update your contact details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-2">Full Name</label>
+                  <p className="text-[#1A1A1A] font-medium">{accountData.full_name}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-2">Email Address</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="border-[#B8956A]/30"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleUpdateEmail}
+                      disabled={loading || editEmail === accountData.email}
+                      className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                    >
+                      Update
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-2">Phone Number</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      className="border-[#B8956A]/30"
+                      placeholder="(555) 123-4567"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleUpdatePhone}
+                      disabled={loading || editPhone === (accountData.phone_number || "")}
+                      className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                    >
+                      Update
+                    </Button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    {error}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#B8956A]/20">
+              <CardHeader>
+                <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  Contact Support
+                </CardTitle>
+                <CardDescription>Get help or report an issue</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-[#1A1A1A] mb-4">Have questions or need assistance?</p>
+                <a
+                  href="mailto:info@arrivestatemedia.com"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#B8956A] text-white rounded-lg hover:bg-[#B8956A]/90 transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  info@arrivestatemedia.com
+                </a>
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-200 bg-red-50/50">
+              <CardHeader>
+                <CardTitle className="text-red-700 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Danger Zone
+                </CardTitle>
+                <CardDescription>Irreversible account actions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="gap-2" disabled={loading}>
+                      <Trash2 className="w-4 h-4" />
+                      Delete Account
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        An email will be sent to the administrator with a link to approve the deletion. Your account will be deleted after confirmation.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteRequest}
+                        className="bg-red-600 hover:bg-red-700"
+                        disabled={loading}
+                      >
+                        {loading ? "Requesting..." : "Yes, delete my account"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setStep("lookup");
+                setEmail("");
+                setAccountData(null);
+                setError("");
+              }}
+            >
+              Back to Login
+            </Button>
+          </>
+        )}
+
+        {step === "success" && (
+          <Card className="border-green-200 bg-green-50/50">
+            <CardHeader>
+              <CardTitle className="text-green-700">Deletion Request Submitted</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-[#1A1A1A]">
+                An email has been sent to the administrator with your account deletion request. You'll receive confirmation once the deletion is processed.
+              </p>
+              <a
+                href={createPageUrl("SignIn")}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#1A1A1A]/90 transition-colors"
+              >
+                Back to Sign In
+              </a>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
