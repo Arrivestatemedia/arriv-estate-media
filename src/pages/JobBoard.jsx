@@ -25,6 +25,12 @@ export default function JobBoard() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
+  const [userEmail, setUserEmail] = React.useState(null);
+
+  React.useEffect(() => {
+    setUserEmail(localStorage.getItem('user_email'));
+  }, []);
+
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ["user"],
     queryFn: () => base44.auth.me(),
