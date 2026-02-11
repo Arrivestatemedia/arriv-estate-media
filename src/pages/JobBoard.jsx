@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import JobCard from "../components/jobs/JobCard";
+import CancelJobDialog from "../components/jobs/CancelJobDialog";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,8 @@ export default function JobBoard() {
     const [filter, setFilter] = useState("all"); // "all" or "open"
     const [searchQuery, setSearchQuery] = useState("");
     const [bookingJob, setBookingJob] = useState(null);
+    const [cancelJob, setCancelJob] = useState(null);
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -63,7 +66,7 @@ export default function JobBoard() {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
+    mutationFn: ({ jobId, reason }) => base44.functions.invoke('cancelJobWithNotification', { jobId, reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     },
@@ -105,33 +108,12 @@ export default function JobBoard() {
   };
 
   const handleCancel = (job) => {
-    if (!user) return;
-    
-    // If there's a backup, promote them to primary
-    if (job.backup_booked_by) {
-      cancelMutation.mutate({
-        id: job.id,
-        data: {
-          ...job,
-          booked_by: job.backup_booked_by,
-          booked_by_name: job.backup_booked_by_name,
-          backup_booked_by: null,
-          backup_booked_by_name: null,
-          status: "booked",
-        },
-      });
-    } else {
-      // No backup, return to open
-      cancelMutation.mutate({
-        id: job.id,
-        data: {
-          ...job,
-          booked_by: null,
-          booked_by_name: null,
-          status: "open",
-        },
-      });
-    }
+    setCancelJob(job);
+    setCancelDialogOpen(true);
+  };
+
+  const handleCancelSubmit = (jobId, reason) => {
+    cancelMutation.mutate({ jobId, reason });
   };
 
   const handleBookBackup = (job) => {
@@ -260,6 +242,14 @@ export default function JobBoard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <CancelJobDialog
+          job={cancelJob}
+          open={cancelDialogOpen}
+          onOpenChange={setCancelDialogOpen}
+          onSubmit={handleCancelSubmit}
+          isLoading={cancelMutation.isPending}
+        />
       </div>
     </div>
   );
