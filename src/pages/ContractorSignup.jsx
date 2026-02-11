@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,14 @@ import { Briefcase } from "lucide-react";
 import { createPageUrl } from "../utils";
 
 export default function ContractorSignup() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const phoneNumber = searchParams.get('phone_number');
-  const [formData, setFormData] = useState({ email: "", full_name: "", phone_number: phoneNumber || "" });
+  const [formData, setFormData] = useState({ 
+    email: "", 
+    full_name: "", 
+    phone_number: "",
+    password: "",
+    password_confirmation: ""
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,14 +24,28 @@ export default function ContractorSignup() {
     setLoading(true);
     setError("");
 
+    // Validate passwords match
+    if (formData.password !== formData.password_confirmation) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      setLoading(false);
+      return;
+    }
+
     try {
-      await base44.functions.invoke('signupContractor', formData);
-      // Show confirmation message
-      setError(""); // Clear any errors
-      // In a real app, you'd show a success message
-      // For now, just reset the form
-      setFormData({ email: "", full_name: "", phone_number: "" });
-      alert("Check your email to complete account setup!");
+      await base44.functions.invoke('signupContractor', {
+        email: formData.email,
+        full_name: formData.full_name,
+        phone_number: formData.phone_number,
+        password: formData.password,
+        user_type: "contractor"
+      });
+      navigate(createPageUrl('Login'));
     } catch (err) {
       console.error('Signup error:', err);
       const errorMessage = err.response?.data?.error || err.message || "Failed to create account";
@@ -88,6 +106,32 @@ export default function ContractorSignup() {
                 placeholder="+1 (555) 123-4567"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                Password
+              </label>
+              <Input
+                type="password"
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                placeholder="At least 8 characters"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                Confirm Password
+              </label>
+              <Input
+                type="password"
+                required
+                value={formData.password_confirmation}
+                onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
+                className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                placeholder="Confirm your password"
+              />
+            </div>
             {error && (
               <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
                 {error}
@@ -100,6 +144,16 @@ export default function ContractorSignup() {
             >
               {loading ? "Creating Account..." : "Sign Up"}
             </Button>
+            <p className="text-center text-sm text-[#1A1A1A]/60">
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => navigate(createPageUrl('Login'))}
+                className="text-[#B8956A] hover:underline font-medium"
+              >
+                Log In
+              </button>
+            </p>
           </form>
         </CardContent>
       </Card>
