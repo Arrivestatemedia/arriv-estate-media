@@ -49,6 +49,7 @@ export default function AccountSettings() {
     setLoading(true);
     try {
       const response = await base44.functions.invoke('deleteAccount');
+      setShowDeleteSuccess(true);
       // Refresh user data to show scheduled deletion
       const updatedUser = await base44.auth.me();
       setUser(updatedUser);
