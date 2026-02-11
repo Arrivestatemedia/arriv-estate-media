@@ -27,19 +27,15 @@ Deno.serve(async (req) => {
             deletion_token: generateToken()
         });
 
-        // Email notification
+        // Send deletion email via separate function
         try {
-            const adminEmail = Deno.env.get('ADMIN_EMAIL');
-            if (adminEmail) {
-                const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
-                const deleteUrl = `https://${appDomain}/confirmDeleteUser?token=${user.id}&email=${encodeURIComponent(user.email)}`;
-
-                await base44.asServiceRole.integrations.Core.SendEmail({
-                    to: adminEmail,
-                    subject: `Account Deletion Request - ${user.full_name}`,
-                    body: `Account Deletion Request\n\nUser: ${user.full_name}\nEmail: ${user.email}\nUser Type: ${user.user_type}\nScheduled Deletion Date: ${deletionDate.toLocaleDateString()}\n\nTo delete immediately: ${deleteUrl}`
-                });
-            }
+            await base44.asServiceRole.functions.invoke('sendDeletionEmail', {
+                userName: user.full_name,
+                userEmail: user.email,
+                userType: user.user_type,
+                deletionDate: deletionDate.toLocaleDateString(),
+                userId: user.id
+            });
         } catch (emailError) {
             console.error('Email notification failed:', emailError);
         }
