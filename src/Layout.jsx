@@ -23,9 +23,14 @@ export default function Layout({ children, currentPageName }) {
       });
     }
 
-    base44.auth.me().then(async (userData) => {
-      if (userData) {
-        setUser(userData);
+    // Only try to get user if they're authenticated
+    base44.auth.isAuthenticated().then(isAuth => {
+      if (isAuth) {
+        base44.auth.me().then((userData) => {
+          if (userData) {
+            setUser(userData);
+          }
+        }).catch(() => {});
       }
     }).catch(() => {});
   }, [currentPageName]);
