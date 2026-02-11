@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
     // If there's a backup, assign them as primary
     if (job.backup_booked_by) {
       // Get backup contractor's details
-      const backupContractor = await base44.entities.User.get(job.backup_booked_by);
+      const backupContractors = await base44.asServiceRole.entities.User.filter({ email: job.backup_booked_by });
+      const backupContractor = backupContractors.length > 0 ? backupContractors[0] : null;
       
       // Update job
       await base44.entities.Job.update(jobId, {
