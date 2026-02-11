@@ -59,6 +59,7 @@ import confirmDeleteUser from './pages/confirmDeleteUser';
 import SignIn from './pages/SignIn';
 import AdminUsers from './pages/AdminUsers';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
+import ConfirmDeleteAccount from './pages/ConfirmDeleteAccount';
 import __Layout from './Layout.jsx';
 
 
@@ -75,6 +76,7 @@ export const PAGES = {
     "SignIn": SignIn,
     "AdminUsers": AdminUsers,
     "DeleteAccountRequest": DeleteAccountRequest,
+    "ConfirmDeleteAccount": ConfirmDeleteAccount,
 }
 
 export const pagesConfig = {
