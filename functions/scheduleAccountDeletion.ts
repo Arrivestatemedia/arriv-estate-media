@@ -27,15 +27,20 @@ Deno.serve(async (req) => {
             deletion_token: generateToken()
         });
 
-        // Send email to admin
-        const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
-        const deleteUrl = `https://${appDomain}/confirmDeleteUser?token=${user.id}&email=${encodeURIComponent(user.email)}`;
-
-        await base44.asServiceRole.integrations.Core.SendEmail({
-            to: 'info@arrivestatemedia.com',
-            subject: `Account Deletion Request - ${user.full_name}`,
-            body: `Account Deletion Request\n\nUser: ${user.full_name}\nEmail: ${user.email}\nUser Type: ${user.user_type}\nScheduled Deletion Date: ${deletionDate.toLocaleDateString()}\n\nThe user has requested to delete their account. The account is scheduled for automatic deletion in 30 days.\n\nTo delete this account immediately, visit: ${deleteUrl}`
-        });
+        // Send email to admin via custom function
+        try {
+            await base44.asServiceRole.functions.invoke('sendAdminEmail', {
+                subject: `Account Deletion Request - ${user.full_name}`,
+                to: 'info@arrivestatemedia.com',
+                userName: user.full_name,
+                userEmail: user.email,
+                userType: user.user_type,
+                deletionDate: deletionDate.toLocaleDateString(),
+                userId: user.id
+            });
+        } catch (emailError) {
+            console.error('Failed to send admin email:', emailError);
+        }
 
         return Response.json({
             success: true,
