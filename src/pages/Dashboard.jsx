@@ -119,8 +119,8 @@ export default function Dashboard() {
   
   const stats = {
     total: approvedJobs.length,
-    open: jobs.filter((j) => j.status === "open").length,
-    booked: jobs.filter((j) => j.status === "booked").length,
+    open: jobs.filter((j) => j.status === "open" && j.from_booking === true).length,
+    booked: jobs.filter((j) => j.status === "booked" && j.from_booking === true).length,
     totalPayout: allBookings
       .filter((b) => {
         const bookingDateTime = new Date(`${b.preferred_date}T${b.preferred_time || '00:00'}`);
