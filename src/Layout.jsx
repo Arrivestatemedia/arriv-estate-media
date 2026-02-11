@@ -58,13 +58,23 @@ export default function Layout({ children, currentPageName }) {
       <header className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to={createPageUrl(user ? dashboardPage : "JobBoard")} className="flex items-center gap-3">
-              <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
-                alt="Arriv" 
-                className="h-8"
-              />
-            </Link>
+            {(currentPageName === "CustomerSignup" || currentPageName === "ContractorSignup") ? (
+              <div className="flex items-center gap-3">
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
+                  alt="Arriv" 
+                  className="h-8"
+                />
+              </div>
+            ) : (
+              <Link to={createPageUrl(user ? dashboardPage : "JobBoard")} className="flex items-center gap-3">
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
+                  alt="Arriv" 
+                  className="h-8"
+                />
+              </Link>
+            )}
 
             <nav className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {
