@@ -206,26 +206,7 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
 
-        {pendingBookings.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-5 h-5 text-yellow-600" />
-              <h2 className="text-xl font-semibold text-[#1A1A1A]">
-                Pending Bookings ({pendingBookings.length})
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pendingBookings.map((booking) => (
-                <PendingBookingCard
-                  key={booking.id}
-                  booking={booking}
-                  onPostToJobBoard={(booking) => postToJobBoardMutation.mutate(booking)}
-                  onAcceptForMyself={(booking) => acceptForMyselfMutation.mutate(booking)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+
 
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-[#1A1A1A]">All Jobs</h2>
