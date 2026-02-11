@@ -20,8 +20,10 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
     }
   };
 
+  if (!job) return null;
+
   return (
-    <Dialog open={open && !!job} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="border-2 border-[#B8956A]/30">
         <DialogHeader>
           <DialogTitle className="text-[#1A1A1A]">Cancel This Booking?</DialogTitle>
