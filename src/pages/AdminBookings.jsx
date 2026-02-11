@@ -272,7 +272,7 @@ export default function AdminBookings() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showDenyModal} onOpenChange={(open) => !open && setShowDenyModal(false)}>
+      <Dialog open={showDenyModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Deny Booking Request</DialogTitle>
