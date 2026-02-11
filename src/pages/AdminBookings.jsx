@@ -128,13 +128,9 @@ export default function AdminBookings() {
         ) : (
           <div className="grid gap-4">
             {filteredBookings.map((booking) => (
-              <div
-                key={booking.id}
-                onClick={() => setSelectedBooking(booking)}
-                className="cursor-pointer"
-              >
               <Card
-                className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow pointer-events-none"
+                key={booking.id}
+                className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow"
               >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
@@ -166,19 +162,17 @@ export default function AdminBookings() {
                       <span className="text-[#1A1A1A]/60 font-semibold">${booking.total_price}</span>
                     </div>
                   </div>
-                  </CardContent>
-                  <div className="px-6 pb-4">
+                </CardContent>
+                <div className="px-6 pb-4">
                   <Button
                     onClick={() => setSelectedBooking(booking)}
                     className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
                   >
                     See More Details
                   </Button>
-                  </div>
-                  </Card>
-                  </div>
-              ))}
-              </div>
+                </div>
+              </Card>
+            ))}
         )}
       </div>
 
