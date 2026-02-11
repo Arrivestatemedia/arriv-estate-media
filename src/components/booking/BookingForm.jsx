@@ -73,12 +73,11 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Create calendar event and send notifications
+    // Handle booking submission (sends emails, adds to calendar)
     try {
-      await base44.functions.invoke('createCalendarEvent', { booking: formData });
-      await base44.functions.invoke('sendBookingNotifications', { booking: formData });
+      await base44.functions.invoke('handleBookingSubmission', { booking: formData });
     } catch (error) {
-      console.error('Failed to create calendar event or send notifications:', error);
+      console.error('Failed to process booking:', error);
     }
     
     onSubmit(formData);
