@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
       status: 'open'
     });
 
-    await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'confirmed' });
+    await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
     // Send approval email to customer
     await base44.integrations.Core.SendEmail({
