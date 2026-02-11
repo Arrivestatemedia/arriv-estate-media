@@ -36,25 +36,60 @@ export default function AdminBookings() {
     enabled: !!user
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, status, reason }) => 
-      base44.asServiceRole.entities.Booking.update(id, { status }).then(async (booking) => {
-        // Send status email
-        try {
-          await base44.functions.invoke('sendBookingStatusEmail', {
-            clientEmail: booking.client_email,
-            clientName: booking.client_name,
-            status: status,
-            reason: reason,
-            propertyAddress: booking.property_address
-          });
-        } catch (error) {
-          console.error('Failed to send status email:', error);
-        }
-        return booking;
-      }),
-    onSuccess: () => {
+  const postToJobBoardMutation = useMutation({
+    mutationFn: async (bookingId) => {
+      await base44.functions.invoke('postBookingToJobBoard', { bookingId });
+      return bookingId;
+    },
+    onMutate: async (bookingId) => {
+      setLoadingBookingId(bookingId);
+      queryClient.setQueryData(['adminBookings'], (old) =>
+        old.map(b => b.id === bookingId ? { ...b, status: 'approved' } : b)
+      );
+    },
+    onError: () => {
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    },
+    onSettled: () => {
+      setLoadingBookingId(null);
+    }
+  });
+
+  const acceptForMyselfMutation = useMutation({
+    mutationFn: async (bookingId) => {
+      await base44.functions.invoke('acceptBookingForMyself', { bookingId });
+      return bookingId;
+    },
+    onMutate: async (bookingId) => {
+      setLoadingBookingId(bookingId);
+      queryClient.setQueryData(['adminBookings'], (old) =>
+        old.map(b => b.id === bookingId ? { ...b, status: 'approved' } : b)
+      );
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    },
+    onSettled: () => {
+      setLoadingBookingId(null);
+    }
+  });
+
+  const denyMutation = useMutation({
+    mutationFn: async ({ bookingId, reason }) => {
+      await base44.functions.invoke('denyBooking', { bookingId, reason });
+      return bookingId;
+    },
+    onMutate: async ({ bookingId }) => {
+      setLoadingBookingId(bookingId);
+      queryClient.setQueryData(['adminBookings'], (old) =>
+        old.map(b => b.id === bookingId ? { ...b, status: 'denied' } : b)
+      );
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    },
+    onSettled: () => {
+      setLoadingBookingId(null);
       setSelectedBooking(null);
       setShowDenyModal(false);
       setDenyReason('');
