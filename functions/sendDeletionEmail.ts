@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { base64 } from 'npm:js-base64@3.7.5';
 
 Deno.serve(async (req) => {
     try {
