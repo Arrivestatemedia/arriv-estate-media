@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
 
     // Find user in PendingSignup
     const users = await base44.asServiceRole.entities.PendingSignup.filter({
-      email: email.toLowerCase(),
+      email: email,
     });
 
     if (users.length === 0) {
