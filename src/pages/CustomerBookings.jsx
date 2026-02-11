@@ -58,9 +58,11 @@ export default function CustomerBookings() {
         ) : bookings.length === 0 ? (
           <Card className="border-2 border-[#B8956A]/20 text-center py-12">
             <p className="text-[#1A1A1A]/60 mb-4">You haven't submitted any booking requests yet</p>
-            <Button className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white">
-              Book a Shoot
-            </Button>
+            <Link to={createPageUrl('BookingPage')}>
+              <Button className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white">
+                Book a Shoot
+              </Button>
+            </Link>
           </Card>
         ) : (
           <div className="space-y-4">
