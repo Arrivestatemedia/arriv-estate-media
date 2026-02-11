@@ -22,9 +22,10 @@ Deno.serve(async (req) => {
         deletionDate.setDate(deletionDate.getDate() + 30);
 
         // Update user with deletion details
+        const deletionToken = generateToken();
         await base44.asServiceRole.entities.PendingSignup.update(user.id, {
             deletion_requested_date: new Date().toISOString(),
-            deletion_token: generateToken()
+            deletion_token: deletionToken
         });
 
         // Send deletion email via separate function
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
                 userEmail: user.email,
                 userType: user.user_type,
                 deletionDate: deletionDate.toLocaleDateString(),
-                userId: user.id
+                deletionToken: deletionToken
             });
         } catch (emailError) {
             console.error('Email notification failed:', emailError);
