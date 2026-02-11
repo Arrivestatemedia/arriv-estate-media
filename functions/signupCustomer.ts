@@ -33,19 +33,6 @@ Deno.serve(async (req) => {
             status: "pending"
         });
 
-        // Invite user to Base44 (as regular user)
-        await base44.users.inviteUser(email, "user");
-
-        // Update the newly created Base44 user with custom fields
-        const newUsers = await base44.asServiceRole.entities.User.filter({ email });
-        if (newUsers.length > 0) {
-            await base44.asServiceRole.entities.User.update(newUsers[0].id, {
-                user_type,
-                phone_number,
-                full_name
-            });
-        }
-
         return Response.json({ 
             success: true, 
             message: 'Account created successfully. Check your email to verify your account.'
