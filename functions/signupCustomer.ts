@@ -4,46 +4,38 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
-        const { email, full_name, phone_number } = await req.json();
+        const { email, full_name, phone_number, password, user_type } = await req.json();
 
-        if (!email || !full_name || !phone_number) {
-            return Response.json({ error: 'Email, full name, and phone number are required' }, { status: 400 });
+        if (!email || !full_name || !phone_number || !password || !user_type) {
+            return Response.json({ error: 'All fields are required' }, { status: 400 });
         }
 
         // Check if user already exists
-        const existingUsers = await base44.asServiceRole.entities.User.filter({ email });
-        if (existingUsers.length > 0) {
-            return Response.json({ error: 'User with this email already exists' }, { status: 400 });
+        const existingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email });
+        if (existingSignups.length > 0) {
+            return Response.json({ error: 'Email already registered' }, { status: 400 });
         }
 
-        // Generate a secure token for password setup (expires in 24 hours)
-        const token = crypto.getRandomValues(new Uint8Array(32));
-        const tokenString = Array.from(token).map(b => b.toString(16).padStart(2, '0')).join('');
-        const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        // Hash password using Deno's Web Crypto API
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Create a temporary signup record
+        // Create signup record with password hash
         await base44.asServiceRole.entities.PendingSignup.create({
             email,
             full_name,
             phone_number,
             user_type: "customer",
-            setup_token: tokenString,
-            token_expires_at: tokenExpiry,
+            password_hash: hashHex,
             status: "pending"
-        });
-
-        // Send signup email using Base44 SDK
-        const setupLink = `https://${Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com'}/PasswordSetup?token=${tokenString}`;
-        
-        await base44.asServiceRole.integrations.Core.SendEmail({
-            to: email,
-            subject: 'Complete Your Arriv Estate Media Account Setup',
-            body: `Hello ${full_name},\n\nWelcome to Arriv Estate Media! To complete your account setup, please click the link below to create your password:\n\n${setupLink}\n\nThis link will expire in 24 hours.\n\nOnce you've set your password, you'll be able to log in and start using Arriv Estate Media.\n\nBest regards,\nArriv Estate Media Team`
         });
 
         return Response.json({ 
             success: true, 
-            message: 'Check your email to complete account setup'
+            message: 'Account created successfully'
         });
     } catch (error) {
         console.error('Signup error:', error);
