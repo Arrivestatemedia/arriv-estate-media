@@ -69,9 +69,18 @@ export default function AdminBookings() {
 
   const filteredBookings = filter === 'all' ? bookings : bookings.filter(b => b.status === filter);
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (selectedBooking) {
-      updateMutation.mutate({ id: selectedBooking.id, status: 'approved', reason: null });
+      setLoadingBookingId(selectedBooking.id);
+      try {
+        await base44.functions.invoke('approveBooking', { bookingId: selectedBooking.id });
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+        setSelectedBooking(null);
+      } catch (error) {
+        console.error('Failed to approve booking:', error);
+      } finally {
+        setLoadingBookingId(null);
+      }
     }
   };
 
@@ -79,9 +88,20 @@ export default function AdminBookings() {
     setShowDenyModal(true);
   };
 
-  const handleDenySubmit = () => {
+  const handleDenySubmit = async () => {
     if (selectedBooking) {
-      updateMutation.mutate({ id: selectedBooking.id, status: 'denied', reason: denyReason });
+      setLoadingBookingId(selectedBooking.id);
+      try {
+        await base44.functions.invoke('denyBooking', { bookingId: selectedBooking.id, reason: denyReason });
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+        setSelectedBooking(null);
+        setShowDenyModal(false);
+        setDenyReason('');
+      } catch (error) {
+        console.error('Failed to deny booking:', error);
+      } finally {
+        setLoadingBookingId(null);
+      }
     }
   };
 
