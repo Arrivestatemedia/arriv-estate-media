@@ -18,22 +18,16 @@ Deno.serve(async (req) => {
 
         // Generate temporary password
         const tempPassword = Math.random().toString(36).slice(-8).toUpperCase() + Math.floor(Math.random() * 100);
-        
-        // Create user account
-        await base44.asServiceRole.users.inviteUser(email, "user");
-        
-        // Wait for user to be created and update profile
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const users = await base44.asServiceRole.entities.User.filter({ email });
-        
-        if (users.length > 0) {
-            await base44.asServiceRole.entities.User.update(users[0].id, {
-                full_name,
-                phone_number,
-                user_type: "customer",
-                needs_password_change: true
-            });
-        }
+
+        // Create user account directly - will be invited via email after
+        const newUser = await base44.asServiceRole.entities.User.create({
+            email,
+            full_name,
+            phone_number,
+            user_type: "customer",
+            needs_password_change: true,
+            role: "user"
+        });
 
         // Send email with credentials
         await base44.asServiceRole.integrations.Core.SendEmail({
