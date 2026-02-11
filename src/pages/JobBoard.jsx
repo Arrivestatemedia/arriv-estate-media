@@ -26,8 +26,18 @@ export default function JobBoard() {
     const navigate = useNavigate();
 
   const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ["jobs"],
-    queryFn: () => base44.entities.Job.filter({ from_booking: true }, "-created_date"),
+    queryKey: ["jobs", filter, user?.email],
+    queryFn: async () => {
+      if (filter === "booked" && user?.email) {
+        // Fetch only jobs where user is primary or backup contractor
+        return base44.entities.Job.filter({ 
+          from_booking: true 
+        }, "-created_date").then(allJobs => 
+          allJobs.filter(job => job.booked_by === user.email || job.backup_booked_by === user.email)
+        );
+      }
+      return base44.entities.Job.filter({ from_booking: true }, "-created_date");
+    },
   });
 
   const { data: user, isLoading: userLoading } = useQuery({
