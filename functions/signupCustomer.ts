@@ -4,10 +4,10 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
-        const { email, full_name, phone_number } = await req.json();
+        const { email, full_name, phone_number, user_type } = await req.json();
 
-        if (!email || !full_name) {
-            return Response.json({ error: 'Email and full name are required' }, { status: 400 });
+        if (!email || !full_name || !phone_number) {
+            return Response.json({ error: 'Email, full name, and phone number are required' }, { status: 400 });
         }
 
         // Check if user already exists
@@ -16,36 +16,38 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'User with this email already exists' }, { status: 400 });
         }
 
-        // Generate temporary password
-        const tempPassword = Math.random().toString(36).slice(-8).toUpperCase() + Math.floor(Math.random() * 100);
+        // Generate a secure token for password setup (expires in 24 hours)
+        const token = crypto.getRandomValues(new Uint8Array(32));
+        const tokenString = Array.from(token).map(b => b.toString(16).padStart(2, '0')).join('');
+        const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-        // Create user account directly - will be invited via email after
-        const newUser = await base44.asServiceRole.entities.User.create({
+        // Create a temporary signup record
+        const signupRecord = await base44.asServiceRole.entities.PendingSignup.create({
             email,
             full_name,
             phone_number,
             user_type: "customer",
-            needs_password_change: true,
-            role: "user"
+            setup_token: tokenString,
+            token_expires_at: tokenExpiry,
+            status: "pending"
         });
 
-        // Send email with credentials
+        // Send password setup email
+        const setupLink = `${Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com'}/password-setup?token=${tokenString}`;
+        
         await base44.asServiceRole.integrations.Core.SendEmail({
             to: email,
-            subject: "Welcome to Arriv Estate Media - Your Login Details",
+            subject: "Complete Your Arriv Estate Media Account Setup",
             body: `
 Hello ${full_name},
 
-Your account has been created successfully!
+Welcome to Arriv Estate Media! To complete your account setup, please click the link below to create your password:
 
-Login Email: ${email}
-Temporary Password: ${tempPassword}
+${setupLink}
 
-You can log in at: https://${Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com'}/
+This link will expire in 24 hours.
 
-IMPORTANT: For security, you'll receive a separate email to set up your permanent password. Please use the link in that email to set your password before logging in.
-
-Once logged in, you can book your real estate shoots and manage your account.
+Once you've set your password, you'll be able to log in and start using Arriv Estate Media.
 
 Best regards,
 Arriv Estate Media Team
@@ -54,7 +56,7 @@ Arriv Estate Media Team
 
         return Response.json({ 
             success: true, 
-            message: 'Account created successfully!'
+            message: 'Check your email to complete account setup'
         });
     } catch (error) {
         console.error('Signup error:', error);
