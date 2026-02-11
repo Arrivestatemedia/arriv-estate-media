@@ -2,16 +2,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
     try {
-        const base44 = createClientFromRequest(req);
-        const { userName, userEmail, userType, deletionDate, userId } = await req.json();
+            const base44 = createClientFromRequest(req);
+            const { userName, userEmail, userType, deletionDate, deletionToken } = await req.json();
 
-        const adminEmail = Deno.env.get('ADMIN_EMAIL');
-        if (!adminEmail) {
-            return Response.json({ error: 'Admin email not configured' }, { status: 500 });
-        }
+            const adminEmail = Deno.env.get('ADMIN_EMAIL');
+            if (!adminEmail) {
+                return Response.json({ error: 'Admin email not configured' }, { status: 500 });
+            }
 
-        const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
-        const deleteUrl = `https://${appDomain}/confirmDeleteAccount?token=${userId}&email=${encodeURIComponent(userEmail)}`;
+            const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
+            const deleteUrl = `https://${appDomain}/confirmDeleteAccount?token=${deletionToken}&email=${encodeURIComponent(userEmail)}`;
 
         // Get Gmail access token
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
