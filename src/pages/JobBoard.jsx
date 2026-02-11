@@ -69,6 +69,12 @@ export default function JobBoard() {
     const email = user?.email || storedEmail;
     const name = user?.full_name || storedName;
     
+    console.log("Debug - user:", user);
+    console.log("Debug - storedEmail:", storedEmail);
+    console.log("Debug - storedName:", storedName);
+    console.log("Debug - email:", email);
+    console.log("Debug - name:", name);
+    
     if (!email || !name) {
       alert("User data not available. Please refresh the page.");
       return;
