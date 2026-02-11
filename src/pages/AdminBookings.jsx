@@ -248,7 +248,14 @@ export default function AdminBookings() {
                 className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow"
               >
                 <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start gap-3">
+                    {(booking.status === 'approved' || booking.status === 'denied') && (
+                      <Checkbox
+                        checked={selectedForDelete.has(booking.id)}
+                        onCheckedChange={() => toggleSelectBooking(booking.id)}
+                        className="mt-1"
+                      />
+                    )}
                     <div className="flex-1">
                       <CardTitle className="text-lg text-[#1A1A1A]">{booking.client_name}</CardTitle>
                       <p className="text-sm text-[#1A1A1A]/60 mt-1">{booking.property_address}</p>
