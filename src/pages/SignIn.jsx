@@ -52,9 +52,9 @@ export default function SignIn() {
 
       // Route based on user type
       if (signup.user_type === "contractor") {
-        navigate(createPageUrl('ContractorDashboard'));
+        window.location.href = '/ContractorDashboard';
       } else {
-        navigate(createPageUrl('BookingPage'));
+        window.location.href = '/BookingPage';
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -124,7 +124,7 @@ export default function SignIn() {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => navigate(createPageUrl('CustomerSignup'))}
+                  onClick={() => window.location.href = '/CustomerSignup'}
                 >
                   Customer Sign Up
                 </Button>
@@ -132,7 +132,7 @@ export default function SignIn() {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => navigate(createPageUrl('ContractorSignup'))}
+                  onClick={() => window.location.href = '/ContractorSignup'}
                 >
                   Contractor Sign Up
                 </Button>

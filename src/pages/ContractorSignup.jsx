@@ -45,7 +45,7 @@ export default function ContractorSignup() {
         password: formData.password,
         user_type: "contractor"
       });
-      navigate(createPageUrl('SignIn'));
+      window.location.href = '/SignIn';
     } catch (err) {
       console.error('Signup error:', err);
       const errorMessage = err.response?.data?.error || err.message || "Failed to create account";
@@ -148,7 +148,7 @@ export default function ContractorSignup() {
               Already have an account?{" "}
               <button
                 type="button"
-                onClick={() => navigate(createPageUrl('SignIn'))}
+                onClick={() => window.location.href = '/SignIn'}
                 className="text-[#B8956A] hover:underline font-medium"
               >
                 Log In

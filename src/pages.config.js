@@ -55,8 +55,8 @@ import CustomerSignup from './pages/CustomerSignup';
 import Dashboard from './pages/Dashboard';
 import JobBoard from './pages/JobBoard';
 import PasswordSetup from './pages/PasswordSetup';
-import confirmDeleteUser from './pages/confirmDeleteUser';
 import SignIn from './pages/SignIn';
+import confirmDeleteUser from './pages/confirmDeleteUser';
 import __Layout from './Layout.jsx';
 
 
@@ -69,8 +69,8 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "JobBoard": JobBoard,
     "PasswordSetup": PasswordSetup,
-    "confirmDeleteUser": confirmDeleteUser,
     "SignIn": SignIn,
+    "confirmDeleteUser": confirmDeleteUser,
 }
 
 export const pagesConfig = {
