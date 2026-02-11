@@ -18,7 +18,6 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
   const handleSubmit = () => {
     onSubmit(job.id, reason);
     setReason("");
-    onOpenChange(false);
   };
 
   return (
