@@ -55,21 +55,46 @@ Deno.serve(async (req) => {
         status: "booked",
       });
 
-      // Send cancellation notification to backup contractor
-      const bookingForNotification = {
-        client_name: job.backup_booked_by_name,
-        client_email: job.backup_booked_by,
-        client_phone: '4047891107',
-        property_address: job.location,
-        preferred_date: job.date,
-        preferred_time: job.start_time,
-        package: job.type
-      };
+      // Send SMS to Bradley's number (always)
+      // Send SMS notifications
+      const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      const message = `Hi ${job.backup_booked_by_name}! You've been assigned to: ${job.title} on ${job.date} at ${job.start_time}. Pay: $${job.pay_rate}. - Arriv`;
 
-      await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
-        booking: bookingForNotification,
-        type: 'cancellation'
-      });
+      if (accountSid && authToken && twilioPhone) {
+        const auth = btoa(`${accountSid}:${authToken}`);
+        
+        // Always send to Bradley's number
+        await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            From: twilioPhone,
+            To: '4047891107',
+            Body: message,
+          }).toString(),
+        });
+
+        // Send SMS to backup contractor if not Bradley
+        if (job.backup_booked_by !== 'BradCBurke@arrivestatemedia.com' && job.backup_booked_by_phone) {
+          await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: twilioPhone,
+              To: job.backup_booked_by_phone,
+              Body: message,
+            }).toString(),
+          });
+        }
+      }
     } else {
       // No backup, just return to open
       await base44.asServiceRole.entities.Job.update(jobId, {
@@ -79,6 +104,22 @@ Deno.serve(async (req) => {
         status: "open",
       });
     }
+
+    // Send cancellation notification
+    const cancelledByName = user.full_name || user.email;
+    const bookingForNotification = {
+      client_name: job.booked_by_name,
+      client_email: job.booked_by,
+      property_address: job.location,
+      preferred_date: job.date,
+      preferred_time: job.start_time,
+      package: job.type
+    };
+
+    await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
+      booking: bookingForNotification,
+      type: 'cancellation'
+    });
 
     return Response.json({ success: true, message: 'Job cancelled successfully' });
   } catch (error) {
