@@ -198,6 +198,15 @@ export default function ManageUsers() {
                       <TableCell className="text-[#1A1A1A]">
                         {user.phone_number || "-"}
                       </TableCell>
+                      <TableCell className="text-[#1A1A1A]">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          user.status === 'verified' 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {user.status === 'verified' ? 'Verified' : 'Pending'}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-[#1A1A1A] text-sm">
                         {format(new Date(user.created_date), "MMM d, yyyy")}
                       </TableCell>
