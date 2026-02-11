@@ -21,6 +21,15 @@ export default function CustomerBookings() {
     }
   }, []);
 
+  const { data: bookings = [], isLoading, refetch } = useQuery({
+    queryKey: ['bookings', user?.email],
+    queryFn: () => {
+      if (!user?.email) return [];
+      return base44.entities.Booking.filter({ client_email: user.email }, '-created_date');
+    },
+    enabled: !!user?.email
+  });
+
   useEffect(() => {
     if (!user?.email) return;
     
@@ -33,15 +42,6 @@ export default function CustomerBookings() {
 
     return unsubscribe;
   }, [user?.email, refetch]);
-
-  const { data: bookings = [], isLoading, refetch } = useQuery({
-    queryKey: ['bookings', user?.email],
-    queryFn: () => {
-      if (!user?.email) return [];
-      return base44.entities.Booking.filter({ client_email: user.email }, '-created_date');
-    },
-    enabled: !!user?.email
-  });
 
 
 
