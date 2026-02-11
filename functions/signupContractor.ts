@@ -16,19 +16,20 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'User with this email already exists' }, { status: 400 });
         }
 
-        // Invite user through Base44 auth system (using service role for public signup)
+        // Create user in auth system and set profile info
         await base44.asServiceRole.users.inviteUser(email, "user");
         
-        // Wait a bit and update their profile with additional info
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const users = await base44.asServiceRole.entities.User.filter({ email });
-        if (users.length > 0) {
-            await base44.asServiceRole.entities.User.update(users[0].id, {
-                full_name,
-                phone_number,
-                user_type: "contractor"
-            });
-        }
+        // Update profile with additional info (runs in background)
+        setTimeout(async () => {
+            const users = await base44.asServiceRole.entities.User.filter({ email });
+            if (users.length > 0) {
+                await base44.asServiceRole.entities.User.update(users[0].id, {
+                    full_name,
+                    phone_number,
+                    user_type: "contractor"
+                });
+            }
+        }, 1500);
 
         return Response.json({ 
             success: true, 
