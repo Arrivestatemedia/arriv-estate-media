@@ -13,6 +13,8 @@ export default function AdminBookings() {
   const [user, setUser] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [denyReason, setDenyReason] = useState('');
+  const [showDenyModal, setShowDenyModal] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
