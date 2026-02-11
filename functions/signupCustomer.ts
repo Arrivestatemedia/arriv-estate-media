@@ -9,24 +9,25 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Email and full name are required' }, { status: 400 });
         }
 
-        // Invite the user as a regular user
-        await base44.asServiceRole.users.inviteUser(email, "user");
+        // Check if user already exists
+        const existingUsers = await base44.asServiceRole.entities.User.filter({ email });
 
-        // Store signup data in pending state - will be applied after user completes signup
-        const users = await base44.asServiceRole.entities.User.filter({ email });
-        if (users.length > 0) {
-            await base44.asServiceRole.entities.User.update(users[0].id, {
-                pending_signup_data: {
-                    user_type: "customer",
-                    full_name,
-                    phone_number
-                }
-            });
+        if (existingUsers.length > 0) {
+            return Response.json({ error: 'User with this email already exists' }, { status: 400 });
         }
+
+        // Create user record with pending signup data
+        await base44.asServiceRole.entities.User.create({
+            email,
+            full_name,
+            phone_number,
+            user_type: "customer",
+            role: "user"
+        });
 
         return Response.json({ 
             success: true, 
-            message: 'Invitation sent! Check your email to complete signup.'
+            message: 'Account created! Please check your email to set your password.'
         });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
