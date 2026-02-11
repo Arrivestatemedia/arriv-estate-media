@@ -20,7 +20,17 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Cannot delete your own account' }, { status: 400 });
         }
 
-        await base44.asServiceRole.entities.User.delete(user_id);
+        // Try to delete from User entity first, then PendingSignup if not found
+        try {
+            await base44.asServiceRole.entities.User.delete(user_id);
+        } catch (error) {
+            if (error.message.includes('404') || error.message.includes('not found')) {
+                // User not in User entity, try PendingSignup
+                await base44.asServiceRole.entities.PendingSignup.delete(user_id);
+            } else {
+                throw error;
+            }
+        }
 
         return Response.json({
             success: true,
