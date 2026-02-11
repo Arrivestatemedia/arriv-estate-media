@@ -253,21 +253,31 @@ export default function AdminBookings() {
             <p className="text-[#1A1A1A]/60">No booking requests</p>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {filteredBookings.map((booking) => (
-              <Card
-                key={booking.id}
-                className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start gap-3">
-                    {(booking.status === 'approved' || booking.status === 'denied') && (
-                      <Checkbox
-                        checked={selectedForDelete.has(booking.id)}
-                        onCheckedChange={() => toggleSelectBooking(booking.id)}
-                        className="mt-1"
-                      />
-                    )}
+          <>
+            {deletableBookings.length > 0 && (
+              <div className="mb-4 flex items-center gap-2 p-3 bg-[#B8956A]/5 rounded border border-[#B8956A]/20">
+                <Checkbox
+                  checked={allDeleteableSelected}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm text-[#1A1A1A]/70">Select all deletable bookings</span>
+              </div>
+            )}
+            <div className="grid gap-4">
+              {filteredBookings.map((booking) => (
+                <Card
+                  key={booking.id}
+                  className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start gap-3">
+                      {(booking.status === 'approved' || booking.status === 'denied') && (
+                        <Checkbox
+                          checked={selectedForDelete.has(booking.id)}
+                          onCheckedChange={() => toggleSelectBooking(booking.id)}
+                          className="mt-1"
+                        />
+                      )}
                     <div className="flex-1">
                       <CardTitle className="text-lg text-[#1A1A1A]">{booking.client_name}</CardTitle>
                       <p className="text-sm text-[#1A1A1A]/60 mt-1">{booking.property_address}</p>
