@@ -168,18 +168,6 @@ export default function Layout({ children, currentPageName }) {
             })}
             {user && (
               <>
-                <Link
-                  to={createPageUrl("AccountSettings")}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
-                    currentPageName === "AccountSettings"
-                      ? "bg-[#B8956A] text-[#1A1A1A]"
-                      : "text-[#FFFBF5]/70 hover:bg-[#FFFBF5]/10"
-                  }`}
-                >
-                  <Settings className="w-4 h-4" />
-                  Settings
-                </Link>
                 <button
                   onClick={() => {
                     localStorage.clear();
