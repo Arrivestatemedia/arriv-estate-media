@@ -116,6 +116,7 @@ export default function JobBoard() {
   };
 
   const handleCancelSubmit = (jobId, reason) => {
+    console.log("Cancelling job:", jobId, "Reason:", reason);
     cancelMutation.mutate({ jobId, reason });
   };
 
