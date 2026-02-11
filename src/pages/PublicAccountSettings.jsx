@@ -104,17 +104,17 @@ export default function PublicAccountSettings() {
     setError("");
     
     try {
-      const response = await base44.functions.invoke('requestAccountDeletion', {
+      const response = await base44.functions.invoke('scheduleAccountDeletion', {
         email: accountData.email
       });
       
       if (response.data.success) {
         setStep("success");
       } else {
-        setError(response.data.error || 'Failed to request deletion');
+        setError(response.data.error || 'Failed to schedule deletion');
       }
     } catch (err) {
-      setError('Failed to request deletion: ' + err.message);
+      setError('Failed to schedule deletion: ' + err.message);
     } finally {
       setLoading(false);
     }
