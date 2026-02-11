@@ -63,6 +63,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-[#FFFBF5]">
+      <GoogleMapsLoader />
       <style>{`
         :root {
           --color-cream: #FFFBF5;
