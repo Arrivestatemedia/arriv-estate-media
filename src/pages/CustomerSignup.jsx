@@ -15,15 +15,6 @@ export default function CustomerSignup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Redirect authenticated users away from signup
-  React.useEffect(() => {
-    base44.auth.me().then(user => {
-      if (user) {
-        navigate(createPageUrl(user.user_type === "customer" ? "BookingPage" : "JobBoard"));
-      }
-    }).catch(() => {});
-  }, [navigate]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
