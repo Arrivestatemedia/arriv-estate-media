@@ -129,10 +129,8 @@ export default function BookingPage() {
     onSuccess: () => {
       setShowBookingForm(false);
       setSelectedPackage(null);
-      // Redirect to My Bookings after successful submission
-      setTimeout(() => {
-        window.location.href = createPageUrl('CustomerBookings');
-      }, 1000);
+      // Redirect immediately to My Bookings
+      window.location.href = createPageUrl('CustomerBookings');
     },
   });
 
