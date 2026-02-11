@@ -26,7 +26,7 @@ export default function JobBoard() {
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs"],
-    queryFn: () => base44.entities.Job.list("-created_date"),
+    queryFn: () => base44.entities.Job.filter({ from_booking: true }, "-created_date"),
   });
 
   const { data: user } = useQuery({
