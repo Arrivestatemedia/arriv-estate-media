@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     // If there's a backup, assign them as primary
     if (job.backup_booked_by) {
       // Update job
-      await base44.entities.Job.update(jobId, {
+      await base44.asServiceRole.entities.Job.update(jobId, {
         ...job,
         booked_by: job.backup_booked_by,
         booked_by_name: job.backup_booked_by_name,
