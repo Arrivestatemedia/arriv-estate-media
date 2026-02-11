@@ -67,13 +67,17 @@ export default function AdminBookings() {
 
   const handleApprove = () => {
     if (selectedBooking) {
-      updateMutation.mutate({ id: selectedBooking.id, status: 'approved' });
+      updateMutation.mutate({ id: selectedBooking.id, status: 'approved', reason: null });
     }
   };
 
-  const handleDeny = () => {
+  const handleDenyClick = () => {
+    setShowDenyModal(true);
+  };
+
+  const handleDenySubmit = () => {
     if (selectedBooking) {
-      updateMutation.mutate({ id: selectedBooking.id, status: 'denied' });
+      updateMutation.mutate({ id: selectedBooking.id, status: 'denied', reason: denyReason });
     }
   };
 
