@@ -43,9 +43,7 @@ export default function CustomerBookings() {
     enabled: !!user?.email
   });
 
-  useEffect(() => {
-    refetch();
-  }, []);
+
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
