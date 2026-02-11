@@ -19,32 +19,37 @@ export default function SignIn() {
     setError("");
 
     try {
-      // Invoke backend function to verify user
-      const response = await base44.functions.invoke('verifySignIn', {
-        email: formData.email,
-        password: formData.password
-      });
-
-      if (!response.data.success) {
-        setError(response.data.error || "Email or password incorrect");
+      // Try to authenticate with Base44's built-in auth system
+      const isAuth = await base44.auth.isAuthenticated();
+      
+      if (!isAuth) {
+        setError("Please verify your email first. Check your inbox for an invitation link.");
         setLoading(false);
         return;
       }
 
-      // Store user info in localStorage
-      localStorage.setItem('user_email', response.data.email);
-      localStorage.setItem('user_name', response.data.full_name);
-      localStorage.setItem('user_type', response.data.user_type);
+      const user = await base44.auth.me();
+      
+      if (!user) {
+        setError("Authentication failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Store user info in localStorage for consistency with other parts of the app
+      localStorage.setItem('user_email', user.email);
+      localStorage.setItem('user_name', user.full_name);
+      localStorage.setItem('user_type', user.user_type || 'customer');
 
       // Route based on user type
-      if (response.data.user_type === "contractor") {
+      if (user.user_type === "contractor") {
         window.location.href = '/ContractorDashboard';
       } else {
         window.location.href = '/BookingPage';
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError("Login failed. Please try again.");
+      setError("Login failed. Please verify your email and try again.");
       setLoading(false);
     }
   };
