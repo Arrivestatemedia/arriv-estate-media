@@ -42,27 +42,7 @@ Deno.serve(async (req) => {
                     console.error('SMS send error for ' + phone, error);
                 }
             }
-            
-            const twilioResponse = await fetch(
-                `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams({
-                        To: booking.client_phone,
-                        From: twilioPhone,
-                        Body: message
-                    })
-                }
-            );
-            
-            if (!twilioResponse.ok) {
-                const error = await twilioResponse.text();
-                console.error('Twilio error:', error);
-            }
+
         }
         
         // Send email confirmation via Gmail
