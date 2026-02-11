@@ -143,8 +143,8 @@ export default function AdminBookings() {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <CardContent className="pb-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-[#B8956A]" />
                       <span className="text-[#1A1A1A]/60">{booking.client_email}</span>
@@ -162,15 +162,13 @@ export default function AdminBookings() {
                       <span className="text-[#1A1A1A]/60 font-semibold">${booking.total_price}</span>
                     </div>
                   </div>
-                </CardContent>
-                <div className="px-6 pb-4">
                   <Button
                     onClick={() => setSelectedBooking(booking)}
                     className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
                   >
                     See More Details
                   </Button>
-                </div>
+                </CardContent>
               </Card>
             ))}
           </div>
