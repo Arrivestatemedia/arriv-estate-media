@@ -105,21 +105,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send cancellation notification
-    const cancelledByName = user.full_name || user.email;
-    const bookingForNotification = {
-      client_name: job.booked_by_name,
-      client_email: job.booked_by,
-      property_address: job.location,
-      preferred_date: job.date,
-      preferred_time: job.start_time,
-      package: job.type
-    };
+    // Send cancellation notification to backup contractor if one exists
+    if (job.backup_booked_by && job.backup_booked_by_phone) {
+      const bookingForNotification = {
+        client_name: job.backup_booked_by_name,
+        client_email: job.backup_booked_by,
+        property_address: job.location,
+        preferred_date: job.date,
+        preferred_time: job.start_time,
+        package: job.type
+      };
 
-    await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
-      booking: bookingForNotification,
-      type: 'cancellation'
-    });
+      await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
+        booking: bookingForNotification,
+        type: 'cancellation',
+        phoneNumbers: [job.backup_booked_by_phone, '4047891107']
+      });
+    }
 
     return Response.json({ success: true, message: 'Job cancelled successfully' });
   } catch (error) {

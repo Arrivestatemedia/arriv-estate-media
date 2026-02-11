@@ -9,10 +9,12 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { booking, type = 'confirmation' } = await req.json();
+        const { booking, type = 'confirmation', phoneNumbers = [] } = await req.json();
         
-        // Send SMS via Twilio
-        if (booking.client_phone) {
+        // Send SMS via Twilio to all provided phone numbers
+        const phonesToNotify = phoneNumbers.length > 0 ? phoneNumbers : (booking.client_phone ? [booking.client_phone] : []);
+        
+        if (phonesToNotify.length > 0) {
             const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
             const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
             const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
@@ -21,7 +23,25 @@ Deno.serve(async (req) => {
                 ? `Hi ${booking.client_name}! Your booking at ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been cancelled. - Arriv`
                 : `Hi ${booking.client_name}! Your booking at ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been confirmed. You'll also receive a calendar invite via email. - Arriv`;
             
-            const message = messageText;
+            // Send SMS to each phone number
+            for (const phone of phonesToNotify) {
+                try {
+                    const response = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
+                        },
+                        body: new URLSearchParams({
+                            'From': twilioPhone,
+                            'To': phone,
+                            'Body': messageText,
+                        }).toString(),
+                    });
+                } catch (error) {
+                    console.error('SMS send error for ' + phone, error);
+                }
+            }
             
             const twilioResponse = await fetch(
                 `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
