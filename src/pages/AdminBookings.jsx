@@ -185,6 +185,18 @@ export default function AdminBookings() {
     setIsDeleting(false);
   };
 
+  const deletableBookings = bookings.filter(b => b.status === 'approved' || b.status === 'denied');
+  const allDeleteableSelected = deletableBookings.length > 0 && deletableBookings.every(b => selectedForDelete.has(b.id));
+
+  const handleSelectAll = () => {
+    if (allDeleteableSelected) {
+      setSelectedForDelete(new Set());
+    } else {
+      const newSelected = new Set(deletableBookings.map(b => b.id));
+      setSelectedForDelete(newSelected);
+    }
+  };
+
   if (!user) return <div className="p-8">Loading...</div>;
 
   return (
