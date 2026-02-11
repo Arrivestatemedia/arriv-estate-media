@@ -162,27 +162,39 @@ export default function Layout({ children, currentPageName }) {
         {mobileOpen && (
           <div className="md:hidden border-t border-[#B8956A]/20 bg-[#1A1A1A] px-4 py-3 space-y-1">
             {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = currentPageName === item.page;
-              return (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
-                    active
-                      ? "bg-[#B8956A] text-[#1A1A1A]"
-                      : "text-[#FFFBF5]/70 hover:bg-[#FFFBF5]/10"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-            {user && (
-              <>
-                <button
+                const Icon = item.icon;
+                const active = currentPageName === item.page;
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                      active
+                        ? "bg-[#B8956A] text-[#1A1A1A]"
+                        : "text-[#FFFBF5]/70 hover:bg-[#FFFBF5]/10"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              {user && (
+                <>
+                  <Link
+                    to={createPageUrl("AccountSettings")}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                      currentPageName === "AccountSettings"
+                        ? "bg-[#B8956A] text-[#1A1A1A]"
+                        : "text-[#FFFBF5]/70 hover:bg-[#FFFBF5]/10"
+                    }`}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Account Settings
+                  </Link>
+                  <button
                   onClick={() => {
                     localStorage.clear();
                     base44.auth.logout(createPageUrl("SignIn"));
