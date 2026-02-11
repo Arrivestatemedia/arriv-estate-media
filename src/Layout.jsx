@@ -18,9 +18,14 @@ export default function Layout({ children, currentPageName }) {
         // Refresh user data after applying
         const updatedUser = await base44.auth.me().catch(() => userData);
         setUser(updatedUser);
+        
+        // Check if user needs to change password
+        if (updatedUser?.needs_password_change && currentPageName !== 'AccountSettings') {
+          window.location.href = createPageUrl('AccountSettings') + '?change_password=true';
+        }
       }
     }).catch(() => {});
-  }, []);
+  }, [currentPageName]);
 
   const isAdmin = user?.role === "admin";
   const isCustomer = user?.user_type === "customer";
