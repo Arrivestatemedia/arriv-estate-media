@@ -22,7 +22,8 @@ Deno.serve(async (req) => {
       start_time: booking.preferred_time,
       duration_hours: 2,
       pay_rate: booking.total_price,
-      status: 'open'
+      status: 'open',
+      from_booking: true
     });
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
