@@ -346,8 +346,9 @@ export default function AdminBookings() {
                 </CardContent>
               </Card>
             ))}
-          </div>
-        )}
+            </div>
+            </>
+            )}
       </div>
 
       <Dialog open={!!selectedBooking && !showDenyModal} onOpenChange={(open) => !open && setSelectedBooking(null)}>
