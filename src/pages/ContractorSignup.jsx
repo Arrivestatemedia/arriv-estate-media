@@ -22,7 +22,12 @@ export default function ContractorSignup() {
 
     try {
       await base44.functions.invoke('signupContractor', formData);
-      base44.auth.redirectToLogin(createPageUrl('JobBoard'));
+      // Show confirmation message
+      setError(""); // Clear any errors
+      // In a real app, you'd show a success message
+      // For now, just reset the form
+      setFormData({ email: "", full_name: "", phone_number: "" });
+      alert("Check your email to complete account setup!");
     } catch (err) {
       console.error('Signup error:', err);
       const errorMessage = err.response?.data?.error || err.message || "Failed to create account";
