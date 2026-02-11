@@ -124,11 +124,14 @@ export default function BookingPage() {
   const [cartAddOns, setCartAddOns] = useState([]);
 
   const createBookingMutation = useMutation({
-    mutationFn: (data) => base44.entities.Booking.create(data),
+    mutationFn: (data) => base44.functions.invoke('handleBookingSubmission', { booking: data }),
     onSuccess: () => {
       setShowBookingForm(false);
       setSelectedPackage(null);
-      alert("Booking request submitted! We'll contact you shortly to confirm.");
+      // Redirect to My Bookings after successful submission
+      setTimeout(() => {
+        window.location.href = createPageUrl('CustomerBookings');
+      }, 1000);
     },
   });
 
