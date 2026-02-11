@@ -228,16 +228,16 @@ export default function Dashboard() {
 
         {isLoading ? (
           <div className="text-center py-12 text-[#1A1A1A]/60">Loading jobs...</div>
-        ) : jobs.length === 0 ? (
+        ) : approvedJobs.length === 0 ? (
           <Card className="border-2 border-dashed border-[#B8956A]/30 bg-white">
             <CardContent className="text-center py-12">
               <Briefcase className="w-12 h-12 mx-auto mb-4 text-[#B8956A]/40" />
-              <p className="text-[#1A1A1A]/60">No jobs posted yet. Create your first job to get started!</p>
+              <p className="text-[#1A1A1A]/60">No approved jobs yet. Create your first job to get started!</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobs.map((job) => (
+            {approvedJobs.map((job) => (
               <JobCard key={job.id} job={job} isAdmin={true} onManage={handleEdit} currentUserEmail={user?.email} />
             ))}
           </div>
