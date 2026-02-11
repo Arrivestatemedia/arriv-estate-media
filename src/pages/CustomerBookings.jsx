@@ -21,6 +21,19 @@ export default function CustomerBookings() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!user?.email) return;
+    
+    // Subscribe to real-time booking updates
+    const unsubscribe = base44.entities.Booking.subscribe((event) => {
+      if (event.type === 'create' && event.data?.client_email === user.email) {
+        refetch();
+      }
+    });
+
+    return unsubscribe;
+  }, [user?.email, refetch]);
+
   const { data: bookings = [], isLoading, refetch } = useQuery({
     queryKey: ['bookings', user?.email],
     queryFn: () => {
