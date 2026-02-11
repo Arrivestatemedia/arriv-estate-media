@@ -30,6 +30,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Booking.filter({ status: "pending" }, "-created_date"),
   });
 
+  const { data: allBookings = [] } = useQuery({
+    queryKey: ["allBookings"],
+    queryFn: () => base44.entities.Booking.list("-created_date"),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Job.create(data),
     onSuccess: () => {
