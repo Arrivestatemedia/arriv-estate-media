@@ -134,7 +134,7 @@ export default function AdminBookings() {
                 className="cursor-pointer"
               >
               <Card
-                className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow"
+                className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow pointer-events-none"
               >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
