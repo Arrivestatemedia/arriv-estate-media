@@ -10,19 +10,22 @@ export default function Layout({ children, currentPageName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
+    const userEmail = localStorage.getItem('user_email');
+    const userName = localStorage.getItem('user_name');
+    const userType = localStorage.getItem('user_type');
+    
+    if (userEmail && userName && userType) {
+      setUser({
+        email: userEmail,
+        full_name: userName,
+        user_type: userType,
+        role: userType === 'admin' ? 'admin' : 'user'
+      });
+    }
+
     base44.auth.me().then(async (userData) => {
-      setUser(userData);
-      // Apply any pending signup data
       if (userData) {
-        await base44.functions.invoke('applyPendingSignupData').catch(() => {});
-        // Refresh user data after applying
-        const updatedUser = await base44.auth.me().catch(() => userData);
-        setUser(updatedUser);
-        
-        // Check if user needs to change password
-        if (updatedUser?.needs_password_change && currentPageName !== 'AccountSettings') {
-          window.location.href = createPageUrl('AccountSettings') + '?change_password=true';
-        }
+        setUser(userData);
       }
     }).catch(() => {});
   }, [currentPageName]);
