@@ -86,17 +86,7 @@ export default function AdminBookings() {
 
   const handlePostToJobBoard = async (booking) => {
     try {
-      await base44.asServiceRole.entities.Job.create({
-        title: `Photography - ${booking.property_address}`,
-        type: 'photo',
-        description: `Property: ${booking.property_address}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
-        location: booking.property_address,
-        date: booking.preferred_date,
-        start_time: booking.preferred_time,
-        duration_hours: 2,
-        pay_rate: booking.total_price,
-        status: 'open'
-      });
+      await base44.functions.invoke('postBookingToJobBoard', { bookingId: booking.id });
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     } catch (error) {
       console.error('Failed to post to job board:', error);
@@ -105,19 +95,7 @@ export default function AdminBookings() {
 
   const handleAcceptForMyself = async (booking) => {
     try {
-      await base44.asServiceRole.entities.Job.create({
-        title: `Photography - ${booking.property_address}`,
-        type: 'photo',
-        description: `Property: ${booking.property_address}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
-        location: booking.property_address,
-        date: booking.preferred_date,
-        start_time: booking.preferred_time,
-        duration_hours: 2,
-        pay_rate: booking.total_price,
-        status: 'booked',
-        booked_by: user?.email,
-        booked_by_name: user?.full_name
-      });
+      await base44.functions.invoke('acceptBookingForMyself', { bookingId: booking.id });
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     } catch (error) {
       console.error('Failed to accept booking:', error);

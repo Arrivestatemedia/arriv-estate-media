@@ -48,11 +48,14 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AccountSettings from './pages/AccountSettings';
+import AdminBookings from './pages/AdminBookings';
+import AdminInvite from './pages/AdminInvite';
 import AdminUsers from './pages/AdminUsers';
 import BookingPage from './pages/BookingPage';
 import ConfirmDeleteAccount from './pages/ConfirmDeleteAccount';
 import ContractorDashboard from './pages/ContractorDashboard';
 import ContractorSignup from './pages/ContractorSignup';
+import CustomerBookings from './pages/CustomerBookings';
 import CustomerSignup from './pages/CustomerSignup';
 import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
@@ -61,19 +64,19 @@ import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import CustomerBookings from './pages/CustomerBookings';
-import AdminBookings from './pages/AdminBookings';
-import AdminInvite from './pages/AdminInvite';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AccountSettings": AccountSettings,
+    "AdminBookings": AdminBookings,
+    "AdminInvite": AdminInvite,
     "AdminUsers": AdminUsers,
     "BookingPage": BookingPage,
     "ConfirmDeleteAccount": ConfirmDeleteAccount,
     "ContractorDashboard": ContractorDashboard,
     "ContractorSignup": ContractorSignup,
+    "CustomerBookings": CustomerBookings,
     "CustomerSignup": CustomerSignup,
     "Dashboard": Dashboard,
     "DeleteAccountRequest": DeleteAccountRequest,
@@ -82,9 +85,6 @@ export const PAGES = {
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
-    "CustomerBookings": CustomerBookings,
-    "AdminBookings": AdminBookings,
-    "AdminInvite": AdminInvite,
 }
 
 export const pagesConfig = {
