@@ -141,20 +141,20 @@ export default function JobBoard() {
   };
 
   const filteredJobs = jobs
-    .filter((job) => {
-      if (filter === "open") return job.status === "open";
-      if (filter === "booked") return job.booked_by === user?.email || job.backup_booked_by === user?.email;
-      return true;
-    })
-    .filter((job) => {
-      if (!searchQuery) return true;
-      const search = searchQuery.toLowerCase();
-      return (
-        job.title?.toLowerCase().includes(search) ||
-        job.location?.toLowerCase().includes(search) ||
-        job.description?.toLowerCase().includes(search)
-      );
-    });
+   .filter((job) => {
+     if (filter === "open") return job.status === "open";
+     // "booked" filter already handled in query, just display all results
+     return true;
+   })
+   .filter((job) => {
+     if (!searchQuery) return true;
+     const search = searchQuery.toLowerCase();
+     return (
+       job.title?.toLowerCase().includes(search) ||
+       job.location?.toLowerCase().includes(search) ||
+       job.description?.toLowerCase().includes(search)
+     );
+   });
 
   return (
     <div className="min-h-screen bg-[#FFFBF5]">
