@@ -267,6 +267,40 @@ export default function AdminBookings() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showDenyModal} onOpenChange={(open) => !open && setShowDenyModal(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deny Booking Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-[#1A1A1A]/70">
+              Please provide a reason for denying this booking. This will be sent to the customer.
+            </p>
+            <Textarea
+              placeholder="Enter reason (optional)..."
+              value={denyReason}
+              onChange={(e) => setDenyReason(e.target.value)}
+              className="h-24"
+            />
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowDenyModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDenySubmit}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Deny Booking
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
