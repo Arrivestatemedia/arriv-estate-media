@@ -60,18 +60,21 @@ export default function JobBoard() {
     setBookingJob(job);
   };
 
-  const confirmBooking = () => {
-    if (bookingJob && user) {
-      bookMutation.mutate({
-        id: bookingJob.id,
-        data: {
-          ...bookingJob,
-          status: "booked",
-          booked_by: user.email,
-          booked_by_name: user.full_name,
-        },
-      });
+  const confirmBooking = async () => {
+    if (!bookingJob) return;
+    if (!user) {
+      alert("User data not loaded. Please refresh the page.");
+      return;
     }
+    bookMutation.mutate({
+      id: bookingJob.id,
+      data: {
+        ...bookingJob,
+        status: "booked",
+        booked_by: user.email,
+        booked_by_name: user.full_name,
+      },
+    });
   };
 
   const handleCancel = (job) => {
