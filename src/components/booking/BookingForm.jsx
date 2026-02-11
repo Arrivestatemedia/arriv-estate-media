@@ -50,6 +50,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
 
   const [busySlots, setBusySlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (formData.preferred_date) {
@@ -72,14 +73,9 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     
-    // Handle booking submission (sends emails, adds to calendar)
-    try {
-      await base44.functions.invoke('handleBookingSubmission', { booking: formData });
-    } catch (error) {
-      console.error('Failed to process booking:', error);
-    }
-    
+    setIsSubmitting(true);
     onSubmit(formData);
   };
 
@@ -282,10 +278,10 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
-                  disabled={!formData.preferred_date || !formData.preferred_time}
+                  className="flex-1 bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white disabled:bg-[#1A1A1A]/50 disabled:cursor-not-allowed"
+                  disabled={!formData.preferred_date || !formData.preferred_time || isSubmitting}
                 >
-                  Submit Booking Request
+                  {isSubmitting ? "Submitting..." : "Submit Booking Request"}
                 </Button>
               </div>
             </CardContent>
