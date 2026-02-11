@@ -15,11 +15,11 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'User with this email already exists' }, { status: 400 });
         }
 
-        // Invite user through Base44 auth system (using service role since this is public signup)
-        await base44.asServiceRole.users.inviteUser(email, "user");
+        // Invite user through Base44 auth system
+        await base44.users.inviteUser(email, "user");
         
         // Wait a bit and update their profile with additional info
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         const users = await base44.asServiceRole.entities.User.filter({ email });
         if (users.length > 0) {
             await base44.asServiceRole.entities.User.update(users[0].id, {
@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
             message: 'Account created! Please check your email to set your password.'
         });
     } catch (error) {
-        return Response.json({ error: error.message }, { status: 500 });
+        console.error('Signup error:', error);
+        return Response.json({ error: error.message || 'Signup failed' }, { status: 500 });
     }
 });
