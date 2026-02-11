@@ -178,8 +178,9 @@ export default function AdminBookings() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedBooking && (
             <>
-              <DialogHeader>
+              <DialogHeader className="flex justify-between items-center">
                 <DialogTitle className="text-2xl">{selectedBooking.client_name}</DialogTitle>
+                <button onClick={() => setSelectedBooking(null)} className="text-2xl cursor-pointer">×</button>
               </DialogHeader>
 
               <div className="space-y-6">
