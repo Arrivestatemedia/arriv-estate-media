@@ -77,15 +77,31 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ raw: base64urlMessage })
       });
-      // Send SMS to backup if not Bradley
-      if (job.backup_booked_by !== 'BradCBurke@arrivestatemedia.com') {
-        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-        const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      // Send SMS notifications
+      const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      const message = `Hi ${job.backup_booked_by_name}! You've been assigned to: ${job.title} on ${job.date} at ${job.start_time}. Pay: $${job.pay_rate}. - Arriv`;
 
-        if (accountSid && authToken && twilioPhone) {
-          const message = `Hi ${job.backup_booked_by_name}! You've been assigned to: ${job.title} on ${job.date} at ${job.start_time}. Pay: $${job.pay_rate}. - Arriv`;
-          const auth = btoa(`${accountSid}:${authToken}`);
+      if (accountSid && authToken && twilioPhone) {
+        const auth = btoa(`${accountSid}:${authToken}`);
+        
+        // Always send to Bradley's number
+        await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            From: twilioPhone,
+            To: '4047891107',
+            Body: message,
+          }).toString(),
+        });
+
+        // Send to backup contractor if not Bradley
+        if (job.backup_booked_by !== 'BradCBurke@arrivestatemedia.com' && job.backup_booked_by_phone) {
           await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
             method: 'POST',
             headers: {
@@ -94,7 +110,7 @@ Deno.serve(async (req) => {
             },
             body: new URLSearchParams({
               From: twilioPhone,
-              To: '4047891107',
+              To: job.backup_booked_by_phone,
               Body: message,
             }).toString(),
           });
