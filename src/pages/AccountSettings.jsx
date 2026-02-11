@@ -22,6 +22,11 @@ export default function AccountSettings() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
