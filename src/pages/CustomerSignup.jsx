@@ -21,11 +21,11 @@ export default function CustomerSignup() {
     setError("");
 
     try {
-      await base44.functions.invoke('signupCustomer', formData);
-      // Redirect to login page with email pre-filled
-      window.location.href = `${window.location.origin}/login?email=${encodeURIComponent(formData.email)}&next=${createPageUrl("BookingPage")}`;
+      const result = await base44.functions.invoke('signupCustomer', formData);
+      alert('Invitation sent! Check your email to complete signup.');
+      navigate('/');
     } catch (err) {
-      setError(err.message || "Failed to create account");
+      setError(err.message || "Failed to send invitation");
       setLoading(false);
     }
   };
