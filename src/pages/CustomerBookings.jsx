@@ -21,7 +21,7 @@ export default function CustomerBookings() {
     }
   }, []);
 
-  const { data: bookings = [], isLoading } = useQuery({
+  const { data: bookings = [], isLoading, refetch } = useQuery({
     queryKey: ['bookings', user?.email],
     queryFn: () => {
       if (!user?.email) return [];
@@ -29,6 +29,10 @@ export default function CustomerBookings() {
     },
     enabled: !!user?.email
   });
+
+  useEffect(() => {
+    refetch();
+  }, []);
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
