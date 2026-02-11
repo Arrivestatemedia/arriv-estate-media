@@ -13,8 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isLoading }) {
   const [reason, setReason] = useState("");
 
+  if (!job || !open) return null;
+
   const handleSubmit = () => {
-    if (!job) return;
     onSubmit(job.id, reason);
     setReason("");
     onOpenChange(false);
@@ -30,12 +31,10 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
-          {job && (
-            <div>
-              <p className="text-sm font-medium text-[#1A1A1A] mb-2">{job.title}</p>
-              <p className="text-xs text-[#1A1A1A]/60">{job.location}</p>
-            </div>
-          )}
+          <div>
+            <p className="text-sm font-medium text-[#1A1A1A] mb-2">{job.title}</p>
+            <p className="text-xs text-[#1A1A1A]/60">{job.location}</p>
+          </div>
           <div>
             <label className="text-sm font-medium text-[#1A1A1A] block mb-2">
               Reason for cancellation
