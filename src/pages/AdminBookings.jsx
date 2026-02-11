@@ -215,20 +215,23 @@ export default function AdminBookings() {
                       onClick={() => setSelectedBooking(booking)}
                       variant="outline"
                       className="flex-1 border-[#B8956A]/30"
+                      disabled={loadingBookingId === booking.id}
                     >
                       Details
                     </Button>
                     <Button
                       onClick={() => handlePostToJobBoard(booking)}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300"
+                      disabled={loadingBookingId === booking.id}
                     >
-                      Post to Job Board
+                      {loadingBookingId === booking.id ? 'Posting...' : 'Post to Job Board'}
                     </Button>
                     <Button
                       onClick={() => handleAcceptForMyself(booking)}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-green-300"
+                      disabled={loadingBookingId === booking.id}
                     >
-                      Accept for Myself
+                      {loadingBookingId === booking.id ? 'Accepting...' : 'Accept for Myself'}
                     </Button>
                   </div>
                 </CardContent>
