@@ -172,6 +172,7 @@ export default function ManageUsers() {
                     <TableHead className="text-[#1A1A1A]">Type</TableHead>
                     <TableHead className="text-[#1A1A1A]">Role</TableHead>
                     <TableHead className="text-[#1A1A1A]">Phone</TableHead>
+                    <TableHead className="text-[#1A1A1A]">Status</TableHead>
                     <TableHead className="text-[#1A1A1A]">Created</TableHead>
                     <TableHead className="text-[#1A1A1A]">Actions</TableHead>
                   </TableRow>
