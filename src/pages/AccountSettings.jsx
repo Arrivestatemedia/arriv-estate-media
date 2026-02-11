@@ -32,6 +32,8 @@ export default function AccountSettings() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
+      setEditEmail(u.email || "");
+      setEditPhone(u.phone_number || "");
       // Check if redirected here to change password
       const params = new URLSearchParams(window.location.search);
       if (params.get('change_password') === 'true' && u?.needs_password_change) {
