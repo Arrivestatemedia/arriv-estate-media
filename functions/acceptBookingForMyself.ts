@@ -29,6 +29,13 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'confirmed' });
 
+    // Send approval email to customer
+    await base44.integrations.Core.SendEmail({
+      to: booking.client_email,
+      subject: 'Your Booking Has Been Approved',
+      body: `Hi ${booking.client_name},\n\nGreat news! Your booking request for ${booking.property_address} on ${booking.preferred_date} has been approved and assigned to our team.\n\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\n\nThank you for choosing us!`
+    });
+
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
