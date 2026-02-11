@@ -4,6 +4,7 @@ import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
 import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
