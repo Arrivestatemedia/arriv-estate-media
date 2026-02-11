@@ -29,9 +29,10 @@ export default function JobBoard() {
     queryFn: () => base44.entities.Job.filter({ from_booking: true }, "-created_date"),
   });
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ["user"],
     queryFn: () => base44.auth.me(),
+    retry: 1,
   });
 
   const bookMutation = useMutation({
