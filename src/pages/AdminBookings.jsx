@@ -31,7 +31,7 @@ export default function AdminBookings() {
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['adminBookings'],
-    queryFn: () => base44.asServiceRole.entities.Booking.list('-created_date'),
+    queryFn: () => base44.entities.Booking.list('-created_date'),
     enabled: !!user
   });
 
