@@ -19,10 +19,11 @@ import {
 } from "@/components/ui/dialog";
 
 export default function JobBoard() {
-  const [filter, setFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [bookingJob, setBookingJob] = useState(null);
-  const queryClient = useQueryClient();
+    const [filter, setFilter] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [bookingJob, setBookingJob] = useState(null);
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs"],
