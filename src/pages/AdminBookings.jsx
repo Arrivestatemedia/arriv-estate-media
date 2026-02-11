@@ -17,6 +17,8 @@ export default function AdminBookings() {
     const [denyReason, setDenyReason] = useState('');
     const [showDenyModal, setShowDenyModal] = useState(false);
     const [loadingBookingId, setLoadingBookingId] = useState(null);
+    const [selectedForDelete, setSelectedForDelete] = useState(new Set());
+    const [isDeleting, setIsDeleting] = useState(false);
     const queryClient = useQueryClient();
 
   useEffect(() => {
