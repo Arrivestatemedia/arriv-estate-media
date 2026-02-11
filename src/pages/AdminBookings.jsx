@@ -106,20 +106,26 @@ export default function AdminBookings() {
   };
 
   const handlePostToJobBoard = async (booking) => {
+    setLoadingBookingId(booking.id);
     try {
       await base44.functions.invoke('postBookingToJobBoard', { bookingId: booking.id });
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     } catch (error) {
       console.error('Failed to post to job board:', error);
+    } finally {
+      setLoadingBookingId(null);
     }
   };
 
   const handleAcceptForMyself = async (booking) => {
+    setLoadingBookingId(booking.id);
     try {
       await base44.functions.invoke('acceptBookingForMyself', { bookingId: booking.id });
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     } catch (error) {
       console.error('Failed to accept booking:', error);
+    } finally {
+      setLoadingBookingId(null);
     }
   };
 
