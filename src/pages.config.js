@@ -62,6 +62,7 @@ import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import CustomerBookings from './pages/CustomerBookings';
+import AdminBookings from './pages/AdminBookings';
 import __Layout from './Layout.jsx';
 
 
@@ -81,6 +82,7 @@ export const PAGES = {
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
     "CustomerBookings": CustomerBookings,
+    "AdminBookings": AdminBookings,
 }
 
 export const pagesConfig = {
