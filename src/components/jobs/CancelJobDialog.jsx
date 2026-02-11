@@ -13,15 +13,15 @@ import { Textarea } from "@/components/ui/textarea";
 export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isLoading }) {
   const [reason, setReason] = useState("");
 
-  if (!job || !open) return null;
-
   const handleSubmit = () => {
-    onSubmit(job.id, reason);
-    setReason("");
+    if (job) {
+      onSubmit(job.id, reason);
+      setReason("");
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open && !!job} onOpenChange={onOpenChange}>
       <DialogContent className="border-2 border-[#B8956A]/30">
         <DialogHeader>
           <DialogTitle className="text-[#1A1A1A]">Cancel This Booking?</DialogTitle>
