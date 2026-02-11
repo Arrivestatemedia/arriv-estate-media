@@ -33,10 +33,27 @@ export default function AdminBookings() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, status }) => base44.asServiceRole.entities.Booking.update(id, { status }),
+    mutationFn: ({ id, status, reason }) => 
+      base44.asServiceRole.entities.Booking.update(id, { status }).then(async (booking) => {
+        // Send status email
+        try {
+          await base44.functions.invoke('sendBookingStatusEmail', {
+            clientEmail: booking.client_email,
+            clientName: booking.client_name,
+            status: status,
+            reason: reason,
+            propertyAddress: booking.property_address
+          });
+        } catch (error) {
+          console.error('Failed to send status email:', error);
+        }
+        return booking;
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       setSelectedBooking(null);
+      setShowDenyModal(false);
+      setDenyReason('');
     }
   });
 
