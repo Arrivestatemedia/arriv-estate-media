@@ -21,11 +21,11 @@ export default function ContractorSignup() {
     setError("");
 
     try {
-      const result = await base44.functions.invoke('signupContractor', formData);
+      const response = await base44.functions.invoke('signupContractor', formData);
       alert('Invitation sent! Check your email to complete signup.');
       navigate('/');
     } catch (err) {
-      setError(err.message || "Failed to send invitation");
+      setError(err.response?.data?.error || err.message || "Failed to send invitation");
       setLoading(false);
     }
   };
