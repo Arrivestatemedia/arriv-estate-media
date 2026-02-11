@@ -222,6 +222,16 @@ export default function AdminBookings() {
           >
             Denied ({bookings.filter(b => b.status === 'denied').length})
           </Button>
+          </div>
+          {selectedForDelete.size > 0 && (
+            <Button
+              onClick={handleBatchDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? 'Deleting...' : `Delete ${selectedForDelete.size}`}
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
