@@ -43,11 +43,43 @@ Deno.serve(async (req) => {
         status: "booked",
       });
 
-      // Send email to backup contractor
-      await base44.integrations.Core.SendEmail({
-        to: job.backup_booked_by,
-        subject: `You've been assigned to: ${job.title}`,
-        body: `Great news! The primary contractor for "${job.title}" has cancelled, and you've been assigned as the main contractor for this job.\n\nLocation: ${job.location}\nDate: ${job.date}\nTime: ${job.start_time}\nPay: $${job.pay_rate}\n\nPlease confirm your availability.`,
+      // Send email to backup contractor using Gmail
+      const adminEmail = 'BradCBurke@arrivestatemedia.com';
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+
+      const emailSubject = `You've been assigned to: ${job.title}`;
+      const emailBody = `Hi ${job.backup_booked_by_name},\n\nGreat news! The primary contractor for "${job.title}" has cancelled, and you've been assigned as the main contractor for this job.\n\nProperty: ${job.location}\nDate: ${job.date}\nTime: ${job.start_time}\nPay: $${job.pay_rate}\n\nPlease confirm your availability.\n\nThank you,\nArriv Team`;
+
+      const messageLines = [
+        `To: ${job.backup_booked_by}`,
+        `From: ${adminEmail}`,
+        `Subject: ${emailSubject}`,
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset="UTF-8"',
+        '',
+        emailBody
+      ];
+
+      const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
+      const messageBytes = messageParts.reduce((acc, part) => {
+        const newAcc = new Uint8Array(acc.length + part.length);
+        newAcc.set(acc);
+        newAcc.set(part, acc.length);
+        return newAcc;
+      }, new Uint8Array());
+
+      const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+
+      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw: base64urlMessage })
       });
 
       // Send SMS via Twilio if backup has phone
@@ -57,6 +89,7 @@ Deno.serve(async (req) => {
         const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
 
         if (accountSid && authToken && twilioPhone) {
+          const message = `Hi ${job.backup_booked_by_name}! You've been assigned to: ${job.title} on ${job.date} at ${job.start_time}. Pay: $${job.pay_rate}. - Arriv`;
           const auth = btoa(`${accountSid}:${authToken}`);
           await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
             method: 'POST',
@@ -67,7 +100,7 @@ Deno.serve(async (req) => {
             body: new URLSearchParams({
               From: twilioPhone,
               To: backupContractor.phone_number,
-              Body: `You've been assigned to: ${job.title} on ${job.date} at ${job.start_time}. Pay: $${job.pay_rate}`,
+              Body: message,
             }).toString(),
           });
         }
