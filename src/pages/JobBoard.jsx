@@ -144,7 +144,7 @@ export default function JobBoard() {
             <Link to={createPageUrl("ContractorDashboard")}>
               <Button className="bg-[#B8956A] hover:bg-[#A68559] text-white">
                 <LayoutDashboard className="w-4 h-4 mr-2" />
-                My Dashboard
+                Dashboard
               </Button>
             </Link>
           )}
