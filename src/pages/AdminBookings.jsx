@@ -173,6 +173,7 @@ export default function AdminBookings() {
                 </div>
               </Card>
             ))}
+          </div>
         )}
       </div>
 
