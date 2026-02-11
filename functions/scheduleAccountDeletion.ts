@@ -27,36 +27,15 @@ Deno.serve(async (req) => {
             deletion_token: generateToken()
         });
 
-        // Get admin email from environment
-        const adminEmail = Deno.env.get('ADMIN_EMAIL');
+        // Send email to admin
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
         const deleteUrl = `https://${appDomain}/confirmDeleteUser?token=${user.id}&email=${encodeURIComponent(user.email)}`;
 
-        // Send email to admin
-        if (adminEmail) {
-            try {
-                await base44.asServiceRole.integrations.Core.SendEmail({
-                    to: adminEmail,
-                    subject: `Account Deletion Request - ${user.full_name}`,
-                    body: `
-                        <h2>Account Deletion Request</h2>
-                        <p><strong>User:</strong> ${user.full_name}</p>
-                        <p><strong>Email:</strong> ${user.email}</p>
-                        <p><strong>User Type:</strong> ${user.user_type}</p>
-                        <p><strong>Scheduled Deletion Date:</strong> ${deletionDate.toLocaleDateString()}</p>
-                        
-                        <p>The user has requested to delete their account. The account is scheduled for automatic deletion in 30 days.</p>
-                        
-                        <p>To delete this account immediately, click the link below:</p>
-                        <a href="${deleteUrl}" style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">Delete Account Now</a>
-                        
-                        <p style="color: #666; font-size: 12px;">Or copy this link: ${deleteUrl}</p>
-                    `
-                });
-            } catch (emailError) {
-                console.error('Failed to send email to admin:', emailError);
-            }
-        }
+        await base44.asServiceRole.integrations.Core.SendEmail({
+            to: 'info@arrivestatemedia.com',
+            subject: `Account Deletion Request - ${user.full_name}`,
+            body: `Account Deletion Request\n\nUser: ${user.full_name}\nEmail: ${user.email}\nUser Type: ${user.user_type}\nScheduled Deletion Date: ${deletionDate.toLocaleDateString()}\n\nThe user has requested to delete their account. The account is scheduled for automatic deletion in 30 days.\n\nTo delete this account immediately, visit: ${deleteUrl}`
+        });
 
         return Response.json({
             success: true,
