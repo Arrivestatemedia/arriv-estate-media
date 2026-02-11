@@ -34,14 +34,15 @@ export default function JobBoard() {
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs", filter, user?.email],
     queryFn: async () => {
+      const allJobs = await base44.entities.Job.filter({ from_booking: true }, "-created_date");
       if (filter === "booked" && user?.email) {
-        // Fetch only jobs where user is primary or backup contractor
-        const allJobs = await base44.entities.Job.filter({ 
-          from_booking: true 
-        }, "-created_date");
-        return allJobs.filter(job => job.booked_by === user.email || job.backup_booked_by === user.email);
+        // Match ContractorDashboard: show booked and in_progress jobs
+        return allJobs.filter(job => 
+          (job.status === "booked" || job.status === "in_progress") &&
+          (job.booked_by === user.email || job.backup_booked_by === user.email)
+        );
       }
-      return base44.entities.Job.filter({ from_booking: true }, "-created_date");
+      return allJobs;
     },
   });
 
