@@ -9,19 +9,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Find user in PendingSignup
-    const users = await base44.asServiceRole.entities.PendingSignup.filter({
-      email: email,
-    });
+    // Find user in PendingSignup (case-insensitive)
+    const allUsers = await base44.asServiceRole.entities.PendingSignup.list();
+    const user = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
 
-    if (users.length === 0) {
+    if (!user) {
       return Response.json({
         success: false,
         error: 'No account found with this email'
       }, { status: 404 });
     }
-
-    const user = users[0];
     return Response.json({
       success: true,
       account: {
