@@ -13,21 +13,32 @@ Deno.serve(async (req) => {
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
         const deleteUrl = `https://${appDomain}/confirmDeleteUser?token=${userId}&email=${encodeURIComponent(userEmail)}`;
 
-        // Get Gmail access token and send via Gmail API directly
+        // Get Gmail access token
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-        // Construct RFC 5322 formatted email message
+        // Get Gmail profile to use the authenticated email as From
+        const profileResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/profile', {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (!profileResponse.ok) {
+            throw new Error('Failed to fetch Gmail profile');
+        }
+
+        const profile = await profileResponse.json();
+        const fromEmail = profile.emailAddress;
+
+        // Construct RFC 5322 formatted email
         const emailSubject = `Account Deletion Request - ${userName}`;
         const emailBody = `Account Deletion Request\n\nUser: ${userName}\nEmail: ${userEmail}\nUser Type: ${userType}\nScheduled Deletion Date: ${deletionDate}\n\nTo delete immediately: ${deleteUrl}`;
 
         // Create message in RFC 5322 format
         const messageLines = [
             `To: ${adminEmail}`,
-            'From: noreply@arrivestatemedia.com',
+            `From: ${fromEmail}`,
             `Subject: ${emailSubject}`,
             'MIME-Version: 1.0',
             'Content-Type: text/plain; charset="UTF-8"',
-            'Content-Transfer-Encoding: 7bit',
             '',
             emailBody
         ];
@@ -51,24 +62,21 @@ Deno.serve(async (req) => {
             .replace(/=/g, '');
 
         // Send via Gmail API
-        const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        const sendResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                raw: base64urlMessage
-            })
+            body: JSON.stringify({ raw: base64urlMessage })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Gmail API error:', errorData);
+        if (!sendResponse.ok) {
+            const errorData = await sendResponse.json();
             throw new Error(`Gmail API error: ${JSON.stringify(errorData)}`);
         }
 
-        const result = await response.json();
+        const result = await sendResponse.json();
         return Response.json({ success: true, messageId: result.id });
     } catch (error) {
         console.error('Error sending deletion email:', error);
