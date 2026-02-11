@@ -61,21 +61,39 @@ export default function JobBoard() {
     setBookingJob(job);
   };
 
-  const confirmBooking = async () => {
+  const confirmBooking = () => {
     if (!bookingJob) return;
-    if (!user) {
-      alert("User data not loaded. Please refresh the page.");
+    if (userLoading) {
+      alert("Loading user data. Please wait...");
       return;
     }
-    bookMutation.mutate({
-      id: bookingJob.id,
-      data: {
-        ...bookingJob,
-        status: "booked",
-        booked_by: user.email,
-        booked_by_name: user.full_name,
-      },
-    });
+    if (!user || !user.email) {
+      const storedEmail = localStorage.getItem('user_email');
+      const storedName = localStorage.getItem('user_name');
+      if (storedEmail && storedName) {
+        bookMutation.mutate({
+          id: bookingJob.id,
+          data: {
+            ...bookingJob,
+            status: "booked",
+            booked_by: storedEmail,
+            booked_by_name: storedName,
+          },
+        });
+      } else {
+        alert("User data not available. Please refresh the page.");
+      }
+    } else {
+      bookMutation.mutate({
+        id: bookingJob.id,
+        data: {
+          ...bookingJob,
+          status: "booked",
+          booked_by: user.email,
+          booked_by_name: user.full_name,
+        },
+      });
+    }
   };
 
   const handleCancel = (job) => {
