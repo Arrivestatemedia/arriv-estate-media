@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
-        const { email, full_name, phone_number, user_type } = await req.json();
+        const { email, full_name, phone_number } = await req.json();
 
         if (!email || !full_name || !phone_number) {
             return Response.json({ error: 'Email, full name, and phone number are required' }, { status: 400 });
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
         const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
         // Create a temporary signup record
-        const signupRecord = await base44.asServiceRole.entities.PendingSignup.create({
+        await base44.asServiceRole.entities.PendingSignup.create({
             email,
             full_name,
             phone_number,
@@ -32,29 +32,16 @@ Deno.serve(async (req) => {
             status: "pending"
         });
 
-        // Send setup link via SMS
-        const setupLink = `https://${Deno.env.get('BASE44_APP_DOMAIN')}/PasswordSetup?token=${tokenString}`;
-        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-        const fromNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
-
-        const auth = btoa(`${accountSid}:${authToken}`);
-        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Basic ${auth}`,
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                'From': fromNumber,
-                'To': phone_number,
-                'Body': `Welcome to Arriv Estate Media! Complete your account setup here: ${setupLink}`
-            }).toString()
+        // Send signup email with setup token
+        await base44.asServiceRole.functions.invoke('sendSignupEmail', {
+            email,
+            full_name,
+            setup_token: tokenString
         });
 
         return Response.json({ 
             success: true, 
-            message: 'Check your SMS to complete account setup'
+            message: 'Check your email to complete account setup'
         });
     } catch (error) {
         console.error('Signup error:', error);
