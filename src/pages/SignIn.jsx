@@ -19,39 +19,25 @@ export default function SignIn() {
     setError("");
 
     try {
-      // Check if user exists in PendingSignup
-      const signups = await base44.asServiceRole.entities.PendingSignup.filter({
-        email: formData.email
-      });
-
-      if (signups.length === 0) {
-        setError("Email or password incorrect");
-        setLoading(false);
-        return;
-      }
-
-      const signup = signups[0];
-
-      // Verify password
-      const response = await base44.functions.invoke('verifyPassword', {
+      // Invoke backend function to verify user
+      const response = await base44.functions.invoke('verifySignIn', {
         email: formData.email,
-        password: formData.password,
-        storedHash: signup.password_hash
+        password: formData.password
       });
 
-      if (!response.data.valid) {
-        setError("Email or password incorrect");
+      if (!response.data.success) {
+        setError(response.data.error || "Email or password incorrect");
         setLoading(false);
         return;
       }
 
       // Store user info in localStorage
-      localStorage.setItem('user_email', signup.email);
-      localStorage.setItem('user_name', signup.full_name);
-      localStorage.setItem('user_type', signup.user_type);
+      localStorage.setItem('user_email', response.data.email);
+      localStorage.setItem('user_name', response.data.full_name);
+      localStorage.setItem('user_type', response.data.user_type);
 
       // Route based on user type
-      if (signup.user_type === "contractor") {
+      if (response.data.user_type === "contractor") {
         window.location.href = '/ContractorDashboard';
       } else {
         window.location.href = '/BookingPage';
