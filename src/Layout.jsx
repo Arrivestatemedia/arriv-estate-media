@@ -10,7 +10,16 @@ export default function Layout({ children, currentPageName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    base44.auth.me().then(async (userData) => {
+      setUser(userData);
+      // Apply any pending signup data
+      if (userData) {
+        await base44.functions.invoke('applyPendingSignupData').catch(() => {});
+        // Refresh user data after applying
+        const updatedUser = await base44.auth.me().catch(() => userData);
+        setUser(updatedUser);
+      }
+    }).catch(() => {});
   }, []);
 
   const isAdmin = user?.role === "admin";
