@@ -193,21 +193,124 @@ export default function AccountSettings() {
             <CardTitle className="text-[#1A1A1A]">Account Information</CardTitle>
             <CardDescription>Your account details</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             <div>
               <label className="text-sm font-medium text-[#1A1A1A]/60">Full Name</label>
               <p className="text-[#1A1A1A] font-medium">{user.full_name}</p>
             </div>
+            
             <div>
               <label className="text-sm font-medium text-[#1A1A1A]/60">Email</label>
-              <p className="text-[#1A1A1A] font-medium">{user.email}</p>
+              {isEditingEmail ? (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="border-[#B8956A]/30"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleUpdateEmail}
+                    disabled={editLoading}
+                    className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditingEmail(false);
+                      setEditEmail(user.email);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-[#1A1A1A] font-medium">{user.email}</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditingEmail(true)}
+                  >
+                    Edit
+                  </Button>
+                </div>
+              )}
             </div>
+
+            <div>
+              <label className="text-sm font-medium text-[#1A1A1A]/60">Phone Number</label>
+              {isEditingPhone ? (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="border-[#B8956A]/30"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleUpdatePhone}
+                    disabled={editLoading}
+                    className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditingPhone(false);
+                      setEditPhone(user.phone_number || "");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-[#1A1A1A] font-medium">{user.phone_number || 'Not provided'}</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditingPhone(true)}
+                  >
+                    Edit
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="text-sm font-medium text-[#1A1A1A]/60">Account Type</label>
-              <p className="text-[#1A1A1A] font-medium capitalize">
+              <p className="text-[#1A1A1A] font-medium capitalize mt-2">
                 {user.role === 'admin' ? 'Admin' : user.user_type || 'User'}
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#B8956A]/20">
+          <CardHeader>
+            <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
+              <MailIcon className="w-5 h-5" />
+              Contact Support
+            </CardTitle>
+            <CardDescription>Get help or report an issue</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-[#1A1A1A] mb-4">Have questions or need assistance? Contact our support team:</p>
+            <a
+              href="mailto:info@arrivestatemedia.com"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#B8956A] text-white rounded-lg hover:bg-[#B8956A]/90 transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              info@arrivestatemedia.com
+            </a>
           </CardContent>
         </Card>
 
