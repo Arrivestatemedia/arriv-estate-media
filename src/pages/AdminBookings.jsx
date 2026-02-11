@@ -18,12 +18,15 @@ export default function AdminBookings() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const userType = localStorage.getItem('user_type');
-    if (userType !== 'admin') {
+    base44.auth.me().then((userData) => {
+      if (userData?.role !== 'admin') {
+        window.location.href = createPageUrl('Dashboard');
+      } else {
+        setUser(userData);
+      }
+    }).catch(() => {
       window.location.href = createPageUrl('Dashboard');
-      return;
-    }
-    setUser({ role: 'admin' });
+    });
   }, []);
 
   const { data: bookings = [], isLoading } = useQuery({
