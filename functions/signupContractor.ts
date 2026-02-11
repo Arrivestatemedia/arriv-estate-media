@@ -16,24 +16,24 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'User with this email already exists' }, { status: 400 });
         }
 
-        // Create user in auth system and set profile info
+        // Create user account
         await base44.asServiceRole.users.inviteUser(email, "user");
         
-        // Update profile with additional info (runs in background)
-        setTimeout(async () => {
-            const users = await base44.asServiceRole.entities.User.filter({ email });
-            if (users.length > 0) {
-                await base44.asServiceRole.entities.User.update(users[0].id, {
-                    full_name,
-                    phone_number,
-                    user_type: "contractor"
-                });
-            }
-        }, 1500);
+        // Wait for user to be created and update profile
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const users = await base44.asServiceRole.entities.User.filter({ email });
+        
+        if (users.length > 0) {
+            await base44.asServiceRole.entities.User.update(users[0].id, {
+                full_name,
+                phone_number,
+                user_type: "contractor"
+            });
+        }
 
         return Response.json({ 
             success: true, 
-            message: 'Account created! Please check your email to set your password.'
+            message: 'Account created successfully!'
         });
     } catch (error) {
         console.error('Signup error:', error);
