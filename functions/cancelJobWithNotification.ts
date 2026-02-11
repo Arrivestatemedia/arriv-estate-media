@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       // Get backup contractor's details
       let backupContractor = null;
       try {
-        const backupContractors = await base44.entities.User.filter({ email: job.backup_booked_by });
+        const backupContractors = await base44.asServiceRole.entities.User.filter({ email: job.backup_booked_by });
         backupContractor = backupContractors.length > 0 ? backupContractors[0] : null;
       } catch (err) {
         console.error('Could not fetch backup contractor details:', err);
