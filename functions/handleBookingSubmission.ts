@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
         end: { dateTime: endTime.toISOString() }
       };
 
-      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(adminEmail)}/events`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
