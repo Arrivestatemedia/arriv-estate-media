@@ -58,6 +58,7 @@ import PasswordSetup from './pages/PasswordSetup';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import SignIn from './pages/SignIn';
 import AdminUsers from './pages/AdminUsers';
+import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import __Layout from './Layout.jsx';
 
 
@@ -73,6 +74,7 @@ export const PAGES = {
     "confirmDeleteUser": confirmDeleteUser,
     "SignIn": SignIn,
     "AdminUsers": AdminUsers,
+    "DeleteAccountRequest": DeleteAccountRequest,
 }
 
 export const pagesConfig = {
