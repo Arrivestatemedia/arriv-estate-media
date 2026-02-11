@@ -251,20 +251,34 @@ export default function AdminBookings() {
                     >
                       Details
                     </Button>
-                    <Button
-                      onClick={() => handlePostToJobBoard(booking)}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:cursor-not-allowed"
-                      disabled={loadingBookingId !== null || booking.status !== 'pending'}
-                    >
-                      {loadingBookingId === booking.id ? 'Posting...' : 'Post to Job Board'}
-                    </Button>
-                    <Button
-                      onClick={() => handleAcceptForMyself(booking)}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-green-300 disabled:cursor-not-allowed"
-                      disabled={loadingBookingId !== null || booking.status !== 'pending'}
-                    >
-                      {loadingBookingId === booking.id ? 'Accepting...' : 'Accept for Myself'}
-                    </Button>
+                    {booking.status === 'pending' && (
+                      <>
+                        <Button
+                          onClick={() => handlePostToJobBoard(booking)}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:cursor-not-allowed"
+                          disabled={loadingBookingId !== null}
+                        >
+                          {loadingBookingId === booking.id ? 'Posting...' : 'Post to Job Board'}
+                        </Button>
+                        <Button
+                          onClick={() => handleAcceptForMyself(booking)}
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-green-300 disabled:cursor-not-allowed"
+                          disabled={loadingBookingId !== null}
+                        >
+                          {loadingBookingId === booking.id ? 'Accepting...' : 'Accept for Myself'}
+                        </Button>
+                      </>
+                    )}
+                    {(booking.status === 'approved' || booking.status === 'denied') && (
+                      <Button
+                        onClick={() => deleteMutation.mutate(booking.id)}
+                        variant="outline"
+                        className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                        disabled={loadingBookingId !== null}
+                      >
+                        {loadingBookingId === booking.id ? 'Deleting...' : 'Delete'}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
