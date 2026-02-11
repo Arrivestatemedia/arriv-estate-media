@@ -17,7 +17,13 @@ Deno.serve(async (req) => {
     }
 
     // Get the job
-    const job = await base44.asServiceRole.entities.Job.get(jobId);
+    let job;
+    try {
+      job = await base44.asServiceRole.entities.Job.get(jobId);
+    } catch (error) {
+      console.error('Error fetching job:', error);
+      return Response.json({ error: `Failed to fetch job: ${error.message}` }, { status: 500 });
+    }
     
     if (!job) {
       return Response.json({ error: 'Job not found' }, { status: 404 });
