@@ -16,18 +16,6 @@ Deno.serve(async (req) => {
         // Get Gmail access token
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-        // Get Gmail profile to use the authenticated email as From
-        const profileResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/profile', {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-
-        if (!profileResponse.ok) {
-            throw new Error('Failed to fetch Gmail profile');
-        }
-
-        const profile = await profileResponse.json();
-        const fromEmail = profile.emailAddress;
-
         // Construct RFC 5322 formatted email
         const emailSubject = `Account Deletion Request - ${userName}`;
         const emailBody = `Account Deletion Request\n\nUser: ${userName}\nEmail: ${userEmail}\nUser Type: ${userType}\nScheduled Deletion Date: ${deletionDate}\n\nTo delete immediately: ${deleteUrl}`;
@@ -35,7 +23,7 @@ Deno.serve(async (req) => {
         // Create message in RFC 5322 format
         const messageLines = [
             `To: ${adminEmail}`,
-            `From: ${fromEmail}`,
+            `From: ${adminEmail}`,
             `Subject: ${emailSubject}`,
             'MIME-Version: 1.0',
             'Content-Type: text/plain; charset="UTF-8"',
