@@ -23,11 +23,26 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Cannot delete your own account' }, { status: 400 });
         }
 
-        // Delete users in parallel
+        // Get all users to determine which entity each belongs to
+        const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 10000);
+        const allPending = await base44.asServiceRole.entities.PendingSignup.list('-created_date', 10000);
+        
+        const userMap = new Map();
+        allUsers.forEach(u => userMap.set(u.id, { type: 'User', id: u.id }));
+        allPending.forEach(p => userMap.set(p.id, { type: 'PendingSignup', id: p.id }));
+
+        // Delete users from appropriate entities in parallel
         await Promise.all(
-            filteredIds.map(userId =>
-                base44.asServiceRole.entities.User.delete(userId)
-            )
+            filteredIds.map(userId => {
+                const userInfo = userMap.get(userId);
+                if (!userInfo) return Promise.resolve();
+                
+                if (userInfo.type === 'User') {
+                    return base44.asServiceRole.entities.User.delete(userId);
+                } else {
+                    return base44.asServiceRole.entities.PendingSignup.delete(userId);
+                }
+            })
         );
 
         return Response.json({
