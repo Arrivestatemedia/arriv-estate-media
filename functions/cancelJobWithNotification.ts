@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       }
     } else {
       // No backup, just return to open
-      await base44.entities.Job.update(jobId, {
+      await base44.asServiceRole.entities.Job.update(jobId, {
         ...job,
         booked_by: null,
         booked_by_name: null,
