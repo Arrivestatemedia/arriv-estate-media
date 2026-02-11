@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function JobBoard() {
-    const [filter, setFilter] = useState("all");
+    const [filter, setFilter] = useState("all"); // "all" or "open"
     const [searchQuery, setSearchQuery] = useState("");
     const [bookingJob, setBookingJob] = useState(null);
     const queryClient = useQueryClient();
