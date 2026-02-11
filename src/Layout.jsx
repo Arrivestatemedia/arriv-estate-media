@@ -92,25 +92,39 @@ export default function Layout({ children, currentPageName }) {
 
             <nav className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = currentPageName === item.page;
-                return (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      active
-                        ? "bg-[#B8956A] text-[#1A1A1A]"
-                        : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+                  const Icon = item.icon;
+                  const active = currentPageName === item.page;
+                  return (
+                    <Link
+                      key={item.page}
+                      to={createPageUrl(item.page)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        active
+                          ? "bg-[#B8956A] text-[#1A1A1A]"
+                          : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
 
-            </nav>
+              {user && (
+                <Link
+                  to={createPageUrl("AccountSettings")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    currentPageName === "AccountSettings"
+                      ? "bg-[#B8956A] text-[#1A1A1A]"
+                      : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  Account Settings
+                </Link>
+              )}
+
+              </nav>
 
             <div className="flex items-center gap-3">
               {user && (
