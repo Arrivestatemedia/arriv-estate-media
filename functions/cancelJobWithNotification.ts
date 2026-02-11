@@ -39,44 +39,7 @@ Deno.serve(async (req) => {
         status: "booked",
       });
 
-      // Send email to backup contractor using Gmail
-      const adminEmail = 'BradCBurke@arrivestatemedia.com';
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-
-      const emailSubject = `You've been assigned to: ${job.title}`;
-      const emailBody = `Hi ${job.backup_booked_by_name},\n\nGreat news! The primary contractor for "${job.title}" has cancelled, and you've been assigned as the main contractor for this job.\n\nProperty: ${job.location}\nDate: ${job.date}\nTime: ${job.start_time}\nPay: $${job.pay_rate}\n\nPlease confirm your availability.\n\nThank you,\nArriv Team`;
-
-      const messageLines = [
-        `To: ${job.backup_booked_by}`,
-        `From: ${adminEmail}`,
-        `Subject: ${emailSubject}`,
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset="UTF-8"',
-        '',
-        emailBody
-      ];
-
-      const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
-      const messageBytes = messageParts.reduce((acc, part) => {
-        const newAcc = new Uint8Array(acc.length + part.length);
-        newAcc.set(acc);
-        newAcc.set(part, acc.length);
-        return newAcc;
-      }, new Uint8Array());
-
-      const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-
-      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ raw: base64urlMessage })
-      });
+      // Send SMS to Bradley's number (always)
       // Send SMS notifications
       const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
