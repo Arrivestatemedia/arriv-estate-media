@@ -88,6 +88,52 @@ export default function AccountSettings() {
     setUser(updatedUser);
   };
 
+  const handleUpdateEmail = async () => {
+    setEditLoading(true);
+    try {
+      const response = await base44.functions.invoke('updateAccountDetails', {
+        accountId: user.id,
+        email: editEmail,
+        phoneNumber: user.phone_number
+      });
+      if (response.data.success) {
+        const updatedUser = await base44.auth.me();
+        setUser(updatedUser);
+        setIsEditingEmail(false);
+        alert('Email updated successfully');
+      } else {
+        alert(response.data.error || 'Failed to update email');
+      }
+    } catch (error) {
+      alert('Failed to update email: ' + error.message);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleUpdatePhone = async () => {
+    setEditLoading(true);
+    try {
+      const response = await base44.functions.invoke('updateAccountDetails', {
+        accountId: user.id,
+        email: user.email,
+        phoneNumber: editPhone
+      });
+      if (response.data.success) {
+        const updatedUser = await base44.auth.me();
+        setUser(updatedUser);
+        setIsEditingPhone(false);
+        alert('Phone number updated successfully');
+      } else {
+        alert(response.data.error || 'Failed to update phone');
+      }
+    } catch (error) {
+      alert('Failed to update phone: ' + error.message);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#FFFBF5] py-12 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
