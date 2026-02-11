@@ -3,7 +3,8 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Trash2, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, Trash2, Clock, Mail, Phone, Mail as MailIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
