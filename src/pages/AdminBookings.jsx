@@ -322,15 +322,17 @@ export default function AdminBookings() {
                     <Button
                       onClick={handleDenyClick}
                       variant="outline"
-                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      disabled={loadingBookingId === selectedBooking.id}
                     >
                       Deny
                     </Button>
                     <Button
                       onClick={handleApprove}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-green-400"
+                      disabled={loadingBookingId === selectedBooking.id}
                     >
-                      Approve
+                      {loadingBookingId === selectedBooking.id ? 'Approving...' : 'Approve'}
                     </Button>
                   </div>
                 )}
