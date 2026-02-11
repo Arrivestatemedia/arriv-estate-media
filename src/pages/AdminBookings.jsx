@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, Clock, MapPin, DollarSign, User, Phone } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { createPageUrl } from "../utils";
 
 export default function AdminBookings() {
