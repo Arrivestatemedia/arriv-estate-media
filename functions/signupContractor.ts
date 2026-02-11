@@ -32,26 +32,14 @@ Deno.serve(async (req) => {
             status: "pending"
         });
 
-        // Send signup email
+        // Send signup email using Base44 SDK
         const setupLink = `https://${Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com'}/PasswordSetup?token=${tokenString}`;
         
-        const emailResponse = await fetch('https://api.base44.dev/core/send-email', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get('BASE44_SERVICE_TOKEN')}`,
-                'X-App-Id': Deno.env.get('BASE44_APP_ID')
-            },
-            body: JSON.stringify({
-                to: email,
-                subject: 'Complete Your Arriv Estate Media Account Setup',
-                body: `Hello ${full_name},\n\nWelcome to Arriv Estate Media! To complete your account setup, please click the link below to create your password:\n\n${setupLink}\n\nThis link will expire in 24 hours.\n\nOnce you've set your password, you'll be able to log in and start using Arriv Estate Media.\n\nBest regards,\nArriv Estate Media Team`
-            })
+        await base44.asServiceRole.integrations.Core.SendEmail({
+            to: email,
+            subject: 'Complete Your Arriv Estate Media Account Setup',
+            body: `Hello ${full_name},\n\nWelcome to Arriv Estate Media! To complete your account setup, please click the link below to create your password:\n\n${setupLink}\n\nThis link will expire in 24 hours.\n\nOnce you've set your password, you'll be able to log in and start using Arriv Estate Media.\n\nBest regards,\nArriv Estate Media Team`
         });
-
-        if (!emailResponse.ok) {
-            console.error('Email send failed:', await emailResponse.text());
-        }
 
         return Response.json({ 
             success: true, 
