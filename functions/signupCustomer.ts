@@ -12,20 +12,21 @@ Deno.serve(async (req) => {
         // Invite the user as a regular user
         await base44.asServiceRole.users.inviteUser(email, "user");
 
-        // Update their user_type to customer
+        // Store signup data in pending state - will be applied after user completes signup
         const users = await base44.asServiceRole.entities.User.filter({ email });
         if (users.length > 0) {
             await base44.asServiceRole.entities.User.update(users[0].id, {
-                user_type: "customer",
-                full_name,
-                phone_number
+                pending_signup_data: {
+                    user_type: "customer",
+                    full_name,
+                    phone_number
+                }
             });
         }
 
         return Response.json({ 
             success: true, 
-            message: 'Customer account created successfully',
-            login_url: `/login?email=${encodeURIComponent(email)}`
+            message: 'Invitation sent! Check your email to complete signup.'
         });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
