@@ -12,7 +12,14 @@ export default function ContractorDashboard() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then(setUser);
+    const userName = localStorage.getItem('user_name');
+    const userEmail = localStorage.getItem('user_email');
+    
+    if (userName && userEmail) {
+      setUser({ full_name: userName, email: userEmail });
+    } else {
+      base44.auth.me().then(setUser);
+    }
   }, []);
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
