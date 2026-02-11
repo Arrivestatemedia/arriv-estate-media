@@ -192,9 +192,6 @@ export default function JobBoard() {
               <TabsTrigger value="open" className="data-[state=active]:bg-[#B8956A] data-[state=active]:text-white">
                 Open
               </TabsTrigger>
-              <TabsTrigger value="booked" className="data-[state=active]:bg-[#B8956A] data-[state=active]:text-white">
-                My Bookings
-              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
