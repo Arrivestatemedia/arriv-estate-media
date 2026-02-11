@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Briefcase, LayoutDashboard } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import JobCard from "../components/jobs/JobCard";
 import {
