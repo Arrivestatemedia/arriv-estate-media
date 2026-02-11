@@ -48,37 +48,37 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AccountSettings from './pages/AccountSettings';
+import AdminUsers from './pages/AdminUsers';
 import BookingPage from './pages/BookingPage';
+import ConfirmDeleteAccount from './pages/ConfirmDeleteAccount';
 import ContractorDashboard from './pages/ContractorDashboard';
 import ContractorSignup from './pages/ContractorSignup';
 import CustomerSignup from './pages/CustomerSignup';
 import Dashboard from './pages/Dashboard';
+import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import JobBoard from './pages/JobBoard';
 import PasswordSetup from './pages/PasswordSetup';
-import confirmDeleteUser from './pages/confirmDeleteUser';
-import SignIn from './pages/SignIn';
-import AdminUsers from './pages/AdminUsers';
-import DeleteAccountRequest from './pages/DeleteAccountRequest';
-import ConfirmDeleteAccount from './pages/ConfirmDeleteAccount';
 import PublicAccountSettings from './pages/PublicAccountSettings';
+import SignIn from './pages/SignIn';
+import confirmDeleteUser from './pages/confirmDeleteUser';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AccountSettings": AccountSettings,
+    "AdminUsers": AdminUsers,
     "BookingPage": BookingPage,
+    "ConfirmDeleteAccount": ConfirmDeleteAccount,
     "ContractorDashboard": ContractorDashboard,
     "ContractorSignup": ContractorSignup,
     "CustomerSignup": CustomerSignup,
     "Dashboard": Dashboard,
+    "DeleteAccountRequest": DeleteAccountRequest,
     "JobBoard": JobBoard,
     "PasswordSetup": PasswordSetup,
-    "confirmDeleteUser": confirmDeleteUser,
-    "SignIn": SignIn,
-    "AdminUsers": AdminUsers,
-    "DeleteAccountRequest": DeleteAccountRequest,
-    "ConfirmDeleteAccount": ConfirmDeleteAccount,
     "PublicAccountSettings": PublicAccountSettings,
+    "SignIn": SignIn,
+    "confirmDeleteUser": confirmDeleteUser,
 }
 
 export const pagesConfig = {

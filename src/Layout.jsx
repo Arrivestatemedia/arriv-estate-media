@@ -72,57 +72,57 @@ export default function Layout({ children, currentPageName }) {
       <header className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {(currentPageName === "CustomerSignup" || currentPageName === "ContractorSignup") ? (
-              <div className="flex items-center gap-3">
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
-                  alt="Arriv" 
-                  className="h-8"
-                />
-              </div>
-            ) : (
-              <Link to={createPageUrl(user ? dashboardPage : "JobBoard")} className="flex items-center gap-3">
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
-                  alt="Arriv" 
-                  className="h-8"
-                />
-              </Link>
-            )}
+            {(currentPageName === "CustomerSignup" || currentPageName === "ContractorSignup" || currentPageName === "SignIn") ? (
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
+                      alt="Arriv" 
+                      className="h-8"
+                    />
+                  </div>
+                ) : (
+                  <Link to={createPageUrl(user ? dashboardPage : "JobBoard")} className="flex items-center gap-3">
+                    <img 
+                      src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
+                      alt="Arriv" 
+                      className="h-8"
+                    />
+                  </Link>
+                )}
 
             <nav className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const active = currentPageName === item.page;
-                  return (
-                    <Link
-                      key={item.page}
-                      to={createPageUrl(item.page)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        active
-                          ? "bg-[#B8956A] text-[#1A1A1A]"
-                          : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
+              {navItems.length > 0 && navItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = currentPageName === item.page;
+                    return (
+                      <Link
+                        key={item.page}
+                        to={createPageUrl(item.page)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          active
+                            ? "bg-[#B8956A] text-[#1A1A1A]"
+                            : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
 
-              {!["SignIn", "CustomerSignup", "ContractorSignup"].includes(currentPageName) && (
-                <Link
-                  to={createPageUrl("PublicAccountSettings")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    currentPageName === "PublicAccountSettings"
-                      ? "bg-[#B8956A] text-[#1A1A1A]"
-                      : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
-                  }`}
-                >
-                  <Settings className="w-4 h-4" />
-                  Account Settings
-                </Link>
-              )}
+                {user && !["SignIn", "CustomerSignup", "ContractorSignup"].includes(currentPageName) && (
+                  <Link
+                    to={createPageUrl("PublicAccountSettings")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      currentPageName === "PublicAccountSettings"
+                        ? "bg-[#B8956A] text-[#1A1A1A]"
+                        : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                    }`}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Account Settings
+                  </Link>
+                )}
 
               </nav>
 
