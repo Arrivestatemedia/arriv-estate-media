@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
         }
 
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
-        const deleteUrl = `https://${appDomain}/confirmDeleteUser?token=${userId}&email=${encodeURIComponent(userEmail)}`;
+        const deleteUrl = `https://${appDomain}/confirmDeleteAccount?token=${userId}&email=${encodeURIComponent(userEmail)}`;
 
         // Get Gmail access token
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
