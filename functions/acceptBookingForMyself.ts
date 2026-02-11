@@ -30,11 +30,32 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
-    // Send approval email and calendar invite
+    // Send approval email via Gmail and calendar invite
     try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+      const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      const calendarAccessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
       
-      const eventStartTime = new Date(`${booking.preferred_date}T${booking.preferred_time || '09:00'}`);
+      // Send email via Gmail
+      const emailBody = `Hi ${booking.client_name},\n\nGreat news! Your booking request has been approved!\n\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time || 'TBD'}\nPackage: ${booking.package?.replace(/_/g, ' ')}\nTotal Price: $${booking.total_price}\n\nA calendar invite has been sent to your email. See you soon!\n\nBest regards,\nArriv Team`;
+      
+      const emailMessage = `To: ${booking.client_email}\nSubject: Your Booking Has Been Approved ✓\n\n${emailBody}`;
+      const encodedEmail = btoa(emailMessage).replace(/\+/g, '-').replace(/\//g, '_');
+
+      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${gmailAccessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          raw: encodedEmail
+        })
+      });
+
+      // Create calendar event
+      const [year, month, day] = booking.preferred_date.split('-');
+      const [hour, minute] = (booking.preferred_time || '09:00').split(':');
+      const eventStartTime = new Date(year, parseInt(month) - 1, day, hour, minute);
       const eventEndTime = new Date(eventStartTime.getTime() + 2 * 60 * 60 * 1000);
 
       const calendarEvent = {
@@ -54,28 +75,17 @@ Deno.serve(async (req) => {
         ]
       };
 
-      const calendarRes = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
+      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${calendarAccessToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(calendarEvent)
       });
-
-      if (!calendarRes.ok) {
-        console.error('Failed to create calendar event:', await calendarRes.text());
-      }
-    } catch (calError) {
-      console.error('Calendar integration error:', calError);
+    } catch (error) {
+      console.error('Failed to send email or calendar invite:', error);
     }
-
-    // Send approval email to customer
-    await base44.integrations.Core.SendEmail({
-      to: booking.client_email,
-      subject: 'Your Booking Has Been Approved ✓',
-      body: `Hi ${booking.client_name},\n\nGreat news! Your booking request has been approved!\n\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time || 'TBD'}\nPackage: ${booking.package?.replace(/_/g, ' ')}\nTotal Price: $${booking.total_price}\n\nA calendar invite has been sent to your email. See you soon!\n\nBest regards,\nArriv Team`
-    });
 
     return Response.json({ success: true });
   } catch (error) {
