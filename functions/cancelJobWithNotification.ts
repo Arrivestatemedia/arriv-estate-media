@@ -16,6 +16,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job ID is required' }, { status: 400 });
     }
 
+    // --- DIAGNOSTIC CODE ---
+    try {
+      const testUsers = await base44.asServiceRole.entities.User.list();
+      console.log(`[DIAGNOSTIC] Successfully fetched ${testUsers.length} users via asServiceRole`);
+    } catch (diagnosticError) {
+      console.error('[DIAGNOSTIC] Failed to list users via asServiceRole:', diagnosticError);
+      return Response.json({ error: `[DIAGNOSTIC] asServiceRole failed: ${diagnosticError.message}` }, { status: 500 });
+    }
+    // --- END DIAGNOSTIC ---
+
     // Get the job
     let job;
     try {
