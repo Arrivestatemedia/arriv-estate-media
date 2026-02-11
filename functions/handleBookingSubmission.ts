@@ -97,12 +97,12 @@ Deno.serve(async (req) => {
       console.error('Admin email error:', error);
     }
 
-    // Send customer confirmation email
+    // Send customer approval email and calendar invite
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-      const emailSubject = 'Your Booking Request Confirmation';
-      const emailBody = `Thank you for your booking request!\n\nWe've received your request for:\n\nPackage: ${booking.package}\nProperty: ${booking.property_address}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\nTotal Price: $${booking.total_price}\n\nWe'll review your request and get back to you shortly to confirm availability and finalize the details.\n\nThank you!`;
+      const emailSubject = 'Your Booking Has Been Approved - Arriv';
+      const emailBody = `Great news, ${booking.client_name}!\n\nYour booking has been approved. Here are the details:\n\nPackage: ${booking.package}\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nTotal Price: $${booking.total_price}\n\nA calendar invite has also been sent to this email. We look forward to working with you!\n\nIf you have any questions, please don't hesitate to reach out.\n\nBest regards,\nArriv State Media`;
 
       const messageLines = [
         `To: ${booking.client_email}`,
@@ -137,6 +137,41 @@ Deno.serve(async (req) => {
       });
     } catch (error) {
       console.error('Customer email error:', error);
+    }
+
+    // Send customer calendar invite
+    try {
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+      
+      const eventDate = new Date(booking.preferred_date);
+      const [time, period] = booking.preferred_time.split(' ');
+      let [hours, minutes] = time.split(':').map(Number);
+      
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      
+      eventDate.setHours(hours, minutes, 0, 0);
+      const endTime = new Date(eventDate);
+      endTime.setHours(endTime.getHours() + 2);
+
+      const calendarEvent = {
+        summary: `Arriv: ${booking.property_address}`,
+        description: `Booking Confirmation\n\nPackage: ${booking.package}\nAddress: ${booking.property_address}\n\nTotal: $${booking.total_price}\n\nNotes: ${booking.notes || 'None'}`,
+        start: { dateTime: eventDate.toISOString() },
+        end: { dateTime: endTime.toISOString() },
+        attendees: [{ email: booking.client_email }]
+      };
+
+      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendNotifications=true', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(calendarEvent)
+      });
+    } catch (error) {
+      console.error('Customer calendar error:', error);
     }
 
     return Response.json({ success: true, booking: createdBooking });
