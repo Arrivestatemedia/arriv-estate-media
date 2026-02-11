@@ -30,11 +30,15 @@ export default function CustomerSignup() {
     setError("");
 
     try {
+      console.log('Submitting signup...', formData);
       const response = await base44.functions.invoke('signupCustomer', formData);
+      console.log('Signup response:', response);
       alert('Invitation sent! Check your email to complete signup.');
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || err.message || "Failed to send invitation");
+      console.error('Signup error:', err);
+      const errorMessage = err.response?.data?.error || err.message || "Failed to send invitation";
+      setError(errorMessage);
       setLoading(false);
     }
   };
