@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ success: true, message: 'Job cancelled successfully' });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('Cancel job error:', error);
+    return Response.json({ error: `Failed to cancel job: ${error.message}` }, { status: 500 });
   }
 });
