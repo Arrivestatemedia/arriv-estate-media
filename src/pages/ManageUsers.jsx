@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Edit2, Key, Search } from "lucide-react";
 import { format } from "date-fns";
 
@@ -47,6 +48,8 @@ export default function ManageUsers() {
   const [deletingUser, setDeletingUser] = useState(null);
   const [resettingPassword, setResettingPassword] = useState(null);
   const [editFormData, setEditFormData] = useState({});
+  const [selectedUsers, setSelectedUsers] = useState(new Set());
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
@@ -72,6 +75,16 @@ export default function ManageUsers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setDeletingUser(null);
+    },
+  });
+
+  const batchDeleteMutation = useMutation({
+    mutationFn: (user_ids) =>
+      base44.functions.invoke("batchDeleteUsers", { user_ids }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setSelectedUsers(new Set());
+      setShowBatchDeleteConfirm(false);
     },
   });
 
@@ -125,6 +138,28 @@ export default function ManageUsers() {
     });
   };
 
+  const toggleUserSelection = (userId) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === filteredUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(filteredUsers.map(u => u.id)));
+    }
+  };
+
+  const handleBatchDelete = () => {
+    batchDeleteMutation.mutate(Array.from(selectedUsers));
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#FFFBF5] py-12 px-4">
@@ -147,8 +182,22 @@ export default function ManageUsers() {
 
         <Card className="border-[#B8956A]/20">
           <CardHeader>
-            <CardTitle className="text-[#1A1A1A]">Users</CardTitle>
-            <CardDescription>Total: {filteredUsers.length} users</CardDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-[#1A1A1A]">Users</CardTitle>
+                <CardDescription>Total: {filteredUsers.length} users</CardDescription>
+              </div>
+              {selectedUsers.size > 0 && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowBatchDeleteConfirm(true)}
+                  disabled={batchDeleteMutation.isPending}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete {selectedUsers.size} Selected
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
@@ -167,6 +216,12 @@ export default function ManageUsers() {
               <Table>
                 <TableHeader className="bg-[#B8956A]/5">
                   <TableRow className="border-[#B8956A]/20">
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead className="text-[#1A1A1A]">Email</TableHead>
                     <TableHead className="text-[#1A1A1A]">Name</TableHead>
                     <TableHead className="text-[#1A1A1A]">Type</TableHead>
@@ -183,6 +238,12 @@ export default function ManageUsers() {
                       key={user.id}
                       className="border-[#B8956A]/20 hover:bg-[#B8956A]/5"
                     >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUsers.has(user.id)}
+                          onCheckedChange={() => toggleUserSelection(user.id)}
+                        />
+                      </TableCell>
                       <TableCell className="text-[#1A1A1A] font-medium">
                         {user.email}
                       </TableCell>
@@ -387,6 +448,30 @@ export default function ManageUsers() {
               className="bg-red-600 hover:bg-red-700"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Batch Delete Confirmation */}
+      <AlertDialog open={showBatchDeleteConfirm} onOpenChange={setShowBatchDeleteConfirm}>
+        <AlertDialogContent className="border-red-200 bg-red-50/50">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-700">Delete Users</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-red-200">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBatchDelete}
+              disabled={batchDeleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {batchDeleteMutation.isPending ? "Deleting..." : `Delete ${selectedUsers.size} Users`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
