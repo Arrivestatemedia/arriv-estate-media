@@ -165,6 +165,26 @@ export default function AdminBookings() {
     acceptForMyselfMutation.mutate(booking.id);
   };
 
+  const toggleSelectBooking = (bookingId) => {
+    const newSelected = new Set(selectedForDelete);
+    if (newSelected.has(bookingId)) {
+      newSelected.delete(bookingId);
+    } else {
+      newSelected.add(bookingId);
+    }
+    setSelectedForDelete(newSelected);
+  };
+
+  const handleBatchDelete = async () => {
+    setIsDeleting(true);
+    for (const bookingId of selectedForDelete) {
+      await base44.functions.invoke('deleteBooking', { bookingId });
+    }
+    queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    setSelectedForDelete(new Set());
+    setIsDeleting(false);
+  };
+
   if (!user) return <div className="p-8">Loading...</div>;
 
   return (
