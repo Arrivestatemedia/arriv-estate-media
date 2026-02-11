@@ -69,6 +69,9 @@ export default function JobBoard() {
     mutationFn: ({ jobId, reason }) => base44.functions.invoke('cancelJobWithNotification', { jobId, reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      setCancelDialogOpen(false);
+      setCancelJob(null);
+      navigate(createPageUrl("JobBoard"));
     },
   });
 
