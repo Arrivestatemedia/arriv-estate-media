@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
         }
 
         // Invite the user as a regular user
-        await base44.functions.invoke('inviteUserHelper', { email, role: "user" });
+        await base44.asServiceRole.users.inviteUser(email, "user");
 
         // Store signup data in pending state - will be applied after user completes signup
         const users = await base44.asServiceRole.entities.User.filter({ email });
