@@ -192,14 +192,15 @@ export default function AdminBookings() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl font-bold text-[#1A1A1A] mb-8">Booking Requests</h1>
 
-        <div className="flex gap-2 mb-6">
-          <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
-            onClick={() => setFilter('all')}
-            className={filter === 'all' ? 'bg-[#1A1A1A]' : 'border-[#B8956A]/30'}
-          >
-            All ({bookings.length})
-          </Button>
+        <div className="flex gap-2 mb-6 items-center justify-between">
+          <div className="flex gap-2">
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              onClick={() => setFilter('all')}
+              className={filter === 'all' ? 'bg-[#1A1A1A]' : 'border-[#B8956A]/30'}
+            >
+              All ({bookings.length})
+            </Button>
           <Button
             variant={filter === 'pending' ? 'default' : 'outline'}
             onClick={() => setFilter('pending')}
