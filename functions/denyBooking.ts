@@ -15,16 +15,30 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'denied' });
 
-    // Send denial email to customer
-    const emailBody = reason 
-      ? `Hi ${booking.client_name},\n\nUnfortunately, we're unable to approve your booking request for ${booking.property_address} on ${booking.preferred_date}.\n\nReason: ${reason}\n\nPlease feel free to reach out if you have any questions.`
-      : `Hi ${booking.client_name},\n\nUnfortunately, we're unable to approve your booking request for ${booking.property_address} on ${booking.preferred_date}.\n\nPlease feel free to reach out if you have any questions.`;
+    // Send denial email via Gmail
+    try {
+      const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      
+      const emailBody = reason 
+        ? `Hi ${booking.client_name},\n\nUnfortunately, we're unable to approve your booking request for ${booking.property_address} on ${booking.preferred_date}.\n\nReason: ${reason}\n\nPlease feel free to reach out if you have any questions.\n\nBest regards,\nArriv Team`
+        : `Hi ${booking.client_name},\n\nUnfortunately, we're unable to approve your booking request for ${booking.property_address} on ${booking.preferred_date}.\n\nPlease feel free to reach out if you have any questions.\n\nBest regards,\nArriv Team`;
 
-    await base44.integrations.Core.SendEmail({
-      to: booking.client_email,
-      subject: 'Booking Request Update',
-      body: emailBody
-    });
+      const emailMessage = `To: ${booking.client_email}\nSubject: Booking Request Update\n\n${emailBody}`;
+      const encodedEmail = btoa(emailMessage).replace(/\+/g, '-').replace(/\//g, '_');
+
+      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${gmailAccessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          raw: encodedEmail
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send denial email:', error);
+    }
 
     return Response.json({ success: true });
   } catch (error) {
