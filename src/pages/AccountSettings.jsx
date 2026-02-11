@@ -27,6 +27,7 @@ export default function AccountSettings() {
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
