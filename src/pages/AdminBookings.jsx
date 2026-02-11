@@ -291,7 +291,7 @@ export default function AdminBookings() {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => setShowDenyModal(false)}
+                onClick={() => { setShowDenyModal(false); setDenyReason(''); }}
                 className="flex-1"
               >
                 Cancel
