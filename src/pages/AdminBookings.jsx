@@ -201,27 +201,27 @@ export default function AdminBookings() {
             >
               All ({bookings.length})
             </Button>
-          <Button
-            variant={filter === 'pending' ? 'default' : 'outline'}
-            onClick={() => setFilter('pending')}
-            className={filter === 'pending' ? 'bg-yellow-600' : 'border-[#B8956A]/30'}
-          >
-            Pending ({bookings.filter(b => b.status === 'pending').length})
-          </Button>
-          <Button
-            variant={filter === 'approved' ? 'default' : 'outline'}
-            onClick={() => setFilter('approved')}
-            className={filter === 'approved' ? 'bg-green-600' : 'border-[#B8956A]/30'}
-          >
-            Approved ({bookings.filter(b => b.status === 'approved').length})
-          </Button>
-          <Button
-            variant={filter === 'denied' ? 'default' : 'outline'}
-            onClick={() => setFilter('denied')}
-            className={filter === 'denied' ? 'bg-red-600' : 'border-[#B8956A]/30'}
-          >
-            Denied ({bookings.filter(b => b.status === 'denied').length})
-          </Button>
+            <Button
+              variant={filter === 'pending' ? 'default' : 'outline'}
+              onClick={() => setFilter('pending')}
+              className={filter === 'pending' ? 'bg-yellow-600' : 'border-[#B8956A]/30'}
+            >
+              Pending ({bookings.filter(b => b.status === 'pending').length})
+            </Button>
+            <Button
+              variant={filter === 'approved' ? 'default' : 'outline'}
+              onClick={() => setFilter('approved')}
+              className={filter === 'approved' ? 'bg-green-600' : 'border-[#B8956A]/30'}
+            >
+              Approved ({bookings.filter(b => b.status === 'approved').length})
+            </Button>
+            <Button
+              variant={filter === 'denied' ? 'default' : 'outline'}
+              onClick={() => setFilter('denied')}
+              className={filter === 'denied' ? 'bg-red-600' : 'border-[#B8956A]/30'}
+            >
+              Denied ({bookings.filter(b => b.status === 'denied').length})
+            </Button>
           </div>
           {selectedForDelete.size > 0 && (
             <Button
