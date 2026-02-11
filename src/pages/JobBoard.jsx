@@ -34,16 +34,16 @@ export default function JobBoard() {
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs", filter, user?.email],
     queryFn: async () => {
-      if (filter === "booked") {
-        // Match ContractorDashboard exactly
+      if (filter === "booked" && user?.email) {
         return base44.entities.Job.filter({
           booked_by: user.email,
           status: { $in: ['booked', 'in_progress', 'completed'] }
         }, "-created_date");
       }
+      if (filter === "booked") return [];
       return base44.entities.Job.filter({ from_booking: true }, "-created_date");
     },
-    enabled: filter === "booked" ? !!user?.email : true,
+    enabled: !userLoading,
   });
 
   const bookMutation = useMutation({
