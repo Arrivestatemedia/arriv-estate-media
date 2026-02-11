@@ -115,8 +115,10 @@ export default function Dashboard() {
 
   const now = new Date();
   
+  const approvedJobs = jobs.filter((j) => j.status === "open" || j.status === "booked");
+  
   const stats = {
-    total: jobs.filter((j) => j.status === "booked").length,
+    total: approvedJobs.length,
     open: jobs.filter((j) => j.status === "open").length,
     booked: jobs.filter((j) => j.status === "booked").length,
     totalPayout: allBookings
