@@ -96,6 +96,26 @@ export default function AdminBookings() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (bookingId) => {
+      await base44.functions.invoke('deleteBooking', { bookingId });
+      return bookingId;
+    },
+    onMutate: async (bookingId) => {
+      setLoadingBookingId(bookingId);
+      queryClient.setQueryData(['adminBookings'], (old) =>
+        old.filter(b => b.id !== bookingId)
+      );
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    },
+    onSettled: () => {
+      setLoadingBookingId(null);
+      setSelectedBooking(null);
+    }
+  });
+
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
     approved: "bg-green-100 text-green-800",
