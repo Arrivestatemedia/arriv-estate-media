@@ -15,10 +15,10 @@ Deno.serve(async (req) => {
     });
 
     if (users.length === 0) {
-      return Response.json(
-        { error: 'No account found with this email' },
-        { status: 404 }
-      );
+      return Response.json({
+        success: false,
+        error: 'No account found with this email'
+      }, { status: 404 });
     }
 
     const user = users[0];
