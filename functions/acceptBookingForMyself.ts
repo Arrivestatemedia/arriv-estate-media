@@ -30,51 +30,12 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
-    // Send approval email and calendar invite
+    // Send approval email and calendar invite using existing functions
     try {
-      const emailBody = `Hi ${booking.client_name},\n\nGreat news! Your booking request has been approved!\n\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time || 'TBD'}\nPackage: ${booking.package?.replace(/_/g, ' ')}\nTotal Price: $${booking.total_price}\n\nA calendar invite has been sent to your email. See you soon!\n\nBest regards,\nArriv Team`;
-      
-      // Send email via Core integration
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: booking.client_email,
-        subject: 'Your Booking Has Been Approved ✓',
-        body: emailBody
-      });
-
-      // Create calendar event
-      const calendarAccessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
-      const [year, month, day] = booking.preferred_date.split('-');
-      const [hour, minute] = (booking.preferred_time || '09:00').split(':');
-      const eventStartTime = new Date(year, parseInt(month) - 1, day, hour, minute);
-      const eventEndTime = new Date(eventStartTime.getTime() + 2 * 60 * 60 * 1000);
-
-      const calendarEvent = {
-        summary: `Photography Session - ${booking.property_address}`,
-        description: `Package: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
-        location: booking.property_address,
-        start: {
-          dateTime: eventStartTime.toISOString(),
-          timeZone: 'America/New_York'
-        },
-        end: {
-          dateTime: eventEndTime.toISOString(),
-          timeZone: 'America/New_York'
-        },
-        attendees: [
-          { email: booking.client_email }
-        ]
-      };
-
-      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${calendarAccessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(calendarEvent)
-      });
+      await base44.asServiceRole.functions.invoke('sendBookingNotifications', { booking });
+      await base44.asServiceRole.functions.invoke('createCalendarEvent', { booking });
     } catch (error) {
-      console.error('Failed to send email or calendar invite:', error);
+      console.error('Failed to send notifications:', error);
     }
 
     return Response.json({ success: true });
