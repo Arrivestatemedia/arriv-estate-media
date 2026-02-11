@@ -214,6 +214,7 @@ export default function JobBoard() {
                 onBook={handleBook} 
                 onCancel={handleCancel}
                 onBookBackup={handleBookBackup}
+                onUpdateBackup={handleBookBackup}
                 currentUserEmail={userEmail || user?.email} 
               />
             ))}
