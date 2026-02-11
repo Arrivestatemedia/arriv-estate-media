@@ -29,15 +29,6 @@ Deno.serve(async (req) => {
 
     // If there's a backup, assign them as primary
     if (job.backup_booked_by) {
-      // Get backup contractor's details
-      let backupContractor = null;
-      try {
-        const backupContractors = await base44.asServiceRole.entities.User.filter({ email: job.backup_booked_by });
-        backupContractor = backupContractors.length > 0 ? backupContractors[0] : null;
-      } catch (err) {
-        console.error('Could not fetch backup contractor details:', err);
-      }
-      
       // Update job
       await base44.entities.Job.update(jobId, {
         ...job,
@@ -86,30 +77,6 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ raw: base64urlMessage })
       });
-
-      // Send SMS via Twilio if backup has phone
-      if (backupContractor?.phone_number) {
-        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-        const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
-
-        if (accountSid && authToken && twilioPhone) {
-          const message = `Hi ${job.backup_booked_by_name}! You've been assigned to: ${job.title} on ${job.date} at ${job.start_time}. Pay: $${job.pay_rate}. - Arriv`;
-          const auth = btoa(`${accountSid}:${authToken}`);
-          await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Basic ${auth}`,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              From: twilioPhone,
-              To: backupContractor.phone_number,
-              Body: message,
-            }).toString(),
-          });
-        }
-      }
     } else {
       // No backup, just return to open
       await base44.entities.Job.update(jobId, {
