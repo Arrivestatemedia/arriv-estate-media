@@ -166,6 +166,28 @@ export default function AccountSettings() {
           </Card>
         )}
 
+        {showDeleteSuccess && !isDeletionScheduled && (
+          <Card className="border-yellow-200 bg-yellow-50/50">
+            <CardHeader>
+              <CardTitle className="text-yellow-700 flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Account Deletion Scheduled
+              </CardTitle>
+              <CardDescription>
+                Your account will be deleted in 30 days. An email has been sent to the administrator with a link to delete your account immediately if needed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => setShowDeleteSuccess(false)}
+                variant="outline"
+              >
+                Close
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {isDeletionScheduled && (
           <Card className="border-yellow-200 bg-yellow-50/50">
             <CardHeader>
