@@ -42,48 +42,37 @@ const packages = [
   },
 ];
 
-const addOns = [
-  {
-    id: "drone_aerial",
-    name: "Drone Aerial",
-    features: [
-      "Professional aerial photography and videography",
-      "Showcase property from unique perspectives",
-    ],
-  },
-  {
-    id: "twilight_shoot",
-    name: "Twilight Shoot",
-    features: [
-      "Golden hour exterior photography",
-      "Dramatic lighting for enhanced curb appeal",
-    ],
-  },
-  {
-    id: "3d_matterport",
-    name: "3D Matterport Tour",
-    features: [
-      "Interactive 3D virtual tour",
-      "Dollhouse view and floor plan",
-    ],
-  },
-  {
-    id: "floor_plan",
-    name: "Floor Plan",
-    features: [
-      "Professional 2D floor plan",
-      "Accurate measurements and room labels",
-    ],
-  },
-  {
-    id: "virtual_staging",
-    name: "Virtual Staging",
-    features: [
-      "Digitally furnished rooms",
-      "Multiple style options available",
-    ],
-  },
-];
+const standardAddOns = {
+  id: "standard_addons",
+  name: "Standard Add-ons",
+  items: [
+    {
+      name: "Drone Aerial",
+      description: "Professional aerial photography and videography, showcase property from unique perspectives",
+    },
+    {
+      name: "Twilight Shoot",
+      description: "Golden hour exterior photography, dramatic lighting for enhanced curb appeal",
+    },
+    {
+      name: "3D Matterport Tour",
+      description: "Interactive 3D virtual tour, dollhouse view and floor plan",
+    },
+    {
+      name: "Floor Plan",
+      description: "Professional 2D floor plan, accurate measurements and room labels",
+    },
+  ],
+};
+
+const virtualStaging = {
+  id: "virtual_staging",
+  name: "Virtual Staging",
+  features: [
+    "Digitally furnished rooms",
+    "Multiple style options available",
+  ],
+};
 
 export default function PackageInfoDropdown() {
   const [expandedPackage, setExpandedPackage] = useState(null);
@@ -142,42 +131,77 @@ export default function PackageInfoDropdown() {
         <div>
           <h3 className="text-sm font-semibold text-[#1A1A1A] mb-2">Add-ons</h3>
           <div className="space-y-2">
-            {addOns.map((addon) => (
-              <div key={addon.id} className="border border-[#B8956A]/20 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setExpandedPackage(expandedPackage === addon.id ? null : addon.id)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#B8956A]/5 transition-colors"
-                >
-                  <span className="font-medium text-[#1A1A1A]">{addon.name}</span>
-                  {expandedPackage === addon.id ? (
-                    <ChevronUp className="w-4 h-4 text-[#B8956A]" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-[#B8956A]" />
-                  )}
-                </button>
+            {/* Standard Add-ons */}
+            <div className="border border-[#B8956A]/20 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setExpandedPackage(expandedPackage === standardAddOns.id ? null : standardAddOns.id)}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#B8956A]/5 transition-colors"
+              >
+                <span className="font-medium text-[#1A1A1A]">{standardAddOns.name}</span>
+                {expandedPackage === standardAddOns.id ? (
+                  <ChevronUp className="w-4 h-4 text-[#B8956A]" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-[#B8956A]" />
+                )}
+              </button>
 
-                <AnimatePresence>
-                  {expandedPackage === addon.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-3 space-y-2 bg-[#FFFBF5]">
-                        {addon.features.map((feature, idx) => (
-                          <div key={idx} className="flex items-start gap-2 text-[#1A1A1A]/70">
-                            <Check className="w-4 h-4 text-[#B8956A] mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
+              <AnimatePresence>
+                {expandedPackage === standardAddOns.id && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-3 space-y-3 bg-[#FFFBF5]">
+                      {standardAddOns.items.map((item, idx) => (
+                        <div key={idx} className="text-[#1A1A1A]/70">
+                          <div className="font-medium text-sm text-[#1A1A1A] mb-1">{item.name}</div>
+                          <div className="text-sm pl-2">{item.description}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Virtual Staging */}
+            <div className="border border-[#B8956A]/20 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setExpandedPackage(expandedPackage === virtualStaging.id ? null : virtualStaging.id)}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#B8956A]/5 transition-colors"
+              >
+                <span className="font-medium text-[#1A1A1A]">{virtualStaging.name}</span>
+                {expandedPackage === virtualStaging.id ? (
+                  <ChevronUp className="w-4 h-4 text-[#B8956A]" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-[#B8956A]" />
+                )}
+              </button>
+
+              <AnimatePresence>
+                {expandedPackage === virtualStaging.id && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-3 space-y-2 bg-[#FFFBF5]">
+                      {virtualStaging.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-[#1A1A1A]/70">
+                          <Check className="w-4 h-4 text-[#B8956A] mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </CardContent>
