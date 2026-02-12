@@ -61,11 +61,14 @@ Deno.serve(async (req) => {
       client_phone: booking.client_phone
     });
 
-    // Approve booking and send calendar invite
+    await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
+
+    // Send approval email and calendar invite using existing functions
     try {
-      await base44.asServiceRole.functions.invoke('approveBooking', { bookingId });
+      await base44.asServiceRole.functions.invoke('sendBookingNotifications', { booking });
+      await base44.asServiceRole.functions.invoke('createCalendarEvent', { booking });
     } catch (error) {
-      console.error('Failed to approve booking:', error);
+      console.error('Failed to send notifications:', error);
     }
 
     return Response.json({ success: true });
