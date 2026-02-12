@@ -98,10 +98,10 @@ Deno.serve(async (req) => {
 
       const calendarEvent = {
         summary: `Arriv Estate Media - ${booking.package}`,
-        description: `Property: ${booking.property_address}\nPackage: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
-        start: { dateTime: eventDate.toISOString() },
-        end: { dateTime: endTime.toISOString() },
-        location: booking.property_address,
+        description: `Property: ${booking.street_address}, ${booking.city}, ${booking.state}\nPackage: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
+        start: { dateTime: isoDateTime, timeZone: 'America/New_York' },
+        end: { dateTime: endTime.toISOString(), timeZone: 'America/New_York' },
+        location: `${booking.street_address}, ${booking.city}, ${booking.state}`,
         attendees: [{ email: booking.client_email }]
       };
 
