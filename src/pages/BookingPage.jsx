@@ -130,7 +130,7 @@ export default function BookingPage() {
       setShowBookingForm(false);
       setSelectedPackage(null);
       // Redirect immediately to My Bookings
-      window.location.href = createPageUrl('CustomerBookings');
+      window.location.href = createPageUrl('ClientBookings');
     },
   });
 
