@@ -480,7 +480,37 @@ export default function AdminBookings() {
                     </Button>
                   </div>
                 )}
-                {(selectedBooking.status === 'approved' || selectedBooking.status === 'denied') && (
+                {selectedBooking.status === 'approved' && (
+                  <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
+                    <Button
+                      onClick={() => {
+                        setLoadingBookingId(selectedBooking.id);
+                        base44.functions.invoke('revertBookingStatus', { bookingId: selectedBooking.id }).then(() => {
+                          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+                          setSelectedBooking(null);
+                          setLoadingBookingId(null);
+                        }).catch(() => {
+                          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+                          setLoadingBookingId(null);
+                        });
+                      }}
+                      variant="outline"
+                      className="flex-1 border-yellow-300 text-yellow-600 hover:bg-yellow-50 disabled:opacity-50"
+                      disabled={loadingBookingId === selectedBooking.id}
+                    >
+                      {loadingBookingId === selectedBooking.id ? 'Reverting...' : 'Revert to Pending'}
+                    </Button>
+                    <Button
+                      onClick={() => deleteMutation.mutate(selectedBooking.id)}
+                      variant="outline"
+                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      disabled={loadingBookingId === selectedBooking.id}
+                    >
+                      {loadingBookingId === selectedBooking.id ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  </div>
+                )}
+                {selectedBooking.status === 'denied' && (
                   <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
                     <Button
                       onClick={() => deleteMutation.mutate(selectedBooking.id)}
@@ -488,7 +518,7 @@ export default function AdminBookings() {
                       className="flex-1 border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
                       disabled={loadingBookingId === selectedBooking.id}
                     >
-                      {loadingBookingId === selectedBooking.id ? 'Deleting...' : 'Delete Booking'}
+                      {loadingBookingId === selectedBooking.id ? 'Deleting...' : 'Delete'}
                     </Button>
                   </div>
                 )}
