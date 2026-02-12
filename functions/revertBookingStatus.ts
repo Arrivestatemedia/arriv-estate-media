@@ -11,7 +11,25 @@ Deno.serve(async (req) => {
 
     const { bookingId } = await req.json();
 
-    await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'pending' });
+    const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
+    
+    if (!booking) {
+      return Response.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    const updateData = { status: 'pending' };
+    
+    // Parse property_address if it exists and split fields are empty
+    if (booking.property_address && (!booking.street_address || !booking.city || !booking.state)) {
+      const parts = booking.property_address.split(',').map(p => p.trim());
+      if (parts.length >= 2) {
+        updateData.street_address = parts[0];
+        updateData.city = parts[parts.length - 2];
+        updateData.state = parts[parts.length - 1];
+      }
+    }
+
+    await base44.asServiceRole.entities.Booking.update(bookingId, updateData);
 
     return Response.json({ success: true });
   } catch (error) {
