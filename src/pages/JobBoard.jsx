@@ -333,6 +333,7 @@ export default function JobBoard() {
                 key={job.id} 
                 job={job} 
                 isAdmin={false} 
+                userRole={user?.role}
                 onBook={handleBook} 
                 onCancel={handleCancel}
                 onBookBackup={handleBookBackup}
