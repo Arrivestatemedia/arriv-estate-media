@@ -15,13 +15,23 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
-    // Send approval email to customer
+    // Send approval email to customer via Gmail
     const emailBody = `Hi ${booking.client_name},\n\nGreat news! Your booking request for ${booking.property_address} on ${booking.preferred_date} has been approved.\n\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\n\nWe'll connect you with a contractor shortly. Thank you!`;
 
-    await base44.integrations.Core.SendEmail({
-      to: booking.client_email,
-      subject: 'Your Booking Has Been Approved',
-      body: emailBody
+    const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    
+    const emailMessage = `To: ${booking.client_email}\r\nSubject: Your Booking Has Been Approved\r\n\r\n${emailBody}`;
+    const encodedEmail = btoa(emailMessage).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+    await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${gmailAccessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        raw: encodedEmail
+      })
     });
 
     // Send Google Calendar invite to client only after email is confirmed
