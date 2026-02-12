@@ -17,9 +17,9 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        if (!['customer', 'contractor'].includes(user_type)) {
+        if (!['client', 'media_partner'].includes(user_type)) {
             return Response.json({ 
-                error: 'User type must be either "customer" or "contractor"' 
+                error: 'User type must be either "client" or "media_partner"' 
             }, { status: 400 });
         }
 
@@ -34,12 +34,12 @@ Deno.serve(async (req) => {
         }
 
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
-        const pageName = user_type === 'customer' ? 'CustomerSignup' : 'ContractorSignup';
+        const pageName = user_type === 'client' ? 'ClientSignup' : 'MediaPartnerSignup';
         const signupUrl = `https://${appDomain}/${pageName}?phone_number=${encodeURIComponent(phone_number)}`;
 
-        const message = user_type === 'customer' 
+        const message = user_type === 'client' 
             ? `Welcome to Arriv Estate Media! Click here to complete your registration and book your shoot: ${signupUrl}`
-            : `You've been invited to join Arriv Estate Media as a contractor! Click here to complete your registration: ${signupUrl}`;
+            : `You've been invited to join Arriv Estate Media as a media partner! Click here to complete your registration: ${signupUrl}`;
 
         const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
         const auth = btoa(`${accountSid}:${authToken}`);

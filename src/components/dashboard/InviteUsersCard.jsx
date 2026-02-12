@@ -68,7 +68,7 @@ export default function InviteUsersCard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="client">Client</SelectItem>
-              <SelectItem value="contractor">Contractor</SelectItem>
+              <SelectItem value="media_partner">Media Partner</SelectItem>
             </SelectContent>
           </Select>
         </div>
