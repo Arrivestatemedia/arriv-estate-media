@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { formatInTimeZone, toZonedTime } from 'npm:date-fns-tz@3.0.0';
 
 Deno.serve(async (req) => {
   try {
@@ -16,41 +17,46 @@ Deno.serve(async (req) => {
       const jobTime = job.start_time ? job.start_time : '09:00';
       const [jobHour, jobMinute] = jobTime.split(':').map(Number);
 
-      // Create job datetime in UTC (approximation for simplicity)
-      const jobDateTime = new Date(jobDate);
-      jobDateTime.setHours(jobHour + 4, jobMinute); // EST offset
+      // Create job datetime in NY timezone
+      const jobDateString = jobDate.toISOString().split('T')[0];
+      const jobDatetimeString = `${jobDateString}T${jobTime}:00`;
+      const jobDatetimeNY = new Date(jobDatetimeString);
+      
+      // Convert NY time to UTC
+      const tz = 'America/New_York';
+      const jobDatetimeUTC = toZonedTime(jobDatetimeNY, tz);
 
       // Calculate reminder times
       const reminders = [
         {
           type: '9am_morning',
-          time: new Date(jobDate).setHours(13, 0, 0, 0), // 9am EST = 1pm UTC
           check: () => {
-            const today = new Date();
-            return today.toDateString() === jobDate.toDateString() && now.getHours() >= 13;
+            const nowNY = toZonedTime(now, tz);
+            const jobDateNY = toZonedTime(jobDate, tz);
+            const isSameDay = nowNY.toDateString() === jobDateNY.toDateString();
+            const isAfter9am = nowNY.getHours() >= 9;
+            const isWithin9amWindow = nowNY.getHours() === 9 && nowNY.getMinutes() < 5;
+            return isSameDay && (isAfter9am && isWithin9amWindow);
           }
         },
         {
           type: '24_hours_before',
-          time: new Date(jobDateTime.getTime() - 24 * 60 * 60 * 1000),
           check: () => {
-            const diff = jobDateTime.getTime() - now.getTime();
-            return diff > 23 * 60 * 60 * 1000 && diff < 24 * 60 * 60 * 1000;
+            const diff = jobDatetimeUTC.getTime() - now.getTime();
+            return diff > 23.5 * 60 * 60 * 1000 && diff < 24.5 * 60 * 60 * 1000;
           }
         },
         {
           type: '90_minutes_before',
-          time: new Date(jobDateTime.getTime() - 90 * 60 * 1000),
           check: () => {
-            const diff = jobDateTime.getTime() - now.getTime();
+            const diff = jobDatetimeUTC.getTime() - now.getTime();
             return diff > 85 * 60 * 1000 && diff < 95 * 60 * 1000;
           }
         },
         {
           type: '1_hour_before',
-          time: new Date(jobDateTime.getTime() - 60 * 60 * 1000),
           check: () => {
-            const diff = jobDateTime.getTime() - now.getTime();
+            const diff = jobDatetimeUTC.getTime() - now.getTime();
             return diff > 55 * 60 * 1000 && diff < 65 * 60 * 1000;
           }
         }
