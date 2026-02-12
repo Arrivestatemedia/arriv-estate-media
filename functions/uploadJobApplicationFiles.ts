@@ -60,6 +60,62 @@ Deno.serve(async (req) => {
     const uploadedVideos = [];
     const uploadedPictures = [];
 
+    // Create Google Doc with application information
+    const docCreateRes = await fetch('https://docs.googleapis.com/v1/documents?fields=documentId', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: `Job Application - ${fullName}`,
+        body: {
+          content: [
+            {
+              paragraph: {
+                text: `Arriv Estate Media LLC - Media Partner Application\n${fullName}`,
+              },
+            },
+          ],
+        },
+      }),
+    });
+
+    let documentId;
+    if (docCreateRes.ok) {
+      const docData = await docCreateRes.json();
+      documentId = docData.documentId;
+
+      // Add content to the document
+      const batchUpdateRes = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requests: [
+            {
+              insertText: {
+                text: `\n\n--- APPLICATION DETAILS ---\n\nFull Name: ${fullName}\nEmail: ${email}\nPhone: ${phone}\nAddress: ${address}\nDate of Birth: ${dob}\nSSN (Last 4): ${ssn.slice(-4)}\nLinkedIn: ${linkedin}\nPortfolio: ${portfolioLink}\n\n--- EXPERIENCE ---\n\nLast Related Job:\n${lastRelatedJob}\n\n--- WHY YOU'RE A GOOD FIT ---\n\n${whyGoodFit}`,
+              },
+            },
+          ],
+        }),
+      });
+
+      // Move document to Job Applications folder
+      if (batchUpdateRes.ok) {
+        await fetch(`https://www.googleapis.com/drive/v3/files/${documentId}?addParents=${folderId}&fields=id,parents`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+    }
+
     // Upload video files
     for (const videoFile of videoFiles) {
       const bytes = await videoFile.arrayBuffer();
@@ -131,6 +187,7 @@ Deno.serve(async (req) => {
     return Response.json({ 
       success: true, 
       applicationId: application.id,
+      documentId: documentId,
       videoCount: uploadedVideos.length,
       pictureCount: uploadedPictures.length
     });
