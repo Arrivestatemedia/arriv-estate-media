@@ -21,25 +21,26 @@ Deno.serve(async (req) => {
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
       
-      const eventDate = new Date(booking.preferred_date);
-      const [time, period] = booking.preferred_time.split(' ');
-      let [hours, minutes] = time.split(':').map(Number);
-      
-      if (period === 'PM' && hours !== 12) hours += 12;
-      if (period === 'AM' && hours === 12) hours = 0;
-      
-      eventDate.setHours(hours, minutes, 0, 0);
-      const endTime = new Date(eventDate);
-      endTime.setHours(endTime.getHours() + 2);
+      const eventDate = new Date(booking.preferred_date + 'T00:00:00');
+        const [time, period] = booking.preferred_time.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
 
-      const calendarEvent = {
-        summary: `Booking: ${booking.client_name} - ${booking.property_address}`,
-        description: `Package: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
-        start: { dateTime: eventDate.toISOString() },
-        end: { dateTime: endTime.toISOString() }
-      };
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
 
-      const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(adminEmail)}/events`, {
+        eventDate.setHours(hours, minutes, 0, 0);
+        const endTime = new Date(eventDate);
+        endTime.setHours(endTime.getHours() + 2);
+
+        const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
+        const calendarEvent = {
+          summary: `Booking: ${booking.client_name} - ${propertyAddress}`,
+          description: `Package: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
+          start: { dateTime: eventDate.toISOString(), timeZone: 'America/New_York' },
+          end: { dateTime: endTime.toISOString(), timeZone: 'America/New_York' }
+        };
+
+        const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
