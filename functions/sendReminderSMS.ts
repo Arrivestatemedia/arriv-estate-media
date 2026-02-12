@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { phone, message } = body;
+    const { phone, message, recipientType, jobId } = body;
 
     if (!phone || !message) {
       return Response.json({ error: 'Phone and message are required' }, { status: 400 });
@@ -32,8 +32,10 @@ Deno.serve(async (req) => {
       console.error('Twilio error:', error);
       await base44.asServiceRole.entities.MessageLog.create({
         message_type: 'sms',
+        recipient_type: recipientType || 'media_partner',
         recipient_phone: phone,
         message_content: message,
+        job_id: jobId,
         status: 'failed',
         error_message: error
       });
@@ -43,8 +45,10 @@ Deno.serve(async (req) => {
     const result = await response.json();
     await base44.asServiceRole.entities.MessageLog.create({
       message_type: 'sms',
+      recipient_type: recipientType || 'media_partner',
       recipient_phone: phone,
       message_content: message,
+      job_id: jobId,
       status: 'success'
     });
     return Response.json({ success: true, messageId: result.sid });

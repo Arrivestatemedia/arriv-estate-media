@@ -121,7 +121,9 @@ Deno.serve(async (req) => {
             const clientSms = `${message}`;
             await base44.asServiceRole.functions.invoke('sendReminderSMS', {
               phone: job.client_phone,
-              message: clientSms
+              message: clientSms,
+              recipientType: 'client',
+              jobId: job.id
             });
             await base44.asServiceRole.entities.MessageLog.create({
               message_type: 'sms',
@@ -158,7 +160,9 @@ Deno.serve(async (req) => {
            if (job.booked_by_phone) {
              await base44.asServiceRole.functions.invoke('sendReminderSMS', {
                phone: job.booked_by_phone,
-               message
+               message,
+               recipientType: 'media_partner',
+               jobId: job.id
              });
              await base44.asServiceRole.entities.MessageLog.create({
                message_type: 'sms',
@@ -176,7 +180,9 @@ Deno.serve(async (req) => {
            if (job.booked_by_phone) {
              await base44.asServiceRole.functions.invoke('sendReminderSMS', {
                phone: job.booked_by_phone,
-               message
+               message,
+               recipientType: 'media_partner',
+               jobId: job.id
              });
              await base44.asServiceRole.entities.MessageLog.create({
                message_type: 'sms',
@@ -196,7 +202,9 @@ Deno.serve(async (req) => {
             const message = `Your media partner ${job.booked_by_name || job.booked_by} is on the way to ${job.location}. The shoot starts in 1 hour. Check in with them to confirm everything is set up and ready.`;
             await base44.asServiceRole.functions.invoke('sendReminderSMS', {
               phone: adminPhone,
-              message
+              message,
+              recipientType: 'admin',
+              jobId: job.id
             });
             await base44.asServiceRole.entities.MessageLog.create({
               message_type: 'sms',
