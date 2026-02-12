@@ -64,9 +64,6 @@ Deno.serve(async (req) => {
       folderId = createdFolder.id;
     }
 
-    const uploadedVideos = [];
-    const uploadedPictures = [];
-
     // Create Google Doc with application information
     const docCreateRes = await fetch('https://docs.googleapis.com/v1/documents?fields=documentId', {
       method: 'POST',
@@ -123,57 +120,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Upload video files
-    for (const videoFile of videoFiles) {
-      const bytes = await videoFile.arrayBuffer();
-      const blob = new Blob([bytes], { type: videoFile.type });
-      
-      const uploadFormData = new FormData();
-      uploadFormData.append('metadata', new Blob([JSON.stringify({
-        name: videoFile.name,
-        parents: [folderId],
-      })], { type: 'application/json' }));
-      uploadFormData.append('file', blob, videoFile.name);
 
-      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: uploadFormData,
-      });
-
-      if (uploadRes.ok) {
-        const uploadedFile = await uploadRes.json();
-        uploadedVideos.push(uploadedFile.id);
-      }
-    }
-
-    // Upload picture files
-    for (const pictureFile of pictureFiles) {
-      const bytes = await pictureFile.arrayBuffer();
-      const blob = new Blob([bytes], { type: pictureFile.type });
-      
-      const uploadFormData = new FormData();
-      uploadFormData.append('metadata', new Blob([JSON.stringify({
-        name: pictureFile.name,
-        parents: [folderId],
-      })], { type: 'application/json' }));
-      uploadFormData.append('file', blob, pictureFile.name);
-
-      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: uploadFormData,
-      });
-
-      if (uploadRes.ok) {
-        const uploadedFile = await uploadRes.json();
-        uploadedPictures.push(uploadedFile.id);
-      }
-    }
 
     // Create job application record
     const application = await base44.entities.JobApplication.create({
@@ -187,21 +134,19 @@ Deno.serve(async (req) => {
       portfolio_link: portfolioLink,
       last_related_job: lastRelatedJob,
       why_good_fit: whyGoodFit,
-      race,
+      race: race || '',
       background_check_agreed: backgroundCheckAgreed,
       ssn_disclosure_agreed: ssnDisclosureAgreed,
       eeoc_agreed: eEOCagreed,
       signature,
-      video_samples: uploadedVideos,
-      picture_samples: uploadedPictures,
+      video_samples: videoUrls,
+      picture_samples: pictureUrls,
     });
 
     return Response.json({ 
       success: true, 
       applicationId: application.id,
-      documentId: documentId,
-      videoCount: uploadedVideos.length,
-      pictureCount: uploadedPictures.length
+      documentId: documentId
     });
   } catch (error) {
     console.error('Upload error:', error);
