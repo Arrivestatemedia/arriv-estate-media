@@ -123,7 +123,7 @@ export default function JobBoard() {
     cancelMutation.mutate({ jobId, reason });
   };
 
-  const handleBookBackup = async (job, phoneNumber) => {
+  const handleBookBackup = (job, phoneNumber) => {
     const storedEmail = localStorage.getItem('user_email');
     const storedName = localStorage.getItem('user_name');
     const email = user?.email || storedEmail;
@@ -140,17 +140,6 @@ export default function JobBoard() {
         backup_booked_by_phone: phoneNumber,
       },
     });
-
-    // Send SMS notification to backup contractor
-    try {
-      await base44.functions.invoke('notifyBackupAssignment', {
-        jobId: job.id,
-        phoneNumber,
-        contractorName: name
-      });
-    } catch (error) {
-      console.error('Failed to send backup notification:', error);
-    }
   };
 
   const filteredJobs = jobs
