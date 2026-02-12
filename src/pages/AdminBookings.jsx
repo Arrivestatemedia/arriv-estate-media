@@ -9,6 +9,7 @@ import { Calendar, Clock, MapPin, DollarSign, User, Phone, Trash2 } from "lucide
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { createPageUrl } from "../utils";
+import PullToRefresh from "@/components/shared/PullToRefresh";
 
 export default function AdminBookings() {
   const [user, setUser] = useState(null);
@@ -197,40 +198,45 @@ export default function AdminBookings() {
     }
   };
 
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+  };
+
   if (!user) return <div className="p-8">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-[#1A1A1A] mb-8">Booking Requests</h1>
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="min-h-screen bg-[var(--bg-primary)] py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-8">Booking Requests</h1>
 
         <div className="flex gap-2 mb-6 items-center justify-between">
           <div className="flex gap-2">
             <Button
               variant={filter === 'all' ? 'default' : 'outline'}
               onClick={() => setFilter('all')}
-              className={filter === 'all' ? 'bg-[#1A1A1A]' : 'border-[#B8956A]/30'}
+              className={filter === 'all' ? 'bg-[var(--text-primary)]' : 'border-[var(--border-color)]'}
             >
               All ({bookings.length})
             </Button>
             <Button
               variant={filter === 'pending' ? 'default' : 'outline'}
               onClick={() => setFilter('pending')}
-              className={filter === 'pending' ? 'bg-yellow-600' : 'border-[#B8956A]/30'}
+              className={filter === 'pending' ? 'bg-yellow-600' : 'border-[var(--border-color)]'}
             >
               Pending ({bookings.filter(b => b.status === 'pending').length})
             </Button>
             <Button
               variant={filter === 'approved' ? 'default' : 'outline'}
               onClick={() => setFilter('approved')}
-              className={filter === 'approved' ? 'bg-green-600' : 'border-[#B8956A]/30'}
+              className={filter === 'approved' ? 'bg-green-600' : 'border-[var(--border-color)]'}
             >
               Approved ({bookings.filter(b => b.status === 'approved').length})
             </Button>
             <Button
               variant={filter === 'denied' ? 'default' : 'outline'}
               onClick={() => setFilter('denied')}
-              className={filter === 'denied' ? 'bg-red-600' : 'border-[#B8956A]/30'}
+              className={filter === 'denied' ? 'bg-red-600' : 'border-[var(--border-color)]'}
             >
               Denied ({bookings.filter(b => b.status === 'denied').length})
             </Button>
@@ -247,27 +253,27 @@ export default function AdminBookings() {
         </div>
 
         {isLoading ? (
-          <p className="text-[#1A1A1A]/60">Loading bookings...</p>
+          <p className="text-[var(--text-secondary)]">Loading bookings...</p>
         ) : filteredBookings.length === 0 ? (
-          <Card className="border-2 border-[#B8956A]/20 text-center py-12">
-            <p className="text-[#1A1A1A]/60">No booking requests</p>
+          <Card className="border-2 border-[var(--border-color)] text-center py-12 bg-[var(--card-bg)]">
+            <p className="text-[var(--text-secondary)]">No booking requests</p>
           </Card>
         ) : (
           <>
             {deletableBookings.length > 0 && (
-              <div className="mb-4 flex items-center gap-2 p-3 bg-[#B8956A]/5 rounded border border-[#B8956A]/20">
+              <div className="mb-4 flex items-center gap-2 p-3 bg-[var(--accent-color)]/5 rounded border border-[var(--border-color)]">
                 <Checkbox
                   checked={allDeleteableSelected}
                   onCheckedChange={handleSelectAll}
                 />
-                <span className="text-sm text-[#1A1A1A]/70">Select all deletable bookings</span>
+                <span className="text-sm text-[var(--text-secondary)]">Select all deletable bookings</span>
               </div>
             )}
             <div className="grid gap-4">
               {filteredBookings.map((booking) => (
                 <Card
                   key={booking.id}
-                  className="border-2 border-[#B8956A]/20 hover:shadow-lg transition-shadow"
+                  className="border-2 border-[var(--border-color)] hover:shadow-lg transition-shadow bg-[var(--card-bg)]"
                 >
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start gap-3">
@@ -279,8 +285,8 @@ export default function AdminBookings() {
                         />
                       )}
                     <div className="flex-1">
-                      <CardTitle className="text-lg text-[#1A1A1A]">{booking.client_name}</CardTitle>
-                      <p className="text-sm text-[#1A1A1A]/60 mt-1">{booking.property_address}</p>
+                      <CardTitle className="text-lg text-[var(--text-primary)]">{booking.client_name}</CardTitle>
+                      <p className="text-sm text-[var(--text-secondary)] mt-1">{booking.property_address}</p>
                     </div>
                     <Badge className={`${statusColors[booking.status] || statusColors.pending}`}>
                       {booking.status?.toUpperCase() || 'PENDING'}
@@ -290,27 +296,27 @@ export default function AdminBookings() {
                 <CardContent className="pb-2">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-[#B8956A]" />
-                      <span className="text-[#1A1A1A]/60">{booking.client_email}</span>
+                      <User className="w-4 h-4 text-[var(--accent-color)]" />
+                      <span className="text-[var(--text-secondary)]">{booking.client_email}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-[#B8956A]" />
-                      <span className="text-[#1A1A1A]/60">{booking.client_phone}</span>
+                      <Phone className="w-4 h-4 text-[var(--accent-color)]" />
+                      <span className="text-[var(--text-secondary)]">{booking.client_phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-[#B8956A]" />
-                      <span className="text-[#1A1A1A]/60">{booking.preferred_date}</span>
+                      <Calendar className="w-4 h-4 text-[var(--accent-color)]" />
+                      <span className="text-[var(--text-secondary)]">{booking.preferred_date}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-[#B8956A]" />
-                      <span className="text-[#1A1A1A]/60 font-semibold">${booking.total_price}</span>
+                      <DollarSign className="w-4 h-4 text-[var(--accent-color)]" />
+                      <span className="text-[var(--text-secondary)] font-semibold">${booking.total_price}</span>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       onClick={() => setSelectedBooking(booking)}
                       variant="outline"
-                      className="flex-1 border-[#B8956A]/30"
+                      className="flex-1 border-[var(--border-color)]"
                     >
                       Details
                     </Button>
@@ -349,6 +355,7 @@ export default function AdminBookings() {
             </div>
             </>
             )}
+        </div>
       </div>
 
       <Dialog open={!!selectedBooking && !showDenyModal} onOpenChange={(open) => !open && setSelectedBooking(null)}>
@@ -360,7 +367,7 @@ export default function AdminBookings() {
               </DialogHeader>
 
               <div className="space-y-6">
-                <div className="bg-[#B8956A]/10 rounded-lg p-4 border border-[#B8956A]/20">
+                <div className="bg-[var(--accent-color)]/10 rounded-lg p-4 border border-[var(--border-color)]">
                   <Badge className={`${statusColors[selectedBooking.status] || statusColors.pending} mb-2`}>
                     {selectedBooking.status?.toUpperCase() || 'PENDING'}
                   </Badge>
@@ -368,49 +375,49 @@ export default function AdminBookings() {
 
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm text-[#1A1A1A]/60 mb-1">Property Address</p>
-                    <p className="text-[#1A1A1A] font-semibold">{selectedBooking.property_address}</p>
+                    <p className="text-sm text-[var(--text-secondary)] mb-1">Property Address</p>
+                    <p className="text-[var(--text-primary)] font-semibold">{selectedBooking.property_address}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-[#1A1A1A]/60 mb-1">Client Email</p>
-                      <p className="text-[#1A1A1A]">{selectedBooking.client_email}</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Client Email</p>
+                      <p className="text-[var(--text-primary)]">{selectedBooking.client_email}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#1A1A1A]/60 mb-1">Phone</p>
-                      <p className="text-[#1A1A1A]">{selectedBooking.client_phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-[#1A1A1A]/60 mb-1">Preferred Date</p>
-                      <p className="text-[#1A1A1A] font-semibold">{selectedBooking.preferred_date}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-[#1A1A1A]/60 mb-1">Preferred Time</p>
-                      <p className="text-[#1A1A1A] font-semibold">{selectedBooking.preferred_time}</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Phone</p>
+                      <p className="text-[var(--text-primary)]">{selectedBooking.client_phone}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-[#1A1A1A]/60 mb-1">Package</p>
-                      <p className="text-[#1A1A1A] capitalize">{selectedBooking.package?.replace('_', ' ')}</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Preferred Date</p>
+                      <p className="text-[var(--text-primary)] font-semibold">{selectedBooking.preferred_date}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#1A1A1A]/60 mb-1">Total Price</p>
-                      <p className="text-[#1A1A1A] font-bold text-lg">${selectedBooking.total_price}</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Preferred Time</p>
+                      <p className="text-[var(--text-primary)] font-semibold">{selectedBooking.preferred_time}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Package</p>
+                      <p className="text-[var(--text-primary)] capitalize">{selectedBooking.package?.replace('_', ' ')}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Total Price</p>
+                      <p className="text-[var(--text-primary)] font-bold text-lg">${selectedBooking.total_price}</p>
                     </div>
                   </div>
 
                   {selectedBooking.add_ons && selectedBooking.add_ons.length > 0 && (
                     <div>
-                      <p className="text-sm text-[#1A1A1A]/60 mb-2">Add-Ons</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-2">Add-Ons</p>
                       <ul className="space-y-1">
                         {selectedBooking.add_ons.map((addon) => (
-                          <li key={addon} className="text-[#1A1A1A] text-sm">• {addon}</li>
+                          <li key={addon} className="text-[var(--text-primary)] text-sm">• {addon}</li>
                         ))}
                       </ul>
                     </div>
@@ -418,8 +425,8 @@ export default function AdminBookings() {
 
                   {selectedBooking.notes && (
                     <div>
-                      <p className="text-sm text-[#1A1A1A]/60 mb-1">Notes</p>
-                      <p className="text-[#1A1A1A] bg-[#B8956A]/5 p-3 rounded border border-[#B8956A]/20">
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Notes</p>
+                      <p className="text-[var(--text-primary)] bg-[var(--accent-color)]/5 p-3 rounded border border-[var(--border-color)]">
                         {selectedBooking.notes}
                       </p>
                     </div>
@@ -427,7 +434,7 @@ export default function AdminBookings() {
                 </div>
 
                 {selectedBooking.status === 'pending' && (
-                  <div className="flex gap-3 pt-4 border-t border-[#B8956A]/20">
+                  <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
                     <Button
                       onClick={handleDenyClick}
                       variant="outline"
@@ -446,7 +453,7 @@ export default function AdminBookings() {
                   </div>
                 )}
                 {(selectedBooking.status === 'approved' || selectedBooking.status === 'denied') && (
-                  <div className="flex gap-3 pt-4 border-t border-[#B8956A]/20">
+                  <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
                     <Button
                       onClick={() => deleteMutation.mutate(selectedBooking.id)}
                       variant="outline"
@@ -469,7 +476,7 @@ export default function AdminBookings() {
             <DialogTitle>Deny Booking Request</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-[#1A1A1A]/70">
+            <p className="text-sm text-[var(--text-secondary)]">
               Please provide a reason for denying this booking. This will be sent to the customer.
             </p>
             <Textarea
@@ -496,6 +503,6 @@ export default function AdminBookings() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PullToRefresh>
   );
 }

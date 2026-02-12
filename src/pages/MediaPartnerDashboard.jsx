@@ -11,6 +11,7 @@ import PackageInfoDropdown from "../components/mediapartner/PackageInfoDropdown"
 
 export default function MediaPartnerDashboard() {
   const [user, setUser] = useState(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const userName = localStorage.getItem('user_name');
