@@ -359,6 +359,23 @@ export default function JobApplication() {
                 </div>
               </div>
 
+              <div className="space-y-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-900 mb-3">Electronic Signature *</label>
+                  <p className="text-xs text-slate-700 mb-3 leading-relaxed">
+                    By typing your full name below, you are electronically signing this application. Your electronic signature has the same legal force and effect as a handwritten signature and indicates that you have read, understood, and agree to all terms, conditions, disclosures, and authorizations contained in this application.
+                  </p>
+                  <Input
+                    type="text"
+                    name="signature"
+                    value={formData.signature}
+                    onChange={handleInputChange}
+                    placeholder="Type your full name as your signature"
+                    className="text-lg tracking-wider font-semibold"
+                  />
+                </div>
+              </div>
+
               {error && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
                   <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
