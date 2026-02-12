@@ -37,7 +37,8 @@ Deno.serve(async (req) => {
             success: true,
             email: signup.email,
             full_name: signup.full_name,
-            user_type: signup.user_type
+            user_type: signup.user_type,
+            user_role: signup.user_role || 'user'
         });
     } catch (error) {
         console.error('SignIn error:', error);
