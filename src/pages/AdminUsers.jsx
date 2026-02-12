@@ -26,12 +26,12 @@ export default function AdminUsers() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    base44.auth.me().then((userData) => {
-      if (userData?.role !== "admin") {
-        window.location.href = "/";
-      }
-      setUser(userData);
-    });
+    const userRole = localStorage.getItem('user_role');
+    if (userRole !== 'admin') {
+      window.location.href = "/";
+    } else {
+      setUser({ role: userRole });
+    }
   }, []);
 
   const { data: users = [] } = useQuery({
