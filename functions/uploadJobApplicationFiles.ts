@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
 
     if (folderRes.files && folderRes.files.length > 0) {
       folderId = folderRes.files[0].id;
+      console.log('Found existing folder:', folderId);
     } else {
       // Create the folder if it doesn't exist
       const createFolderRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
@@ -60,8 +61,15 @@ Deno.serve(async (req) => {
         }),
       });
 
+      if (!createFolderRes.ok) {
+        const error = await createFolderRes.text();
+        console.error('Failed to create folder:', error);
+        return Response.json({ error: 'Failed to create application folder' }, { status: 500 });
+      }
+
       const createdFolder = await createFolderRes.json();
       folderId = createdFolder.id;
+      console.log('Created new folder:', folderId);
     }
 
     // Create Google Doc with application information
@@ -89,6 +97,7 @@ Deno.serve(async (req) => {
     if (docCreateRes.ok) {
       const docData = await docCreateRes.json();
       documentId = docData.documentId;
+      console.log('Google Doc created:', documentId);
 
       // Add content to the document
       const batchUpdateRes = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
@@ -101,26 +110,38 @@ Deno.serve(async (req) => {
           requests: [
             {
               insertText: {
-                text: `\n\n--- APPLICATION DETAILS ---\n\nFull Name: ${fullName}\nEmail: ${email}\nPhone: ${phone}\nAddress: ${address}\nDate of Birth: ${dob}\nSSN (Last 4): ${ssn.slice(-4)}\nLinkedIn: ${linkedin}\nPortfolio: ${portfolioLink}\n\n--- EXPERIENCE ---\n\nLast Related Job:\n${lastRelatedJob}\n\n--- WHY YOU'RE A GOOD FIT ---\n\n${whyGoodFit}`,
+                text: `\n\n--- APPLICATION DETAILS ---\n\nFull Name: ${fullName}\nEmail: ${email}\nPhone: ${phone}\nAddress: ${address}\nDate of Birth: ${dob}\nSSN (Last 4): ${ssn.slice(-4)}\nLinkedIn: ${linkedin}\nPortfolio: ${portfolioLink}\n\n--- MEDIA SAMPLES ---\nVideo Samples: ${videoUrls.length > 0 ? videoUrls.join('\n') : 'N/A'}\nPicture Samples: ${pictureUrls.length > 0 ? pictureUrls.join('\n') : 'N/A'}\n\n--- EXPERIENCE ---\n\nLast Related Job:\n${lastRelatedJob}\n\n--- WHY YOU'RE A GOOD FIT ---\n\n${whyGoodFit}`,
               },
             },
           ],
         }),
       });
 
-      // Move document to Job Applications folder
       if (batchUpdateRes.ok) {
-        await fetch(`https://www.googleapis.com/drive/v3/files/${documentId}?addParents=${folderId}&fields=id,parents`, {
+        // Move document to Job Applications folder
+        const moveRes = await fetch(`https://www.googleapis.com/drive/v3/files/${documentId}?addParents=${folderId}&fields=id,parents`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
         });
+
+        if (moveRes.ok) {
+          console.log('Document moved to folder successfully');
+        } else {
+          const error = await moveRes.text();
+          console.error('Failed to move document to folder:', error);
+        }
+      } else {
+        const error = await batchUpdateRes.text();
+        console.error('Batch update failed:', error);
       }
+    } else {
+      const error = await docCreateRes.text();
+      console.error('Failed to create Google Doc:', error);
+      return Response.json({ error: 'Failed to create application document' }, { status: 500 });
     }
-
-
 
     // Create job application record
     const application = await base44.entities.JobApplication.create({
