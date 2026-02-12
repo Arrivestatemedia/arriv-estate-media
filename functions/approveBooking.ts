@@ -79,15 +79,20 @@ Deno.serve(async (req) => {
     // Send Google Calendar invite to client
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
-      
+
       const eventDate = new Date(booking.preferred_date);
       const [time, period] = booking.preferred_time.split(' ');
       let [hours, minutes] = time.split(':').map(Number);
-      
+
       if (period === 'PM' && hours !== 12) hours += 12;
       if (period === 'AM' && hours === 12) hours = 0;
-      
+
+      // Create time in local Eastern timezone (UTC-5 or UTC-4 depending on DST)
       eventDate.setHours(hours, minutes, 0, 0);
+
+      // Convert to ISO string with proper timezone
+      const isoDateTime = eventDate.toISOString();
+
       const endTime = new Date(eventDate);
       endTime.setHours(endTime.getHours() + 2);
 
