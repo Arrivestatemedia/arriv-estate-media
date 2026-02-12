@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
     const backgroundCheckAgreed = formData.get('backgroundCheckAgreed') === 'true';
     const ssnDisclosureAgreed = formData.get('ssnDisclosureAgreed') === 'true';
     const eEOCagreed = formData.get('eEOCagreed') === 'true';
+    const signature = formData.get('signature');
 
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
@@ -188,6 +189,7 @@ Deno.serve(async (req) => {
       background_check_agreed: backgroundCheckAgreed,
       ssn_disclosure_agreed: ssnDisclosureAgreed,
       eeoc_agreed: eEOCagreed,
+      signature,
       video_samples: uploadedVideos,
       picture_samples: uploadedPictures,
     });
