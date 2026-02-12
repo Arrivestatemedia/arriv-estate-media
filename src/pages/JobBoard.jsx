@@ -25,6 +25,7 @@ export default function JobBoard() {
     const [bookingJob, setBookingJob] = useState(null);
     const [cancelJob, setCancelJob] = useState(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+    const [cancelSuccess, setCancelSuccess] = useState(false);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -70,7 +71,7 @@ export default function JobBoard() {
     onSuccess: (response) => {
       // Job cancelled - contractor is no longer assigned
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      // Dialog will stay open until user closes it
+      setCancelSuccess(true);
     },
     onError: (error) => {
       console.error('Cancel mutation error:', error);
@@ -255,6 +256,7 @@ export default function JobBoard() {
         <CancelJobDialog
           job={cancelJob}
           open={cancelDialogOpen}
+          success={cancelSuccess}
           onOpenChange={(open) => {
             if (!open && cancelJob) {
               // Dialog is closing - reassign the job
@@ -266,7 +268,10 @@ export default function JobBoard() {
                 .catch(err => console.error('Reassign error:', err));
             }
             setCancelDialogOpen(open);
-            if (!open) setCancelJob(null);
+            if (!open) {
+              setCancelJob(null);
+              setCancelSuccess(false);
+            }
           }}
           onSubmit={handleCancelSubmit}
           isLoading={cancelMutation.isPending}

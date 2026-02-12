@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isLoading }) {
+export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isLoading, success }) {
   const [reason, setReason] = useState("");
 
   const handleSubmit = () => {
@@ -25,45 +25,71 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="border-2 border-[#B8956A]/30">
-        <DialogHeader>
-          <DialogTitle className="text-[#1A1A1A]">Cancel This Booking?</DialogTitle>
-          <DialogDescription className="text-[#1A1A1A]/60">
-            Please let us know why you're cancelling so we can improve.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-4">
-          <div>
-            <p className="text-sm font-medium text-[#1A1A1A] mb-2">{job.title}</p>
-            <p className="text-xs text-[#1A1A1A]/60">{job.location}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-[#1A1A1A] block mb-2">
-              Reason for cancellation
-            </label>
-            <Textarea
-              placeholder="Tell us why you're cancelling..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="border-[#B8956A]/30 focus:border-[#B8956A]"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="border-[#1A1A1A]/20"
-          >
-            Keep Booking
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            {isLoading ? "Cancelling..." : "Cancel Booking"}
-          </Button>
-        </DialogFooter>
+        {success ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-[#1A1A1A]">Job Cancelled</DialogTitle>
+              <DialogDescription className="text-[#1A1A1A]/60">
+                You are no longer assigned to this job.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-[#1A1A1A]">
+                You have successfully cancelled your booking for <span className="font-semibold">{job.title}</span>.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => onOpenChange(false)}
+                className="bg-[#B8956A] hover:bg-[#A68559] text-white"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-[#1A1A1A]">Cancel This Booking?</DialogTitle>
+              <DialogDescription className="text-[#1A1A1A]/60">
+                Please let us know why you're cancelling so we can improve.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div>
+                <p className="text-sm font-medium text-[#1A1A1A] mb-2">{job.title}</p>
+                <p className="text-xs text-[#1A1A1A]/60">{job.location}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[#1A1A1A] block mb-2">
+                  Reason for cancellation
+                </label>
+                <Textarea
+                  placeholder="Tell us why you're cancelling..."
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="border-[#1A1A1A]/20"
+              >
+                Keep Booking
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isLoading ? "Cancelling..." : "Cancel Booking"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
