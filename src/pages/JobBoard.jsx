@@ -328,19 +328,22 @@ export default function JobBoard() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredJobs.map((job) => (
-              <JobCard 
-                key={job.id} 
-                job={job} 
-                isAdmin={false} 
-                userRole={user?.role}
-                onBook={handleBook} 
-                onCancel={handleCancel}
-                onBookBackup={handleBookBackup}
-                onUpdateBackup={handleBookBackup}
-                currentUserEmail={userEmail || user?.email} 
-              />
-            ))}
+            {filteredJobs.map((job) => {
+              const userRole = localStorage.getItem('user_role') || user?.role;
+              return (
+                <JobCard 
+                  key={job.id} 
+                  job={job} 
+                  isAdmin={userRole === 'admin'} 
+                  userRole={userRole}
+                  onBook={handleBook} 
+                  onCancel={handleCancel}
+                  onBookBackup={handleBookBackup}
+                  onUpdateBackup={handleBookBackup}
+                  currentUserEmail={userEmail || user?.email} 
+                />
+              );
+            })}
           </div>
         )}
 
