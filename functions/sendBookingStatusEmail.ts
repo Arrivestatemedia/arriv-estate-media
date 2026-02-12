@@ -56,8 +56,26 @@ Deno.serve(async (req) => {
     });
 
     if (!response.ok) {
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: clientEmail,
+        message_content: emailBody,
+        subject: emailSubject,
+        status: 'failed',
+        error_message: 'Failed to send email'
+      });
       throw new Error('Failed to send email');
     }
+
+    await base44.asServiceRole.entities.MessageLog.create({
+      message_type: 'email',
+      recipient_type: 'client',
+      recipient_email: clientEmail,
+      message_content: emailBody,
+      subject: emailSubject,
+      status: 'success'
+    });
 
     return Response.json({ success: true });
   } catch (error) {
