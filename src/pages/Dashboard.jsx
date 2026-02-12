@@ -265,7 +265,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {approvedJobs.map((job) => (
-              <JobCard key={job.id} job={job} isAdmin={true} onManage={handleEdit} currentUserEmail={user?.email} userRole="admin" />
+              <JobCard key={job.id} job={job} isAdmin={true} onManage={handleEdit} onBook={handleBook} onBookBackup={handleBookBackup} onUpdateBackup={handleUpdateBackup} currentUserEmail={user?.email} userRole="admin" />
             ))}
           </div>
         )}
