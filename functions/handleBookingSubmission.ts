@@ -14,7 +14,8 @@ Deno.serve(async (req) => {
     // Create booking in database
     const createdBooking = await base44.asServiceRole.entities.Booking.create({
       ...booking,
-      status: 'pending'
+      status: 'pending',
+      property_address: `${booking.street_address}, ${booking.city}, ${booking.state}`
     });
 
     // Add to admin calendar
