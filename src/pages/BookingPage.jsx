@@ -52,7 +52,51 @@ const clientPackages = [
   },
 ];
 
-const addOns = [
+const contractorPackages = [
+  {
+    id: "mls_walkthrough",
+    name: "MLS Walkthrough",
+    tag: "Most Popular",
+    pay: 100,
+    features: [
+      "2-3 minute unbranded MLS-ready walkthrough (MLS & GAMLS compliant)",
+      "Bonus vertical social clip (Instagram/Reels ready)",
+    ],
+  },
+  {
+    id: "photo_essentials",
+    name: "Photo Essentials",
+    pay: 200,
+    features: [
+      "50-150 edited photos (interior + exterior)",
+      "True-to-life color + straight verticals",
+      "1 vertical teaser (9:16, 30-45 sec)",
+    ],
+  },
+  {
+    id: "photo_cinematic",
+    name: "Photo + Cinematic Walkthrough",
+    pay: 300,
+    features: [
+      "Everything in Photo Essentials",
+      "2 - 3 Minute walkthrough video (MLS-friendly export)",
+      "2 vertical reels",
+    ],
+  },
+  {
+    id: "premium_bundle",
+    name: "Premium Media Bundle",
+    pay: 400,
+    features: [
+      "Everything in Photo + Cinematic Walkthrough",
+      "90 Tour",
+      "Twilight exterior edits (up to 5 photos)",
+      "AI Staging (if needed)",
+    ],
+  },
+];
+
+const clientAddOns = [
   { id: "drone", name: "Drone add-on (photos + short clips)", price: 175 },
   { id: "3d_tour", name: "3D tour", price: 175 },
   { id: "twilight", name: "Twilight exterior edits (up to 5 photos)", price: 150 },
