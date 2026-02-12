@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
           subject: `Arriv Estate Media - ${booking.package}`,
           status: calendarResponse.ok ? 'success' : 'failed'
         });
-      } catch (error) {
+        } catch (error) {
         console.error('Calendar invite error:', error);
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email',
@@ -95,8 +95,17 @@ Deno.serve(async (req) => {
           status: 'failed',
           error_message: error.message
         });
-      }
-    }
+        }
+
+        // Log the confirmation email
+        await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: emailBody,
+        subject: 'Your Booking Has Been Approved',
+        status: 'success'
+        });
 
     return Response.json({ success: true, bookingId: bookingId });
   } catch (error) {
