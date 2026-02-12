@@ -60,11 +60,11 @@ import CustomerSignup from './pages/CustomerSignup';
 import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import JobBoard from './pages/JobBoard';
+import NotifyBackup from './pages/NotifyBackup';
 import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import NotifyBackup from './pages/NotifyBackup';
 import __Layout from './Layout.jsx';
 
 
@@ -82,11 +82,11 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "DeleteAccountRequest": DeleteAccountRequest,
     "JobBoard": JobBoard,
+    "NotifyBackup": NotifyBackup,
     "PasswordSetup": PasswordSetup,
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
-    "NotifyBackup": NotifyBackup,
 }
 
 export const pagesConfig = {

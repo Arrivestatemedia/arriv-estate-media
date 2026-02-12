@@ -120,8 +120,7 @@ export default function JobBoard() {
   };
 
   const handleCancelSubmit = (jobId, reason) => {
-    const userEmail = localStorage.getItem('user_email');
-    cancelMutation.mutate({ jobId, reason, userEmail });
+    cancelMutation.mutate({ jobId, reason });
   };
 
   const handleBookBackup = (job, phoneNumber) => {
