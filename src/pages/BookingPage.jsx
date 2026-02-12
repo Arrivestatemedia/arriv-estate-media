@@ -208,6 +208,10 @@ export default function BookingPage() {
     createBookingMutation.mutate(bookingData);
   };
 
+  const packages = userRole === 'admin' ? clientPackages : contractorPackages;
+  const addOns = clientAddOns;
+  const isPricingForAdmin = userRole === 'admin';
+
   if (showBookingForm) {
     return (
       <BookingForm
