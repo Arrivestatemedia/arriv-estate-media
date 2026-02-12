@@ -33,6 +33,23 @@ export default function JobBoard() {
 
   React.useEffect(() => {
     setUserEmail(localStorage.getItem('user_email'));
+    
+    // Update last_viewed_jobs_at timestamp for contractors
+    const updateLastViewed = async () => {
+      try {
+        const isAuth = await base44.auth.isAuthenticated();
+        if (isAuth) {
+          const currentUser = await base44.auth.me();
+          if (currentUser?.user_type === 'contractor') {
+            await base44.auth.updateMe({ last_viewed_jobs_at: new Date().toISOString() });
+          }
+        }
+      } catch (error) {
+        console.error('Error updating last viewed:', error);
+      }
+    };
+    
+    updateLastViewed();
   }, []);
 
   const { data: user, isLoading: userLoading } = useQuery({

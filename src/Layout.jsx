@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
+import NewJobsBadge from "@/components/layout/NewJobsBadge";
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -55,7 +56,7 @@ export default function Layout({ children, currentPageName }) {
       ]
     : isContractor
     ? [
-        { label: "Available Jobs", page: "JobBoard", icon: Briefcase },
+        { label: "Available Jobs", page: "JobBoard", icon: Briefcase, showBadge: true },
         { label: "My Dashboard", page: "ContractorDashboard", icon: LayoutDashboard },
       ]
     : [];
@@ -96,23 +97,24 @@ export default function Layout({ children, currentPageName }) {
 
             <nav className="hidden md:flex items-center gap-1">
               {navItems.length > 0 && navItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = currentPageName === item.page;
-                    return (
-                      <Link
-                        key={item.page}
-                        to={createPageUrl(item.page)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          active
-                            ? "bg-[#B8956A] text-[#1A1A1A]"
-                            : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
+                  const Icon = item.icon;
+                  const active = currentPageName === item.page;
+                  return (
+                    <Link
+                      key={item.page}
+                      to={createPageUrl(item.page)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        active
+                          ? "bg-[#B8956A] text-[#1A1A1A]"
+                          : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {item.label}
+                      {item.showBadge && <NewJobsBadge />}
+                    </Link>
+                  );
+                })}
 
                 {user && !["SignIn", "ClientSignup", "ContractorSignup"].includes(currentPageName) && (
                   <Link
@@ -181,6 +183,7 @@ export default function Layout({ children, currentPageName }) {
                   >
                     <Icon className="w-4 h-4" />
                     {item.label}
+                    {item.showBadge && <NewJobsBadge />}
                   </Link>
                 );
               })}
