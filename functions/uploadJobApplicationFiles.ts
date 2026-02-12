@@ -15,7 +15,12 @@ Deno.serve(async (req) => {
     const fullName = formData.get('fullName');
     const email = formData.get('email');
     const phone = formData.get('phone');
+    const address = formData.get('address');
     const ssn = formData.get('ssn');
+    const linkedin = formData.get('linkedin');
+    const portfolioLink = formData.get('portfolioLink');
+    const lastRelatedJob = formData.get('lastRelatedJob');
+    const whyGoodFit = formData.get('whyGoodFit');
 
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
@@ -111,7 +116,12 @@ Deno.serve(async (req) => {
       full_name: fullName,
       email,
       phone,
+      address,
       ssn: ssn.slice(-4),
+      linkedin,
+      portfolio_link: portfolioLink,
+      last_related_job: lastRelatedJob,
+      why_good_fit: whyGoodFit,
       video_samples: uploadedVideos,
       picture_samples: uploadedPictures,
     });

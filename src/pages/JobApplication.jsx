@@ -10,7 +10,12 @@ export default function JobApplication() {
     fullName: '',
     email: '',
     phone: '',
+    address: '',
     ssn: '',
+    linkedin: '',
+    portfolioLink: '',
+    lastRelatedJob: '',
+    whyGoodFit: '',
   });
   const [videoFiles, setVideoFiles] = useState([]);
   const [pictureFiles, setPictureFiles] = useState([]);
@@ -41,7 +46,12 @@ export default function JobApplication() {
       formPayload.append('fullName', formData.fullName);
       formPayload.append('email', formData.email);
       formPayload.append('phone', formData.phone);
+      formPayload.append('address', formData.address);
       formPayload.append('ssn', formData.ssn);
+      formPayload.append('linkedin', formData.linkedin);
+      formPayload.append('portfolioLink', formData.portfolioLink);
+      formPayload.append('lastRelatedJob', formData.lastRelatedJob);
+      formPayload.append('whyGoodFit', formData.whyGoodFit);
 
       videoFiles.forEach((file) => formPayload.append('videos', file));
       pictureFiles.forEach((file) => formPayload.append('pictures', file));
@@ -50,7 +60,7 @@ export default function JobApplication() {
 
       if (response.data.success) {
         setSubmitted(true);
-        setFormData({ fullName: '', email: '', phone: '', ssn: '' });
+        setFormData({ fullName: '', email: '', phone: '', address: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '' });
         setVideoFiles([]);
         setPictureFiles([]);
       }
@@ -81,7 +91,7 @@ export default function JobApplication() {
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>Job Application</CardTitle>
+            <CardTitle>Arriv Estate Media LLC Media Partner Application</CardTitle>
             <CardDescription>Submit your application with your SSN and portfolio samples</CardDescription>
           </CardHeader>
           <CardContent>
@@ -123,6 +133,68 @@ export default function JobApplication() {
                     onChange={handleInputChange}
                     required
                     placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Address *</label>
+                  <Input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="123 Main St, City, State 12345"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">LinkedIn Profile URL *</label>
+                  <Input
+                    type="url"
+                    name="linkedin"
+                    value={formData.linkedin}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="https://linkedin.com/in/yourprofile"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Portfolio Link *</label>
+                  <Input
+                    type="url"
+                    name="portfolioLink"
+                    value={formData.portfolioLink}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="https://yourportfolio.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Last Related Job/Experience *</label>
+                  <textarea
+                    name="lastRelatedJob"
+                    value={formData.lastRelatedJob}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Describe your most recent relevant job experience..."
+                    className="w-full p-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    rows="3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Why do you believe you are a good fit? *</label>
+                  <textarea
+                    name="whyGoodFit"
+                    value={formData.whyGoodFit}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Tell us why you think you would be an excellent Media Partner..."
+                    className="w-full p-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    rows="4"
                   />
                 </div>
 
@@ -207,7 +279,7 @@ export default function JobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.ssn}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
