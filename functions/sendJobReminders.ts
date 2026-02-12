@@ -74,17 +74,34 @@ Deno.serve(async (req) => {
           const emailBody = `Your shoot with Arriv Estate Media is scheduled for today at ${jobTime}.\n\nLocation: ${job.location}\n\nPlease confirm you'll be available.`;
 
           // Send to media partner
-          if (job.booked_by) {
+          if (job.booked_by_phone) {
             await base44.asServiceRole.functions.invoke('sendReminderSMS', {
-              phone: job.booked_by_phone || '',
+              phone: job.booked_by_phone,
               message: `${message}\n\nClient will be notified shortly.`
             });
           }
 
-          // Send email to both
+          // Send email to media partner
           if (job.booked_by) {
             await base44.asServiceRole.integrations.Core.SendEmail({
               to: job.booked_by,
+              subject: 'Shoot Reminder - Today at ' + jobTime,
+              body: emailBody
+            });
+          }
+
+          // Send SMS to client
+          if (job.client_phone) {
+            await base44.asServiceRole.functions.invoke('sendReminderSMS', {
+              phone: job.client_phone,
+              message: `${message}`
+            });
+          }
+
+          // Send email to client
+          if (job.client_email) {
+            await base44.asServiceRole.integrations.Core.SendEmail({
+              to: job.client_email,
               subject: 'Shoot Reminder - Today at ' + jobTime,
               body: emailBody
             });
@@ -109,7 +126,8 @@ Deno.serve(async (req) => {
           }
         } else if (reminder.type === '1_hour_before') {
           // Send to admin (only if not booked by admin)
-          if (job.booked_by !== 'admin@example.com') {
+          const adminEmail = Deno.env.get('ADMIN_EMAIL') || 'admin@example.com';
+          if (job.booked_by !== adminEmail) {
             const message = `Your media partner ${job.booked_by_name || job.booked_by} is on the way to ${job.location}. The shoot starts in 1 hour. Check in with them to confirm everything is set up and ready.`;
             await base44.asServiceRole.functions.invoke('sendReminderSMS', {
               phone: '4047891107',
