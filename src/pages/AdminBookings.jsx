@@ -474,24 +474,32 @@ export default function AdminBookings() {
                 </div>
 
                 {selectedBooking.status === 'pending' && (
-                  <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
-                    <Button
-                      onClick={handleDenyClick}
-                      variant="outline"
-                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                      disabled={loadingBookingId === selectedBooking.id}
-                    >
-                      Deny
-                    </Button>
-                    <Button
-                      onClick={handleApprove}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-green-400"
-                      disabled={loadingBookingId === selectedBooking.id}
-                    >
-                      {loadingBookingId === selectedBooking.id ? 'Approving...' : 'Approve'}
-                    </Button>
-                  </div>
-                )}
+                   <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
+                     <Button
+                       onClick={handleDenyClick}
+                       variant="outline"
+                       className="flex-1 border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                       disabled={loadingBookingId === selectedBooking.id}
+                     >
+                       Deny
+                     </Button>
+                     <Button
+                       onClick={() => deleteMutation.mutate(selectedBooking.id)}
+                       variant="outline"
+                       className="flex-1 border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                       disabled={loadingBookingId === selectedBooking.id}
+                     >
+                       {loadingBookingId === selectedBooking.id ? 'Deleting...' : 'Delete'}
+                     </Button>
+                     <Button
+                       onClick={handleApprove}
+                       className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-green-400"
+                       disabled={loadingBookingId === selectedBooking.id}
+                     >
+                       {loadingBookingId === selectedBooking.id ? 'Approving...' : 'Approve'}
+                     </Button>
+                   </div>
+                 )}
                 {selectedBooking.status === 'approved' && (
                   <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
                     <Button
