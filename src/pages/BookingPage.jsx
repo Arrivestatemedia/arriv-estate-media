@@ -125,7 +125,7 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected }) {
           )}
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-2xl font-bold text-[#B8956A]">${pkg.price}</span>
+          <span className="text-2xl font-bold text-[#B8956A]">${pkg.price || pkg.pay}</span>
           {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
         </div>
       </button>
