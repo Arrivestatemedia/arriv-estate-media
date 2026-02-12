@@ -265,16 +265,17 @@ export default function BookingPage() {
           ))}
         </div>
 
+        {isPricingForAdmin && (
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
-          <button
-            onClick={() => setExpandedAddOns(!expandedAddOns)}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#B8956A]/5 transition-colors"
-          >
-            <span className="text-lg font-semibold text-[#1A1A1A]">
-              Optional Add-Ons (can be added to any package)
-            </span>
-            {expandedAddOns ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-          </button>
+           <button
+             onClick={() => setExpandedAddOns(!expandedAddOns)}
+             className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#B8956A]/5 transition-colors"
+           >
+             <span className="text-lg font-semibold text-[#1A1A1A]">
+               Optional Add-Ons (can be added to any package)
+             </span>
+             {expandedAddOns ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+           </button>
 
           <AnimatePresence>
             {expandedAddOns && (
