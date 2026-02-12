@@ -5,7 +5,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     const body = await req.json();
-    const { jobId, contractorName, contractorEmail } = body;
+    const { jobId, contractorName, contractorEmail, hasBackup, backupName, backupEmail } = body;
 
     if (!jobId) {
       return Response.json({ error: 'Job ID is required' }, { status: 400 });
@@ -24,7 +24,13 @@ Deno.serve(async (req) => {
     const fromPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
     const toPhone = "4047891107";
 
-    const message = `CONTRACTOR CANCELLATION ALERT\n\nContractor: ${contractorName || contractorEmail}\nJob: ${job.title}\nLocation: ${job.location}\nDate: ${job.date}\nPay: $${job.pay_rate}\n\nThis job is now available on the job board.`;
+    let message = `🚨 JOB CANCELLATION 🚨\n\nContractor: ${contractorName} (${contractorEmail})\n\nJob: ${job.title}\nLocation: ${job.location}\nDate: ${job.date}\nTime: ${job.start_time || 'TBD'}\nPay: $${job.pay_rate}`;
+
+    if (hasBackup) {
+      message += `\n\n✅ BACKUP ASSIGNED: ${backupName} (${backupEmail})`;
+    } else {
+      message += `\n\n❌ NO BACKUP - Job returned to board`;
+    }
 
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
