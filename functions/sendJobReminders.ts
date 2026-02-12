@@ -15,16 +15,32 @@ Deno.serve(async (req) => {
       // Get the job date/time in user's timezone (America/New_York)
       const jobDate = new Date(job.date);
       const jobTime = job.start_time ? job.start_time : '09:00';
-      const [jobHour, jobMinute] = jobTime.split(':').map(Number);
+      const tz = 'America/New_York';
 
       // Create job datetime in NY timezone
       const jobDateString = jobDate.toISOString().split('T')[0];
       const jobDatetimeString = `${jobDateString}T${jobTime}:00`;
       const jobDatetimeNY = new Date(jobDatetimeString);
       
-      // Convert NY time to UTC
-      const tz = 'America/New_York';
-      const jobDatetimeUTC = toZonedTime(jobDatetimeNY, tz);
+      // Get the job datetime in NY timezone
+      const jobDatetimeNYZoned = toZonedTime(jobDatetimeNY, tz);
+      
+      // Convert NY time to UTC for comparison
+      const zonedToUtc = (zonedDate) => {
+        const utcString = zonedDate.toLocaleString('en-US', {
+          timeZone: 'UTC',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        return new Date(utcString.replace(/(\d+)\/(\d+)\/(\d+),\s(\d+):(\d+):(\d+)/, '$3-$1-$2T$4:$5:$6'));
+      };
+      
+      const jobDatetimeUTC = zonedToUtc(jobDatetimeNY);
 
       // Calculate reminder times
       const reminders = [
