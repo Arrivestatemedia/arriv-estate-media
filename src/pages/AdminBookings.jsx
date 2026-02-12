@@ -189,7 +189,7 @@ export default function AdminBookings() {
     setIsDeleting(false);
   };
 
-  const deletableBookings = bookings.filter(b => b.status === 'approved' || b.status === 'denied');
+  const deletableBookings = bookings.filter(b => b.status === 'pending' || b.status === 'approved' || b.status === 'denied');
   const allDeleteableSelected = deletableBookings.length > 0 && deletableBookings.every(b => selectedForDelete.has(b.id));
 
   const handleSelectAll = () => {
