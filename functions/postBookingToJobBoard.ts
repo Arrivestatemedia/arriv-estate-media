@@ -51,6 +51,7 @@ Deno.serve(async (req) => {
       start_time: booking.preferred_time,
       duration_hours: 2,
       pay_rate: contractorPayRate,
+      client_price: booking.total_price,
       status: 'open',
       from_booking: true,
       package: booking.package,
