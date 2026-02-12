@@ -13,11 +13,13 @@ Deno.serve(async (req) => {
 
     const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
 
+    const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
+
     await base44.asServiceRole.entities.Job.create({
-      title: `Photography - ${booking.property_address}`,
+      title: `Photography - ${propertyAddress}`,
       type: 'photo',
-      description: `Property: ${booking.property_address}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
-      location: booking.property_address,
+      description: `Property: ${propertyAddress}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
+      location: propertyAddress,
       date: booking.preferred_date,
       start_time: booking.preferred_time,
       duration_hours: 2,
