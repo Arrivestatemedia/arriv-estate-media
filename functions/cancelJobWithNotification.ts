@@ -35,42 +35,47 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'You can only cancel your own bookings' }, { status: 403 });
     }
 
+    // Store backup info before updating
+    const backupEmail = job.backup_booked_by;
+    const backupName = job.backup_booked_by_name;
+    const backupPhone = job.backup_booked_by_phone;
+
     // If there's a backup, assign them as primary
-    if (job.backup_booked_by) {
+    if (backupEmail) {
       // Update job - promote backup to primary
       await base44.asServiceRole.entities.Job.update(jobId, {
-        booked_by: job.backup_booked_by,
-        booked_by_name: job.backup_booked_by_name,
+        booked_by: backupEmail,
+        booked_by_name: backupName,
         backup_booked_by: null,
         backup_booked_by_name: null,
         backup_booked_by_phone: null,
         status: "booked",
       });
+
+      // Send notification to backup contractor
+      if (backupPhone) {
+        const bookingForNotification = {
+          client_name: backupName,
+          client_email: backupEmail,
+          property_address: job.location,
+          preferred_date: job.date,
+          preferred_time: job.start_time,
+          package: job.type
+        };
+
+        await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
+          booking: bookingForNotification,
+          type: 'cancellation',
+          phoneNumbers: [backupPhone, '4047891107'],
+          sendEmail: backupName !== 'Bradley Burke'
+        });
+      }
     } else {
       // No backup, return to open
       await base44.asServiceRole.entities.Job.update(jobId, {
         booked_by: null,
         booked_by_name: null,
         status: "open",
-      });
-    }
-
-    // Send cancellation notification to backup contractor if one exists
-    if (job.backup_booked_by && job.backup_booked_by_phone) {
-      const bookingForNotification = {
-        client_name: job.backup_booked_by_name,
-        client_email: job.backup_booked_by,
-        property_address: job.location,
-        preferred_date: job.date,
-        preferred_time: job.start_time,
-        package: job.type
-      };
-
-      await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
-        booking: bookingForNotification,
-        type: 'cancellation',
-        phoneNumbers: [job.backup_booked_by_phone, '4047891107'],
-        sendEmail: job.backup_booked_by_name !== 'Bradley Burke'
       });
     }
 
