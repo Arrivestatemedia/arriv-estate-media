@@ -67,10 +67,31 @@ export default function JobBoard() {
 
   const cancelMutation = useMutation({
     mutationFn: ({ jobId, reason }) => base44.functions.invoke('cancelJobWithNotification', { jobId, reason }),
-    onSuccess: () => {
+    onSuccess: async (response) => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setCancelDialogOpen(false);
       setCancelJob(null);
+      
+      // Send notifications after dialog closes
+      if (response.data.backupInfo) {
+        const { email, name, phone, location, date, start_time, type } = response.data.backupInfo;
+        const bookingForNotification = {
+          client_name: name,
+          client_email: email,
+          property_address: location,
+          preferred_date: date,
+          preferred_time: start_time,
+          package: type
+        };
+        
+        base44.functions.invoke('sendBookingNotifications', {
+          booking: bookingForNotification,
+          type: 'cancellation',
+          phoneNumbers: [phone, '4047891107'],
+          sendEmail: name !== 'Bradley Burke'
+        }).catch(err => console.error('Notification error:', err));
+      }
+      
       navigate(createPageUrl("JobBoard"));
     },
     onError: (error) => {
