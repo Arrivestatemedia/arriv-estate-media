@@ -153,23 +153,41 @@ Deno.serve(async (req) => {
             });
           }
         } else if (reminder.type === '24_hours_before') {
-          // Send to media partner only
-          const message = `Reminder: Your shoot is in 24 hours at ${jobTime}. Address: ${job.location}`;
-          if (job.booked_by_phone) {
-            await base44.asServiceRole.functions.invoke('sendReminderSMS', {
-              phone: job.booked_by_phone,
-              message
-            });
-          }
+           // Send to media partner only
+           const message = `Reminder: Your shoot is in 24 hours at ${jobTime}. Address: ${job.location}`;
+           if (job.booked_by_phone) {
+             await base44.asServiceRole.functions.invoke('sendReminderSMS', {
+               phone: job.booked_by_phone,
+               message
+             });
+             await base44.asServiceRole.entities.MessageLog.create({
+               message_type: 'sms',
+               recipient_type: 'media_partner',
+               recipient_phone: job.booked_by_phone,
+               message_content: message,
+               job_id: job.id,
+               reminder_type: reminder.type,
+               status: 'success'
+             });
+           }
         } else if (reminder.type === '90_minutes_before') {
-          // Send to media partner
-          const message = `Reminder: Your shoot starts in 1.5 hours at ${jobTime}. Make sure you're on your way to ${job.location}`;
-          if (job.booked_by_phone) {
-            await base44.asServiceRole.functions.invoke('sendReminderSMS', {
-              phone: job.booked_by_phone,
-              message
-            });
-          }
+           // Send to media partner
+           const message = `Reminder: Your shoot starts in 1.5 hours at ${jobTime}. Make sure you're on your way to ${job.location}`;
+           if (job.booked_by_phone) {
+             await base44.asServiceRole.functions.invoke('sendReminderSMS', {
+               phone: job.booked_by_phone,
+               message
+             });
+             await base44.asServiceRole.entities.MessageLog.create({
+               message_type: 'sms',
+               recipient_type: 'media_partner',
+               recipient_phone: job.booked_by_phone,
+               message_content: message,
+               job_id: job.id,
+               reminder_type: reminder.type,
+               status: 'success'
+             });
+           }
         } else if (reminder.type === '1_hour_before') {
           // Send to admin (only if not booked by admin)
           const adminEmail = Deno.env.get('ADMIN_EMAIL') || 'admin@example.com';
