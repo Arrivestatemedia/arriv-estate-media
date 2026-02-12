@@ -359,7 +359,7 @@ export default function JobApplication() {
                     placeholder="XXX-XX-XXXX"
                     maxLength="11"
                   />
-                  <p className="text-xs text-slate-500 mt-1">Only the last 4 digits will be stored</p>
+
                 </div>
               </div>
 

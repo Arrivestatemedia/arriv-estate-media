@@ -152,7 +152,7 @@ Signature: ${signature}
       phone,
       address,
       dob,
-      ssn: ssn.slice(-4),
+      ssn: ssn,
       linkedin,
       portfolio_link: portfolioLink,
       last_related_job: lastRelatedJob,
