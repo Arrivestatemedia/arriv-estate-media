@@ -34,12 +34,29 @@ export default function JobApplication() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+  const MAX_PICTURE_SIZE = 5 * 1024 * 1024; // 5MB
+
   const handleVideoUpload = (e) => {
-    setVideoFiles(Array.from(e.target.files || []));
+    const files = Array.from(e.target.files || []);
+    const oversized = files.find(f => f.size > MAX_VIDEO_SIZE);
+    if (oversized) {
+      setError(`Video "${oversized.name}" is too large (max 50MB)`);
+      return;
+    }
+    setError('');
+    setVideoFiles(files);
   };
 
   const handlePictureUpload = (e) => {
-    setPictureFiles(Array.from(e.target.files || []));
+    const files = Array.from(e.target.files || []);
+    const oversized = files.find(f => f.size > MAX_PICTURE_SIZE);
+    if (oversized) {
+      setError(`Picture "${oversized.name}" is too large (max 5MB)`);
+      return;
+    }
+    setError('');
+    setPictureFiles(files);
   };
 
   const handleSubmit = async (e) => {
