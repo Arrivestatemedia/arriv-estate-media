@@ -26,76 +26,75 @@ Deno.serve(async (req) => {
 
     // Send Google Calendar invite to client only after email is confirmed
     try {
-      try {
-        console.log('Attempting to get calendar access token...');
-        const calendarAccessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
-        console.log('Calendar access token obtained:', !!calendarAccessToken);
-        
-        const [time, period] = booking.preferred_time.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-        
-        const startDateTime = new Date(booking.preferred_date);
-        startDateTime.setHours(hours, minutes, 0, 0);
-        
-        const endDateTime = new Date(startDateTime);
-        endDateTime.setHours(endDateTime.getHours() + 2);
-        
-        const calendarEvent = {
-          summary: `Arriv Estate Media - ${booking.package}`,
-          description: `Property: ${booking.property_address}\nPackage: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
-          start: {
-            dateTime: startDateTime.toISOString(),
-            timeZone: 'America/New_York'
-          },
-          end: {
-            dateTime: endDateTime.toISOString(),
-            timeZone: 'America/New_York'
-          },
-          location: booking.property_address,
-          attendees: [
-            { email: booking.client_email }
-          ]
-        };
+      console.log('Attempting to get calendar access token...');
+      const calendarAccessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+      console.log('Calendar access token obtained:', !!calendarAccessToken);
+      
+      const [time, period] = booking.preferred_time.split(' ');
+      let [hours, minutes] = time.split(':').map(Number);
+      
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      
+      const startDateTime = new Date(booking.preferred_date);
+      startDateTime.setHours(hours, minutes, 0, 0);
+      
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setHours(endDateTime.getHours() + 2);
+      
+      const calendarEvent = {
+        summary: `Arriv Estate Media - ${booking.package}`,
+        description: `Property: ${booking.property_address}\nPackage: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
+        start: {
+          dateTime: startDateTime.toISOString(),
+          timeZone: 'America/New_York'
+        },
+        end: {
+          dateTime: endDateTime.toISOString(),
+          timeZone: 'America/New_York'
+        },
+        location: booking.property_address,
+        attendees: [
+          { email: booking.client_email }
+        ]
+      };
 
-        const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=externalOnly', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${calendarAccessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(calendarEvent)
-        });
+      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=externalOnly', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${calendarAccessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(calendarEvent)
+      });
 
-        const calendarResponseText = await calendarResponse.text();
-        console.log('Calendar API response:', calendarResponse.status, calendarResponseText);
-        
-        const calendarLogMessage = calendarResponse.ok 
-          ? `Calendar invite sent for ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time}`
-          : `Calendar invite failed: ${calendarResponseText}`;
-        
-        await base44.asServiceRole.entities.MessageLog.create({
-          message_type: 'email',
-          recipient_type: 'client',
-          recipient_email: booking.client_email,
-          message_content: calendarLogMessage,
-          subject: `Arriv Estate Media - ${booking.package}`,
-          status: calendarResponse.ok ? 'success' : 'failed'
-        });
-        } catch (error) {
-        console.error('Calendar invite error:', error);
-        await base44.asServiceRole.entities.MessageLog.create({
-          message_type: 'email',
-          recipient_type: 'client',
-          recipient_email: booking.client_email,
-          message_content: `Failed to send calendar invite for ${booking.property_address}`,
-          subject: `Arriv Estate Media - ${booking.package}`,
-          status: 'failed',
-          error_message: error.message
-        });
-        }
+      const calendarResponseText = await calendarResponse.text();
+      console.log('Calendar API response:', calendarResponse.status, calendarResponseText);
+      
+      const calendarLogMessage = calendarResponse.ok 
+        ? `Calendar invite sent for ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time}`
+        : `Calendar invite failed: ${calendarResponseText}`;
+      
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: calendarLogMessage,
+        subject: `Arriv Estate Media - ${booking.package}`,
+        status: calendarResponse.ok ? 'success' : 'failed'
+      });
+    } catch (error) {
+      console.error('Calendar invite error:', error);
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: `Failed to send calendar invite for ${booking.property_address}`,
+        subject: `Arriv Estate Media - ${booking.package}`,
+        status: 'failed',
+        error_message: error.message
+      });
+    }
 
         // Log the confirmation email
         await base44.asServiceRole.entities.MessageLog.create({
