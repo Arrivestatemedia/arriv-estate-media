@@ -19,6 +19,7 @@ export default function JobApplication() {
     whyGoodFit: '',
     race: '',
     backgroundCheckAgreed: false,
+    ssnDisclosureAgreed: false,
     eEOCagreed: false,
   });
   const [videoFiles, setVideoFiles] = useState([]);
@@ -59,6 +60,7 @@ export default function JobApplication() {
       formPayload.append('whyGoodFit', formData.whyGoodFit);
       formPayload.append('race', formData.race);
       formPayload.append('backgroundCheckAgreed', formData.backgroundCheckAgreed);
+      formPayload.append('ssnDisclosureAgreed', formData.ssnDisclosureAgreed);
       formPayload.append('eEOCagreed', formData.eEOCagreed);
 
       videoFiles.forEach((file) => formPayload.append('videos', file));
@@ -68,7 +70,7 @@ export default function JobApplication() {
 
       if (response.data.success) {
         setSubmitted(true);
-        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, eEOCagreed: false });
+        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, ssnDisclosureAgreed: false, eEOCagreed: false });
         setVideoFiles([]);
         setPictureFiles([]);
       }
@@ -255,6 +257,20 @@ export default function JobApplication() {
                   </label>
                 </div>
 
+                <div className="flex items-start gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                  <input
+                    type="checkbox"
+                    name="ssnDisclosureAgreed"
+                    checked={formData.ssnDisclosureAgreed}
+                    onChange={handleInputChange}
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                    id="ssnDisclosure"
+                  />
+                  <label htmlFor="ssnDisclosure" className="text-xs text-slate-700 leading-relaxed">
+                    <strong>Independent Contractor Background Check & SSN Disclosure:</strong> The Social Security number requested is collected solely for the purpose of conducting a background check in connection with consideration for engagement as an independent contractor. Providing your Social Security number is voluntary; however, failure to provide it may prevent completion of the background screening process and affect eligibility for engagement. This information will not be used for employment purposes and does not create an employer-employee relationship. All personal information will be maintained securely and accessed only by authorized personnel or third-party background screening providers with a legitimate business need. By submitting this information, you acknowledge and consent to the collection, use, and limited disclosure of your Social Security number as described above.
+                  </label>
+                </div>
+
                 <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <input
                     type="checkbox"
@@ -350,7 +366,7 @@ export default function JobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed || !formData.eEOCagreed}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed || !formData.ssnDisclosureAgreed || !formData.eEOCagreed}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
