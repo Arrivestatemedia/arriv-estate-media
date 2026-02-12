@@ -366,7 +366,9 @@ export default function BookingPage() {
             )}
           </AnimatePresence>
         </div>
+        )}
 
+        {isPricingForAdmin && (
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 space-y-4">
           <h3 className="font-semibold text-[#1A1A1A]">Payment</h3>
           <ul className="space-y-2 text-sm text-[#1A1A1A]/70">
