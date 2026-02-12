@@ -67,6 +67,7 @@ import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
+import JobApplication from './pages/JobApplication';
 import __Layout from './Layout.jsx';
 
 
@@ -91,6 +92,7 @@ export const PAGES = {
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
+    "JobApplication": JobApplication,
 }
 
 export const pagesConfig = {
