@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }
 
-        const { phone_number, user_type } = await req.json();
+        const { phone_number, user_type, user_role } = await req.json();
 
         if (!phone_number || !user_type) {
             return Response.json({ 
@@ -20,6 +20,13 @@ Deno.serve(async (req) => {
         if (!['client', 'media_partner'].includes(user_type)) {
             return Response.json({ 
                 error: 'User type must be either "client" or "media_partner"' 
+            }, { status: 400 });
+        }
+
+        const role = user_role || 'user';
+        if (!['user', 'admin'].includes(role)) {
+            return Response.json({ 
+                error: 'User role must be either "user" or "admin"' 
             }, { status: 400 });
         }
 
@@ -35,7 +42,7 @@ Deno.serve(async (req) => {
 
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
         const pageName = user_type === 'client' ? 'ClientSignup' : 'MediaPartnerSignup';
-        const signupUrl = `https://${appDomain}/${pageName}?phone_number=${encodeURIComponent(phone_number)}`;
+        const signupUrl = `https://${appDomain}/${pageName}?phone_number=${encodeURIComponent(phone_number)}&role=${encodeURIComponent(role)}`;
 
         const message = user_type === 'client' 
             ? `Welcome to Arriv Estate Media! Click here to complete your registration and book your shoot: ${signupUrl}`
