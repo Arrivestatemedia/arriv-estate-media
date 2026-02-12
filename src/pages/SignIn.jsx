@@ -37,8 +37,8 @@ export default function SignIn() {
       localStorage.setItem('user_type', response.data.user_type);
 
       // Route based on user type
-      if (response.data.user_type === "contractor") {
-        window.location.href = '/ContractorDashboard';
+      if (response.data.user_type === "media_partner") {
+        window.location.href = '/MediaPartnerDashboard';
       } else {
         window.location.href = '/BookingPage';
       }
@@ -118,9 +118,9 @@ export default function SignIn() {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => window.location.href = '/ContractorSignup'}
+                  onClick={() => window.location.href = '/MediaPartnerSignup'}
                 >
-                  Contractor Sign Up
+                  Media Partner Sign Up
                 </Button>
               </div>
               <Button
