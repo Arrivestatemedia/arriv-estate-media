@@ -275,7 +275,10 @@ export default function JobBoard() {
                 base44.functions.invoke('notifyAdminOfCancellation', { 
                   jobId: cancelJob.id,
                   contractorName,
-                  contractorEmail
+                  contractorEmail,
+                  hasBackup: !!cancelJob.backup_booked_by,
+                  backupName: cancelJob.backup_booked_by_name,
+                  backupEmail: cancelJob.backup_booked_by
                 })
               ])
                 .then(() => {
