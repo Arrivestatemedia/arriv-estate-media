@@ -58,7 +58,12 @@ export default function AdminUsers() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data) => base44.entities.PendingSignup.update(data.id, { user_type: data.user_type, user_role: data.user_role }),
+    mutationFn: (data) => base44.functions.invoke('updateUserPermissions', { 
+      pendingSignupId: data.id, 
+      email: data.email, 
+      userType: data.user_type, 
+      userRole: data.user_role 
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-signups"] });
       setEditingId(null);
