@@ -8,7 +8,7 @@ import { MessageSquare, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function InviteUsersCard() {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [userType, setUserType] = useState("customer");
+  const [userType, setUserType] = useState("client");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
 
@@ -67,7 +67,7 @@ export default function InviteUsersCard() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="customer">Customer</SelectItem>
+              <SelectItem value="client">Client</SelectItem>
               <SelectItem value="contractor">Contractor</SelectItem>
             </SelectContent>
           </Select>
