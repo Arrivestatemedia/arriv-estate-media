@@ -48,6 +48,14 @@ export default function JobApplication() {
     setError('');
 
     try {
+      // Check if user is authenticated
+      const isAuth = await base44.auth.isAuthenticated();
+      if (!isAuth) {
+        setError('You must be logged in to submit an application');
+        setLoading(false);
+        return;
+      }
+
       const formPayload = new FormData();
       formPayload.append('fullName', formData.fullName);
       formPayload.append('email', formData.email);
@@ -59,10 +67,10 @@ export default function JobApplication() {
       formPayload.append('portfolioLink', formData.portfolioLink);
       formPayload.append('lastRelatedJob', formData.lastRelatedJob);
       formPayload.append('whyGoodFit', formData.whyGoodFit);
-      formPayload.append('race', formData.race);
-      formPayload.append('backgroundCheckAgreed', formData.backgroundCheckAgreed);
-      formPayload.append('ssnDisclosureAgreed', formData.ssnDisclosureAgreed);
-      formPayload.append('eEOCagreed', formData.eEOCagreed);
+      formPayload.append('race', formData.race || '');
+      formPayload.append('backgroundCheckAgreed', String(formData.backgroundCheckAgreed));
+      formPayload.append('ssnDisclosureAgreed', String(formData.ssnDisclosureAgreed));
+      formPayload.append('eEOCagreed', String(formData.eEOCagreed));
       formPayload.append('signature', formData.signature);
 
       videoFiles.forEach((file) => formPayload.append('videos', file));
