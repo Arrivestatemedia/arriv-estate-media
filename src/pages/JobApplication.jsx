@@ -21,6 +21,7 @@ export default function JobApplication() {
     backgroundCheckAgreed: false,
     ssnDisclosureAgreed: false,
     eEOCagreed: false,
+    signature: '',
   });
   const [videoFiles, setVideoFiles] = useState([]);
   const [pictureFiles, setPictureFiles] = useState([]);
@@ -62,6 +63,7 @@ export default function JobApplication() {
       formPayload.append('backgroundCheckAgreed', formData.backgroundCheckAgreed);
       formPayload.append('ssnDisclosureAgreed', formData.ssnDisclosureAgreed);
       formPayload.append('eEOCagreed', formData.eEOCagreed);
+      formPayload.append('signature', formData.signature);
 
       videoFiles.forEach((file) => formPayload.append('videos', file));
       pictureFiles.forEach((file) => formPayload.append('pictures', file));
@@ -70,7 +72,7 @@ export default function JobApplication() {
 
       if (response.data.success) {
         setSubmitted(true);
-        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, ssnDisclosureAgreed: false, eEOCagreed: false });
+        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, ssnDisclosureAgreed: false, eEOCagreed: false, signature: '' });
         setVideoFiles([]);
         setPictureFiles([]);
       }
@@ -271,6 +273,23 @@ export default function JobApplication() {
                   </label>
                 </div>
 
+                <div className="space-y-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-900 mb-3">Electronic Signature *</label>
+                    <p className="text-xs text-slate-700 mb-3 leading-relaxed">
+                      By typing your full name below, you are electronically signing this application. Your electronic signature has the same legal force and effect as a handwritten signature and indicates that you have read, understood, and agree to all terms, conditions, disclosures, and authorizations contained in this application.
+                    </p>
+                    <Input
+                      type="text"
+                      name="signature"
+                      value={formData.signature}
+                      onChange={handleInputChange}
+                      placeholder="Type your full name as your signature"
+                      className="text-lg tracking-wider font-semibold"
+                    />
+                  </div>
+                </div>
+
                 <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <input
                     type="checkbox"
@@ -366,7 +385,7 @@ export default function JobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed || !formData.ssnDisclosureAgreed || !formData.eEOCagreed}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed || !formData.ssnDisclosureAgreed || !formData.eEOCagreed || !formData.signature}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
