@@ -36,15 +36,9 @@ Deno.serve(async (req) => {
       status: 'pending'
     });
 
-    // Send signup email with password setup link
-    await base44.asServiceRole.functions.invoke('sendSignupEmail', {
-      email,
-      full_name,
-      user_type
-    });
-
     return Response.json({ 
-      message: 'Signup request created. Please check your email to complete setup.' 
+      success: true, 
+      message: 'Account created successfully'
     });
   } catch (error) {
     console.error('Signup error:', error);
