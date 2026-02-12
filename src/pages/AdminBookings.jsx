@@ -128,14 +128,14 @@ export default function AdminBookings() {
   const handleApprove = async () => {
     if (selectedBooking) {
       const updatedBooking = { ...selectedBooking, status: 'approved' };
-      setSelectedBooking(updatedBooking);
-      queryClient.setQueryData(['adminBookings'], (old) => 
-        old.map(b => b.id === selectedBooking.id ? updatedBooking : b)
-      );
       setLoadingBookingId(selectedBooking.id);
       
       try {
         await base44.functions.invoke('approveBooking', { bookingId: selectedBooking.id });
+        queryClient.setQueryData(['adminBookings'], (old) => 
+          old.map(b => b.id === selectedBooking.id ? updatedBooking : b)
+        );
+        setSelectedBooking(null);
       } catch (error) {
         console.error('Failed to approve booking:', error);
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });

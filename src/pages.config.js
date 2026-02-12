@@ -51,6 +51,7 @@ import AccountSettings from './pages/AccountSettings';
 import AdminBookings from './pages/AdminBookings';
 import AdminInvite from './pages/AdminInvite';
 import AdminUsers from './pages/AdminUsers';
+import BookingPage from './pages/BookingPage';
 import ClientBookings from './pages/ClientBookings';
 import ClientSignup from './pages/ClientSignup';
 import ConfirmDeleteAccount from './pages/ConfirmDeleteAccount';
@@ -66,7 +67,6 @@ import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import BookingPage from './pages/BookingPage';
 import __Layout from './Layout.jsx';
 
 
@@ -75,6 +75,7 @@ export const PAGES = {
     "AdminBookings": AdminBookings,
     "AdminInvite": AdminInvite,
     "AdminUsers": AdminUsers,
+    "BookingPage": BookingPage,
     "ClientBookings": ClientBookings,
     "ClientSignup": ClientSignup,
     "ConfirmDeleteAccount": ConfirmDeleteAccount,
@@ -90,7 +91,6 @@ export const PAGES = {
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
-    "BookingPage": BookingPage,
 }
 
 export const pagesConfig = {
