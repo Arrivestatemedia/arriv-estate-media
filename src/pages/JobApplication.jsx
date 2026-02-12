@@ -17,6 +17,7 @@ export default function JobApplication() {
     portfolioLink: '',
     lastRelatedJob: '',
     whyGoodFit: '',
+    backgroundCheckAgreed: false,
   });
   const [videoFiles, setVideoFiles] = useState([]);
   const [pictureFiles, setPictureFiles] = useState([]);
@@ -54,6 +55,7 @@ export default function JobApplication() {
       formPayload.append('portfolioLink', formData.portfolioLink);
       formPayload.append('lastRelatedJob', formData.lastRelatedJob);
       formPayload.append('whyGoodFit', formData.whyGoodFit);
+      formPayload.append('backgroundCheckAgreed', formData.backgroundCheckAgreed);
 
       videoFiles.forEach((file) => formPayload.append('videos', file));
       pictureFiles.forEach((file) => formPayload.append('pictures', file));
@@ -62,7 +64,7 @@ export default function JobApplication() {
 
       if (response.data.success) {
         setSubmitted(true);
-        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '' });
+        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', backgroundCheckAgreed: false });
         setVideoFiles([]);
         setPictureFiles([]);
       }
@@ -211,6 +213,20 @@ export default function JobApplication() {
                   />
                 </div>
 
+                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <input
+                    type="checkbox"
+                    name="backgroundCheckAgreed"
+                    checked={formData.backgroundCheckAgreed}
+                    onChange={handleInputChange}
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                    id="bgCheck"
+                  />
+                  <label htmlFor="bgCheck" className="text-xs text-slate-700 leading-relaxed">
+                    I hereby authorize Arriv Estate Media LLC and its designees to conduct a comprehensive background check, including but not limited to criminal history, employment verification, and financial history. I understand that any misrepresentation or omission of material facts may result in immediate termination of this application or any resulting employment. I acknowledge that this authorization is valid for one year from the date hereof.
+                  </label>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Social Security Number (Full) *</label>
                   <Input
@@ -292,7 +308,7 @@ export default function JobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
