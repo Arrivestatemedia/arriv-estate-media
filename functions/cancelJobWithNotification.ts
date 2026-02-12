@@ -3,33 +3,22 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    
     const body = await req.json();
-    const { jobId, reason } = body;
+    const { jobId, reason, userEmail } = body;
 
-    if (!jobId) {
-      return Response.json({ error: 'Job ID is required' }, { status: 400 });
+    if (!jobId || !userEmail) {
+      return Response.json({ error: 'Job ID and user email are required' }, { status: 400 });
     }
 
     // Get the job
-    let job;
-    try {
-      job = await base44.asServiceRole.entities.Job.get(jobId);
-    } catch (error) {
-      console.error('Error fetching job:', error);
-      return Response.json({ error: `Failed to fetch job: ${error.message}` }, { status: 500 });
-    }
+    const job = await base44.asServiceRole.entities.Job.get(jobId);
     
     if (!job) {
       return Response.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    if (job.booked_by !== user.email) {
+    if (job.booked_by !== userEmail) {
       return Response.json({ error: 'You can only cancel your own bookings' }, { status: 403 });
     }
 
