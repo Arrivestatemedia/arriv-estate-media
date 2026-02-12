@@ -32,11 +32,29 @@ Deno.serve(async (req) => {
         status: "booked"
       });
 
-      // Send notification to admin
       const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
       
+      // Send notification to backup contractor
+      if (backupPhone) {
+        const backupMessage = `🎉 CONGRATS ${backupName}! You've been promoted to PRIMARY SHOOTER!\n\nJob: ${job.title}\nLocation: ${job.location}\nDate: ${job.date}\nTime: ${job.start_time || 'TBD'}\nPay: $${job.pay_rate}\n\nThe original contractor canceled. This job is now yours!`;
+        
+        await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
+          },
+          body: new URLSearchParams({
+            'From': twilioPhone,
+            'To': backupPhone,
+            'Body': backupMessage,
+          }).toString(),
+        });
+      }
+      
+      // Send notification to admin
       const adminMessage = `Job "${job.title}" at ${job.location} on ${job.date} was reassigned to backup contractor: ${backupName}`;
       
       await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
