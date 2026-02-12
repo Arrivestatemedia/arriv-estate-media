@@ -55,8 +55,6 @@ import BookingPage from './pages/BookingPage';
 import ConfirmDeleteAccount from './pages/ConfirmDeleteAccount';
 import ContractorDashboard from './pages/ContractorDashboard';
 import ContractorSignup from './pages/ContractorSignup';
-import CustomerBookings from './pages/CustomerBookings';
-import CustomerSignup from './pages/CustomerSignup';
 import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import JobBoard from './pages/JobBoard';
@@ -65,6 +63,8 @@ import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
+import ClientSignup from './pages/ClientSignup';
+import ClientBookings from './pages/ClientBookings';
 import __Layout from './Layout.jsx';
 
 
@@ -77,8 +77,6 @@ export const PAGES = {
     "ConfirmDeleteAccount": ConfirmDeleteAccount,
     "ContractorDashboard": ContractorDashboard,
     "ContractorSignup": ContractorSignup,
-    "CustomerBookings": CustomerBookings,
-    "CustomerSignup": CustomerSignup,
     "Dashboard": Dashboard,
     "DeleteAccountRequest": DeleteAccountRequest,
     "JobBoard": JobBoard,
@@ -87,10 +85,12 @@ export const PAGES = {
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
+    "ClientSignup": ClientSignup,
+    "ClientBookings": ClientBookings,
 }
 
 export const pagesConfig = {
-    mainPage: "CustomerSignup",
+    mainPage: "AccountSettings",
     Pages: PAGES,
     Layout: __Layout,
 };

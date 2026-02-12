@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 import { createPageUrl } from "../utils";
 
-export default function CustomerSignup() {
+export default function ClientSignup() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ 
     email: "", 
@@ -38,12 +38,12 @@ export default function CustomerSignup() {
     }
 
     try {
-      await base44.functions.invoke('signupCustomer', {
+      await base44.functions.invoke('signupClient', {
         email: formData.email,
         full_name: formData.full_name,
         phone_number: formData.phone_number,
         password: formData.password,
-        user_type: "customer"
+        user_type: "client"
       });
       window.location.href = '/SignIn';
     } catch (err) {

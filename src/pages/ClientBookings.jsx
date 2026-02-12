@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Calendar, Clock, MapPin, DollarSign, Edit2, Trash2 } from "lucide-react";
 
-export default function CustomerBookings() {
+export default function ClientBookings() {
   const [user, setUser] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);

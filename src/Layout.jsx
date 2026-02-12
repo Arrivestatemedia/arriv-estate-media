@@ -37,7 +37,7 @@ export default function Layout({ children, currentPageName }) {
   }, [currentPageName]);
 
   const isAdmin = user?.role === "admin";
-  const isCustomer = user?.user_type === "customer";
+  const isClient = user?.user_type === "client";
   const isContractor = user?.user_type === "contractor";
 
   const navItems = isAdmin
@@ -48,10 +48,10 @@ export default function Layout({ children, currentPageName }) {
           { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
           { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
         ]
-    : isCustomer
+    : isClient
     ? [
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
-        { label: "My Bookings", page: "CustomerBookings", icon: Briefcase },
+        { label: "My Bookings", page: "ClientBookings", icon: Briefcase },
       ]
     : isContractor
     ? [
@@ -60,7 +60,7 @@ export default function Layout({ children, currentPageName }) {
       ]
     : [];
 
-  const dashboardPage = isAdmin ? "Dashboard" : isCustomer ? "BookingPage" : "JobBoard";
+  const dashboardPage = isAdmin ? "Dashboard" : isClient ? "BookingPage" : "JobBoard";
 
   return (
     <div className="min-h-screen bg-[#FFFBF5]">
@@ -76,7 +76,7 @@ export default function Layout({ children, currentPageName }) {
       <header className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {(currentPageName === "CustomerSignup" || currentPageName === "ContractorSignup" || currentPageName === "SignIn") ? (
+            {(currentPageName === "ClientSignup" || currentPageName === "ContractorSignup" || currentPageName === "SignIn") ? (
                   <div className="flex items-center gap-3">
                     <img 
                       src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
@@ -114,7 +114,7 @@ export default function Layout({ children, currentPageName }) {
                     );
                   })}
 
-                {user && !["SignIn", "CustomerSignup", "ContractorSignup"].includes(currentPageName) && (
+                {user && !["SignIn", "ClientSignup", "ContractorSignup"].includes(currentPageName) && (
                   <Link
                     to={createPageUrl("PublicAccountSettings")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -136,7 +136,7 @@ export default function Layout({ children, currentPageName }) {
                   <div className="text-right">
                     <p className="text-sm font-medium text-[#FFFBF5]">{user.full_name}</p>
                     <p className="text-xs text-[#B8956A]">
-                      {isAdmin ? "Admin" : isCustomer ? "Customer" : "Contractor"}
+                      {isAdmin ? "Admin" : isClient ? "Client" : "Contractor"}
                     </p>
                   </div>
                   <Button
@@ -184,7 +184,7 @@ export default function Layout({ children, currentPageName }) {
                   </Link>
                 );
               })}
-            {user && !["SignIn", "CustomerSignup", "ContractorSignup"].includes(currentPageName) && (
+            {user && !["SignIn", "ClientSignup", "ContractorSignup"].includes(currentPageName) && (
               <Link
                 to={createPageUrl("PublicAccountSettings")}
                 onClick={() => setMobileOpen(false)}
