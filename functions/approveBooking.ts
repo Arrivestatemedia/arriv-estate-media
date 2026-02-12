@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
     
     const emailMessage = `To: ${booking.client_email}\r\nSubject: Your Booking Has Been Approved\r\n\r\n${emailBody}`;
-    const encodedEmail = Buffer.from(emailMessage).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const encodedEmail = btoa(emailMessage).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
     const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
