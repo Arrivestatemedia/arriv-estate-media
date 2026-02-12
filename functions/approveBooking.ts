@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
         ]
       };
 
-      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendNotifications=true', {
+      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=externalOnly', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${calendarAccessToken}`,
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, bookingId: bookingId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
