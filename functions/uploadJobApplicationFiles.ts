@@ -72,75 +72,82 @@ Deno.serve(async (req) => {
       console.log('Created new folder:', folderId);
     }
 
-    // Create Google Doc with application information
-    const docCreateRes = await fetch('https://docs.googleapis.com/v1/documents?fields=documentId', {
+    // Create a text file with application information instead of a Google Doc
+    const content = `Arriv Estate Media LLC - Media Partner Application
+
+--- APPLICATION DETAILS ---
+
+Full Name: ${fullName}
+Email: ${email}
+Phone: ${phone}
+Address: ${address}
+Date of Birth: ${dob}
+SSN (Last 4): ${ssn.slice(-4)}
+LinkedIn: ${linkedin}
+Portfolio: ${portfolioLink}
+
+--- MEDIA SAMPLES ---
+Video Samples: ${videoUrls.length > 0 ? videoUrls.join('\n') : 'N/A'}
+Picture Samples: ${pictureUrls.length > 0 ? pictureUrls.join('\n') : 'N/A'}
+
+--- EXPERIENCE ---
+
+Last Related Job:
+${lastRelatedJob}
+
+--- WHY YOU'RE A GOOD FIT ---
+
+${whyGoodFit}
+
+--- AGREEMENTS ---
+Background Check Agreed: ${backgroundCheckAgreed}
+SSN Disclosure Agreed: ${ssnDisclosureAgreed}
+EEOC Agreement: ${eEOCagreed}
+Signature: ${signature}
+`;
+
+    // Create a text file in the Job Applications folder
+    const fileCreateRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        title: `Job Application - ${fullName}`,
-        body: {
-          content: [
-            {
-              paragraph: {
-                text: `Arriv Estate Media LLC - Media Partner Application\n${fullName}`,
-              },
-            },
-          ],
-        },
+        name: `Job Application - ${fullName}.txt`,
+        mimeType: 'text/plain',
+        parents: [folderId],
       }),
     });
 
-    let documentId;
-    if (docCreateRes.ok) {
-      const docData = await docCreateRes.json();
-      documentId = docData.documentId;
-      console.log('Google Doc created:', documentId);
+    let fileId;
+    let fileLink;
+    if (fileCreateRes.ok) {
+      const fileData = await fileCreateRes.json();
+      fileId = fileData.id;
+      fileLink = fileData.webViewLink;
+      console.log('File created in folder:', fileId);
 
-      // Add content to the document
-      const batchUpdateRes = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
-        method: 'POST',
+      // Upload the file content
+      const uploadRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain',
         },
-        body: JSON.stringify({
-          requests: [
-            {
-              insertText: {
-                text: `\n\n--- APPLICATION DETAILS ---\n\nFull Name: ${fullName}\nEmail: ${email}\nPhone: ${phone}\nAddress: ${address}\nDate of Birth: ${dob}\nSSN (Last 4): ${ssn.slice(-4)}\nLinkedIn: ${linkedin}\nPortfolio: ${portfolioLink}\n\n--- MEDIA SAMPLES ---\nVideo Samples: ${videoUrls.length > 0 ? videoUrls.join('\n') : 'N/A'}\nPicture Samples: ${pictureUrls.length > 0 ? pictureUrls.join('\n') : 'N/A'}\n\n--- EXPERIENCE ---\n\nLast Related Job:\n${lastRelatedJob}\n\n--- WHY YOU'RE A GOOD FIT ---\n\n${whyGoodFit}`,
-              },
-            },
-          ],
-        }),
+        body: content,
       });
 
-      if (batchUpdateRes.ok) {
-        // Move document to Job Applications folder
-        const moveRes = await fetch(`https://www.googleapis.com/drive/v3/files/${documentId}?addParents=${folderId}&fields=id,parents`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (moveRes.ok) {
-          console.log('Document moved to folder successfully');
-        } else {
-          const error = await moveRes.text();
-          console.error('Failed to move document to folder:', error);
-        }
+      if (uploadRes.ok) {
+        console.log('File content uploaded successfully');
       } else {
-        const error = await batchUpdateRes.text();
-        console.error('Batch update failed:', error);
+        const error = await uploadRes.text();
+        console.error('Failed to upload file content:', error);
       }
     } else {
-      const error = await docCreateRes.text();
-      console.error('Failed to create Google Doc:', error);
-      return Response.json({ error: 'Failed to create application document' }, { status: 500 });
+      const error = await fileCreateRes.text();
+      console.error('Failed to create file:', error);
+      return Response.json({ error: 'Failed to create application file' }, { status: 500 });
     }
 
     // Create job application record
@@ -167,7 +174,8 @@ Deno.serve(async (req) => {
     return Response.json({ 
       success: true, 
       applicationId: application.id,
-      documentId: documentId
+      fileId: fileId,
+      fileLink: fileLink
     });
   } catch (error) {
     console.error('Upload error:', error);
