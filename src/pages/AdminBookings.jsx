@@ -361,7 +361,12 @@ export default function AdminBookings() {
         </div>
       </div>
 
-      <Dialog open={!!selectedBooking && !showDenyModal} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+      <Dialog open={!!selectedBooking && !showDenyModal} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedBooking(null);
+          setShowDenyModal(false);
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedBooking && (
             <>
@@ -473,7 +478,12 @@ export default function AdminBookings() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showDenyModal}>
+      <Dialog open={showDenyModal} onOpenChange={(open) => {
+        if (!open) {
+          setShowDenyModal(false);
+          setDenyReason('');
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Deny Booking Request</DialogTitle>
