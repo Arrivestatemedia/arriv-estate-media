@@ -56,27 +56,45 @@ export default function JobApplication() {
         return;
       }
 
-      const formPayload = new FormData();
-      formPayload.append('fullName', formData.fullName);
-      formPayload.append('email', formData.email);
-      formPayload.append('phone', formData.phone);
-      formPayload.append('address', formData.address);
-      formPayload.append('dob', formData.dob);
-      formPayload.append('ssn', formData.ssn);
-      formPayload.append('linkedin', formData.linkedin);
-      formPayload.append('portfolioLink', formData.portfolioLink);
-      formPayload.append('lastRelatedJob', formData.lastRelatedJob);
-      formPayload.append('whyGoodFit', formData.whyGoodFit);
-      formPayload.append('race', formData.race || '');
-      formPayload.append('backgroundCheckAgreed', String(formData.backgroundCheckAgreed));
-      formPayload.append('ssnDisclosureAgreed', String(formData.ssnDisclosureAgreed));
-      formPayload.append('eEOCagreed', String(formData.eEOCagreed));
-      formPayload.append('signature', formData.signature);
+      // Upload files to get URLs
+      const videoUrls = [];
+      const pictureUrls = [];
 
-      videoFiles.forEach((file) => formPayload.append('videos', file));
-      pictureFiles.forEach((file) => formPayload.append('pictures', file));
+      for (const file of videoFiles) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+        const uploadRes = await base44.integrations.Core.UploadFile({ file });
+        videoUrls.push(uploadRes.file_url);
+      }
 
-      const response = await base44.functions.invoke('uploadJobApplicationFiles', formPayload);
+      for (const file of pictureFiles) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+        const uploadRes = await base44.integrations.Core.UploadFile({ file });
+        pictureUrls.push(uploadRes.file_url);
+      }
+
+      const payload = {
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        dob: formData.dob,
+        ssn: formData.ssn,
+        linkedin: formData.linkedin,
+        portfolioLink: formData.portfolioLink,
+        lastRelatedJob: formData.lastRelatedJob,
+        whyGoodFit: formData.whyGoodFit,
+        race: formData.race || '',
+        backgroundCheckAgreed: formData.backgroundCheckAgreed,
+        ssnDisclosureAgreed: formData.ssnDisclosureAgreed,
+        eEOCagreed: formData.eEOCagreed,
+        signature: formData.signature,
+        videoUrls,
+        pictureUrls
+      };
+
+      const response = await base44.functions.invoke('uploadJobApplicationFiles', payload);
 
       if (response.data.success) {
         setSubmitted(true);
