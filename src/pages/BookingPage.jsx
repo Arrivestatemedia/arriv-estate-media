@@ -162,11 +162,17 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected }) {
 }
 
 export default function BookingPage() {
+  const [userRole, setUserRole] = useState('user');
   const [expandedPackage, setExpandedPackage] = useState(null);
   const [expandedAddOns, setExpandedAddOns] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [cartAddOns, setCartAddOns] = useState([]);
+
+  useEffect(() => {
+    const role = localStorage.getItem('user_role') || 'user';
+    setUserRole(role);
+  }, []);
 
   const createBookingMutation = useMutation({
     mutationFn: (data) => base44.functions.invoke('handleBookingSubmission', { booking: data }),
