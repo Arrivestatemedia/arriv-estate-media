@@ -1,14 +1,17 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 import { Briefcase, LayoutDashboard, Settings } from "lucide-react";
 import NewJobsBadge from "./NewJobsBadge";
+
+const SESSION_STORAGE_KEY = 'mobile_tab_scroll_positions';
 
 export default function MobileBottomTabs({ user }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const scrollPositions = useRef({});
+  const isRestoringScroll = useRef(false);
 
   const isAdmin = user?.role === "admin";
   const isClient = user?.user_type === "client";
@@ -34,19 +37,55 @@ export default function MobileBottomTabs({ user }) {
       ]
     : [];
 
+  // Load scroll positions from sessionStorage on mount
   useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) {
+        scrollPositions.current = JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load scroll positions:', e);
+    }
+  }, []);
+
+  // Save scroll position when scrolling
+  useEffect(() => {
+    let debounceTimer;
     const saveScrollPosition = () => {
-      scrollPositions.current[currentPath] = window.scrollY;
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        scrollPositions.current[currentPath] = window.scrollY;
+        try {
+          sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(scrollPositions.current));
+        } catch (e) {
+          console.error('Failed to save scroll position:', e);
+        }
+      }, 100);
     };
     
-    window.addEventListener('scroll', saveScrollPosition);
-    return () => window.removeEventListener('scroll', saveScrollPosition);
+    window.addEventListener('scroll', saveScrollPosition, { passive: true });
+    return () => {
+      clearTimeout(debounceTimer);
+      window.removeEventListener('scroll', saveScrollPosition);
+    };
   }, [currentPath]);
 
+  // Restore scroll position when navigating
   useEffect(() => {
     const savedPosition = scrollPositions.current[currentPath];
-    if (savedPosition !== undefined) {
-      window.scrollTo(0, savedPosition);
+    if (savedPosition !== undefined && !isRestoringScroll.current) {
+      isRestoringScroll.current = true;
+      
+      // Use requestAnimationFrame for smoother restoration
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedPosition);
+        setTimeout(() => {
+          isRestoringScroll.current = false;
+        }, 100);
+      });
+    } else {
+      isRestoringScroll.current = false;
     }
   }, [currentPath]);
 

@@ -191,7 +191,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                     required
                     value={formData.client_name}
                     onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
-                    className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                    className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}
                   />
                 </div>
 
@@ -204,7 +204,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                     required
                     value={formData.client_email}
                     onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
-                    className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                    className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}
                   />
                 </div>
               </div>
@@ -218,7 +218,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                   inputMode="tel"
                   value={formData.client_phone}
                   onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
-                  className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                  className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}
                 />
               </div>
 
@@ -231,7 +231,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                   value={formData.property_address}
                   onChange={handleAddressChange}
                   onFocus={() => predictions.length > 0 && setShowPredictions(true)}
-                  className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                  className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}
                   placeholder="123 Main St, City, State ZIP"
                   autoComplete="off"
                 />
@@ -320,7 +320,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                 <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="border-[#B8956A]/30 focus:border-[#B8956A] h-24"
+                  className={cn("border-[#B8956A]/30 focus:border-[#B8956A] h-24", inputStyles)}
                   placeholder="Any special requests or details we should know..."
                 />
               </div>
