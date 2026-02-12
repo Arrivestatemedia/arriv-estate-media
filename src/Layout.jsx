@@ -41,12 +41,13 @@ export default function Layout({ children, currentPageName }) {
   const isContractor = user?.user_type === "contractor";
 
   const navItems = isAdmin
-    ? [
-        { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
-        { label: "Job Board", page: "JobBoard", icon: Briefcase },
-        { label: "Bookings", page: "AdminBookings", icon: Briefcase },
-        { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
-      ]
+      ? [
+          { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
+          { label: "Job Board", page: "JobBoard", icon: Briefcase },
+          { label: "Bookings", page: "AdminBookings", icon: Briefcase },
+          { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
+          { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
+        ]
     : isCustomer
     ? [
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },

@@ -67,32 +67,10 @@ export default function JobBoard() {
 
   const cancelMutation = useMutation({
     mutationFn: ({ jobId, reason }) => base44.functions.invoke('cancelJobWithNotification', { jobId, reason }),
-    onSuccess: async (response) => {
+    onSuccess: (response) => {
+      // Job cancelled - contractor is no longer assigned
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      setCancelDialogOpen(false);
-      setCancelJob(null);
-      
-      // Send notifications after dialog closes
-      if (response.data.backupInfo) {
-        const { email, name, phone, location, date, start_time, type } = response.data.backupInfo;
-        const bookingForNotification = {
-          client_name: name,
-          client_email: email,
-          property_address: location,
-          preferred_date: date,
-          preferred_time: start_time,
-          package: type
-        };
-        
-        base44.functions.invoke('sendBookingNotifications', {
-          booking: bookingForNotification,
-          type: 'cancellation',
-          phoneNumbers: [phone, '4047891107'],
-          sendEmail: name !== 'Bradley Burke'
-        }).catch(err => console.error('Notification error:', err));
-      }
-      
-      navigate(createPageUrl("JobBoard"));
+      // Dialog will stay open until user closes it
     },
     onError: (error) => {
       console.error('Cancel mutation error:', error);
@@ -277,7 +255,19 @@ export default function JobBoard() {
         <CancelJobDialog
           job={cancelJob}
           open={cancelDialogOpen}
-          onOpenChange={setCancelDialogOpen}
+          onOpenChange={(open) => {
+            if (!open && cancelJob) {
+              // Dialog is closing - reassign the job
+              base44.functions.invoke('reassignJob', { jobId: cancelJob.id })
+                .then(() => {
+                  queryClient.invalidateQueries({ queryKey: ["jobs"] });
+                  navigate(createPageUrl("JobBoard"));
+                })
+                .catch(err => console.error('Reassign error:', err));
+            }
+            setCancelDialogOpen(open);
+            if (!open) setCancelJob(null);
+          }}
           onSubmit={handleCancelSubmit}
           isLoading={cancelMutation.isPending}
         />

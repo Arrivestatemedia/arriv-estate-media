@@ -16,8 +16,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job ID is required' }, { status: 400 });
     }
 
-
-
     // Get the job
     let job;
     try {
@@ -35,44 +33,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'You can only cancel your own bookings' }, { status: 403 });
     }
 
-    // Store backup info before updating
-    const backupEmail = job.backup_booked_by;
-    const backupName = job.backup_booked_by_name;
-    const backupPhone = job.backup_booked_by_phone;
-
-    // If there's a backup, assign them as primary
-    if (backupEmail) {
-      // Update job - promote backup to primary
-      await base44.asServiceRole.entities.Job.update(jobId, {
-        booked_by: backupEmail,
-        booked_by_name: backupName,
-        backup_booked_by: null,
-        backup_booked_by_name: null,
-        backup_booked_by_phone: null,
-        status: "booked"
-      });
-    } else {
-      // No backup, return to open
-      await base44.asServiceRole.entities.Job.update(jobId, {
-        booked_by: null,
-        booked_by_name: null,
-        status: "open"
-      });
-    }
-
-    // Return backup info for notifications
+    // Just return the job data for now - contractor is no longer on it
     return Response.json({ 
       success: true, 
-      message: 'Job cancelled successfully',
-      backupInfo: backupEmail ? {
-        email: backupEmail,
-        name: backupName,
-        phone: backupPhone,
-        location: job.location,
-        date: job.date,
-        start_time: job.start_time,
-        type: job.type
-      } : null
+      message: 'You are no longer assigned to this job',
+      job: job
     });
   } catch (error) {
     console.error('Cancel job error:', error);
