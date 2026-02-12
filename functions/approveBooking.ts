@@ -15,22 +15,6 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
-    // Send SMS confirmation to customer
-    const smsMessage = `Hi ${booking.client_name}, your booking for ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been confirmed! Our media partner will be in touch soon.`;
-    await base44.asServiceRole.functions.invoke('sendReminderSMS', {
-      phone: booking.client_phone,
-      message: smsMessage,
-      recipientType: 'client'
-    });
-
-    await base44.asServiceRole.entities.MessageLog.create({
-      message_type: 'sms',
-      recipient_type: 'client',
-      recipient_phone: booking.client_phone,
-      message_content: smsMessage,
-      status: 'success'
-    });
-
     // Send approval email to customer
     const emailBody = `Hi ${booking.client_name},\n\nGreat news! Your booking request for ${booking.property_address} on ${booking.preferred_date} has been approved.\n\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\n\nWe'll connect you with a contractor shortly. Thank you!`;
     
