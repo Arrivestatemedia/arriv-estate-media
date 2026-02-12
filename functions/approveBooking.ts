@@ -100,6 +100,9 @@ Deno.serve(async (req) => {
         attendees: [{ email: booking.client_email }]
       };
 
+      console.error('Calendar Event Data:', JSON.stringify(calendarEvent));
+      console.error('Using calendar email:', adminEmail);
+      
       const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(adminEmail)}/events?sendUpdates=externalOnly`, {
         method: 'POST',
         headers: {
@@ -110,7 +113,8 @@ Deno.serve(async (req) => {
       });
 
       const calendarResponseText = await calendarResponse.text();
-      console.error('Calendar API Response:', calendarResponseText);
+      console.error('Calendar Status:', calendarResponse.status);
+      console.error('Calendar Response:', calendarResponseText);
 
       await base44.asServiceRole.entities.MessageLog.create({
         message_type: 'email',
