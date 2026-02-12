@@ -63,12 +63,12 @@ import JobApplication from './pages/JobApplication';
 import JobBoard from './pages/JobBoard';
 import MediaPartnerDashboard from './pages/MediaPartnerDashboard';
 import MediaPartnerSignup from './pages/MediaPartnerSignup';
+import MessageLogs from './pages/MessageLogs';
 import NotifyBackup from './pages/NotifyBackup';
 import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import MessageLogs from './pages/MessageLogs';
 import __Layout from './Layout.jsx';
 
 
@@ -89,12 +89,12 @@ export const PAGES = {
     "JobBoard": JobBoard,
     "MediaPartnerDashboard": MediaPartnerDashboard,
     "MediaPartnerSignup": MediaPartnerSignup,
+    "MessageLogs": MessageLogs,
     "NotifyBackup": NotifyBackup,
     "PasswordSetup": PasswordSetup,
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
-    "MessageLogs": MessageLogs,
 }
 
 export const pagesConfig = {

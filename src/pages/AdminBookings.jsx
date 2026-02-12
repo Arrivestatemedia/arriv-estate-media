@@ -379,6 +379,7 @@ export default function AdminBookings() {
                   <Badge className={`${statusColors[selectedBooking.status] || statusColors.pending} mb-2`}>
                     {selectedBooking.status?.toUpperCase() || 'PENDING'}
                   </Badge>
+                  <p className="text-xs text-[var(--text-secondary)] mt-2">ID: {selectedBooking.id}</p>
                 </div>
 
                 <div className="space-y-4">
