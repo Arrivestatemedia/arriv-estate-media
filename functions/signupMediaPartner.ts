@@ -36,9 +36,6 @@ Deno.serve(async (req) => {
       status: 'pending'
     });
 
-    // Invite user to Base44 with specified role
-    await base44.users.inviteUser(email, role);
-
     // Send signup email with password setup link
     await base44.asServiceRole.functions.invoke('sendSignupEmail', {
       email,

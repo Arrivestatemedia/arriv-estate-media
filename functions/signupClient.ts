@@ -38,9 +38,6 @@ Deno.serve(async (req) => {
             status: "pending"
         });
 
-        // Invite user to Base44 with specified role
-        await base44.users.inviteUser(email, role);
-
         return Response.json({ 
             success: true, 
             message: 'Account created successfully'
