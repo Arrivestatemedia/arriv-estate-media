@@ -16,24 +16,65 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
     // Send approval email to customer
+    const adminEmail = 'BradCBurke@arrivestatemedia.com';
+    const emailSubject = 'Your Booking Has Been Approved';
     const emailBody = `Hi ${booking.client_name},\n\nGreat news! Your booking request for ${booking.property_address} on ${booking.preferred_date} has been approved.\n\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\n\nWe'll connect you with a contractor shortly. Thank you!`;
 
-    // Send email and calendar invite via Gmail/Calendar API
-    const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-    
-    const emailMessage = `To: ${booking.client_email}\r\nSubject: Your Booking Has Been Approved\r\n\r\n${emailBody}`;
-    const encodedEmail = btoa(emailMessage).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    try {
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-    const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${gmailAccessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ raw: encodedEmail })
-    });
+      const messageLines = [
+        `To: ${booking.client_email}`,
+        `From: ${adminEmail}`,
+        `Subject: ${emailSubject}`,
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset="UTF-8"',
+        '',
+        emailBody
+      ];
 
-    console.log('Gmail send response:', emailResponse.status);
+      const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
+      const messageBytes = messageParts.reduce((acc, part) => {
+        const newAcc = new Uint8Array(acc.length + part.length);
+        newAcc.set(acc);
+        newAcc.set(part, acc.length);
+        return newAcc;
+      }, new Uint8Array());
+
+      const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+
+      const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw: base64urlMessage })
+      });
+
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: emailBody,
+        subject: emailSubject,
+        status: emailResponse.ok ? 'success' : 'failed'
+      });
+    } catch (error) {
+      console.error('Approval email error:', error);
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: emailBody,
+        subject: emailSubject,
+        status: 'failed',
+        error_message: error.message
+      });
+    }
 
     // Send Google Calendar invite to client
     try {
