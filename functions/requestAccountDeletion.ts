@@ -40,10 +40,8 @@ Deno.serve(async (req) => {
     const deletionLink = `${appDomain}/ConfirmDeleteAccount?token=${tokenHex}&email=${encodeURIComponent(email)}`;
 
     // Send email to admin
-    await base44.integrations.Core.SendEmail({
-      to: 'info@arrivestatemedia.com',
-      subject: `Account Deletion Request - ${user.full_name} (${email})`,
-      body: `
+    const adminEmail = 'info@arrivestatemedia.com';
+    const emailBody = `
 A user has requested account deletion:
 
 Name: ${user.full_name}
@@ -57,7 +55,21 @@ To delete immediately, click the link below:
 ${deletionLink}
 
 Or paste this token: ${tokenHex}
-      `,
+      `;
+    
+    await base44.integrations.Core.SendEmail({
+      to: adminEmail,
+      subject: `Account Deletion Request - ${user.full_name} (${email})`,
+      body: emailBody,
+    });
+
+    await base44.asServiceRole.entities.MessageLog.create({
+      message_type: 'email',
+      recipient_type: 'admin',
+      recipient_email: adminEmail,
+      message_content: emailBody,
+      subject: `Account Deletion Request - ${user.full_name} (${email})`,
+      status: 'success'
     });
 
     return Response.json({

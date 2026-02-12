@@ -61,8 +61,26 @@ Deno.serve(async (req) => {
 
         if (!sendResponse.ok) {
             const errorData = await sendResponse.json();
+            await base44.asServiceRole.entities.MessageLog.create({
+              message_type: 'email',
+              recipient_type: 'admin',
+              recipient_email: adminEmail,
+              message_content: emailBody,
+              subject: emailSubject,
+              status: 'failed',
+              error_message: JSON.stringify(errorData)
+            });
             throw new Error(`Gmail API error: ${JSON.stringify(errorData)}`);
         }
+
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'email',
+          recipient_type: 'admin',
+          recipient_email: adminEmail,
+          message_content: emailBody,
+          subject: emailSubject,
+          status: 'success'
+        });
 
         const result = await sendResponse.json();
         return Response.json({ success: true, messageId: result.id });

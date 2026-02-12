@@ -61,8 +61,22 @@ Deno.serve(async (req) => {
 
         if (!response.ok) {
             const error = await response.text();
+            await base44.asServiceRole.entities.MessageLog.create({
+              message_type: 'sms',
+              recipient_phone: phone_number,
+              message_content: message,
+              status: 'failed',
+              error_message: error
+            });
             throw new Error(`Twilio API error: ${error}`);
         }
+
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'sms',
+          recipient_phone: phone_number,
+          message_content: message,
+          status: 'success'
+        });
 
         return Response.json({ 
             success: true,
