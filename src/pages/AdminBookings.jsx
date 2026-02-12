@@ -289,7 +289,7 @@ export default function AdminBookings() {
                       )}
                     <div className="flex-1">
                       <CardTitle className="text-lg text-[var(--text-primary)]">{booking.client_name}</CardTitle>
-                      <p className="text-sm text-[var(--text-secondary)] mt-1">{booking.property_address}</p>
+                      <p className="text-sm text-[var(--text-secondary)] mt-1">{booking.street_address && booking.city && booking.state ? `${booking.street_address}, ${booking.city}, ${booking.state}` : booking.property_address}</p>
                     </div>
                     <Badge className={`${statusColors[booking.status] || statusColors.pending}`}>
                       {booking.status?.toUpperCase() || 'PENDING'}
@@ -404,7 +404,7 @@ export default function AdminBookings() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-[var(--text-secondary)] mb-1">Property Address</p>
-                    <p className="text-[var(--text-primary)] font-semibold">{selectedBooking.property_address}</p>
+                    <p className="text-[var(--text-primary)] font-semibold">{selectedBooking.street_address && selectedBooking.city && selectedBooking.state ? `${selectedBooking.street_address}, ${selectedBooking.city}, ${selectedBooking.state}` : selectedBooking.property_address}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
