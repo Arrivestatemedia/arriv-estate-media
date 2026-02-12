@@ -9,24 +9,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await req.formData();
-    const videoFiles = formData.getAll('videos');
-    const pictureFiles = formData.getAll('pictures');
-    const fullName = formData.get('fullName');
-    const email = formData.get('email');
-    const phone = formData.get('phone');
-    const address = formData.get('address');
-    const dob = formData.get('dob');
-    const ssn = formData.get('ssn');
-    const linkedin = formData.get('linkedin');
-    const portfolioLink = formData.get('portfolioLink');
-    const lastRelatedJob = formData.get('lastRelatedJob');
-    const whyGoodFit = formData.get('whyGoodFit');
-    const race = formData.get('race');
-    const backgroundCheckAgreed = formData.get('backgroundCheckAgreed') === 'true';
-    const ssnDisclosureAgreed = formData.get('ssnDisclosureAgreed') === 'true';
-    const eEOCagreed = formData.get('eEOCagreed') === 'true';
-    const signature = formData.get('signature');
+    const body = await req.json();
+    const { 
+      fullName, 
+      email, 
+      phone, 
+      address, 
+      dob, 
+      ssn, 
+      linkedin, 
+      portfolioLink, 
+      lastRelatedJob, 
+      whyGoodFit, 
+      race,
+      backgroundCheckAgreed,
+      ssnDisclosureAgreed,
+      eEOCagreed,
+      signature,
+      videoUrls = [],
+      pictureUrls = []
+    } = body;
 
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
