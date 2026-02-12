@@ -33,6 +33,8 @@ Deno.serve(async (req) => {
       status: 'success'
     });
 
+    console.log('Email log result:', emailLogResult);
+
     // Send Google Calendar invite to client only after email is confirmed
     if (emailLogResult) {
       try {
