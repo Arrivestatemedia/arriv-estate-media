@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
     const whyGoodFit = formData.get('whyGoodFit');
     const race = formData.get('race');
     const backgroundCheckAgreed = formData.get('backgroundCheckAgreed') === 'true';
+    const ssnDisclosureAgreed = formData.get('ssnDisclosureAgreed') === 'true';
     const eEOCagreed = formData.get('eEOCagreed') === 'true';
 
     // Get Google Drive access token
@@ -185,6 +186,7 @@ Deno.serve(async (req) => {
       why_good_fit: whyGoodFit,
       race,
       background_check_agreed: backgroundCheckAgreed,
+      ssn_disclosure_agreed: ssnDisclosureAgreed,
       eeoc_agreed: eEOCagreed,
       video_samples: uploadedVideos,
       picture_samples: uploadedPictures,
