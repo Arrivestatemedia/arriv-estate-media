@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation } from "@tanstack/react-query";
 import { createPageUrl } from "../utils";
@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
 
-const clientPackages = [
+const packages = [
   {
     id: "mls_walkthrough",
     name: "MLS Walkthrough",
@@ -52,51 +52,7 @@ const clientPackages = [
   },
 ];
 
-const contractorPackages = [
-  {
-    id: "mls_walkthrough",
-    name: "MLS Walkthrough",
-    tag: "Most Popular",
-    pay: 100,
-    features: [
-      "2-3 minute unbranded MLS-ready walkthrough (MLS & GAMLS compliant)",
-      "Bonus vertical social clip (Instagram/Reels ready)",
-    ],
-  },
-  {
-    id: "photo_essentials",
-    name: "Photo Essentials",
-    pay: 200,
-    features: [
-      "50-150 edited photos (interior + exterior)",
-      "True-to-life color + straight verticals",
-      "1 vertical teaser (9:16, 30-45 sec)",
-    ],
-  },
-  {
-    id: "photo_cinematic",
-    name: "Photo + Cinematic Walkthrough",
-    pay: 300,
-    features: [
-      "Everything in Photo Essentials",
-      "2 - 3 Minute walkthrough video (MLS-friendly export)",
-      "2 vertical reels",
-    ],
-  },
-  {
-    id: "premium_bundle",
-    name: "Premium Media Bundle",
-    pay: 400,
-    features: [
-      "Everything in Photo + Cinematic Walkthrough",
-      "90 Tour",
-      "Twilight exterior edits (up to 5 photos)",
-      "AI Staging (if needed)",
-    ],
-  },
-];
-
-const clientAddOns = [
+const addOns = [
   { id: "drone", name: "Drone add-on (photos + short clips)", price: 175 },
   { id: "3d_tour", name: "3D tour", price: 175 },
   { id: "twilight", name: "Twilight exterior edits (up to 5 photos)", price: 150 },
@@ -125,7 +81,7 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected }) {
           )}
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-2xl font-bold text-[#B8956A]">${pkg.price || pkg.pay}</span>
+          <span className="text-2xl font-bold text-[#B8956A]">${pkg.price}</span>
           {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
         </div>
       </button>
@@ -162,17 +118,11 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected }) {
 }
 
 export default function BookingPage() {
-  const [userRole, setUserRole] = useState('user');
   const [expandedPackage, setExpandedPackage] = useState(null);
   const [expandedAddOns, setExpandedAddOns] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [cartAddOns, setCartAddOns] = useState([]);
-
-  useEffect(() => {
-    const role = localStorage.getItem('user_role') || 'user';
-    setUserRole(role);
-  }, []);
 
   const createBookingMutation = useMutation({
     mutationFn: (data) => base44.functions.invoke('handleBookingSubmission', { booking: data }),
@@ -208,10 +158,6 @@ export default function BookingPage() {
     createBookingMutation.mutate(bookingData);
   };
 
-  const packages = userRole === 'admin' ? clientPackages : contractorPackages;
-  const addOns = clientAddOns;
-  const isPricingForAdmin = userRole === 'admin';
-
   if (showBookingForm) {
     return (
       <BookingForm
@@ -231,25 +177,23 @@ export default function BookingPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-[#1A1A1A] mb-4">
-            {isPricingForAdmin ? "TRANSPARENT PRICING FOR PROFESSIONAL REAL ESTATE MEDIA" : "CONTRACTOR PAY RATES"}
+            TRANSPARENT PRICING FOR PROFESSIONAL REAL ESTATE MEDIA
           </h1>
           <p className="text-lg text-[#1A1A1A]/70 italic mb-8">
-            {isPricingForAdmin ? "Built specifically for listings that want media that just works." : "Your compensation for each job type"}
+            Built specifically for listings that want media that just works.
           </p>
 
-          {isPricingForAdmin && (
-            <div className="space-y-4 text-left max-w-2xl mx-auto mb-8">
-              <p className="text-[#1A1A1A]/80">
-                We specialize in clean, unbranded MLS walkthrough videos that can be published
-                immediately without compliance issues. Photos, 3D tours, and add-ons are layered in
-                when they help the listing.
-              </p>
-              <p className="text-[#1A1A1A]/80">
-                All shoots include editing, color correction, and MLS-ready delivery. Custom packages
-                available.
-              </p>
-            </div>
-          )}
+          <div className="space-y-4 text-left max-w-2xl mx-auto mb-8">
+            <p className="text-[#1A1A1A]/80">
+              We specialize in clean, unbranded MLS walkthrough videos that can be published
+              immediately without compliance issues. Photos, 3D tours, and add-ons are layered in
+              when they help the listing.
+            </p>
+            <p className="text-[#1A1A1A]/80">
+              All shoots include editing, color correction, and MLS-ready delivery. Custom packages
+              available.
+            </p>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
@@ -265,17 +209,16 @@ export default function BookingPage() {
           ))}
         </div>
 
-        {isPricingForAdmin && (
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
-           <button
-             onClick={() => setExpandedAddOns(!expandedAddOns)}
-             className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#B8956A]/5 transition-colors"
-           >
-             <span className="text-lg font-semibold text-[#1A1A1A]">
-               Optional Add-Ons (can be added to any package)
-             </span>
-             {expandedAddOns ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-           </button>
+          <button
+            onClick={() => setExpandedAddOns(!expandedAddOns)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#B8956A]/5 transition-colors"
+          >
+            <span className="text-lg font-semibold text-[#1A1A1A]">
+              Optional Add-Ons (can be added to any package)
+            </span>
+            {expandedAddOns ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </button>
 
           <AnimatePresence>
             {expandedAddOns && (
@@ -365,28 +308,25 @@ export default function BookingPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          </div>
-          )}
+        </div>
 
-          {isPricingForAdmin && (
-          <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 space-y-4">
-           <h3 className="font-semibold text-[#1A1A1A]">Payment</h3>
-           <ul className="space-y-2 text-sm text-[#1A1A1A]/70">
-             <li>• Standard invoicing upon delivery</li>
-             <li>
-               • <strong>Pay-at-closing available upon request</strong> (settled as a small
-               percentage of the final sale price)
-             </li>
-             <li>
-               • <strong>Availability is limited and scheduled on a first-come basis.</strong>
-             </li>
-           </ul>
-           <p className="text-xs text-[#1A1A1A]/50 italic pt-4 border-t border-[#1A1A1A]/10">
-             Notes: MLS platforms compress media differently, all deliverables are exported for MLS
-             compatibility. Custom quotes available for luxury, large acreage, or complex shoots.
-           </p>
-          </div>
-          )}
+        <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 space-y-4">
+          <h3 className="font-semibold text-[#1A1A1A]">Payment</h3>
+          <ul className="space-y-2 text-sm text-[#1A1A1A]/70">
+            <li>• Standard invoicing upon delivery</li>
+            <li>
+              • <strong>Pay-at-closing available upon request</strong> (settled as a small
+              percentage of the final sale price)
+            </li>
+            <li>
+              • <strong>Availability is limited and scheduled on a first-come basis.</strong>
+            </li>
+          </ul>
+          <p className="text-xs text-[#1A1A1A]/50 italic pt-4 border-t border-[#1A1A1A]/10">
+            Notes: MLS platforms compress media differently, all deliverables are exported for MLS
+            compatibility. Custom quotes available for luxury, large acreage, or complex shoots.
+          </p>
+        </div>
 
         {(selectedPackage || cartAddOns.length > 0) && (
           <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A] p-6 mb-8">
