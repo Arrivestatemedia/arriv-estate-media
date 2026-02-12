@@ -84,9 +84,9 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
     }
   }, [formData.preferred_date]);
 
-  const handleAddressChange = async (e) => {
+  const handleStreetChange = async (e) => {
     const value = e.target.value;
-    setFormData({ ...formData, property_address: value });
+    setFormData({ ...formData, street_address: value });
 
     if (value.length > 2 && autocompleteService.current) {
       try {
@@ -106,7 +106,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
   };
 
   const handleAddressSelect = (prediction) => {
-    setFormData({ ...formData, property_address: prediction.description });
+    setFormData({ ...formData, street_address: prediction.description });
     setPredictions([]);
     setShowPredictions(false);
   };
