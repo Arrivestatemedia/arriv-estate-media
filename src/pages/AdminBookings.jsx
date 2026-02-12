@@ -341,6 +341,14 @@ export default function AdminBookings() {
                         >
                           {loadingBookingId === booking.id ? 'Accepting...' : 'Accept for Myself'}
                         </Button>
+                        <Button
+                          onClick={() => deleteMutation.mutate(booking.id)}
+                          variant="outline"
+                          className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                          disabled={loadingBookingId !== null}
+                        >
+                          {loadingBookingId === booking.id ? 'Deleting...' : 'Delete'}
+                        </Button>
                       </>
                     )}
                     {booking.status === 'approved' && (
