@@ -120,7 +120,12 @@ export default function JobBoard() {
   };
 
   const handleCancelSubmit = (jobId, reason) => {
-    cancelMutation.mutate({ jobId, reason });
+    const userEmail = localStorage.getItem('user_email');
+    if (!userEmail) {
+      alert('User email not found. Please sign in again.');
+      return;
+    }
+    cancelMutation.mutate({ jobId, reason, userEmail });
   };
 
   const handleBookBackup = (job, phoneNumber) => {
