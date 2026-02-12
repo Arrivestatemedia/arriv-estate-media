@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import NewJobsBadge from "@/components/layout/NewJobsBadge";
+import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
+import PageTransition from "@/components/layout/PageTransition";
 
 export default function Layout({ children, currentPageName }) {
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -63,20 +66,77 @@ export default function Layout({ children, currentPageName }) {
 
   const dashboardPage = isAdmin ? "Dashboard" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
+  // Determine if current page is a primary route (shows bottom tabs)
+  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings"];
+  const isPrimaryRoute = primaryRoutes.includes(currentPageName);
+  const showBackButton = user && !isPrimaryRoute && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName);
+
   return (
-    <div className="min-h-screen bg-[#FFFBF5]">
+    <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
       <GoogleMapsLoader />
       <style>{`
         :root {
           --color-cream: #FFFBF5;
           --color-gold: #B8956A;
           --color-black: #1A1A1A;
+          
+          /* Light mode */
+          --bg-primary: #FFFBF5;
+          --bg-secondary: #FFFFFF;
+          --text-primary: #1A1A1A;
+          --text-secondary: rgba(26, 26, 26, 0.6);
+          --accent-color: #B8956A;
+          --accent-hover: #A68559;
+          --border-color: rgba(184, 149, 106, 0.2);
+          --card-bg: #FFFFFF;
+        }
+
+        @media (prefers-color-scheme: dark) {
+          :root {
+            --bg-primary: #0A0A0A;
+            --bg-secondary: #1A1A1A;
+            --text-primary: #FFFBF5;
+            --text-secondary: rgba(255, 251, 245, 0.6);
+            --accent-color: #B8956A;
+            --accent-hover: #C9A87B;
+            --border-color: rgba(184, 149, 106, 0.3);
+            --card-bg: #1A1A1A;
+          }
+        }
+
+        body {
+          overscroll-behavior: none;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        button, a, [role="button"] {
+          -webkit-user-select: none;
+          user-select: none;
+          -webkit-tap-highlight-color: transparent;
         }
       `}</style>
 
-      <header className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20">
+      <header 
+        className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20"
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+            {showBackButton && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.history.back()}
+                className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10 mr-2"
+                style={{ userSelect: 'none' }}
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
             {(currentPageName === "ClientSignup" || currentPageName === "MediaPartnerSignup" || currentPageName === "SignIn") ? (
                   <div className="flex items-center gap-3">
                     <img 
@@ -219,7 +279,14 @@ export default function Layout({ children, currentPageName }) {
         )}
       </header>
 
-      <main>{children}</main>
+      <main>
+        <PageTransition>
+          {children}
+        </PageTransition>
+      </main>
+
+      {/* Mobile Bottom Tabs */}
+      <MobileBottomTabs user={user} />
     </div>
   );
 }

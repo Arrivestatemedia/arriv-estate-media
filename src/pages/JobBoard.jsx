@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, Briefcase, LayoutDashboard } from "lucide-react";
+import { Search, Briefcase, LayoutDashboard, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -20,12 +20,15 @@ import {
 } from "@/components/ui/dialog";
 
 export default function JobBoard() {
-    const [filter, setFilter] = useState("all"); // "all" or "open"
+    const [filter, setFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [bookingJob, setBookingJob] = useState(null);
     const [cancelJob, setCancelJob] = useState(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [cancelSuccess, setCancelSuccess] = useState(false);
+    const [pullDistance, setPullDistance] = useState(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const touchStartY = useRef(0);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -159,6 +162,37 @@ export default function JobBoard() {
     });
   };
 
+  // Pull to refresh handlers
+  const handleTouchStart = (e) => {
+    if (window.scrollY === 0) {
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (isRefreshing) return;
+    
+    const touchY = e.touches[0].clientY;
+    const distance = touchY - touchStartY.current;
+    
+    if (distance > 0 && window.scrollY === 0) {
+      setPullDistance(Math.min(distance, 80));
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (pullDistance > 60 && !isRefreshing) {
+      setIsRefreshing(true);
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      setTimeout(() => {
+        setIsRefreshing(false);
+        setPullDistance(0);
+      }, 500);
+    } else {
+      setPullDistance(0);
+    }
+  };
+
   const filteredJobs = jobs
    .filter((job) => {
      if (filter === "open") return job.status === "open";
@@ -176,12 +210,32 @@ export default function JobBoard() {
    });
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5]">
+    <div 
+      className="min-h-screen bg-[var(--bg-primary)]"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull to refresh indicator */}
+      {pullDistance > 0 && (
+        <div 
+          className="fixed top-0 left-0 right-0 flex items-center justify-center z-30 transition-transform"
+          style={{ transform: `translateY(${pullDistance - 40}px)` }}
+        >
+          <div className="bg-[var(--card-bg)] rounded-full p-2 shadow-lg border border-[var(--border-color)]">
+            <RefreshCw 
+              className={`w-5 h-5 text-[var(--accent-color)] ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{ transform: `rotate(${pullDistance * 4}deg)` }}
+            />
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Available Gigs</h1>
-            <p className="text-[#1A1A1A]/60">Browse and book jobs</p>
+            <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">Available Gigs</h1>
+            <p className="text-[var(--text-secondary)]">Browse and book jobs</p>
           </div>
           {user?.user_type === "media_partner" && (
             <Link to={createPageUrl("MediaPartnerDashboard")}>
