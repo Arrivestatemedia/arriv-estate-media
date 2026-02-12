@@ -34,13 +34,13 @@ export default function JobBoard() {
   React.useEffect(() => {
     setUserEmail(localStorage.getItem('user_email'));
     
-    // Update last_viewed_jobs_at timestamp for contractors
+    // Update last_viewed_jobs_at timestamp for media partners
     const updateLastViewed = async () => {
       try {
         const isAuth = await base44.auth.isAuthenticated();
         if (isAuth) {
           const currentUser = await base44.auth.me();
-          if (currentUser?.user_type === 'contractor') {
+          if (currentUser?.user_type === 'media_partner') {
             await base44.auth.updateMe({ last_viewed_jobs_at: new Date().toISOString() });
           }
         }
@@ -183,8 +183,8 @@ export default function JobBoard() {
             <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Available Gigs</h1>
             <p className="text-[#1A1A1A]/60">Browse and book jobs</p>
           </div>
-          {user?.user_type === "contractor" && (
-            <Link to={createPageUrl("ContractorDashboard")}>
+          {user?.user_type === "media_partner" && (
+            <Link to={createPageUrl("MediaPartnerDashboard")}>
               <Button className="bg-[#B8956A] hover:bg-[#A68559] text-white">
                 <LayoutDashboard className="w-4 h-4 mr-2" />
                 Dashboard

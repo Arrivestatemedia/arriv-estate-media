@@ -11,7 +11,7 @@ export default function NewJobsBadge() {
         if (!isAuth) return;
 
         const user = await base44.auth.me();
-        if (user?.user_type !== 'contractor') return;
+        if (user?.user_type !== 'media_partner') return;
 
         // Get all open jobs
         const allJobs = await base44.entities.Job.filter({ status: 'open' });

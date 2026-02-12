@@ -39,7 +39,7 @@ export default function Layout({ children, currentPageName }) {
 
   const isAdmin = user?.role === "admin";
   const isClient = user?.user_type === "client";
-  const isContractor = user?.user_type === "contractor";
+  const isMediaPartner = user?.user_type === "media_partner";
 
   const navItems = isAdmin
       ? [
@@ -54,14 +54,14 @@ export default function Layout({ children, currentPageName }) {
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
         { label: "My Bookings", page: "ClientBookings", icon: Briefcase },
       ]
-    : isContractor
+    : isMediaPartner
     ? [
         { label: "Available Jobs", page: "JobBoard", icon: Briefcase, showBadge: true },
-        { label: "My Dashboard", page: "ContractorDashboard", icon: LayoutDashboard },
+        { label: "My Dashboard", page: "MediaPartnerDashboard", icon: LayoutDashboard },
       ]
     : [];
 
-  const dashboardPage = isAdmin ? "Dashboard" : isClient ? "BookingPage" : "JobBoard";
+  const dashboardPage = isAdmin ? "Dashboard" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
   return (
     <div className="min-h-screen bg-[#FFFBF5]">
@@ -116,7 +116,7 @@ export default function Layout({ children, currentPageName }) {
                   );
                 })}
 
-                {user && !["SignIn", "ClientSignup", "ContractorSignup"].includes(currentPageName) && (
+                {user && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName) && (
                   <Link
                     to={createPageUrl("PublicAccountSettings")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -138,7 +138,7 @@ export default function Layout({ children, currentPageName }) {
                   <div className="text-right">
                     <p className="text-sm font-medium text-[#FFFBF5]">{user.full_name}</p>
                     <p className="text-xs text-[#B8956A]">
-                      {isAdmin ? "Admin" : isClient ? "Client" : "Contractor"}
+                      {isAdmin ? "Admin" : isClient ? "Client" : "Media Partner"}
                     </p>
                   </div>
                   <Button
@@ -187,7 +187,7 @@ export default function Layout({ children, currentPageName }) {
                   </Link>
                 );
               })}
-            {user && !["SignIn", "ClientSignup", "ContractorSignup"].includes(currentPageName) && (
+            {user && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName) && (
               <Link
                 to={createPageUrl("PublicAccountSettings")}
                 onClick={() => setMobileOpen(false)}

@@ -12,16 +12,16 @@ Deno.serve(async (req) => {
 
     const job = data;
 
-    // Fetch all contractors
+    // Fetch all media partners
     const allUsers = await base44.asServiceRole.entities.User.list();
-    const contractors = allUsers.filter(user => user.user_type === 'contractor');
+    const mediaPartners = allUsers.filter(user => user.user_type === 'media_partner');
 
-    if (contractors.length === 0) {
-      return Response.json({ message: 'No contractors to notify' });
+    if (mediaPartners.length === 0) {
+      return Response.json({ message: 'No media partners to notify' });
     }
 
-    // Send email to each contractor
-    const emailPromises = contractors.map(contractor => {
+    // Send email to each media partner
+    const emailPromises = mediaPartners.map(mediaPartner => {
       const jobType = job.type === 'photo' ? 'Photography' : job.type === 'video' ? 'Videography' : 'Photo & Video';
       const jobDate = new Date(job.date).toLocaleDateString('en-US', { 
         weekday: 'long', 
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       });
 
       const emailBody = `
-Hello ${contractor.full_name},
+Hello ${mediaPartner.full_name},
 
 A new job has been posted on Arriv that matches your profile!
 
@@ -53,7 +53,7 @@ The Arriv Team
       `.trim();
 
       return base44.asServiceRole.integrations.Core.SendEmail({
-        to: contractor.email,
+        to: mediaPartner.email,
         subject: `New Job Posted: ${job.title}`,
         body: emailBody,
         from_name: 'Arriv'
@@ -64,7 +64,7 @@ The Arriv Team
 
     return Response.json({ 
       message: 'Notifications sent', 
-      contractors_notified: contractors.length 
+      media_partners_notified: mediaPartners.length 
     });
   } catch (error) {
     console.error('Error notifying contractors:', error);
