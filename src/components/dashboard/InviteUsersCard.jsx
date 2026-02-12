@@ -9,6 +9,7 @@ import { MessageSquare, CheckCircle2, AlertCircle } from "lucide-react";
 export default function InviteUsersCard() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [userType, setUserType] = useState("client");
+  const [userRole, setUserRole] = useState("user");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
 
@@ -21,7 +22,8 @@ export default function InviteUsersCard() {
     try {
       const response = await base44.functions.invoke('sendSignupSMS', {
         phone_number: phoneNumber,
-        user_type: userType
+        user_type: userType,
+        user_role: userRole
       });
 
       setStatus({ type: "success", message: "Invitation sent successfully!" });
@@ -69,6 +71,21 @@ export default function InviteUsersCard() {
             <SelectContent>
               <SelectItem value="client">Client</SelectItem>
               <SelectItem value="media_partner">Media Partner</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+            User Role
+          </label>
+          <Select value={userRole} onValueChange={setUserRole}>
+            <SelectTrigger className="border-[#B8956A]/30 focus:border-[#B8956A]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="user">Regular User</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
         </div>
