@@ -73,6 +73,7 @@ export default function ClientSignup() {
                 Full Name
               </label>
               <Input
+                type="text"
                 required
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}

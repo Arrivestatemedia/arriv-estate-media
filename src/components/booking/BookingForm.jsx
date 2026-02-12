@@ -187,6 +187,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                     Full Name *
                   </label>
                   <Input
+                    type="text"
                     required
                     value={formData.client_name}
                     onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
@@ -214,6 +215,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                 </label>
                 <Input
                   type="tel"
+                  inputMode="tel"
                   value={formData.client_phone}
                   onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
                   className="border-[#B8956A]/30 focus:border-[#B8956A]"
