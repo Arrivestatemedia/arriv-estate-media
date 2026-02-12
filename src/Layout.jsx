@@ -18,13 +18,14 @@ export default function Layout({ children, currentPageName }) {
     const userEmail = localStorage.getItem('user_email');
     const userName = localStorage.getItem('user_name');
     const userType = localStorage.getItem('user_type');
+    const userRole = localStorage.getItem('user_role');
     
     if (userEmail && userName && userType) {
       setUser({
         email: userEmail,
         full_name: userName,
         user_type: userType,
-        role: userType === 'admin' ? 'admin' : 'user'
+        role: userRole || 'user'
       });
     }
 
@@ -34,6 +35,10 @@ export default function Layout({ children, currentPageName }) {
         base44.auth.me().then((userData) => {
           if (userData) {
             setUser(userData);
+            // Save the role to localStorage for future loads
+            if (userData.role) {
+              localStorage.setItem('user_role', userData.role);
+            }
           }
         }).catch(() => {});
       }
