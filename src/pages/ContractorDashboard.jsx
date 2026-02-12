@@ -7,6 +7,7 @@ import PayoutSettings from "../components/contractor/PayoutSettings";
 import PayoutHistoryList from "../components/contractor/PayoutHistoryList";
 import BookedJobsList from "../components/contractor/BookedJobsList";
 import EarningsBreakdown from "../components/contractor/EarningsBreakdown";
+import PackageInfoDropdown from "../components/contractor/PackageInfoDropdown";
 
 export default function ContractorDashboard() {
   const [user, setUser] = useState(null);
@@ -104,6 +105,9 @@ export default function ContractorDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Package Info */}
+        <PackageInfoDropdown />
 
         {/* Earnings Breakdown */}
         <EarningsBreakdown jobs={jobs} payoutHistory={payoutHistory} />

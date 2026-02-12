@@ -94,6 +94,18 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
             <p className="text-sm text-[#1A1A1A]/60 line-clamp-2 mb-4">{job.description}</p>
           )}
 
+          {job.package && (
+            <div className="text-xs text-[#1A1A1A]/60 mb-2">
+              <span className="font-medium">Package:</span> {job.package.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </div>
+          )}
+
+          {job.add_ons && job.add_ons.length > 0 && (
+            <div className="text-xs text-[#1A1A1A]/60 mb-4">
+              <span className="font-medium">Add-ons:</span> {job.add_ons.map(addon => addon.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ')}
+            </div>
+          )}
+
           {job.booked_by_name && (
             <div className="text-xs text-[#1A1A1A]/40 mb-4">
               <p>

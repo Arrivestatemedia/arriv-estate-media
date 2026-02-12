@@ -52,7 +52,9 @@ Deno.serve(async (req) => {
       duration_hours: 2,
       pay_rate: contractorPayRate,
       status: 'open',
-      from_booking: true
+      from_booking: true,
+      package: booking.package,
+      add_ons: booking.add_ons || []
     });
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
