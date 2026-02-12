@@ -22,7 +22,9 @@ Deno.serve(async (req) => {
     const portfolioLink = formData.get('portfolioLink');
     const lastRelatedJob = formData.get('lastRelatedJob');
     const whyGoodFit = formData.get('whyGoodFit');
+    const race = formData.get('race');
     const backgroundCheckAgreed = formData.get('backgroundCheckAgreed') === 'true';
+    const eEOCagreed = formData.get('eEOCagreed') === 'true';
 
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
@@ -181,7 +183,9 @@ Deno.serve(async (req) => {
       portfolio_link: portfolioLink,
       last_related_job: lastRelatedJob,
       why_good_fit: whyGoodFit,
+      race,
       background_check_agreed: backgroundCheckAgreed,
+      eeoc_agreed: eEOCagreed,
       video_samples: uploadedVideos,
       picture_samples: uploadedPictures,
     });
