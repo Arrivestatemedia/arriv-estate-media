@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
 
     const { bookingId } = await req.json();
 
-    const booking = await base44.entities.Booking.get(bookingId);
+    const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
 
     await base44.asServiceRole.entities.Job.create({
       title: `Photography - ${booking.property_address}`,
