@@ -84,32 +84,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
     }
   }, [formData.preferred_date]);
 
-  const handleAddressChange = async (e) => {
-    const value = e.target.value;
-    setFormData({ ...formData, property_address: value });
 
-    if (value.length > 2 && autocompleteService.current) {
-      try {
-        const response = await autocompleteService.current.getPlacePredictions({
-          input: value,
-          componentRestrictions: { country: 'us' },
-        });
-        setPredictions(response.predictions || []);
-        setShowPredictions(true);
-      } catch (error) {
-        setPredictions([]);
-      }
-    } else {
-      setPredictions([]);
-      setShowPredictions(false);
-    }
-  };
-
-  const handleAddressSelect = (prediction) => {
-    setFormData({ ...formData, property_address: prediction.description });
-    setPredictions([]);
-    setShowPredictions(false);
-  };
 
   const handleDateSelect = (date) => {
     setFormData({ ...formData, preferred_date: format(date, "yyyy-MM-dd"), preferred_time: "" });
