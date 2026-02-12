@@ -289,7 +289,9 @@ export default function AdminBookings() {
                       )}
                     <div className="flex-1">
                       <CardTitle className="text-lg text-[var(--text-primary)]">{booking.client_name}</CardTitle>
-                      <p className="text-sm text-[var(--text-secondary)] mt-1">{booking.property_address}</p>
+                      <p className="text-sm text-[var(--text-secondary)] mt-1">
+                        {booking.street_address || booking.property_address}, {booking.city}, {booking.state}
+                      </p>
                     </div>
                     <Badge className={`${statusColors[booking.status] || statusColors.pending}`}>
                       {booking.status?.toUpperCase() || 'PENDING'}
