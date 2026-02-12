@@ -18,13 +18,24 @@ Deno.serve(async (req) => {
     // Send approval email to customer
     const emailBody = `Hi ${booking.client_name},\n\nGreat news! Your booking request for ${booking.property_address} on ${booking.preferred_date} has been approved.\n\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\n\nWe'll connect you with a contractor shortly. Thank you!`;
 
-    await base44.integrations.Core.SendEmail({
-      to: booking.client_email,
-      subject: 'Your Booking Has Been Approved',
-      body: emailBody
+    // Send email and calendar invite via Gmail/Calendar API
+    const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    
+    const emailMessage = `To: ${booking.client_email}\r\nSubject: Your Booking Has Been Approved\r\n\r\n${emailBody}`;
+    const encodedEmail = Buffer.from(emailMessage).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+    const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${gmailAccessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ raw: encodedEmail })
     });
 
-    // Send Google Calendar invite to client only after email is confirmed
+    console.log('Gmail send response:', emailResponse.status);
+
+    // Send Google Calendar invite to client
     try {
       console.log('Attempting to get calendar access token...');
       const calendarAccessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
