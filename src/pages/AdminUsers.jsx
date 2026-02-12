@@ -153,6 +153,9 @@ export default function AdminUsers() {
                       Type
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
+                      Role
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Action
                     </th>
                   </tr>
@@ -181,6 +184,18 @@ export default function AdminUsers() {
                       <td className="py-3 px-4">
                         <Badge variant={u.user_type === "media_partner" ? "default" : "secondary"}>
                           {u.user_type === "media_partner" ? "Media Partner" : "Client"}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant={u.user_role === "admin" || (u.status === "completed" && u.user_role === "admin") ? "default" : "outline"} className="flex items-center gap-1 w-fit">
+                          {u.user_role === "admin" || (u.status === "completed" && u.user_role === "admin") ? (
+                            <>
+                              <Shield className="w-3 h-3" />
+                              Admin
+                            </>
+                          ) : (
+                            "User"
+                          )}
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
@@ -241,6 +256,18 @@ export default function AdminUsers() {
                     <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                       <Phone className="w-4 h-4" />
                       <span>{u.phone_number}</span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Badge variant={u.user_role === "admin" ? "default" : "outline"} className="flex items-center gap-1">
+                        {u.user_role === "admin" ? (
+                          <>
+                            <Shield className="w-3 h-3" />
+                            Admin
+                          </>
+                        ) : (
+                          "User"
+                        )}
+                      </Badge>
                     </div>
                   </div>
                 </div>
