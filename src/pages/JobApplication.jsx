@@ -103,6 +103,11 @@ export default function JobApplication() {
             <CardDescription>Submit your application with your SSN and portfolio samples</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
+              <p className="text-sm text-yellow-800">
+                <strong>Important Notice:</strong> This application is not a contract of employment. Submission of this application does not guarantee a position or establishment of an employment relationship. You are applying to work as an independent contractor.
+              </p>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Information */}
               <div className="space-y-4">
