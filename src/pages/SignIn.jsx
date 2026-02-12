@@ -35,6 +35,7 @@ export default function SignIn() {
       localStorage.setItem('user_email', response.data.email);
       localStorage.setItem('user_name', response.data.full_name);
       localStorage.setItem('user_type', response.data.user_type);
+      localStorage.setItem('user_role', response.data.user_role);
 
       // Route based on user type
       if (response.data.user_type === "media_partner") {
