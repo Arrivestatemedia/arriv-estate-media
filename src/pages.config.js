@@ -60,13 +60,13 @@ import ContractorSignup from './pages/ContractorSignup';
 import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import JobBoard from './pages/JobBoard';
+import MediaPartnerDashboard from './pages/MediaPartnerDashboard';
+import MediaPartnerSignup from './pages/MediaPartnerSignup';
 import NotifyBackup from './pages/NotifyBackup';
 import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import MediaPartnerDashboard from './pages/MediaPartnerDashboard';
-import MediaPartnerSignup from './pages/MediaPartnerSignup';
 import __Layout from './Layout.jsx';
 
 
@@ -84,17 +84,17 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "DeleteAccountRequest": DeleteAccountRequest,
     "JobBoard": JobBoard,
+    "MediaPartnerDashboard": MediaPartnerDashboard,
+    "MediaPartnerSignup": MediaPartnerSignup,
     "NotifyBackup": NotifyBackup,
     "PasswordSetup": PasswordSetup,
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
-    "MediaPartnerDashboard": MediaPartnerDashboard,
-    "MediaPartnerSignup": MediaPartnerSignup,
 }
 
 export const pagesConfig = {
-    mainPage: "AccountSettings",
+    mainPage: "SignIn",
     Pages: PAGES,
     Layout: __Layout,
 };
