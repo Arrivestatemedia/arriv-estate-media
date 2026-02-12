@@ -39,11 +39,12 @@ Deno.serve(async (req) => {
       booked_by_name: null
     });
 
-    return Response.json({ 
+    return new Response(JSON.stringify({ 
       success: true, 
-      message: 'You are no longer assigned to this job',
-      jobId: jobId,
-      hadBackup: !!job.backup_booked_by
+      message: 'You are no longer assigned to this job'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Cancel job error:', error);
