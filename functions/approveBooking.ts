@@ -79,25 +79,24 @@ Deno.serve(async (req) => {
     // Send Google Calendar invite to client
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
-
-      const eventDate = new Date(booking.preferred_date + 'T00:00:00');
+      
+      const eventDate = new Date(booking.preferred_date);
       const [time, period] = booking.preferred_time.split(' ');
       let [hours, minutes] = time.split(':').map(Number);
-
+      
       if (period === 'PM' && hours !== 12) hours += 12;
       if (period === 'AM' && hours === 12) hours = 0;
-
+      
       eventDate.setHours(hours, minutes, 0, 0);
       const endTime = new Date(eventDate);
       endTime.setHours(endTime.getHours() + 2);
 
-      const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
       const calendarEvent = {
         summary: `Arriv Estate Media - ${booking.package}`,
-        description: `Property: ${propertyAddress}\nPackage: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
-        start: { dateTime: eventDate.toISOString(), timeZone: 'America/New_York' },
-        end: { dateTime: endTime.toISOString(), timeZone: 'America/New_York' },
-        location: propertyAddress,
+        description: `Property: ${booking.property_address}\nPackage: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
+        start: { dateTime: eventDate.toISOString() },
+        end: { dateTime: endTime.toISOString() },
+        location: booking.property_address,
         attendees: [{ email: booking.client_email }]
       };
 
