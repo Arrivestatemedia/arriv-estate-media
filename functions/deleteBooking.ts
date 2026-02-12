@@ -11,21 +11,6 @@ Deno.serve(async (req) => {
 
     const { bookingId } = await req.json();
 
-    const booking = await base44.entities.Booking.get(bookingId);
-
-    // Delete associated jobs created from this booking
-    if (booking.status === 'approved') {
-      const jobs = await base44.asServiceRole.entities.Job.filter({ from_booking: true });
-      const matchingJobs = jobs.filter(job => 
-        job.title.includes(booking.property_address) && 
-        job.date === booking.preferred_date
-      );
-      
-      for (const job of matchingJobs) {
-        await base44.asServiceRole.entities.Job.delete(job.id);
-      }
-    }
-
     // Delete the booking
     await base44.asServiceRole.entities.Booking.delete(bookingId);
 
