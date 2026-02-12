@@ -36,7 +36,9 @@ Deno.serve(async (req) => {
     // Send Google Calendar invite to client only after email is confirmed
     if (emailLogResult) {
       try {
+        console.log('Attempting to get calendar access token...');
         const calendarAccessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+        console.log('Calendar access token obtained:', !!calendarAccessToken);
         
         const [time, period] = booking.preferred_time.split(' ');
         let [hours, minutes] = time.split(':').map(Number);
