@@ -13,20 +13,22 @@ Deno.serve(async (req) => {
         const fullUser = await base44.asServiceRole.entities.User.get(user.id);
         
         if (fullUser.pending_signup_data) {
-            const { user_type, full_name, phone_number } = fullUser.pending_signup_data;
+            const { user_type, full_name, phone_number, user_role } = fullUser.pending_signup_data;
             
             // Apply the pending data
             await base44.asServiceRole.entities.User.update(user.id, {
                 user_type,
                 full_name,
                 phone_number,
+                role: user_role || 'user',
                 pending_signup_data: null
             });
 
             return Response.json({ 
                 success: true, 
                 applied: true,
-                user_type 
+                user_type,
+                role: user_role || 'user'
             });
         }
 
