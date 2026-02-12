@@ -231,10 +231,10 @@ export default function BookingPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-[#1A1A1A] mb-4">
-            TRANSPARENT PRICING FOR PROFESSIONAL REAL ESTATE MEDIA
+            {isPricingForAdmin ? "TRANSPARENT PRICING FOR PROFESSIONAL REAL ESTATE MEDIA" : "CONTRACTOR PAY RATES"}
           </h1>
           <p className="text-lg text-[#1A1A1A]/70 italic mb-8">
-            Built specifically for listings that want media that just works.
+            {isPricingForAdmin ? "Built specifically for listings that want media that just works." : "Your compensation for each job type"}
           </p>
 
           <div className="space-y-4 text-left max-w-2xl mx-auto mb-8">
