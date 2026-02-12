@@ -4,8 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, AlertCircle, Mail, Phone, Calendar, Shield } from "lucide-react";
+import { Trash2, AlertCircle, Mail, Phone, Calendar, Shield, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,8 @@ export default function AdminUsers() {
   const [user, setUser] = useState(null);
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({ user_type: "", user_role: "" });
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -51,6 +54,15 @@ export default function AdminUsers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-signups"] });
       setSelectedUsers(new Set());
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data) => base44.entities.PendingSignup.update(data.id, { user_type: data.user_type, user_role: data.user_role }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-signups"] });
+      setEditingId(null);
+      setEditData({ user_type: "", user_role: "" });
     },
   });
 
@@ -88,6 +100,15 @@ export default function AdminUsers() {
     } else {
       batchDeleteMutation.mutate(deleteConfirm.ids);
     }
+  };
+
+  const handleEdit = (u) => {
+    setEditingId(u.id);
+    setEditData({ user_type: u.user_type, user_role: u.user_role });
+  };
+
+  const handleSaveEdit = () => {
+    updateMutation.mutate({ id: editingId, ...editData });
   };
 
   if (!user || user?.role !== "admin") {
@@ -182,32 +203,77 @@ export default function AdminUsers() {
                         {u.phone_number}
                       </td>
                       <td className="py-3 px-4">
-                        <Badge variant={u.user_type === "media_partner" ? "default" : "secondary"}>
-                          {u.user_type === "media_partner" ? "Media Partner" : "Client"}
-                        </Badge>
+                        {editingId === u.id ? (
+                          <Select value={editData.user_type} onValueChange={(value) => setEditData({ ...editData, user_type: value })}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="client">Client</SelectItem>
+                              <SelectItem value="media_partner">Media Partner</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant={u.user_type === "media_partner" ? "default" : "secondary"}>
+                            {u.user_type === "media_partner" ? "Media Partner" : "Client"}
+                          </Badge>
+                        )}
                       </td>
                       <td className="py-3 px-4">
-                        <Badge variant={u.user_role === "admin" || (u.status === "completed" && u.user_role === "admin") ? "default" : "outline"} className="flex items-center gap-1 w-fit">
-                          {u.user_role === "admin" || (u.status === "completed" && u.user_role === "admin") ? (
-                            <>
-                              <Shield className="w-3 h-3" />
-                              Admin
-                            </>
-                          ) : (
-                            "User"
-                          )}
-                        </Badge>
+                        {editingId === u.id ? (
+                          <Select value={editData.user_role} onValueChange={(value) => setEditData({ ...editData, user_role: value })}>
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">User</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant={u.user_role === "admin" ? "default" : "outline"} className="flex items-center gap-1 w-fit">
+                            {u.user_role === "admin" ? (
+                              <>
+                                <Shield className="w-3 h-3" />
+                                Admin
+                              </>
+                            ) : (
+                              "User"
+                            )}
+                          </Badge>
+                        )}
                       </td>
-                      <td className="py-3 px-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(u.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <td className="py-3 px-4 flex gap-2">
+                        {editingId === u.id ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleSaveEdit}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              disabled={updateMutation.isPending}
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingId(null)}
+                              className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(u)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            Edit
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -237,15 +303,17 @@ export default function AdminUsers() {
                         </Badge>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(u.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1"
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {editingId !== u.id && (
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => handleDelete(u.id)}
+                         className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1"
+                         disabled={deleteMutation.isPending}
+                       >
+                         <Trash2 className="w-4 h-4" />
+                       </Button>
+                     )}
                   </div>
                   
                   <div className="space-y-2 text-sm ml-7">
@@ -257,18 +325,58 @@ export default function AdminUsers() {
                       <Phone className="w-4 h-4" />
                       <span>{u.phone_number}</span>
                     </div>
-                    <div className="flex items-center gap-2 pt-1">
-                      <Badge variant={u.user_role === "admin" ? "default" : "outline"} className="flex items-center gap-1">
-                        {u.user_role === "admin" ? (
-                          <>
-                            <Shield className="w-3 h-3" />
-                            Admin
-                          </>
-                        ) : (
-                          "User"
-                        )}
-                      </Badge>
-                    </div>
+                    {editingId === u.id ? (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-xs font-medium">Type:</label>
+                          <Select value={editData.user_type} onValueChange={(value) => setEditData({ ...editData, user_type: value })}>
+                            <SelectTrigger className="w-full mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="client">Client</SelectItem>
+                              <SelectItem value="media_partner">Media Partner</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium">Role:</label>
+                          <Select value={editData.user_role} onValueChange={(value) => setEditData({ ...editData, user_role: value })}>
+                            <SelectTrigger className="w-full mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">User</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button size="sm" onClick={handleSaveEdit} className="flex-1 bg-green-600 hover:bg-green-700">
+                            Save
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="flex-1">
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Badge variant={u.user_role === "admin" ? "default" : "outline"} className="flex items-center gap-1">
+                          {u.user_role === "admin" ? (
+                            <>
+                              <Shield className="w-3 h-3" />
+                              Admin
+                            </>
+                          ) : (
+                            "User"
+                          )}
+                        </Badge>
+                        <Button size="sm" variant="ghost" onClick={() => handleEdit(u)} className="text-blue-600 hover:bg-blue-50 -mx-2">
+                          Edit
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
