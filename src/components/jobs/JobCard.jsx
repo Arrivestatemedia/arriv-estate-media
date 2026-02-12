@@ -60,7 +60,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
               </div>
             </div>
             <div className="text-right flex-shrink-0">
-              <p className="text-2xl font-bold text-[#B8956A]">${job.pay_rate}</p>
+              <p className="text-2xl font-bold text-[#B8956A]">${displayPrice}</p>
             </div>
           </div>
 
