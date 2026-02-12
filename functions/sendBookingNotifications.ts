@@ -24,24 +24,39 @@ Deno.serve(async (req) => {
                 : `Hi ${booking.client_name}! Your booking at ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been confirmed. You'll also receive a calendar invite via email. - Arriv`;
             
             // Send SMS to each phone number
-            for (const phone of phonesToNotify) {
-                try {
-                    const response = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
-                        },
-                        body: new URLSearchParams({
-                            'From': twilioPhone,
-                            'To': phone,
-                            'Body': messageText,
-                        }).toString(),
-                    });
-                } catch (error) {
-                    console.error('SMS send error for ' + phone, error);
-                }
-            }
+             for (const phone of phonesToNotify) {
+                 try {
+                     const response = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+                         method: 'POST',
+                         headers: {
+                             'Content-Type': 'application/x-www-form-urlencoded',
+                             'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
+                         },
+                         body: new URLSearchParams({
+                             'From': twilioPhone,
+                             'To': phone,
+                             'Body': messageText,
+                         }).toString(),
+                     });
+                     await base44.asServiceRole.entities.MessageLog.create({
+                       message_type: 'sms',
+                       recipient_type: 'client',
+                       recipient_phone: phone,
+                       message_content: messageText,
+                       status: 'success'
+                     });
+                 } catch (error) {
+                     console.error('SMS send error for ' + phone, error);
+                     await base44.asServiceRole.entities.MessageLog.create({
+                       message_type: 'sms',
+                       recipient_type: 'client',
+                       recipient_phone: phone,
+                       message_content: messageText,
+                       status: 'failed',
+                       error_message: error.message
+                     });
+                 }
+             }
 
         }
         
@@ -78,13 +93,22 @@ Deno.serve(async (req) => {
                 .replace(/\//g, '_')
                 .replace(/=/g, '');
 
-            await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+            const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ raw: base64urlMessage })
+            });
+            
+            await base44.asServiceRole.entities.MessageLog.create({
+              message_type: 'email',
+              recipient_type: 'client',
+              recipient_email: booking.client_email,
+              message_content: emailBody,
+              subject: emailSubject,
+              status: emailResponse.ok ? 'success' : 'failed'
             });
         }
 
