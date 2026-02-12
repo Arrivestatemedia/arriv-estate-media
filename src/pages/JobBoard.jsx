@@ -263,30 +263,6 @@ export default function JobBoard() {
           open={cancelDialogOpen}
           success={cancelSuccess}
           onOpenChange={(open) => {
-            if (!open && cancelJob) {
-              // Dialog is closing - reassign the job and notify admin
-              const storedEmail = localStorage.getItem('user_email');
-              const storedName = localStorage.getItem('user_name');
-              const contractorEmail = user?.email || storedEmail;
-              const contractorName = user?.full_name || storedName;
-
-              Promise.all([
-                base44.functions.invoke('reassignJob', { jobId: cancelJob.id }),
-                base44.functions.invoke('notifyAdminOfCancellation', { 
-                  jobId: cancelJob.id,
-                  contractorName,
-                  contractorEmail,
-                  hasBackup: !!cancelJob.backup_booked_by,
-                  backupName: cancelJob.backup_booked_by_name,
-                  backupEmail: cancelJob.backup_booked_by
-                })
-              ])
-                .then(() => {
-                  queryClient.invalidateQueries({ queryKey: ["jobs"] });
-                  navigate(createPageUrl("JobBoard"));
-                })
-                .catch(err => console.error('Error:', err));
-            }
             setCancelDialogOpen(open);
             if (!open) {
               setCancelJob(null);
@@ -295,6 +271,30 @@ export default function JobBoard() {
           }}
           onSubmit={handleCancelSubmit}
           isLoading={cancelMutation.isPending}
+          onClose={async (job) => {
+            const storedEmail = localStorage.getItem('user_email');
+            const storedName = localStorage.getItem('user_name');
+            const contractorEmail = user?.email || storedEmail;
+            const contractorName = user?.full_name || storedName;
+
+            try {
+              await Promise.all([
+                base44.functions.invoke('reassignJob', { jobId: job.id }),
+                base44.functions.invoke('notifyAdminOfCancellation', { 
+                  jobId: job.id,
+                  contractorName,
+                  contractorEmail,
+                  hasBackup: !!job.backup_booked_by,
+                  backupName: job.backup_booked_by_name,
+                  backupEmail: job.backup_booked_by
+                })
+              ]);
+              queryClient.invalidateQueries({ queryKey: ["jobs"] });
+              navigate(createPageUrl("JobBoard"));
+            } catch (err) {
+              console.error('Error:', err);
+            }
+          }}
         />
       </div>
     </div>
