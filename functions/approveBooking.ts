@@ -78,7 +78,13 @@ Deno.serve(async (req) => {
           body: JSON.stringify(calendarEvent)
         });
 
-        const calendarLogMessage = `Calendar invite sent for ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time}`;
+        const calendarResponseText = await calendarResponse.text();
+        console.log('Calendar API response:', calendarResponse.status, calendarResponseText);
+        
+        const calendarLogMessage = calendarResponse.ok 
+          ? `Calendar invite sent for ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time}`
+          : `Calendar invite failed: ${calendarResponseText}`;
+        
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email',
           recipient_type: 'client',
