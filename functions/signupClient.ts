@@ -4,10 +4,15 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
-        const { email, full_name, phone_number, password, user_type } = await req.json();
+        const { email, full_name, phone_number, password, user_type, user_role } = await req.json();
 
         if (!email || !full_name || !phone_number || !password || !user_type) {
             return Response.json({ error: 'All fields are required' }, { status: 400 });
+        }
+
+        const role = user_role || 'user';
+        if (!['user', 'admin'].includes(role)) {
+            return Response.json({ error: 'Invalid user role' }, { status: 400 });
         }
 
         // Check if user already exists
@@ -32,6 +37,9 @@ Deno.serve(async (req) => {
             password_hash: hashHex,
             status: "pending"
         });
+
+        // Invite user to Base44 with specified role
+        await base44.asServiceRole.users.inviteUser(email, role);
 
         return Response.json({ 
             success: true, 

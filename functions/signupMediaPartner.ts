@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
-    const { email, full_name, phone_number, password, user_type } = await req.json();
+    const { email, full_name, phone_number, password, user_type, user_role } = await req.json();
 
     if (!email || !full_name || !phone_number || !password) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -10,6 +10,11 @@ Deno.serve(async (req) => {
 
     if (user_type !== 'media_partner') {
       return Response.json({ error: 'Invalid user type' }, { status: 400 });
+    }
+
+    const role = user_role || 'user';
+    if (!['user', 'admin'].includes(role)) {
+      return Response.json({ error: 'Invalid user role' }, { status: 400 });
     }
 
     const base44 = createClientFromRequest(req);
@@ -30,6 +35,9 @@ Deno.serve(async (req) => {
       password_hash,
       status: 'pending'
     });
+
+    // Invite user to Base44 with specified role
+    await base44.asServiceRole.users.inviteUser(email, role);
 
     // Send signup email with password setup link
     await base44.asServiceRole.functions.invoke('sendSignupEmail', {
