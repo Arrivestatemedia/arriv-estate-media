@@ -33,11 +33,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'You can only cancel your own bookings' }, { status: 403 });
     }
 
-    // Just return the job data for now - contractor is no longer on it
+    // Remove contractor from job immediately
+    await base44.asServiceRole.entities.Job.update(jobId, {
+      booked_by: null,
+      booked_by_name: null
+    });
+
     return Response.json({ 
       success: true, 
       message: 'You are no longer assigned to this job',
-      job: job
+      jobId: jobId,
+      hadBackup: !!job.backup_booked_by
     });
   } catch (error) {
     console.error('Cancel job error:', error);
