@@ -109,11 +109,29 @@ Deno.serve(async (req) => {
         body: JSON.stringify(calendarEvent)
       });
 
-      if (!calendarResponse.ok) {
-        console.error('Calendar event creation failed:', await calendarResponse.text());
-      }
+      const calendarResponseText = await calendarResponse.text();
+      console.error('Calendar API Response:', calendarResponseText);
+
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: `Calendar invite for ${booking.property_address}`,
+        subject: `Calendar Invite - ${booking.property_address}`,
+        status: calendarResponse.ok ? 'success' : 'failed',
+        error_message: calendarResponse.ok ? null : calendarResponseText
+      });
     } catch (error) {
       console.error('Calendar error:', error);
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: `Calendar invite for ${booking.property_address}`,
+        subject: `Calendar Invite - ${booking.property_address}`,
+        status: 'failed',
+        error_message: error.message
+      });
     }
 
     return Response.json({ success: true, bookingId: bookingId });
