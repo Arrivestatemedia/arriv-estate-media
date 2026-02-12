@@ -113,7 +113,8 @@ export default function AdminUsers() {
   };
 
   const handleSaveEdit = () => {
-    updateMutation.mutate({ id: editingId, ...editData });
+    const user = users.find(u => u.id === editingId);
+    updateMutation.mutate({ id: editingId, email: user?.email, ...editData });
   };
 
   if (!user || user?.role !== "admin") {
