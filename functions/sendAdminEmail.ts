@@ -8,11 +8,22 @@ Deno.serve(async (req) => {
         const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
         const deleteUrl = `https://${appDomain}/confirmDeleteUser?token=${userId}&email=${encodeURIComponent(userEmail)}`;
 
+        const emailBody = `Account Deletion Request\n\nUser: ${userName}\nEmail: ${userEmail}\nUser Type: ${userType}\nScheduled Deletion Date: ${deletionDate}\n\nThe user has requested to delete their account. The account is scheduled for automatic deletion in 30 days.\n\nTo delete this account immediately, visit:\n${deleteUrl}`;
+        
         await base44.asServiceRole.integrations.Core.SendEmail({
             to: to,
             from_name: 'Arriv Estate Media',
             subject: subject,
-            body: `Account Deletion Request\n\nUser: ${userName}\nEmail: ${userEmail}\nUser Type: ${userType}\nScheduled Deletion Date: ${deletionDate}\n\nThe user has requested to delete their account. The account is scheduled for automatic deletion in 30 days.\n\nTo delete this account immediately, visit:\n${deleteUrl}`
+            body: emailBody
+        });
+
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'email',
+          recipient_type: 'admin',
+          recipient_email: to,
+          message_content: emailBody,
+          subject: subject,
+          status: 'success'
         });
 
         return Response.json({ success: true });

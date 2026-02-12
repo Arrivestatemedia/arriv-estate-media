@@ -30,10 +30,23 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const error = await response.text();
       console.error('Twilio error:', error);
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'sms',
+        recipient_phone: phone,
+        message_content: message,
+        status: 'failed',
+        error_message: error
+      });
       return Response.json({ error: 'Failed to send SMS' }, { status: 500 });
     }
 
     const result = await response.json();
+    await base44.asServiceRole.entities.MessageLog.create({
+      message_type: 'sms',
+      recipient_phone: phone,
+      message_content: message,
+      status: 'success'
+    });
     return Response.json({ success: true, messageId: result.sid });
   } catch (error) {
     console.error('Error sending SMS:', error);

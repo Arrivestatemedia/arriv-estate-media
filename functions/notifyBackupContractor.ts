@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     
     const messageText = `Congratulations! You've been assigned to: ${job.title} at ${job.location} on ${job.date} at ${job.start_time}. Pay: $${job.pay_rate}. - Arriv`;
     
-    await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+    const response = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -41,6 +41,15 @@ Deno.serve(async (req) => {
         'To': phoneNumber,
         'Body': messageText,
       }).toString(),
+    });
+
+    await base44.asServiceRole.entities.MessageLog.create({
+      message_type: 'sms',
+      recipient_type: 'media_partner',
+      recipient_phone: phoneNumber,
+      message_content: messageText,
+      job_id: jobId,
+      status: response.ok ? 'success' : 'failed'
     });
 
     return Response.json({ success: true });
