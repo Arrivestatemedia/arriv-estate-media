@@ -202,6 +202,7 @@ Deno.serve(async (req) => {
       pictureCount: uploadedPictures.length
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('Upload error:', error);
+    return Response.json({ error: error.message || 'Unknown error occurred' }, { status: 500 });
   }
 });
