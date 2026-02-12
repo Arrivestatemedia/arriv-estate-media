@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
     const email = formData.get('email');
     const phone = formData.get('phone');
     const address = formData.get('address');
+    const dob = formData.get('dob');
     const ssn = formData.get('ssn');
     const linkedin = formData.get('linkedin');
     const portfolioLink = formData.get('portfolioLink');
@@ -117,6 +118,7 @@ Deno.serve(async (req) => {
       email,
       phone,
       address,
+      dob,
       ssn: ssn.slice(-4),
       linkedin,
       portfolio_link: portfolioLink,

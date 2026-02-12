@@ -11,6 +11,7 @@ export default function JobApplication() {
     email: '',
     phone: '',
     address: '',
+    dob: '',
     ssn: '',
     linkedin: '',
     portfolioLink: '',
@@ -47,6 +48,7 @@ export default function JobApplication() {
       formPayload.append('email', formData.email);
       formPayload.append('phone', formData.phone);
       formPayload.append('address', formData.address);
+      formPayload.append('dob', formData.dob);
       formPayload.append('ssn', formData.ssn);
       formPayload.append('linkedin', formData.linkedin);
       formPayload.append('portfolioLink', formData.portfolioLink);
@@ -60,7 +62,7 @@ export default function JobApplication() {
 
       if (response.data.success) {
         setSubmitted(true);
-        setFormData({ fullName: '', email: '', phone: '', address: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '' });
+        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '' });
         setVideoFiles([]);
         setPictureFiles([]);
       }
@@ -145,6 +147,17 @@ export default function JobApplication() {
                     onChange={handleInputChange}
                     required
                     placeholder="123 Main St, City, State 12345"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth *</label>
+                  <Input
+                    type="date"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleInputChange}
+                    required
                   />
                 </div>
 
@@ -279,7 +292,7 @@ export default function JobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
