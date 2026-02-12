@@ -48,14 +48,6 @@ export default function JobApplication() {
     setError('');
 
     try {
-      // Check if user is authenticated
-      const isAuth = await base44.auth.isAuthenticated();
-      if (!isAuth) {
-        setError('You must be logged in to submit an application');
-        setLoading(false);
-        return;
-      }
-
       // Upload files to get URLs
       const videoUrls = [];
       const pictureUrls = [];

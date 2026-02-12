@@ -59,6 +59,7 @@ import ContractorDashboard from './pages/ContractorDashboard';
 import ContractorSignup from './pages/ContractorSignup';
 import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
+import JobApplication from './pages/JobApplication';
 import JobBoard from './pages/JobBoard';
 import MediaPartnerDashboard from './pages/MediaPartnerDashboard';
 import MediaPartnerSignup from './pages/MediaPartnerSignup';
@@ -67,7 +68,6 @@ import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import JobApplication from './pages/JobApplication';
 import __Layout from './Layout.jsx';
 
 
@@ -84,6 +84,7 @@ export const PAGES = {
     "ContractorSignup": ContractorSignup,
     "Dashboard": Dashboard,
     "DeleteAccountRequest": DeleteAccountRequest,
+    "JobApplication": JobApplication,
     "JobBoard": JobBoard,
     "MediaPartnerDashboard": MediaPartnerDashboard,
     "MediaPartnerSignup": MediaPartnerSignup,
@@ -92,7 +93,6 @@ export const PAGES = {
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
-    "JobApplication": JobApplication,
 }
 
 export const pagesConfig = {
