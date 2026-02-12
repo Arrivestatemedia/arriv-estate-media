@@ -120,8 +120,8 @@ export default function JobBoard() {
   };
 
   const handleCancelSubmit = (jobId, reason) => {
-    console.log("Cancelling job:", jobId, "Reason:", reason);
-    cancelMutation.mutate({ jobId, reason });
+    const userEmail = localStorage.getItem('user_email');
+    cancelMutation.mutate({ jobId, reason, userEmail });
   };
 
   const handleBookBackup = (job, phoneNumber) => {
