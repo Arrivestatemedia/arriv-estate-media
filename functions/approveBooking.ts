@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       body: emailBody
     });
 
-    await base44.asServiceRole.entities.MessageLog.create({
+    const emailLogResult = await base44.asServiceRole.entities.MessageLog.create({
       message_type: 'email',
       recipient_type: 'client',
       recipient_email: booking.client_email,
@@ -33,9 +33,10 @@ Deno.serve(async (req) => {
       status: 'success'
     });
 
-    // Send Google Calendar invite to client
-    try {
-      const calendarAccessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+    // Send Google Calendar invite to client only after email is confirmed
+    if (emailLogResult) {
+      try {
+        const calendarAccessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
       
       const [time, period] = booking.preferred_time.split(' ');
       let [hours, minutes] = time.split(':').map(Number);
@@ -95,6 +96,10 @@ Deno.serve(async (req) => {
         status: 'failed',
         error_message: error.message
       });
+    }
+    } catch (error) {
+    console.error('Calendar access error:', error);
+    }
     }
 
     return Response.json({ success: true, bookingId: bookingId });
