@@ -57,6 +57,27 @@ The Arriv Team
         subject: `New Job Posted: ${job.title}`,
         body: emailBody,
         from_name: 'Arriv'
+      }).then(() => {
+        return base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'email',
+          recipient_type: 'media_partner',
+          recipient_email: mediaPartner.email,
+          message_content: emailBody,
+          subject: `New Job Posted: ${job.title}`,
+          job_id: job.id,
+          status: 'success'
+        });
+      }).catch((error) => {
+        return base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'email',
+          recipient_type: 'media_partner',
+          recipient_email: mediaPartner.email,
+          message_content: emailBody,
+          subject: `New Job Posted: ${job.title}`,
+          job_id: job.id,
+          status: 'failed',
+          error_message: error.message
+        });
       });
     });
 
