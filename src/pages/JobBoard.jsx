@@ -258,13 +258,25 @@ export default function JobBoard() {
           success={cancelSuccess}
           onOpenChange={(open) => {
             if (!open && cancelJob) {
-              // Dialog is closing - reassign the job
-              base44.functions.invoke('reassignJob', { jobId: cancelJob.id })
+              // Dialog is closing - reassign the job and notify admin
+              const storedEmail = localStorage.getItem('user_email');
+              const storedName = localStorage.getItem('user_name');
+              const contractorEmail = user?.email || storedEmail;
+              const contractorName = user?.full_name || storedName;
+
+              Promise.all([
+                base44.functions.invoke('reassignJob', { jobId: cancelJob.id }),
+                base44.functions.invoke('notifyAdminOfCancellation', { 
+                  jobId: cancelJob.id,
+                  contractorName,
+                  contractorEmail
+                })
+              ])
                 .then(() => {
                   queryClient.invalidateQueries({ queryKey: ["jobs"] });
                   navigate(createPageUrl("JobBoard"));
                 })
-                .catch(err => console.error('Reassign error:', err));
+                .catch(err => console.error('Error:', err));
             }
             setCancelDialogOpen(open);
             if (!open) {
