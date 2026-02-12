@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
         booking: bookingForNotification,
         type: 'cancellation',
-        phoneNumbers: [job.backup_booked_by_phone, '4047891107']
+        phoneNumbers: [job.backup_booked_by_phone, '4047891107'],
+        sendEmail: job.backup_booked_by_name !== 'Bradley Burke'
       });
     }
 
