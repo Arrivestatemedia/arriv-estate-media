@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isLoading, success }) {
+export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isLoading, success, onClose }) {
   const [reason, setReason] = useState("");
 
   const handleSubmit = () => {
@@ -20,10 +20,23 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
     }
   };
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose(job);
+    }
+    onOpenChange(false);
+  };
+
   if (!job) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen && success) {
+        handleClose();
+      } else {
+        onOpenChange(isOpen);
+      }
+    }}>
       <DialogContent className="border-2 border-[#B8956A]/30">
         {success ? (
           <>
@@ -40,7 +53,7 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
             </div>
             <DialogFooter>
               <Button
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
                 className="bg-[#B8956A] hover:bg-[#A68559] text-white"
               >
                 Close
