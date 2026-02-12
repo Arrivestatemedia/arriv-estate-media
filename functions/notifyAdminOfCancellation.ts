@@ -24,13 +24,7 @@ Deno.serve(async (req) => {
     const fromPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
     const toPhone = "4047891107";
 
-    let message = `CONTRACTOR CANCELLATION ALERT\n\nContractor: ${contractorName || contractorEmail}\nJob: ${job.title}\nLocation: ${job.location}\nDate: ${job.date}\nPay: $${job.pay_rate}\n\n`;
-
-    if (job.backup_booked_by) {
-      message += `✅ BACKUP ASSIGNED: ${job.backup_booked_by_name} (${job.backup_booked_by_phone})\nBackup will be promoted to primary shooter.`;
-    } else {
-      message += `⚠️ NO BACKUP AVAILABLE\nThis job is now open on the job board.`;
-    }
+    const message = `CONTRACTOR CANCELLATION ALERT\n\nContractor: ${contractorName || contractorEmail}\nJob: ${job.title}\nLocation: ${job.location}\nDate: ${job.date}\nPay: $${job.pay_rate}\n\nThis job is now available on the job board.`;
 
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
