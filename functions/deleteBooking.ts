@@ -11,6 +11,10 @@ Deno.serve(async (req) => {
 
     const { bookingId } = await req.json();
 
+    if (!bookingId) {
+      return Response.json({ error: 'Booking ID is required' }, { status: 400 });
+    }
+
     // Delete the booking
     await base44.asServiceRole.entities.Booking.delete(bookingId);
 
