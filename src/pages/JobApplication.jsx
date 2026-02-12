@@ -17,7 +17,9 @@ export default function JobApplication() {
     portfolioLink: '',
     lastRelatedJob: '',
     whyGoodFit: '',
+    race: '',
     backgroundCheckAgreed: false,
+    eEOCagreed: false,
   });
   const [videoFiles, setVideoFiles] = useState([]);
   const [pictureFiles, setPictureFiles] = useState([]);
@@ -55,7 +57,9 @@ export default function JobApplication() {
       formPayload.append('portfolioLink', formData.portfolioLink);
       formPayload.append('lastRelatedJob', formData.lastRelatedJob);
       formPayload.append('whyGoodFit', formData.whyGoodFit);
+      formPayload.append('race', formData.race);
       formPayload.append('backgroundCheckAgreed', formData.backgroundCheckAgreed);
+      formPayload.append('eEOCagreed', formData.eEOCagreed);
 
       videoFiles.forEach((file) => formPayload.append('videos', file));
       pictureFiles.forEach((file) => formPayload.append('pictures', file));
@@ -64,7 +68,7 @@ export default function JobApplication() {
 
       if (response.data.success) {
         setSubmitted(true);
-        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', backgroundCheckAgreed: false });
+        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, eEOCagreed: false });
         setVideoFiles([]);
         setPictureFiles([]);
       }
@@ -213,6 +217,25 @@ export default function JobApplication() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Race/Ethnicity (Optional)</label>
+                  <select
+                    name="race"
+                    value={formData.race}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    <option value="">Prefer not to answer</option>
+                    <option value="white">White</option>
+                    <option value="black_african_american">Black or African American</option>
+                    <option value="hispanic_latino">Hispanic or Latino</option>
+                    <option value="asian">Asian</option>
+                    <option value="native_american">Native American or Alaska Native</option>
+                    <option value="pacific_islander">Native Hawaiian or Pacific Islander</option>
+                    <option value="two_or_more">Two or more races</option>
+                  </select>
+                </div>
+
                 <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
                   <input
                     type="checkbox"
@@ -224,6 +247,20 @@ export default function JobApplication() {
                   />
                   <label htmlFor="bgCheck" className="text-xs text-slate-700 leading-relaxed">
                     I hereby authorize Arriv Estate Media LLC and its designees to conduct a comprehensive background check, including but not limited to criminal history, employment verification, and financial history. I understand that any misrepresentation or omission of material facts may result in immediate termination of this application or any resulting employment. I acknowledge that this authorization is valid for one year from the date hereof.
+                  </label>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <input
+                    type="checkbox"
+                    name="eEOCagreed"
+                    checked={formData.eEOCagreed}
+                    onChange={handleInputChange}
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                    id="eeoc"
+                  />
+                  <label htmlFor="eeoc" className="text-xs text-slate-700 leading-relaxed">
+                    <strong>Equal Employment Opportunity Notice:</strong> Arriv Estate Media LLC is an Equal Employment Opportunity employer. We are committed to building and maintaining a diverse and inclusive workforce. We provide equal employment opportunities to all qualified applicants and employees without regard to race, color, religion, sex, national origin, age, disability, sexual orientation, gender identity, veteran status, or any other characteristic protected by applicable federal, state, or local law. This commitment applies to all aspects of employment, including recruitment, hiring, compensation, promotion, and termination.
                   </label>
                 </div>
 
@@ -308,7 +345,7 @@ export default function JobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed || !formData.eEOCagreed}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
