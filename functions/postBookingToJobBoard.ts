@@ -55,7 +55,10 @@ Deno.serve(async (req) => {
       status: 'open',
       from_booking: true,
       package: booking.package,
-      add_ons: booking.add_ons || []
+      add_ons: booking.add_ons || [],
+      client_name: booking.client_name,
+      client_email: booking.client_email,
+      client_phone: booking.client_phone
     });
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
