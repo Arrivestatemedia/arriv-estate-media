@@ -20,6 +20,37 @@ Deno.serve(async (req) => {
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
 
+    // Find or create "Job Applications" folder
+    const folderQuery = await fetch(
+      'https://www.googleapis.com/drive/v3/files?q=name="Job Applications"+and+mimeType="application/vnd.google-apps.folder"+and+trashed=false&spaces=drive&fields=files(id,name)',
+      {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      }
+    );
+
+    let folderId;
+    const folderRes = await folderQuery.json();
+
+    if (folderRes.files && folderRes.files.length > 0) {
+      folderId = folderRes.files[0].id;
+    } else {
+      // Create the folder if it doesn't exist
+      const createFolderRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'Job Applications',
+          mimeType: 'application/vnd.google-apps.folder',
+        }),
+      });
+
+      const createdFolder = await createFolderRes.json();
+      folderId = createdFolder.id;
+    }
+
     const uploadedVideos = [];
     const uploadedPictures = [];
 
@@ -29,9 +60,13 @@ Deno.serve(async (req) => {
       const blob = new Blob([bytes], { type: videoFile.type });
       
       const uploadFormData = new FormData();
+      uploadFormData.append('metadata', new Blob([JSON.stringify({
+        name: videoFile.name,
+        parents: [folderId],
+      })], { type: 'application/json' }));
       uploadFormData.append('file', blob, videoFile.name);
 
-      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -51,9 +86,13 @@ Deno.serve(async (req) => {
       const blob = new Blob([bytes], { type: pictureFile.type });
       
       const uploadFormData = new FormData();
+      uploadFormData.append('metadata', new Blob([JSON.stringify({
+        name: pictureFile.name,
+        parents: [folderId],
+      })], { type: 'application/json' }));
       uploadFormData.append('file', blob, pictureFile.name);
 
-      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
