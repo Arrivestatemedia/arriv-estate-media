@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
         ]
       };
 
-      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendNotifications=true', {
+      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/info@arrivestatemedia.com/events?sendNotifications=true', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${calendarAccessToken}`,
