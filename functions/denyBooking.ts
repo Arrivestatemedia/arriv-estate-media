@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       const emailMessage = `To: ${booking.client_email}\nSubject: Booking Request Update\n\n${emailBody}`;
       const encodedEmail = btoa(emailMessage).replace(/\+/g, '-').replace(/\//g, '_');
 
-      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+      const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${gmailAccessToken}`,
@@ -36,8 +36,26 @@ Deno.serve(async (req) => {
           raw: encodedEmail
         })
       });
+
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: emailBody,
+        subject: 'Booking Request Update',
+        status: response.ok ? 'success' : 'failed'
+      });
     } catch (error) {
       console.error('Failed to send denial email:', error);
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: `Booking denial email for ${booking.property_address}`,
+        subject: 'Booking Request Update',
+        status: 'failed',
+        error_message: error.message
+      });
     }
 
     return Response.json({ success: true });

@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
         .replace(/\//g, '_')
         .replace(/=/g, '');
 
-      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+      const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -93,8 +93,26 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ raw: base64urlMessage })
       });
+
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'admin',
+        recipient_email: adminEmail,
+        message_content: emailBody,
+        subject: emailSubject,
+        status: response.ok ? 'success' : 'failed'
+      });
     } catch (error) {
       console.error('Admin email error:', error);
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'admin',
+        recipient_email: adminEmail,
+        message_content: `New booking request from ${booking.client_name}`,
+        subject: `New Booking Request - ${booking.client_name}`,
+        status: 'failed',
+        error_message: error.message
+      });
     }
 
     // Send client confirmation email
@@ -127,7 +145,7 @@ Deno.serve(async (req) => {
         .replace(/\//g, '_')
         .replace(/=/g, '');
 
-      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+      const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -135,8 +153,26 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ raw: base64urlMessage })
       });
+
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: emailBody,
+        subject: emailSubject,
+        status: response.ok ? 'success' : 'failed'
+      });
     } catch (error) {
       console.error('Client email error:', error);
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: booking.client_email,
+        message_content: `Booking confirmation for ${booking.property_address}`,
+        subject: 'Your Booking Request Confirmation',
+        status: 'failed',
+        error_message: error.message
+      });
     }
 
     return Response.json({ success: true, booking: createdBooking });
