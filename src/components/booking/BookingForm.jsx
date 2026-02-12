@@ -8,6 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Clock } from "lucide-react";
 import { format, isWeekend, setHours, setMinutes, parse } from "date-fns";
+import { cn } from "@/lib/utils";
+
+const inputStyles = "";
 
 const timeSlots = {
   weekday: ["3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM"],
