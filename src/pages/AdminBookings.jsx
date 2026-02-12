@@ -283,7 +283,7 @@ export default function AdminBookings() {
                 >
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start gap-3">
-                      {(booking.status === 'approved' || booking.status === 'denied') && (
+                      {(booking.status === 'pending' || booking.status === 'approved' || booking.status === 'denied') && (
                         <Checkbox
                           checked={selectedForDelete.has(booking.id)}
                           onCheckedChange={() => toggleSelectBooking(booking.id)}
