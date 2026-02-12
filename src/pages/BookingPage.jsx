@@ -386,6 +386,7 @@ export default function BookingPage() {
             compatibility. Custom quotes available for luxury, large acreage, or complex shoots.
           </p>
         </div>
+        )}
 
         {(selectedPackage || cartAddOns.length > 0) && (
           <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A] p-6 mb-8">
