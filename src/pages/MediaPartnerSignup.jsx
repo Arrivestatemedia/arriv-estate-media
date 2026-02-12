@@ -73,6 +73,7 @@ export default function MediaPartnerSignup() {
                 Full Name
               </label>
               <Input
+                type="text"
                 required
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
@@ -99,6 +100,7 @@ export default function MediaPartnerSignup() {
               </label>
               <Input
                 type="tel"
+                inputMode="tel"
                 required
                 value={formData.phone_number}
                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}

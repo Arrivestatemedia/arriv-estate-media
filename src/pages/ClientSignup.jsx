@@ -99,6 +99,7 @@ export default function ClientSignup() {
               </label>
               <Input
                 type="tel"
+                inputMode="tel"
                 required
                 value={formData.phone_number}
                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}

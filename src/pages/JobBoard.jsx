@@ -101,6 +101,21 @@ export default function JobBoard() {
 
   const backupMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ["jobs"] });
+      const previousJobs = queryClient.getQueryData(["jobs", filter, user?.email]);
+      
+      queryClient.setQueryData(["jobs", filter, user?.email], (old) =>
+        old?.map((job) => (job.id === id ? { ...job, ...data } : job))
+      );
+      
+      return { previousJobs };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousJobs) {
+        queryClient.setQueryData(["jobs", filter, user?.email], context.previousJobs);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     },

@@ -1,12 +1,14 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 import { Briefcase, LayoutDashboard, Settings } from "lucide-react";
 import NewJobsBadge from "./NewJobsBadge";
 
 export default function MobileBottomTabs({ user }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
+  const scrollPositions = useRef({});
 
   const isAdmin = user?.role === "admin";
   const isClient = user?.user_type === "client";
@@ -32,6 +34,30 @@ export default function MobileBottomTabs({ user }) {
       ]
     : [];
 
+  useEffect(() => {
+    const saveScrollPosition = () => {
+      scrollPositions.current[currentPath] = window.scrollY;
+    };
+    
+    window.addEventListener('scroll', saveScrollPosition);
+    return () => window.removeEventListener('scroll', saveScrollPosition);
+  }, [currentPath]);
+
+  useEffect(() => {
+    const savedPosition = scrollPositions.current[currentPath];
+    if (savedPosition !== undefined) {
+      window.scrollTo(0, savedPosition);
+    }
+  }, [currentPath]);
+
+  const handleTabClick = (e, page) => {
+    const targetPath = `/${page}`;
+    if (currentPath === targetPath) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   if (!user || tabs.length === 0) return null;
 
   return (
@@ -50,6 +76,7 @@ export default function MobileBottomTabs({ user }) {
             <Link
               key={tab.page}
               to={createPageUrl(tab.page)}
+              onClick={(e) => handleTabClick(e, tab.page)}
               className="flex flex-col items-center justify-center flex-1 h-full relative"
               style={{ userSelect: 'none' }}
             >
