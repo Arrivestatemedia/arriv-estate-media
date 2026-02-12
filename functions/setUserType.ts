@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
 
         const { user_type } = await req.json();
 
-        if (!user_type || !['contractor', 'customer'].includes(user_type)) {
+        if (!user_type || !['contractor', 'client'].includes(user_type)) {
             return Response.json({ error: 'Invalid user_type' }, { status: 400 });
         }
 

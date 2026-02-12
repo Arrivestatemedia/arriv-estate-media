@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       console.error('Admin email error:', error);
     }
 
-    // Send customer confirmation email
+    // Send client confirmation email
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ raw: base64urlMessage })
       });
     } catch (error) {
-      console.error('Customer email error:', error);
+      console.error('Client email error:', error);
     }
 
     return Response.json({ success: true, booking: createdBooking });

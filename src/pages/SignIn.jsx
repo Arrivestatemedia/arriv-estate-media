@@ -110,9 +110,9 @@ export default function SignIn() {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => window.location.href = '/CustomerSignup'}
+                  onClick={() => window.location.href = '/ClientSignup'}
                 >
-                  Customer Sign Up
+                  Client Sign Up
                 </Button>
                 <Button
                   type="button"
