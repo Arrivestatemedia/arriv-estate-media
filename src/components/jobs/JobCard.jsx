@@ -123,13 +123,20 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
           )}
 
           <div className="flex gap-2">
-            {isAdmin ? (
+            {isAdmin && job.status !== "open" ? (
               <Button
                 onClick={() => onManage(job)}
                 variant="outline"
                 className="w-full text-sm font-medium border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white"
               >
                 Manage
+              </Button>
+            ) : isAdmin && job.status === "open" ? (
+              <Button
+                onClick={() => onBook(job)}
+                className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
+              >
+                Book This Gig
               </Button>
             ) : job.status === "open" ? (
               <Button
