@@ -90,7 +90,7 @@ export default function JobApplication() {
           <CardContent className="pt-6 text-center">
             <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Application Submitted!</h2>
-            <p className="text-slate-600 mb-4">Your job application has been received and will be reviewed shortly.</p>
+            <p className="text-slate-600 mb-4">Your job application has been received and will be reviewed. If we like what we see, someone from our team will be in contact with you shortly.</p>
             <Button onClick={() => setSubmitted(false)}>Submit Another Application</Button>
           </CardContent>
         </Card>
