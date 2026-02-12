@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         attendees: [{ email: booking.client_email }]
       };
 
-      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=externalOnly', {
+      const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(adminEmail)}/events?sendUpdates=externalOnly`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
