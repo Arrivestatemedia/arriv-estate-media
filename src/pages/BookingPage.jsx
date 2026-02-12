@@ -237,17 +237,19 @@ export default function BookingPage() {
             {isPricingForAdmin ? "Built specifically for listings that want media that just works." : "Your compensation for each job type"}
           </p>
 
-          <div className="space-y-4 text-left max-w-2xl mx-auto mb-8">
-            <p className="text-[#1A1A1A]/80">
-              We specialize in clean, unbranded MLS walkthrough videos that can be published
-              immediately without compliance issues. Photos, 3D tours, and add-ons are layered in
-              when they help the listing.
-            </p>
-            <p className="text-[#1A1A1A]/80">
-              All shoots include editing, color correction, and MLS-ready delivery. Custom packages
-              available.
-            </p>
-          </div>
+          {isPricingForAdmin && (
+            <div className="space-y-4 text-left max-w-2xl mx-auto mb-8">
+              <p className="text-[#1A1A1A]/80">
+                We specialize in clean, unbranded MLS walkthrough videos that can be published
+                immediately without compliance issues. Photos, 3D tours, and add-ons are layered in
+                when they help the listing.
+              </p>
+              <p className="text-[#1A1A1A]/80">
+                All shoots include editing, color correction, and MLS-ready delivery. Custom packages
+                available.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
