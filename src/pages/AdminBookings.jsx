@@ -406,7 +406,9 @@ export default function AdminBookings() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-[var(--text-secondary)] mb-1">Property Address</p>
-                    <p className="text-[var(--text-primary)] font-semibold">{selectedBooking.property_address}</p>
+                    <p className="text-[var(--text-primary)] font-semibold">
+                      {selectedBooking.street_address || selectedBooking.property_address}, {selectedBooking.city}, {selectedBooking.state}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
