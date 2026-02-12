@@ -51,6 +51,9 @@ export default function AdminBookings() {
     onError: () => {
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    },
     onSettled: () => {
       setLoadingBookingId(null);
     }
@@ -68,6 +71,9 @@ export default function AdminBookings() {
       );
     },
     onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
     },
     onSettled: () => {
