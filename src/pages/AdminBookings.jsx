@@ -263,13 +263,13 @@ export default function AdminBookings() {
           </Card>
         ) : (
           <>
-            {deletableBookings.length > 0 && (
+            {filteredBookings.length > 0 && (
               <div className="mb-4 flex items-center gap-2 p-3 bg-[var(--accent-color)]/5 rounded border border-[var(--border-color)]">
                 <Checkbox
                   checked={allDeleteableSelected}
                   onCheckedChange={handleSelectAll}
                 />
-                <span className="text-sm text-[var(--text-secondary)]">Select all deletable bookings</span>
+                <span className="text-sm text-[var(--text-secondary)]">Select all</span>
               </div>
             )}
             <div className="grid gap-4">
