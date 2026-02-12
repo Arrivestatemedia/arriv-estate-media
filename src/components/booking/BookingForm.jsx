@@ -61,13 +61,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
   const autocompleteService = useRef(null);
   const placesService = useRef(null);
 
-  useEffect(() => {
-    // Initialize Google Places Autocomplete
-    if (window.google && !autocompleteService.current) {
-      autocompleteService.current = new window.google.maps.places.AutocompleteService();
-      placesService.current = new window.google.maps.places.PlacesService(document.createElement('div'));
-    }
-  }, []);
+
 
   useEffect(() => {
     if (formData.preferred_date) {
