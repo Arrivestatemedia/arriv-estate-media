@@ -20,7 +20,7 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-600 border-red-300" },
 };
 
-export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup }) {
+export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole }) {
   const type = typeConfig[job.type] || typeConfig.photo;
   const status = statusConfig[job.status] || statusConfig.open;
   const TypeIcon = type.icon;
@@ -28,6 +28,9 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const isBackupByMe = job.backup_booked_by === currentUserEmail;
   const [showPhoneInput, setShowPhoneInput] = React.useState(false);
   const [backupPhone, setBackupPhone] = React.useState(job.backup_booked_by_phone || '');
+  
+  // Show client pricing to admins, contractor pricing to media partners
+  const displayPrice = userRole === 'admin' ? job.client_price : job.pay_rate;
 
   const handleBackupWithPhone = () => {
     if (backupPhone.trim()) {
