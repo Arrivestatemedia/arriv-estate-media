@@ -113,6 +113,33 @@ export default function Dashboard() {
     setShowForm(true);
   };
 
+  const handleBook = (job) => {
+    // Admin booking the job
+    updateMutation.mutate({
+      id: job.id,
+      data: {
+        status: "booked",
+        booked_by: user?.email,
+        booked_by_name: user?.full_name,
+      },
+    });
+  };
+
+  const handleBookBackup = (job) => {
+    // This would be for non-admins, admins use onUpdateBackup
+  };
+
+  const handleUpdateBackup = (job, phone) => {
+    updateMutation.mutate({
+      id: job.id,
+      data: {
+        backup_booked_by: user?.email,
+        backup_booked_by_name: user?.full_name,
+        backup_booked_by_phone: phone,
+      },
+    });
+  };
+
   const now = new Date();
   
   const approvedJobs = jobs.filter((j) => j.from_booking === true);
