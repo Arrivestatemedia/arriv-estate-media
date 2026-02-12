@@ -35,6 +35,7 @@ Arriv Estate Media Team
 
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email',
+          recipient_type: 'admin',
           recipient_email: email,
           message_content: emailBody,
           subject: "Complete Your Arriv Estate Media Account Setup",

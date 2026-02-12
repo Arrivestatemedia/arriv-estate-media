@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
             const error = await response.text();
             await base44.asServiceRole.entities.MessageLog.create({
               message_type: 'sms',
+              recipient_type: user_type === 'client' ? 'client' : 'media_partner',
               recipient_phone: phone_number,
               message_content: message,
               status: 'failed',
@@ -73,6 +74,7 @@ Deno.serve(async (req) => {
 
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'sms',
+          recipient_type: user_type === 'client' ? 'client' : 'media_partner',
           recipient_phone: phone_number,
           message_content: message,
           status: 'success'
