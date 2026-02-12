@@ -43,39 +43,14 @@ Deno.serve(async (req) => {
     // If there's a backup, assign them as primary
     if (backupEmail) {
       // Update job - promote backup to primary
-      const updateData = {
+      await base44.asServiceRole.entities.Job.update(jobId, {
         booked_by: backupEmail,
         booked_by_name: backupName,
-        status: "booked"
-      };
-      
-      await base44.asServiceRole.entities.Job.update(jobId, updateData);
-      
-      // Clear backup fields in a separate update
-      await base44.asServiceRole.entities.Job.update(jobId, {
         backup_booked_by: null,
         backup_booked_by_name: null,
-        backup_booked_by_phone: null
+        backup_booked_by_phone: null,
+        status: "booked"
       });
-
-      // Send notification to backup contractor
-      if (backupPhone) {
-        const bookingForNotification = {
-          client_name: backupName,
-          client_email: backupEmail,
-          property_address: job.location,
-          preferred_date: job.date,
-          preferred_time: job.start_time,
-          package: job.type
-        };
-
-        await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
-          booking: bookingForNotification,
-          type: 'cancellation',
-          phoneNumbers: [backupPhone, '4047891107'],
-          sendEmail: backupName !== 'Bradley Burke'
-        });
-      }
     } else {
       // No backup, return to open
       await base44.asServiceRole.entities.Job.update(jobId, {
@@ -85,7 +60,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ success: true, message: 'Job cancelled successfully' });
+    // Return backup info for notifications
+    return Response.json({ 
+      success: true, 
+      message: 'Job cancelled successfully',
+      backupInfo: backupEmail ? {
+        email: backupEmail,
+        name: backupName,
+        phone: backupPhone,
+        location: job.location,
+        date: job.date,
+        start_time: job.start_time,
+        type: job.type
+      } : null
+    });
   } catch (error) {
     console.error('Cancel job error:', error);
     return Response.json({ error: `Failed to cancel job: ${error.message}` }, { status: 500 });
