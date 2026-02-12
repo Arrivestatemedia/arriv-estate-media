@@ -365,28 +365,28 @@ export default function BookingPage() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-        )}
+          </div>
+          )}
 
-        {isPricingForAdmin && (
-        <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 space-y-4">
-          <h3 className="font-semibold text-[#1A1A1A]">Payment</h3>
-          <ul className="space-y-2 text-sm text-[#1A1A1A]/70">
-            <li>• Standard invoicing upon delivery</li>
-            <li>
-              • <strong>Pay-at-closing available upon request</strong> (settled as a small
-              percentage of the final sale price)
-            </li>
-            <li>
-              • <strong>Availability is limited and scheduled on a first-come basis.</strong>
-            </li>
-          </ul>
-          <p className="text-xs text-[#1A1A1A]/50 italic pt-4 border-t border-[#1A1A1A]/10">
-            Notes: MLS platforms compress media differently, all deliverables are exported for MLS
-            compatibility. Custom quotes available for luxury, large acreage, or complex shoots.
-          </p>
-        </div>
-        )}
+          {isPricingForAdmin && (
+          <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 space-y-4">
+           <h3 className="font-semibold text-[#1A1A1A]">Payment</h3>
+           <ul className="space-y-2 text-sm text-[#1A1A1A]/70">
+             <li>• Standard invoicing upon delivery</li>
+             <li>
+               • <strong>Pay-at-closing available upon request</strong> (settled as a small
+               percentage of the final sale price)
+             </li>
+             <li>
+               • <strong>Availability is limited and scheduled on a first-come basis.</strong>
+             </li>
+           </ul>
+           <p className="text-xs text-[#1A1A1A]/50 italic pt-4 border-t border-[#1A1A1A]/10">
+             Notes: MLS platforms compress media differently, all deliverables are exported for MLS
+             compatibility. Custom quotes available for luxury, large acreage, or complex shoots.
+           </p>
+          </div>
+          )}
 
         {(selectedPackage || cartAddOns.length > 0) && (
           <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A] p-6 mb-8">
