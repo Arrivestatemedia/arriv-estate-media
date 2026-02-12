@@ -79,23 +79,54 @@ export default function JobBoard() {
 
   const bookMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ["jobs"] });
+      const previousJobs = queryClient.getQueryData(["jobs", filter, user?.email]);
+      
+      queryClient.setQueryData(["jobs", filter, user?.email], (old) =>
+        old?.map((job) => (job.id === id ? { ...job, ...data } : job))
+      );
+      
+      return { previousJobs };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousJobs) {
+        queryClient.setQueryData(["jobs", filter, user?.email], context.previousJobs);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setBookingJob(null);
-      navigate(createPageUrl("ContractorDashboard"));
+      navigate(createPageUrl("MediaPartnerDashboard"));
     },
   });
 
   const cancelMutation = useMutation({
     mutationFn: ({ jobId, reason }) => base44.functions.invoke('cancelJobWithNotification', { jobId, reason }),
-    onSuccess: (response) => {
-      // Job cancelled - contractor is no longer assigned
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      setCancelSuccess(true);
+    onMutate: async ({ jobId }) => {
+      await queryClient.cancelQueries({ queryKey: ["jobs"] });
+      const previousJobs = queryClient.getQueryData(["jobs", filter, user?.email]);
+      
+      queryClient.setQueryData(["jobs", filter, user?.email], (old) =>
+        old?.map((job) => 
+          job.id === jobId 
+            ? { ...job, status: 'open', booked_by: null, booked_by_name: null, backup_booked_by: null, backup_booked_by_name: null, backup_booked_by_phone: null } 
+            : job
+        )
+      );
+      
+      return { previousJobs };
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
       console.error('Cancel mutation error:', error);
       alert('Failed to cancel job: ' + (error.response?.data?.error || error.message));
+      if (context?.previousJobs) {
+        queryClient.setQueryData(["jobs", filter, user?.email], context.previousJobs);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      setCancelSuccess(true);
     },
   });
 

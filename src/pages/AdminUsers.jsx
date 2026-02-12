@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, AlertCircle } from "lucide-react";
+import { Trash2, AlertCircle, Mail, Phone, Calendar, Shield } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,11 +95,11 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] p-6">
+    <div className="min-h-screen bg-[var(--bg-primary)] p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#1A1A1A]">User Management</h1>
-          <p className="text-[#1A1A1A]/60 mt-1">Manage pending signups</p>
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">User Management</h1>
+          <p className="text-[var(--text-secondary)] mt-1">Manage pending signups</p>
         </div>
 
         {selectedUsers.size > 0 && (
@@ -122,7 +123,7 @@ export default function AdminUsers() {
           </Card>
         )}
 
-        <Card className="border-[#B8956A]/20">
+        <Card className="border-[var(--border-color)]">
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle>Pending Signups ({users.length})</CardTitle>
             <Checkbox
@@ -131,26 +132,27 @@ export default function AdminUsers() {
             />
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            {/* Desktop table view */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#B8956A]/20">
-                    <th className="text-left py-3 px-4 font-medium text-[#1A1A1A]">
+                  <tr className="border-b border-[var(--border-color)]">
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Select
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-[#1A1A1A]">
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Name
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-[#1A1A1A]">
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Email
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-[#1A1A1A]">
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Phone
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-[#1A1A1A]">
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Type
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-[#1A1A1A]">
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Action
                     </th>
                   </tr>
@@ -159,7 +161,7 @@ export default function AdminUsers() {
                   {users.map((u) => (
                     <tr
                       key={u.id}
-                      className="border-b border-[#B8956A]/10 hover:bg-[#B8956A]/5 transition-colors"
+                      className="border-b border-[var(--border-color)] hover:bg-[var(--accent-color)]/5 transition-colors"
                     >
                       <td className="py-3 px-4">
                         <Checkbox
@@ -169,17 +171,17 @@ export default function AdminUsers() {
                           }
                         />
                       </td>
-                      <td className="py-3 px-4 text-[#1A1A1A]">
+                      <td className="py-3 px-4 text-[var(--text-primary)]">
                         {u.full_name}
                       </td>
-                      <td className="py-3 px-4 text-[#1A1A1A]/70">{u.email}</td>
-                      <td className="py-3 px-4 text-[#1A1A1A]/70">
+                      <td className="py-3 px-4 text-[var(--text-secondary)]">{u.email}</td>
+                      <td className="py-3 px-4 text-[var(--text-secondary)]">
                         {u.phone_number}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-1 bg-[#B8956A]/10 text-[#B8956A] rounded text-xs font-medium">
-                          {u.user_type}
-                        </span>
+                        <Badge variant={u.user_type === "media_partner" ? "default" : "secondary"}>
+                          {u.user_type === "media_partner" ? "Media Partner" : "Client"}
+                        </Badge>
                       </td>
                       <td className="py-3 px-4">
                         <Button
@@ -197,7 +199,54 @@ export default function AdminUsers() {
                 </tbody>
               </table>
               {users.length === 0 && (
-                <div className="text-center py-8 text-[#1A1A1A]/60">
+                <div className="text-center py-8 text-[var(--text-secondary)]">
+                  No pending signups
+                </div>
+              )}
+            </div>
+
+            {/* Mobile card view */}
+            <div className="md:hidden space-y-4">
+              {users.map((u) => (
+                <div key={u.id} className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedUsers.has(u.id)}
+                        onCheckedChange={(checked) => handleSelectUser(u.id, checked)}
+                      />
+                      <div>
+                        <h3 className="font-semibold text-[var(--text-primary)]">{u.full_name}</h3>
+                        <Badge variant={u.user_type === "media_partner" ? "default" : "secondary"} className="text-xs mt-1">
+                          {u.user_type === "media_partner" ? "Media Partner" : "Client"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(u.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1"
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2 text-sm ml-7">
+                    <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                      <Mail className="w-4 h-4" />
+                      <span>{u.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                      <Phone className="w-4 h-4" />
+                      <span>{u.phone_number}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {users.length === 0 && (
+                <div className="text-center py-8 text-[var(--text-secondary)]">
                   No pending signups
                 </div>
               )}
