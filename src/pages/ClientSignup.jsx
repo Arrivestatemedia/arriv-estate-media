@@ -9,10 +9,13 @@ import { createPageUrl } from "../utils";
 
 export default function ClientSignup() {
   const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const roleFromUrl = urlParams.get('role') || 'user';
+  
   const [formData, setFormData] = useState({ 
     email: "", 
     full_name: "", 
-    phone_number: "",
+    phone_number: urlParams.get('phone_number') || "",
     password: "",
     password_confirmation: ""
   });
@@ -43,7 +46,8 @@ export default function ClientSignup() {
         full_name: formData.full_name,
         phone_number: formData.phone_number,
         password: formData.password,
-        user_type: "client"
+        user_type: "client",
+        user_role: roleFromUrl
       });
       window.location.href = '/SignIn';
     } catch (err) {
