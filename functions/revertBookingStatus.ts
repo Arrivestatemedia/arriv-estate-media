@@ -19,13 +19,31 @@ Deno.serve(async (req) => {
 
     const updateData = { status: 'pending' };
     
-    // Parse property_address if it exists and split fields are empty
-    if (booking.property_address && (!booking.street_address || !booking.city || !booking.state)) {
-      const parts = booking.property_address.split(',').map(p => p.trim());
-      if (parts.length >= 2) {
-        updateData.street_address = parts[0];
-        updateData.city = parts[parts.length - 2];
-        updateData.state = parts[parts.length - 1];
+    // Ensure required fields are present
+    if (!booking.street_address) {
+      if (booking.property_address) {
+        const parts = booking.property_address.split(',').map(p => p.trim());
+        updateData.street_address = parts[0] || 'N/A';
+      } else {
+        updateData.street_address = 'N/A';
+      }
+    }
+    
+    if (!booking.city) {
+      if (booking.property_address) {
+        const parts = booking.property_address.split(',').map(p => p.trim());
+        updateData.city = parts[parts.length - 2] || 'N/A';
+      } else {
+        updateData.city = 'N/A';
+      }
+    }
+    
+    if (!booking.state) {
+      if (booking.property_address) {
+        const parts = booking.property_address.split(',').map(p => p.trim());
+        updateData.state = parts[parts.length - 1] || 'N/A';
+      } else {
+        updateData.state = 'N/A';
       }
     }
 
