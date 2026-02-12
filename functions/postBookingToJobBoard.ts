@@ -13,6 +13,35 @@ Deno.serve(async (req) => {
 
     const booking = await base44.entities.Booking.get(bookingId);
 
+    // Contractor pricing mapping
+    const contractorPackagePricing = {
+      'mls_walkthrough': 90,
+      'photo_essentials': 175,
+      'photo_cinematic': 275,
+      'premium_bundle': 300
+    };
+
+    const contractorAddonPricing = {
+      'drone': 75,
+      '3d_tour': 75,
+      'twilight': 50,
+      'vertical_reel': 20,
+      'ai_staging': 0,
+      'rush_delivery': 0
+    };
+
+    // Calculate contractor pay rate
+    const packageRate = contractorPackagePricing[booking.package] || 0;
+    let addonsTotal = 0;
+    
+    if (booking.add_ons && Array.isArray(booking.add_ons)) {
+      addonsTotal = booking.add_ons.reduce((sum, addon) => {
+        return sum + (contractorAddonPricing[addon] || 0);
+      }, 0);
+    }
+
+    const contractorPayRate = packageRate + addonsTotal;
+
     await base44.asServiceRole.entities.Job.create({
       title: `Photography - ${booking.property_address}`,
       type: 'photo',
@@ -21,7 +50,7 @@ Deno.serve(async (req) => {
       date: booking.preferred_date,
       start_time: booking.preferred_time,
       duration_hours: 2,
-      pay_rate: booking.total_price,
+      pay_rate: contractorPayRate,
       status: 'open',
       from_booking: true
     });
