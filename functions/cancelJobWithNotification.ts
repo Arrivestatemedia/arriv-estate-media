@@ -43,13 +43,19 @@ Deno.serve(async (req) => {
     // If there's a backup, assign them as primary
     if (backupEmail) {
       // Update job - promote backup to primary
-      await base44.asServiceRole.entities.Job.update(jobId, {
+      const updateData = {
         booked_by: backupEmail,
         booked_by_name: backupName,
+        status: "booked"
+      };
+      
+      await base44.asServiceRole.entities.Job.update(jobId, updateData);
+      
+      // Clear backup fields in a separate update
+      await base44.asServiceRole.entities.Job.update(jobId, {
         backup_booked_by: null,
         backup_booked_by_name: null,
-        backup_booked_by_phone: null,
-        status: "booked",
+        backup_booked_by_phone: null
       });
 
       // Send notification to backup contractor
@@ -75,7 +81,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Job.update(jobId, {
         booked_by: null,
         booked_by_name: null,
-        status: "open",
+        status: "open"
       });
     }
 
