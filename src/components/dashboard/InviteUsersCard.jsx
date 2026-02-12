@@ -66,7 +66,7 @@ export default function InviteUsersCard() {
           </label>
           <Select value={userType} onValueChange={setUserType}>
             <SelectTrigger className="border-[#B8956A]/30 focus:border-[#B8956A]">
-              <SelectValue placeholder="Select user type" />
+              <SelectValue>{userType === 'client' ? 'Client' : 'Media Partner'}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="client">Client</SelectItem>
@@ -81,7 +81,7 @@ export default function InviteUsersCard() {
           </label>
           <Select value={userRole} onValueChange={setUserRole}>
             <SelectTrigger className="border-[#B8956A]/30 focus:border-[#B8956A]">
-              <SelectValue placeholder="Select user role" />
+              <SelectValue>{userRole === 'user' ? 'Regular User' : 'Admin'}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="user">Regular User</SelectItem>
