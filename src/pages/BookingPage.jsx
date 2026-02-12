@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation } from "@tanstack/react-query";
 import { createPageUrl } from "../utils";
@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
 
-const packages = [
+const clientPackages = [
   {
     id: "mls_walkthrough",
     name: "MLS Walkthrough",
