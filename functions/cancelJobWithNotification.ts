@@ -5,10 +5,10 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     const body = await req.json();
-    const { jobId, reason, userEmail } = body;
+    const { jobId, reason } = body;
 
-    if (!jobId || !userEmail) {
-      return Response.json({ error: 'Job ID and user email are required' }, { status: 400 });
+    if (!jobId) {
+      return Response.json({ error: 'Job ID is required' }, { status: 400 });
     }
 
     // Get the job
@@ -18,8 +18,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    if (job.booked_by !== userEmail) {
-      return Response.json({ error: 'You can only cancel your own bookings' }, { status: 403 });
+    if (!job.booked_by) {
+      return Response.json({ error: 'This job is not currently booked' }, { status: 400 });
     }
 
     // Remove contractor from job immediately
