@@ -1,22 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-function generateTemporaryPassword() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -39,19 +22,64 @@ Deno.serve(async (req) => {
     }
 
     const user = users[0];
-    const temporaryPassword = generateTemporaryPassword();
-    const hashedPassword = await hashPassword(temporaryPassword);
+    const adminEmail = 'BradCBurke@arrivestatemedia.com';
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-    // Update user's password with temporary one
-    await base44.asServiceRole.entities.PendingSignup.update(user.id, {
-      password_hash: hashedPassword
+    const emailSubject = 'Your Arriv Password Reset';
+    const emailBody = `Hello ${user.full_name},\n\nYou requested a password reset. Here is your password:\n\n${user.password_hash}\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nArriv Team`;
+
+    const messageLines = [
+      `To: ${email}`,
+      `From: ${adminEmail}`,
+      `Subject: ${emailSubject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset="UTF-8"',
+      '',
+      emailBody
+    ];
+
+    const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
+    const messageBytes = messageParts.reduce((acc, part) => {
+      const newAcc = new Uint8Array(acc.length + part.length);
+      newAcc.set(acc);
+      newAcc.set(part, acc.length);
+      return newAcc;
+    }, new Uint8Array());
+
+    const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ raw: base64urlMessage })
     });
 
-    // Send email with temporary password
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: email,
-      subject: 'Your Arriv Password Reset',
-      body: `Hello ${user.full_name},\n\nYou requested a password reset. Your temporary password is:\n\n${temporaryPassword}\n\nPlease use this password to log in. You can change it in your account settings.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nArriv Team`
+    if (!response.ok) {
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'email',
+        recipient_type: 'client',
+        recipient_email: email,
+        message_content: emailBody,
+        subject: emailSubject,
+        status: 'failed',
+        error_message: 'Failed to send password reset email'
+      });
+      throw new Error('Failed to send email');
+    }
+
+    await base44.asServiceRole.entities.MessageLog.create({
+      message_type: 'email',
+      recipient_type: 'client',
+      recipient_email: email,
+      message_content: emailBody,
+      subject: emailSubject,
+      status: 'success'
     });
 
     return Response.json({ 
