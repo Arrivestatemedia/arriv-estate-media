@@ -22,11 +22,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'This job is not currently booked' }, { status: 400 });
     }
 
-    // Remove contractor from job immediately
-    await base44.asServiceRole.entities.Job.update(jobId, {
-      booked_by: null,
-      booked_by_name: null
-    });
+    // Check if there's a backup contractor
+    if (job.backup_booked_by) {
+      // Assign backup to main position
+      await base44.asServiceRole.entities.Job.update(jobId, {
+        booked_by: job.backup_booked_by,
+        booked_by_name: job.backup_booked_by_name,
+        booked_by_phone: job.backup_booked_by_phone,
+        backup_booked_by: null,
+        backup_booked_by_name: null,
+        backup_booked_by_phone: null
+      });
+    } else {
+      // No backup - set job back to open
+      await base44.asServiceRole.entities.Job.update(jobId, {
+        status: 'open',
+        booked_by: null,
+        booked_by_name: null,
+        booked_by_phone: null
+      });
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
