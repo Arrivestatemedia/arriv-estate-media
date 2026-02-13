@@ -204,16 +204,16 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Link to={createPageUrl("JobBoard")} className="hover:no-underline">
+            <Link to={createPageUrl("JobBoard")} className="hover:no-underline block h-full">
               <Card className="border-2 border-[#B8956A]/20 bg-white cursor-pointer hover:shadow-lg transition-shadow h-full">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between pointer-events-none">
                     Booked
                     <TrendingUp className="w-4 h-4 text-blue-600" />
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-blue-600">{stats.booked}</p>
+                  <p className="text-3xl font-bold text-blue-600 pointer-events-none">{stats.booked}</p>
                 </CardContent>
               </Card>
             </Link>
