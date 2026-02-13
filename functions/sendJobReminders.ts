@@ -1,69 +1,45 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { toZonedTime, zonedTimeToUtc } from 'npm:date-fns-tz@3.0.0';
+import { toZonedTime, zonedTimeToUtc, fromZonedTime } from 'npm:date-fns-tz@3.0.0';
+import { parse as parseDate, format } from 'npm:date-fns@3.6.0';
 
 Deno.serve(async (req) => {
-  const debug = [];
-  
   try {
     const base44 = createClientFromRequest(req);
+    const tz = 'America/New_York';
+    const now = new Date();
+    const nowNY = toZonedTime(now, tz);
 
-    // Get all jobs
+    // Get all open, booked, or in_progress jobs
     let jobs = [];
     try {
       jobs = await base44.asServiceRole.entities.Job.list();
+      jobs = jobs.filter(j => !['cancelled', 'archived', 'completed'].includes(j.status));
     } catch (e) {
-      console.error('Failed to fetch jobs:', e.message);
       return Response.json({ error: `Failed to fetch jobs: ${e.message}` }, { status: 500 });
     }
-    const now = new Date();
-    debug.push(`Processing ${jobs.length} jobs at ${now.toISOString()}`);
 
     for (const job of jobs) {
-      if (!job.date || job.status === 'cancelled' || job.status === 'archived') {
-        debug.push(`Skipping job ${job.id}: date=${job.date}, status=${job.status}`);
-        continue;
-      }
-      
-      debug.push(`Checking job ${job.id}: date=${job.date}, time=${job.start_time}, status=${job.status}`);
+      if (!job.date || !job.booked_by) continue;
 
-      // Get the job date/time in user's timezone (America/New_York)
-      const jobDate = new Date(job.date);
-      let jobTime = job.start_time ? job.start_time : '09:00';
-      const tz = 'America/New_York';
+      // Parse job date and time
+      const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
+      let jobTime = job.start_time || '09:00';
 
-      // Convert 12-hour format to 24-hour format if needed
+      // Normalize to 24-hour format
       if (jobTime.includes('AM') || jobTime.includes('PM')) {
-        const timeParts = jobTime.replace('AM', '').replace('PM', '').trim().split(':');
-        let hour = parseInt(timeParts[0]);
-        const minute = parseInt(timeParts[1]);
-        const isPM = jobTime.includes('PM');
-        
-        if (isPM && hour !== 12) hour += 12;
-        if (!isPM && hour === 12) hour = 0;
-        
-        jobTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        const cleaned = jobTime.replace(/\s*(AM|PM)/i, '');
+        const [hour, minute] = cleaned.split(':').map(Number);
+        const isPM = jobTime.toUpperCase().includes('PM');
+        let h = hour;
+        if (isPM && h !== 12) h += 12;
+        if (!isPM && h === 12) h = 0;
+        jobTime = `${String(h).padStart(2, '0')}:${String(minute || 0).padStart(2, '0')}`;
       }
 
-      // Parse job time properly (HH:MM format)
+      // Create job datetime in ET timezone
       const [jobHour, jobMinute] = jobTime.split(':').map(Number);
-      
-      // Create job datetime properly in NY timezone, then convert to UTC
-      const jobDateString = jobDate.toISOString().split('T')[0]; // YYYY-MM-DD
-      const jobDatetimeString = `${jobDateString}T${jobTime}:00`;
-      
-      // Create a date in ET and convert to UTC
-      const jobDatetimeNY = new Date(jobDatetimeString);
-      const jobDatetimeUTC = zonedTimeToUtc(jobDatetimeNY, tz);
-
-      // Calculate reminder times
-      const nowNY = toZonedTime(now, tz);
-      const jobDateNY = toZonedTime(jobDate, tz);
-      const isSameDay = nowNY.toDateString() === jobDateNY.toDateString();
-      const nowHour = nowNY.getHours();
-      const nowMinutes = nowNY.getMinutes();
-      const timeDiffMs = jobDatetimeUTC.getTime() - now.getTime();
-      
-      debug.push(`Job ${job.id}: Now (NY) ${nowHour}:${String(nowMinutes).padStart(2, '0')}, Same day: ${isSameDay}, Time diff: ${(timeDiffMs / 1000 / 60).toFixed(1)} min`);
+      jobDate.setHours(jobHour, jobMinute, 0, 0);
+      const jobDatetimeUTC = fromZonedTime(jobDate, tz);
       
       const reminders = [
         {
