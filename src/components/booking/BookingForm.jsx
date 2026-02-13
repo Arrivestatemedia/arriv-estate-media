@@ -129,8 +129,10 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
-    } finally {
       setIsSubmitting(false);
+    } catch (error) {
+      setIsSubmitting(false);
+      console.error('Booking submission error:', error);
     }
   };
 
