@@ -188,10 +188,19 @@ export default function BookingPage() {
         selectedPackage={selectedPackage}
         cartAddOns={cartAddOns}
         addOns={addOns}
-        onSubmit={handleSubmitBooking}
+        onSubmit={editingBooking ? (formData) => {
+          requestChangesMutation.mutate({
+            bookingId: editingBooking.id,
+            changeRequest: formData
+          });
+        } : handleSubmitBooking}
         onCancel={() => {
           setShowBookingForm(false);
+          setEditingBooking(null);
+          window.location.href = createPageUrl('ClientBookings');
         }}
+        isEditing={!!editingBooking}
+        editingBooking={editingBooking}
       />
     );
   }
