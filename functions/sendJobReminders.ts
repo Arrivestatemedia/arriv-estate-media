@@ -86,8 +86,8 @@ Deno.serve(async (req) => {
               {
                 type: '9am_morning',
                 shouldSend: () => {
-                  // Send at 9am ET on job day
-                  return isSameDay && nowNY.getHours() === 9 && nowNY.getMinutes() < 5;
+                  // Send at 9am ET on job day (9:00-9:15 window)
+                  return isSameDay && nowNY.getHours() === 9 && nowNY.getMinutes() < 15;
                 }
               },
               {
