@@ -108,14 +108,6 @@ export default function ClientBookings() {
                           <Edit2 className="w-4 h-4" />
                         </Button>
                       </Link>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 border-red-300"
-                        onClick={() => setDeleteId(booking.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
                   </div>
                 </CardHeader>
