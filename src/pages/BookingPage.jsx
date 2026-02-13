@@ -156,6 +156,10 @@ export default function BookingPage() {
       setEditingBooking(null);
       window.location.href = createPageUrl('ClientBookings');
     },
+    onError: (error) => {
+      console.error('Change request failed:', error);
+      alert('Failed to submit change request: ' + (error?.message || 'Unknown error'));
+    },
   });
 
   const handleSelectPackage = (pkg) => {
