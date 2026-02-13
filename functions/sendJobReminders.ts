@@ -264,9 +264,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log('[DEBUG] All jobs processed:', debug);
     return Response.json({ 
       success: true, 
-      message: `Job reminders processed. Found 1 job. 9am_morning: skip, 24_hours_before: skip, 90_minutes_before: skip, 1_hour_before: skip`
+      message: 'Job reminders processed',
+      jobsChecked: jobs.length
     });
   } catch (error) {
     return Response.json({ 
