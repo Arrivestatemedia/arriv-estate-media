@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertCircle, CheckCircle2, Wallet } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function PayoutSettings({ user }) {
+export default function PayoutSettings({ user, onSave }) {
   const [payoutMethod, setPayoutMethod] = useState(user?.payout_method || "");
   const [zelleInfo, setZelleInfo] = useState(user?.zelle_info || "");
   const [bankAccountNumber, setBankAccountNumber] = useState(user?.bank_account_number || "");
@@ -46,6 +46,7 @@ export default function PayoutSettings({ user }) {
       });
       
       setSuccess(true);
+      if (onSave) onSave();
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err.message || "Failed to update payout settings");
