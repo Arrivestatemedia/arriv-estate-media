@@ -20,25 +20,24 @@ Deno.serve(async (req) => {
       updateData.bank_routing_number = bank_routing_number;
     }
 
-    // Try User entity first, then PendingSignup
-    const users = await base44.asServiceRole.entities.User.filter({ email: email.toLowerCase() });
-    
-    if (users && users.length > 0) {
-      await base44.asServiceRole.entities.User.update(users[0].id, updateData);
-      return Response.json({ success: true, message: 'Updated User entity' });
-    }
-
-    // Fall back to PendingSignup
-    const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: email.toLowerCase() });
+    // Try PendingSignup first (most common for media partners)
+    const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: email });
     
     if (pendingSignups && pendingSignups.length > 0) {
       await base44.asServiceRole.entities.PendingSignup.update(pendingSignups[0].id, updateData);
       return Response.json({ success: true, message: 'Updated PendingSignup entity' });
     }
 
+    // Fall back to User entity
+    const users = await base44.asServiceRole.entities.User.filter({ email: email });
+    
+    if (users && users.length > 0) {
+      await base44.asServiceRole.entities.User.update(users[0].id, updateData);
+      return Response.json({ success: true, message: 'Updated User entity' });
+    }
+
     return Response.json({ error: 'User record not found' }, { status: 404 });
   } catch (error) {
-    console.error('Payout settings error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
