@@ -13,18 +13,15 @@ const timeSlots = {
   weekend: ["9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM"],
 };
 
-// Helper to parse YYYY-MM-DD string to local Date object (avoid timezone shifts)
+// Helper to parse YYYY-MM-DD string to local Date object
 const parseLocalDate = (dateString) => {
   if (!dateString) return undefined;
-  return new Date(`${dateString}T00:00:00`);
+  return parse(dateString, 'yyyy-MM-dd', new Date());
 };
 
-// Helper to format Date object to YYYY-MM-DD string (use UTC components)
+// Helper to format Date object to YYYY-MM-DD string
 const formatLocalDate = (date) => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return format(date, 'yyyy-MM-dd');
 };
 
 export default function EditBookingDialog({ booking, open, onOpenChange, onSave }) {
