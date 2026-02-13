@@ -112,7 +112,11 @@ export default function BookedJobsList({ jobs, loading }) {
                   </div>
                   <div className="flex items-center gap-2 text-[#1A1A1A]/70">
                     <Calendar className="w-4 h-4 text-[#B8956A]" />
-                    {format(new Date(job.date), 'MMM d, yyyy')}
+                    {(() => {
+                      const date = new Date(job.date);
+                      date.setDate(date.getDate() + 1);
+                      return format(date, 'MMM d, yyyy');
+                    })()}
                   </div>
                   {job.start_time && (
                     <div className="flex items-center gap-2 text-[#1A1A1A]/70">
