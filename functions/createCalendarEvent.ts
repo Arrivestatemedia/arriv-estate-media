@@ -13,38 +13,41 @@ Deno.serve(async (req) => {
         
         const accessToken = await base44.asServiceRole.connectors.getAccessToken("googlecalendar");
         
-        // Parse time and create start/end datetime
+        // Parse time and create proper datetime strings
         const [time, period] = booking.preferred_time.split(' ');
         let [hours, minutes] = time.split(':').map(Number);
         
         if (period === 'PM' && hours !== 12) hours += 12;
         if (period === 'AM' && hours === 12) hours = 0;
         
-        const startDateTime = new Date(booking.preferred_date);
-        startDateTime.setHours(hours, minutes, 0, 0);
+        const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
+        const dateStr = booking.preferred_date; // YYYY-MM-DD format
+        const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+        const startDateTime = `${dateStr}T${timeStr}`;
         
-        const endDateTime = new Date(startDateTime);
-        endDateTime.setHours(hours + 2, minutes, 0, 0); // 2 hour default duration
+        const endHours = hours + 2;
+        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+        const endDateTime = `${dateStr}T${endTimeStr}`;
         
         const event = {
-            summary: `Booking: ${booking.property_address}`,
-            description: `Client: ${booking.client_name}\nEmail: ${booking.client_email}\nPhone: ${booking.client_phone || 'N/A'}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'None'}`,
+            summary: `Arriv Estate Media - ${booking.client_name} - ${booking.package}`,
+            description: `Property: ${propertyAddress}\nPackage: ${booking.package}\nClient: ${booking.client_name}\nEmail: ${booking.client_email}\nPhone: ${booking.client_phone || 'N/A'}\nNotes: ${booking.notes || 'None'}`,
             start: {
-                dateTime: startDateTime.toISOString(),
+                dateTime: startDateTime,
                 timeZone: 'America/New_York'
             },
             end: {
-                dateTime: endDateTime.toISOString(),
+                dateTime: endDateTime,
                 timeZone: 'America/New_York'
             },
-            location: booking.property_address,
+            location: propertyAddress,
             attendees: [
                 { email: booking.client_email }
             ]
         };
 
         const response = await fetch(
-            'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+            'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all',
             {
                 method: 'POST',
                 headers: {
