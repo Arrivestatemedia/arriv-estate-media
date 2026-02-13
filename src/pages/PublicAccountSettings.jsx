@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Trash2, Mail, ArrowLeft } from "lucide-react";
+import { AlertCircle, Trash2, Mail, ArrowLeft, Lock } from "lucide-react";
 import { createPageUrl } from "../utils";
 import {
   AlertDialog,
@@ -23,6 +23,8 @@ export default function PublicAccountSettings() {
   const [accountData, setAccountData] = useState(null);
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -94,6 +96,45 @@ export default function PublicAccountSettings() {
       }
     } catch (err) {
       setError('Failed to update account: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      setError('Please fill in all password fields');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    
+    try {
+      const response = await base44.functions.invoke('updateAccountDetails', {
+        accountId: accountData.id,
+        password: newPassword
+      });
+      
+      if (response.data.success) {
+        setNewPassword("");
+        setConfirmPassword("");
+        alert('Password updated successfully');
+      } else {
+        setError(response.data.error || 'Failed to update password');
+      }
+    } catch (err) {
+      setError('Failed to update password: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -224,12 +265,53 @@ export default function PublicAccountSettings() {
                 </div>
 
                 {error && (
-                  <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                    {error}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                   <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                     {error}
+                   </div>
+                 )}
+                </CardContent>
+                </Card>
+
+                <Card className="border-[#B8956A]/20">
+                <CardHeader>
+                <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
+                  <Lock className="w-5 h-5" />
+                  Change Password
+                </CardTitle>
+                <CardDescription>Update your account password</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-2">New Password</label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="border-[#B8956A]/30"
+                    placeholder="Enter new password"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-2">Confirm Password</label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="border-[#B8956A]/30"
+                    placeholder="Confirm password"
+                  />
+                </div>
+
+                <Button
+                  onClick={handleUpdatePassword}
+                  disabled={loading || !newPassword || !confirmPassword}
+                  className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                >
+                  Update Password
+                </Button>
+                </CardContent>
+                </Card>
 
             <Card className="border-[#B8956A]/20">
               <CardHeader>
