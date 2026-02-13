@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const result = await response.json();
     await base44.asServiceRole.entities.MessageLog.create({
       message_type: 'sms',
-      recipient_type: recipientType || 'media_partner',
+      recipient_type: recipientType ? recipientType.replace('_', '') : 'media_partner',
       recipient_phone: phone,
       message_content: message,
       job_id: jobId,
