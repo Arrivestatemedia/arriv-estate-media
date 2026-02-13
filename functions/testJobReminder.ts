@@ -5,10 +5,10 @@ import { format, parse as parseDate } from 'npm:date-fns@3.6.0';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { jobId } = await req.json();
+    const { jobId, bookingId } = await req.json();
     
-    if (!jobId) {
-      return Response.json({ error: 'Job ID required' }, { status: 400 });
+    if (!jobId && !bookingId) {
+      return Response.json({ error: 'Job ID or Booking ID required' }, { status: 400 });
     }
 
     const tz = 'America/New_York';
@@ -18,7 +18,13 @@ Deno.serve(async (req) => {
     const mockNow = new Date(now);
     mockNow.setHours(9, 2, 0, 0);
     
-    const job = await base44.asServiceRole.entities.Job.get(jobId);
+    let job;
+    if (jobId) {
+      job = await base44.asServiceRole.entities.Job.get(jobId);
+    } else {
+      const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+      job = jobs.length > 0 ? jobs[0] : null;
+    }
     
     if (!job) {
       return Response.json({ error: 'Job not found' }, { status: 404 });
