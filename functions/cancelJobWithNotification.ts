@@ -39,7 +39,10 @@ Deno.serve(async (req) => {
         status: 'open',
         booked_by: null,
         booked_by_name: null,
-        booked_by_phone: null
+        booked_by_phone: null,
+        backup_booked_by: null,
+        backup_booked_by_name: null,
+        backup_booked_by_phone: null
       });
     }
 
