@@ -63,6 +63,18 @@ export default function AdminUsers() {
     return { method: "Bank Account", details: `${userRecord.bank_account_number} | Routing: ${userRecord.bank_routing_number}` };
   };
 
+  const getMediaPartnerEarnings = (email) => {
+    return jobs
+      .filter(job => job.booked_by === email && job.status === "completed")
+      .reduce((sum, job) => sum + (job.pay_rate || 0), 0);
+  };
+
+  const getClientSpending = (email) => {
+    return bookings
+      .filter(booking => booking.client_email === email && booking.status === "completed")
+      .reduce((sum, booking) => sum + (booking.total_price || 0), 0);
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (userId) => base44.entities.PendingSignup.delete(userId),
     onSuccess: () => {
