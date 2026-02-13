@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { BaseClient } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
@@ -8,7 +8,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    const base44 = createClientFromRequest(req);
+    const base44 = new BaseClient({
+      appId: Deno.env.get('BASE44_APP_ID'),
+      apiUrl: 'https://api.base44.io',
+      useServiceRole: true
+    });
 
     const updateData = { payout_method };
 
