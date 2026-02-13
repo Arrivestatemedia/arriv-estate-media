@@ -14,9 +14,11 @@ Deno.serve(async (req) => {
     // Delete associated jobs created from this booking
     const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
     const deletedJobIds = [];
-    for (const job of jobs) {
-      await base44.asServiceRole.entities.Job.delete(job.id);
-      deletedJobIds.push(job.id);
+    if (jobs && jobs.length > 0) {
+      for (const job of jobs) {
+        await base44.asServiceRole.entities.Job.delete(job.id);
+        deletedJobIds.push(job.id);
+      }
     }
 
     // Delete the booking
