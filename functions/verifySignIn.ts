@@ -11,6 +11,7 @@ Deno.serve(async (req) => {
         }
 
         // Check if user exists in PendingSignup or User entity
+        // Accept both 'pending' and 'completed' status signups
         const signups = await base44.asServiceRole.entities.PendingSignup.filter({
             email
         });
