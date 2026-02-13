@@ -142,10 +142,7 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
             <label className="block text-sm font-medium mb-2">Preferred Date *</label>
             <Calendar
               mode="single"
-              selected={formData.preferred_date ? (() => {
-                const [year, month, day] = formData.preferred_date.split('-').map(Number);
-                return new Date(Date.UTC(year, month - 1, day));
-              })() : undefined}
+              selected={formData.preferred_date ? parse(formData.preferred_date, 'yyyy-MM-dd', new Date()) : undefined}
               onSelect={handleDateSelect}
               disabled={(date) => date < new Date()}
               className="border-2 border-[var(--border-color)] rounded-lg p-3"
