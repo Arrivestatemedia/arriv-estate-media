@@ -264,8 +264,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ success: true, message: 'Job reminders processed', debug });
+    return Response.json({ 
+      success: true, 
+      message: 'Job reminders processed', 
+      debug: debug.join('\n')
+    });
   } catch (error) {
-    return Response.json({ error: error.message, debug }, { status: 500 });
+    return Response.json({ 
+      error: error.message, 
+      debug: debug.join('\n') 
+    }, { status: 500 });
   }
 });
