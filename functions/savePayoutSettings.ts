@@ -20,21 +20,19 @@ Deno.serve(async (req) => {
       updateData.bank_routing_number = bank_routing_number;
     }
 
-    // Try PendingSignup first
-    const allPendingSignups = await base44.asServiceRole.entities.PendingSignup.list();
-    const pendingSignup = allPendingSignups.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+    // Try PendingSignup first using filter
+    const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email });
     
-    if (pendingSignup) {
-      await base44.asServiceRole.entities.PendingSignup.update(pendingSignup.id, updateData);
+    if (pendingSignups.length > 0) {
+      await base44.asServiceRole.entities.PendingSignup.update(pendingSignups[0].id, updateData);
       return Response.json({ success: true });
     }
 
-    // Try User entity
-    const allUsers = await base44.asServiceRole.entities.User.list();
-    const user = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+    // Try User entity using filter
+    const users = await base44.asServiceRole.entities.User.filter({ email });
     
-    if (user) {
-      await base44.asServiceRole.entities.User.update(user.id, updateData);
+    if (users.length > 0) {
+      await base44.asServiceRole.entities.User.update(users[0].id, updateData);
       return Response.json({ success: true });
     }
 
