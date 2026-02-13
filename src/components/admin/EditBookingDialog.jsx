@@ -36,11 +36,8 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
 
   const handleDateSelect = (date) => {
     if (!date) return;
-    // Use UTC getters to match how calendar is initialized
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`;
+    // Use format from date-fns to handle timezone correctly
+    const dateString = format(date, 'yyyy-MM-dd');
     // Keep existing time when changing date
     setFormData({ ...formData, preferred_date: dateString });
   };
