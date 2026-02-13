@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Clock, MapPin, DollarSign, User, Phone, Trash2 } from "lucide-react";
+import { Calendar, Clock, MapPin, DollarSign, User, Phone, Trash2, Edit } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { createPageUrl } from "../utils";
 import PullToRefresh from "@/components/shared/PullToRefresh";
+import EditBookingDialog from "@/components/admin/EditBookingDialog";
 
 export default function AdminBookings() {
   const [user, setUser] = useState(null);
