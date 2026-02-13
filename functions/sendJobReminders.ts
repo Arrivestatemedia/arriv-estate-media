@@ -29,36 +29,40 @@ Deno.serve(async (req) => {
       const jobDatetimeUTC = zonedTimeToUtc(jobDatetimeNY, tz);
 
       // Calculate reminder times
+      const nowNY = toZonedTime(now, tz);
+      const jobDateNY = toZonedTime(jobDate, tz);
+      const isSameDay = nowNY.toDateString() === jobDateNY.toDateString();
+      const nowHour = nowNY.getHours();
+      const nowMinutes = nowNY.getMinutes();
+      const timeDiffMs = jobDatetimeUTC.getTime() - now.getTime();
+      
       const reminders = [
         {
           type: '9am_morning',
           check: () => {
-            const nowNY = toZonedTime(now, tz);
-            const jobDateNY = toZonedTime(jobDate, tz);
-            const isSameDay = nowNY.toDateString() === jobDateNY.toDateString();
-            const isAt9am = nowNY.getHours() === 9 && nowNY.getMinutes() < 5;
-            return isSameDay && isAt9am;
+            // Send at 9am ET on job day, within a 5-minute window
+            return isSameDay && nowHour === 9 && nowMinutes >= 0 && nowMinutes < 5;
           }
         },
         {
           type: '24_hours_before',
           check: () => {
-            const diff = jobDatetimeUTC.getTime() - now.getTime();
-            return diff > 23 * 60 * 60 * 1000 && diff < 24 * 60 * 60 * 1000;
+            // Send between 23-24 hours before
+            return timeDiffMs > 23 * 60 * 60 * 1000 && timeDiffMs < 24 * 60 * 60 * 1000;
           }
         },
         {
           type: '90_minutes_before',
           check: () => {
-            const diff = jobDatetimeUTC.getTime() - now.getTime();
-            return diff > 89 * 60 * 1000 && diff < 91 * 60 * 1000;
+            // Send between 88-92 minutes before (wider window for reliability)
+            return timeDiffMs > 88 * 60 * 1000 && timeDiffMs < 92 * 60 * 1000;
           }
         },
         {
           type: '1_hour_before',
           check: () => {
-            const diff = jobDatetimeUTC.getTime() - now.getTime();
-            return diff > 59 * 60 * 1000 && diff < 61 * 60 * 1000;
+            // Send between 58-62 minutes before (wider window for reliability)
+            return timeDiffMs > 58 * 60 * 1000 && timeDiffMs < 62 * 60 * 1000;
           }
         }
       ];
