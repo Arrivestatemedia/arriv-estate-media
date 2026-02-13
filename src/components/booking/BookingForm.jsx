@@ -35,20 +35,21 @@ const timeSlots = {
   ],
 };
 
-export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSubmit, onCancel }) {
+export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSubmit, onCancel, isEditing, editingBooking }) {
   const totalPrice = (selectedPackage?.price || 0) + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
   
   const [formData, setFormData] = useState({
-    client_name: "",
-    client_email: "",
-    client_phone: "",
-    street_address: "",
-    city: "",
-    state: "",
-    preferred_date: null,
-    preferred_time: "",
-    notes: "",
-    package: selectedPackage?.id || "",
+    client_name: editingBooking?.client_name || "",
+    client_email: editingBooking?.client_email || "",
+    client_phone: editingBooking?.client_phone || "",
+    street_address: editingBooking?.street_address || "",
+    city: editingBooking?.city || "",
+    state: editingBooking?.state || "",
+    preferred_date: editingBooking?.preferred_date || null,
+    preferred_time: editingBooking?.preferred_time || "",
+    notes: editingBooking?.notes || "",
+    is_cancellation: false,
+    package: selectedPackage?.id || (editingBooking?.package || ""),
     add_ons: (cartAddOns || []).map(a => a.id),
     total_price: totalPrice,
   });
