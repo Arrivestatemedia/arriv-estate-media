@@ -3,8 +3,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse as parseDate } from "date-fns";
+import { toZonedTime } from "npm:date-fns-tz@3.0.0";
 import { motion } from "framer-motion";
+import { base44 } from "@/api/base44Client";
 
 const typeConfig = {
   photo: { label: "Photo", icon: Camera, color: "bg-[#B8956A]/10 text-[#B8956A] border-[#B8956A]/30" },
