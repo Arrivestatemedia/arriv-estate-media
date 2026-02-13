@@ -267,15 +267,12 @@ export default function AdminUsers() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-[var(--text-secondary)] text-sm">
-                        {(() => {
-                          const payoutInfo = getUserPayoutInfo(u.email);
-                          return payoutInfo ? (
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-xs">{payoutInfo.method}</Badge>
-                              <span className="text-xs">{payoutInfo.info}</span>
-                            </div>
-                          ) : "-";
-                        })()}
+                       {(() => {
+                         const payoutInfo = getUserPayoutInfo(u.email);
+                         return payoutInfo ? (
+                           <Badge variant="outline" className="text-xs">{payoutInfo.method}</Badge>
+                         ) : <span className="text-xs">—</span>;
+                       })()}
                       </td>
                       <td className="py-3 px-4 flex gap-2">
                         {editingId === u.id ? (
