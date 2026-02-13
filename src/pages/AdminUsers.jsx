@@ -48,9 +48,9 @@ export default function AdminUsers() {
     const userRecord = users.find(u => u.email === userEmail);
     if (!userRecord || !userRecord.payout_method) return null;
     if (userRecord.payout_method === "zelle") {
-      return { method: "Zelle" };
+      return { method: "Zelle", details: userRecord.zelle_info };
     }
-    return { method: "Bank Account" };
+    return { method: "Bank Account", details: `****${userRecord.bank_account_last4} | Routing: ${userRecord.bank_routing_number}` };
   };
 
   const deleteMutation = useMutation({
