@@ -164,27 +164,17 @@ export default function JobBoard() {
 
   const confirmBooking = async () => {
     if (!bookingJob) return;
-    
+
     const storedEmail = localStorage.getItem('user_email');
     const storedName = localStorage.getItem('user_name');
     const email = user?.email || storedEmail;
     const name = user?.full_name || storedName;
-    
+
     if (!email || !name) {
       alert("User data not available. Please refresh the page.");
       return;
     }
-    
-    // Send calendar invite
-    try {
-      await base44.functions.invoke('createJobCalendarEvent', { 
-        job: bookingJob, 
-        mediaPartnerEmail: email 
-      });
-    } catch (error) {
-      console.error('Failed to send calendar invite:', error);
-    }
-    
+
     bookMutation.mutate({
       id: bookingJob.id,
       data: {
@@ -194,6 +184,16 @@ export default function JobBoard() {
         booked_by_name: name,
       },
     });
+
+    // Send calendar invite after booking
+    try {
+      await base44.functions.invoke('createJobCalendarEvent', { 
+        job: bookingJob, 
+        mediaPartnerEmail: email 
+      });
+    } catch (error) {
+      console.error('Failed to send calendar invite:', error);
+    }
   };
 
   const handleCancel = (job) => {
