@@ -11,6 +11,9 @@ Deno.serve(async (req) => {
 
         const { booking, type = 'confirmation', phoneNumbers = [], sendEmail = true } = await req.json();
         
+        // Construct property address from separate fields
+        const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
+        
         // Send SMS via Twilio to all provided phone numbers
         const phonesToNotify = phoneNumbers.length > 0 ? phoneNumbers : (booking.client_phone ? [booking.client_phone] : []);
         
@@ -20,8 +23,8 @@ Deno.serve(async (req) => {
             const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
             
             const messageText = type === 'cancellation'
-                ? `Hi ${booking.client_name}! Your booking at ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been cancelled. - Arriv`
-                : `Hi ${booking.client_name}! Your booking at ${booking.property_address} on ${booking.preferred_date} at ${booking.preferred_time} has been confirmed. You'll also receive a calendar invite via email. - Arriv`;
+                ? `Hi ${booking.client_name}! Your booking at ${propertyAddress} on ${booking.preferred_date} at ${booking.preferred_time} has been cancelled. - Arriv`
+                : `Hi ${booking.client_name}! Your booking at ${propertyAddress} on ${booking.preferred_date} at ${booking.preferred_time} has been confirmed. You'll also receive a calendar invite via email. - Arriv`;
             
             // Send SMS to each phone number
              for (const phone of phonesToNotify) {
@@ -67,8 +70,8 @@ Deno.serve(async (req) => {
 
             const emailSubject = type === 'cancellation' ? 'Your Booking Has Been Cancelled - Arriv' : 'Your Booking Confirmation - Arriv';
             const emailBody = type === 'cancellation'
-                ? `Hi ${booking.client_name},\n\nYour booking has been cancelled.\n\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\n\nIf you have any questions, please contact us.\n\nThank you,\nArriv Team`
-                : `Hi ${booking.client_name},\n\nYour booking has been confirmed!\n\nProperty: ${booking.property_address}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\n\nYou should receive a calendar invite shortly. We'll contact you if there are any changes.\n\nThank you,\nArriv Team`;
+                ? `Hi ${booking.client_name},\n\nYour booking has been cancelled.\n\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\n\nIf you have any questions, please contact us.\n\nThank you,\nArriv Team`
+                : `Hi ${booking.client_name},\n\nYour booking has been confirmed!\n\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\n\nYou should receive a calendar invite shortly. We'll contact you if there are any changes.\n\nThank you,\nArriv Team`;
 
             const messageLines = [
                 `To: ${booking.client_email}`,
