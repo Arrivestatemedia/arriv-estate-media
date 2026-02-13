@@ -20,26 +20,27 @@ Deno.serve(async (req) => {
       updateData.bank_routing_number = bank_routing_number;
     }
 
-    // Get all records and filter manually (workaround for case sensitivity)
+    // Try PendingSignup first
     const allPendingSignups = await base44.asServiceRole.entities.PendingSignup.list();
     const pendingSignup = allPendingSignups.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     
     if (pendingSignup) {
       await base44.asServiceRole.entities.PendingSignup.update(pendingSignup.id, updateData);
-      return Response.json({ success: true, message: 'Updated PendingSignup entity' });
+      return Response.json({ success: true });
     }
 
-    // Fall back to User entity
+    // Try User entity
     const allUsers = await base44.asServiceRole.entities.User.list();
     const user = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     
     if (user) {
       await base44.asServiceRole.entities.User.update(user.id, updateData);
-      return Response.json({ success: true, message: 'Updated User entity' });
+      return Response.json({ success: true });
     }
 
     return Response.json({ error: 'User record not found' }, { status: 404 });
   } catch (error) {
+    console.error('Error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
