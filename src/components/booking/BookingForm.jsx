@@ -319,7 +319,10 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                 </label>
                 <Calendar
                   mode="single"
-                  selected={formData.preferred_date ? new Date(formData.preferred_date) : undefined}
+                  selected={formData.preferred_date ? (() => {
+                    const [year, month, day] = formData.preferred_date.split('-').map(Number);
+                    return new Date(year, month - 1, day);
+                  })() : undefined}
                   onSelect={handleDateSelect}
                   disabled={isDateDisabled}
                   className="border-2 border-[#B8956A]/20 rounded-lg p-3"
