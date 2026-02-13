@@ -47,9 +47,16 @@ Deno.serve(async (req) => {
     const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
     
     // Upload the PDF
-    const uploadRes = await base44.integrations.Core.UploadFile({
-      file: pdfBlob
-    });
+    const formData = new FormData();
+    formData.append('file', pdfBlob, 'statement.pdf');
+    
+    const uploadRes = await fetch('https://api.base44.io/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('BASE44_SERVICE_TOKEN')}`
+      }
+    }).then(r => r.json());
 
     return Response.json({
       success: true,
