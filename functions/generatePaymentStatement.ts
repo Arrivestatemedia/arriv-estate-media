@@ -2,7 +2,6 @@ import { jsPDF } from 'npm:jspdf@4.0.0';
 
 Deno.serve(async (req) => {
   try {
-
     const body = await req.json();
     const { media_partner_email, media_partner_name, payout_date, period_start, period_end, gigs_completed, gross_amount, payout_method, payout_destination } = body;
 
