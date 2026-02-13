@@ -22,9 +22,19 @@ Deno.serve(async (req) => {
         const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
         const endDateTime = `${dateStr}T${endTimeStr}`;
         
+        // Mask client name - show first name + first initial of last name
+        const maskedClientName = job.client_name 
+            ? (() => {
+                const parts = job.client_name.split(' ');
+                return parts.length > 1 
+                    ? `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`
+                    : parts[0];
+              })()
+            : 'N/A';
+
         const event = {
             summary: `Arriv Estate Media - ${job.title}`,
-            description: `Job Details:\n${job.description || ''}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}\nClient: ${job.client_name || 'N/A'}\nClient Email: ${job.client_email || 'N/A'}\nClient Phone: ${job.client_phone || 'N/A'}`,
+            description: `Job Details:\n${job.description || ''}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}\nClient: ${maskedClientName}`,
             start: {
                 dateTime: startDateTime,
                 timeZone: 'America/New_York'
