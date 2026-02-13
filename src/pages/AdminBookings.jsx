@@ -121,6 +121,10 @@ export default function AdminBookings() {
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
     onSettled: () => {
       setLoadingBookingId(null);
       setSelectedBooking(null);
