@@ -443,6 +443,10 @@ export default function PublicAccountSettings() {
                 </CardContent>
                 </Card>
 
+                {accountData?.user_type === "media_partner" && (
+                  <PaymentStatementsDownload userEmail={accountData.email} />
+                )}
+
                 <Card className="border-[#B8956A]/20">
                 <CardHeader>
                 <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
