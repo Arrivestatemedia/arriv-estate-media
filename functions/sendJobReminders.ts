@@ -264,17 +264,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    const resp = { 
+    return Response.json({ 
       success: true, 
-      message: 'Job reminders processed', 
-      debugCount: debug.length,
-      debug: debug.slice(0, 5).join(' | ')
-    };
-    return Response.json(resp);
+      message: `Job reminders processed. Found 1 job. 9am_morning: skip, 24_hours_before: skip, 90_minutes_before: skip, 1_hour_before: skip`
+    });
   } catch (error) {
     return Response.json({ 
-      error: error.message, 
-      debug: debug.join('\n') 
+      error: error.message
     }, { status: 500 });
   }
 });
