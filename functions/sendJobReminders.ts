@@ -2,6 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { toZonedTime, zonedTimeToUtc, fromZonedTime } from 'npm:date-fns-tz@3.0.0';
 import { parse as parseDate, format } from 'npm:date-fns@3.6.0';
 
+function convertTo12HourFormat(time24) {
+  const [hour, minute] = time24.split(':').map(Number);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${String(minute).padStart(2, '0')} ${ampm}`;
+}
+
 async function sendEmailViaGmail(accessToken, to, subject, body) {
   const message = `To: ${to}\r\nSubject: ${subject}\r\n\r\n${body}`;
   const encodedMessage = btoa(message);
