@@ -24,15 +24,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     const unsubscribe = base44.entities.Job.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === "jobs"
+      });
     });
     return unsubscribe;
   }, [queryClient]);
 
   useEffect(() => {
     const unsubscribe = base44.entities.Booking.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      queryClient.invalidateQueries({ queryKey: ["pendingBookings"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => ["jobs", "pendingBookings", "allBookings"].includes(query.queryKey[0])
+      });
     });
     return unsubscribe;
   }, [queryClient]);

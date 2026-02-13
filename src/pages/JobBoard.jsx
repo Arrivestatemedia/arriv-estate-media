@@ -90,14 +90,19 @@ export default function JobBoard() {
 
   useEffect(() => {
     const unsubscribe = base44.entities.Job.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      // Invalidate all jobs queries regardless of filters/parameters
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === "jobs"
+      });
     });
     return unsubscribe;
   }, [queryClient]);
 
   useEffect(() => {
     const unsubscribe = base44.entities.Booking.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === "jobs"
+      });
     });
     return unsubscribe;
   }, [queryClient]);

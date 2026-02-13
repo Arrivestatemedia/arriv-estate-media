@@ -38,10 +38,12 @@ export default function MediaPartnerDashboard() {
 
   useEffect(() => {
     const unsubscribe = base44.entities.Job.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ['media-partner-jobs', user?.email] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === 'media-partner-jobs'
+      });
     });
     return unsubscribe;
-  }, [queryClient, user?.email]);
+  }, [queryClient]);
 
   const { data: payoutHistory = [] } = useQuery({
     queryKey: ['payout-history', user?.email],
