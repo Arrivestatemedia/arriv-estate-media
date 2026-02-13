@@ -22,14 +22,14 @@ Deno.serve(async (req) => {
     }
 
     // Find and update the PendingSignup record for this user
-    const pendingSignups = await base44.entities.PendingSignup.filter({ email: user.email });
+    const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: user.email });
     
     if (pendingSignups.length === 0) {
       return Response.json({ error: 'User record not found' }, { status: 404 });
     }
 
     const pendingSignup = pendingSignups[0];
-    await base44.entities.PendingSignup.update(pendingSignup.id, updateData);
+    await base44.asServiceRole.entities.PendingSignup.update(pendingSignup.id, updateData);
 
     return Response.json({ success: true });
   } catch (error) {
