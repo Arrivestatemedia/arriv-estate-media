@@ -44,12 +44,7 @@ Deno.serve(async (req) => {
       const nowMinutes = nowNY.getMinutes();
       const timeDiffMs = jobDatetimeUTC.getTime() - now.getTime();
       
-      console.log(`[DEBUG] Job ${job.id}:`);
-      console.log(`  Now (NY): ${nowNY.toISOString()} (${nowHour}:${String(nowMinutes).padStart(2, '0')})`);
-      console.log(`  Job date (NY): ${jobDateNY.toISOString()}`);
-      console.log(`  Job time: ${jobTime}`);
-      console.log(`  Same day: ${isSameDay}`);
-      console.log(`  Time diff: ${timeDiffMs / 1000 / 60} minutes`);
+      debug.push(`Job ${job.id}: Now (NY) ${nowHour}:${String(nowMinutes).padStart(2, '0')}, Same day: ${isSameDay}, Time diff: ${(timeDiffMs / 1000 / 60).toFixed(1)} min`);
       
       const reminders = [
         {
