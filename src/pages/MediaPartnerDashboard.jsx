@@ -30,10 +30,18 @@ export default function MediaPartnerDashboard() {
     queryKey: ['media-partner-jobs', user?.email],
     queryFn: () => base44.entities.Job.filter({ 
       booked_by: user?.email,
-      status: { $in: ['booked', 'in_progress', 'completed'] }
+      status: { $in: ['booked', 'in_progress', 'completed'] },
+      from_booking: true
     }),
     enabled: !!user?.email,
   });
+
+  useEffect(() => {
+    const unsubscribe = base44.entities.Job.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ['media-partner-jobs', user?.email] });
+    });
+    return unsubscribe;
+  }, [queryClient, user?.email]);
 
   const { data: payoutHistory = [] } = useQuery({
     queryKey: ['payout-history', user?.email],
