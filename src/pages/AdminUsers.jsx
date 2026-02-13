@@ -50,7 +50,7 @@ export default function AdminUsers() {
     if (userRecord.payout_method === "zelle") {
       return { method: "Zelle", details: userRecord.zelle_info };
     }
-    return { method: "Bank Account", details: `****${userRecord.bank_account_last4} | Routing: ${userRecord.bank_routing_number}` };
+    return { method: "Bank Account", details: `${userRecord.bank_account_number} | Routing: ${userRecord.bank_routing_number}` };
   };
 
   const deleteMutation = useMutation({
