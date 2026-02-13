@@ -32,89 +32,89 @@ async function sendEmailViaGmail(accessToken, to, subject, body) {
 }
 
 Deno.serve(async (req) => {
-        try {
-          const base44 = createClientFromRequest(req);
-          const tz = 'America/New_York';
-          const now = new Date();
-          const nowNY = toZonedTime(now, tz);
+              try {
+                const base44 = createClientFromRequest(req);
+                const tz = 'America/New_York';
+                const now = new Date();
+                const nowNY = toZonedTime(now, tz);
 
-          // Get Gmail access token
-          let gmailAccessToken;
+                // Get Gmail access token
+                let gmailAccessToken;
+                try {
+                  gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+                } catch (e) {
+                  console.log('Gmail not available');
+                }
+
+          // Get all open, booked, or in_progress jobs
+          let jobs = [];
           try {
-            gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+            jobs = await base44.asServiceRole.entities.Job.list();
+            jobs = jobs.filter(j => !['cancelled', 'archived', 'completed'].includes(j.status));
           } catch (e) {
-            console.log('Gmail not available');
+            return Response.json({ error: `Failed to fetch jobs: ${e.message}` }, { status: 500 });
           }
 
-    // Get all open, booked, or in_progress jobs
-    let jobs = [];
-    try {
-      jobs = await base44.asServiceRole.entities.Job.list();
-      jobs = jobs.filter(j => !['cancelled', 'archived', 'completed'].includes(j.status));
-    } catch (e) {
-      return Response.json({ error: `Failed to fetch jobs: ${e.message}` }, { status: 500 });
-    }
+          for (const job of jobs) {
+            if (!job.date || !job.booked_by) continue;
 
-    for (const job of jobs) {
-      if (!job.date || !job.booked_by) continue;
+            // Parse job date and time
+            const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
+            let jobTime = job.start_time || '09:00';
 
-      // Parse job date and time
-      const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
-      let jobTime = job.start_time || '09:00';
+            // Normalize to 24-hour format
+            if (jobTime.includes('AM') || jobTime.includes('PM')) {
+              const cleaned = jobTime.replace(/\s*(AM|PM)/i, '');
+              const [hour, minute] = cleaned.split(':').map(Number);
+              const isPM = jobTime.toUpperCase().includes('PM');
+              let h = hour;
+              if (isPM && h !== 12) h += 12;
+              if (!isPM && h === 12) h = 0;
+              jobTime = `${String(h).padStart(2, '0')}:${String(minute || 0).padStart(2, '0')}`;
+            }
 
-      // Normalize to 24-hour format
-      if (jobTime.includes('AM') || jobTime.includes('PM')) {
-        const cleaned = jobTime.replace(/\s*(AM|PM)/i, '');
-        const [hour, minute] = cleaned.split(':').map(Number);
-        const isPM = jobTime.toUpperCase().includes('PM');
-        let h = hour;
-        if (isPM && h !== 12) h += 12;
-        if (!isPM && h === 12) h = 0;
-        jobTime = `${String(h).padStart(2, '0')}:${String(minute || 0).padStart(2, '0')}`;
-      }
+            // Create job datetime in ET timezone
+            const [jobHour, jobMinute] = jobTime.split(':').map(Number);
+            jobDate.setHours(jobHour, jobMinute, 0, 0);
+            const jobDatetimeUTC = fromZonedTime(jobDate, tz);
 
-      // Create job datetime in ET timezone
-      const [jobHour, jobMinute] = jobTime.split(':').map(Number);
-      jobDate.setHours(jobHour, jobMinute, 0, 0);
-      const jobDatetimeUTC = fromZonedTime(jobDate, tz);
-      
-      const timeDiffMs = jobDatetimeUTC.getTime() - now.getTime();
-      const timeDiffMinutes = timeDiffMs / (1000 * 60);
-      const isSameDay = format(nowNY, 'yyyy-MM-dd') === format(jobDate, 'yyyy-MM-dd');
+            const timeDiffMs = jobDatetimeUTC.getTime() - now.getTime();
+            const timeDiffMinutes = timeDiffMs / (1000 * 60);
+            const isSameDay = format(nowNY, 'yyyy-MM-dd') === format(jobDate, 'yyyy-MM-dd');
 
-      const reminders = [
-        {
-          type: '9am_morning',
-          shouldSend: () => {
-            // Send at 9am ET on job day, within a 5-minute window
-            return isSameDay && nowNY.getHours() === 9 && nowNY.getMinutes() < 5;
-          }
-        },
-        {
-          type: '24_hours_before',
-          shouldSend: () => timeDiffMinutes > 1380 && timeDiffMinutes < 1440 // 23-24 hours
-        },
-        {
-          type: '90_minutes_before',
-          shouldSend: () => timeDiffMinutes > 85 && timeDiffMinutes < 95 // 85-95 min window
-        },
-        {
-          type: '1_hour_before',
-          shouldSend: () => timeDiffMinutes > 55 && timeDiffMinutes < 65 // 55-65 min window
-        }
-      ];
+            const reminders = [
+              {
+                type: '9am_morning',
+                shouldSend: () => {
+                  // Send at 9am ET on job day
+                  return isSameDay && nowNY.getHours() === 9 && nowNY.getMinutes() < 5;
+                }
+              },
+              {
+                type: '24_hours_before',
+                shouldSend: () => timeDiffMinutes > 1380 && timeDiffMinutes <= 1440 // 23-24 hours before
+              },
+              {
+                type: '90_minutes_before',
+                shouldSend: () => timeDiffMinutes > 80 && timeDiffMinutes <= 90 // 80-90 min before
+              },
+              {
+                type: '1_hour_before',
+                shouldSend: () => timeDiffMinutes > 55 && timeDiffMinutes <= 65 // 55-65 min before
+              }
+            ];
 
-      for (const reminder of reminders) {
-        const shouldSend = typeof reminder.shouldSend === 'function' ? reminder.shouldSend() : reminder.shouldSend;
-        if (!shouldSend) continue;
+            for (const reminder of reminders) {
+              const shouldSend = typeof reminder.shouldSend === 'function' ? reminder.shouldSend() : reminder.shouldSend;
+              if (!shouldSend) continue;
 
-        // Check if reminder already sent
-        const existingReminders = await base44.asServiceRole.entities.JobReminder.filter({
-          job_id: job.id,
-          reminder_type: reminder.type
-        });
+              // Check if reminder already sent
+              const existingReminders = await base44.asServiceRole.entities.JobReminder.filter({
+                job_id: job.id,
+                reminder_type: reminder.type
+              });
 
-        if (existingReminders.length > 0) continue;
+              if (existingReminders.length > 0) continue;
 
         // Send appropriate reminders
         if (reminder.type === '9am_morning') {
