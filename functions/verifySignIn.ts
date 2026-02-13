@@ -10,22 +10,17 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Email and password required' }, { status: 400 });
         }
 
-        // Check if user exists in PendingSignup or User entity
-        // Don't lowercase email - match exactly as stored
-        const signups = await base44.asServiceRole.entities.PendingSignup.filter({
-            email
-        });
+        // Normalize email to lowercase for case-insensitive comparison
+        const emailLower = email.toLowerCase();
 
-        let user = signups.length > 0 ? signups[0] : null;
+        // Check if user exists in PendingSignup - get all and filter case-insensitively
+        const signups = await base44.asServiceRole.entities.PendingSignup.list();
+        let user = signups.find(s => s.email.toLowerCase() === emailLower) || null;
 
         // If not in PendingSignup, check User entity
         if (!user) {
-            const users = await base44.asServiceRole.entities.User.filter({
-                email
-            });
-            if (users.length > 0) {
-                user = users[0];
-            }
+            const users = await base44.asServiceRole.entities.User.list();
+            user = users.find(u => u.email.toLowerCase() === emailLower) || null;
         }
 
         if (!user) {
