@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
             : 'N/A';
 
         const event = {
-            summary: `Arriv Estate Media - ${job.title}`,
+            summary: `Arriv Estate Media - ${maskedClientName} - ${job.title}`,
             description: `Client: ${maskedClientName}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}`,
             start: {
                 dateTime: startDateTime,
