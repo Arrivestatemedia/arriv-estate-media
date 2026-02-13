@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { isWeekend } from "date-fns";
+import { isWeekend, format, parse } from "date-fns";
 import { Clock } from "lucide-react";
 
 const timeSlots = {
