@@ -75,7 +75,9 @@ Deno.serve(async (req) => {
       ];
 
       for (const reminder of reminders) {
-        if (!reminder.check()) continue;
+        const reminderTriggered = reminder.check();
+        console.log(`[REMINDERS] Job ${job.id} - ${reminder.type}: ${reminderTriggered ? 'TRIGGERED' : 'not triggered'}`);
+        if (!reminderTriggered) continue;
 
         // Check if reminder already sent
         const existingReminders = await base44.asServiceRole.entities.JobReminder.filter({
