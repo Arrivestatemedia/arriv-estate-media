@@ -9,9 +9,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Find user in PendingSignup (case-insensitive)
-    const allUsers = await base44.asServiceRole.entities.PendingSignup.list();
-    const user = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const normalizedEmail = email.toLowerCase();
+
+    // Try PendingSignup first
+    const allPendingUsers = await base44.asServiceRole.entities.PendingSignup.list();
+    let user = allPendingUsers.find(u => u.email.toLowerCase() === normalizedEmail);
+
+    // If not in PendingSignup, try User entity
+    if (!user) {
+      const allUsers = await base44.asServiceRole.entities.User.list();
+      user = allUsers.find(u => u.email.toLowerCase() === normalizedEmail);
+    }
 
     if (!user) {
       return Response.json({
