@@ -53,15 +53,7 @@ export default function ClientBookings() {
     denied: "bg-red-100 text-red-800"
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    try {
-      await base44.entities.Booking.delete(deleteId);
-      setDeleteId(null);
-    } catch (error) {
-      console.error('Failed to delete booking:', error);
-    }
-  };
+
 
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['bookings', user?.email] });
