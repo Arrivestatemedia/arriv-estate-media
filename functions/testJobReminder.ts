@@ -25,10 +25,18 @@ async function sendEmailViaGmail(accessToken, to, subject, body) {
 }
 
 Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
-    const body = await req.json();
-    const { jobId, bookingId } = body;
+        try {
+          const base44 = createClientFromRequest(req);
+          const body = await req.json();
+          const { jobId, bookingId } = body;
+
+          // Get Gmail access token
+          let gmailAccessToken;
+          try {
+            gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+          } catch (e) {
+            console.log('Gmail not available for external emails');
+          }
     
     if (!jobId && !bookingId) {
       return Response.json({ error: 'Job ID or Booking ID required' }, { status: 400 });
