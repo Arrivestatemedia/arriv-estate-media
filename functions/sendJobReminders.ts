@@ -9,15 +9,16 @@ Deno.serve(async (req) => {
     const jobs = await base44.asServiceRole.entities.Job.list();
     const now = new Date();
     
-    console.log(`[REMINDERS] Processing ${jobs.length} jobs at ${now.toISOString()}`);
+    const debug = [];
+    debug.push(`Processing ${jobs.length} jobs at ${now.toISOString()}`);
 
     for (const job of jobs) {
       if (!job.date || job.status === 'cancelled' || job.status === 'archived') {
-        console.log(`[REMINDERS] Skipping job ${job.id}: date=${job.date}, status=${job.status}`);
+        debug.push(`Skipping job ${job.id}: date=${job.date}, status=${job.status}`);
         continue;
       }
       
-      console.log(`[REMINDERS] Checking job ${job.id}: date=${job.date}, time=${job.start_time}, status=${job.status}`);
+      debug.push(`Checking job ${job.id}: date=${job.date}, time=${job.start_time}, status=${job.status}`);
 
       // Get the job date/time in user's timezone (America/New_York)
       const jobDate = new Date(job.date);
