@@ -27,6 +27,10 @@ Deno.serve(async (req) => {
         full_name: user.full_name,
         phone_number: user.phone_number,
         user_type: user.user_type,
+        payout_method: user.payout_method,
+        zelle_info: user.zelle_info,
+        bank_account_number: user.bank_account_number,
+        bank_routing_number: user.bank_routing_number
       }
     });
   } catch (error) {
