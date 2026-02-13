@@ -391,9 +391,9 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                 <Button
                   type="submit"
                   className="flex-1 bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white disabled:bg-[#1A1A1A]/50 disabled:cursor-not-allowed"
-                  disabled={!formData.preferred_date || !formData.preferred_time || isSubmitting}
+                  disabled={(!formData.preferred_date || !formData.preferred_time || isSubmitting) && !isEditing}
                 >
-                  {isSubmitting ? "Submitting..." : "Submit Booking Request"}
+                  {isSubmitting ? "Submitting..." : isEditing ? "Submit Change Request" : "Submit Booking Request"}
                 </Button>
               </div>
             </CardContent>
