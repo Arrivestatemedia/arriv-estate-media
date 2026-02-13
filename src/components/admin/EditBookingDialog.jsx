@@ -36,11 +36,8 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
 
   const handleDateSelect = (date) => {
     if (!date) return;
-    // Use local date values to avoid timezone conversion issues
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`;
+    // Ensure consistent date handling - use toISOString to avoid timezone shifts
+    const dateString = date.toISOString().split('T')[0];
     // Keep existing time when changing date
     setFormData({ ...formData, preferred_date: dateString });
   };
