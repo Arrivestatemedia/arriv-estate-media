@@ -21,6 +21,8 @@ export default function AdminBookings() {
     const [loadingBookingId, setLoadingBookingId] = useState(null);
     const [selectedForDelete, setSelectedForDelete] = useState(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
+    const [editingBooking, setEditingBooking] = useState(null);
+    const [showEditDialog, setShowEditDialog] = useState(false);
     const queryClient = useQueryClient();
 
   useEffect(() => {
