@@ -33,30 +33,29 @@ Deno.serve(async (req) => {
             const nowNY = toZonedTime(now, tz);
             const jobDateNY = toZonedTime(jobDate, tz);
             const isSameDay = nowNY.toDateString() === jobDateNY.toDateString();
-            const isAfter9am = nowNY.getHours() >= 9;
-            const isWithin9amWindow = nowNY.getHours() === 9 && nowNY.getMinutes() < 5;
-            return isSameDay && (isAfter9am && isWithin9amWindow);
+            const isAt9am = nowNY.getHours() === 9 && nowNY.getMinutes() < 5;
+            return isSameDay && isAt9am;
           }
         },
         {
           type: '24_hours_before',
           check: () => {
             const diff = jobDatetimeUTC.getTime() - now.getTime();
-            return diff > 23.5 * 60 * 60 * 1000 && diff < 24.5 * 60 * 60 * 1000;
+            return diff > 23 * 60 * 60 * 1000 && diff < 24 * 60 * 60 * 1000;
           }
         },
         {
           type: '90_minutes_before',
           check: () => {
             const diff = jobDatetimeUTC.getTime() - now.getTime();
-            return diff > 85 * 60 * 1000 && diff < 95 * 60 * 1000;
+            return diff > 89 * 60 * 1000 && diff < 91 * 60 * 1000;
           }
         },
         {
           type: '1_hour_before',
           check: () => {
             const diff = jobDatetimeUTC.getTime() - now.getTime();
-            return diff > 55 * 60 * 1000 && diff < 65 * 60 * 1000;
+            return diff > 59 * 60 * 1000 && diff < 61 * 60 * 1000;
           }
         }
       ];
