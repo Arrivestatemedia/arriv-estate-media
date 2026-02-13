@@ -364,6 +364,21 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                 />
               </div>
 
+              {isEditing && (
+                <div className="bg-red-50 border border-red-300 rounded-lg p-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={formData.is_cancellation}
+                      onChange={(checked) => setFormData({ ...formData, is_cancellation: checked })}
+                      className="border-red-300"
+                    />
+                    <span className="text-sm font-medium text-red-700">
+                      I want to cancel this booking
+                    </span>
+                  </label>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <Button
                   type="button"
