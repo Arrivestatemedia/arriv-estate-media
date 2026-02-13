@@ -342,6 +342,26 @@ export default function PublicAccountSettings() {
                 <CardDescription>Update your payout method</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                {accountData?.payout_method && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-blue-900 mb-2">Your Current Payout Method:</h3>
+                    <p className="text-blue-800 mb-2">
+                      {accountData.payout_method === "zelle" ? "Zelle" : "Bank Account"}
+                    </p>
+                    {accountData.payout_method === "zelle" && (
+                      <p className="text-sm text-blue-700">
+                        <strong>Zelle Account:</strong> {accountData.zelle_info}
+                      </p>
+                    )}
+                    {accountData.payout_method === "bank_account" && (
+                      <div className="text-sm text-blue-700 space-y-1">
+                        <p><strong>Account:</strong> {accountData.bank_account_number}</p>
+                        <p><strong>Routing:</strong> {accountData.bank_routing_number}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <Alert className="bg-blue-50 border-blue-200">
                   <AlertCircle className="h-4 w-4 text-blue-600" />
                   <AlertDescription className="text-sm text-blue-900">
