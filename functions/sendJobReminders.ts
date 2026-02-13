@@ -303,7 +303,7 @@ Deno.serve(async (req) => {
         } else if (reminder.type === 'on_site_arrival') {
           // Send to client only
           if (job.client_phone) {
-            const clientMessage = `We're on site at ${job.location}! The shoot will take approximately 2 hours. We'll contact you as soon as we're finished.`;
+            const clientMessage = `Arriv Estate Media is on site at ${job.location}! The shoot will take approximately 2 hours. We'll contact you as soon as we're finished.`;
             await base44.asServiceRole.functions.invoke('sendReminderSMS', {
               phone: job.client_phone,
               message: clientMessage,
