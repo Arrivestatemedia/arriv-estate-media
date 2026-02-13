@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, AlertCircle, Mail, Phone, Calendar, Shield, Check, X } from "lucide-react";
+import { Trash2, AlertCircle, Mail, Phone, Calendar, Shield, Check, X, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -34,10 +34,24 @@ export default function AdminUsers() {
     }
   }, []);
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["all-users"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
   const { data: users = [] } = useQuery({
     queryKey: ["pending-signups"],
     queryFn: () => base44.entities.PendingSignup.list(),
   });
+
+  const getUserPayoutInfo = (email) => {
+    const userRecord = allUsers.find(u => u.email === email);
+    if (!userRecord) return null;
+    if (userRecord.payout_method === "zelle") {
+      return { method: "Zelle", info: userRecord.zelle_info };
+    }
+    return { method: "Bank", info: `****${userRecord.bank_account_last4}` };
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (userId) => base44.entities.PendingSignup.delete(userId),
@@ -183,6 +197,9 @@ export default function AdminUsers() {
                       Role
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
+                      Payout
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Action
                     </th>
                   </tr>
@@ -248,6 +265,17 @@ export default function AdminUsers() {
                             )}
                           </Badge>
                         )}
+                      </td>
+                      <td className="py-3 px-4 text-[var(--text-secondary)] text-sm">
+                        {(() => {
+                          const payoutInfo = getUserPayoutInfo(u.email);
+                          return payoutInfo ? (
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="text-xs">{payoutInfo.method}</Badge>
+                              <span className="text-xs">{payoutInfo.info}</span>
+                            </div>
+                          ) : "-";
+                        })()}
                       </td>
                       <td className="py-3 px-4 flex gap-2">
                         {editingId === u.id ? (
