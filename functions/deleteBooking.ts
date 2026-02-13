@@ -11,21 +11,36 @@ Deno.serve(async (req) => {
 
     const { bookingId } = await req.json();
 
-    // Delete associated jobs created from this booking
+    // First, fetch all jobs associated with this booking
     const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    
+    // Delete all associated jobs (cascade delete)
     const deletedJobIds = [];
     if (jobs && jobs.length > 0) {
       for (const job of jobs) {
-        await base44.asServiceRole.entities.Job.delete(job.id);
-        deletedJobIds.push(job.id);
+        try {
+          await base44.asServiceRole.entities.Job.delete(job.id);
+          deletedJobIds.push(job.id);
+        } catch (jobError) {
+          console.error(`Failed to delete job ${job.id}:`, jobError);
+        }
       }
     }
 
-    // Delete the booking
-    await base44.asServiceRole.entities.Booking.delete(bookingId);
+    // Then delete the booking
+    try {
+      await base44.asServiceRole.entities.Booking.delete(bookingId);
+    } catch (bookingError) {
+      console.error(`Failed to delete booking ${bookingId}:`, bookingError);
+      return Response.json({ 
+        error: 'Failed to delete booking after deleting jobs',
+        deletedJobIds 
+      }, { status: 500 });
+    }
 
-    return Response.json({ success: true, deletedJobIds });
+    return Response.json({ success: true, deletedJobIds, bookingId });
   } catch (error) {
+    console.error('Delete operation error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
