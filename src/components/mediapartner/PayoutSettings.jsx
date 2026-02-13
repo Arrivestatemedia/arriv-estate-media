@@ -23,27 +23,27 @@ export default function PayoutSettings({ user }) {
     setSuccess(false);
 
     try {
-      const updateData = { payout_method: payoutMethod };
-
       if (payoutMethod === "zelle") {
         if (!zelleInfo) {
           setError("Please enter Zelle phone number or email");
           setLoading(false);
           return;
         }
-        updateData.zelle_info = zelleInfo;
       } else if (payoutMethod === "bank_account") {
         if (!bankAccountNumber || !routingNumber) {
           setError("Please enter both account and routing numbers");
           setLoading(false);
           return;
         }
-        updateData.bank_account_number = bankAccountNumber;
-        updateData.bank_account_last4 = bankAccountNumber.slice(-4);
-        updateData.bank_routing_number = routingNumber;
       }
 
-      await base44.auth.updateMe(updateData);
+      await base44.functions.invoke('savePayoutSettings', {
+        payout_method: payoutMethod,
+        zelle_info: zelleInfo,
+        bank_account_number: bankAccountNumber,
+        bank_routing_number: routingNumber
+      });
+      
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
