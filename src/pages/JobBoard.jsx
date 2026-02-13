@@ -69,17 +69,20 @@ export default function JobBoard() {
         if (!email) return [];
         return base44.entities.Job.filter({ 
           booked_by: email,
-          status: "booked"
+          status: "booked",
+          from_booking: true
         }, "-created_date");
       }
       if (filter === "open") {
         return base44.entities.Job.filter({ 
-          status: "open"
+          status: "open",
+          from_booking: true
         }, "-created_date");
       }
-      // Show all active jobs (open and booked), excluding completed/cancelled
+      // Show all approved jobs (open and booked from bookings)
       return base44.entities.Job.filter({ 
-        status: { $in: ["open", "booked"] }
+        status: { $in: ["open", "booked"] },
+        from_booking: true
       }, "-created_date");
     },
     enabled: filter !== "booked" || !!user?.email || !!userEmail,

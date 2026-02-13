@@ -64,15 +64,20 @@ export default function Dashboard() {
   const postToJobBoardMutation = useMutation({
     mutationFn: async (booking) => {
       const job = await base44.entities.Job.create({
-        title: `${booking.package} - ${booking.property_address}`,
+        title: `${booking.package} - ${booking.street_address}`,
         type: "photo_video",
         description: booking.notes || "Booking approved from client request",
-        location: booking.property_address,
+        location: `${booking.street_address}, ${booking.city}, ${booking.state}`,
         date: booking.preferred_date,
         start_time: booking.preferred_time,
         duration_hours: 2,
         pay_rate: booking.total_price,
         status: "open",
+        from_booking: true,
+        booking_id: booking.id,
+        client_name: booking.client_name,
+        client_email: booking.client_email,
+        client_phone: booking.client_phone,
         notes: `Client: ${booking.client_name} (${booking.client_email})`
       });
       await base44.entities.Booking.update(booking.id, { status: "confirmed" });
@@ -87,15 +92,20 @@ export default function Dashboard() {
   const acceptForMyselfMutation = useMutation({
     mutationFn: async (booking) => {
       const job = await base44.entities.Job.create({
-        title: `${booking.package} - ${booking.property_address}`,
+        title: `${booking.package} - ${booking.street_address}`,
         type: "photo_video",
         description: booking.notes || "Accepted directly by admin",
-        location: booking.property_address,
+        location: `${booking.street_address}, ${booking.city}, ${booking.state}`,
         date: booking.preferred_date,
         start_time: booking.preferred_time,
         duration_hours: 2,
         pay_rate: booking.total_price,
         status: "booked",
+        from_booking: true,
+        booking_id: booking.id,
+        client_name: booking.client_name,
+        client_email: booking.client_email,
+        client_phone: booking.client_phone,
         booked_by: user?.email,
         booked_by_name: user?.full_name,
         notes: `Client: ${booking.client_name} (${booking.client_email})`
