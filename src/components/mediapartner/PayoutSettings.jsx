@@ -38,6 +38,7 @@ export default function PayoutSettings({ user }) {
       }
 
       await base44.functions.invoke('savePayoutSettings', {
+        email: user?.email,
         payout_method: payoutMethod,
         zelle_info: zelleInfo,
         bank_account_number: bankAccountNumber,

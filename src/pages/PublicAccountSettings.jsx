@@ -173,6 +173,7 @@ export default function PublicAccountSettings() {
       }
 
       await base44.functions.invoke('savePayoutSettings', {
+        email: accountData.email,
         payout_method: payoutMethod,
         zelle_info: zelleInfo,
         bank_account_number: bankAccountNumber,
