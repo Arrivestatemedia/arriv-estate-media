@@ -122,8 +122,12 @@ export default function AdminBookings() {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
     onSuccess: () => {
+      // Invalidate all job-related queries across all pages
       queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['media-partner-jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['allBookings'] });
     },
     onSettled: () => {
       setLoadingBookingId(null);
