@@ -151,7 +151,7 @@ export default function MediaPartnerDashboard() {
         {/* Earnings Breakdown */}
         <EarningsBreakdown jobs={jobs} payoutHistory={payoutHistory} />
 
-        {/* Payout Method */}
+        {/* Payout Method Info - Show only if payout method is already set */}
         {userRecord?.payout_method && (
           <Card className="border-[#B8956A]/20">
             <CardHeader>
@@ -177,8 +177,8 @@ export default function MediaPartnerDashboard() {
           </Card>
         )}
 
-        {/* Payout Settings */}
-        <PayoutSettings user={user} />
+        {/* Payout Settings - Show only if payout method hasn't been set yet */}
+        {!userRecord?.payout_method && <PayoutSettings user={user} />}
 
         {/* Payout History */}
         <PayoutHistoryList payoutHistory={payoutHistory} />
