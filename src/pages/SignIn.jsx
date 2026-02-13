@@ -130,29 +130,7 @@ export default function SignIn() {
             >
               {loading ? "Logging in..." : "Log In"}
             </Button>
-            <div className="space-y-2">
-              <p className="text-center text-sm text-[#1A1A1A]/60">
-                Don't have an account?
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => window.location.href = '/ClientSignup'}
-                >
-                  Client Sign Up
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => window.location.href = '/MediaPartnerSignup'}
-                >
-                  Media Partner Sign Up
-                </Button>
-              </div>
-            </div>
+
           </form>
         </CardContent>
       </Card>
