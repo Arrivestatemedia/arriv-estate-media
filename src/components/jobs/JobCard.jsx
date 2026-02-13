@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film } from "lucide-react";
 import { format, parse as parseDate } from "date-fns";
-import { toZonedTime } from "npm:date-fns-tz@3.0.0";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 
