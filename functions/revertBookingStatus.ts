@@ -11,6 +11,12 @@ Deno.serve(async (req) => {
 
     const { bookingId } = await req.json();
 
+    // Delete associated jobs when reverting to pending
+    const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    for (const job of jobs) {
+      await base44.asServiceRole.entities.Job.delete(job.id);
+    }
+
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'pending' });
 
     return Response.json({ success: true });
