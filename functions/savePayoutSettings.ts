@@ -21,21 +21,19 @@ Deno.serve(async (req) => {
     }
 
     // Try User entity first, then PendingSignup
-    let users = await base44.asServiceRole.entities.User.filter({ email: email.toLowerCase() });
+    const users = await base44.asServiceRole.entities.User.filter({ email: email.toLowerCase() });
     
     if (users && users.length > 0) {
-      console.log('Updating User entity');
       await base44.asServiceRole.entities.User.update(users[0].id, updateData);
-      return Response.json({ success: true });
+      return Response.json({ success: true, message: 'Updated User entity' });
     }
 
     // Fall back to PendingSignup
-    let pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: email.toLowerCase() });
+    const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: email.toLowerCase() });
     
     if (pendingSignups && pendingSignups.length > 0) {
-      console.log('Updating PendingSignup entity');
       await base44.asServiceRole.entities.PendingSignup.update(pendingSignups[0].id, updateData);
-      return Response.json({ success: true });
+      return Response.json({ success: true, message: 'Updated PendingSignup entity' });
     }
 
     return Response.json({ error: 'User record not found' }, { status: 404 });
