@@ -100,7 +100,17 @@ export default function JobBoard() {
         queryClient.setQueryData(["jobs", filter, user?.email], context.previousJobs);
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (result, variables) => {
+      // Send calendar invite after successful booking
+      try {
+        await base44.functions.invoke('createJobCalendarEvent', { 
+          job: variables.data, 
+          mediaPartnerEmail: variables.data.booked_by 
+        });
+      } catch (error) {
+        console.error('Failed to send calendar invite:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setBookingJob(null);
       navigate(createPageUrl("MediaPartnerDashboard"));
@@ -186,16 +196,6 @@ export default function JobBoard() {
       id: bookingJob.id,
       data: jobData,
     });
-
-    // Send calendar invite after booking (same pattern as client bookings)
-    try {
-      await base44.functions.invoke('createJobCalendarEvent', { 
-        job: jobData, 
-        mediaPartnerEmail: email 
-      });
-    } catch (error) {
-      console.error('Failed to send calendar invite:', error);
-    }
   };
 
   const handleCancel = (job) => {
