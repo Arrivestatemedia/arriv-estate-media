@@ -11,8 +11,6 @@ import PullToRefresh from "@/components/shared/PullToRefresh";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
