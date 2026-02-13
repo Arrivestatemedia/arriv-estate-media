@@ -9,11 +9,14 @@ import JobCard from "../components/jobs/JobCard";
 import PendingBookingCard from "../components/booking/PendingBookingCard";
 import InviteUsersCard from "../components/dashboard/InviteUsersCard";
 import { AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "../utils";
 
 export default function Dashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["jobs"],
@@ -202,7 +205,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-[#B8956A]/20 bg-white">
+            <Card 
+              className="border-2 border-[#B8956A]/20 bg-white cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => navigate(createPageUrl("JobBoard"))}
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-[#1A1A1A]/60 flex items-center justify-between">
                   Booked
