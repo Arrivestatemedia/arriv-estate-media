@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
     const emailSubject = 'Your Arriv Password Reset';
-    const emailBody = `Hello ${user.full_name},\n\nYou requested a password reset. Here is your password:\n\n${user.password_hash}\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nArriv Team`;
+    const emailBody = `Hello ${user.full_name},\n\nYou requested a password reset. Here is your password:\n\n${user.password}\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nArriv Team`;
 
     const messageLines = [
       `To: ${email}`,
