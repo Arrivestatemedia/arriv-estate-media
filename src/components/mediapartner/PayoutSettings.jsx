@@ -84,7 +84,7 @@ export default function PayoutSettings({ user }) {
               <SelectTrigger className="border-[#B8956A]/30">
                 <SelectValue placeholder="Select payout method" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent side="bottom" sideOffset={8} className="z-50">
                 <SelectItem value="zelle">Zelle (Instant)</SelectItem>
                 <SelectItem value="bank_account">Bank Account (3-5 days)</SelectItem>
               </SelectContent>
