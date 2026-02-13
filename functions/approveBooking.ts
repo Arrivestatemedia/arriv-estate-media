@@ -109,8 +109,8 @@ Deno.serve(async (req) => {
 
       console.error('Calendar Event Data:', JSON.stringify(calendarEvent));
       console.error('Using calendar email:', adminEmail);
-      
-      const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=externalOnly`, {
+
+      const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
