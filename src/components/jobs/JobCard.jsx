@@ -170,6 +170,22 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
               >
                 Book This Gig
               </Button>
+            ) : isBookedByMe && job.media_partner_status === 'on_site' ? (
+              <Button
+                onClick={handleJobCompleted}
+                disabled={loading}
+                className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium"
+              >
+                {loading ? 'Processing...' : "I've Completed the Job"}
+              </Button>
+            ) : isBookedByMe && job.media_partner_status === 'awaiting_arrival' && isStartTimeReached ? (
+              <Button
+                onClick={handleMediaPartnerOnSite}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+              >
+                {loading ? 'Processing...' : "I'm Here"}
+              </Button>
             ) : isBookedByMe ? (
               <Button
                 onClick={() => onCancel(job)}
