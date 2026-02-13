@@ -20,26 +20,25 @@ Deno.serve(async (req) => {
       updateData.bank_routing_number = bank_routing_number;
     }
 
-    // Query PendingSignup for the user
-    let result;
-    try {
-      result = await base44.asServiceRole.entities.PendingSignup.filter({ email: email.toLowerCase() });
-    } catch (filterError) {
-      console.error('Filter error:', filterError.message);
-      return Response.json({ error: 'Failed to find user record' }, { status: 404 });
-    }
+    // Try User entity first, then PendingSignup
+    let users = await base44.asServiceRole.entities.User.filter({ email: email.toLowerCase() });
     
-    if (!result || result.length === 0) {
-      console.error('No PendingSignup found for email:', email);
-      return Response.json({ error: 'User record not found' }, { status: 404 });
+    if (users && users.length > 0) {
+      console.log('Updating User entity');
+      await base44.asServiceRole.entities.User.update(users[0].id, updateData);
+      return Response.json({ success: true });
     }
 
-    const userId = result[0].id;
-    console.log('Updating user:', userId, 'with data:', updateData);
+    // Fall back to PendingSignup
+    let pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: email.toLowerCase() });
     
-    await base44.asServiceRole.entities.PendingSignup.update(userId, updateData);
+    if (pendingSignups && pendingSignups.length > 0) {
+      console.log('Updating PendingSignup entity');
+      await base44.asServiceRole.entities.PendingSignup.update(pendingSignups[0].id, updateData);
+      return Response.json({ success: true });
+    }
 
-    return Response.json({ success: true });
+    return Response.json({ error: 'User record not found' }, { status: 404 });
   } catch (error) {
     console.error('Payout settings error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
