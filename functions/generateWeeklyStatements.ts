@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
       if (gigsCompleted > 0 || grossAmount > 0) {
         // Generate PDF
-        const pdfRes = await base44.functions.invoke('generatePaymentStatement', {
+        const pdfRes = await base44.asServiceRole.functions.invoke('generatePaymentStatement', {
           media_partner_email: partner.email,
           media_partner_name: partner.full_name,
           payout_date: formatDate(payoutDate),
@@ -60,6 +60,9 @@ Deno.serve(async (req) => {
           payout_method: partner.payout_method || 'zelle',
           payout_destination: partner.payout_method === 'zelle' ? partner.zelle_info : `****${partner.bank_account_last4}`
         });
+
+        // Create data URL from PDF
+        const pdfDataUrl = `data:application/pdf;base64,${pdfRes.data.pdf_data}`;
 
         // Create payment statement record
         const statement = await base44.asServiceRole.entities.PaymentStatement.create({
@@ -72,7 +75,7 @@ Deno.serve(async (req) => {
           gross_amount: grossAmount,
           payout_method: partner.payout_method || 'zelle',
           payout_destination: partner.payout_method === 'zelle' ? partner.zelle_info : `****${partner.bank_account_last4}`,
-          pdf_url: pdfRes.data.pdf_url,
+          pdf_url: pdfDataUrl,
           is_archived: false
         });
 
