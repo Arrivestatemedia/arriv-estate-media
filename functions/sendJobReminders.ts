@@ -264,11 +264,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ 
+    const resp = { 
       success: true, 
       message: 'Job reminders processed', 
-      debug: debug.join('\n')
-    });
+      debugCount: debug.length,
+      debug: debug.slice(0, 5).join(' | ')
+    };
+    return Response.json(resp);
   } catch (error) {
     return Response.json({ 
       error: error.message, 
