@@ -128,7 +128,8 @@ export default function BookedJobsList({ jobs, loading }) {
                     {job.description}
                   </p>
                 )}
-              </div>
+                </div>
+              </Link>
             );
           })}
         </div>
