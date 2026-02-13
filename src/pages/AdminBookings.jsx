@@ -208,6 +208,24 @@ export default function AdminBookings() {
     await queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
   };
 
+  const handleEditBooking = (booking) => {
+    setEditingBooking(booking);
+    setShowEditDialog(true);
+  };
+
+  const handleSaveBooking = async (formData) => {
+    try {
+      await base44.functions.invoke('updateBooking', {
+        bookingId: editingBooking.id,
+        updates: formData
+      });
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    } catch (error) {
+      console.error('Failed to update booking:', error);
+      alert('Failed to save booking changes');
+    }
+  };
+
   if (!user) return <div className="p-8">Loading...</div>;
 
   return (
