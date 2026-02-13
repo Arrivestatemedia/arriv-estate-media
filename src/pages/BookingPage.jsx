@@ -123,13 +123,37 @@ export default function BookingPage() {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [cartAddOns, setCartAddOns] = useState([]);
+  const [editingBooking, setEditingBooking] = useState(null);
+
+  useEffect(() => {
+    // Check if we're editing a booking
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get('booking_id');
+    if (bookingId) {
+      base44.entities.Booking.get(bookingId).then(booking => {
+        setEditingBooking(booking);
+        setShowBookingForm(true);
+      }).catch(err => {
+        console.error('Failed to load booking:', err);
+        window.location.href = createPageUrl('ClientBookings');
+      });
+    }
+  }, []);
 
   const createBookingMutation = useMutation({
     mutationFn: (data) => base44.functions.invoke('handleBookingSubmission', { booking: data }),
     onSuccess: () => {
       setShowBookingForm(false);
       setSelectedPackage(null);
-      // Redirect immediately to My Bookings
+      window.location.href = createPageUrl('ClientBookings');
+    },
+  });
+
+  const requestChangesMutation = useMutation({
+    mutationFn: (data) => base44.functions.invoke('requestBookingChange', data),
+    onSuccess: () => {
+      setShowBookingForm(false);
+      setEditingBooking(null);
       window.location.href = createPageUrl('ClientBookings');
     },
   });
