@@ -20,19 +20,21 @@ Deno.serve(async (req) => {
       updateData.bank_routing_number = bank_routing_number;
     }
 
-    // Try PendingSignup first (most common for media partners)
-    const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: email });
+    // Get all records and filter manually (workaround for case sensitivity)
+    const allPendingSignups = await base44.asServiceRole.entities.PendingSignup.list();
+    const pendingSignup = allPendingSignups.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     
-    if (pendingSignups && pendingSignups.length > 0) {
-      await base44.asServiceRole.entities.PendingSignup.update(pendingSignups[0].id, updateData);
+    if (pendingSignup) {
+      await base44.asServiceRole.entities.PendingSignup.update(pendingSignup.id, updateData);
       return Response.json({ success: true, message: 'Updated PendingSignup entity' });
     }
 
     // Fall back to User entity
-    const users = await base44.asServiceRole.entities.User.filter({ email: email });
+    const allUsers = await base44.asServiceRole.entities.User.list();
+    const user = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     
-    if (users && users.length > 0) {
-      await base44.asServiceRole.entities.User.update(users[0].id, updateData);
+    if (user) {
+      await base44.asServiceRole.entities.User.update(user.id, updateData);
       return Response.json({ success: true, message: 'Updated User entity' });
     }
 
