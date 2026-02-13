@@ -182,8 +182,12 @@ export default function BookingPage() {
 
   const totalPrice = (selectedPackage?.price || 0) + cartAddOns.reduce((sum, a) => sum + a.price, 0);
 
-  const handleSubmitBooking = (bookingData) => {
-    createBookingMutation.mutate(bookingData);
+  const handleSubmitBooking = async (bookingData) => {
+    return new Promise((resolve) => {
+      createBookingMutation.mutate(bookingData, {
+        onSettled: () => resolve(),
+      });
+    });
   };
 
   if (showBookingForm) {
