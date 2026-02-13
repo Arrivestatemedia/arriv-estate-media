@@ -39,11 +39,19 @@ Deno.serve(async (req) => {
     }
 
     const user = users[0];
+    const plainPassword = generateTemporaryPassword();
+    const hashedPassword = await hashPassword(plainPassword);
+    
+    // Update password in database
+    await base44.asServiceRole.entities.PendingSignup.update(user.id, {
+      password_hash: hashedPassword
+    });
+    
     const adminEmail = 'BradCBurke@arrivestatemedia.com';
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
     const emailSubject = 'Your Arriv Password Reset';
-    const emailBody = `Hello ${user.full_name},\n\nYou requested a password reset. Here is your password:\n\n${user.password}\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nArriv Team`;
+    const emailBody = `Hello ${user.full_name},\n\nYou requested a password reset. Here is your password:\n\n${plainPassword}\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nArriv Team`;
 
     const messageLines = [
       `To: ${email}`,
