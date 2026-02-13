@@ -402,21 +402,41 @@ export default function PublicAccountSettings() {
                 )}
 
                 {payoutSuccess && (
-                  <Alert className="bg-green-50 border-green-200">
-                    <AlertCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-900">
-                      Payout settings updated successfully!
-                    </AlertDescription>
-                  </Alert>
-                )}
+                   <Alert className="bg-green-50 border-green-200">
+                     <AlertCircle className="h-4 w-4 text-green-600" />
+                     <AlertDescription className="text-green-900">
+                       Payout settings updated successfully!
+                     </AlertDescription>
+                   </Alert>
+                 )}
 
-                <Button
-                  onClick={handleUpdatePayout}
-                  disabled={loading || !payoutMethod}
-                  className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
-                >
-                  {loading ? "Saving..." : "Save Payout Settings"}
-                </Button>
+                 {accountData?.payout_method ? (
+                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                     <h3 className="font-semibold text-blue-900 mb-2">Your Current Payout Method:</h3>
+                     <p className="text-blue-800 mb-2">
+                       {accountData.payout_method === "zelle" ? "Zelle" : "Bank Account"}
+                     </p>
+                     {accountData.payout_method === "zelle" && (
+                       <p className="text-sm text-blue-700">
+                         <strong>Zelle Account:</strong> {accountData.zelle_info}
+                       </p>
+                     )}
+                     {accountData.payout_method === "bank_account" && (
+                       <div className="text-sm text-blue-700 space-y-1">
+                         <p><strong>Account:</strong> ****{accountData.bank_account_last4}</p>
+                         <p><strong>Routing:</strong> {accountData.bank_routing_number}</p>
+                       </div>
+                     )}
+                   </div>
+                 ) : (
+                   <Button
+                     onClick={handleUpdatePayout}
+                     disabled={loading || !payoutMethod}
+                     className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                   >
+                     {loading ? "Saving..." : "Save Payout Settings"}
+                   </Button>
+                 )}
                 </CardContent>
                 </Card>
 
