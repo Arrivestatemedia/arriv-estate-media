@@ -99,13 +99,15 @@ export default function ClientBookings() {
                       </Badge>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-[var(--accent-color)] border-[var(--border-color)]"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
+                      <Link to={createPageUrl('BookingPage') + '?booking_id=' + booking.id}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-[var(--accent-color)] border-[var(--border-color)]"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      </Link>
                       <Button
                         size="sm"
                         variant="outline"
