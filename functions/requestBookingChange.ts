@@ -33,57 +33,30 @@ Deno.serve(async (req) => {
 
         // Send admin email
         const adminEmail = 'BradCBurke@arrivestatemedia.com';
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-
         const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
         const changeType = changeRequest.is_cancellation ? 'CANCELLATION REQUEST' : 'CHANGE REQUEST';
         
-        const emailBody = changeRequest.is_cancellation
+        const adminEmailBody = changeRequest.is_cancellation
             ? `A client has requested to CANCEL their booking.\n\nClient: ${booking.client_name}\nEmail: ${booking.client_email}\nProperty: ${propertyAddress}\nOriginal Date: ${booking.preferred_date}\nOriginal Time: ${booking.preferred_time}\n\nPlease review and respond to the client.`
             : `A client has requested to CHANGE their booking.\n\nClient: ${booking.client_name}\nEmail: ${booking.client_email}\nProperty: ${propertyAddress}\n\nOriginal Date: ${booking.preferred_date}\nOriginal Time: ${booking.preferred_time}\n\nRequested Date: ${changeRequest.preferred_date}\nRequested Time: ${changeRequest.preferred_time}\n\nNotes: ${changeRequest.notes || 'None'}\n\nPlease review and respond to the client.`;
 
-        const emailSubject = `${changeType} - ${booking.client_name}`;
+        const adminEmailSubject = `${changeType} - ${booking.client_name}`;
 
-        const messageLines = [
-            `To: ${adminEmail}`,
-            `From: ${adminEmail}`,
-            `Subject: ${emailSubject}`,
-            'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset="UTF-8"',
-            '',
-            emailBody
-        ];
-
-        const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
-        const messageBytes = messageParts.reduce((acc, part) => {
-            const newAcc = new Uint8Array(acc.length + part.length);
-            newAcc.set(acc);
-            newAcc.set(part, acc.length);
-            return newAcc;
-        }, new Uint8Array());
-
-        const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-
-        const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ raw: base64urlMessage })
+        await base44.asServiceRole.integrations.Core.SendEmail({
+            to: adminEmail,
+            subject: adminEmailSubject,
+            body: adminEmailBody,
+            from_name: 'Arriv'
         });
 
-        // Log the email
+        // Log the admin email
         await base44.asServiceRole.entities.MessageLog.create({
             message_type: 'email',
             recipient_type: 'admin',
             recipient_email: adminEmail,
-            message_content: emailBody,
-            subject: emailSubject,
-            status: emailResponse.ok ? 'success' : 'failed'
+            message_content: adminEmailBody,
+            subject: adminEmailSubject,
+            status: 'success'
         });
 
         // Send client confirmation email
@@ -93,36 +66,11 @@ Deno.serve(async (req) => {
         
         const clientEmailBody = `Hi ${booking.client_name},\n\nWe've received your ${changeRequest.is_cancellation ? 'cancellation' : 'change'} request. Our team will review it and get back to you shortly.\n\nThank you,\nArriv Team`;
 
-        const clientMessageLines = [
-            `To: ${booking.client_email}`,
-            `From: ${adminEmail}`,
-            `Subject: ${clientEmailSubject}`,
-            'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset="UTF-8"',
-            '',
-            clientEmailBody
-        ];
-
-        const clientMessageParts = clientMessageLines.map(line => new TextEncoder().encode(line + '\r\n'));
-        const clientMessageBytes = clientMessageParts.reduce((acc, part) => {
-            const newAcc = new Uint8Array(acc.length + part.length);
-            newAcc.set(acc);
-            newAcc.set(part, acc.length);
-            return newAcc;
-        }, new Uint8Array());
-
-        const clientBase64urlMessage = btoa(String.fromCharCode(...clientMessageBytes))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-
-        const clientEmailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ raw: clientBase64urlMessage })
+        await base44.asServiceRole.integrations.Core.SendEmail({
+            to: booking.client_email,
+            subject: clientEmailSubject,
+            body: clientEmailBody,
+            from_name: 'Arriv'
         });
 
         // Log the client email
@@ -132,7 +80,7 @@ Deno.serve(async (req) => {
             recipient_email: booking.client_email,
             message_content: clientEmailBody,
             subject: clientEmailSubject,
-            status: clientEmailResponse.ok ? 'success' : 'failed'
+            status: 'success'
         });
 
         return Response.json({ success: true, changeRequestId: changeRequestRecord.id });
