@@ -60,6 +60,21 @@ Deno.serve(async (req) => {
 
         const calendarEvent = await response.json();
         
+        // Log calendar invite to MessageLog
+        try {
+            await base44.asServiceRole.entities.MessageLog.create({
+                message_type: 'email',
+                recipient_type: 'client',
+                recipient_email: booking.client_email,
+                subject: `Calendar Invite: ${event.summary}`,
+                message_content: `Calendar invite sent for ${event.summary} on ${booking.preferred_date} at ${booking.preferred_time}`,
+                status: response.ok ? 'success' : 'failed',
+                error_message: response.ok ? null : JSON.stringify(calendarEvent)
+            });
+        } catch (logError) {
+            console.error('Failed to log calendar invite:', logError);
+        }
+        
         return Response.json({ 
             success: true, 
             eventId: calendarEvent.id,
