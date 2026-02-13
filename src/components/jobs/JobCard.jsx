@@ -30,14 +30,52 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const isBackupByMe = job.backup_booked_by === currentUserEmail;
   const [showPhoneInput, setShowPhoneInput] = React.useState(false);
   const [backupPhone, setBackupPhone] = React.useState(job.backup_booked_by_phone || '');
+  const [loading, setLoading] = React.useState(false);
   
   // Show client pricing to admins, contractor pricing to media partners
   const displayPrice = userRole === 'admin' ? job.client_price : job.pay_rate;
+
+  // Check if we're past the start time
+  const isStartTimeReached = React.useMemo(() => {
+    if (!job.date || !job.start_time) return false;
+    const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
+    const [hour, minute] = job.start_time.split(':').map(Number);
+    jobDate.setHours(hour, minute, 0, 0);
+    const jobDateTime = jobDate.getTime();
+    const now = new Date().getTime();
+    return now >= jobDateTime;
+  }, [job.date, job.start_time]);
 
   const handleBackupWithPhone = () => {
     if (backupPhone.trim()) {
       onUpdateBackup(job, backupPhone);
       setShowPhoneInput(false);
+    }
+  };
+
+  const handleMediaPartnerOnSite = async () => {
+    setLoading(true);
+    try {
+      await base44.functions.invoke('notifyClientMediaPartnerOnSite', { jobId: job.id });
+      window.location.reload();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to notify client');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJobCompleted = async () => {
+    setLoading(true);
+    try {
+      await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
+      window.location.reload();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to mark job as completed');
+    } finally {
+      setLoading(false);
     }
   };
 
