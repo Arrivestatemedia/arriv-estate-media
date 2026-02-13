@@ -49,24 +49,25 @@ Deno.serve(async (req) => {
     
     if (!existingJobs || existingJobs.length === 0) {
       await base44.asServiceRole.entities.Job.create({
-      title: `Photography - ${propertyAddress}`,
-      type: 'photo',
-      description: `Property: ${propertyAddress}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
-      location: propertyAddress,
-      date: booking.preferred_date,
-      start_time: booking.preferred_time,
-      duration_hours: 2,
-      pay_rate: contractorPayRate,
-      client_price: booking.total_price,
-      status: 'open',
-      from_booking: true,
-      booking_id: bookingId,
-      package: booking.package,
-      add_ons: booking.add_ons || [],
-      client_name: booking.client_name,
-      client_email: booking.client_email,
-      client_phone: booking.client_phone
-    });
+        title: `Photography - ${propertyAddress}`,
+        type: 'photo',
+        description: `Property: ${propertyAddress}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
+        location: propertyAddress,
+        date: booking.preferred_date,
+        start_time: booking.preferred_time,
+        duration_hours: 2,
+        pay_rate: contractorPayRate,
+        client_price: booking.total_price,
+        status: 'open',
+        from_booking: true,
+        booking_id: bookingId,
+        package: booking.package,
+        add_ons: booking.add_ons || [],
+        client_name: booking.client_name,
+        client_email: booking.client_email,
+        client_phone: booking.client_phone
+      });
+    }
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
