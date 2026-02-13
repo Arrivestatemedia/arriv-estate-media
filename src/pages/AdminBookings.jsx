@@ -338,6 +338,14 @@ export default function AdminBookings() {
                   </div>
                   <div className="flex gap-2">
                     <Button
+                      onClick={() => handleEditBooking(booking)}
+                      variant="outline"
+                      className="flex-1 border-[var(--border-color)]"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
                       onClick={() => setSelectedBooking(booking)}
                       variant="outline"
                       className="flex-1 border-[var(--border-color)]"
