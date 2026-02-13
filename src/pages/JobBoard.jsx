@@ -66,13 +66,19 @@ export default function JobBoard() {
     queryFn: async () => {
       if (filter === "booked") {
         return base44.entities.Job.filter({ 
-          booked_by: user?.email
-        });
+          booked_by: user?.email,
+          status: "booked"
+        }, "-created_date");
       }
       if (filter === "open") {
-        return base44.entities.Job.filter({ status: "open", from_booking: true }, "-created_date");
+        return base44.entities.Job.filter({ 
+          status: "open"
+        }, "-created_date");
       }
-      return base44.entities.Job.filter({ from_booking: true }, "-created_date");
+      // Show all active jobs (open and booked), excluding completed/cancelled
+      return base44.entities.Job.filter({ 
+        status: { $in: ["open", "booked"] }
+      }, "-created_date");
     },
     enabled: !userLoading,
   });
