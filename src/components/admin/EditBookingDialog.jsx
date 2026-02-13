@@ -60,9 +60,12 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
   };
 
   const availableTimeSlots = formData?.preferred_date
-    ? isWeekend(new Date(formData.preferred_date))
-      ? timeSlots.weekend
-      : timeSlots.weekday
+    ? (() => {
+      const [year, month, day] = formData.preferred_date.split('-').map(Number);
+      return isWeekend(new Date(year, month - 1, day))
+        ? timeSlots.weekend
+        : timeSlots.weekday;
+    })()
     : [];
 
   if (!formData) return null;

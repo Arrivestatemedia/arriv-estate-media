@@ -143,8 +143,8 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
     if (period === 'PM' && hours !== 12) hours += 12;
     if (period === 'AM' && hours === 12) hours = 0;
     
-    const slotDateTime = new Date(formData.preferred_date);
-    slotDateTime.setHours(hours, minutes, 0, 0);
+    const [year, month, day] = formData.preferred_date.split('-').map(Number);
+    const slotDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
     
     return busySlots.some(busy => {
       const busyStart = new Date(busy.start);
@@ -154,9 +154,12 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
   };
 
   const availableTimeSlots = formData.preferred_date
-    ? isWeekend(new Date(formData.preferred_date))
-      ? timeSlots.weekend.filter(slot => !isTimeSlotBusy(slot))
-      : timeSlots.weekday.filter(slot => !isTimeSlotBusy(slot))
+    ? (() => {
+      const [year, month, day] = formData.preferred_date.split('-').map(Number);
+      return isWeekend(new Date(year, month - 1, day))
+        ? timeSlots.weekend.filter(slot => !isTimeSlotBusy(slot))
+        : timeSlots.weekday.filter(slot => !isTimeSlotBusy(slot));
+    })()
     : [];
 
   const isDateDisabled = (date) => {
