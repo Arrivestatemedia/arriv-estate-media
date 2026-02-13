@@ -99,14 +99,24 @@ export default function SignIn() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                className="mt-2 text-xs text-[#B8956A] hover:text-[#B8956A]/80 hover:bg-transparent p-0 h-auto"
-                onClick={() => window.location.href = '/ForgotPassword'}
-              >
-                Forgot password?
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-xs text-[#B8956A] hover:text-[#B8956A]/80 hover:bg-transparent p-0 h-auto"
+                  onClick={() => window.location.href = '/ForgotPassword'}
+                >
+                  Forgot password?
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-xs text-[#B8956A] hover:text-[#B8956A]/80 hover:bg-transparent p-0 h-auto"
+                  onClick={() => window.location.href = '/ForgotEmail'}
+                >
+                  Forgot email?
+                </Button>
+              </div>
             </div>
             {error && (
               <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
