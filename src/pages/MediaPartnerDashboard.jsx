@@ -183,7 +183,7 @@ export default function MediaPartnerDashboard() {
         )}
 
         {/* Payout Settings - Show only if payout method hasn't been set yet */}
-        {!userRecord?.payout_method && <PayoutSettings user={user} />}
+        {!userRecord?.payout_method && <PayoutSettings user={user} onSave={handlePayoutSave} />}
 
         {/* Payout History */}
         <PayoutHistoryList payoutHistory={payoutHistory} />
