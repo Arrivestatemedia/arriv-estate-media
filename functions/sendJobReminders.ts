@@ -28,8 +28,21 @@ Deno.serve(async (req) => {
 
       // Get the job date/time in user's timezone (America/New_York)
       const jobDate = new Date(job.date);
-      const jobTime = job.start_time ? job.start_time : '09:00';
+      let jobTime = job.start_time ? job.start_time : '09:00';
       const tz = 'America/New_York';
+
+      // Convert 12-hour format to 24-hour format if needed
+      if (jobTime.includes('AM') || jobTime.includes('PM')) {
+        const timeParts = jobTime.replace('AM', '').replace('PM', '').trim().split(':');
+        let hour = parseInt(timeParts[0]);
+        const minute = parseInt(timeParts[1]);
+        const isPM = jobTime.includes('PM');
+        
+        if (isPM && hour !== 12) hour += 12;
+        if (!isPM && hour === 12) hour = 0;
+        
+        jobTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      }
 
       // Parse job time properly (HH:MM format)
       const [jobHour, jobMinute] = jobTime.split(':').map(Number);
