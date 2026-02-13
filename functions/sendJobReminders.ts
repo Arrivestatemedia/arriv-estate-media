@@ -270,11 +270,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('[DEBUG] All jobs processed:', debug);
     return Response.json({ 
       success: true, 
       message: 'Job reminders processed',
-      jobsChecked: jobs.length
+      jobsChecked: jobs.length,
+      debug: debug
     });
   } catch (error) {
     return Response.json({ 
