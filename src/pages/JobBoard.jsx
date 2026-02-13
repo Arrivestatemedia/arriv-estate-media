@@ -181,7 +181,6 @@ export default function JobBoard() {
     }
 
     const jobData = {
-      ...bookingJob,
       status: "booked",
       booked_by: email,
       booked_by_name: name,
@@ -383,11 +382,11 @@ export default function JobBoard() {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setBookingJob(null)} className="border-[#1A1A1A]/20">
+              <Button variant="outline" onClick={() => setBookingJob(null)} className="border-[#1A1A1A]/20" disabled={bookMutation.isPending}>
                 Cancel
               </Button>
-              <Button onClick={confirmBooking} className="bg-[#B8956A] hover:bg-[#A68559] text-white">
-                Confirm Booking
+              <Button onClick={confirmBooking} className="bg-[#B8956A] hover:bg-[#A68559] text-white" disabled={bookMutation.isPending}>
+                {bookMutation.isPending ? 'Booking...' : 'Confirm Booking'}
               </Button>
             </DialogFooter>
           </DialogContent>
