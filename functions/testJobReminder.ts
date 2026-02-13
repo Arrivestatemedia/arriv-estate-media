@@ -94,6 +94,10 @@ Deno.serve(async (req) => {
     const mockNowNY = toZonedTime(mockNow, tz);
     const isSameDay = format(mockNowNY, 'yyyy-MM-dd') === format(jobDate, 'yyyy-MM-dd');
 
+    const mockJobDatetimeUTC = fromZonedTime(jobDate, tz);
+    const mockTimeDiffMs = mockJobDatetimeUTC.getTime() - mockNow.getTime();
+    const mockTimeDiffMinutes = mockTimeDiffMs / (1000 * 60);
+
     // Check if 9am reminder already sent
     const existingReminders = await base44.asServiceRole.entities.JobReminder.filter({
       job_id: job.id,

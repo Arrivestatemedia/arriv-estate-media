@@ -92,15 +92,15 @@ Deno.serve(async (req) => {
               },
               {
                 type: '24_hours_before',
-                shouldSend: () => timeDiffMinutes > 1380 && timeDiffMinutes <= 1440 // 23-24 hours before
+                shouldSend: () => timeDiffMinutes > 1350 && timeDiffMinutes <= 1450 // 22.5-24.2 hours window
               },
               {
                 type: '90_minutes_before',
-                shouldSend: () => timeDiffMinutes > 80 && timeDiffMinutes <= 90 // 80-90 min before
+                shouldSend: () => timeDiffMinutes > 75 && timeDiffMinutes <= 100 // 75-100 min window
               },
               {
                 type: '1_hour_before',
-                shouldSend: () => timeDiffMinutes > 55 && timeDiffMinutes <= 65 // 55-65 min before
+                shouldSend: () => timeDiffMinutes > 50 && timeDiffMinutes <= 75 // 50-75 min window
               }
             ];
 
