@@ -164,13 +164,15 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
           className="mb-6 text-[#1A1A1A]/60 hover:text-[#1A1A1A]"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Packages
+          {isEditing ? "Back to My Bookings" : "Back to Packages"}
         </Button>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card className="border-2 border-[#B8956A]/20">
             <CardHeader>
-              <CardTitle className="text-2xl text-[#1A1A1A]">Complete Your Booking</CardTitle>
+              <CardTitle className="text-2xl text-[#1A1A1A]">
+                {isEditing ? "Request Changes to Your Booking" : "Complete Your Booking"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="bg-[#B8956A]/10 rounded-lg p-4 border border-[#B8956A]/30">
