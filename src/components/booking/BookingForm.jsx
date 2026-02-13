@@ -121,7 +121,11 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
     if (isSubmitting) return;
     
     setIsSubmitting(true);
-    onSubmit(formData);
+    try {
+      await onSubmit(formData);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isTimeSlotBusy = (timeSlot) => {
