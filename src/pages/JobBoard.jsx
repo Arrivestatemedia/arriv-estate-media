@@ -85,6 +85,13 @@ export default function JobBoard() {
     enabled: filter !== "booked" || !!user?.email || !!userEmail,
   });
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.Job.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
+
   const bookMutation = useMutation({
     mutationFn: async ({ id, data, mediaPartnerEmail }) => {
       const response = await base44.functions.invoke('bookJobAndSendCalendarInvite', { jobId: id, jobData: data, mediaPartnerEmail });
