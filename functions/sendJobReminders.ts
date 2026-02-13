@@ -8,7 +8,13 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     // Get all jobs
-    const jobs = await base44.asServiceRole.entities.Job.list();
+    let jobs = [];
+    try {
+      jobs = await base44.asServiceRole.entities.Job.list();
+    } catch (e) {
+      console.error('Failed to fetch jobs:', e.message);
+      return Response.json({ error: `Failed to fetch jobs: ${e.message}` }, { status: 500 });
+    }
     const now = new Date();
     debug.push(`Processing ${jobs.length} jobs at ${now.toISOString()}`);
 
