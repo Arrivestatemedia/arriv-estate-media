@@ -155,7 +155,7 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
             <label className="block text-sm font-medium mb-2">Preferred Date *</label>
             <Calendar
               mode="single"
-              selected={formData.preferred_date ? parse(formData.preferred_date, 'yyyy-MM-dd', new Date()) : undefined}
+              selected={parseLocalDate(formData.preferred_date)}
               onSelect={handleDateSelect}
               disabled={(date) => date < new Date()}
               className="border-2 border-[var(--border-color)] rounded-lg p-3"
