@@ -60,38 +60,12 @@ Deno.serve(async (req) => {
 
         const calendarEvent = await response.json();
         
-        // Log the calendar invite
-        await base44.asServiceRole.entities.MessageLog.create({
-            message_type: 'email',
-            recipient_type: 'client',
-            recipient_email: booking.client_email,
-            message_content: `Calendar invite for ${propertyAddress}`,
-            subject: `Calendar Invite - ${propertyAddress}`,
-            status: response.ok ? 'success' : 'failed',
-            error_message: response.ok ? null : await response.text()
-        });
-        
         return Response.json({ 
             success: true, 
             eventId: calendarEvent.id,
             eventLink: calendarEvent.htmlLink 
         });
     } catch (error) {
-        // Log failed calendar invite
-        const base44 = createClientFromRequest(req);
-        const { booking } = await req.json();
-        const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
-        
-        await base44.asServiceRole.entities.MessageLog.create({
-            message_type: 'email',
-            recipient_type: 'client',
-            recipient_email: booking.client_email,
-            message_content: `Calendar invite for ${propertyAddress}`,
-            subject: `Calendar Invite - ${propertyAddress}`,
-            status: 'failed',
-            error_message: error.message
-        });
-        
         return Response.json({ error: error.message }, { status: 500 });
     }
 });
