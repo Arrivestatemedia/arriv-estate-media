@@ -44,6 +44,16 @@ export default function AdminUsers() {
     queryFn: () => base44.entities.PendingSignup.list(),
   });
 
+  const { data: jobs = [] } = useQuery({
+    queryKey: ["all-jobs"],
+    queryFn: () => base44.entities.Job.list(),
+  });
+
+  const { data: bookings = [] } = useQuery({
+    queryKey: ["all-bookings"],
+    queryFn: () => base44.entities.Booking.list(),
+  });
+
   const getUserPayoutInfo = (userEmail) => {
     const userRecord = users.find(u => u.email === userEmail);
     if (!userRecord || !userRecord.payout_method) return null;
