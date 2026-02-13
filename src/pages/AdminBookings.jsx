@@ -386,9 +386,13 @@ export default function AdminBookings() {
                                               setLoadingBookingId(booking.id);
                                               base44.functions.invoke('revertBookingStatus', { bookingId: booking.id }).then(() => {
                                                 queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+                                                queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+                                                queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
                                                 setLoadingBookingId(null);
                                               }).catch(() => {
                                                 queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+                                                queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+                                                queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
                                                 setLoadingBookingId(null);
                                               });
                                             }}
@@ -536,10 +540,14 @@ export default function AdminBookings() {
                         setLoadingBookingId(selectedBooking.id);
                         base44.functions.invoke('revertBookingStatus', { bookingId: selectedBooking.id }).then(() => {
                           queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+                          queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+                          queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
                           setSelectedBooking(null);
                           setLoadingBookingId(null);
                         }).catch(() => {
                           queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+                          queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+                          queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
                           setLoadingBookingId(null);
                         });
                       }}
