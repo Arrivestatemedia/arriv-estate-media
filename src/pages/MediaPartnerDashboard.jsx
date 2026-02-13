@@ -61,8 +61,13 @@ export default function MediaPartnerDashboard() {
   const handleRefresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['media-partner-jobs', user?.email] }),
-      queryClient.invalidateQueries({ queryKey: ['payout-history', user?.email] })
+      queryClient.invalidateQueries({ queryKey: ['payout-history', user?.email] }),
+      queryClient.invalidateQueries({ queryKey: ['user-record', user?.email] })
     ]);
+  };
+
+  const handlePayoutSave = () => {
+    queryClient.invalidateQueries({ queryKey: ['user-record', user?.email] });
   };
 
   return (
