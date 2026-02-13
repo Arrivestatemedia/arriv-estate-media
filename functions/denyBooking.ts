@@ -13,6 +13,12 @@ Deno.serve(async (req) => {
 
     const booking = await base44.entities.Booking.get(bookingId);
 
+    // Delete associated jobs when denying booking
+    const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    for (const job of jobs) {
+      await base44.asServiceRole.entities.Job.delete(job.id);
+    }
+
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'denied' });
 
     // Send denial email via Gmail
