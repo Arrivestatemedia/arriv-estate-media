@@ -22,9 +22,15 @@ Deno.serve(async (req) => {
         const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
         if (jobs && jobs.length > 0) {
           const jobUpdates = {};
-          // Map booking fields to job fields
+          // Map booking fields to job fields - update both date AND time
           if (updates.preferred_date) jobUpdates.date = updates.preferred_date;
           if (updates.preferred_time) jobUpdates.start_time = updates.preferred_time;
+
+          // If date changed but time is empty, use the old time to preserve it
+          if (updates.preferred_date && !updates.preferred_time) {
+            const oldJob = jobs[0];
+            jobUpdates.start_time = oldJob.start_time;
+          }
           if (updates.client_name) jobUpdates.client_name = updates.client_name;
           if (updates.client_email) jobUpdates.client_email = updates.client_email;
           if (updates.client_phone) jobUpdates.client_phone = updates.client_phone;
