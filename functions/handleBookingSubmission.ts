@@ -33,11 +33,14 @@ Deno.serve(async (req) => {
       const endTime = new Date(eventDate);
       endTime.setHours(endTime.getHours() + 2);
 
+      const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
+      
       const calendarEvent = {
-        summary: `Booking: ${booking.client_name} - ${booking.property_address}`,
+        summary: `Booking: ${booking.client_name} - ${propertyAddress}`,
         description: `Package: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
-        start: { dateTime: eventDate.toISOString() },
-        end: { dateTime: endTime.toISOString() }
+        start: { dateTime: eventDate.toISOString(), timeZone: 'America/New_York' },
+        end: { dateTime: endTime.toISOString(), timeZone: 'America/New_York' },
+        location: propertyAddress
       };
 
       const calendarResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(adminEmail)}/events`, {
