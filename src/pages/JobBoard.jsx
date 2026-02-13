@@ -84,7 +84,7 @@ export default function JobBoard() {
   });
 
   const bookMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Job.update(id, data),
+    mutationFn: ({ id, data, mediaPartnerEmail }) => base44.functions.invoke('bookJobAndSendCalendarInvite', { jobId: id, jobData: data, mediaPartnerEmail }),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ["jobs"] });
       const previousJobs = queryClient.getQueryData(["jobs", filter, user?.email]);
@@ -100,17 +100,7 @@ export default function JobBoard() {
         queryClient.setQueryData(["jobs", filter, user?.email], context.previousJobs);
       }
     },
-    onSuccess: async (result, variables) => {
-      // Send calendar invite after successful booking
-      try {
-        await base44.functions.invoke('createJobCalendarEvent', { 
-          job: variables.data, 
-          mediaPartnerEmail: variables.data.booked_by 
-        });
-      } catch (error) {
-        console.error('Failed to send calendar invite:', error);
-      }
-
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setBookingJob(null);
       navigate(createPageUrl("MediaPartnerDashboard"));
@@ -195,6 +185,7 @@ export default function JobBoard() {
     bookMutation.mutate({
       id: bookingJob.id,
       data: jobData,
+      mediaPartnerEmail: email,
     });
   };
 
