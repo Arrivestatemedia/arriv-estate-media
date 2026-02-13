@@ -3,7 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Trash2, Mail, ArrowLeft, Lock } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Trash2, Mail, ArrowLeft, Lock, Wallet } from "lucide-react";
 import { createPageUrl } from "../utils";
 import {
   AlertDialog,
@@ -25,8 +28,13 @@ export default function PublicAccountSettings() {
   const [editPhone, setEditPhone] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [payoutMethod, setPayoutMethod] = useState("");
+  const [zelleInfo, setZelleInfo] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [routingNumber, setRoutingNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [payoutSuccess, setPayoutSuccess] = useState(false);
 
   const handleLookup = async (e) => {
     e.preventDefault();
@@ -42,6 +50,10 @@ export default function PublicAccountSettings() {
         setAccountData(response.data.account);
         setEditEmail(response.data.account.email);
         setEditPhone(response.data.account.phone_number || "");
+        setPayoutMethod(response.data.account.payout_method || "");
+        setZelleInfo(response.data.account.zelle_info || "");
+        setBankAccountNumber(response.data.account.bank_account_number || "");
+        setRoutingNumber(response.data.account.bank_routing_number || "");
         setStep("edit");
       } else {
         setError(response.data.error || "Account not found");
@@ -135,6 +147,42 @@ export default function PublicAccountSettings() {
       }
     } catch (err) {
       setError('Failed to update password: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePayout = async () => {
+    setPayoutSuccess(false);
+    setError("");
+    setLoading(true);
+
+    try {
+      if (payoutMethod === "zelle") {
+        if (!zelleInfo) {
+          setError("Please enter Zelle phone number or email");
+          setLoading(false);
+          return;
+        }
+      } else if (payoutMethod === "bank_account") {
+        if (!bankAccountNumber || !routingNumber) {
+          setError("Please enter both account and routing numbers");
+          setLoading(false);
+          return;
+        }
+      }
+
+      await base44.functions.invoke('savePayoutSettings', {
+        payout_method: payoutMethod,
+        zelle_info: zelleInfo,
+        bank_account_number: bankAccountNumber,
+        bank_routing_number: routingNumber
+      });
+      
+      setPayoutSuccess(true);
+      setTimeout(() => setPayoutSuccess(false), 3000);
+    } catch (err) {
+      setError(err.message || "Failed to update payout settings");
     } finally {
       setLoading(false);
     }
@@ -269,6 +317,93 @@ export default function PublicAccountSettings() {
                      {error}
                    </div>
                  )}
+                </CardContent>
+                </Card>
+
+                <Card className="border-[#B8956A]/20">
+                <CardHeader>
+                <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />
+                  Payout Settings
+                </CardTitle>
+                <CardDescription>Update your payout method</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                <Alert className="bg-blue-50 border-blue-200">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-sm text-blue-900">
+                    <strong>Bank account payouts</strong> take 3-5 business days to deposit. 
+                    <strong> Zelle payouts</strong> are typically instant.
+                  </AlertDescription>
+                </Alert>
+
+                <div>
+                  <Label className="mb-2 block">Payout Method</Label>
+                  <RadioGroup value={payoutMethod} onValueChange={setPayoutMethod}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="zelle" id="zelle" />
+                      <Label htmlFor="zelle" className="font-normal cursor-pointer">Zelle (Instant)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="bank_account" id="bank_account" />
+                      <Label htmlFor="bank_account" className="font-normal cursor-pointer">Bank Account (3-5 days)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {payoutMethod === "zelle" && (
+                  <div>
+                    <Label>Zelle Phone Number or Email</Label>
+                    <Input
+                      value={zelleInfo}
+                      onChange={(e) => setZelleInfo(e.target.value)}
+                      placeholder="phone@example.com or +1234567890"
+                      className="border-[#B8956A]/30"
+                    />
+                  </div>
+                )}
+
+                {payoutMethod === "bank_account" && (
+                  <>
+                    <div>
+                      <Label>Bank Account Number</Label>
+                      <Input
+                        type="text"
+                        value={bankAccountNumber}
+                        onChange={(e) => setBankAccountNumber(e.target.value)}
+                        placeholder="Account number"
+                        className="border-[#B8956A]/30"
+                      />
+                    </div>
+                    <div>
+                      <Label>Routing Number</Label>
+                      <Input
+                        type="text"
+                        value={routingNumber}
+                        onChange={(e) => setRoutingNumber(e.target.value)}
+                        placeholder="9-digit routing number"
+                        className="border-[#B8956A]/30"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {payoutSuccess && (
+                  <Alert className="bg-green-50 border-green-200">
+                    <AlertCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-900">
+                      Payout settings updated successfully!
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  onClick={handleUpdatePayout}
+                  disabled={loading || !payoutMethod}
+                  className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                >
+                  {loading ? "Saving..." : "Save Payout Settings"}
+                </Button>
                 </CardContent>
                 </Card>
 
