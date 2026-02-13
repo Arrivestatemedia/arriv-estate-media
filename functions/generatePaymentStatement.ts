@@ -43,23 +43,11 @@ Deno.serve(async (req) => {
     });
 
     const pdfBytes = doc.output('arraybuffer');
-    const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
     
-    // Upload the PDF
-    const formData = new FormData();
-    formData.append('file', pdfBlob, 'statement.pdf');
-    
-    const uploadRes = await fetch('https://api.base44.io/upload', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('BASE44_SERVICE_TOKEN')}`
-      }
-    }).then(r => r.json());
-
+    // Return base64 encoded PDF for now
     return Response.json({
       success: true,
-      pdf_url: uploadRes.file_url
+      pdf_data: btoa(String.fromCharCode.apply(null, new Uint8Array(pdfBytes)))
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
