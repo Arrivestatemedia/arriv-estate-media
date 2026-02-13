@@ -17,6 +17,9 @@ Deno.serve(async (req) => {
       payout_destination: 'ilimbooking@gmail.com'
     });
 
+    // Create data URL from PDF
+    const pdfDataUrl = `data:application/pdf;base64,${pdfRes.data.pdf_data}`;
+
     // Create payment statement record
     const statement = await base44.asServiceRole.entities.PaymentStatement.create({
       media_partner_email: 'ilimbooking@gmail.com',
@@ -28,7 +31,7 @@ Deno.serve(async (req) => {
       gross_amount: 850.00,
       payout_method: 'zelle',
       payout_destination: 'ilimbooking@gmail.com',
-      pdf_url: pdfRes.data.pdf_url,
+      pdf_url: pdfDataUrl,
       is_archived: false
     });
 
