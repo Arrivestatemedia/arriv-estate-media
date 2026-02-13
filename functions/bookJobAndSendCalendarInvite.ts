@@ -10,15 +10,15 @@ Deno.serve(async (req) => {
     }
 
     // Update the job entity
-    await base44.asServiceRole.entities.Job.update(jobId, jobData);
+    const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, jobData);
 
     // Invoke the calendar event creation function
     await base44.asServiceRole.functions.invoke('createJobCalendarEvent', {
-      job: jobData,
+      job: { ...updatedJob, id: jobId },
       mediaPartnerEmail: mediaPartnerEmail,
     });
 
-    return Response.json({ success: true, message: 'Job booked and calendar invite sent' });
+    return Response.json({ success: true, message: 'Job booked and calendar invite sent' }, { status: 200 });
   } catch (error) {
     console.error('Error in bookJobAndSendCalendarInvite:', error);
     return Response.json({ error: error.message }, { status: 500 });
