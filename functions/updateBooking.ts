@@ -18,6 +18,29 @@ Deno.serve(async (req) => {
 
         const updatedBooking = await base44.asServiceRole.entities.Booking.update(bookingId, updates);
 
+        // Update associated jobs with booking changes
+        const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+        if (jobs && jobs.length > 0) {
+          const jobUpdates = {};
+          // Map booking fields to job fields
+          if (updates.preferred_date) jobUpdates.date = updates.preferred_date;
+          if (updates.preferred_time) jobUpdates.start_time = updates.preferred_time;
+          if (updates.client_name) jobUpdates.client_name = updates.client_name;
+          if (updates.client_email) jobUpdates.client_email = updates.client_email;
+          if (updates.client_phone) jobUpdates.client_phone = updates.client_phone;
+          if (updates.notes) jobUpdates.notes = updates.notes;
+          if (updates.street_address || updates.city || updates.state) {
+            const addr = updates.street_address || booking.street_address;
+            const city = updates.city || booking.city;
+            const state = updates.state || booking.state;
+            jobUpdates.location = `${addr}, ${city}, ${state}`;
+          }
+          
+          for (const job of jobs) {
+            await base44.asServiceRole.entities.Job.update(job.id, jobUpdates);
+          }
+        }
+
         // Send approval email to client
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
         const adminEmail = 'BradCBurke@arrivestatemedia.com';
