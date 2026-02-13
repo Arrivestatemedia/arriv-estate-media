@@ -44,7 +44,11 @@ Deno.serve(async (req) => {
 
     const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
 
-    await base44.asServiceRole.entities.Job.create({
+    // Check if job already exists for this booking
+    const existingJobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    
+    if (!existingJobs || existingJobs.length === 0) {
+      await base44.asServiceRole.entities.Job.create({
       title: `Photography - ${propertyAddress}`,
       type: 'photo',
       description: `Property: ${propertyAddress}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
