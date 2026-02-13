@@ -70,6 +70,7 @@ import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import ForgotPassword from './pages/ForgotPassword';
+import ForgotEmail from './pages/ForgotEmail';
 import __Layout from './Layout.jsx';
 
 
@@ -97,6 +98,7 @@ export const PAGES = {
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
     "ForgotPassword": ForgotPassword,
+    "ForgotEmail": ForgotEmail,
 }
 
 export const pagesConfig = {
