@@ -222,6 +222,9 @@ export default function AdminUsers() {
                       Payout
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
+                      Earnings / Spending
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">
                       Action
                     </th>
                   </tr>
