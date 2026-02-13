@@ -270,7 +270,10 @@ export default function AdminUsers() {
                        {(() => {
                          const payoutInfo = getUserPayoutInfo(u.email);
                          return payoutInfo ? (
-                           <Badge variant="outline" className="text-xs">{payoutInfo.method}</Badge>
+                           <div className="text-xs">
+                             <Badge variant="outline" className="text-xs mb-1">{payoutInfo.method}</Badge>
+                             {payoutInfo.details && <div className="text-[var(--text-secondary)] text-xs mt-1">{payoutInfo.details}</div>}
+                           </div>
                          ) : <span className="text-xs">—</span>;
                        })()}
                       </td>
