@@ -13,14 +13,16 @@ Deno.serve(async (req) => {
 
     // Delete associated jobs created from this booking
     const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    const deletedJobIds = [];
     for (const job of jobs) {
       await base44.asServiceRole.entities.Job.delete(job.id);
+      deletedJobIds.push(job.id);
     }
 
     // Delete the booking
     await base44.asServiceRole.entities.Booking.delete(bookingId);
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, deletedJobIds });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
