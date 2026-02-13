@@ -21,7 +21,7 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-600 border-red-300" },
 };
 
-export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole }) {
+export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole, isMediaPartner }) {
   const type = typeConfig[job.type] || typeConfig.photo;
   const status = statusConfig[job.status] || statusConfig.open;
   const TypeIcon = type.icon;
