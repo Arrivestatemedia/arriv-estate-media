@@ -193,15 +193,19 @@ export default function BookingPage() {
   if (showBookingForm) {
     return (
       <BookingForm
-        selectedPackage={selectedPackage}
-        cartAddOns={cartAddOns}
-        addOns={addOns}
-        onSubmit={editingBooking ? (formData) => {
+      selectedPackage={selectedPackage}
+      cartAddOns={cartAddOns}
+      addOns={addOns}
+      onSubmit={editingBooking ? async (formData) => {
+        return new Promise((resolve) => {
           requestChangesMutation.mutate({
             bookingId: editingBooking.id,
             changeRequest: formData
+          }, {
+            onSettled: () => resolve(),
           });
-        } : handleSubmitBooking}
+        });
+      } : handleSubmitBooking}
         onCancel={() => {
           setShowBookingForm(false);
           setEditingBooking(null);
