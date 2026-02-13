@@ -2,14 +2,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { formatInTimeZone, toZonedTime, zonedTimeToUtc } from 'npm:date-fns-tz@3.0.0';
 
 Deno.serve(async (req) => {
+  const debug = [];
+  
   try {
     const base44 = createClientFromRequest(req);
 
     // Get all jobs
     const jobs = await base44.asServiceRole.entities.Job.list();
     const now = new Date();
-    
-    const debug = [];
     debug.push(`Processing ${jobs.length} jobs at ${now.toISOString()}`);
 
     for (const job of jobs) {
