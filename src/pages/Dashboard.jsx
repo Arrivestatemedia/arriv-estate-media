@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,13 @@ export default function Dashboard() {
     queryKey: ["jobs"],
     queryFn: () => base44.entities.Job.list("-created_date"),
   });
+
+  useEffect(() => {
+    const unsubscribe = base44.entities.Job.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   const { data: user } = useQuery({
     queryKey: ["user"],
