@@ -116,7 +116,11 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
           <div className="flex flex-wrap items-center gap-4 text-sm text-[#1A1A1A]/60 mb-4">
             <div className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" />
-              {format(new Date(job.date), "MMM d, yyyy")}
+              {(() => {
+                const date = new Date(job.date);
+                date.setDate(date.getDate() + 1);
+                return format(date, "MMM d, yyyy");
+              })()}
             </div>
             {job.start_time && (
               <div className="flex items-center gap-1.5">
