@@ -44,13 +44,13 @@ export default function AdminUsers() {
     queryFn: () => base44.entities.PendingSignup.list(),
   });
 
-  const getUserPayoutInfo = (email) => {
-    const userRecord = allUsers.find(u => u.email === email);
-    if (!userRecord) return null;
+  const getUserPayoutInfo = (userEmail) => {
+    const userRecord = users.find(u => u.email === userEmail);
+    if (!userRecord || !userRecord.payout_method) return null;
     if (userRecord.payout_method === "zelle") {
-      return { method: "Zelle", info: userRecord.zelle_info };
+      return { method: "Zelle" };
     }
-    return { method: "Bank", info: `****${userRecord.bank_account_last4}` };
+    return { method: "Bank Account" };
   };
 
   const deleteMutation = useMutation({
