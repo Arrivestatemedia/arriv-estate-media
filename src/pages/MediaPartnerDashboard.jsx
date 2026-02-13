@@ -43,7 +43,9 @@ export default function MediaPartnerDashboard() {
   });
 
   const currentBalance = user?.current_balance || 0;
-  const bookedJobsCount = jobs.filter(j => j.status === 'booked' || j.status === 'in_progress').length;
+  const bookedJobs = jobs.filter(j => j.status === 'booked' || j.status === 'in_progress');
+  const bookedJobsCount = bookedJobs.length;
+  const bookedAmount = bookedJobs.reduce((sum, job) => sum + (job.pay_rate || 0), 0);
   const completedJobsCount = jobs.filter(j => j.status === 'completed').length;
 
   const handleRefresh = async () => {
@@ -63,7 +65,7 @@ export default function MediaPartnerDashboard() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card className="border-[var(--border-color)] bg-[var(--card-bg)]">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-[var(--text-secondary)]">
@@ -77,6 +79,23 @@ export default function MediaPartnerDashboard() {
                 </div>
                 <p className="text-xs text-[var(--text-secondary)] mt-1">
                   Pays out Friday at 4am
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[var(--border-color)] bg-[var(--card-bg)]">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-[var(--text-secondary)]">
+                  Booked Amount
+                </CardTitle>
+                <DollarSign className="w-5 h-5 text-[var(--accent-color)]" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-[var(--text-primary)]">
+                  ${bookedAmount.toFixed(2)}
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  From active jobs
                 </p>
               </CardContent>
             </Card>
