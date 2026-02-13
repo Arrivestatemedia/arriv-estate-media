@@ -13,6 +13,14 @@ Deno.serve(async (req) => {
 
     const booking = await base44.entities.Booking.get(bookingId);
 
+    // Update associated jobs when approving booking
+    const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    if (jobs && jobs.length > 0) {
+      for (const job of jobs) {
+        await base44.asServiceRole.entities.Job.update(job.id, { status: 'open' });
+      }
+    }
+
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
     // Send approval email to customer
