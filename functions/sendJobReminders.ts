@@ -182,11 +182,19 @@ Deno.serve(async (req) => {
 
           // Send email to client
           if (job.client_email) {
-            await base44.asServiceRole.integrations.Core.SendEmail({
-              to: job.client_email,
-              subject: 'Shoot Reminder - Today at ' + jobTime,
-              body: emailBody
-            });
+            try {
+              if (gmailAccessToken) {
+                await sendEmailViaGmail(gmailAccessToken, job.client_email, 'Shoot Reminder - Today at ' + jobTime, emailBody);
+              } else {
+                await base44.asServiceRole.integrations.Core.SendEmail({
+                  to: job.client_email,
+                  subject: 'Shoot Reminder - Today at ' + jobTime,
+                  body: emailBody
+                });
+              }
+            } catch (e) {
+              console.log('Email send skipped:', e.message);
+            }
             await base44.asServiceRole.entities.MessageLog.create({
               message_type: 'email',
               recipient_type: 'client',
