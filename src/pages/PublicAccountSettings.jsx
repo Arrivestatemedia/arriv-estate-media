@@ -334,114 +334,116 @@ export default function PublicAccountSettings() {
                 </CardContent>
                 </Card>
 
-                <Card className="border-[#B8956A]/20">
-                <CardHeader>
-                <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
-                  <Wallet className="w-5 h-5" />
-                  Payout Settings
-                </CardTitle>
-                <CardDescription>Update your payout method</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                {accountData?.payout_method && (
-                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                     <h3 className="font-semibold text-blue-900 mb-3">Your Current Payout Method:</h3>
-                     <div className="space-y-2">
-                       <p className="text-blue-800 font-medium">
-                         {accountData.payout_method === "zelle" ? "Zelle" : "Bank Account"}
-                       </p>
-                       {accountData.payout_method === "zelle" && accountData.zelle_info && (
-                         <p className="text-sm text-blue-700">
-                           <strong>Zelle Account:</strong> {accountData.zelle_info}
+                {accountData?.user_type === "media_partner" && (
+                  <Card className="border-[#B8956A]/20">
+                  <CardHeader>
+                  <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
+                    <Wallet className="w-5 h-5" />
+                    Payout Settings
+                  </CardTitle>
+                  <CardDescription>Update your payout method</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                  {accountData?.payout_method && (
+                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                       <h3 className="font-semibold text-blue-900 mb-3">Your Current Payout Method:</h3>
+                       <div className="space-y-2">
+                         <p className="text-blue-800 font-medium">
+                           {accountData.payout_method === "zelle" ? "Zelle" : "Bank Account"}
                          </p>
-                       )}
-                       {accountData.payout_method === "bank_account" && (
-                         <div className="text-sm text-blue-700 space-y-1">
-                           {accountData.bank_account_number && <p><strong>Account:</strong> {accountData.bank_account_number}</p>}
-                           {accountData.bank_routing_number && <p><strong>Routing:</strong> {accountData.bank_routing_number}</p>}
-                         </div>
-                       )}
+                         {accountData.payout_method === "zelle" && accountData.zelle_info && (
+                           <p className="text-sm text-blue-700">
+                             <strong>Zelle Account:</strong> {accountData.zelle_info}
+                           </p>
+                         )}
+                         {accountData.payout_method === "bank_account" && (
+                           <div className="text-sm text-blue-700 space-y-1">
+                             {accountData.bank_account_number && <p><strong>Account:</strong> {accountData.bank_account_number}</p>}
+                             {accountData.bank_routing_number && <p><strong>Routing:</strong> {accountData.bank_routing_number}</p>}
+                           </div>
+                         )}
+                       </div>
                      </div>
-                   </div>
-                 )}
+                   )}
 
-                 <Alert className="bg-blue-50 border-blue-200">
-                   <AlertCircle className="h-4 w-4 text-blue-600" />
-                   <AlertDescription className="text-sm text-blue-900">
-                     <strong>Bank account payouts</strong> take 3-5 business days to deposit. 
-                     <strong> Zelle payouts</strong> are typically instant.
-                   </AlertDescription>
-                 </Alert>
-
-                 <div>
-                   <Label className="mb-3 block font-semibold">Update Payout Method</Label>
-                   <RadioGroup value={payoutMethod} onValueChange={setPayoutMethod}>
-                     <div className="flex items-center space-x-2">
-                       <RadioGroupItem value="zelle" id="zelle" />
-                       <Label htmlFor="zelle" className="font-normal cursor-pointer">Zelle (Instant)</Label>
-                     </div>
-                     <div className="flex items-center space-x-2">
-                       <RadioGroupItem value="bank_account" id="bank_account" />
-                       <Label htmlFor="bank_account" className="font-normal cursor-pointer">Bank Account (3-5 days)</Label>
-                     </div>
-                   </RadioGroup>
-                 </div>
-
-                 {payoutMethod === "zelle" && (
-                   <div>
-                     <Label>Zelle Phone Number or Email</Label>
-                     <Input
-                       value={zelleInfo}
-                       onChange={(e) => setZelleInfo(e.target.value)}
-                       placeholder="phone@example.com or +1234567890"
-                       className="border-[#B8956A]/30"
-                     />
-                   </div>
-                 )}
-
-                 {payoutMethod === "bank_account" && (
-                   <>
-                     <div>
-                       <Label>Bank Account Number</Label>
-                       <Input
-                         type="text"
-                         value={bankAccountNumber}
-                         onChange={(e) => setBankAccountNumber(e.target.value)}
-                         placeholder="Account number"
-                         className="border-[#B8956A]/30"
-                       />
-                     </div>
-                     <div>
-                       <Label>Routing Number</Label>
-                       <Input
-                         type="text"
-                         value={routingNumber}
-                         onChange={(e) => setRoutingNumber(e.target.value)}
-                         placeholder="9-digit routing number"
-                         className="border-[#B8956A]/30"
-                       />
-                     </div>
-                   </>
-                 )}
-
-                {payoutSuccess && (
-                   <Alert className="bg-green-50 border-green-200">
-                     <AlertCircle className="h-4 w-4 text-green-600" />
-                     <AlertDescription className="text-green-900">
-                       Payout settings updated successfully!
+                   <Alert className="bg-blue-50 border-blue-200">
+                     <AlertCircle className="h-4 w-4 text-blue-600" />
+                     <AlertDescription className="text-sm text-blue-900">
+                       <strong>Bank account payouts</strong> take 3-5 business days to deposit. 
+                       <strong> Zelle payouts</strong> are typically instant.
                      </AlertDescription>
                    </Alert>
-                 )}
 
-                 <Button
-                   onClick={handleUpdatePayout}
-                   disabled={loading || !payoutMethod}
-                   className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
-                 >
-                   {loading ? "Saving..." : "Save Payout Settings"}
-                 </Button>
-                </CardContent>
-                </Card>
+                   <div>
+                     <Label className="mb-3 block font-semibold">Update Payout Method</Label>
+                     <RadioGroup value={payoutMethod} onValueChange={setPayoutMethod}>
+                       <div className="flex items-center space-x-2">
+                         <RadioGroupItem value="zelle" id="zelle" />
+                         <Label htmlFor="zelle" className="font-normal cursor-pointer">Zelle (Instant)</Label>
+                       </div>
+                       <div className="flex items-center space-x-2">
+                         <RadioGroupItem value="bank_account" id="bank_account" />
+                         <Label htmlFor="bank_account" className="font-normal cursor-pointer">Bank Account (3-5 days)</Label>
+                       </div>
+                     </RadioGroup>
+                   </div>
+
+                   {payoutMethod === "zelle" && (
+                     <div>
+                       <Label>Zelle Phone Number or Email</Label>
+                       <Input
+                         value={zelleInfo}
+                         onChange={(e) => setZelleInfo(e.target.value)}
+                         placeholder="phone@example.com or +1234567890"
+                         className="border-[#B8956A]/30"
+                       />
+                     </div>
+                   )}
+
+                   {payoutMethod === "bank_account" && (
+                     <>
+                       <div>
+                         <Label>Bank Account Number</Label>
+                         <Input
+                           type="text"
+                           value={bankAccountNumber}
+                           onChange={(e) => setBankAccountNumber(e.target.value)}
+                           placeholder="Account number"
+                           className="border-[#B8956A]/30"
+                         />
+                       </div>
+                       <div>
+                         <Label>Routing Number</Label>
+                         <Input
+                           type="text"
+                           value={routingNumber}
+                           onChange={(e) => setRoutingNumber(e.target.value)}
+                           placeholder="9-digit routing number"
+                           className="border-[#B8956A]/30"
+                         />
+                       </div>
+                     </>
+                   )}
+
+                  {payoutSuccess && (
+                     <Alert className="bg-green-50 border-green-200">
+                       <AlertCircle className="h-4 w-4 text-green-600" />
+                       <AlertDescription className="text-green-900">
+                         Payout settings updated successfully!
+                       </AlertDescription>
+                     </Alert>
+                   )}
+
+                   <Button
+                     onClick={handleUpdatePayout}
+                     disabled={loading || !payoutMethod}
+                     className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                   >
+                     {loading ? "Saving..." : "Save Payout Settings"}
+                   </Button>
+                  </CardContent>
+                  </Card>
+                )}
 
                 {accountData?.user_type === "media_partner" && (
                   <PaymentStatementsDownload userEmail={accountData.email} />
