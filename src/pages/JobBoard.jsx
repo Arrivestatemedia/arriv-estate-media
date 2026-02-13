@@ -88,11 +88,11 @@ export default function JobBoard() {
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ["jobs"] });
       const previousJobs = queryClient.getQueryData(["jobs", filter, user?.email]);
-      
+
       queryClient.setQueryData(["jobs", filter, user?.email], (old) =>
         old?.map((job) => (job.id === id ? { ...job, ...data } : job))
       );
-      
+
       return { previousJobs };
     },
     onError: (err, variables, context) => {
@@ -100,7 +100,17 @@ export default function JobBoard() {
         queryClient.setQueryData(["jobs", filter, user?.email], context.previousJobs);
       }
     },
-    onSuccess: () => {
+    onSuccess: async (data, { jobData }) => {
+      // Send calendar invite
+      try {
+        await base44.functions.invoke('createJobCalendarEvent', { 
+          job: jobData, 
+          mediaPartnerEmail: jobData.booked_by 
+        });
+      } catch (error) {
+        console.error('Failed to send calendar invite:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setBookingJob(null);
       navigate(createPageUrl("MediaPartnerDashboard"));
@@ -175,25 +185,18 @@ export default function JobBoard() {
       return;
     }
 
+    const jobData = {
+      ...bookingJob,
+      status: "booked",
+      booked_by: email,
+      booked_by_name: name,
+    };
+
     bookMutation.mutate({
       id: bookingJob.id,
-      data: {
-        ...bookingJob,
-        status: "booked",
-        booked_by: email,
-        booked_by_name: name,
-      },
+      data: jobData,
+      jobData: jobData,
     });
-
-    // Send calendar invite after booking
-    try {
-      await base44.functions.invoke('createJobCalendarEvent', { 
-        job: bookingJob, 
-        mediaPartnerEmail: email 
-      });
-    } catch (error) {
-      console.error('Failed to send calendar invite:', error);
-    }
   };
 
   const handleCancel = (job) => {
