@@ -111,21 +111,12 @@ export default function AdminBookings() {
       await base44.functions.invoke('deleteBooking', { bookingId });
       return bookingId;
     },
-    onMutate: async (bookingId) => {
-      setLoadingBookingId(bookingId);
-      queryClient.setQueryData(['adminBookings'], (old) =>
-        old.filter(b => b.id !== bookingId)
-      );
-    },
-    onError: () => {
-      queryClient.invalidateQueries();
-    },
     onSuccess: () => {
-      // Clear and refetch all queries to ensure deletion syncs everywhere
-      queryClient.clear();
-      setTimeout(() => {
-        queryClient.refetchQueries();
-      }, 100);
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
+      queryClient.invalidateQueries({ queryKey: ['pendingBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['allBookings'] });
     },
     onSettled: () => {
       setLoadingBookingId(null);
@@ -195,6 +186,10 @@ export default function AdminBookings() {
       await base44.functions.invoke('deleteBooking', { bookingId });
     }
     queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+    queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
+    queryClient.invalidateQueries({ queryKey: ['pendingBookings'] });
+    queryClient.invalidateQueries({ queryKey: ['allBookings'] });
     setSelectedForDelete(new Set());
     setIsDeleting(false);
   };
