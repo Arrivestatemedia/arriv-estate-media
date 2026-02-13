@@ -18,10 +18,7 @@ Deno.serve(async (req) => {
       mediaPartnerEmail: mediaPartnerEmail,
     });
 
-    // Send Supra access notification to client
-    await base44.asServiceRole.functions.invoke('sendSupraAccessNotification', {
-      jobId: jobId,
-    });
+    // Note: sendSupraAccessNotification is now only sent when media partner confirms they're on site
 
     return Response.json({ success: true, message: 'Job booked and calendar invite sent' }, { status: 200 });
   } catch (error) {
