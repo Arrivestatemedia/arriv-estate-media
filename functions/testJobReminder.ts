@@ -2,6 +2,28 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { toZonedTime, fromZonedTime } from 'npm:date-fns-tz@3.0.0';
 import { format, parse as parseDate } from 'npm:date-fns@3.6.0';
 
+async function sendEmailViaGmail(accessToken, to, subject, body) {
+  const message = `To: ${to}\r\nSubject: ${subject}\r\n\r\n${body}`;
+  const encodedMessage = btoa(message);
+  
+  const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      raw: encodedMessage
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Gmail send failed: ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
