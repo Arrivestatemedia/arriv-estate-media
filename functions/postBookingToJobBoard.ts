@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
       client_price: booking.total_price,
       status: 'open',
       from_booking: true,
+      booking_id: bookingId,
       package: booking.package,
       add_ons: booking.add_ons || [],
       client_name: booking.client_name,
