@@ -423,7 +423,7 @@ export default function PublicAccountSettings() {
                      )}
                      {accountData.payout_method === "bank_account" && (
                        <div className="text-sm text-blue-700 space-y-1">
-                         <p><strong>Account:</strong> ****{accountData.bank_account_last4}</p>
+                         <p><strong>Account:</strong> {accountData.bank_account_number}</p>
                          <p><strong>Routing:</strong> {accountData.bank_routing_number}</p>
                        </div>
                      )}
