@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
 
         const event = {
             summary: `Arriv Estate Media - ${job.title}`,
-            description: `Job Details:\n${job.description || ''}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}\nClient: ${maskedClientName}`,
+            description: `Job Details:\n${job.description || ''}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}`,
             start: {
                 dateTime: startDateTime,
                 timeZone: 'America/New_York'
