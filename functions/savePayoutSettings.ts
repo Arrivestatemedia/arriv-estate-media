@@ -9,6 +9,7 @@ Deno.serve(async (req) => {
     }
 
     const base44 = createClientFromRequest(req);
+    const normalizedEmail = email.toLowerCase();
 
     const updateData = { payout_method };
 
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
     }
 
     // Try PendingSignup first using filter
-    const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email });
+    const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: normalizedEmail });
     
     if (pendingSignups.length > 0) {
       await base44.asServiceRole.entities.PendingSignup.update(pendingSignups[0].id, updateData);
