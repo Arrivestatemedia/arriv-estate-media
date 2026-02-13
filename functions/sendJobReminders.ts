@@ -41,41 +41,35 @@ Deno.serve(async (req) => {
       jobDate.setHours(jobHour, jobMinute, 0, 0);
       const jobDatetimeUTC = fromZonedTime(jobDate, tz);
       
+      const timeDiffMs = jobDatetimeUTC.getTime() - now.getTime();
+      const timeDiffMinutes = timeDiffMs / (1000 * 60);
+      const isSameDay = format(nowNY, 'yyyy-MM-dd') === format(jobDate, 'yyyy-MM-dd');
+
       const reminders = [
         {
           type: '9am_morning',
-          check: () => {
+          shouldSend: () => {
             // Send at 9am ET on job day, within a 5-minute window
-            return isSameDay && nowHour === 9 && nowMinutes >= 0 && nowMinutes < 5;
+            return isSameDay && nowNY.getHours() === 9 && nowNY.getMinutes() < 5;
           }
         },
         {
           type: '24_hours_before',
-          check: () => {
-            // Send between 23-24 hours before
-            return timeDiffMs > 23 * 60 * 60 * 1000 && timeDiffMs < 24 * 60 * 60 * 1000;
-          }
+          shouldSend: () => timeDiffMinutes > 1380 && timeDiffMinutes < 1440 // 23-24 hours
         },
         {
           type: '90_minutes_before',
-          check: () => {
-            // Send between 88-92 minutes before (wider window for reliability)
-            return timeDiffMs > 88 * 60 * 1000 && timeDiffMs < 92 * 60 * 1000;
-          }
+          shouldSend: () => timeDiffMinutes > 85 && timeDiffMinutes < 95 // 85-95 min window
         },
         {
           type: '1_hour_before',
-          check: () => {
-            // Send between 58-62 minutes before (wider window for reliability)
-            return timeDiffMs > 58 * 60 * 1000 && timeDiffMs < 62 * 60 * 1000;
-          }
+          shouldSend: () => timeDiffMinutes > 55 && timeDiffMinutes < 65 // 55-65 min window
         }
       ];
 
       for (const reminder of reminders) {
-        const reminderTriggered = reminder.check();
-        debug.push(`  ${reminder.type}: ${reminderTriggered ? 'TRIGGERED' : 'skip'}`);
-        if (!reminderTriggered) continue;
+        const shouldSend = typeof reminder.shouldSend === 'function' ? reminder.shouldSend() : reminder.shouldSend;
+        if (!shouldSend) continue;
 
         // Check if reminder already sent
         const existingReminders = await base44.asServiceRole.entities.JobReminder.filter({
