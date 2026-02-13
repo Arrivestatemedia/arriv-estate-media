@@ -5,7 +5,8 @@ import { format, parse as parseDate } from 'npm:date-fns@3.6.0';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { jobId, bookingId } = await req.json();
+    const body = await req.json();
+    const { jobId, bookingId } = body;
     
     if (!jobId && !bookingId) {
       return Response.json({ error: 'Job ID or Booking ID required' }, { status: 400 });
@@ -13,21 +14,18 @@ Deno.serve(async (req) => {
 
     const tz = 'America/New_York';
     
-    // Mock current time as 9:02 AM ET today
-    const now = new Date();
-    const mockNow = new Date(now);
-    mockNow.setHours(9, 2, 0, 0);
-    
     let job;
-    if (jobId) {
-      job = await base44.asServiceRole.entities.Job.get(jobId);
-    } else {
+    if (bookingId) {
       const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
-      job = jobs.length > 0 ? jobs[0] : null;
-    }
-    
-    if (!job) {
-      return Response.json({ error: 'Job not found' }, { status: 404 });
+      if (jobs.length === 0) {
+        return Response.json({ error: 'No job found for this booking ID' }, { status: 404 });
+      }
+      job = jobs[0];
+    } else {
+      job = await base44.asServiceRole.entities.Job.get(jobId);
+      if (!job) {
+        return Response.json({ error: 'Job not found' }, { status: 404 });
+      }
     }
 
     if (!job.booked_by) {
@@ -51,18 +49,17 @@ Deno.serve(async (req) => {
 
     const [jobHour, jobMinute] = jobTime.split(':').map(Number);
     jobDate.setHours(jobHour, jobMinute, 0, 0);
-    const jobDatetimeUTC = fromZonedTime(jobDate, tz);
 
+    // Mock current time as 9:02 AM ET
+    const now = new Date();
+    const mockNow = new Date(now);
+    mockNow.setHours(9, 2, 0, 0);
     const mockNowNY = toZonedTime(mockNow, tz);
     const isSameDay = format(mockNowNY, 'yyyy-MM-dd') === format(jobDate, 'yyyy-MM-dd');
 
-    if (!isSameDay || mockNowNY.getHours() !== 9) {
-      return Response.json({ error: 'Not 9am on job day - test conditions not met' }, { status: 400 });
-    }
-
     // Check if 9am reminder already sent
     const existingReminders = await base44.asServiceRole.entities.JobReminder.filter({
-      job_id: jobId,
+      job_id: job.id,
       reminder_type: '9am_morning'
     });
 
@@ -85,7 +82,7 @@ Deno.serve(async (req) => {
         recipient_type: 'media_partner',
         recipient_phone: job.booked_by_phone,
         message_content: smsMsg,
-        job_id: jobId,
+        job_id: job.id,
         reminder_type: '9am_morning',
         status: 'success'
       });
@@ -103,33 +100,31 @@ Deno.serve(async (req) => {
         recipient_email: job.booked_by,
         message_content: emailBody,
         subject: 'Shoot Reminder - Today at ' + jobTime,
-        job_id: jobId,
+        job_id: job.id,
         reminder_type: '9am_morning',
         status: 'success'
       });
     }
 
-    // Send SMS to client
     if (job.client_phone) {
       const clientSms = `${message}`;
       await base44.asServiceRole.functions.invoke('sendReminderSMS', {
         phone: job.client_phone,
         message: clientSms,
         recipientType: 'client',
-        jobId: jobId
+        jobId: job.id
       });
       await base44.asServiceRole.entities.MessageLog.create({
         message_type: 'sms',
         recipient_type: 'client',
         recipient_phone: job.client_phone,
         message_content: clientSms,
-        job_id: jobId,
+        job_id: job.id,
         reminder_type: '9am_morning',
         status: 'success'
       });
     }
 
-    // Send email to client
     if (job.client_email) {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: job.client_email,
@@ -142,15 +137,14 @@ Deno.serve(async (req) => {
         recipient_email: job.client_email,
         message_content: emailBody,
         subject: 'Shoot Reminder - Today at ' + jobTime,
-        job_id: jobId,
+        job_id: job.id,
         reminder_type: '9am_morning',
         status: 'success'
       });
     }
 
-    // Record reminder
     await base44.asServiceRole.entities.JobReminder.create({
-      job_id: jobId,
+      job_id: job.id,
       reminder_type: '9am_morning',
       sent_at: new Date().toISOString()
     });
@@ -158,7 +152,7 @@ Deno.serve(async (req) => {
     return Response.json({ 
       success: true, 
       message: '9am reminder sent successfully',
-      jobId,
+      jobId: job.id,
       jobTime,
       mediaPartnerEmail: job.booked_by,
       clientEmail: job.client_email
