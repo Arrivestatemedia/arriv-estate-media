@@ -10,19 +10,22 @@ Deno.serve(async (req) => {
     const now = new Date();
 
     for (const job of jobs) {
-      if (!job.date || job.status === 'cancelled') continue;
+      if (!job.date || job.status === 'cancelled' || job.status === 'archived') continue;
 
       // Get the job date/time in user's timezone (America/New_York)
       const jobDate = new Date(job.date);
       const jobTime = job.start_time ? job.start_time : '09:00';
       const tz = 'America/New_York';
 
-      // Create job datetime in NY timezone
-      const jobDateString = jobDate.toISOString().split('T')[0];
-      const jobDatetimeString = `${jobDateString}T${jobTime}:00`;
-      const jobDatetimeNY = new Date(jobDatetimeString);
+      // Parse job time properly (HH:MM format)
+      const [jobHour, jobMinute] = jobTime.split(':').map(Number);
       
-      // Convert Eastern time to UTC properly
+      // Create job datetime properly in NY timezone, then convert to UTC
+      const jobDateString = jobDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const jobDatetimeString = `${jobDateString}T${jobTime}:00`;
+      
+      // Create a date in ET and convert to UTC
+      const jobDatetimeNY = new Date(jobDatetimeString);
       const jobDatetimeUTC = zonedTimeToUtc(jobDatetimeNY, tz);
 
       // Calculate reminder times
