@@ -80,29 +80,31 @@ Deno.serve(async (req) => {
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
 
-      const eventDate = new Date(booking.preferred_date);
+      // Parse the date and time
       const [time, period] = booking.preferred_time.split(' ');
       let [hours, minutes] = time.split(':').map(Number);
 
       if (period === 'PM' && hours !== 12) hours += 12;
       if (period === 'AM' && hours === 12) hours = 0;
 
-      // Create time in local Eastern timezone (UTC-5 or UTC-4 depending on DST)
-      eventDate.setHours(hours, minutes, 0, 0);
+      // Create datetime string in Eastern timezone format (YYYY-MM-DDTHH:mm:ss)
+      const dateStr = booking.preferred_date; // YYYY-MM-DD format
+      const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+      const startDateTime = `${dateStr}T${timeStr}`;
 
-      // Convert to ISO string with proper timezone
-      const isoDateTime = eventDate.toISOString();
-
-      const endTime = new Date(eventDate);
-      endTime.setHours(endTime.getHours() + 2);
+      // Calculate end time (2 hours later)
+      const endHours = hours + 2;
+      const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+      const endDateTime = `${dateStr}T${endTimeStr}`;
 
       const calendarEvent = {
-        summary: `Arriv Estate Media - ${booking.package}`,
+        summary: `Arriv Estate Media - ${booking.client_name} - ${booking.package}`,
         description: `Property: ${booking.street_address}, ${booking.city}, ${booking.state}\nPackage: ${booking.package}\nClient: ${booking.client_name}\nPhone: ${booking.client_phone}\nNotes: ${booking.notes || 'None'}`,
-        start: { dateTime: isoDateTime, timeZone: 'America/New_York' },
-        end: { dateTime: endTime.toISOString(), timeZone: 'America/New_York' },
+        start: { dateTime: startDateTime, timeZone: 'America/New_York' },
+        end: { dateTime: endDateTime, timeZone: 'America/New_York' },
         location: `${booking.street_address}, ${booking.city}, ${booking.state}`,
-        attendees: [{ email: booking.client_email }]
+        attendees: [{ email: booking.client_email }],
+        sendUpdates: 'all'
       };
 
       console.error('Calendar Event Data:', JSON.stringify(calendarEvent));
