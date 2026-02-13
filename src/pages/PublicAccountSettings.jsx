@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Trash2, Mail, ArrowLeft, Lock, Wallet } from "lucide-react";
+import PaymentStatementsDownload from "@/components/mediapartner/PaymentStatementsDownload";
 import { createPageUrl } from "../utils";
 import {
   AlertDialog,
