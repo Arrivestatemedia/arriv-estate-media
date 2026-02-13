@@ -151,11 +151,34 @@ export default function MediaPartnerDashboard() {
         {/* Earnings Breakdown */}
         <EarningsBreakdown jobs={jobs} payoutHistory={payoutHistory} />
 
+        {/* Payout Method */}
+        {userRecord?.payout_method && (
+          <Card className="border-[#B8956A]/20">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-[#B8956A]" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-[#1A1A1A]">Payout Method</CardTitle>
+                    <CardDescription>
+                      {userRecord.payout_method === "zelle" ? "Zelle" : "Bank Account"}
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-[#1A1A1A]/70">
+                To change your account information go to your <a href={`/PublicAccountSettings`} className="text-[#B8956A] font-medium hover:underline">Account Settings</a>.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Payout Settings */}
         <PayoutSettings user={user} />
-
-        {/* Current Payout Method */}
-        <PayoutMethodInfo user={userRecord} />
 
         {/* Payout History */}
         <PayoutHistoryList payoutHistory={payoutHistory} />
