@@ -50,6 +50,7 @@
 import AccountSettings from './pages/AccountSettings';
 import AdminBookings from './pages/AdminBookings';
 import AdminInvite from './pages/AdminInvite';
+import AdminPaymentStatements from './pages/AdminPaymentStatements';
 import AdminUsers from './pages/AdminUsers';
 import BookingPage from './pages/BookingPage';
 import ClientBookings from './pages/ClientBookings';
@@ -68,10 +69,9 @@ import MediaPartnerSignup from './pages/MediaPartnerSignup';
 import MessageLogs from './pages/MessageLogs';
 import NotifyBackup from './pages/NotifyBackup';
 import PasswordSetup from './pages/PasswordSetup';
+import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import PublicAccountSettings from './pages/PublicAccountSettings';
-import AdminPaymentStatements from './pages/AdminPaymentStatements';
 import __Layout from './Layout.jsx';
 
 
@@ -79,6 +79,7 @@ export const PAGES = {
     "AccountSettings": AccountSettings,
     "AdminBookings": AdminBookings,
     "AdminInvite": AdminInvite,
+    "AdminPaymentStatements": AdminPaymentStatements,
     "AdminUsers": AdminUsers,
     "BookingPage": BookingPage,
     "ClientBookings": ClientBookings,
@@ -97,10 +98,9 @@ export const PAGES = {
     "MessageLogs": MessageLogs,
     "NotifyBackup": NotifyBackup,
     "PasswordSetup": PasswordSetup,
+    "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
-    "PublicAccountSettings": PublicAccountSettings,
-    "AdminPaymentStatements": AdminPaymentStatements,
 }
 
 export const pagesConfig = {
