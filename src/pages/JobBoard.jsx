@@ -62,11 +62,13 @@ export default function JobBoard() {
   });
 
   const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ["jobs", filter, user?.email],
+    queryKey: ["jobs", filter, user?.email, userEmail],
     queryFn: async () => {
       if (filter === "booked") {
+        const email = user?.email || userEmail;
+        if (!email) return [];
         return base44.entities.Job.filter({ 
-          booked_by: user?.email,
+          booked_by: email,
           status: "booked"
         }, "-created_date");
       }
@@ -80,7 +82,7 @@ export default function JobBoard() {
         status: { $in: ["open", "booked"] }
       }, "-created_date");
     },
-    enabled: !userLoading,
+    enabled: filter !== "booked" || !!user?.email || !!userEmail,
   });
 
   const bookMutation = useMutation({
