@@ -39,16 +39,16 @@ Deno.serve(async (req) => {
         const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
         // Compare hashes
-        if (hashHex !== signup.password_hash) {
+        if (hashHex !== user.password_hash) {
             return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
         }
 
         return Response.json({
             success: true,
-            email: signup.email,
-            full_name: signup.full_name,
-            user_type: signup.user_type,
-            user_role: signup.user_role || 'user'
+            email: user.email,
+            full_name: user.full_name,
+            user_type: user.user_type,
+            user_role: user.user_role || 'user'
         });
     } catch (error) {
         console.error('SignIn error:', error);
