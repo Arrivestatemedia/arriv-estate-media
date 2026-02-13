@@ -4,8 +4,9 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Generate sample PDF
-    const pdfRes = await base44.functions.invoke('generatePaymentStatement', {
+    // Generate sample PDF using service role
+    const base44Service = createClientFromRequest(req);
+    const pdfRes = await base44Service.asServiceRole.functions.invoke('generatePaymentStatement', {
       media_partner_email: 'ilimbooking@gmail.com',
       media_partner_name: 'Sample Media Partner',
       payout_date: '2026-02-13',
