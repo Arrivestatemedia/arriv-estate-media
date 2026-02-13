@@ -113,9 +113,12 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
   };
 
   const handleDateSelect = (date) => {
-    // Format the date in UTC to avoid timezone shifts
-    const utcDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-    setFormData({ ...formData, preferred_date: format(utcDate, "yyyy-MM-dd"), preferred_time: "" });
+    // Format using the date's local year/month/date to avoid timezone conversion
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    setFormData({ ...formData, preferred_date: dateString, preferred_time: "" });
   };
 
   const handleSubmit = async (e) => {
