@@ -407,6 +407,16 @@ export default function AdminUsers() {
                          </div>
                        ) : null;
                      })()}
+                     <div className="pt-2 border-t border-[var(--border-color)]">
+                       <div className="flex items-center justify-between mb-2">
+                         <span className="text-xs font-medium text-[var(--text-secondary)]">
+                           {u.user_type === "media_partner" ? "Total Earnings:" : "Total Spent:"}
+                         </span>
+                         <span className={`text-sm font-bold ${u.user_type === "media_partner" ? "text-green-600" : "text-blue-600"}`}>
+                           ${u.user_type === "media_partner" ? getMediaPartnerEarnings(u.email).toFixed(2) : getClientSpending(u.email).toFixed(2)}
+                         </span>
+                       </div>
+                     </div>
                      {editingId === u.id ? (
                       <div className="space-y-2">
                         <div>
