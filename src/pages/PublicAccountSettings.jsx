@@ -410,7 +410,7 @@ export default function PublicAccountSettings() {
                    </Alert>
                  )}
 
-                 {accountData?.payout_method ? (
+                 {accountData?.payout_method && (
                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                      <h3 className="font-semibold text-blue-900 mb-2">Your Current Payout Method:</h3>
                      <p className="text-blue-800 mb-2">
@@ -428,15 +428,15 @@ export default function PublicAccountSettings() {
                        </div>
                      )}
                    </div>
-                 ) : (
-                   <Button
-                     onClick={handleUpdatePayout}
-                     disabled={loading || !payoutMethod}
-                     className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
-                   >
-                     {loading ? "Saving..." : "Save Payout Settings"}
-                   </Button>
                  )}
+
+                 <Button
+                   onClick={handleUpdatePayout}
+                   disabled={loading || !payoutMethod}
+                   className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90"
+                 >
+                   {loading ? "Saving..." : "Save Payout Settings"}
+                 </Button>
                 </CardContent>
                 </Card>
 
