@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function PayoutSettings({ user }) {
   const [payoutMethod, setPayoutMethod] = useState(user?.payout_method || "");
   const [zelleInfo, setZelleInfo] = useState(user?.zelle_info || "");
-  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState(user?.bank_account_number || "");
   const [routingNumber, setRoutingNumber] = useState(user?.bank_routing_number || "");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
