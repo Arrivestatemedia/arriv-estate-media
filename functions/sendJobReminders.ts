@@ -25,11 +25,19 @@ async function sendEmailViaGmail(accessToken, to, subject, body) {
 }
 
 Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
-    const tz = 'America/New_York';
-    const now = new Date();
-    const nowNY = toZonedTime(now, tz);
+        try {
+          const base44 = createClientFromRequest(req);
+          const tz = 'America/New_York';
+          const now = new Date();
+          const nowNY = toZonedTime(now, tz);
+
+          // Get Gmail access token
+          let gmailAccessToken;
+          try {
+            gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+          } catch (e) {
+            console.log('Gmail not available');
+          }
 
     // Get all open, booked, or in_progress jobs
     let jobs = [];
