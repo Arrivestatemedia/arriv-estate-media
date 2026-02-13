@@ -32,9 +32,19 @@ Deno.serve(async (req) => {
               })()
             : 'N/A';
 
+        // Sanitize description to remove emails and phone numbers
+        let sanitizedDescription = job.description || '';
+        sanitizedDescription = sanitizedDescription
+            .replace(/[\w\.-]+@[\w\.-]+\.\w+/g, '') // Remove emails
+            .replace(/(\d{3}[-.\s]?){2}\d{4}/g, '') // Remove phone numbers
+            .split('\n')
+            .filter(line => line.trim().length > 0)
+            .join('\n')
+            .trim();
+
         const event = {
             summary: `Arriv Estate Media - ${maskedClientName} - ${job.title}`,
-            description: `Client: ${maskedClientName}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}`,
+            description: `Client: ${maskedClientName}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}${sanitizedDescription ? `\n\n${sanitizedDescription}` : ''}`,
             start: {
                 dateTime: startDateTime,
                 timeZone: 'America/New_York'
