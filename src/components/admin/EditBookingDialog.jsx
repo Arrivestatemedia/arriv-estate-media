@@ -16,8 +16,7 @@ const timeSlots = {
 // Helper to parse YYYY-MM-DD string to local Date object (avoid timezone shifts)
 const parseLocalDate = (dateString) => {
   if (!dateString) return undefined;
-  const [year, month, day] = dateString.split('-').map(Number);
-  return new Date(year, month - 1, day);
+  return new Date(`${dateString}T00:00:00`);
 };
 
 // Helper to format Date object to YYYY-MM-DD string (use local date)
