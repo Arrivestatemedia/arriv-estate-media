@@ -71,6 +71,7 @@ import PasswordSetup from './pages/PasswordSetup';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import PublicAccountSettings from './pages/PublicAccountSettings';
+import AdminPaymentStatements from './pages/AdminPaymentStatements';
 import __Layout from './Layout.jsx';
 
 
@@ -99,6 +100,7 @@ export const PAGES = {
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
     "PublicAccountSettings": PublicAccountSettings,
+    "AdminPaymentStatements": AdminPaymentStatements,
 }
 
 export const pagesConfig = {
