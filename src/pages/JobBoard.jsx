@@ -95,6 +95,13 @@ export default function JobBoard() {
     return unsubscribe;
   }, [queryClient]);
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.Booking.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
+
   const bookMutation = useMutation({
     mutationFn: async ({ id, data, mediaPartnerEmail }) => {
       const response = await base44.functions.invoke('bookJobAndSendCalendarInvite', { jobId: id, jobData: data, mediaPartnerEmail });

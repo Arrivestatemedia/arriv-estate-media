@@ -29,6 +29,14 @@ export default function Dashboard() {
     return unsubscribe;
   }, [queryClient]);
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.Booking.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["pendingBookings"] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
+
   const { data: user } = useQuery({
     queryKey: ["user"],
     queryFn: () => base44.auth.me(),
