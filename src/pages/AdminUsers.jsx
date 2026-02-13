@@ -361,7 +361,7 @@ export default function AdminUsers() {
                        return payoutInfo ? (
                          <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                            <DollarSign className="w-4 h-4" />
-                           <span className="text-xs">{payoutInfo.method}: {payoutInfo.info}</span>
+                           <span className="text-xs">{payoutInfo.method}</span>
                          </div>
                        ) : null;
                      })()}
