@@ -22,6 +22,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'This job is not currently booked' }, { status: 400 });
     }
 
+    // Store original contractor info for notification
+    const contractorName = job.booked_by_name;
+    const contractorEmail = job.booked_by;
+    const hasBackup = !!job.backup_booked_by;
+    const backupName = job.backup_booked_by_name;
+    const backupEmail = job.backup_booked_by;
+
     // Check if there's a backup contractor
     if (job.backup_booked_by) {
       // Assign backup to main position
@@ -43,6 +50,65 @@ Deno.serve(async (req) => {
         backup_booked_by: null,
         backup_booked_by_name: null,
         backup_booked_by_phone: null
+      });
+    }
+
+    // Send admin notification
+    const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+    const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+    const fromPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
+    const toPhone = "4047891107";
+
+    let message = `🚨 JOB CANCELLATION 🚨\n\nContractor: ${contractorName} (${contractorEmail})`;
+    if (reason) {
+      message += `\nReason: ${reason}`;
+    }
+    message += `\n\nJob: ${job.title}\nLocation: ${job.location}\nDate: ${job.date}\nTime: ${job.start_time || 'TBD'}\nPay: $${job.pay_rate}`;
+
+    if (hasBackup) {
+      message += `\n\n✅ BACKUP ASSIGNED: ${backupName} (${backupEmail})`;
+    } else {
+      message += `\n\n❌ NO BACKUP - Job returned to board`;
+    }
+
+    try {
+      const smsResponse = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Basic " + btoa(`${accountSid}:${authToken}`),
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            From: fromPhone,
+            To: toPhone,
+            Body: message,
+          }),
+        }
+      );
+
+      // Log the message
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'sms',
+        recipient_type: 'admin',
+        recipient_phone: toPhone,
+        message_content: message,
+        job_id: jobId,
+        status: smsResponse.ok ? 'success' : 'failed',
+        error_message: smsResponse.ok ? null : `HTTP ${smsResponse.status}`
+      });
+    } catch (notifyError) {
+      console.error('Failed to send admin notification:', notifyError);
+      // Log the failure but don't block the cancellation
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'sms',
+        recipient_type: 'admin',
+        recipient_phone: toPhone,
+        message_content: message,
+        job_id: jobId,
+        status: 'failed',
+        error_message: notifyError.message
       });
     }
 
