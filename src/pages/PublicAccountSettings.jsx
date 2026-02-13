@@ -179,8 +179,20 @@ export default function PublicAccountSettings() {
         bank_account_number: bankAccountNumber,
         bank_routing_number: routingNumber
       });
-      
+
       setPayoutSuccess(true);
+
+      // Update the local data to show saved information
+      const updatedData = {
+        ...accountData,
+        payout_method: payoutMethod,
+        zelle_info: zelleInfo,
+        bank_account_number: bankAccountNumber,
+        bank_routing_number: routingNumber,
+        bank_account_last4: bankAccountNumber ? bankAccountNumber.slice(-4) : null
+      };
+      setAccountData(updatedData);
+
       setTimeout(() => setPayoutSuccess(false), 3000);
     } catch (err) {
       setError(err.message || "Failed to update payout settings");
