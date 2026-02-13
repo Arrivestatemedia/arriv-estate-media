@@ -362,9 +362,12 @@ export default function AdminUsers() {
                      {(() => {
                        const payoutInfo = getUserPayoutInfo(u.email);
                        return payoutInfo ? (
-                         <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-                           <DollarSign className="w-4 h-4" />
-                           <span className="text-xs">{payoutInfo.method}</span>
+                         <div className="flex flex-col gap-1">
+                           <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                             <DollarSign className="w-4 h-4" />
+                             <span className="text-xs font-medium">{payoutInfo.method}</span>
+                           </div>
+                           {payoutInfo.details && <div className="text-xs text-[var(--text-secondary)] ml-6">{payoutInfo.details}</div>}
                          </div>
                        ) : null;
                      })()}
