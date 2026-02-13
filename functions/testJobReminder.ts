@@ -89,11 +89,15 @@ Deno.serve(async (req) => {
     }
 
     if (job.booked_by) {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: job.booked_by,
-        subject: 'Shoot Reminder - Today at ' + jobTime,
-        body: emailBody
-      });
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: job.booked_by,
+          subject: 'Shoot Reminder - Today at ' + jobTime,
+          body: emailBody
+        });
+      } catch (e) {
+        console.log('Email send skipped (external user)');
+      }
       await base44.asServiceRole.entities.MessageLog.create({
         message_type: 'email',
         recipient_type: 'media_partner',
@@ -126,11 +130,15 @@ Deno.serve(async (req) => {
     }
 
     if (job.client_email) {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: job.client_email,
-        subject: 'Shoot Reminder - Today at ' + jobTime,
-        body: emailBody
-      });
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: job.client_email,
+          subject: 'Shoot Reminder - Today at ' + jobTime,
+          body: emailBody
+        });
+      } catch (e) {
+        console.log('Email send skipped (external user)');
+      }
       await base44.asServiceRole.entities.MessageLog.create({
         message_type: 'email',
         recipient_type: 'client',
