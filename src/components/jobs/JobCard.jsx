@@ -148,7 +148,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
             </div>
           )}
 
-          {job.booked_by_name && (
+          {job.booked_by_name && !isMediaPartner && (
             <div className="text-xs text-[#1A1A1A]/40 mb-4">
               <p>
                 Booked by <span className="font-medium text-[#B8956A]">{job.booked_by_name}</span>
