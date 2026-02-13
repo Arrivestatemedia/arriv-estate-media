@@ -84,7 +84,10 @@ export default function JobBoard() {
   });
 
   const bookMutation = useMutation({
-    mutationFn: ({ id, data, mediaPartnerEmail }) => base44.functions.invoke('bookJobAndSendCalendarInvite', { jobId: id, jobData: data, mediaPartnerEmail }),
+    mutationFn: async ({ id, data, mediaPartnerEmail }) => {
+      const response = await base44.functions.invoke('bookJobAndSendCalendarInvite', { jobId: id, jobData: data, mediaPartnerEmail });
+      return response.data;
+    },
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ["jobs"] });
       const previousJobs = queryClient.getQueryData(["jobs", filter, user?.email]);
