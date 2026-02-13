@@ -485,11 +485,24 @@ export default function PublicAccountSettings() {
                 </Card>
 
             <Card className="border-[#B8956A]/20">
-              <CardHeader>
-                <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
-                  <Mail className="w-5 h-5" />
-                  Contact Support
-                </CardTitle>
+            <CardHeader>
+            <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Payment Statements
+            </CardTitle>
+            <CardDescription>Download your weekly payment statements</CardDescription>
+            </CardHeader>
+            <CardContent>
+            <PaymentStatementsDropdown email={accountData.email} />
+            </CardContent>
+            </Card>
+
+            <Card className="border-[#B8956A]/20">
+            <CardHeader>
+            <CardTitle className="text-[#1A1A1A] flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Contact Support
+            </CardTitle>
                 <CardDescription>Get help or report an issue</CardDescription>
               </CardHeader>
               <CardContent>
