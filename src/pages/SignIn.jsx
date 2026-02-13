@@ -22,7 +22,7 @@ export default function SignIn() {
     try {
       // Invoke backend function to verify user
       const response = await base44.functions.invoke('verifySignIn', {
-        email: formData.email.toLowerCase(),
+        email: formData.email,
         password: formData.password
       });
 
