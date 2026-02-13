@@ -105,9 +105,11 @@ export default function JobBoard() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setBookingJob(null);
-      navigate(createPageUrl("MediaPartnerDashboard"));
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      setTimeout(() => {
+        navigate(createPageUrl("MediaPartnerDashboard"));
+      }, 100);
     },
   });
 
