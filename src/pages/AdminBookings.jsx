@@ -613,6 +613,13 @@ export default function AdminBookings() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <EditBookingDialog 
+        booking={editingBooking}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSave={handleSaveBooking}
+      />
     </PullToRefresh>
   );
 }
