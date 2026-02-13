@@ -100,7 +100,6 @@ export default function JobBoard() {
     },
     onError: (err, variables, context) => {
       console.error('Booking error:', err);
-      alert('Failed to book job: ' + (err?.response?.data?.error || err.message));
       if (context?.previousJobs) {
         queryClient.setQueryData(["jobs", filter, user?.email], context.previousJobs);
       }
