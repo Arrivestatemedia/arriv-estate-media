@@ -302,6 +302,17 @@ export default function AdminUsers() {
                          ) : <span className="text-xs">—</span>;
                        })()}
                       </td>
+                      <td className="py-3 px-4">
+                       {u.user_type === "media_partner" ? (
+                         <div className="text-sm font-medium text-green-600">
+                           ${getMediaPartnerEarnings(u.email).toFixed(2)}
+                         </div>
+                       ) : (
+                         <div className="text-sm font-medium text-blue-600">
+                           ${getClientSpending(u.email).toFixed(2)}
+                         </div>
+                       )}
+                      </td>
                       <td className="py-3 px-4 flex gap-2">
                         {editingId === u.id ? (
                           <>
