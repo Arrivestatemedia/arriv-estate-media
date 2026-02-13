@@ -73,10 +73,14 @@ Deno.serve(async (req) => {
 
     if (job.booked_by_phone) {
       const smsMsg = `${message}\n\nClient will be notified shortly.`;
-      await base44.asServiceRole.functions.invoke('sendReminderSMS', {
-        phone: job.booked_by_phone,
-        message: smsMsg
-      });
+      try {
+        await base44.asServiceRole.functions.invoke('sendReminderSMS', {
+          phone: job.booked_by_phone,
+          message: smsMsg
+        });
+      } catch (e) {
+        console.log('SMS skipped');
+      }
       await base44.asServiceRole.entities.MessageLog.create({
         message_type: 'sms',
         recipient_type: 'media_partner',
