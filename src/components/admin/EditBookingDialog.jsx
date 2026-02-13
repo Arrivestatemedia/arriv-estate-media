@@ -147,7 +147,7 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
               mode="single"
               selected={formData.preferred_date ? (() => {
                 const [year, month, day] = formData.preferred_date.split('-').map(Number);
-                return new Date(year, month - 1, day);
+                return new Date(Date.UTC(year, month - 1, day));
               })() : undefined}
               onSelect={handleDateSelect}
               disabled={(date) => date < new Date()}
