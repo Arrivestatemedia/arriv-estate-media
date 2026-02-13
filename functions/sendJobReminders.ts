@@ -101,6 +101,10 @@ Deno.serve(async (req) => {
               {
                 type: '1_hour_before',
                 shouldSend: () => timeDiffMinutes > 50 && timeDiffMinutes <= 75 // 50-75 min window
+              },
+              {
+                type: 'on_site_arrival',
+                shouldSend: () => timeDiffMinutes >= -5 && timeDiffMinutes <= 5 // Within 5 minutes of start time
               }
             ];
 
@@ -291,6 +295,26 @@ Deno.serve(async (req) => {
               recipient_type: 'admin',
               recipient_phone: adminPhone,
               message_content: adminMessage,
+              job_id: job.id,
+              reminder_type: reminder.type,
+              status: 'success'
+            });
+          }
+        } else if (reminder.type === 'on_site_arrival') {
+          // Send to client only
+          if (job.client_phone) {
+            const clientMessage = `We're on site at ${job.location}! The shoot will take approximately 2 hours. We'll contact you as soon as we're finished.`;
+            await base44.asServiceRole.functions.invoke('sendReminderSMS', {
+              phone: job.client_phone,
+              message: clientMessage,
+              recipientType: 'client',
+              jobId: job.id
+            });
+            await base44.asServiceRole.entities.MessageLog.create({
+              message_type: 'sms',
+              recipient_type: 'client',
+              recipient_phone: job.client_phone,
+              message_content: clientMessage,
               job_id: job.id,
               reminder_type: reminder.type,
               status: 'success'
