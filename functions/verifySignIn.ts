@@ -10,16 +10,26 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Email and password required' }, { status: 400 });
         }
 
-        // Check if user exists in PendingSignup
+        // Check if user exists in PendingSignup or User entity
         const signups = await base44.asServiceRole.entities.PendingSignup.filter({
             email
         });
 
-        if (signups.length === 0) {
-            return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
+        let user = signups.length > 0 ? signups[0] : null;
+
+        // If not in PendingSignup, check User entity
+        if (!user) {
+            const users = await base44.asServiceRole.entities.User.filter({
+                email
+            });
+            if (users.length > 0) {
+                user = users[0];
+            }
         }
 
-        const signup = signups[0];
+        if (!user) {
+            return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
+        }
 
         // Hash the provided password to compare
         const encoder = new TextEncoder();
