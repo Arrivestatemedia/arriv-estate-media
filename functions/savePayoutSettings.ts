@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     }
 
     // Try User entity using filter
-    const users = await base44.asServiceRole.entities.User.filter({ email });
+    const users = await base44.asServiceRole.entities.User.filter({ email: normalizedEmail });
     
     if (users.length > 0) {
       await base44.asServiceRole.entities.User.update(users[0].id, updateData);
