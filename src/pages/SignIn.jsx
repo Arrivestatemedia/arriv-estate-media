@@ -82,14 +82,31 @@ export default function SignIn() {
               <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
                 Password
               </label>
-              <Input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="border-[#B8956A]/30 focus:border-[#B8956A]"
-                placeholder="Your password"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="border-[#B8956A]/30 focus:border-[#B8956A] pr-10"
+                  placeholder="Your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#1A1A1A]/50 hover:text-[#1A1A1A]"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="mt-2 text-xs text-[#B8956A] hover:text-[#B8956A]/80 hover:bg-transparent p-0 h-auto"
+                onClick={() => window.location.href = '/ForgotPassword'}
+              >
+                Forgot password?
+              </Button>
             </div>
             {error && (
               <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
