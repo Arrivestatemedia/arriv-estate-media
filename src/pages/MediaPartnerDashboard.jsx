@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Briefcase, DollarSign, TrendingUp, Calendar } from "lucide-react";
 import PayoutSettings from "../components/mediapartner/PayoutSettings";
+import PayoutMethodInfo from "../components/mediapartner/PayoutMethodInfo";
 import PayoutHistoryList from "../components/mediapartner/PayoutHistoryList";
 import BookedJobsList from "../components/mediapartner/BookedJobsList";
 import EarningsBreakdown from "../components/mediapartner/EarningsBreakdown";
@@ -39,6 +40,15 @@ export default function MediaPartnerDashboard() {
     queryFn: () => base44.entities.PayoutHistory.filter({ 
       media_partner_email: user?.email 
     }, '-payout_date'),
+    enabled: !!user?.email,
+  });
+
+  const { data: userRecord = null } = useQuery({
+    queryKey: ['user-record', user?.email],
+    queryFn: () => {
+      if (!user?.email) return null;
+      return base44.entities.PendingSignup.filter({ email: user.email }).then(results => results[0] || null);
+    },
     enabled: !!user?.email,
   });
 
@@ -143,6 +153,9 @@ export default function MediaPartnerDashboard() {
 
         {/* Payout Settings */}
         <PayoutSettings user={user} />
+
+        {/* Current Payout Method */}
+        <PayoutMethodInfo user={userRecord} />
 
         {/* Payout History */}
         <PayoutHistoryList payoutHistory={payoutHistory} />
