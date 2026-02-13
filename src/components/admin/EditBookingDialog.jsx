@@ -5,12 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { format, isWeekend, parse } from "date-fns";
+import { isWeekend } from "date-fns";
 import { Clock } from "lucide-react";
 
 const timeSlots = {
   weekday: ["3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM"],
   weekend: ["9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM"],
+};
+
+// Helper to parse YYYY-MM-DD string to local Date object (avoid timezone shifts)
+const parseLocalDate = (dateString) => {
+  if (!dateString) return undefined;
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Helper to format Date object to YYYY-MM-DD string (use local date)
+const formatLocalDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export default function EditBookingDialog({ booking, open, onOpenChange, onSave }) {
