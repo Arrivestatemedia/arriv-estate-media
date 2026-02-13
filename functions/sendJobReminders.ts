@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
 
       for (const reminder of reminders) {
         const reminderTriggered = reminder.check();
-        console.log(`[REMINDERS] Job ${job.id} - ${reminder.type}: ${reminderTriggered ? 'TRIGGERED' : 'not triggered'}`);
+        debug.push(`  ${reminder.type}: ${reminderTriggered ? 'TRIGGERED' : 'skip'}`);
         if (!reminderTriggered) continue;
 
         // Check if reminder already sent
