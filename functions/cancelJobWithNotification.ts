@@ -22,6 +22,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'This job is not currently booked' }, { status: 400 });
     }
 
+    // Check if cancellation is within 1 hour of job start (Eastern Time)
+    if (job.date && job.start_time) {
+      const jobDateTime = new Date(`${job.date}T${job.start_time}`);
+      const now = new Date();
+      const hoursDiff = (jobDateTime - now) / (1000 * 60 * 60);
+      
+      if (hoursDiff <= 1 && hoursDiff >= 0) {
+        return Response.json({ 
+          error: 'Cannot cancel within 1 hour of job start. Please call (678) 242-9107 immediately.',
+          tooLate: true
+        }, { status: 400 });
+      }
+    }
+
     // Store original contractor info for notification
     const contractorName = job.booked_by_name;
     const contractorEmail = job.booked_by;

@@ -131,10 +131,13 @@ export default function JobBoard() {
     },
     onError: (error, variables, context) => {
       console.error('Cancel mutation error:', error);
-      alert('Failed to cancel job: ' + (error.response?.data?.error || error.message));
+      const errorMsg = error.response?.data?.error || error.message;
+      alert(errorMsg);
       if (context?.previousJobs) {
         queryClient.setQueryData(["jobs", filter, user?.email], context.previousJobs);
       }
+      setCancelDialogOpen(false);
+      setCancelJob(null);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
