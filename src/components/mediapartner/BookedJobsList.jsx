@@ -76,10 +76,14 @@ export default function BookedJobsList({ jobs, loading }) {
             const status = statusConfig[job.status] || statusConfig.booked;
 
             return (
-              <div
+              <Link
                 key={job.id}
-                className="p-4 bg-white rounded-lg border border-[#B8956A]/20 hover:border-[#B8956A]/40 transition-all"
+                to={createPageUrl("JobBoard")}
+                className="block no-underline"
               >
+                <div
+                  className="p-4 bg-white rounded-lg border border-[#B8956A]/20 hover:border-[#B8956A]/40 hover:shadow-md transition-all cursor-pointer"
+                >
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-[#1A1A1A] text-lg flex items-center gap-2">
