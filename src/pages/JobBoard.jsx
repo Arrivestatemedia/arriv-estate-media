@@ -156,7 +156,7 @@ export default function JobBoard() {
     setBookingJob(job);
   };
 
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
     if (!bookingJob) return;
     
     const storedEmail = localStorage.getItem('user_email');
@@ -167,6 +167,16 @@ export default function JobBoard() {
     if (!email || !name) {
       alert("User data not available. Please refresh the page.");
       return;
+    }
+    
+    // Send calendar invite
+    try {
+      await base44.functions.invoke('createJobCalendarEvent', { 
+        job: bookingJob, 
+        mediaPartnerEmail: email 
+      });
+    } catch (error) {
+      console.error('Failed to send calendar invite:', error);
     }
     
     bookMutation.mutate({
