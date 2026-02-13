@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertCircle, CheckCircle2, Wallet } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -79,16 +79,17 @@ export default function PayoutSettings({ user }) {
 
         <div className="space-y-4">
           <div>
-            <Label>Payout Method</Label>
-            <Select value={payoutMethod} onValueChange={setPayoutMethod}>
-              <SelectTrigger className="border-[#B8956A]/30">
-                <SelectValue placeholder="Select payout method" />
-              </SelectTrigger>
-              <SelectContent side="bottom" sideOffset={8} className="z-50">
-                <SelectItem value="zelle">Zelle (Instant)</SelectItem>
-                <SelectItem value="bank_account">Bank Account (3-5 days)</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="mb-2 block">Payout Method</Label>
+            <RadioGroup value={payoutMethod} onValueChange={setPayoutMethod}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="zelle" id="zelle" />
+                <Label htmlFor="zelle" className="font-normal cursor-pointer">Zelle (Instant)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="bank_account" id="bank_account" />
+                <Label htmlFor="bank_account" className="font-normal cursor-pointer">Bank Account (3-5 days)</Label>
+              </div>
+            </RadioGroup>
           </div>
 
           {payoutMethod === "zelle" && (
