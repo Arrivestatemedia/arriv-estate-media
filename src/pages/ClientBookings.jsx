@@ -146,25 +146,7 @@ export default function ClientBookings() {
         </div>
       </div>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Booking Request?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The booking request will be permanently deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex gap-3">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </PullToRefresh>
   );
 }
