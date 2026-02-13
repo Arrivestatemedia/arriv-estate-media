@@ -118,16 +118,14 @@ export default function AdminBookings() {
       );
     },
     onError: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries();
     },
     onSuccess: () => {
-      // Invalidate all job-related queries across all pages
-      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['media-partner-jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingBookings'] });
-      queryClient.invalidateQueries({ queryKey: ['allBookings'] });
+      // Clear and refetch all queries to ensure deletion syncs everywhere
+      queryClient.clear();
+      setTimeout(() => {
+        queryClient.refetchQueries();
+      }, 100);
     },
     onSettled: () => {
       setLoadingBookingId(null);
