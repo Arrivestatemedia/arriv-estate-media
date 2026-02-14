@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,34 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Phone } from "lucide-react";
 
 export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isLoading, success, onClose }) {
   const [reason, setReason] = useState("");
+
+  // Check if cancellation is within 1 hour of appointment
+  const isWithinOneHour = useMemo(() => {
+    if (!job?.date || !job?.start_time) return false;
+    
+    try {
+      const [time, period] = job.start_time.split(' ');
+      const [hours, minutes] = time.split(':').map(Number);
+      let hour24 = hours;
+      
+      if (period === 'PM' && hours !== 12) hour24 += 12;
+      if (period === 'AM' && hours === 12) hour24 = 0;
+      
+      const jobDateTime = new Date(job.date + 'T00:00:00');
+      jobDateTime.setHours(hour24, minutes, 0, 0);
+      
+      const now = new Date();
+      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+      
+      return jobDateTime <= oneHourFromNow;
+    } catch (error) {
+      return false;
+    }
+  }, [job?.date, job?.start_time]);
 
   const handleSubmit = () => {
     if (job) {
