@@ -5,20 +5,8 @@ import { Key, ExternalLink, Smartphone } from "lucide-react";
 
 export default function SupraAccess() {
   const openSupraApp = () => {
-    // Try Supra ekey deep link
+    // Open Supra eKey app directly
     window.location.href = "ekey://";
-    
-    // Fallback to app store if app doesn't open within 2 seconds
-    setTimeout(() => {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isAndroid = /Android/.test(navigator.userAgent);
-      
-      if (isIOS) {
-        window.location.href = "https://apps.apple.com/us/app/supra-ekey/id379909266";
-      } else if (isAndroid) {
-        window.location.href = "https://play.google.com/store/apps/details?id=com.utc.fs.ekey&hl=en_IN";
-      }
-    }, 2000);
   };
 
   return (
