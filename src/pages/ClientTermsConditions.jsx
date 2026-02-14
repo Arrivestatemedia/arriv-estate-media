@@ -12,9 +12,7 @@ export default function ClientTermsConditions() {
     const handleScroll = () => {
       if (contentRef.current) {
         const element = contentRef.current;
-        const isScrollable = element.scrollHeight > element.clientHeight;
-        const isAtBottom =
-          !isScrollable || (element.scrollHeight - element.scrollTop - element.clientHeight < 10);
+        const isAtBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 10;
         setIsScrolled(isAtBottom);
         if (isAtBottom) {
           localStorage.setItem('clientTermsScrolled', 'true');
@@ -25,7 +23,6 @@ export default function ClientTermsConditions() {
     const content = contentRef.current;
     if (content) {
       content.addEventListener("scroll", handleScroll);
-      handleScroll();
       return () => content.removeEventListener("scroll", handleScroll);
     }
   }, []);
