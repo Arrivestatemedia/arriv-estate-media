@@ -170,7 +170,11 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
               mode="single"
               selected={parseLocalDate(formData.preferred_date)}
               onSelect={handleDateSelect}
-              disabled={(date) => date < new Date()}
+              disabled={(date) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return date < today;
+              }}
               className="border-2 border-[var(--border-color)] rounded-lg p-3"
             />
           </div>
