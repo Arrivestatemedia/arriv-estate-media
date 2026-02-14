@@ -16,7 +16,7 @@ export default function SupraAccess() {
       if (isIOS) {
         window.location.href = "https://apps.apple.com/us/app/supra-ekey/id379909266";
       } else if (isAndroid) {
-        window.location.href = "https://play.google.com/store/apps/details?id=com.suprakey.android";
+        window.location.href = "https://play.google.com/store/apps/details?id=com.utc.fs.ekey&hl=en_IN";
       }
     }, 2000);
   };
@@ -57,7 +57,7 @@ export default function SupraAccess() {
                 </a>
                 <span className="text-[#1A1A1A]/30">•</span>
                 <a 
-                  href="https://play.google.com/store/apps/details?id=com.suprakey.android"
+                  href="https://play.google.com/store/apps/details?id=com.utc.fs.ekey&hl=en_IN"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#B8956A] hover:underline"
