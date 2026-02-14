@@ -14,6 +14,21 @@ export default function SignIn() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  React.useEffect(() => {
+    // Check if user is already logged in
+    const userEmail = localStorage.getItem('user_email');
+    const userType = localStorage.getItem('user_type');
+    
+    if (userEmail && userType) {
+      // User is logged in, redirect to their dashboard
+      if (userType === "media_partner") {
+        window.location.href = '/MediaPartnerDashboard';
+      } else {
+        window.location.href = '/BookingPage';
+      }
+    }
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
