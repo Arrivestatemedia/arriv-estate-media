@@ -17,18 +17,25 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    if (!job.client_phone || !job.client_email || !job.booked_by_name || !job.booked_by_phone) {
+    // Get booked_by_phone from User entity if not set
+    let bookedByPhone = job.booked_by_phone;
+    if (!bookedByPhone && job.booked_by) {
+      const users = await base44.asServiceRole.entities.User.filter({ email: job.booked_by });
+      bookedByPhone = users?.[0]?.phone_number || '';
+    }
+
+    if (!job.client_phone || !job.client_email || !job.booked_by_name || !bookedByPhone) {
       console.error('Missing required fields:', {
         client_phone: job.client_phone,
         client_email: job.client_email,
         booked_by_name: job.booked_by_name,
-        booked_by_phone: job.booked_by_phone
+        booked_by_phone: bookedByPhone
       });
       return Response.json({ error: 'Missing required job data', missing: {
         client_phone: !job.client_phone,
         client_email: !job.client_email,
         booked_by_name: !job.booked_by_name,
-        booked_by_phone: !job.booked_by_phone
+        booked_by_phone: !bookedByPhone
       }}, { status: 400 });
     }
 
@@ -39,7 +46,7 @@ Deno.serve(async (req) => {
     const formattedTime = job.start_time || '9:00 AM';
 
     // Create SMS message
-    const smsMessage = `Your Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}. If you do not plan on being on site please make sure that you have granted Supra access to ${job.booked_by_phone}. Supra instructions: https://drive.google.com/file/d1mtMMXNAIutztKxa4GYrqrWx96uoEGqRv/view?usp=drivesdk`;
+    const smsMessage = `Your Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}. If you do not plan on being on site please make sure that you have granted Supra access to ${bookedByPhone}. Supra instructions: https://drive.google.com/file/d1mtMMXNAIutztKxa4GYrqrWx96uoEGqRv/view?usp=drivesdk`;
 
     // Send SMS via Twilio
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
@@ -95,7 +102,7 @@ Deno.serve(async (req) => {
 
       // Create multipart email
       const boundary = '----=_Part_0_' + Date.now();
-      const emailBody = `Hi ${job.client_name},\n\nYour Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}.\n\nIf you do not plan on being on site please make sure that you have granted Supra access to the number below:\n\n${job.booked_by_phone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://drive.google.com/file/d1mtMMXNAIutztKxa4GYrqrWx96uoEGqRv/view?usp=drivesdk\n\nBest regards,\nArriv Team`;
+      const emailBody = `Hi ${job.client_name},\n\nYour Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}.\n\nIf you do not plan on being on site please make sure that you have granted Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://drive.google.com/file/d1mtMMXNAIutztKxa4GYrqrWx96uoEGqRv/view?usp=drivesdk\n\nBest regards,\nArriv Team`;
 
       const email = [
         `To: ${job.client_email}`,
