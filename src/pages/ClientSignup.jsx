@@ -66,7 +66,7 @@ export default function ClientSignup() {
     }
 
     try {
-      await base44.functions.invoke('signupClient', {
+      const response = await base44.functions.invoke('signupClient', {
         email: formData.email,
         full_name: formData.full_name,
         phone_number: formData.phone_number,
@@ -74,7 +74,14 @@ export default function ClientSignup() {
         user_type: "client",
         user_role: roleFromUrl
       });
-      window.location.href = '/SignIn';
+      
+      if (response.data?.success) {
+        localStorage.removeItem('clientSignupFormData');
+        window.location.href = createPageUrl('SignIn');
+      } else {
+        setError(response.data?.error || "Failed to create account");
+        setLoading(false);
+      }
     } catch (err) {
       console.error('Signup error:', err);
       const errorMessage = err.response?.data?.error || err.message || "Failed to create account";
