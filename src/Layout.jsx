@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import NewJobsBadge from "@/components/layout/NewJobsBadge";
@@ -68,13 +68,14 @@ export default function Layout({ children, currentPageName }) {
     ? [
         { label: "Available Jobs", page: "JobBoard", icon: Briefcase, showBadge: true },
         { label: "My Dashboard", page: "MediaPartnerDashboard", icon: LayoutDashboard },
+        { label: "Supra Access", page: "SupraAccess", icon: Settings },
       ]
     : [];
 
   const dashboardPage = isAdmin ? "Dashboard" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
   // Determine if current page is a primary route (shows bottom tabs)
-  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings"];
+  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess"];
   const isPrimaryRoute = primaryRoutes.includes(currentPageName);
   const showBackButton = user && !isPrimaryRoute && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName);
 
