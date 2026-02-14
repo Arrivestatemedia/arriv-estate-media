@@ -49,6 +49,27 @@ Deno.serve(async (req) => {
       status: 'completed'
     });
 
+    // Check if 90 minutes have passed since job start time
+    const jobDateTime = new Date(`${job.date}T${job.start_time}`);
+    const now = new Date();
+    const minutesSinceStart = (now - jobDateTime) / (1000 * 60);
+
+    // If 90+ minutes have passed, add to media partner's current balance
+    if (minutesSinceStart >= 90 && job.booked_by && job.pay_rate) {
+      try {
+        const users = await base44.asServiceRole.entities.User.filter({ email: job.booked_by });
+        if (users.length > 0) {
+          const mediaPartner = users[0];
+          const currentBalance = mediaPartner.current_balance || 0;
+          await base44.asServiceRole.entities.User.update(mediaPartner.id, {
+            current_balance: currentBalance + job.pay_rate
+          });
+        }
+      } catch (error) {
+        console.error('Error updating media partner balance:', error.message);
+      }
+    }
+
     // Get Gmail access token
     let gmailAccessToken;
     try {
