@@ -34,7 +34,7 @@ export default function EarningsBreakdown({ jobs, payoutHistory }) {
   const completedJobs = jobs.filter(j => j.status === 'completed');
   
   const todayEarnings = completedJobs
-    .filter(j => new Date(j.updated_date || j.date) >= today)
+    .filter(j => new Date(j.completed_at) >= startOfToday)
     .reduce((sum, j) => sum + (j.pay_rate || 0), 0);
 
   const weekEarnings = completedJobs
