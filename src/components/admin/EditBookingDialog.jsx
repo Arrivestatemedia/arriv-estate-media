@@ -176,28 +176,70 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
           </div>
 
           {formData.preferred_date && (
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                <Clock className="w-4 h-4 inline mr-2" />
-                Preferred Time *
-              </label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {availableTimeSlots.map((time) => (
-                  <button
-                    key={time}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, preferred_time: time })}
-                    className={`p-2 text-sm rounded-lg border-2 transition-all ${
-                      formData.preferred_time === time
-                        ? "bg-[var(--accent-color)] text-white border-[var(--accent-color)]"
-                        : "border-[var(--border-color)] hover:border-[var(--accent-color)]"
-                    }`}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
+          <div>
+          <label className="block text-sm font-medium mb-2">
+          <Clock className="w-4 h-4 inline mr-2" />
+          Preferred Time *
+          </label>
+
+          {!showCustomTime ? (
+          <>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+            {availableTimeSlots.map((time) => (
+              <button
+                key={time}
+                type="button"
+                onClick={() => setFormData({ ...formData, preferred_time: time })}
+                className={`p-2 text-sm rounded-lg border-2 transition-all ${
+                  formData.preferred_time === time
+                    ? "bg-[var(--accent-color)] text-white border-[var(--accent-color)]"
+                    : "border-[var(--border-color)] hover:border-[var(--accent-color)]"
+                }`}
+              >
+                {time}
+              </button>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowCustomTime(true)}
+            className="w-full text-sm"
+          >
+            Choose Custom Time
+          </Button>
+          </>
+          ) : (
+          <div className="space-y-3">
+          <div className="max-h-48 overflow-y-auto border border-[var(--border-color)] rounded-lg p-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {allTimeSlots.map((time) => (
+                <button
+                  key={time}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, preferred_time: time })}
+                  className={`p-2 text-sm rounded-lg border-2 transition-all ${
+                    formData.preferred_time === time
+                      ? "bg-[var(--accent-color)] text-white border-[var(--accent-color)]"
+                      : "border-[var(--border-color)] hover:border-[var(--accent-color)]"
+                  }`}
+                >
+                  {time}
+                </button>
+              ))}
             </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowCustomTime(false)}
+            className="w-full text-sm"
+          >
+            Back to Standard Times
+          </Button>
+          </div>
+          )}
+          </div>
           )}
 
           <div>
