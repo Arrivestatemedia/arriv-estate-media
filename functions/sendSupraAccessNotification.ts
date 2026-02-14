@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     // Format the date and time
     const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
-    const displayDate = addDays(jobDate, 1);
+    const displayDate = addDays(addDays(jobDate, -1), 1);  // Move back one day, then ahead one day
     const formattedDate = format(displayDate, 'MMMM d, yyyy');
     const formattedTime = job.start_time || '9:00 AM';
 
