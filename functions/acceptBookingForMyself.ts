@@ -38,10 +38,19 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
+    // Get the created job ID
+    const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    const jobId = jobs?.[0]?.id;
+
     // Send approval email and calendar invite using existing functions
     try {
       await base44.asServiceRole.functions.invoke('sendBookingNotifications', { booking });
       await base44.asServiceRole.functions.invoke('createCalendarEvent', { booking });
+
+      // Send Supra access notification
+      if (jobId) {
+        await base44.asServiceRole.functions.invoke('sendSupraAccessNotification', { jobId });
+      }
     } catch (error) {
       console.error('Failed to send notifications:', error);
     }
