@@ -12,8 +12,12 @@ Deno.serve(async (req) => {
     // Look up media partner's phone number from User entity if not already set
     if (!jobData.booked_by_phone && mediaPartnerEmail) {
       const users = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+      console.log('User lookup result:', users);
       if (users?.[0]?.phone_number) {
         jobData.booked_by_phone = users[0].phone_number;
+        console.log('Set booked_by_phone:', jobData.booked_by_phone);
+      } else {
+        console.log('No phone number found for user:', mediaPartnerEmail);
       }
     }
     const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, jobData);
