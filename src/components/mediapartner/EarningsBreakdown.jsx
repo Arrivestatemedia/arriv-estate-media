@@ -4,29 +4,19 @@ import { TrendingUp, Calendar, DollarSign } from "lucide-react";
 
 export default function EarningsBreakdown({ jobs, payoutHistory }) {
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
-  // Get today at 4am (when earnings reset daily)
-  const getTodayStart = () => {
-    const d = new Date();
-    d.setHours(4, 0, 0, 0);
-    // If current time is before 4am, go back to yesterday at 4am
-    if (d > now) {
-      d.setDate(d.getDate() - 1);
-    }
-    return d;
-  };
-  
-  // Get last Friday at 4am (start of pay period)
+  // Calculate start of pay period (last Friday at 4am)
   const getPayPeriodStart = () => {
-    const d = new Date(getTodayStart());
-    const dayOfWeek = d.getDay(); // 0 = Sunday, 5 = Friday
-    const daysBack = (dayOfWeek - 5 + 7) % 7 || 7; // Get days to go back to Friday
-    d.setDate(d.getDate() - daysBack);
-    return d;
+    const d = new Date();
+    const currentDay = d.getDay(); // 0 = Sunday, 5 = Friday
+    const lastFridayDate = d.getDate() - ((currentDay + 2) % 7);
+    const lastFriday = new Date(d.getFullYear(), d.getMonth(), lastFridayDate);
+    lastFriday.setHours(4, 0, 0, 0);
+    return lastFriday;
   };
   
   const startOfPayPeriod = getPayPeriodStart();
-  const startOfToday = getTodayStart();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
@@ -34,7 +24,7 @@ export default function EarningsBreakdown({ jobs, payoutHistory }) {
   const completedJobs = jobs.filter(j => j.status === 'completed');
   
   const todayEarnings = completedJobs
-    .filter(j => new Date(j.completed_at) >= startOfToday)
+    .filter(j => new Date(j.updated_date || j.date) >= today)
     .reduce((sum, j) => sum + (j.pay_rate || 0), 0);
 
   const weekEarnings = completedJobs
