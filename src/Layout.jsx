@@ -50,13 +50,14 @@ export default function Layout({ children, currentPageName }) {
   const isMediaPartner = user?.user_type === "media_partner";
 
   const navItems = isAdmin
-      ? [
-          { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
-          { label: "Job Board", page: "JobBoard", icon: Briefcase },
-          { label: "Bookings", page: "AdminBookings", icon: Briefcase },
-          { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
-          { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
-        ]
+        ? [
+            { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
+            { label: "Job Board", page: "JobBoard", icon: Briefcase },
+            { label: "Bookings", page: "AdminBookings", icon: Briefcase },
+            { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
+            { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },
+            { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
+          ]
     : isClient
     ? [
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
