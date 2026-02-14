@@ -42,9 +42,13 @@ Deno.serve(async (req) => {
             .join('\n')
             .trim();
 
+        const folderNote = folderUrl 
+            ? `\n\n📁 FILES: Please upload your completed files to this folder after the job:\n${folderUrl}`
+            : '';
+
         const event = {
             summary: `Arriv Estate Media - ${maskedClientName} - ${job.title}`,
-            description: `Client: ${maskedClientName}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}${sanitizedDescription ? `\n\n${sanitizedDescription}` : ''}`,
+            description: `Client: ${maskedClientName}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}${sanitizedDescription ? `\n\n${sanitizedDescription}` : ''}${folderNote}`,
             start: {
                 dateTime: startDateTime,
                 timeZone: 'America/New_York'
