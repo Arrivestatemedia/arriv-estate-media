@@ -13,16 +13,24 @@ export default function MediaPartnerSignup() {
   const urlParams = new URLSearchParams(window.location.search);
   const roleFromUrl = urlParams.get('role') || 'user';
   
-  const [formData, setFormData] = useState({ 
-    email: "", 
-    full_name: "", 
-    phone_number: urlParams.get('phone_number') || "",
-    password: "",
-    password_confirmation: ""
+  const [formData, setFormData] = useState(() => {
+    const saved = localStorage.getItem('mediaPartnerSignupFormData');
+    return saved ? JSON.parse(saved) : { 
+      email: "", 
+      full_name: "", 
+      phone_number: urlParams.get('phone_number') || "",
+      password: "",
+      password_confirmation: ""
+    };
   });
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsScrolled, setTermsScrolled] = useState(() => localStorage.getItem('mediaPartnerTermsScrolled') === 'true');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    localStorage.setItem('mediaPartnerSignupFormData', JSON.stringify(formData));
+  }, [formData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
