@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const formattedTime = job.start_time || '9:00 AM';
 
     // Create SMS message
-    const smsMessage = `Your Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}. If you do not plan on being on site please make sure that you have granted Supra access to ${job.booked_by_phone}. See attached document for instructions. - Arriv`;
+    const smsMessage = `Your Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}. If you do not plan on being on site please make sure that you have granted Supra access to ${job.booked_by_phone}. Supra instructions: https://drive.google.com/file/d1mtMMXNAIutztKxa4GYrqrWx96uoEGqRv/view?usp=drivesdk`;
 
     // Send SMS via Twilio
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
