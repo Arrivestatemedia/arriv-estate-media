@@ -49,16 +49,6 @@ Deno.serve(async (req) => {
       status: 'completed'
     });
 
-    // Add job pay_rate to media partner's current balance
-    const users = await base44.asServiceRole.entities.User.filter({ email: job.booked_by });
-    if (users.length > 0) {
-      const user = users[0];
-      const newBalance = (user.current_balance || 0) + job.pay_rate;
-      await base44.asServiceRole.entities.User.update(user.id, {
-        current_balance: newBalance
-      });
-    }
-
     // Get Gmail access token
     let gmailAccessToken;
     try {
