@@ -127,7 +127,8 @@ export default function AdminBookings() {
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
     approved: "bg-green-100 text-green-800",
-    denied: "bg-red-100 text-red-800"
+    denied: "bg-red-100 text-red-800",
+    completed: "bg-blue-100 text-blue-800"
   };
 
   const filteredBookings = filter === 'all' ? bookings : bookings.filter(b => b.status === filter);
@@ -266,7 +267,14 @@ export default function AdminBookings() {
             >
               Denied ({bookings.filter(b => b.status === 'denied').length})
             </Button>
-          </div>
+            <Button
+              variant={filter === 'completed' ? 'default' : 'outline'}
+              onClick={() => setFilter('completed')}
+              className={filter === 'completed' ? 'bg-blue-600' : 'border-[var(--border-color)]'}
+            >
+              Completed ({bookings.filter(b => b.status === 'completed').length})
+            </Button>
+            </div>
           {selectedForDelete.size > 0 && (
             <Button
               onClick={handleBatchDelete}

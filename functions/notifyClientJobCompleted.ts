@@ -49,6 +49,13 @@ Deno.serve(async (req) => {
       status: 'completed'
     });
 
+    // Mark associated booking as completed
+    if (job.booking_id) {
+      await base44.asServiceRole.entities.Booking.update(job.booking_id, {
+        status: 'completed'
+      });
+    }
+
     // Add pay amount to media partner's current balance
     const mediaPartnerEmail = job.booked_by;
     const payAmount = job.pay_rate || 0;
