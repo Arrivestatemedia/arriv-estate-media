@@ -145,13 +145,23 @@ export default function MediaPartnerTermsConditions() {
           </div>
         </div>
 
-        {!isScrolled && (
-          <div className="sticky bottom-0 bg-[#FFFBF5] border-t border-[#B8956A]/20 p-4">
+        <div className="sticky bottom-0 bg-[#FFFBF5] border-t border-[#B8956A]/20 p-4">
+          {!isScrolled ? (
             <div className="max-w-4xl mx-auto text-center text-[#1A1A1A]/60 text-sm">
               Please scroll to the bottom to continue
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="max-w-4xl mx-auto flex justify-center">
+              <Button
+                onClick={() => navigate(-1)}
+                className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white gap-2"
+              >
+                <X className="w-5 h-5" />
+                Back to Sign Up
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
