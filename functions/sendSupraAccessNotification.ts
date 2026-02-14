@@ -130,7 +130,7 @@ Please see attached document for instructions on how to add Temporary access in 
     }
 
     if (gmailAccessToken) {
-      const pdfUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/da586e096_Supra_General_Access_Guide.pdf';
+      const pdfUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/e8d4eb3d5_Supra_General_Access_Guide.pdf';
       const emailBody = `Your Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}.\n\nIf you do not plan on being on site please make sure that you have granted Supra access to the number below:\n\n${job.booked_by_phone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nBest regards,\nArriv`;
       
       try {
