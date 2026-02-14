@@ -72,6 +72,7 @@ import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
+import MediaPartnerTermsConditions from './pages/MediaPartnerTermsConditions';
 import __Layout from './Layout.jsx';
 
 
@@ -101,6 +102,7 @@ export const PAGES = {
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
+    "MediaPartnerTermsConditions": MediaPartnerTermsConditions,
 }
 
 export const pagesConfig = {
