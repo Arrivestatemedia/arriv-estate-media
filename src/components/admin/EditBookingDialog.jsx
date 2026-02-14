@@ -13,6 +13,22 @@ const timeSlots = {
   weekend: ["9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM"],
 };
 
+// Generate all possible times in 30-minute increments for admin custom time picker
+const generateAllTimeSlots = () => {
+  const slots = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute of [0, 30]) {
+      const period = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      const displayMinute = minute.toString().padStart(2, '0');
+      slots.push(`${displayHour}:${displayMinute} ${period}`);
+    }
+  }
+  return slots;
+};
+
+const allTimeSlots = generateAllTimeSlots();
+
 // Helper to parse YYYY-MM-DD string to local Date object
 const parseLocalDate = (dateString) => {
   if (!dateString) return undefined;
