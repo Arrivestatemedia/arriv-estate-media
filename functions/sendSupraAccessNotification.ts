@@ -41,7 +41,8 @@ Deno.serve(async (req) => {
     const formattedTime = job.start_time || '9:00 AM';
 
     // Create SMS message
-    const smsMessage = `Your Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}. If you do not plan on being on site please make sure that you have granted Supra access to ${bookedByPhone}. Supra instructions: https://drive.google.com/file/d1mtMMXNAIutztKxa4GYrqrWx96uoEGqRv/view?usp=drivesdk`;
+    const clientFirstName = job.client_name.split(' ')[0];
+    const smsMessage = `Hi ${clientFirstName}!\n\nYour Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}.\n\nIf you do not plan on being on site please make sure that you have granted Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://bit.ly/3OdUc80`;
 
     // Send SMS via Twilio
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
@@ -97,7 +98,7 @@ Deno.serve(async (req) => {
 
       // Create multipart email
       const boundary = '----=_Part_0_' + Date.now();
-      const emailBody = `Hi ${job.client_name},\n\nYour Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}.\n\nIf you do not plan on being on site please make sure that you have granted Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://drive.google.com/file/d1mtMMXNAIutztKxa4GYrqrWx96uoEGqRv/view?usp=drivesdk\n\nBest regards,\nArriv Team`;
+      const emailBody = `Hi ${clientFirstName}!\n\nYour Photographer/Videographer ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}.\n\nIf you do not plan on being on site please make sure that you have granted Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://bit.ly/3OdUc80`;
 
       const email = [
         `To: ${job.client_email}`,
