@@ -255,65 +255,7 @@ Deno.serve(async (req) => {
              });
            }
         } else if (reminder.type === '1_hour_before') {
-         // Send to client
-         if (job.client_phone || job.client_email) {
-           const clientFirstName = job.client_name ? job.client_name.split(' ')[0] : 'there';
-           const mpFirstName = job.booked_by_name ? job.booked_by_name.split(' ')[0] : 'your media partner';
-           const jobTime12 = convertTo12HourFormat(jobTime);
-
-           const clientMessage = `Hi ${clientFirstName}, your media partner ${mpFirstName} is on the way. They'll be there by ${jobTime12}. Thank you for trusting us with helping you close your listing!`;
-
-           // Send SMS to client
-           if (job.client_phone) {
-             await base44.asServiceRole.functions.invoke('sendReminderSMS', {
-               phone: job.client_phone,
-               message: clientMessage,
-               recipientType: 'client',
-               jobId: job.id
-             });
-             await base44.asServiceRole.entities.MessageLog.create({
-               message_type: 'sms',
-               recipient_type: 'client',
-               recipient_phone: job.client_phone,
-               message_content: clientMessage,
-               job_id: job.id,
-               reminder_type: reminder.type,
-               status: 'success'
-             });
-           }
-
-           // Send email to client
-           if (job.client_email) {
-             const emailBody = `Hi ${clientFirstName},\n\nYour media partner ${mpFirstName} is on the way. They'll be there by ${jobTime12}.\n\nThank you for trusting us with helping you close your listing!\n\nBest regards,\nArriv`;
-
-             try {
-               if (gmailAccessToken) {
-                 await sendEmailViaGmail(gmailAccessToken, job.client_email, 'Your Media Partner is On the Way!', emailBody);
-               } else {
-                 await base44.asServiceRole.integrations.Core.SendEmail({
-                   to: job.client_email,
-                   subject: 'Your Media Partner is On the Way!',
-                   body: emailBody
-                 });
-               }
-             } catch (e) {
-               console.log('Email send skipped:', e.message);
-             }
-
-             await base44.asServiceRole.entities.MessageLog.create({
-               message_type: 'email',
-               recipient_type: 'client',
-               recipient_email: job.client_email,
-               message_content: emailBody,
-               subject: 'Your Media Partner is On the Way!',
-               job_id: job.id,
-               reminder_type: reminder.type,
-               status: 'success'
-             });
-           }
-         }
-
-         // Send to media partner
+         // Send to media partner only
          if (job.booked_by_phone) {
            const mpMessage = `Reminder: Your shoot at ${job.location} starts in 1 hour. Make sure you're prepared and on your way.`;
            await base44.asServiceRole.functions.invoke('sendReminderSMS', {
