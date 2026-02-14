@@ -9,8 +9,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
+    // Get media partner's phone from user data
+    const mediaPartner = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+    const mediaPartnerPhone = mediaPartner?.[0]?.phone_number || '';
+
     // Update the job entity
-    const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, jobData);
+    const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, {
+      ...jobData,
+      booked_by_phone: mediaPartnerPhone
+    });
 
     // Invoke the calendar event creation function
     await base44.asServiceRole.functions.invoke('createJobCalendarEvent', {
