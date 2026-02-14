@@ -30,102 +30,121 @@ export default function ClientTermsConditions() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] flex flex-col">
-      <header className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20 px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                localStorage.removeItem('clientTermsScrolled');
-                navigate(-1);
-              }}
-              className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-xl font-bold text-[#FFFBF5]">
-              Terms & Conditions
-            </h1>
-          </div>
+    <div className="min-h-screen bg-[#FFFBF5]">
+      <div className="sticky top-0 z-10 bg-[#1A1A1A] border-b border-[#B8956A]/20 p-4">
+        <div className="max-w-4xl mx-auto flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              localStorage.removeItem('clientTermsScrolled');
+              navigate(-1);
+            }}
+            className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-xl font-bold text-[#FFFBF5]">Client Terms & Conditions</h1>
         </div>
-      </header>
+      </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-col h-screen">
         <div
           ref={contentRef}
-          className="flex-1 overflow-y-auto px-6 py-8"
+          className="flex-1 overflow-y-auto"
         >
-          <div className="max-w-4xl mx-auto prose prose-sm max-w-none text-[#1A1A1A]">
-            <h1 className="text-2xl font-bold mb-6">
-              ARRIV Estate Media LLC
-              <br />
-              Client Terms & Conditions
-            </h1>
+          <div className="max-w-4xl mx-auto p-6 space-y-6 text-[#1A1A1A]">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">ARRIV Estate Media LLC</h2>
+              <h3 className="text-lg font-semibold">Client Terms & Conditions</h3>
+            </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">1. Services</h2>
-            <p>
-              ARRIV Estate Media LLC provides real estate media services including photography, video, aerial
-              imagery, and related deliverables as booked through ARRIV Estate Media LLC's platform or direct
-              scheduling.
-            </p>
+            <section className="space-y-4">
+              <div>
+                <h4 className="text-lg font-bold mb-2">1. Services</h4>
+                <p className="text-[#1A1A1A]/80">
+                  ARRIV Estate Media LLC provides real estate media services including photography, video, aerial
+                  imagery, and related deliverables as booked through ARRIV Estate Media LLC's platform or direct
+                  scheduling.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">2. Booking & Scheduling</h2>
-            <p>
-              All bookings are subject to availability. Clients are responsible for ensuring timely property access
-              and readiness. ARRIV Estate Media LLC is not responsible for delays caused by access issues,
-              property conditions, or third-party systems.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">2. Booking & Scheduling</h4>
+                <p className="text-[#1A1A1A]/80">
+                  All bookings are subject to availability. Clients are responsible for ensuring timely property access
+                  and readiness. ARRIV Estate Media LLC is not responsible for delays caused by access issues,
+                  property conditions, or third-party systems.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">3. Property Access Authorization</h2>
-            <p>
-              Clients authorize ARRIV Estate Media LLC and its Media Partners to access the property for the
-              limited purpose of performing the booked services.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">3. Property Access Authorization</h4>
+                <p className="text-[#1A1A1A]/80">
+                  Clients authorize ARRIV Estate Media LLC and its Media Partners to access the property for the
+                  limited purpose of performing the booked services.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">4. Pricing & Payment</h2>
-            <p>
-              Pricing is determined at the time of booking. Complimentary or discounted services do not establish
-              an obligation for future free or reduced-rate services.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">4. Pricing & Payment</h4>
+                <p className="text-[#1A1A1A]/80">
+                  Pricing is determined at the time of booking. Complimentary or discounted services do not establish
+                  an obligation for future free or reduced-rate services.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">5. Media Delivery</h2>
-            <p>
-              Media is delivered digitally. Delivery timelines are estimates and not guaranteed. Clients are
-              responsible for downloading and archiving delivered files.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">5. Media Delivery</h4>
+                <p className="text-[#1A1A1A]/80">
+                  Media is delivered digitally. Delivery timelines are estimates and not guaranteed. Clients are
+                  responsible for downloading and archiving delivered files.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">6. Usage Rights</h2>
-            <p>
-              ARRIV Estate Media LLC grants Clients a non-exclusive, non-transferable license to use delivered
-              media for marketing and listing purposes. ARRIV Estate Media LLC retains the right to use media
-              for portfolio, promotional, and educational purposes unless otherwise agreed in writing.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">6. Usage Rights</h4>
+                <p className="text-[#1A1A1A]/80">
+                  ARRIV Estate Media LLC grants Clients a non-exclusive, non-transferable license to use delivered
+                  media for marketing and listing purposes. ARRIV Estate Media LLC retains the right to use media
+                  for portfolio, promotional, and educational purposes unless otherwise agreed in writing.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">7. Revisions</h2>
-            <p>
-              Reasonable revision requests are included when submitted promptly. Additional services or
-              reshoots may incur additional fees.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">7. Revisions</h4>
+                <p className="text-[#1A1A1A]/80">
+                  Reasonable revision requests are included when submitted promptly. Additional services or
+                  reshoots may incur additional fees.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">8. Limitation of Liability</h2>
-            <p>
-              ARRIV Estate Media LLC is not responsible for third-party platform issues, listing performance, or
-              outcomes related to the use of delivered media.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">8. Limitation of Liability</h4>
+                <p className="text-[#1A1A1A]/80">
+                  ARRIV Estate Media LLC is not responsible for third-party platform issues, listing performance, or
+                  outcomes related to the use of delivered media.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">9. Cancellations</h2>
-            <p>
-              Cancellations or reschedules may be subject to fees if insufficient notice is provided or if resources
-              have already been allocated.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">9. Cancellations</h4>
+                <p className="text-[#1A1A1A]/80">
+                  Cancellations or reschedules may be subject to fees if insufficient notice is provided or if resources
+                  have already been allocated.
+                </p>
+              </div>
 
-            <h2 className="text-lg font-bold mt-6 mb-3">10. Acceptance</h2>
-            <p>
-              By booking services with ARRIV Estate Media LLC, Clients agree to these Terms & Conditions.
-              Continued use of the ARRIV platform constitutes acceptance of these terms.
-            </p>
+              <div>
+                <h4 className="text-lg font-bold mb-2">10. Acceptance</h4>
+                <p className="text-[#1A1A1A]/80">
+                  By booking services with ARRIV Estate Media LLC, Clients agree to these Terms & Conditions.
+                  Continued use of the ARRIV platform constitutes acceptance of these terms.
+                </p>
+              </div>
+            </section>
+
+            <div className="h-8" />
           </div>
         </div>
 
