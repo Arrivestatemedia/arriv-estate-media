@@ -74,6 +74,7 @@ import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import MediaPartnerTermsConditions from './pages/MediaPartnerTermsConditions';
 import AdminSignedTerms from './pages/AdminSignedTerms';
+import ClientTermsConditions from './pages/ClientTermsConditions';
 import __Layout from './Layout.jsx';
 
 
@@ -105,6 +106,7 @@ export const PAGES = {
     "confirmDeleteUser": confirmDeleteUser,
     "MediaPartnerTermsConditions": MediaPartnerTermsConditions,
     "AdminSignedTerms": AdminSignedTerms,
+    "ClientTermsConditions": ClientTermsConditions,
 }
 
 export const pagesConfig = {
