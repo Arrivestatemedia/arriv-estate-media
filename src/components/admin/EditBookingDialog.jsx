@@ -43,6 +43,7 @@ const formatLocalDate = (date) => {
 export default function EditBookingDialog({ booking, open, onOpenChange, onSave }) {
   const [formData, setFormData] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showCustomTime, setShowCustomTime] = useState(false);
 
   useEffect(() => {
     if (booking) {
