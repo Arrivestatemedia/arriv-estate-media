@@ -22,11 +22,19 @@ export default function ClientSignup() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    // Validate terms acceptance
+    if (!termsAccepted) {
+      setError("You must accept the Terms & Conditions to continue");
+      setLoading(false);
+      return;
+    }
 
     // Validate passwords match
     if (formData.password !== formData.password_confirmation) {
