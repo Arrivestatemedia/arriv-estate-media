@@ -48,7 +48,19 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const isOneHourBefore = React.useMemo(() => {
     if (!job.date || !job.start_time) return false;
     const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
-    const [hour, minute] = job.start_time.split(':').map(Number);
+    
+    // Parse time - handle both 12-hour (9:30 PM) and 24-hour (21:30) formats
+    let hour, minute;
+    if (job.start_time.includes('AM') || job.start_time.includes('PM')) {
+      const isPM = job.start_time.includes('PM');
+      const timeStr = job.start_time.replace(/\s?(AM|PM)/gi, '').trim();
+      const [h, m] = timeStr.split(':').map(Number);
+      hour = isPM && h !== 12 ? h + 12 : (!isPM && h === 12 ? 0 : h);
+      minute = m || 0;
+    } else {
+      [hour, minute] = job.start_time.split(':').map(Number);
+    }
+    
     jobDate.setHours(hour, minute, 0, 0);
     const jobDateTime = jobDate.getTime();
     const oneHourBefore = jobDateTime - (60 * 60 * 1000);
