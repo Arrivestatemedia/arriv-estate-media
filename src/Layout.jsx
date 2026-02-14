@@ -56,6 +56,7 @@ export default function Layout({ children, currentPageName }) {
             { label: "Bookings", page: "AdminBookings", icon: Briefcase },
             { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
             { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },
+            { label: "Client Terms", page: "AdminClientTerms", icon: Settings },
             { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
           ]
     : isClient
