@@ -44,21 +44,34 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     return () => clearInterval(interval);
   }, []);
 
-  // Check if we're 15 minutes before start time or past it
-  const isStartTimeReached = React.useMemo(() => {
+  // Check if we're 1 hour before start time or past it
+  const isOneHourBefore = React.useMemo(() => {
     if (!job.date || !job.start_time) return false;
     const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
     const [hour, minute] = job.start_time.split(':').map(Number);
     jobDate.setHours(hour, minute, 0, 0);
     const jobDateTime = jobDate.getTime();
-    const fifteenMinutesBefore = jobDateTime - (15 * 60 * 1000);
-    return currentTime >= fifteenMinutesBefore;
+    const oneHourBefore = jobDateTime - (60 * 60 * 1000);
+    return currentTime >= oneHourBefore;
   }, [job.date, job.start_time, currentTime]);
 
   const handleBackupWithPhone = () => {
     if (backupPhone.trim()) {
       onUpdateBackup(job, backupPhone);
       setShowPhoneInput(false);
+    }
+  };
+
+  const handleOnMyWay = async () => {
+    setLoading(true);
+    try {
+      await base44.functions.invoke('notifyClientMediaPartnerOnTheWay', { jobId: job.id });
+      window.location.reload();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to notify client');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -191,13 +204,21 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
               >
                 {loading ? 'Processing...' : "I've Completed the Job"}
               </Button>
-            ) : isBookedByMe && job.media_partner_status === 'awaiting_arrival' && isStartTimeReached ? (
+            ) : isBookedByMe && job.media_partner_status === 'on_the_way' ? (
               <Button
                 onClick={handleMediaPartnerOnSite}
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
               >
                 {loading ? 'Processing...' : "I'm Here"}
+              </Button>
+            ) : isBookedByMe && job.media_partner_status === 'awaiting_arrival' && isOneHourBefore ? (
+              <Button
+                onClick={handleOnMyWay}
+                disabled={loading}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium"
+              >
+                {loading ? 'Processing...' : "I'm On My Way"}
               </Button>
             ) : isBookedByMe ? (
               <Button
