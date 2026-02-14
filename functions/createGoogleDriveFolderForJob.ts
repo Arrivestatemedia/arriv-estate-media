@@ -13,7 +13,8 @@ Deno.serve(async (req) => {
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
 
-    // Create folder with job address as name
+    // Create folder with job address as name inside the parent shared folder
+    const parentFolderId = '13Mh1TFk_FsUb7QjNTg5LmvIBeTc1ALdJ';
     const createFolderRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name', {
       method: 'POST',
       headers: {
@@ -23,6 +24,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         name: jobAddress,
         mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentFolderId],
       }),
     });
 
