@@ -17,10 +17,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    // Get booked_by_phone from User entity if not set
+    // Get booked_by_phone from User entity by matching name
     let bookedByPhone = job.booked_by_phone;
-    if (!bookedByPhone && job.booked_by) {
-      const users = await base44.asServiceRole.entities.User.filter({ email: job.booked_by });
+    if (!bookedByPhone && job.booked_by_name) {
+      const users = await base44.asServiceRole.entities.User.filter({ full_name: job.booked_by_name });
       bookedByPhone = users?.[0]?.phone_number || '';
     }
 
