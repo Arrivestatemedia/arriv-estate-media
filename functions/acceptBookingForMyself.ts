@@ -20,6 +20,10 @@ Deno.serve(async (req) => {
     dateObj.setDate(dateObj.getDate() + 1);
     const adjustedDate = dateObj.toISOString().split('T')[0];
 
+    // Get admin's phone from user data
+    const adminUser = await base44.asServiceRole.entities.User.filter({ email: user.email });
+    const adminPhone = adminUser?.[0]?.phone_number || '';
+
     await base44.asServiceRole.entities.Job.create({
       title: `Photography - ${propertyAddress}`,
       type: 'photo',
@@ -32,6 +36,7 @@ Deno.serve(async (req) => {
       status: 'booked',
       booked_by: user.email,
       booked_by_name: user.full_name,
+      booked_by_phone: adminPhone,
       from_booking: true,
       booking_id: bookingId
     });
