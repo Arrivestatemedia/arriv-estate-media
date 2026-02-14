@@ -29,6 +29,13 @@ export default function MediaPartnerSignup() {
     setLoading(true);
     setError("");
 
+    // Validate terms acceptance
+    if (!termsAccepted) {
+      setError("You must accept the Terms & Conditions to continue");
+      setLoading(false);
+      return;
+    }
+
     // Validate passwords match
     if (formData.password !== formData.password_confirmation) {
       setError("Passwords do not match");
