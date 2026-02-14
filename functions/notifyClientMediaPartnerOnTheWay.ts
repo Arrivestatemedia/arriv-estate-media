@@ -55,9 +55,14 @@ Deno.serve(async (req) => {
       console.log('Gmail not available');
     }
 
-    const smsMessage = `${job.booked_by_name} is on the way to your property at ${job.location}. They should arrive shortly. Thank you for choosing Arriv!`;
+    // Extract first names
+    const clientFirstName = job.client_name.split(' ')[0];
+    const mediaPartnerFirstName = job.booked_by_name.split(' ')[0];
+    const duration = job.duration_hours || 2;
+
+    const smsMessage = `Hi ${clientFirstName}! Your Media Partner ${mediaPartnerFirstName} is on the way to your ${job.location} listing. They should arrive shortly. Filming should take ${duration} hours and we'll be in contact immediately after the shoot. Thank you for choosing Arriv!`;
     
-    const emailBody = `Hello ${job.client_name},\n\n${job.booked_by_name} is on the way to your property at ${job.location}. They should arrive shortly.\n\nThank you for choosing Arriv.\n\nBest regards,\nArriv`;
+    const emailBody = `Hi ${clientFirstName}! Your Media Partner ${mediaPartnerFirstName} is on the way to your ${job.location} listing. They should arrive shortly. Filming should take ${duration} hours and we'll be in contact immediately after the shoot. Thank you for choosing Arriv!`;
 
     // Send SMS via Twilio
     const formattedPhone = job.client_phone.startsWith('+') ? job.client_phone : `+1${job.client_phone}`;
