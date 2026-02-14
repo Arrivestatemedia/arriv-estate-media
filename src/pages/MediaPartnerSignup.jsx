@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Briefcase } from "lucide-react";
 import { createPageUrl } from "../utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function MediaPartnerSignup() {
   const navigate = useNavigate();
@@ -170,17 +171,29 @@ export default function MediaPartnerSignup() {
             )}
 
             <div className="flex items-start gap-3 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
-              <Checkbox
-                id="terms"
-                checked={termsScrolled && termsAccepted}
-                onCheckedChange={(checked) => {
-                  if (termsScrolled) {
-                    setTermsAccepted(checked);
-                  }
-                }}
-                disabled={!termsScrolled}
-                className="mt-1"
-              />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="mt-1">
+                      <Checkbox
+                        id="terms"
+                        checked={termsScrolled && termsAccepted}
+                        onCheckedChange={(checked) => {
+                          if (termsScrolled) {
+                            setTermsAccepted(checked);
+                          }
+                        }}
+                        disabled={!termsScrolled}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  {!termsScrolled && (
+                    <TooltipContent>
+                      Please read the Terms & Conditions first
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
               <label htmlFor="terms" className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed">
                 I confirm that I have read, understand, and agree to the{" "}
                 <Link 
