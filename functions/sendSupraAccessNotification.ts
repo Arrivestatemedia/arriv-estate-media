@@ -102,21 +102,9 @@ Deno.serve(async (req) => {
         `From: ${adminEmail}`,
         `Subject: Supra Access Information for Your Upcoming Shoot`,
         `MIME-Version: 1.0`,
-        `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        '',
-        `--${boundary}`,
         `Content-Type: text/plain; charset="UTF-8"`,
         '',
-        emailBody,
-        '',
-        `--${boundary}`,
-        `Content-Type: application/pdf; name="Supra_General_Access_Guide.pdf"`,
-        `Content-Transfer-Encoding: base64`,
-        `Content-Disposition: attachment; filename="Supra_General_Access_Guide.pdf"`,
-        '',
-        pdfBase64,
-        '',
-        `--${boundary}--`
+        emailBody
       ].join('\r\n');
 
       const encodedMessage = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
