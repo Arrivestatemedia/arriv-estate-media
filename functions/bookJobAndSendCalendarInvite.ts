@@ -22,6 +22,18 @@ Deno.serve(async (req) => {
     }
     const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, jobData);
 
+    // Create Google Drive folder for the job
+    try {
+      await base44.asServiceRole.functions.invoke('createGoogleDriveFolderForJob', {
+        jobAddress: updatedJob.location,
+        mediaPartnerEmail: mediaPartnerEmail,
+      });
+      console.log('Google Drive folder created for job');
+    } catch (error) {
+      console.error('Failed to create Google Drive folder:', error.message);
+      // Don't fail the booking if folder creation fails
+    }
+
     // Invoke the calendar event creation function
     await base44.asServiceRole.functions.invoke('createJobCalendarEvent', {
       job: { ...updatedJob, id: jobId },
