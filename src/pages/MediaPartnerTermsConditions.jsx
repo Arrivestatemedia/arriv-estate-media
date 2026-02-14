@@ -8,13 +8,27 @@ export default function MediaPartnerTermsConditions() {
   const [isScrolled, setIsScrolled] = useState(false);
   const contentRef = useRef(null);
 
-  const handleScroll = () => {
-    if (contentRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
-      setIsScrolled(isAtBottom);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (contentRef.current) {
+        const element = contentRef.current;
+        const isScrollable = element.scrollHeight > element.clientHeight;
+        const isAtBottom =
+          !isScrollable || (element.scrollHeight - element.scrollTop - element.clientHeight < 10);
+        setIsScrolled(isAtBottom);
+        if (isAtBottom) {
+          localStorage.setItem('mediaPartnerTermsScrolled', 'true');
+        }
+      }
+    };
+
+    const content = contentRef.current;
+    if (content) {
+      content.addEventListener("scroll", handleScroll);
+      handleScroll();
+      return () => content.removeEventListener("scroll", handleScroll);
     }
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FFFBF5]">
