@@ -15,6 +15,9 @@ export default function ClientTermsConditions() {
         const isAtBottom =
           element.scrollHeight - element.scrollTop - element.clientHeight < 10;
         setIsScrolled(isAtBottom);
+        if (isAtBottom) {
+          localStorage.setItem('clientTermsScrolled', 'true');
+        }
       }
     };
 
