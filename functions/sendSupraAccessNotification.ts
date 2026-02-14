@@ -109,6 +109,7 @@ Please see attached document for instructions on how to add Temporary access in 
     if (!smsResponse.ok) {
       const error = await smsResponse.text();
       console.error('Twilio error:', error);
+      throw new Error(`SMS failed: ${error}`);
     }
 
     // Log SMS
