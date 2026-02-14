@@ -36,6 +36,12 @@ Deno.serve(async (req) => {
       status: 'pending'
     });
 
+    // Generate and store signed terms
+    await base44.functions.invoke('generateSignedTerms', {
+      full_name,
+      email
+    });
+
     return Response.json({ 
       success: true, 
       message: 'Account created successfully'
