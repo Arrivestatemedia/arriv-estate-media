@@ -85,8 +85,9 @@ export default function MediaPartnerSignup() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
-      <Card className="max-w-md w-full border-2 border-[#B8956A]/20">
+    <TooltipProvider>
+      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-2 border-[#B8956A]/20">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 w-16 h-16 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
             <Briefcase className="w-8 h-8 text-[#B8956A]" />
@@ -171,29 +172,27 @@ export default function MediaPartnerSignup() {
             )}
 
             <div className="flex items-start gap-3 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="mt-1">
-                      <Checkbox
-                        id="terms"
-                        checked={termsScrolled && termsAccepted}
-                        onCheckedChange={(checked) => {
-                          if (termsScrolled) {
-                            setTermsAccepted(checked);
-                          }
-                        }}
-                        disabled={!termsScrolled}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  {!termsScrolled && (
-                    <TooltipContent>
-                      Please read the Terms & Conditions first
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="mt-1">
+                    <Checkbox
+                      id="terms"
+                      checked={termsScrolled && termsAccepted}
+                      onCheckedChange={(checked) => {
+                        if (termsScrolled) {
+                          setTermsAccepted(checked);
+                        }
+                      }}
+                      disabled={!termsScrolled}
+                    />
+                  </div>
+                </TooltipTrigger>
+                {!termsScrolled && (
+                  <TooltipContent>
+                    Please read the Terms & Conditions first
+                  </TooltipContent>
+                )}
+              </Tooltip>
               <label htmlFor="terms" className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed">
                 I confirm that I have read, understand, and agree to the{" "}
                 <Link 
@@ -226,6 +225,7 @@ export default function MediaPartnerSignup() {
           </form>
         </CardContent>
       </Card>
-    </div>
-  );
-}
+      </div>
+      </TooltipProvider>
+      );
+      }
