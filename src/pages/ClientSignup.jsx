@@ -152,10 +152,31 @@ export default function ClientSignup() {
                 {error}
               </div>
             )}
+
+            <div className="flex items-start gap-3 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
+              <Checkbox
+                id="terms"
+                checked={termsAccepted}
+                onCheckedChange={setTermsAccepted}
+                className="mt-1"
+              />
+              <label htmlFor="terms" className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed">
+                ☐ I confirm that I have read and agree to the{" "}
+                <Link 
+                  to="/ClientTermsConditions" 
+                  target="_blank"
+                  className="text-[#B8956A] font-medium hover:underline"
+                >
+                  ARRIV Estate Media Client Terms & Conditions
+                </Link>
+                , including pricing, usage rights, and delivery policies.
+              </label>
+            </div>
+
             <Button
               type="submit"
-              disabled={loading}
-              className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+              disabled={loading || !termsAccepted}
+              className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white disabled:bg-[#1A1A1A]/50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating Account..." : "Sign Up"}
             </Button>
