@@ -13,16 +13,32 @@ export default function ClientSignup() {
   const urlParams = new URLSearchParams(window.location.search);
   const roleFromUrl = urlParams.get('role') || 'user';
   
-  const [formData, setFormData] = useState({ 
-    email: "", 
-    full_name: "", 
-    phone_number: urlParams.get('phone_number') || "",
-    password: "",
-    password_confirmation: ""
+  const [formData, setFormData] = useState(() => {
+    const saved = localStorage.getItem('clientSignupFormData');
+    return saved ? JSON.parse(saved) : {
+      email: "", 
+      full_name: "", 
+      phone_number: urlParams.get('phone_number') || "",
+      password: "",
+      password_confirmation: ""
+    };
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [termsScrolled, setTermsScrolled] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  React.useEffect(() => {
+    const scrolled = localStorage.getItem('clientTermsScrolled') === 'true';
+    if (scrolled) {
+      setTermsScrolled(true);
+      localStorage.removeItem('clientTermsScrolled');
+    }
+  }, []);
+
+  React.useEffect(() => {
+    localStorage.setItem('clientSignupFormData', JSON.stringify(formData));
+  }, [formData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
