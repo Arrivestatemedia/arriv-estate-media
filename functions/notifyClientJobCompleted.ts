@@ -57,17 +57,28 @@ Deno.serve(async (req) => {
     }
 
     // Add pay amount to media partner's current balance
-    const mediaPartnerEmail = job.booked_by;
-    const payAmount = job.pay_rate || 0;
-    
-    const existingUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
-    if (existingUsers.length > 0) {
-      const user = existingUsers[0];
-      const newBalance = (user.current_balance || 0) + payAmount;
-      await base44.asServiceRole.entities.User.update(user.id, {
-        current_balance: newBalance
-      });
-    }
+          const mediaPartnerEmail = job.booked_by;
+          const payAmount = job.pay_rate || 0;
+
+          // Try to update User entity first
+          const existingUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+          if (existingUsers.length > 0) {
+            const user = existingUsers[0];
+            const newBalance = (user.current_balance || 0) + payAmount;
+            await base44.asServiceRole.entities.User.update(user.id, {
+              current_balance: newBalance
+            });
+          } else {
+            // If not in User entity, update PendingSignup
+            const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: mediaPartnerEmail });
+            if (pendingSignups.length > 0) {
+              const pendingSignup = pendingSignups[0];
+              const newBalance = (pendingSignup.current_balance || 0) + payAmount;
+              await base44.asServiceRole.entities.PendingSignup.update(pendingSignup.id, {
+                current_balance: newBalance
+              });
+            }
+          }
 
     // Get Gmail access token
     let gmailAccessToken;
