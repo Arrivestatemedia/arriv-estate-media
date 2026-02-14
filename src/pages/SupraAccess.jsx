@@ -6,7 +6,7 @@ import { Key, ExternalLink, Smartphone } from "lucide-react";
 export default function SupraAccess() {
   const openSupraApp = () => {
     // Try Supra ekey deep link
-    window.location.href = "supra://";
+    window.location.href = "ekey://";
     
     // Fallback to app store if app doesn't open within 2 seconds
     setTimeout(() => {
