@@ -9,11 +9,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
-    // Update the job entity with booked_by_phone if not already set
-    if (!jobData.booked_by_phone) {
-      const users = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
-      jobData.booked_by_phone = users?.[0]?.phone_number || '';
-    }
     const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, jobData);
 
     // Invoke the calendar event creation function
