@@ -56,6 +56,7 @@ import AdminSignedTerms from './pages/AdminSignedTerms';
 import AdminUsers from './pages/AdminUsers';
 import BookingPage from './pages/BookingPage';
 import ClientBookings from './pages/ClientBookings';
+import ClientSignup from './pages/ClientSignup';
 import ClientTermsConditions from './pages/ClientTermsConditions';
 import ConfirmDeleteAccount from './pages/ConfirmDeleteAccount';
 import ContractorDashboard from './pages/ContractorDashboard';
@@ -74,9 +75,8 @@ import NotifyBackup from './pages/NotifyBackup';
 import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
-import confirmDeleteUser from './pages/confirmDeleteUser';
-import ClientSignup from './pages/ClientSignup';
 import SupraAccess from './pages/SupraAccess';
+import confirmDeleteUser from './pages/confirmDeleteUser';
 import __Layout from './Layout.jsx';
 
 
@@ -90,6 +90,7 @@ export const PAGES = {
     "AdminUsers": AdminUsers,
     "BookingPage": BookingPage,
     "ClientBookings": ClientBookings,
+    "ClientSignup": ClientSignup,
     "ClientTermsConditions": ClientTermsConditions,
     "ConfirmDeleteAccount": ConfirmDeleteAccount,
     "ContractorDashboard": ContractorDashboard,
@@ -108,9 +109,8 @@ export const PAGES = {
     "PasswordSetup": PasswordSetup,
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
-    "confirmDeleteUser": confirmDeleteUser,
-    "ClientSignup": ClientSignup,
     "SupraAccess": SupraAccess,
+    "confirmDeleteUser": confirmDeleteUser,
 }
 
 export const pagesConfig = {

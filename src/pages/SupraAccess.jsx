@@ -14,7 +14,7 @@ export default function SupraAccess() {
       const isAndroid = /Android/.test(navigator.userAgent);
       
       if (isIOS) {
-        window.location.href = "https://apps.apple.com/us/app/supra-ekey/id435016938";
+        window.location.href = "https://apps.apple.com/us/app/supra-ekey/id379909266";
       } else if (isAndroid) {
         window.location.href = "https://play.google.com/store/apps/details?id=com.suprakey.android";
       }
@@ -48,7 +48,7 @@ export default function SupraAccess() {
               <p>Don't have the Supra eKey app installed?</p>
               <div className="flex justify-center gap-4">
                 <a 
-                  href="https://apps.apple.com/us/app/supra-ekey/id435016938"
+                  href="https://apps.apple.com/us/app/supra-ekey/id379909266"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#B8956A] hover:underline"
