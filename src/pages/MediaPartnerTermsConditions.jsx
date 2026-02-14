@@ -49,7 +49,6 @@ export default function MediaPartnerTermsConditions() {
       <div className="flex flex-col h-screen">
         <div
           ref={contentRef}
-          onScroll={handleScroll}
           className="flex-1 overflow-y-auto"
         >
           <div className="max-w-4xl mx-auto p-6 space-y-6 text-[#1A1A1A]">
