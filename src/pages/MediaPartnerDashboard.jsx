@@ -62,7 +62,7 @@ export default function MediaPartnerDashboard() {
     enabled: !!user?.email,
   });
 
-  const currentBalance = user?.current_balance || 0;
+  const currentBalance = userRecord?.current_balance || 0;
   const bookedJobs = jobs.filter(j => j.status === 'booked' || j.status === 'in_progress');
   const bookedJobsCount = bookedJobs.length;
   const bookedAmount = bookedJobs.reduce((sum, job) => sum + (job.pay_rate || 0), 0);
