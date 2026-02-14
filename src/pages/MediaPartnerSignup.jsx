@@ -85,8 +85,7 @@ export default function MediaPartnerSignup() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
         <Card className="max-w-md w-full border-2 border-[#B8956A]/20">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 w-16 h-16 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
@@ -223,6 +222,5 @@ export default function MediaPartnerSignup() {
         </CardContent>
       </Card>
       </div>
-      </TooltipProvider>
-      );
-      }
+    );
+  }
