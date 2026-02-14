@@ -9,10 +9,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
-    // Get the media partner's phone number (or admin's if media partner doesn't exist)
-    let bookedByPhone = jobData.booked_by_phone || '';
+    // Get the media partner's phone number from User entity
+    let bookedByPhone = '';
     
-    if (!bookedByPhone && mediaPartnerEmail) {
+    if (mediaPartnerEmail) {
       const mediaPartners = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
       bookedByPhone = mediaPartners?.[0]?.phone_number || '';
     }
