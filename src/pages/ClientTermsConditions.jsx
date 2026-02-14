@@ -38,7 +38,10 @@ export default function ClientTermsConditions() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                localStorage.removeItem('clientTermsScrolled');
+                navigate(-1);
+              }}
               className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
             >
               <ArrowLeft className="w-5 h-5" />
