@@ -23,8 +23,15 @@ export default function EarningsBreakdown({ jobs, payoutHistory }) {
   // Calculate earnings from completed jobs
   const completedJobs = jobs.filter(j => j.status === 'completed');
   
+  // Today resets at 4am
+  const todayAtFourAm = new Date(today);
+  todayAtFourAm.setHours(4, 0, 0, 0);
+  
   const todayEarnings = completedJobs
-    .filter(j => new Date(j.updated_date || j.date) >= today)
+    .filter(j => {
+      const completedDate = new Date(j.completed_at || j.updated_date);
+      return completedDate >= todayAtFourAm;
+    })
     .reduce((sum, j) => sum + (j.pay_rate || 0), 0);
 
   const weekEarnings = completedJobs
