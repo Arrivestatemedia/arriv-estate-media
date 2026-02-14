@@ -153,23 +153,23 @@ export default function ClientSignup() {
               </div>
             )}
 
-            <div className="flex items-start gap-3 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
-              <Checkbox
-                id="terms"
-                checked={termsAccepted}
-                onCheckedChange={setTermsAccepted}
-                className="mt-1"
-              />
-              <label htmlFor="terms" className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed">
-                ☐ I confirm that I have read and agree to the{" "}
-                <Link 
-                  to="/ClientTermsConditions" 
-                  target="_blank"
-                  className="text-[#B8956A] font-medium hover:underline"
-                >
-                  ARRIV Estate Media Client Terms & Conditions
-                </Link>
-                , including pricing, usage rights, and delivery policies.
+            <div className="p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
+              <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-center gap-2">
+                <Checkbox
+                  checked={termsAccepted}
+                  onCheckedChange={setTermsAccepted}
+                />
+                <span>
+                  I confirm that I have read and agree to the{" "}
+                  <Link 
+                    to="/ClientTermsConditions" 
+                    target="_blank"
+                    className="text-[#B8956A] font-medium hover:underline"
+                  >
+                    ARRIV Estate Media Client Terms & Conditions
+                  </Link>
+                  , including pricing, usage rights, and delivery policies.
+                </span>
               </label>
             </div>
 
