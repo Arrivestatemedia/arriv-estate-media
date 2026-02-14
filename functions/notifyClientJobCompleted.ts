@@ -49,6 +49,19 @@ Deno.serve(async (req) => {
       status: 'completed'
     });
 
+    // Add pay amount to media partner's current balance
+    const mediaPartnerEmail = job.booked_by;
+    const payAmount = job.pay_rate || 0;
+    
+    const existingUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+    if (existingUsers.length > 0) {
+      const user = existingUsers[0];
+      const newBalance = (user.current_balance || 0) + payAmount;
+      await base44.asServiceRole.entities.User.update(user.id, {
+        current_balance: newBalance
+      });
+    }
+
     // Get Gmail access token
     let gmailAccessToken;
     try {
