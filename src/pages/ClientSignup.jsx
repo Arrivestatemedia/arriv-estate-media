@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 import { createPageUrl } from "../utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 export default function ClientSignup() {
   const navigate = useNavigate();
@@ -92,8 +92,7 @@ export default function ClientSignup() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
         <Card className="max-w-md w-full border-2 border-[#B8956A]/20">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 w-16 h-16 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
@@ -178,28 +177,17 @@ export default function ClientSignup() {
               </div>
             )}
 
-            <div className="p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
-              <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center">
-                      <Checkbox
-                        checked={termsScrolled && termsAccepted}
-                        onCheckedChange={(checked) => {
-                          if (termsScrolled) {
-                            setTermsAccepted(checked);
-                          }
-                        }}
-                        disabled={!termsScrolled}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  {!termsScrolled && (
-                    <TooltipContent>
-                      Please read the Terms & Conditions first
-                    </TooltipContent>
-                  )}
-                </Tooltip>
+            <div className="space-y-2">
+              <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-center gap-2 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
+                <Checkbox
+                  checked={termsScrolled && termsAccepted}
+                  onCheckedChange={(checked) => {
+                    if (termsScrolled) {
+                      setTermsAccepted(checked);
+                    }
+                  }}
+                  disabled={!termsScrolled}
+                />
                 <span>
                   I confirm that I have read and agree to the{" "}
                   <Link 
@@ -211,6 +199,11 @@ export default function ClientSignup() {
                   , including pricing, usage rights, and delivery policies.
                 </span>
               </label>
+              {!termsScrolled && (
+                <p className="text-xs text-red-600 px-3">
+                  Please read the Terms & Conditions first
+                </p>
+              )}
             </div>
 
             <Button
@@ -234,6 +227,5 @@ export default function ClientSignup() {
         </CardContent>
       </Card>
       </div>
-      </TooltipProvider>
       );
       }
