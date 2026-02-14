@@ -5,8 +5,18 @@ import { TrendingUp, Calendar, DollarSign } from "lucide-react";
 export default function EarningsBreakdown({ jobs, payoutHistory }) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
+  
+  // Calculate start of pay period (last Friday at 4am)
+  const getPayPeriodStart = () => {
+    const d = new Date();
+    const currentDay = d.getDay(); // 0 = Sunday, 5 = Friday
+    const lastFridayDate = d.getDate() - ((currentDay + 2) % 7);
+    const lastFriday = new Date(d.getFullYear(), d.getMonth(), lastFridayDate);
+    lastFriday.setHours(4, 0, 0, 0);
+    return lastFriday;
+  };
+  
+  const startOfPayPeriod = getPayPeriodStart();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
