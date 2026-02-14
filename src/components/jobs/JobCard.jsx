@@ -30,9 +30,19 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const [showPhoneInput, setShowPhoneInput] = React.useState(false);
   const [backupPhone, setBackupPhone] = React.useState(job.backup_booked_by_phone || '');
   const [loading, setLoading] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(Date.now());
   
   // Show client pricing to admins, contractor pricing to media partners
   const displayPrice = userRole === 'admin' ? job.client_price : job.pay_rate;
+
+  // Update time every minute to check if start time is reached
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Check if we're past the start time
   const isStartTimeReached = React.useMemo(() => {
@@ -41,9 +51,8 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     const [hour, minute] = job.start_time.split(':').map(Number);
     jobDate.setHours(hour, minute, 0, 0);
     const jobDateTime = jobDate.getTime();
-    const now = new Date().getTime();
-    return now >= jobDateTime;
-  }, [job.date, job.start_time]);
+    return currentTime >= jobDateTime;
+  }, [job.date, job.start_time, currentTime]);
 
   const handleBackupWithPhone = () => {
     if (backupPhone.trim()) {
