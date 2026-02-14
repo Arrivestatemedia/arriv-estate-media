@@ -92,8 +92,9 @@ export default function ClientSignup() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
-      <Card className="max-w-md w-full border-2 border-[#B8956A]/20">
+    <TooltipProvider>
+      <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-2 border-[#B8956A]/20">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 w-16 h-16 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
             <Camera className="w-8 h-8 text-[#B8956A]" />
@@ -179,28 +180,26 @@ export default function ClientSignup() {
 
             <div className="p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
               <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-center gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div>
-                        <Checkbox
-                          checked={termsScrolled && termsAccepted}
-                          onCheckedChange={(checked) => {
-                            if (termsScrolled) {
-                              setTermsAccepted(checked);
-                            }
-                          }}
-                          disabled={!termsScrolled}
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    {!termsScrolled && (
-                      <TooltipContent>
-                        Please read the Terms & Conditions first
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center">
+                      <Checkbox
+                        checked={termsScrolled && termsAccepted}
+                        onCheckedChange={(checked) => {
+                          if (termsScrolled) {
+                            setTermsAccepted(checked);
+                          }
+                        }}
+                        disabled={!termsScrolled}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  {!termsScrolled && (
+                    <TooltipContent>
+                      Please read the Terms & Conditions first
+                    </TooltipContent>
+                  )}
+                </Tooltip>
                 <span>
                   I confirm that I have read and agree to the{" "}
                   <Link 
@@ -234,6 +233,7 @@ export default function ClientSignup() {
           </form>
         </CardContent>
       </Card>
-    </div>
-  );
-}
+      </div>
+      </TooltipProvider>
+      );
+      }
