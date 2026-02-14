@@ -37,6 +37,9 @@ Deno.serve(async (req) => {
       booked_by: user.email,
       booked_by_name: user.full_name,
       booked_by_phone: adminPhone,
+      client_name: booking.client_name,
+      client_email: booking.client_email,
+      client_phone: booking.client_phone,
       from_booking: true,
       booking_id: bookingId
     });
