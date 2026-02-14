@@ -200,8 +200,10 @@ export default function JobBoard() {
 
     const storedEmail = localStorage.getItem('user_email');
     const storedName = localStorage.getItem('user_name');
+    const storedPhone = localStorage.getItem('user_phone');
     const email = user?.email || storedEmail;
     const name = user?.full_name || storedName;
+    const phone = user?.phone || storedPhone;
 
     if (!email || !name) {
       alert("User data not available. Please refresh the page.");
@@ -212,6 +214,7 @@ export default function JobBoard() {
       status: "booked",
       booked_by: email,
       booked_by_name: name,
+      booked_by_phone: phone,
     };
 
     bookMutation.mutate({
