@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Briefcase } from "lucide-react";
 import { createPageUrl } from "../utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 export default function MediaPartnerSignup() {
   const navigate = useNavigate();
@@ -171,38 +171,35 @@ export default function MediaPartnerSignup() {
               </div>
             )}
 
-            <div className="flex items-start gap-3 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="mt-1">
-                    <Checkbox
-                      id="terms"
-                      checked={termsScrolled && termsAccepted}
-                      onCheckedChange={(checked) => {
-                        if (termsScrolled) {
-                          setTermsAccepted(checked);
-                        }
-                      }}
-                      disabled={!termsScrolled}
-                    />
-                  </div>
-                </TooltipTrigger>
-                {!termsScrolled && (
-                  <TooltipContent>
-                    Please read the Terms & Conditions first
-                  </TooltipContent>
-                )}
-              </Tooltip>
-              <label htmlFor="terms" className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed">
-                I confirm that I have read, understand, and agree to the{" "}
-                <Link 
-                  to="/MediaPartnerTermsConditions"
-                  className="text-[#B8956A] font-medium hover:underline"
-                >
-                  Media Partner Terms & Conditions
-                </Link>
-                . I acknowledge that I am an independent contractor and agree to comply with all access, confidentiality, and non-circumvention requirements.
-              </label>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
+                <Checkbox
+                  id="terms"
+                  checked={termsScrolled && termsAccepted}
+                  onCheckedChange={(checked) => {
+                    if (termsScrolled) {
+                      setTermsAccepted(checked);
+                    }
+                  }}
+                  disabled={!termsScrolled}
+                  className="mt-1"
+                />
+                <label htmlFor="terms" className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed">
+                  I confirm that I have read, understand, and agree to the{" "}
+                  <Link 
+                    to="/MediaPartnerTermsConditions"
+                    className="text-[#B8956A] font-medium hover:underline"
+                  >
+                    Media Partner Terms & Conditions
+                  </Link>
+                  . I acknowledge that I am an independent contractor and agree to comply with all access, confidentiality, and non-circumvention requirements.
+                </label>
+              </div>
+              {!termsScrolled && (
+                <p className="text-xs text-red-600 px-3">
+                  Please read the Terms & Conditions first
+                </p>
+              )}
             </div>
 
             <Button
