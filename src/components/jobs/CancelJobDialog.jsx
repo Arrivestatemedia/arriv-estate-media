@@ -85,6 +85,44 @@ export default function CancelJobDialog({ job, open, onOpenChange, onSubmit, isL
               </Button>
             </DialogFooter>
           </>
+        ) : isWithinOneHour ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-[#1A1A1A]">Call to Cancel</DialogTitle>
+              <DialogDescription className="text-[#1A1A1A]/60">
+                This booking is within 1 hour of the appointment time.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-6 space-y-4 text-center">
+              <div className="flex justify-center">
+                <div className="bg-[#B8956A]/10 p-4 rounded-full">
+                  <Phone className="w-8 h-8 text-[#B8956A]" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-[#1A1A1A] mb-3">
+                  To cancel this booking, please call:
+                </p>
+                <a 
+                  href="tel:6782429107"
+                  className="text-2xl font-bold text-[#B8956A] hover:text-[#A68559] transition-colors"
+                >
+                  (678) 242-9107
+                </a>
+              </div>
+              <p className="text-xs text-[#1A1A1A]/60">
+                Due to the short notice, we need to handle this cancellation directly.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => onOpenChange(false)}
+                className="bg-[#B8956A] hover:bg-[#A68559] text-white w-full"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </>
         ) : (
           <>
             <DialogHeader>
