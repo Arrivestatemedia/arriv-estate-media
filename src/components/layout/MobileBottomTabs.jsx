@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
-import { Briefcase, LayoutDashboard, Settings } from "lucide-react";
+import { Briefcase, LayoutDashboard, Settings, Key } from "lucide-react";
 import NewJobsBadge from "./NewJobsBadge";
 
 const SESSION_STORAGE_KEY = 'mobile_tab_scroll_positions';
@@ -33,6 +33,7 @@ export default function MobileBottomTabs({ user }) {
     ? [
         { label: "Jobs", page: "JobBoard", icon: Briefcase, showBadge: true },
         { label: "Dashboard", page: "MediaPartnerDashboard", icon: LayoutDashboard },
+        { label: "Supra", page: "SupraAccess", icon: Key },
         { label: "Settings", page: "PublicAccountSettings", icon: Settings },
       ]
     : [];
