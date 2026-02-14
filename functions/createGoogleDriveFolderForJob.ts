@@ -38,12 +38,33 @@ Deno.serve(async (req) => {
     const folderId = folderData.id;
     console.log('Created folder:', folderId);
 
-    // Folder inherits "anyone with link can edit" access from parent folder
+    // Share folder with media partner
+    const shareRes = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}/permissions?fields=id`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        role: 'editor',
+        type: 'user',
+        emailAddress: mediaPartnerEmail,
+      }),
+    });
+
+    if (!shareRes.ok) {
+      const error = await shareRes.text();
+      console.error('Failed to share folder:', error);
+      return Response.json({ error: 'Failed to share Google Drive folder' }, { status: 500 });
+    }
+
+    console.log('Folder shared with:', mediaPartnerEmail);
+
     return Response.json({
       success: true,
       folderId: folderId,
       folderName: jobAddress,
-      note: 'Folder created inside shared parent - accessible via parent folder link',
+      sharedWith: mediaPartnerEmail,
     });
   } catch (error) {
     console.error('Error:', error);
