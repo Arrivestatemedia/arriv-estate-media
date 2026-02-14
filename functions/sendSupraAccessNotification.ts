@@ -130,6 +130,11 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ raw: encodedMessage })
       });
 
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.text();
+        console.error('Gmail API error:', emailResponse.status, errorData);
+      }
+
       await base44.asServiceRole.entities.MessageLog.create({
         message_type: 'email',
         recipient_type: 'client',
