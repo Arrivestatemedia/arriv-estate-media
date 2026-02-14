@@ -20,11 +20,12 @@ Deno.serve(async (req) => {
 
     // Send Supra access notification to client immediately when booked
     try {
-      await base44.asServiceRole.functions.invoke('sendSupraAccessNotification', {
+      const supraResult = await base44.asServiceRole.functions.invoke('sendSupraAccessNotification', {
         jobId: jobId
       });
+      console.log('Supra notification sent:', supraResult);
     } catch (error) {
-      console.error('Failed to send Supra notification:', error);
+      console.error('Failed to send Supra notification:', error.message, error.response?.data);
     }
 
     return Response.json({ success: true, message: 'Job booked and calendar invite sent' }, { status: 200 });
