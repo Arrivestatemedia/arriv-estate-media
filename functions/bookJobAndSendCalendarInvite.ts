@@ -9,14 +9,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
-    // Get media partner's phone number
-    const mediaPartners = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
-    const mediaPartnerPhone = mediaPartners?.[0]?.phone_number || '';
+    // Get the media partner's phone number (or admin's if media partner doesn't exist)
+    let bookedByPhone = jobData.booked_by_phone || '';
+    
+    if (!bookedByPhone && mediaPartnerEmail) {
+      const mediaPartners = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+      bookedByPhone = mediaPartners?.[0]?.phone_number || '';
+    }
 
     // Update the job entity with booked_by_phone
     const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, {
       ...jobData,
-      booked_by_phone: mediaPartnerPhone
+      booked_by_phone: bookedByPhone
     });
 
     // Invoke the calendar event creation function
