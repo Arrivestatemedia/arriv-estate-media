@@ -210,17 +210,6 @@ export default function JobBoard() {
       return;
     }
 
-    // Create Google Drive folder for the job
-    try {
-      await base44.functions.invoke('createGoogleDriveFolderForJob', {
-        jobAddress: bookingJob.location,
-        mediaPartnerEmail: email,
-      });
-    } catch (err) {
-      console.error('Failed to create Google Drive folder:', err);
-      // Continue with booking even if folder creation fails
-    }
-
     const jobData = {
       status: "booked",
       booked_by: email,
