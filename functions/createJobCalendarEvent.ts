@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const { job, mediaPartnerEmail } = await req.json();
+        const { job, mediaPartnerEmail, folderUrl } = await req.json();
         
         const accessToken = await base44.asServiceRole.connectors.getAccessToken("googlecalendar");
         
