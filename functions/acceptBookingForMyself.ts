@@ -20,9 +20,8 @@ Deno.serve(async (req) => {
     dateObj.setDate(dateObj.getDate() + 1);
     const adjustedDate = dateObj.toISOString().split('T')[0];
 
-    // Get admin's phone from user data
-    const adminUser = await base44.asServiceRole.entities.User.filter({ email: user.email });
-    const adminPhone = adminUser?.[0]?.phone_number || '';
+    // Get admin's phone from environment variable
+    const adminPhone = Deno.env.get('ADMIN_PHONE') || '';
 
     await base44.asServiceRole.entities.Job.create({
       title: `Photography - ${propertyAddress}`,
