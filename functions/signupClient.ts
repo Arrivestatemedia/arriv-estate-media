@@ -39,10 +39,15 @@ Deno.serve(async (req) => {
         });
 
         // Generate and store signed terms
-        await base44.functions.invoke('generateSignedClientTerms', {
-            full_name,
-            email
-        });
+        try {
+            await base44.functions.invoke('generateSignedClientTerms', {
+                full_name,
+                email
+            });
+        } catch (termsError) {
+            console.error('Error generating signed terms:', termsError);
+            // Don't fail signup if terms generation fails
+        }
 
         return Response.json({ 
             success: true, 
