@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 import { createPageUrl } from "../utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function ClientSignup() {
   const navigate = useNavigate();
@@ -178,15 +179,28 @@ export default function ClientSignup() {
 
             <div className="p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
               <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-center gap-2">
-                <Checkbox
-                  checked={termsScrolled && termsAccepted}
-                  onCheckedChange={(checked) => {
-                    if (termsScrolled) {
-                      setTermsAccepted(checked);
-                    }
-                  }}
-                  disabled={!termsScrolled}
-                />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <Checkbox
+                          checked={termsScrolled && termsAccepted}
+                          onCheckedChange={(checked) => {
+                            if (termsScrolled) {
+                              setTermsAccepted(checked);
+                            }
+                          }}
+                          disabled={!termsScrolled}
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    {!termsScrolled && (
+                      <TooltipContent>
+                        Please read the Terms & Conditions first
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                 <span>
                   I confirm that I have read and agree to the{" "}
                   <Link 
