@@ -152,10 +152,31 @@ export default function MediaPartnerSignup() {
                 {error}
               </div>
             )}
+
+            <div className="flex items-start gap-3 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
+              <Checkbox
+                id="terms"
+                checked={termsAccepted}
+                onCheckedChange={setTermsAccepted}
+                className="mt-1"
+              />
+              <label htmlFor="terms" className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed">
+                I confirm that I have read, understand, and agree to the{" "}
+                <Link 
+                  to="/MediaPartnerTermsConditions" 
+                  target="_blank"
+                  className="text-[#B8956A] font-medium hover:underline"
+                >
+                  Media Partner Terms & Conditions
+                </Link>
+                . I acknowledge that I am an independent contractor and agree to comply with all access, confidentiality, and non-circumvention requirements.
+              </label>
+            </div>
+
             <Button
               type="submit"
-              disabled={loading}
-              className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+              disabled={loading || !termsAccepted}
+              className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white disabled:bg-[#1A1A1A]/50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating Account..." : "Sign Up"}
             </Button>
