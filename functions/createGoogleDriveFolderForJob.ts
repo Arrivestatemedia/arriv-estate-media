@@ -36,12 +36,14 @@ Deno.serve(async (req) => {
 
     const folderData = await createFolderRes.json();
     const folderId = folderData.id;
+    const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
     console.log('Created folder:', folderId);
 
     // Folder inherits sharing from parent folder (already shared with anyone who has the link)
     return Response.json({
       success: true,
       folderId: folderId,
+      folderUrl: folderUrl,
       folderName: jobAddress,
       note: 'Folder created inside shared parent - automatically accessible',
     });
