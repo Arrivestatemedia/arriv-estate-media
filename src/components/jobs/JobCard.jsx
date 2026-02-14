@@ -44,14 +44,15 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     return () => clearInterval(interval);
   }, []);
 
-  // Check if we're past the start time
+  // Check if we're 15 minutes before start time or past it
   const isStartTimeReached = React.useMemo(() => {
     if (!job.date || !job.start_time) return false;
     const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
     const [hour, minute] = job.start_time.split(':').map(Number);
     jobDate.setHours(hour, minute, 0, 0);
     const jobDateTime = jobDate.getTime();
-    return currentTime >= jobDateTime;
+    const fifteenMinutesBefore = jobDateTime - (15 * 60 * 1000);
+    return currentTime >= fifteenMinutesBefore;
   }, [job.date, job.start_time, currentTime]);
 
   const handleBackupWithPhone = () => {
