@@ -73,6 +73,7 @@ import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import MediaPartnerTermsConditions from './pages/MediaPartnerTermsConditions';
+import AdminSignedTerms from './pages/AdminSignedTerms';
 import __Layout from './Layout.jsx';
 
 
@@ -103,6 +104,7 @@ export const PAGES = {
     "SignIn": SignIn,
     "confirmDeleteUser": confirmDeleteUser,
     "MediaPartnerTermsConditions": MediaPartnerTermsConditions,
+    "AdminSignedTerms": AdminSignedTerms,
 }
 
 export const pagesConfig = {
