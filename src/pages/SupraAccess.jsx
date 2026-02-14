@@ -4,15 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Key, ExternalLink, Smartphone } from "lucide-react";
 
 export default function SupraAccess() {
-  const [attempted, setAttempted] = useState(false);
-
-  useEffect(() => {
-    // Attempt to open Supra ekey app on mount
-    openSupraApp();
-  }, []);
-
   const openSupraApp = () => {
-    setAttempted(true);
     // Try Supra ekey deep link
     window.location.href = "supra://";
     
@@ -40,20 +32,9 @@ export default function SupraAccess() {
             <CardTitle className="text-2xl text-[#1A1A1A]">Supra eKey Access</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {attempted && (
-              <div className="text-center space-y-4">
-                <div className="flex items-center justify-center gap-2 text-[#1A1A1A]/60">
-                  <Smartphone className="w-5 h-5" />
-                  <p className="text-sm">Opening Supra eKey app...</p>
-                </div>
-                
-                <div className="p-4 bg-[#B8956A]/5 rounded-lg">
-                  <p className="text-sm text-[#1A1A1A]/70">
-                    If the app doesn't open automatically, tap the button below:
-                  </p>
-                </div>
-              </div>
-            )}
+            <div className="text-center text-[#1A1A1A]/70">
+              <p className="text-sm">Tap the button below to open your Supra eKey</p>
+            </div>
 
             <Button
               onClick={openSupraApp}
