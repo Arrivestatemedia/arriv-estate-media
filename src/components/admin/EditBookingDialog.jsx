@@ -13,13 +13,6 @@ const timeSlots = {
   weekend: ["9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM"],
 };
 
-const allTimeSlots = [
-  "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM",
-  "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM",
-  "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM",
-  "7:00 PM", "7:30 PM", "8:00 PM"
-];
-
 // Helper to parse YYYY-MM-DD string to local Date object
 const parseLocalDate = (dateString) => {
   if (!dateString) return undefined;
@@ -31,7 +24,7 @@ const formatLocalDate = (date) => {
   return format(date, 'yyyy-MM-dd');
 };
 
-export default function EditBookingDialog({ booking, open, onOpenChange, onSave, isAdmin = true }) {
+export default function EditBookingDialog({ booking, open, onOpenChange, onSave }) {
   const [formData, setFormData] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -75,9 +68,6 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave,
 
   const availableTimeSlots = formData?.preferred_date
     ? (() => {
-      if (isAdmin) {
-        return allTimeSlots;
-      }
       const [year, month, day] = formData.preferred_date.split('-').map(Number);
       return isWeekend(new Date(year, month - 1, day))
         ? timeSlots.weekend

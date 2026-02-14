@@ -629,7 +629,6 @@ export default function AdminBookings() {
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
         onSave={handleSaveBooking}
-        isAdmin={true}
       />
     </PullToRefresh>
   );
