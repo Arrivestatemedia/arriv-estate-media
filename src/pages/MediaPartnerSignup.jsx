@@ -20,6 +20,7 @@ export default function MediaPartnerSignup() {
     password: "",
     password_confirmation: ""
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
