@@ -62,7 +62,19 @@ export default function MediaPartnerDashboard() {
     enabled: !!user?.email,
   });
 
-  const currentBalance = userRecord?.current_balance || 0;
+  // Calculate current balance from completed jobs this pay period
+  const getPayPeriodStart = () => {
+    const d = new Date();
+    const currentDay = d.getDay(); // 0 = Sunday, 5 = Friday
+    const lastFridayDate = d.getDate() - ((currentDay + 2) % 7);
+    const lastFriday = new Date(d.getFullYear(), d.getMonth(), lastFridayDate);
+    lastFriday.setHours(4, 0, 0, 0);
+    return lastFriday;
+  };
+
+  const startOfPayPeriod = getPayPeriodStart();
+  const completedJobs = jobs.filter(j => j.status === 'completed' && new Date(j.completed_at) >= startOfPayPeriod);
+  const currentBalance = completedJobs.reduce((sum, job) => sum + (job.pay_rate || 0), 0);
   const bookedJobs = jobs.filter(j => j.status === 'booked' || j.status === 'in_progress');
   const bookedJobsCount = bookedJobs.length;
   const bookedAmount = bookedJobs.reduce((sum, job) => sum + (job.pay_rate || 0), 0);
