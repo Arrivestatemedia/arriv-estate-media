@@ -28,7 +28,7 @@ export default function EarningsBreakdown({ jobs, payoutHistory }) {
     .reduce((sum, j) => sum + (j.pay_rate || 0), 0);
 
   const weekEarnings = completedJobs
-    .filter(j => new Date(j.updated_date || j.date) >= startOfWeek)
+    .filter(j => new Date(j.completed_at || j.updated_date) >= startOfPayPeriod)
     .reduce((sum, j) => sum + (j.pay_rate || 0), 0);
 
   const monthEarnings = completedJobs
