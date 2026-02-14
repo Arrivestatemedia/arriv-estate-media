@@ -97,8 +97,8 @@ Deno.serve(async (req) => {
       const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
 
       // Create multipart email
-      const boundary = '----=_Part_0_' + Date.now();
-      const emailBody = `Hi ${clientFirstName}!\n\nYour Media Specialist ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}.\n\nIf you do not plan on being on site please make sure that you have granted Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions:\nhttps://bit.ly/3OdUc80\n\nBest regards,\nArriv Team`;
+       const boundary = '----=_Part_0_' + Date.now();
+       const emailBody = `Hi ${clientFirstName}!\n\nYour Media Specialist ${job.booked_by_name} will be seeing you on ${formattedDate} at ${formattedTime}.\n\nIf you do not plan on being on site please make sure that you have granted Supra access to the number below:\n\n${bookedByPhone}\n\nPlease see attached document for instructions on how to add Temporary access in Supra.\n\nSupra instructions: https://bit.ly/3OdUc80`;
 
       const email = [
         `To: ${job.client_email}`,
