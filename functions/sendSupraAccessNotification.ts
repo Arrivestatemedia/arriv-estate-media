@@ -18,7 +18,18 @@ Deno.serve(async (req) => {
     }
 
     if (!job.client_phone || !job.client_email || !job.booked_by_name || !job.booked_by_phone) {
-      return Response.json({ error: 'Missing required job data' }, { status: 400 });
+      console.error('Missing required fields:', {
+        client_phone: job.client_phone,
+        client_email: job.client_email,
+        booked_by_name: job.booked_by_name,
+        booked_by_phone: job.booked_by_phone
+      });
+      return Response.json({ error: 'Missing required job data', missing: {
+        client_phone: !job.client_phone,
+        client_email: !job.client_email,
+        booked_by_name: !job.booked_by_name,
+        booked_by_phone: !job.booked_by_phone
+      }}, { status: 400 });
     }
 
     // Format the date and time
