@@ -7,6 +7,7 @@ import { format, parse as parseDate } from "date-fns";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import JobCompletionDialog from "./JobCompletionDialog";
+import FootageUploadConfirmDialog from "./FootageUploadConfirmDialog";
 
 const typeConfig = {
   photo: { label: "Photo", icon: Camera, color: "bg-[#B8956A]/10 text-[#B8956A] border-[#B8956A]/30" },
@@ -33,6 +34,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const [loading, setLoading] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(Date.now());
   const [showCompletionDialog, setShowCompletionDialog] = React.useState(false);
+  const [showFootageConfirmDialog, setShowFootageConfirmDialog] = React.useState(false);
   
   // Show client pricing to admins, contractor pricing to media partners
   const displayPrice = userRole === 'admin' ? job.client_price : job.pay_rate;
@@ -118,6 +120,20 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     }
   };
 
+  const handleFootageUploaded = async () => {
+    setLoading(true);
+    try {
+      await base44.entities.Job.update(job.id, { footage_uploaded: true });
+      setShowFootageConfirmDialog(false);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to confirm footage upload');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
   return (
@@ -126,6 +142,12 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         open={showCompletionDialog}
         onOpenChange={setShowCompletionDialog}
         googleDriveFolderUrl={job.google_drive_folder_url}
+      />
+      <FootageUploadConfirmDialog
+        open={showFootageConfirmDialog}
+        onOpenChange={setShowFootageConfirmDialog}
+        googleDriveFolderUrl={job.google_drive_folder_url}
+        onConfirm={handleFootageUploaded}
       />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -218,6 +240,22 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
                 className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
               >
                 Book This Gig
+              </Button>
+            ) : isBookedByMe && job.media_partner_status === 'job_completed' && !job.footage_uploaded ? (
+              <Button
+                onClick={() => setShowFootageConfirmDialog(true)}
+                disabled={loading}
+                className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
+              >
+                {loading ? 'Processing...' : "I've uploaded my footage"}
+              </Button>
+            ) : isBookedByMe && job.media_partner_status === 'job_completed' && job.footage_uploaded ? (
+              <Button
+                variant="outline"
+                disabled
+                className="w-full text-sm"
+              >
+                Footage Uploaded ✓
               </Button>
             ) : isBookedByMe && job.media_partner_status === 'on_site' ? (
               <Button
