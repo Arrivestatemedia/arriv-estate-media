@@ -6,6 +6,7 @@ import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film } from "lucide
 import { format, parse as parseDate } from "date-fns";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import JobCompletionDialog from "./JobCompletionDialog";
 
 const typeConfig = {
   photo: { label: "Photo", icon: Camera, color: "bg-[#B8956A]/10 text-[#B8956A] border-[#B8956A]/30" },
@@ -31,6 +32,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const [backupPhone, setBackupPhone] = React.useState(job.backup_booked_by_phone || '');
   const [loading, setLoading] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(Date.now());
+  const [showCompletionDialog, setShowCompletionDialog] = React.useState(false);
   
   // Show client pricing to admins, contractor pricing to media partners
   const displayPrice = userRole === 'admin' ? job.client_price : job.pay_rate;
@@ -104,7 +106,10 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
-      window.location.reload();
+      setShowCompletionDialog(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to mark job as completed');
@@ -116,12 +121,18 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
 
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card className="group overflow-hidden border-2 border-[#B8956A]/20 hover:border-[#B8956A] hover:shadow-xl transition-all duration-300 bg-white">
+    <>
+      <JobCompletionDialog
+        open={showCompletionDialog}
+        onOpenChange={setShowCompletionDialog}
+        googleDriveFolderUrl={job.google_drive_folder_url}
+      />
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card className="group overflow-hidden border-2 border-[#B8956A]/20 hover:border-[#B8956A] hover:shadow-xl transition-all duration-300 bg-white">
         <div className="h-1 bg-gradient-to-r from-[#B8956A] via-[#C4A15C] to-[#B8956A]" />
 
         <div className="p-5 sm:p-6">
@@ -290,5 +301,6 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         </div>
       </Card>
     </motion.div>
+    </>
   );
 }

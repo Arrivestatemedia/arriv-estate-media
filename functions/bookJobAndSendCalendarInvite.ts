@@ -20,13 +20,11 @@ Deno.serve(async (req) => {
         console.log('No phone number found for user:', mediaPartnerEmail);
       }
     }
-    const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, jobData);
-
     // Create Google Drive folder for the job
     let folderUrl = null;
     try {
       const folderResult = await base44.asServiceRole.functions.invoke('createGoogleDriveFolderForJob', {
-        jobAddress: updatedJob.location,
+        jobAddress: jobData.location || (await base44.asServiceRole.entities.Job.get(jobId)).location,
         mediaPartnerEmail: mediaPartnerEmail,
       });
       folderUrl = folderResult.data?.folderUrl;
@@ -35,6 +33,10 @@ Deno.serve(async (req) => {
       console.error('Failed to create Google Drive folder:', error.message);
       // Don't fail the booking if folder creation fails
     }
+
+    // Update job with Google Drive folder URL
+    jobData.google_drive_folder_url = folderUrl;
+    const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, jobData);
 
     // Invoke the calendar event creation function
     await base44.asServiceRole.functions.invoke('createJobCalendarEvent', {
