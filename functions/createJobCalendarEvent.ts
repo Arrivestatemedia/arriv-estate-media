@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
         const event = {
             summary: `Arriv Estate Media - ${maskedClientName} - ${job.title}`,
-            description: `Client: ${maskedClientName}\n\nLocation: ${job.location}\nPay: $${job.pay_rate}${sanitizedDescription ? `\n\n${sanitizedDescription}` : ''}${folderNote}`,
+            description: `Client: ${maskedClientName}\n\nPay: $${job.pay_rate}${sanitizedDescription ? `\n\n${sanitizedDescription}` : ''}${folderNote}`,
             start: {
                 dateTime: startDateTime,
                 timeZone: 'America/New_York'
