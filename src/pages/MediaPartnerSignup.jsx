@@ -222,7 +222,7 @@ export default function MediaPartnerSignup() {
               </div>
             </div>
 
-            <GoogleSignInButton userType="media_partner" />
+            <GoogleSignInButton userType="media_partner" disabled={!termsAccepted} />
 
             <p className="text-center text-sm text-[#1A1A1A]/60">
               Already have an account?{" "}

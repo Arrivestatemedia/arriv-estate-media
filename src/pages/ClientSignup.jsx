@@ -227,7 +227,7 @@ export default function ClientSignup() {
               </div>
             </div>
 
-            <GoogleSignInButton userType="client" />
+            <GoogleSignInButton userType="client" disabled={!termsAccepted} />
 
             <p className="text-center text-sm text-[#1A1A1A]/60">
               Already have an account?{" "}
