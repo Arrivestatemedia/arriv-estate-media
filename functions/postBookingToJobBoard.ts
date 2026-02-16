@@ -15,17 +15,17 @@ Deno.serve(async (req) => {
 
     // Contractor pricing mapping
     const contractorPackagePricing = {
-      'mls_walkthrough': 90,
-      'photo_essentials': 175,
-      'photo_cinematic': 275,
-      'premium_bundle': 300
+      'mls_walkthrough': 60,
+      'photo_essentials': 150,
+      'photo_cinematic': 250,
+      'premium_bundle': 325
     };
 
     const contractorAddonPricing = {
-      'drone': 75,
-      '3d_tour': 75,
-      'twilight': 50,
-      'vertical_reel': 20,
+      'drone': 60,
+      '3d_tour': 60,
+      'twilight': 40,
+      'vertical_reel': 25,
       'ai_staging': 0,
       'rush_delivery': 0
     };
