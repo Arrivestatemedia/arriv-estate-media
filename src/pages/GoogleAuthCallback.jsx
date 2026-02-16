@@ -41,36 +41,37 @@ export default function GoogleAuthCallback() {
           userType,
         });
 
-        const { email, full_name, pendingSignup } = response.data;
+        const { success, needsSignup, email, full_name, user_type, user_role } = response.data;
 
-        // Store user info in localStorage
-        localStorage.setItem("user_email", email);
-        localStorage.setItem("user_name", full_name);
-        localStorage.setItem("user_type", userType);
-
-        // If user is signing in (not signing up), redirect to dashboard
-        if (userType === "signin" || userType === "client") {
-          // For existing users, check if they need phone number
-          if (userType === "client" && pendingSignup?.phone_number) {
-            // They have a phone number already, proceed to dashboard
-            window.location.href = createPageUrl("BookingPage");
-          } else if (userType === "media_partner" && pendingSignup?.phone_number) {
-            // Media partner with phone number
-            window.location.href = createPageUrl("MediaPartnerDashboard");
-          } else if (userType === "signin") {
-            // Signing in
-            window.location.href = createPageUrl("Dashboard");
-          } else {
-            // New signup needs phone number - redirect to appropriate signup with Google data
-            const signupPage = userType === "client" ? "ClientSignup" : "MediaPartnerSignup";
+        if (!success) {
+          // User doesn't exist - needs to sign up
+          if (needsSignup) {
+            const signupPage = userType === "media_partner" ? "MediaPartnerSignup" : "ClientSignup";
             localStorage.setItem("google_signup_data", JSON.stringify({
               email,
               full_name,
               userType,
-              ...pendingSignup,
             }));
             window.location.href = createPageUrl(signupPage);
+          } else {
+            window.location.href = createPageUrl("SignIn");
           }
+          return;
+        }
+
+        // User exists - log them in
+        localStorage.setItem("user_email", email);
+        localStorage.setItem("user_name", full_name);
+        localStorage.setItem("user_type", user_type);
+        localStorage.setItem("user_role", user_role);
+
+        // Redirect to appropriate dashboard
+        if (user_role === "admin") {
+          window.location.href = createPageUrl("Dashboard");
+        } else if (user_type === "client") {
+          window.location.href = createPageUrl("BookingPage");
+        } else {
+          window.location.href = createPageUrl("MediaPartnerDashboard");
         }
       } catch (error) {
         console.error("Google auth callback error:", error);
