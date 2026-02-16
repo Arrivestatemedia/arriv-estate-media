@@ -403,19 +403,29 @@ export default function BookingPage() {
             {selectedPackage && (
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[#1A1A1A]">{selectedPackage.name}</span>
-                <span className="font-semibold text-[#B8956A]">${selectedPackage.price}</span>
+                {requestPayAtClosing ? (
+                  <span className="font-semibold text-[#B8956A] italic">Pricing will be discussed</span>
+                ) : (
+                  <span className="font-semibold text-[#B8956A]">${selectedPackage.price}</span>
+                )}
               </div>
             )}
             {cartAddOns.map((addon) => (
               <div key={addon.id} className="flex justify-between items-center mb-2">
                 <span className="text-[#1A1A1A]/70 text-sm">+ {addon.name}</span>
-                <span className="font-semibold text-[#1A1A1A] text-sm">${addon.price}</span>
+                {requestPayAtClosing ? (
+                  <span className="font-semibold text-[#1A1A1A] text-sm italic">Pricing will be discussed</span>
+                ) : (
+                  <span className="font-semibold text-[#1A1A1A] text-sm">${addon.price}</span>
+                )}
               </div>
             ))}
-            <div className="border-t border-[#1A1A1A]/10 mt-4 pt-4 flex justify-between items-center">
-              <span className="font-semibold text-[#1A1A1A]">Total</span>
-              <span className="text-2xl font-bold text-[#B8956A]">${totalPrice}</span>
-            </div>
+            {!requestPayAtClosing && (
+              <div className="border-t border-[#1A1A1A]/10 mt-4 pt-4 flex justify-between items-center">
+                <span className="font-semibold text-[#1A1A1A]">Total</span>
+                <span className="text-2xl font-bold text-[#B8956A]">${totalPrice}</span>
+              </div>
+            )}
           </div>
         )}
 
