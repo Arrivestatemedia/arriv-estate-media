@@ -13,7 +13,7 @@ export default function GoogleSignInButton({ onPhoneNumberNeeded, userType, disa
         return;
       }
 
-      const redirectUri = `${window.location.origin}/signin/google/callback`;
+      const redirectUri = `${window.location.origin}/GoogleAuthCallback`;
       const scope = "openid profile email";
       const responseType = "code";
 
