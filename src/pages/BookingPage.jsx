@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createPageUrl } from "../utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
@@ -124,6 +125,8 @@ export default function BookingPage() {
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [cartAddOns, setCartAddOns] = useState([]);
   const [editingBooking, setEditingBooking] = useState(null);
+  const [requestPayAtClosing, setRequestPayAtClosing] = useState(false);
+  const [showPayAtClosingDialog, setShowPayAtClosingDialog] = useState(false);
 
   useEffect(() => {
     // Check if we're editing a booking
@@ -218,7 +221,28 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5]">
+    <>
+      <Dialog open={showPayAtClosingDialog} onOpenChange={setShowPayAtClosingDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pay-at-Closing Request Received</DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Someone will be in contact with you shortly to discuss your pay-at-closing options.
+            </DialogDescription>
+          </DialogHeader>
+          <Button
+            onClick={() => {
+              setShowPayAtClosingDialog(false);
+              setShowBookingForm(true);
+            }}
+            className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
+          >
+            Continue
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <div className="min-h-screen bg-[#FFFBF5]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-[#1A1A1A] mb-4">
@@ -395,9 +419,30 @@ export default function BookingPage() {
           </div>
         )}
 
-        <div className="text-center mt-12">
+        {(selectedPackage || cartAddOns.length > 0) && (
+          <div className="flex items-center justify-center gap-2 mt-8 mb-4">
+            <input
+              type="checkbox"
+              id="payAtClosing"
+              checked={requestPayAtClosing}
+              onChange={(e) => setRequestPayAtClosing(e.target.checked)}
+              className="w-4 h-4 accent-[#B8956A]"
+            />
+            <label htmlFor="payAtClosing" className="text-sm text-[#1A1A1A]/70 cursor-pointer">
+              Request Pay-at-closing
+            </label>
+          </div>
+        )}
+
+        <div className="text-center mt-4">
           <Button
-            onClick={() => setShowBookingForm(true)}
+            onClick={() => {
+              if (requestPayAtClosing) {
+                setShowPayAtClosingDialog(true);
+              } else {
+                setShowBookingForm(true);
+              }
+            }}
             size="lg"
             className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white px-12 py-6 text-lg"
             disabled={!selectedPackage && cartAddOns.length === 0}
@@ -407,5 +452,6 @@ export default function BookingPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
