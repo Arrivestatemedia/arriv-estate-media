@@ -53,12 +53,26 @@ Deno.serve(async (req) => {
       console.log('No pending signup found for email:', email);
     }
 
+    // If this is a new user or existing pending signup, save/update in database
+    if (!pendingSignup) {
+      // Create new PendingSignup record for Google user
+      pendingSignup = await base44.asServiceRole.entities.PendingSignup.create({
+        email,
+        full_name: name,
+        user_type: userType,
+        phone_number: '',
+        password_hash: '', // Google users don't have password hash
+        status: 'pending',
+      });
+    }
+
     return Response.json({
       success: true,
       userType,
       email,
       full_name: name,
-      pendingSignup: pendingSignup ? {
+      pendingSignupId: pendingSignup.id,
+      pendingSignup: {
         full_name: pendingSignup.full_name,
         phone_number: pendingSignup.phone_number,
         user_type: pendingSignup.user_type,
@@ -67,7 +81,7 @@ Deno.serve(async (req) => {
         bank_account_number: pendingSignup.bank_account_number,
         bank_account_last4: pendingSignup.bank_account_last4,
         bank_routing_number: pendingSignup.bank_routing_number,
-      } : null,
+      },
     });
   } catch (error) {
     console.error('Google callback error:', error);
