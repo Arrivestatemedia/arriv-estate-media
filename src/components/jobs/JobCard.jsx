@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import JobCompletionDialog from "./JobCompletionDialog";
 import FootageUploadConfirmDialog from "./FootageUploadConfirmDialog";
+import AttireVerificationDialog from "./AttireVerificationDialog";
 
 const typeConfig = {
   photo: { label: "Photo", icon: Camera, color: "bg-[#B8956A]/10 text-[#B8956A] border-[#B8956A]/30" },
@@ -35,6 +36,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const [currentTime, setCurrentTime] = React.useState(Date.now());
   const [showCompletionDialog, setShowCompletionDialog] = React.useState(false);
   const [showFootageConfirmDialog, setShowFootageConfirmDialog] = React.useState(false);
+  const [showAttireDialog, setShowAttireDialog] = React.useState(false);
   
   // Show client pricing to admins, contractor pricing to media partners
   const displayPrice = userRole === 'admin' ? job.client_price : job.pay_rate;
@@ -78,11 +80,16 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     }
   };
 
-  const handleOnMyWay = async () => {
+  const handleOnMyWay = () => {
+    setShowAttireDialog(true);
+  };
+
+  const handleAttireVerified = async () => {
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientMediaPartnerOnTheWay', { jobId: job.id });
       await base44.functions.invoke('sendSupraAccessNotification', { jobId: job.id });
+      setShowAttireDialog(false);
       if (onJobUpdate) onJobUpdate();
     } catch (error) {
       console.error('Error:', error);
@@ -163,6 +170,12 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         onOpenChange={setShowFootageConfirmDialog}
         googleDriveFolderUrl={job.google_drive_folder_url}
         onConfirm={handleFootageUploaded}
+      />
+      <AttireVerificationDialog
+        open={showAttireDialog}
+        onOpenChange={setShowAttireDialog}
+        jobId={job.id}
+        onVerified={handleAttireVerified}
       />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
