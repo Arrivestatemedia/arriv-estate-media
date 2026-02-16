@@ -157,7 +157,7 @@ export default function SignIn() {
               </div>
             </div>
 
-            <GoogleSignInButton userType="signin" />
+            <GoogleSignInButton userType="client" disabled={false} />
           </form>
         </CardContent>
       </Card>
