@@ -88,7 +88,10 @@ Deno.serve(async (req) => {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
       const emailSubject = 'Your Booking Request Confirmation';
-      const emailBody = `Thank you for your booking request!\n\nWe've received your request for:\n\nPackage: ${booking.package}\nProperty: ${propertyAddress}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\nTotal Price: $${booking.total_price}\n\nWe'll review your request and get back to you shortly to confirm availability and finalize the details.\n\nThank you!`;
+      const priceInfo = booking.request_pay_at_closing 
+        ? `We'll be in contact to discuss your Pay-at-closing details.`
+        : `Total Price: $${booking.total_price}`;
+      const emailBody = `Thank you for your booking request!\n\nWe've received your request for:\n\nPackage: ${booking.package}\nProperty: ${propertyAddress}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\n${priceInfo}\n\nWe'll review your request and get back to you shortly to confirm availability and finalize the details.\n\nThank you!`;
 
       const messageLines = [
         `To: ${booking.client_email}`,
