@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import { createPageUrl } from "../utils";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import PhoneNumberModal from "@/components/auth/PhoneNumberModal";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -13,6 +15,8 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [googlePhoneData, setGooglePhoneData] = useState(null);
 
   React.useEffect(() => {
     // Check if user is already logged in
@@ -147,10 +151,63 @@ export default function SignIn() {
               {loading ? "Logging in..." : "Log In"}
             </Button>
 
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#1A1A1A]/10"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-[#1A1A1A]/60">Or</span>
+              </div>
+            </div>
+
+            <GoogleSignInButton userType="signin" />
           </form>
         </CardContent>
       </Card>
-      <PhoneNumberModal open={showPhoneModal} onClose={() => setShowPhoneModal(false)} onSubmit={() => {}} loading={false} />
+      <PhoneNumberModal 
+        open={showPhoneModal} 
+        onClose={() => {
+          setShowPhoneModal(false);
+          setGooglePhoneData(null);
+        }} 
+        onSubmit={async (phoneNumber) => {
+          if (googlePhoneData) {
+            setLoading(true);
+            try {
+              const response = await base44.functions.invoke(googlePhoneData.signupFunction, {
+                email: googlePhoneData.email,
+                full_name: googlePhoneData.full_name,
+                phone_number: phoneNumber,
+                password: googlePhoneData.password,
+                user_type: googlePhoneData.user_type,
+                user_role: 'user'
+              });
+              
+              if (response.data?.success) {
+                localStorage.setItem('user_email', response.data.email);
+                localStorage.setItem('user_name', response.data.full_name);
+                localStorage.setItem('user_type', response.data.user_type);
+                localStorage.setItem('user_role', response.data.user_role);
+                localStorage.setItem('user_phone', phoneNumber);
+                
+                if (response.data.user_type === "media_partner") {
+                  window.location.href = '/MediaPartnerDashboard';
+                } else {
+                  window.location.href = '/BookingPage';
+                }
+              } else {
+                setError(response.data?.error || "Signup failed");
+                setLoading(false);
+              }
+            } catch (err) {
+              console.error('Signup error:', err);
+              setError(err.response?.data?.error || "Signup failed");
+              setLoading(false);
+            }
+          }
+        }} 
+        loading={loading} 
+      />
     </div>
   );
 }
