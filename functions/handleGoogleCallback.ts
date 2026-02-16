@@ -45,43 +45,39 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
 
-    let pendingSignup = null;
-    try {
-      const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email }, '-created_date', 1);
-      pendingSignup = pendingSignups?.[0] || null;
-    } catch (err) {
-      console.log('No pending signup found for email:', email);
+    const emailLower = email.toLowerCase();
+    let user = null;
+
+    // Check PendingSignup first
+    const signups = await base44.asServiceRole.entities.PendingSignup.list();
+    user = signups.find(s => s.email.toLowerCase() === emailLower) || null;
+
+    // If not in PendingSignup, check User entity
+    if (!user) {
+      const users = await base44.asServiceRole.entities.User.list();
+      user = users.find(u => u.email.toLowerCase() === emailLower) || null;
     }
 
-    // If this is a new user or existing pending signup, save/update in database
-    if (!pendingSignup) {
-      // Create new PendingSignup record for Google user
-      pendingSignup = await base44.asServiceRole.entities.PendingSignup.create({
+    // User doesn't exist - needs to sign up
+    if (!user) {
+      return Response.json({
+        success: false,
+        needsSignup: true,
         email,
         full_name: name,
-        user_type: userType,
-        phone_number: '',
-        password_hash: '', // Google users don't have password hash
-        status: 'pending',
+        userType,
+        message: 'Please complete signup to continue',
       });
     }
 
+    // User exists - return their info for login
     return Response.json({
       success: true,
-      userType,
-      email,
-      full_name: name,
-      pendingSignupId: pendingSignup.id,
-      pendingSignup: {
-        full_name: pendingSignup.full_name,
-        phone_number: pendingSignup.phone_number,
-        user_type: pendingSignup.user_type,
-        payout_method: pendingSignup.payout_method,
-        zelle_info: pendingSignup.zelle_info,
-        bank_account_number: pendingSignup.bank_account_number,
-        bank_account_last4: pendingSignup.bank_account_last4,
-        bank_routing_number: pendingSignup.bank_routing_number,
-      },
+      email: user.email,
+      full_name: user.full_name,
+      user_type: user.user_type,
+      user_role: user.user_role || 'user',
+      phone_number: user.phone_number || '',
     });
   } catch (error) {
     console.error('Google callback error:', error);
