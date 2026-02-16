@@ -2,26 +2,22 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
-    // Parse the request body to get the authorization code
     const { code, userType } = await req.json();
 
     if (!code || !userType) {
-      return Response.json(
-        { error: 'Missing code or userType' },
-        { status: 400 }
-      );
+      return Response.json({ error: 'Missing code or userType' }, { status: 400 });
     }
 
     const clientId = Deno.env.get('VITE_GOOGLE_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-    const redirectUri = `${Deno.env.get('BASE44_APP_DOMAIN')}/auth/google/callback`;
+    const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'https://localhost:3000';
+    const redirectUri = `${appDomain}/auth/google/callback`;
 
-    // Exchange authorization code for tokens
+    console.log('Exchanging code for tokens', { clientId, redirectUri });
+
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
         client_id: clientId,
@@ -31,55 +27,32 @@ Deno.serve(async (req) => {
       }).toString(),
     });
 
+    const tokenData = await tokenResponse.json();
+
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.json();
-      console.error('Token exchange failed:', errorData);
-      return Response.json(
-        { error: 'Failed to exchange authorization code' },
-        { status: 400 }
-      );
+      console.error('Token exchange failed:', tokenData);
+      return Response.json({ error: 'Token exchange failed: ' + tokenData.error_description }, { status: 400 });
     }
 
-    const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
-    // Get user info from Google
-    const userInfoResponse = await fetch(
-      'https://www.googleapis.com/oauth2/v2/userinfo',
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    if (!userInfoResponse.ok) {
-      return Response.json(
-        { error: 'Failed to get user info from Google' },
-        { status: 400 }
-      );
-    }
+    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
     const googleUserInfo = await userInfoResponse.json();
     const { email, name } = googleUserInfo;
 
-    // Check if user exists via PendingSignup or User entity
     const base44 = createClientFromRequest(req);
 
-    // Try to find existing user in PendingSignup
     let pendingSignup = null;
     try {
-      const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter(
-        { email },
-        '-created_date',
-        1
-      );
+      const pendingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email }, '-created_date', 1);
       pendingSignup = pendingSignups?.[0] || null;
     } catch (err) {
       console.log('No pending signup found for email:', email);
     }
 
-    // Return user info and pending signup data for frontend to handle
     return Response.json({
       success: true,
       userType,
@@ -98,9 +71,6 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Google callback error:', error);
-    return Response.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
+    return Response.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 });
