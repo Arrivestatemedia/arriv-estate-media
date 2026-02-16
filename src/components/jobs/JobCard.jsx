@@ -117,17 +117,9 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     }
   };
 
-  const handleCloseCompletionDialog = async () => {
+  const handleCloseCompletionDialog = () => {
     setShowCompletionDialog(false);
-    setLoading(true);
-    try {
-      await base44.entities.Job.update(job.id, { media_partner_status: 'job_completed' });
-      window.location.reload();
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to update job status');
-      setLoading(false);
-    }
+    // Don't update status - keep it visible on the job board
   };
 
   const handleFootageUploaded = async () => {
