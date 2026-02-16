@@ -384,7 +384,8 @@ export default function JobBoard() {
                   onCancel={handleCancel}
                   onBookBackup={handleBookBackup}
                   onUpdateBackup={handleBookBackup}
-                  currentUserEmail={userEmail || user?.email} 
+                  currentUserEmail={userEmail || user?.email}
+                  onJobUpdate={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
                 />
               );
             })}

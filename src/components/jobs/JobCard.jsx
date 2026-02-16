@@ -23,7 +23,7 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-600 border-red-300" },
 };
 
-export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole, isMediaPartner }) {
+export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole, isMediaPartner, onJobUpdate }) {
   const type = typeConfig[job.type] || typeConfig.photo;
   const status = statusConfig[job.status] || statusConfig.open;
   const TypeIcon = type.icon;
@@ -82,9 +82,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientMediaPartnerOnTheWay', { jobId: job.id });
-      // Force a small delay before reload to ensure backend has updated
-      await new Promise(resolve => setTimeout(resolve, 500));
-      window.location.reload();
+      if (onJobUpdate) onJobUpdate();
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to notify client');
@@ -97,8 +95,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientMediaPartnerOnSite', { jobId: job.id });
-      await new Promise(resolve => setTimeout(resolve, 500));
-      window.location.reload();
+      if (onJobUpdate) onJobUpdate();
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to notify client');
@@ -125,11 +122,11 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.entities.Job.update(job.id, { media_partner_status: 'job_completed' });
-      await new Promise(resolve => setTimeout(resolve, 500));
-      window.location.reload();
+      if (onJobUpdate) onJobUpdate();
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to update job status');
+    } finally {
       setLoading(false);
     }
   };
@@ -142,8 +139,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         status: 'completed'
       });
       setShowFootageConfirmDialog(false);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      window.location.reload();
+      if (onJobUpdate) onJobUpdate();
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to confirm footage upload');
