@@ -287,7 +287,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
               <div className="space-y-4">
                 <div className="relative">
                   <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
-                    Street Address & House Number *
+                    Listing Street Address & House Number *
                   </label>
                   <Input
                     required
@@ -295,7 +295,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                     onChange={handleStreetChange}
                     onFocus={() => predictions.length > 0 && setShowPredictions(true)}
                     className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}
-                    placeholder="Listing Street Address & House Number"
+                    placeholder="123 Main St"
                     autoComplete="off"
                   />
                   {showPredictions && predictions.length > 0 && (
