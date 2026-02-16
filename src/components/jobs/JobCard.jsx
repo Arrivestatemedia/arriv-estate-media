@@ -108,13 +108,18 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
-      setLoading(false);
       setShowCompletionDialog(true);
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to mark job as completed');
+    } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseCompletionDialog = () => {
+    setShowCompletionDialog(false);
+    window.location.reload();
   };
 
   const handleFootageUploaded = async () => {
@@ -137,7 +142,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     <>
       <JobCompletionDialog
         open={showCompletionDialog}
-        onOpenChange={setShowCompletionDialog}
+        onOpenChange={handleCloseCompletionDialog}
         googleDriveFolderUrl={job.google_drive_folder_url}
       />
       <FootageUploadConfirmDialog

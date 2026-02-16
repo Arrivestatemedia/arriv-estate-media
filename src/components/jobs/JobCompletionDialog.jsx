@@ -4,13 +4,8 @@ import { Button } from "@/components/ui/button";
 import { FolderOpen } from "lucide-react";
 
 export default function JobCompletionDialog({ open, onOpenChange, googleDriveFolderUrl }) {
-  const handleClose = () => {
-    onOpenChange(false);
-    setTimeout(() => window.location.reload(), 300);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">Remember to Upload Your Footage!</DialogTitle>
