@@ -199,6 +199,7 @@ export default function BookingPage() {
       selectedPackage={selectedPackage}
       cartAddOns={cartAddOns}
       addOns={addOns}
+      requestPayAtClosing={requestPayAtClosing}
       onSubmit={editingBooking ? async (formData) => {
         return new Promise((resolve) => {
           requestChangesMutation.mutate({

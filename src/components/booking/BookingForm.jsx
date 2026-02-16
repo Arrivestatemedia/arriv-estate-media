@@ -35,7 +35,7 @@ const timeSlots = {
   ],
 };
 
-export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSubmit, onCancel, isEditing, editingBooking }) {
+export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking }) {
   const totalPrice = (selectedPackage?.price || 0) + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
   
   const [formData, setFormData] = useState({
@@ -239,7 +239,11 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                       <p className="text-lg font-semibold text-[#1A1A1A]">{selectedPackage.name}</p>
                     )}
                   </div>
-                  <p className="text-2xl font-bold text-[#B8956A]">${formData.total_price}</p>
+                  {requestPayAtClosing ? (
+                    <p className="text-xl font-bold text-[#B8956A] italic">Pricing will be discussed</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-[#B8956A]">${formData.total_price}</p>
+                  )}
                 </div>
               </div>
 
@@ -351,7 +355,11 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                   {cartAddOns.map((addon) => (
                     <div key={addon.id} className="flex justify-between text-sm text-[#1A1A1A]/70">
                       <span>• {addon.name}</span>
-                      <span className="font-semibold">${addon.price}</span>
+                      {requestPayAtClosing ? (
+                        <span className="font-semibold italic">Pricing will be discussed</span>
+                      ) : (
+                        <span className="font-semibold">${addon.price}</span>
+                      )}
                     </div>
                   ))}
                 </div>
