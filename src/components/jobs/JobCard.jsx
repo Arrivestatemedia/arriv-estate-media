@@ -104,17 +104,8 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     }
   };
 
-  const handleJobCompleted = async () => {
-    setLoading(true);
-    try {
-      await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
-      setLoading(false);
-      setShowCompletionDialog(true);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to mark job as completed');
-      setLoading(false);
-    }
+  const handleJobCompleted = () => {
+    setShowCompletionDialog(true);
   };
 
   const handleCloseCompletionDialog = () => {
@@ -125,6 +116,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const handleFootageUploaded = async () => {
     setLoading(true);
     try {
+      await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
       await base44.entities.Job.update(job.id, { footage_uploaded: true });
       setShowFootageConfirmDialog(false);
       window.location.reload();
