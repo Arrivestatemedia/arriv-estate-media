@@ -105,14 +105,17 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   };
 
   const handleJobCompleted = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
-      setShowCompletionDialog(true);
+      setLoading(false);
+      // Use setTimeout to ensure state updates
+      setTimeout(() => {
+        setShowCompletionDialog(true);
+      }, 100);
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to mark job as completed');
-    } finally {
       setLoading(false);
     }
   };
