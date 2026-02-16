@@ -4,16 +4,13 @@ import { Button } from "@/components/ui/button";
 import { FolderOpen } from "lucide-react";
 
 export default function JobCompletionDialog({ open, onOpenChange, googleDriveFolderUrl }) {
+  const handleClose = () => {
+    onOpenChange(false);
+    setTimeout(() => window.location.reload(), 300);
+  };
+
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={(isOpen) => {
-        if (!isOpen) {
-          onOpenChange(false);
-          setTimeout(() => window.location.reload(), 300);
-        }
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">Remember to Upload Your Footage!</DialogTitle>
@@ -24,9 +21,7 @@ export default function JobCompletionDialog({ open, onOpenChange, googleDriveFol
         <div className="flex flex-col gap-3 pt-4">
           {googleDriveFolderUrl ? (
             <Button
-              onClick={() => {
-                window.open(googleDriveFolderUrl, '_blank');
-              }}
+              onClick={() => window.open(googleDriveFolderUrl, '_blank')}
               className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
             >
               <FolderOpen className="w-4 h-4 mr-2" />
@@ -37,16 +32,6 @@ export default function JobCompletionDialog({ open, onOpenChange, googleDriveFol
               Google Drive folder not available. Please contact admin.
             </p>
           )}
-          <Button
-            onClick={() => {
-              onOpenChange(false);
-              setTimeout(() => window.location.reload(), 300);
-            }}
-            variant="outline"
-            className="w-full"
-          >
-            Close
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
