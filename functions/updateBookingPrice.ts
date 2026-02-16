@@ -9,16 +9,23 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const { bookingId, newPrice } = await req.json();
+    const { bookingId, customText, numericPrice } = await req.json();
 
-    if (!bookingId || newPrice === undefined) {
-      return Response.json({ error: 'Booking ID and new price are required' }, { status: 400 });
+    if (!bookingId || (customText === undefined && numericPrice === undefined)) {
+      return Response.json({ error: 'Booking ID and either custom text or numeric price are required' }, { status: 400 });
     }
 
-    // Update the booking total price
-    const updatedBooking = await base44.asServiceRole.entities.Booking.update(bookingId, {
-      total_price: newPrice
-    });
+    const updateData = {};
+    if (customText !== undefined) {
+      updateData.custom_price_text = customText;
+    }
+    if (numericPrice !== undefined) {
+      updateData.total_price = numericPrice;
+      updateData.custom_price_text = null; // Clear custom text if setting numeric price
+    }
+
+    // Update the booking price
+    const updatedBooking = await base44.asServiceRole.entities.Booking.update(bookingId, updateData);
 
     return Response.json({ success: true, booking: updatedBooking });
   } catch (error) {

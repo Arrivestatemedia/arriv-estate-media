@@ -120,7 +120,9 @@ export default function ClientBookings() {
                       <DollarSign className="w-5 h-5 text-[var(--accent-color)]" />
                       <div>
                         <p className="text-sm text-[var(--text-secondary)]">Total Price</p>
-                        {booking.request_pay_at_closing ? (
+                        {booking.custom_price_text ? (
+                          <p className="font-semibold text-sm">{booking.custom_price_text}</p>
+                        ) : booking.request_pay_at_closing ? (
                           <p className="font-semibold text-sm italic">This will update as soon as we discuss your Pay-at-closing details.</p>
                         ) : (
                           <p className="font-semibold">${booking.total_price}</p>
