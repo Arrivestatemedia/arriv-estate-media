@@ -108,6 +108,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.entities.Job.update(job.id, { media_partner_status: 'job_completed' });
+      await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
       setLoading(false);
       setShowCompletionDialog(true);
     } catch (error) {
@@ -129,7 +130,6 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         footage_uploaded: true,
         status: 'completed'
       });
-      await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
       setShowFootageConfirmDialog(false);
       window.location.reload();
     } catch (error) {
