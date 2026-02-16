@@ -104,17 +104,15 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     }
   };
 
-  const handleJobCompleted = async () => {
-    setLoading(true);
-    try {
-      await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
-      setLoading(false);
-      setShowCompletionDialog(true);
-    } catch (error) {
+  const handleJobCompleted = () => {
+    // Show dialog first, then call backend in background
+    setShowCompletionDialog(true);
+    
+    // Call backend in background without blocking dialog
+    base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id }).catch((error) => {
       console.error('Error:', error);
       alert('Failed to mark job as completed');
-      setLoading(false);
-    }
+    });
   };
 
   const handleFootageUploaded = async () => {
