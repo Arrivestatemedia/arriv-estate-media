@@ -74,11 +74,6 @@ Deno.serve(async (req) => {
     try {
       await base44.asServiceRole.functions.invoke('sendBookingNotifications', { booking });
       await base44.asServiceRole.functions.invoke('createCalendarEvent', { booking });
-
-      // Send Supra access notification
-      if (jobId) {
-        await base44.asServiceRole.functions.invoke('sendSupraAccessNotification', { jobId });
-      }
     } catch (error) {
       console.error('Failed to send notifications:', error);
     }

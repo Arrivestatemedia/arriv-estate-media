@@ -82,6 +82,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientMediaPartnerOnTheWay', { jobId: job.id });
+      await base44.functions.invoke('sendSupraAccessNotification', { jobId: job.id });
       if (onJobUpdate) onJobUpdate();
     } catch (error) {
       console.error('Error:', error);
