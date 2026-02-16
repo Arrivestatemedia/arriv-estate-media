@@ -135,7 +135,6 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     try {
       await base44.entities.Job.update(job.id, { 
         footage_uploaded: true,
-        media_partner_status: 'job_completed',
         status: 'completed'
       });
       setShowFootageConfirmDialog(false);
