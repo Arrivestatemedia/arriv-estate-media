@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
     const clientId = Deno.env.get('VITE_GOOGLE_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
     const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'https://localhost:3000';
-    const redirectUri = `${appDomain}/auth/google/callback`;
+    const redirectUri = `${appDomain}/signin/google/callback`;
 
     console.log('Exchanging code for tokens', { clientId, redirectUri });
 
