@@ -82,6 +82,8 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientMediaPartnerOnTheWay', { jobId: job.id });
+      // Force a small delay before reload to ensure backend has updated
+      await new Promise(resolve => setTimeout(resolve, 500));
       window.location.reload();
     } catch (error) {
       console.error('Error:', error);
@@ -95,6 +97,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientMediaPartnerOnSite', { jobId: job.id });
+      await new Promise(resolve => setTimeout(resolve, 500));
       window.location.reload();
     } catch (error) {
       console.error('Error:', error);
@@ -122,6 +125,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.entities.Job.update(job.id, { media_partner_status: 'job_completed' });
+      await new Promise(resolve => setTimeout(resolve, 500));
       window.location.reload();
     } catch (error) {
       console.error('Error:', error);
@@ -138,6 +142,7 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
         status: 'completed'
       });
       setShowFootageConfirmDialog(false);
+      await new Promise(resolve => setTimeout(resolve, 500));
       window.location.reload();
     } catch (error) {
       console.error('Error:', error);
