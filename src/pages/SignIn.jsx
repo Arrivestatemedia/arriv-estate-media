@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import { createPageUrl } from "../utils";
-import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -148,20 +147,9 @@ export default function SignIn() {
               {loading ? "Logging in..." : "Log In"}
             </Button>
 
-            <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#1A1A1A]/10"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-[#1A1A1A]/60">Or</span>
-              </div>
-            </div>
-
-            <GoogleSignInButton userType="client" disabled={false} />
           </form>
         </CardContent>
       </Card>
-
     </div>
   );
 }
