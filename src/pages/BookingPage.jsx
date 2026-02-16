@@ -14,7 +14,7 @@ const packages = [
     id: "mls_walkthrough",
     name: "MLS Walkthrough",
     tag: "Most Popular",
-    price: 175,
+    price: 100,
     features: [
       "2-3 minute unbranded MLS-ready walkthrough (MLS & GAMLS compliant)",
       "Bonus vertical social clip (Instagram/Reels ready)",
@@ -23,7 +23,7 @@ const packages = [
   {
     id: "photo_essentials",
     name: "Photo Essentials",
-    price: 350,
+    price: 275,
     features: [
       "50-150 edited photos (interior + exterior)",
       "True-to-life color + straight verticals",
@@ -33,7 +33,7 @@ const packages = [
   {
     id: "photo_cinematic",
     name: "Photo + Cinematic Walkthrough",
-    price: 550,
+    price: 475,
     features: [
       "Everything in Photo Essentials",
       "2 - 3 Minute walkthrough video (MLS-friendly export)",
@@ -43,7 +43,7 @@ const packages = [
   {
     id: "premium_bundle",
     name: "Premium Media Bundle",
-    price: 750,
+    price: 675,
     features: [
       "Everything in Photo + Cinematic Walkthrough",
       "90 Tour",
@@ -55,7 +55,7 @@ const packages = [
 
 const addOns = [
   { id: "drone", name: "Drone add-on (photos + short clips)", price: 175 },
-  { id: "3d_tour", name: "3D tour", price: 175 },
+  { id: "3d_tour", name: "3D Tour", price: 175 },
   { id: "twilight", name: "Twilight exterior edits (up to 5 photos)", price: 150 },
   { id: "rush_delivery", name: "Next-day rush delivery (when available)", price: 150 },
   { id: "vertical_reel", name: "Additional vertical reel", price: 50 },
