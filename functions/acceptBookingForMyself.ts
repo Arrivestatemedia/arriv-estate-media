@@ -48,6 +48,27 @@ Deno.serve(async (req) => {
     // Get the created job ID
     const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
     const jobId = jobs?.[0]?.id;
+    const job = jobs?.[0];
+
+    // Create Google Drive folder for the job
+    let folderUrl = null;
+    if (job) {
+      try {
+        const folderResult = await base44.asServiceRole.functions.invoke('createGoogleDriveFolderForJob', {
+          jobAddress: propertyAddress,
+          mediaPartnerEmail: user.email,
+        });
+        folderUrl = folderResult.data?.folderUrl;
+        console.log('Google Drive folder created:', folderUrl);
+
+        // Update job with Google Drive folder URL
+        await base44.asServiceRole.entities.Job.update(jobId, {
+          google_drive_folder_url: folderUrl
+        });
+      } catch (error) {
+        console.error('Failed to create Google Drive folder:', error.message);
+      }
+    }
 
     // Send approval email and calendar invite using existing functions
     try {
