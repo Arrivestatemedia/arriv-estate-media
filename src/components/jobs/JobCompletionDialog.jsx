@@ -4,8 +4,15 @@ import { Button } from "@/components/ui/button";
 import { FolderOpen } from "lucide-react";
 
 export default function JobCompletionDialog({ open, onOpenChange, googleDriveFolderUrl }) {
+  const handleClose = () => {
+    onOpenChange(false);
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">Remember to Upload Your Footage!</DialogTitle>
@@ -18,7 +25,7 @@ export default function JobCompletionDialog({ open, onOpenChange, googleDriveFol
             <Button
               onClick={() => {
                 window.open(googleDriveFolderUrl, '_blank');
-                onOpenChange(false);
+                handleClose();
               }}
               className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
             >
@@ -31,7 +38,7 @@ export default function JobCompletionDialog({ open, onOpenChange, googleDriveFol
             </p>
           )}
           <Button
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             variant="outline"
             className="w-full"
           >
