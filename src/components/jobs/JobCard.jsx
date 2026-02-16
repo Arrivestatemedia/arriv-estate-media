@@ -107,20 +107,27 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const handleJobCompleted = async () => {
     setLoading(true);
     try {
-      await base44.entities.Job.update(job.id, { media_partner_status: 'job_completed' });
       await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
       setLoading(false);
       setShowCompletionDialog(true);
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to update job status');
+      alert('Failed to send notification');
       setLoading(false);
     }
   };
 
-  const handleCloseCompletionDialog = () => {
+  const handleCloseCompletionDialog = async () => {
     setShowCompletionDialog(false);
-    window.location.reload();
+    setLoading(true);
+    try {
+      await base44.entities.Job.update(job.id, { media_partner_status: 'job_completed' });
+      window.location.reload();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to update job status');
+      setLoading(false);
+    }
   };
 
   const handleFootageUploaded = async () => {
