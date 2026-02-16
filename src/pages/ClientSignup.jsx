@@ -7,6 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 import { createPageUrl } from "../utils";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import PhoneNumberModal from "@/components/auth/PhoneNumberModal";
 
 
 export default function ClientSignup() {
@@ -28,6 +30,8 @@ export default function ClientSignup() {
   const [error, setError] = useState("");
   const [termsScrolled, setTermsScrolled] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [googlePhoneData, setGooglePhoneData] = useState(null);
 
   React.useEffect(() => {
     const scrolled = localStorage.getItem('clientTermsScrolled') === 'true';
@@ -213,6 +217,18 @@ export default function ClientSignup() {
             >
               {loading ? "Creating Account..." : "Sign Up"}
             </Button>
+
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#1A1A1A]/10"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-[#1A1A1A]/60">Or</span>
+              </div>
+            </div>
+
+            <GoogleSignInButton userType="client" />
+
             <p className="text-center text-sm text-[#1A1A1A]/60">
               Already have an account?{" "}
               <button
@@ -226,6 +242,46 @@ export default function ClientSignup() {
           </form>
         </CardContent>
       </Card>
+      <PhoneNumberModal 
+        open={showPhoneModal} 
+        onClose={() => {
+          setShowPhoneModal(false);
+          setGooglePhoneData(null);
+        }} 
+        onSubmit={async (phoneNumber) => {
+          if (googlePhoneData) {
+            setLoading(true);
+            try {
+              const response = await base44.functions.invoke('signupClient', {
+                email: googlePhoneData.email,
+                full_name: googlePhoneData.full_name,
+                phone_number: phoneNumber,
+                password: googlePhoneData.password,
+                user_type: "client",
+                user_role: 'user'
+              });
+              
+              if (response.data?.success) {
+                localStorage.removeItem('clientSignupFormData');
+                localStorage.setItem('user_email', response.data.email);
+                localStorage.setItem('user_name', response.data.full_name);
+                localStorage.setItem('user_type', 'client');
+                localStorage.setItem('user_role', response.data.user_role);
+                localStorage.setItem('user_phone', phoneNumber);
+                window.location.href = createPageUrl('BookingPage');
+              } else {
+                setError(response.data?.error || "Signup failed");
+                setLoading(false);
+              }
+            } catch (err) {
+              console.error('Signup error:', err);
+              setError(err.response?.data?.error || "Signup failed");
+              setLoading(false);
+            }
+          }
+        }} 
+        loading={loading} 
+      />
       </div>
       );
       }
