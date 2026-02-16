@@ -58,6 +58,7 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
         preferred_time: booking.preferred_time || "",
         notes: booking.notes || "",
         total_price: booking.total_price || 0,
+        custom_price_text: booking.custom_price_text || "",
       });
     }
   }, [booking]);
@@ -120,21 +121,33 @@ export default function EditBookingDialog({ booking, open, onOpenChange, onSave 
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Phone</label>
-              <Input
-                value={formData.client_phone}
-                onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Total Price</label>
-              <Input
-                type="number"
-                value={formData.total_price}
-                onChange={(e) => setFormData({ ...formData, total_price: parseFloat(e.target.value) || 0 })}
-              />
+          <div>
+            <label className="block text-sm font-medium mb-1">Phone</label>
+            <Input
+              value={formData.client_phone}
+              onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Price Display</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">Custom Text (e.g., "To be discussed")</label>
+                <Input
+                  value={formData.custom_price_text}
+                  onChange={(e) => setFormData({ ...formData, custom_price_text: e.target.value })}
+                  placeholder="Leave empty to show numeric price"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">Numeric Price (shown if no custom text)</label>
+                <Input
+                  type="number"
+                  value={formData.total_price}
+                  onChange={(e) => setFormData({ ...formData, total_price: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
             </div>
           </div>
 
