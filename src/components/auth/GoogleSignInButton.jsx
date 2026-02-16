@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function GoogleSignInButton({ onPhoneNumberNeeded, userType, disabled = false }) {
+  // Rebuild trigger
   const [loading, setLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
