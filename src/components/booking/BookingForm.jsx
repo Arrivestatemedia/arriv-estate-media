@@ -39,9 +39,9 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
   const totalPrice = (selectedPackage?.price || 0) + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
   
   const [formData, setFormData] = useState({
-    client_name: editingBooking?.client_name || "",
-    client_email: editingBooking?.client_email || "",
-    client_phone: editingBooking?.client_phone || "",
+    client_name: "",
+    client_email: "",
+    client_phone: "",
     street_address: editingBooking?.street_address || "",
     city: editingBooking?.city || "",
     state: editingBooking?.state || "",
@@ -53,6 +53,45 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
     add_ons: (cartAddOns || []).map(a => a.id),
     total_price: totalPrice,
   });
+
+  useEffect(() => {
+    // Pre-fill client info from localStorage or user data
+    const loadClientInfo = async () => {
+      if (editingBooking) {
+        setFormData(prev => ({
+          ...prev,
+          client_name: editingBooking.client_name || "",
+          client_email: editingBooking.client_email || "",
+          client_phone: editingBooking.client_phone || "",
+        }));
+      } else {
+        try {
+          const user = await base44.auth.me();
+          if (user) {
+            setFormData(prev => ({
+              ...prev,
+              client_name: user.full_name || "",
+              client_email: user.email || "",
+              client_phone: user.phone_number || "",
+            }));
+          }
+        } catch (error) {
+          // User not logged in, check localStorage
+          const userName = localStorage.getItem('user_name');
+          const userEmail = localStorage.getItem('user_email');
+          const userPhone = localStorage.getItem('user_phone');
+          
+          setFormData(prev => ({
+            ...prev,
+            client_name: userName || "",
+            client_email: userEmail || "",
+            client_phone: userPhone || "",
+          }));
+        }
+      }
+    };
+    loadClientInfo();
+  }, [editingBooking]);
 
   const [busySlots, setBusySlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -256,7 +295,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, onSub
                     onChange={handleStreetChange}
                     onFocus={() => predictions.length > 0 && setShowPredictions(true)}
                     className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}
-                    placeholder="123 Main St"
+                    placeholder="Listing Street Address & House Number"
                     autoComplete="off"
                   />
                   {showPredictions && predictions.length > 0 && (
