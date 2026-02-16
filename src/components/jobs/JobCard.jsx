@@ -104,22 +104,22 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     }
   };
 
-  const handleJobCompleted = () => {
-    // Show dialog immediately, don't update job status yet
-    setShowCompletionDialog(true);
-  };
-
-  const handleCloseCompletionDialog = async () => {
-    setShowCompletionDialog(false);
+  const handleJobCompleted = async () => {
     setLoading(true);
     try {
       await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
-      window.location.reload();
+      setLoading(false);
+      setShowCompletionDialog(true);
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to mark job as completed');
       setLoading(false);
     }
+  };
+
+  const handleCloseCompletionDialog = () => {
+    setShowCompletionDialog(false);
+    window.location.reload();
   };
 
   const handleFootageUploaded = async () => {
