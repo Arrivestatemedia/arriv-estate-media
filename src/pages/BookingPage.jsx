@@ -401,6 +401,12 @@ export default function BookingPage() {
           </p>
         </div>
 
+        <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 mt-8">
+          <p className="text-xs text-[#1A1A1A]/60 italic leading-relaxed">
+            <strong>*Introductory pricing is available for a limited time.</strong> Current pricing reflects early partner rates, locked in for 12 months from the first completed shoot. Standard rates may be adjusted in the future.
+          </p>
+        </div>
+
         {(selectedPackage || cartAddOns.length > 0) && (
           <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A] p-6 mb-8">
             <h3 className="font-semibold text-[#1A1A1A] mb-4">Your Cart</h3>
