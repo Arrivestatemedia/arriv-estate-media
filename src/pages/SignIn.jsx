@@ -150,6 +150,7 @@ export default function SignIn() {
           </form>
         </CardContent>
       </Card>
+      <PhoneNumberModal open={showPhoneModal} onClose={() => setShowPhoneModal(false)} onSubmit={() => {}} loading={false} />
     </div>
   );
 }
