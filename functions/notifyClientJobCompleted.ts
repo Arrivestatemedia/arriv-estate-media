@@ -42,11 +42,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required job data' }, { status: 400 });
     }
 
-    // Update job status
+    // Update job status (keep status as 'booked' until footage is uploaded)
     await base44.asServiceRole.entities.Job.update(jobId, {
       media_partner_status: 'job_completed',
-      completed_at: new Date().toISOString(),
-      status: 'completed'
+      completed_at: new Date().toISOString()
     });
 
     // Mark associated booking as completed
