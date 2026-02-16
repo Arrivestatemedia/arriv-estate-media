@@ -187,7 +187,10 @@ export default function BookingPage() {
 
   const handleSubmitBooking = async (bookingData) => {
     return new Promise((resolve) => {
-      createBookingMutation.mutate(bookingData, {
+      createBookingMutation.mutate({
+        ...bookingData,
+        request_pay_at_closing: requestPayAtClosing
+      }, {
         onSettled: () => resolve(),
       });
     });
