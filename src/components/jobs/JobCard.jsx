@@ -104,8 +104,17 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     }
   };
 
-  const handleJobCompleted = () => {
-    setShowCompletionDialog(true);
+  const handleJobCompleted = async () => {
+    setLoading(true);
+    try {
+      await base44.entities.Job.update(job.id, { media_partner_status: 'job_completed' });
+      setLoading(false);
+      setShowCompletionDialog(true);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to update job status');
+      setLoading(false);
+    }
   };
 
   const handleCloseCompletionDialog = () => {
@@ -116,8 +125,11 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const handleFootageUploaded = async () => {
     setLoading(true);
     try {
+      await base44.entities.Job.update(job.id, { 
+        footage_uploaded: true,
+        status: 'completed'
+      });
       await base44.functions.invoke('notifyClientJobCompleted', { jobId: job.id });
-      await base44.entities.Job.update(job.id, { footage_uploaded: true });
       setShowFootageConfirmDialog(false);
       window.location.reload();
     } catch (error) {
