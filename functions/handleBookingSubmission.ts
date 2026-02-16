@@ -27,7 +27,8 @@ Deno.serve(async (req) => {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
       const emailSubject = `New Booking Request - ${booking.client_name}`;
-      const emailBody = `New Booking Request\n\nClient: ${booking.client_name}\nEmail: ${booking.client_email}\nPhone: ${booking.client_phone}\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\nNotes: ${booking.notes || 'None'}\n\nView and manage this booking in your admin dashboard.`;
+      const payAtClosingNote = booking.request_pay_at_closing ? '\n\n⚠️ CLIENT REQUESTED PAY-AT-CLOSING' : '';
+      const emailBody = `New Booking Request\n\nClient: ${booking.client_name}\nEmail: ${booking.client_email}\nPhone: ${booking.client_phone}\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\nTotal Price: $${booking.total_price}\nNotes: ${booking.notes || 'None'}${payAtClosingNote}\n\nView and manage this booking in your admin dashboard.`;
 
       const messageLines = [
         `To: ${adminEmail}`,
@@ -140,6 +141,41 @@ Deno.serve(async (req) => {
         status: 'failed',
         error_message: error.message
       });
+    }
+
+    // Send SMS to admin if pay-at-closing requested
+    if (booking.request_pay_at_closing) {
+      try {
+        const adminPhone = Deno.env.get('ADMIN_PHONE');
+        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+        const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+
+        const smsMessage = `PAY-AT-CLOSING REQUESTED\n\nClient: ${booking.client_name}\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nPackage: ${booking.package}\nTotal: $${booking.total_price}`;
+
+        const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            From: fromPhone,
+            To: adminPhone,
+            Body: smsMessage,
+          }).toString(),
+        });
+
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'sms',
+          recipient_type: 'admin',
+          recipient_phone: adminPhone,
+          message_content: smsMessage,
+          status: smsResponse.ok ? 'success' : 'failed'
+        });
+      } catch (error) {
+        console.error('Admin SMS error:', error);
+      }
     }
 
     return Response.json({ success: true, booking: createdBooking });
