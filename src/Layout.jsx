@@ -82,7 +82,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
-      <GoogleMapsLoader />
+      {currentPageName !== "SignIn" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && <GoogleMapsLoader />}
       <style>{`
         :root {
           --color-cream: #FFFBF5;
