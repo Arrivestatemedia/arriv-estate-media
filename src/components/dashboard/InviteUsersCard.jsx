@@ -14,10 +14,27 @@ export default function InviteUsersCard() {
   const [status, setStatus] = useState(null);
 
   const handleAddTestUser = async () => {
+    if (!phoneNumber) return;
+    
     setLoading(true);
     setStatus(null);
 
     try {
+      // Create PendingSignup record with only phone number
+      const tempEmail = `pending-${Date.now()}@temp.local`;
+      const tempPassword = "temp";
+      
+      await base44.asServiceRole.entities.PendingSignup.create({
+        phone_number: phoneNumber,
+        user_type: userType,
+        user_role: userRole,
+        email: tempEmail,
+        full_name: "Pending",
+        password_hash: tempPassword,
+        status: "pending"
+      });
+
+      // Send SMS with signup link
       await base44.functions.invoke('sendSignupSMS', {
         phone_number: phoneNumber,
         user_type: userType,
@@ -25,6 +42,7 @@ export default function InviteUsersCard() {
       });
 
       setStatus({ type: "success", message: "Test user created and SMS sent!" });
+      setPhoneNumber("");
     } catch (error) {
       setStatus({ 
         type: "error", 
