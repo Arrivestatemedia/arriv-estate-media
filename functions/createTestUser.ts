@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
       phone_number: phone_number,
       user_type: user_type,
       user_role: user_role || 'user',
-      email: tempEmail,
+      email: email,
       full_name: "Pending",
       password_hash: "", // Will be set during signup completion
       status: "pending"
@@ -27,7 +27,8 @@ Deno.serve(async (req) => {
 
     return Response.json({ 
       success: true,
-      message: "Test user created"
+      message: "Test user created",
+      email: email
     });
 
   } catch (error) {
