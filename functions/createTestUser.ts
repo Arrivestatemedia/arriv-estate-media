@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
 
     // Create PendingSignup record with only phone number
     const tempEmail = `pending-${Date.now()}@temp.local`;
-    const tempPassword = "test123";
+    const tempPassword = "Michellejune2022!";
     
     // Hash the password
     const encoder = new TextEncoder();
