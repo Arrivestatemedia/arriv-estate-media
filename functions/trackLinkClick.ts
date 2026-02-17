@@ -32,6 +32,39 @@ Deno.serve(async (req) => {
           clickedAt: new Date().toISOString()
         }
       });
+
+      // Notify admin via email
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: Deno.env.get('ADMIN_EMAIL'),
+        subject: `Payment Link Opened - ${invoice.job_address}`,
+        body: `
+          <h2>Payment Link Opened</h2>
+          <p><strong>Client:</strong> ${invoice.client_name}</p>
+          <p><strong>Property:</strong> ${invoice.job_address}</p>
+          <p><strong>Invoice Type:</strong> ${invoice.invoice_type}</p>
+          <p><strong>Amount:</strong> $${invoice.amount.toFixed(2)}</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+        `
+      });
+
+      // Notify admin via SMS
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      const adminPhone = Deno.env.get('ADMIN_PHONE');
+
+      await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          From: twilioPhone,
+          To: adminPhone,
+          Body: `Payment link opened by ${invoice.client_name} for ${invoice.job_address} - $${invoice.amount.toFixed(2)}`
+        })
+      });
     }
     
     // Return redirect URL
