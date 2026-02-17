@@ -23,28 +23,35 @@ export default function InviteUsersCard() {
     try {
       // Create test user if role is "test_user"
       if (userRole === "test_user") {
-        await base44.functions.invoke('createTestUser', {
+        const testUserResponse = await base44.functions.invoke('createTestUser', {
           phone_number: phoneNumber,
           email: email,
           user_type: userType,
           user_role: "user"
         });
+        if (!testUserResponse?.data?.success) {
+          throw new Error(testUserResponse?.data?.error || "Failed to create test user");
+        }
       }
 
       // Send SMS with signup link
-      await base44.functions.invoke('sendSignupSMS', {
+      const smsResponse = await base44.functions.invoke('sendSignupSMS', {
         phone_number: phoneNumber,
         user_type: userType,
         user_role: userRole === "test_user" ? "user" : userRole
       });
+      if (!smsResponse?.data?.success) {
+        throw new Error(smsResponse?.data?.error || "Failed to send SMS");
+      }
 
       setStatus({ type: "success", message: "Invitation sent successfully!" });
       setPhoneNumber("");
       setEmail("");
     } catch (error) {
+      console.error('Error:', error);
       setStatus({ 
         type: "error", 
-        message: error.message || "Failed to send invitation" 
+        message: error.response?.data?.error || error.message || "Failed to send invitation" 
       });
     } finally {
       setLoading(false);
