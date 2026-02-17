@@ -458,12 +458,14 @@ export default function AdminUsers() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 pt-1">
-                        <Badge variant={u.user_role === "admin" ? "default" : "outline"} className="flex items-center gap-1">
+                        <Badge variant={u.user_role === "admin" ? "default" : u.user_role === "test_user" ? "secondary" : "outline"} className="flex items-center gap-1">
                           {u.user_role === "admin" ? (
                             <>
                               <Shield className="w-3 h-3" />
                               Admin
                             </>
+                          ) : u.user_role === "test_user" ? (
+                            "Test User"
                           ) : (
                             "User"
                           )}
