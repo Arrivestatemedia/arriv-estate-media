@@ -41,11 +41,15 @@ Deno.serve(async (req) => {
 
         return Response.json({
             success: true,
+            id: user.id,
             email: user.email,
             full_name: user.full_name,
             user_type: user.user_type,
             user_role: user.user_role || 'user',
-            phone_number: user.phone_number || ''
+            phone_number: user.phone_number || '',
+            hasLoggedInBefore: user.hasLoggedInBefore || false,
+            orientationCompleted: user.orientationCompleted || false,
+            onboardingFeePaid: user.onboardingFeePaid || false
         });
     } catch (error) {
         console.error('SignIn error:', error);

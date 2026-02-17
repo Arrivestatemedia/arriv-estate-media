@@ -150,9 +150,11 @@ export default function OrientationSizes() {
               
               {/* Gear Bag */}
               <div className="flex items-start gap-4 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
-                {user?.gearBagImageUrl && (
-                  <img src={user.gearBagImageUrl} alt="Gear Bag" className="w-24 h-24 object-cover rounded" />
-                )}
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/87121d65d_GearBagImage.png" 
+                  alt="Gear Bag" 
+                  className="w-24 h-24 object-cover rounded" 
+                />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-[var(--text-primary)]">Gear Bag</h4>
@@ -173,9 +175,11 @@ export default function OrientationSizes() {
 
               {/* Water Bottle */}
               <div className="flex items-start gap-4 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
-                {user?.waterBottleImageUrl && (
-                  <img src={user.waterBottleImageUrl} alt="Water Bottle" className="w-24 h-24 object-cover rounded" />
-                )}
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/8ca33b43d_WaterBottleImage.png" 
+                  alt="Water Bottle" 
+                  className="w-24 h-24 object-cover rounded" 
+                />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-[var(--text-primary)]">Stainless Steel Water Bottle</h4>
