@@ -88,11 +88,12 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
     setLoading(true);
     try {
       await base44.functions.invoke('sendSupraAccessNotification', { jobId: job.id });
+      await base44.functions.invoke('notifyMediaPartnerAttireVerified', { jobId: job.id });
       setShowAttireDialog(false);
       if (onJobUpdate) onJobUpdate();
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to notify client');
+      alert('Failed to send notifications');
     } finally {
       setLoading(false);
     }
