@@ -13,39 +13,6 @@ export default function InviteUsersCard() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
 
-  const handleAddTestUser = async () => {
-    if (!phoneNumber) return;
-    
-    setLoading(true);
-    setStatus(null);
-
-    try {
-      // Create test user record
-      await base44.functions.invoke('createTestUser', {
-        phone_number: phoneNumber,
-        user_type: userType,
-        user_role: userRole
-      });
-
-      // Send SMS with signup link
-      await base44.functions.invoke('sendSignupSMS', {
-        phone_number: phoneNumber,
-        user_type: userType,
-        user_role: userRole
-      });
-
-      setStatus({ type: "success", message: "Test user created and SMS sent!" });
-      setPhoneNumber("");
-    } catch (error) {
-      setStatus({ 
-        type: "error", 
-        message: error.message || "Failed to create test user" 
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSend = async () => {
     if (!phoneNumber) return;
     
@@ -53,10 +20,20 @@ export default function InviteUsersCard() {
     setStatus(null);
 
     try {
-      const response = await base44.functions.invoke('sendSignupSMS', {
+      // Create test user if role is "test_user"
+      if (userRole === "test_user") {
+        await base44.functions.invoke('createTestUser', {
+          phone_number: phoneNumber,
+          user_type: userType,
+          user_role: "user"
+        });
+      }
+
+      // Send SMS with signup link
+      await base44.functions.invoke('sendSignupSMS', {
         phone_number: phoneNumber,
         user_type: userType,
-        user_role: userRole
+        user_role: userRole === "test_user" ? "user" : userRole
       });
 
       setStatus({ type: "success", message: "Invitation sent successfully!" });
