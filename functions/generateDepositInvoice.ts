@@ -46,8 +46,8 @@ Deno.serve(async (req) => {
     const payAtClosingRate = packageData[booking.package]?.rate || 0.0008;
     let depositAmount = 50;
 
-    // Use $1 for test account
-    if (booking.client_email === 'BradCBurke@gmail.com') {
+    // Use $1 for test accounts
+    if (booking.client_email === 'BradCBurke@gmail.com' || booking.client_email.includes('test-user')) {
       depositAmount = 1;
     }
 

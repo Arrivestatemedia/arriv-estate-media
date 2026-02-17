@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
     let waterBottleAmount = targetUser.addWaterBottle ? 4000 : 0;
     let totalAmount = baseAmount + gearBagAmount + waterBottleAmount;
 
-    // Use $1 for test account
-    if (targetUser.email === 'BradCBurke@gmail.com') {
+    // Use $1 for test accounts
+    if (targetUser.email === 'BradCBurke@gmail.com' || targetUser.email.includes('test-user')) {
       totalAmount = 100; // $1 in cents
     }
 
