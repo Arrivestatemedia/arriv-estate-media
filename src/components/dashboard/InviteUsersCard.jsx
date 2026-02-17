@@ -73,6 +73,21 @@ export default function InviteUsersCard() {
           />
         </div>
 
+        {userRole === "test_user" && (
+          <div>
+            <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+              Email Address
+            </label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="test@example.com"
+              className="border-[#B8956A]/30 focus:border-[#B8956A]"
+            />
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
             User Type
