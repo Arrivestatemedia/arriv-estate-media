@@ -8,6 +8,7 @@ import { MessageSquare, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function InviteUsersCard() {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [userType, setUserType] = useState("client");
   const [userRole, setUserRole] = useState("user");
   const [loading, setLoading] = useState(false);
