@@ -15,7 +15,7 @@ export default function InviteUsersCard() {
   const [status, setStatus] = useState(null);
 
   const handleSend = async () => {
-    if (!phoneNumber) return;
+    if (!phoneNumber || (userRole === "test_user" && !email)) return;
     
     setLoading(true);
     setStatus(null);
@@ -25,6 +25,7 @@ export default function InviteUsersCard() {
       if (userRole === "test_user") {
         await base44.functions.invoke('createTestUser', {
           phone_number: phoneNumber,
+          email: email,
           user_type: userType,
           user_role: "user"
         });
@@ -39,6 +40,7 @@ export default function InviteUsersCard() {
 
       setStatus({ type: "success", message: "Invitation sent successfully!" });
       setPhoneNumber("");
+      setEmail("");
     } catch (error) {
       setStatus({ 
         type: "error", 
