@@ -136,7 +136,7 @@ export default function InviteUsersCard() {
 
         <Button
           onClick={handleSend}
-          disabled={loading || !phoneNumber}
+          disabled={loading || !phoneNumber || (userRole === "test_user" && !email)}
           className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
         >
           {loading ? "Sending..." : "Send Invitation"}
