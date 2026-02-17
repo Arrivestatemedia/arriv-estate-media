@@ -3,16 +3,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    let user;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      user = null;
+    }
 
-    if (user?.role !== 'admin') {
+    if (!user || user?.role !== 'admin') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { pendingSignupId, email, userType, userRole } = await req.json();
 
     // Update PendingSignup
-    await base44.entities.PendingSignup.update(pendingSignupId, { 
+    await base44.asServiceRole.entities.PendingSignup.update(pendingSignupId, { 
       user_type: userType, 
       user_role: userRole 
     });
@@ -25,6 +30,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ success: true });
   } catch (error) {
+    console.error('Error updating user permissions:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
