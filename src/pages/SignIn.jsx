@@ -54,9 +54,28 @@ export default function SignIn() {
       localStorage.setItem('user_role', response.data.user_role);
       localStorage.setItem('user_phone', response.data.phone_number);
 
-      // Route based on user type
-      if (response.data.user_type === "media_partner") {
-        window.location.href = '/MediaPartnerDashboard';
+      // Track first login for media partners
+      if (response.data.user_type === 'media_partner' && !response.data.hasLoggedInBefore) {
+        await base44.auth.updateMe({
+          hasLoggedInBefore: true,
+          firstLoginAt: new Date().toISOString()
+        });
+        base44.analytics.track({
+          eventName: 'first_media_partner_login',
+          properties: { userId: response.data.id }
+        });
+      }
+
+      // Route based on user type and orientation status
+      if (response.data.user_role === 'admin') {
+        window.location.href = '/Dashboard';
+      } else if (response.data.user_type === 'media_partner') {
+        // Check if orientation is complete
+        if (!response.data.orientationCompleted || !response.data.onboardingFeePaid) {
+          window.location.href = '/OrientationVideo';
+        } else {
+          window.location.href = '/MediaPartnerDashboard';
+        }
       } else {
         window.location.href = '/BookingPage';
       }

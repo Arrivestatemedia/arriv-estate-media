@@ -19,7 +19,40 @@ Deno.serve(async (req) => {
     if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object;
       
-      // Find invoice by payment link
+      // Check if this is a media partner onboarding payment
+      if (paymentIntent.metadata?.purpose === 'media_partner_onboarding_fee') {
+        const userId = paymentIntent.metadata.userId;
+        
+        // Update user records
+        await base44.asServiceRole.entities.User.update(userId, {
+          onboardingFeePaid: true,
+          onboardingFeePaidAt: new Date().toISOString(),
+          orientationCompleted: true,
+          orientationCompletedAt: new Date().toISOString()
+        });
+        
+        // Generate and upload receipt
+        const receiptResponse = await base44.asServiceRole.functions.invoke('generateOnboardingReceipt', {
+          userId,
+          paymentIntentId: paymentIntent.id,
+          paidAt: new Date().toISOString()
+        });
+        
+        // Send notifications
+        await base44.asServiceRole.functions.invoke('sendOnboardingReceiptNotifications', {
+          userId,
+          receiptUrl: receiptResponse.data.driveUrl
+        });
+        
+        // Notify admin
+        await base44.asServiceRole.functions.invoke('sendAdminOnboardingNotification', {
+          userId
+        });
+        
+        return Response.json({ received: true });
+      }
+      
+      // Find invoice by payment link (existing flow)
       const invoices = await base44.asServiceRole.entities.Invoice.filter({ 
         payment_status: 'unpaid'
       });
