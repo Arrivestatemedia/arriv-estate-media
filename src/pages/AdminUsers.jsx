@@ -443,6 +443,7 @@ export default function AdminUsers() {
                             <SelectContent>
                               <SelectItem value="user">User</SelectItem>
                               <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="test_user">Test User</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
