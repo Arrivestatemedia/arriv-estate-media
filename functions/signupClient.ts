@@ -51,6 +51,23 @@ Deno.serve(async (req) => {
             });
         }
 
+        // Create User record for client
+        try {
+            const existingUsers = await base44.asServiceRole.entities.User.filter({ email });
+            if (existingUsers.length === 0) {
+                await base44.asServiceRole.entities.User.create({
+                    email,
+                    full_name,
+                    role: role,
+                    user_type: 'client',
+                    phone_number
+                });
+            }
+        } catch (userErr) {
+            console.error('Error creating User record:', userErr);
+            // Continue if User creation fails
+        }
+
         // Generate and store signed terms
         try {
             await base44.functions.invoke('generateSignedClientTerms', {
