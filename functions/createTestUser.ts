@@ -17,14 +17,6 @@ Deno.serve(async (req) => {
 
     // Create PendingSignup record with only phone number
     const tempEmail = `pending-${Date.now()}@temp.local`;
-    const tempPassword = "Michellejune2022!";
-    
-    // Hash the password
-    const encoder = new TextEncoder();
-    const data = encoder.encode(tempPassword);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
     await base44.asServiceRole.entities.PendingSignup.create({
       phone_number: phone_number,
@@ -32,7 +24,7 @@ Deno.serve(async (req) => {
       user_role: user_role || 'user',
       email: tempEmail,
       full_name: "Pending",
-      password_hash: passwordHash,
+      password_hash: "", // Will be set during signup completion
       status: "pending"
     });
 
