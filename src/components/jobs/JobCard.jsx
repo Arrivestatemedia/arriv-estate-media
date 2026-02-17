@@ -87,6 +87,10 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
   const handleAttireVerified = async () => {
     setLoading(true);
     try {
+      await base44.entities.Job.update(job.id, { 
+        media_partner_status: 'on_the_way',
+        on_the_way_at: new Date().toISOString()
+      });
       await base44.functions.invoke('sendSupraAccessNotification', { jobId: job.id });
       await base44.functions.invoke('notifyMediaPartnerAttireVerified', { jobId: job.id });
       setShowAttireDialog(false);
