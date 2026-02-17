@@ -23,10 +23,15 @@ Deno.serve(async (req) => {
     }
 
     // Calculate total amount
-    const baseAmount = 5000; // $50 in cents
-    const gearBagAmount = targetUser.addGearBag ? 5000 : 0;
-    const waterBottleAmount = targetUser.addWaterBottle ? 4000 : 0;
-    const totalAmount = baseAmount + gearBagAmount + waterBottleAmount;
+    let baseAmount = 5000; // $50 in cents
+    let gearBagAmount = targetUser.addGearBag ? 5000 : 0;
+    let waterBottleAmount = targetUser.addWaterBottle ? 4000 : 0;
+    let totalAmount = baseAmount + gearBagAmount + waterBottleAmount;
+
+    // Use $1 for test account
+    if (targetUser.email === 'BradCBurke@gmail.com') {
+      totalAmount = 100; // $1 in cents
+    }
 
     // Create or retrieve Stripe customer
     let customerId = targetUser.stripeCustomerId;

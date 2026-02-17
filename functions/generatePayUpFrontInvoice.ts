@@ -43,6 +43,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Use $1 for test account
+    if (booking.client_email === 'BradCBurke@gmail.com') {
+      totalAmount = 1;
+    }
+
     // Generate invoice number
     const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
     const lastNumber = allInvoices.length > 0 && allInvoices[0].invoice_number 
