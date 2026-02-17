@@ -96,11 +96,12 @@ By booking services with ARRIV Estate Media LLC, Clients agree to these Terms & 
     doc.text(`Name: ${full_name}`, margin, yPosition);
 
     // Convert to blob and upload
-    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+    const pdfArrayBuffer = doc.output('arraybuffer');
+    const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
 
     // Upload to private storage
     const uploadRes = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
-      file: pdfBuffer
+      file: pdfBlob
     });
 
     if (!uploadRes.file_uri) {
