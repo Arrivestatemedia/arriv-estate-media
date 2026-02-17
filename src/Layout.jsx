@@ -8,6 +8,7 @@ import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import NewJobsBadge from "@/components/layout/NewJobsBadge";
 import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
+import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -288,9 +289,11 @@ export default function Layout({ children, currentPageName }) {
       </header>
 
       <main>
-        <PageTransition>
-          {children}
-        </PageTransition>
+        <MediaPartnerGate>
+          <PageTransition>
+            {children}
+          </PageTransition>
+        </MediaPartnerGate>
       </main>
 
       {/* Mobile Bottom Tabs */}
