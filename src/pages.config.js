@@ -76,8 +76,11 @@ import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import SupraAccess from './pages/SupraAccess';
-import confirmDeleteUser from './pages/confirmDeleteUser';
 import TrackLink from './pages/TrackLink';
+import confirmDeleteUser from './pages/confirmDeleteUser';
+import OrientationVideo from './pages/OrientationVideo';
+import OrientationSizes from './pages/OrientationSizes';
+import OrientationOnboardingFee from './pages/OrientationOnboardingFee';
 import __Layout from './Layout.jsx';
 
 
@@ -111,8 +114,11 @@ export const PAGES = {
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "SupraAccess": SupraAccess,
-    "confirmDeleteUser": confirmDeleteUser,
     "TrackLink": TrackLink,
+    "confirmDeleteUser": confirmDeleteUser,
+    "OrientationVideo": OrientationVideo,
+    "OrientationSizes": OrientationSizes,
+    "OrientationOnboardingFee": OrientationOnboardingFee,
 }
 
 export const pagesConfig = {
