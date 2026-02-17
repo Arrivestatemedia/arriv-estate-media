@@ -72,15 +72,15 @@ import MediaPartnerSignup from './pages/MediaPartnerSignup';
 import MediaPartnerTermsConditions from './pages/MediaPartnerTermsConditions';
 import MessageLogs from './pages/MessageLogs';
 import NotifyBackup from './pages/NotifyBackup';
+import OrientationOnboardingFee from './pages/OrientationOnboardingFee';
+import OrientationSizes from './pages/OrientationSizes';
+import OrientationVideo from './pages/OrientationVideo';
 import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SignIn from './pages/SignIn';
 import SupraAccess from './pages/SupraAccess';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import OrientationVideo from './pages/OrientationVideo';
-import OrientationSizes from './pages/OrientationSizes';
-import OrientationOnboardingFee from './pages/OrientationOnboardingFee';
 import __Layout from './Layout.jsx';
 
 
@@ -110,15 +110,15 @@ export const PAGES = {
     "MediaPartnerTermsConditions": MediaPartnerTermsConditions,
     "MessageLogs": MessageLogs,
     "NotifyBackup": NotifyBackup,
+    "OrientationOnboardingFee": OrientationOnboardingFee,
+    "OrientationSizes": OrientationSizes,
+    "OrientationVideo": OrientationVideo,
     "PasswordSetup": PasswordSetup,
     "PublicAccountSettings": PublicAccountSettings,
     "SignIn": SignIn,
     "SupraAccess": SupraAccess,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "OrientationVideo": OrientationVideo,
-    "OrientationSizes": OrientationSizes,
-    "OrientationOnboardingFee": OrientationOnboardingFee,
 }
 
 export const pagesConfig = {

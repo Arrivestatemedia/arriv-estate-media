@@ -43,6 +43,7 @@ export default function SignIn() {
 
       if (!response.data.success) {
         setError(response.data.error || "Email or password incorrect");
+        localStorage.clear();
         setLoading(false);
         return;
       }
