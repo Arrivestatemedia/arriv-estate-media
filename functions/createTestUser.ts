@@ -9,14 +9,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { phone_number, user_type, user_role } = await req.json();
+    const { phone_number, user_type, user_role, email } = await req.json();
 
-    if (!phone_number || !user_type) {
-      return Response.json({ error: 'Phone number and user type required' }, { status: 400 });
+    if (!phone_number || !user_type || !email) {
+      return Response.json({ error: 'Phone number, email, and user type required' }, { status: 400 });
     }
-
-    // Create PendingSignup record with only phone number
-    const tempEmail = `pending-${Date.now()}@temp.local`;
     
     await base44.asServiceRole.entities.PendingSignup.create({
       phone_number: phone_number,
