@@ -91,11 +91,12 @@ export default function InviteUsersCard() {
           </label>
           <Select value={userRole} onValueChange={setUserRole}>
             <SelectTrigger className="border-[#B8956A]/30 focus:border-[#B8956A]">
-              <SelectValue>{userRole === 'user' ? 'Regular User' : 'Admin'}</SelectValue>
+              <SelectValue>{userRole === 'user' ? 'Regular User' : userRole === 'admin' ? 'Admin' : 'Test User'}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="user">Regular User</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="test_user">Test User</SelectItem>
             </SelectContent>
           </Select>
         </div>
