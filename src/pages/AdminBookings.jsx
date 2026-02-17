@@ -291,22 +291,6 @@ export default function AdminBookings() {
     }
   };
 
-  const handleMarkPaidCash = async (bookingId) => {
-    setLoadingBookingId(bookingId);
-    try {
-      await base44.entities.Booking.update(bookingId, { payment_locked: false });
-      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-      if (selectedBooking?.id === bookingId) {
-        setSelectedBooking({ ...selectedBooking, payment_locked: false });
-      }
-    } catch (error) {
-      console.error('Failed to mark as paid cash:', error);
-      alert('Failed to update booking');
-    } finally {
-      setLoadingBookingId(null);
-    }
-  };
-
   if (!user) return <div className="p-8">Loading...</div>;
 
   return (
@@ -592,21 +576,6 @@ export default function AdminBookings() {
                       <p className="text-[var(--text-primary)] bg-[var(--accent-color)]/5 p-3 rounded border border-[var(--border-color)]">
                         {selectedBooking.notes}
                       </p>
-                    </div>
-                  )}
-
-                  {selectedBooking.status === 'pending' && selectedBooking.payment_locked && !selectedBooking.request_pay_at_closing && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <p className="text-sm text-yellow-800 mb-3 font-medium">
-                        🔒 Buttons locked - awaiting client payment
-                      </p>
-                      <Button
-                        onClick={() => handleMarkPaidCash(selectedBooking.id)}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                        disabled={loadingBookingId === selectedBooking.id}
-                      >
-                        {loadingBookingId === selectedBooking.id ? 'Processing...' : 'Mark as Paid (Cash)'}
-                      </Button>
                     </div>
                   )}
                 </div>
