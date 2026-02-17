@@ -15,12 +15,6 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Invalid user role' }, { status: 400 });
         }
 
-        // Check if user already exists
-        const existingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email });
-        if (existingSignups.length > 0) {
-            return Response.json({ error: 'Email already registered' }, { status: 400 });
-        }
-
         // Hash password using Deno's Web Crypto API
         const encoder = new TextEncoder();
         const data = encoder.encode(password);
@@ -28,15 +22,34 @@ Deno.serve(async (req) => {
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Create signup record with password hash
-        await base44.asServiceRole.entities.PendingSignup.create({
-            email,
-            full_name,
-            phone_number,
-            user_type,
-            password_hash: hashHex,
-            status: "pending"
-        });
+        // Check if pending signup with this phone number exists
+        const existingByPhone = await base44.asServiceRole.entities.PendingSignup.filter({ phone_number });
+        
+        if (existingByPhone.length > 0) {
+            // Update existing record
+            await base44.asServiceRole.entities.PendingSignup.update(existingByPhone[0].id, {
+                email,
+                full_name,
+                password_hash: hashHex,
+                status: "pending"
+            });
+        } else {
+            // Check if email already exists
+            const existingByEmail = await base44.asServiceRole.entities.PendingSignup.filter({ email });
+            if (existingByEmail.length > 0) {
+                return Response.json({ error: 'Email already registered' }, { status: 400 });
+            }
+
+            // Create new signup record with password hash
+            await base44.asServiceRole.entities.PendingSignup.create({
+                email,
+                full_name,
+                phone_number,
+                user_type,
+                password_hash: hashHex,
+                status: "pending"
+            });
+        }
 
         // Generate and store signed terms
         try {
