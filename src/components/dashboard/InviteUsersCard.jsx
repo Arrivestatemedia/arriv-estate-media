@@ -19,10 +19,10 @@ export default function InviteUsersCard() {
 
     try {
       const timestamp = Date.now();
-      const testPhone = "5555550000"; // Test phone number
+      const testPhone = "5555550000";
 
-      // Use same pattern as regular invite
-      await base44.functions.invoke('inviteUserHelper', {
+      // Send SMS with signup link
+      await base44.functions.invoke('sendSignupSMS', {
         phone_number: testPhone,
         user_type: 'media_partner',
         user_role: 'user'
