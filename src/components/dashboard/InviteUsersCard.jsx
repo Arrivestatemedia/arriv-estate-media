@@ -19,24 +19,13 @@ export default function InviteUsersCard() {
 
     try {
       const timestamp = Date.now();
-      const testEmail = `test-user-${timestamp}@test.com`;
       const testPhone = "5555550000"; // Test phone number
 
-      // Create PendingSignup record
-      await base44.entities.PendingSignup.create({
-        email: testEmail,
-        full_name: `Test User ${timestamp}`,
+      // Use same pattern as regular invite
+      await base44.functions.invoke('inviteUserHelper', {
         phone_number: testPhone,
-        user_type: "media_partner",
-        user_role: "user",
-        password_hash: "test_hash_" + timestamp,
-        status: "pending"
-      });
-
-      // Send SMS with signup link
-      await base44.functions.invoke('sendSignupSMS', {
-        phone_number: testPhone,
-        email: testEmail
+        user_type: 'media_partner',
+        user_role: 'user'
       });
 
       setStatus({ type: "success", message: "Test user created and SMS sent!" });
