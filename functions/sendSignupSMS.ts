@@ -35,7 +35,9 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
+        let appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'app.arrivestatemedia.com';
+        // Remove https:// if already present
+        appDomain = appDomain.replace(/^https?:\/\//, '');
         const pageName = user_type === 'client' ? 'ClientSignup' : 'MediaPartnerSignup';
         const signupUrl = `https://${appDomain}/${pageName}?phone_number=${encodeURIComponent(phone_number)}&role=${encodeURIComponent(role)}`;
 
