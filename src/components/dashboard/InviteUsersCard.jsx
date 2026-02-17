@@ -13,6 +13,23 @@ export default function InviteUsersCard() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
 
+  const handleAddTestUser = async () => {
+    setLoading(true);
+    setStatus(null);
+
+    try {
+      await base44.users.inviteUser("test-user-" + Date.now() + "@test.com", "user");
+      setStatus({ type: "success", message: "Test user created successfully!" });
+    } catch (error) {
+      setStatus({ 
+        type: "error", 
+        message: error.message || "Failed to create test user" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!phoneNumber) return;
     
@@ -105,13 +122,23 @@ export default function InviteUsersCard() {
           </div>
         )}
 
-        <Button
-          onClick={handleSend}
-          disabled={loading || !phoneNumber}
-          className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
-        >
-          {loading ? "Sending..." : "Send Invitation"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleSend}
+            disabled={loading || !phoneNumber}
+            className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white"
+          >
+            {loading ? "Sending..." : "Send Invitation"}
+          </Button>
+          <Button
+            onClick={handleAddTestUser}
+            disabled={loading}
+            variant="outline"
+            className="border-[#B8956A]/30 text-[#B8956A] hover:bg-[#B8956A]/10"
+          >
+            {loading ? "Creating..." : "Add Test User"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
