@@ -26,15 +26,28 @@ Deno.serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const password_hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Create pending signup record
-    await base44.asServiceRole.entities.PendingSignup.create({
-      email,
-      full_name,
-      phone_number,
-      user_type,
-      password_hash,
-      status: 'pending'
-    });
+    // Check if pending signup with this phone number exists
+    const existingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ phone_number });
+    
+    if (existingSignups.length > 0) {
+      // Update existing record
+      await base44.asServiceRole.entities.PendingSignup.update(existingSignups[0].id, {
+        email,
+        full_name,
+        password_hash,
+        status: 'pending'
+      });
+    } else {
+      // Create new pending signup record
+      await base44.asServiceRole.entities.PendingSignup.create({
+        email,
+        full_name,
+        phone_number,
+        user_type,
+        password_hash,
+        status: 'pending'
+      });
+    }
 
     // Generate and store signed terms
     try {
