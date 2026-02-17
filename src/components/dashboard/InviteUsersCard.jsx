@@ -18,14 +18,13 @@ export default function InviteUsersCard() {
     setStatus(null);
 
     try {
-      // Send SMS to admin's phone number for testing
       await base44.functions.invoke('sendSignupSMS', {
-        phone_number: "+14045678560", // Valid test number
-        user_type: 'media_partner',
-        user_role: 'user'
+        phone_number: phoneNumber,
+        user_type: userType,
+        user_role: userRole
       });
 
-      setStatus({ type: "success", message: "Test user created and SMS sent to +1-404-567-8560!" });
+      setStatus({ type: "success", message: "Test user created and SMS sent!" });
     } catch (error) {
       setStatus({ 
         type: "error", 
