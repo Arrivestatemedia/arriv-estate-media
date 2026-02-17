@@ -276,15 +276,18 @@ export default function AdminUsers() {
                             <SelectContent>
                               <SelectItem value="user">User</SelectItem>
                               <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="test_user">Test User</SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant={u.user_role === "admin" ? "default" : "outline"} className="flex items-center gap-1 w-fit">
+                          <Badge variant={u.user_role === "admin" ? "default" : u.user_role === "test_user" ? "secondary" : "outline"} className="flex items-center gap-1 w-fit">
                             {u.user_role === "admin" ? (
                               <>
                                 <Shield className="w-3 h-3" />
                                 Admin
                               </>
+                            ) : u.user_role === "test_user" ? (
+                              "Test User"
                             ) : (
                               "User"
                             )}
