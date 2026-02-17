@@ -49,6 +49,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Create User record so login can find and route to orientation
+    try {
+      const existingUsers = await base44.asServiceRole.entities.User.filter({ email });
+      if (existingUsers.length === 0) {
+        await base44.asServiceRole.entities.User.create({
+          email,
+          full_name,
+          role: role,
+          user_type,
+          phone_number,
+          orientationCompleted: false,
+          onboardingFeePaid: false
+        });
+      }
+    } catch (userErr) {
+      console.error('Error creating User record:', userErr);
+      // Continue if User creation fails
+    }
+
     // Generate and store signed terms
     try {
       await base44.functions.invoke('generateSignedTerms', {
