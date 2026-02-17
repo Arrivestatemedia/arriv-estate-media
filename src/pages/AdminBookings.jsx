@@ -164,11 +164,73 @@ export default function AdminBookings() {
   };
 
   const handlePostToJobBoard = async (booking) => {
-    postToJobBoardMutation.mutate(booking.id);
+    // Check if pay-at-closing or pay-up-front
+    if (booking.request_pay_at_closing) {
+      // For pay-at-closing, buttons never locked - send deposit invoice
+      setLoadingBookingId(booking.id);
+      try {
+        const response = await base44.functions.invoke('generateDepositInvoiceOnApproval', { 
+          bookingId: booking.id,
+          actionType: 'post_to_job_board'
+        });
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to post job');
+      } finally {
+        setLoadingBookingId(null);
+      }
+    } else {
+      // For pay-up-front, generate invoice and lock buttons
+      setLoadingBookingId(booking.id);
+      try {
+        await base44.functions.invoke('generatePayUpFrontInvoice', { bookingId: booking.id });
+        // Mark booking as payment locked
+        await base44.entities.Booking.update(booking.id, { payment_locked: true });
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+        alert('Invoice sent to client. Buttons will unlock after payment.');
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to generate invoice');
+      } finally {
+        setLoadingBookingId(null);
+      }
+    }
   };
 
   const handleAcceptForMyself = async (booking) => {
-    acceptForMyselfMutation.mutate(booking.id);
+    // Check if pay-at-closing or pay-up-front
+    if (booking.request_pay_at_closing) {
+      // For pay-at-closing, buttons never locked - send deposit invoice
+      setLoadingBookingId(booking.id);
+      try {
+        await base44.functions.invoke('generateDepositInvoiceOnApproval', { 
+          bookingId: booking.id,
+          actionType: 'accept_for_myself'
+        });
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to accept booking');
+      } finally {
+        setLoadingBookingId(null);
+      }
+    } else {
+      // For pay-up-front, generate invoice and lock buttons
+      setLoadingBookingId(booking.id);
+      try {
+        await base44.functions.invoke('generatePayUpFrontInvoice', { bookingId: booking.id });
+        // Mark booking as payment locked
+        await base44.entities.Booking.update(booking.id, { payment_locked: true });
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+        alert('Invoice sent to client. Buttons will unlock after payment.');
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to generate invoice');
+      } finally {
+        setLoadingBookingId(null);
+      }
+    }
   };
 
   const toggleSelectBooking = (bookingId) => {
@@ -367,16 +429,20 @@ export default function AdminBookings() {
                         <Button
                           onClick={() => handlePostToJobBoard(booking)}
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:cursor-not-allowed"
-                          disabled={loadingBookingId !== null}
+                          disabled={loadingBookingId !== null || (booking.payment_locked && !booking.request_pay_at_closing)}
                         >
-                          {loadingBookingId === booking.id ? 'Posting...' : 'Post to Job Board'}
+                          {loadingBookingId === booking.id ? 'Processing...' : 
+                           booking.payment_locked && !booking.request_pay_at_closing ? '🔒 Awaiting Payment' :
+                           'Post to Job Board'}
                         </Button>
                         <Button
                           onClick={() => handleAcceptForMyself(booking)}
                           className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-green-300 disabled:cursor-not-allowed"
-                          disabled={loadingBookingId !== null}
+                          disabled={loadingBookingId !== null || (booking.payment_locked && !booking.request_pay_at_closing)}
                         >
-                          {loadingBookingId === booking.id ? 'Accepting...' : 'Accept for Myself'}
+                          {loadingBookingId === booking.id ? 'Processing...' : 
+                           booking.payment_locked && !booking.request_pay_at_closing ? '🔒 Awaiting Payment' :
+                           'Accept for Myself'}
                         </Button>
                         <Button
                           onClick={() => deleteMutation.mutate(booking.id)}

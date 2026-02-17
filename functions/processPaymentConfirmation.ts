@@ -88,7 +88,8 @@ Deno.serve(async (req) => {
     // 7. Unlock approval buttons if pay-up-front
     if (!invoice.pay_at_closing && invoice.booking_id) {
       await base44.asServiceRole.entities.Booking.update(invoice.booking_id, {
-        status: 'confirmed'
+        status: 'confirmed',
+        payment_locked: false
       });
     }
     
