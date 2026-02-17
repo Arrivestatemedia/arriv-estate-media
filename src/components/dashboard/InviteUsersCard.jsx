@@ -21,7 +21,7 @@ export default function InviteUsersCard() {
     setStatus(null);
 
     try {
-      // Create test user if role is "test_user"
+      // Create test user if role is "test_user" - don't send SMS for test users
       if (userRole === "test_user") {
         const testUserResponse = await base44.functions.invoke('createTestUser', {
           phone_number: phoneNumber,
@@ -32,19 +32,20 @@ export default function InviteUsersCard() {
         if (!testUserResponse?.data?.success) {
           throw new Error(testUserResponse?.data?.error || "Failed to create test user");
         }
+        setStatus({ type: "success", message: `Test user created: ${email}` });
+      } else {
+        // Send SMS for regular signups
+        const smsResponse = await base44.functions.invoke('sendSignupSMS', {
+          phone_number: phoneNumber,
+          user_type: userType,
+          user_role: userRole
+        });
+        if (!smsResponse?.data?.success) {
+          throw new Error(smsResponse?.data?.error || "Failed to send SMS");
+        }
+        setStatus({ type: "success", message: "Invitation sent successfully!" });
       }
-
-      // Send SMS with signup link
-      const smsResponse = await base44.functions.invoke('sendSignupSMS', {
-        phone_number: phoneNumber,
-        user_type: userType,
-        user_role: userRole === "test_user" ? "user" : userRole
-      });
-      if (!smsResponse?.data?.success) {
-        throw new Error(smsResponse?.data?.error || "Failed to send SMS");
-      }
-
-      setStatus({ type: "success", message: "Invitation sent successfully!" });
+      
       setPhoneNumber("");
       setEmail("");
     } catch (error) {
