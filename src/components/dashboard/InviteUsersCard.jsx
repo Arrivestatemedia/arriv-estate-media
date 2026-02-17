@@ -116,23 +116,13 @@ export default function InviteUsersCard() {
           </div>
         )}
 
-        <div className="flex gap-2">
-          <Button
-            onClick={handleSend}
-            disabled={loading || !phoneNumber}
-            className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white"
-          >
-            {loading ? "Sending..." : "Send Invitation"}
-          </Button>
-          <Button
-            onClick={handleAddTestUser}
-            disabled={loading}
-            variant="outline"
-            className="border-[#B8956A]/30 text-[#B8956A] hover:bg-[#B8956A]/10"
-          >
-            {loading ? "Creating..." : "Add Test User"}
-          </Button>
-        </div>
+        <Button
+          onClick={handleSend}
+          disabled={loading || !phoneNumber}
+          className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
+        >
+          {loading ? "Sending..." : "Send Invitation"}
+        </Button>
       </CardContent>
     </Card>
   );
