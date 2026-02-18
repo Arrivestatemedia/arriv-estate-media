@@ -83,17 +83,15 @@ Deno.serve(async (req) => {
       formatted_content: `INVOICE #${invoiceNumber}\nDate: ${new Date().toLocaleDateString()}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nPackage: ${booking.package.replace(/_/g, ' ').toUpperCase()}\nAdd-ons: ${booking.add_ons ? booking.add_ons.join(', ') : 'None'}\n\nTotal Amount: $${totalAmount}\n\nPayment Link: ${stripeData.url}`
     };
 
-    // Upload invoice to Google Drive UNPAID folder
+    // Upload invoice to Google Drive UNPAID folder (skip on error)
     let googleDriveUrl = '#';
     let googleDriveFileId = 'temp';
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-      const { jsPDF: PDFConstructor } = await import('npm:jspdf@4.0.0');
-      const doc = new PDFConstructor();
+      const doc = new jsPDF();
       doc.setFontSize(12);
       doc.text(invoiceContent.formatted_content || 'Invoice', 20, 40);
-      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
-      const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+      const pdfBuffer = doc.output('arraybuffer');
 
       const metadata = {
         name: `${jobAddress}.pdf`,
@@ -102,7 +100,7 @@ Deno.serve(async (req) => {
 
       const form = new FormData();
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', blob);
+      form.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }));
 
       const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
