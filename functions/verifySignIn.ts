@@ -10,17 +10,18 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Email and password required' }, { status: 400 });
         }
 
-        const normalizedEmail = email.toLowerCase().trim();
+        const emailTrimmed = email.trim();
 
-        // Hash the password immediately (no need to wait for DB)
+        // Hash the password immediately
         const encoder = new TextEncoder();
         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
         const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Query PendingSignup and User in parallel
+        // Use case-insensitive regex to find matching accounts in parallel
+        const emailRegex = { $regex: `^${emailTrimmed}$`, $options: 'i' };
         const [signups, users] = await Promise.all([
-            base44.asServiceRole.entities.PendingSignup.filter({ email: normalizedEmail }),
-            base44.asServiceRole.entities.User.filter({ email: normalizedEmail })
+            base44.asServiceRole.entities.PendingSignup.filter({ email: emailRegex }),
+            base44.asServiceRole.entities.User.filter({ email: emailRegex })
         ]);
 
         const pendingUser = signups[0] || null;
@@ -31,13 +32,16 @@ Deno.serve(async (req) => {
             if (hashHex !== pendingUser.password_hash) {
                 return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
             }
+            const role = pendingUser.user_role;
+            // Map legacy test_user role to admin or user
+            const normalizedRole = (role === 'admin') ? 'admin' : 'user';
             return Response.json({
                 success: true,
                 id: pendingUser.id,
                 email: pendingUser.email,
                 full_name: pendingUser.full_name,
                 user_type: pendingUser.user_type,
-                user_role: pendingUser.user_role || 'user',
+                user_role: normalizedRole,
                 phone_number: pendingUser.phone_number || '',
                 hasLoggedInBefore: pendingUser.hasLoggedInBefore || false,
                 orientationCompleted: pendingUser.orientationCompleted || false,
@@ -50,13 +54,15 @@ Deno.serve(async (req) => {
             if (hashHex !== appUser.password_hash) {
                 return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
             }
+            const role = appUser.user_role || appUser.role || 'user';
+            const normalizedRole = (role === 'admin') ? 'admin' : 'user';
             return Response.json({
                 success: true,
                 id: appUser.id,
                 email: appUser.email,
                 full_name: appUser.full_name,
                 user_type: appUser.user_type || 'user',
-                user_role: appUser.user_role || appUser.role || 'user',
+                user_role: normalizedRole,
                 phone_number: appUser.phone_number || '',
                 hasLoggedInBefore: appUser.hasLoggedInBefore || false,
                 orientationCompleted: appUser.orientationCompleted || false,
