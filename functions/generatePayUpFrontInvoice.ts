@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
       }
 
       // Total row
-      pdf.setFillColor(240, 240, 240);
+      pdf.setFillColor(230, 220, 205); // Light cream border
       pdf.rect(col1X, yPos, pageWidth - 40, 8, 'F');
 
       pdf.setFont(undefined, 'bold');
