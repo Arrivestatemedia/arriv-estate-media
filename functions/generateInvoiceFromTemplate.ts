@@ -23,10 +23,10 @@ Deno.serve(async (req) => {
       packageAmount
     } = await req.json();
 
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+    const accessToken = await base44.connectors.getAccessToken('googledrive');
 
     // Get template ID from database
-    const settings = await base44.asServiceRole.entities.AdminSettings.list();
+    const settings = await base44.entities.AdminSettings.list();
     const adminSettings = settings.length > 0 ? settings[0] : null;
 
     const templateFileId = adminSettings?.invoice_template_id;
