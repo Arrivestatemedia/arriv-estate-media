@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
             return Response.json({ alreadyPaid: true });
         }
 
-        const isTestUser = TEST_EMAILS.includes(email.trim().toLowerCase());
+        const isTestUser = targetUser.user_role === 'test_user';
 
         // Calculate total — $1 for test users, real prices for everyone else
         let baseAmount = isTestUser ? 100 : 5000; // $1 or $50
