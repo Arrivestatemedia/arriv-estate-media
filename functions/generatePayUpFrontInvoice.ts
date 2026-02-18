@@ -106,41 +106,41 @@ Deno.serve(async (req) => {
 
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'normal');
-      pdf.text(`Invoice #: ${invoiceNumber}`, 20, 75);
-      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, 82);
+      pdf.text(`Invoice #: ${invoiceNumber}`, 20, 30);
+      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, 37);
 
       // Client section
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
-      pdf.text('BILL TO:', 20, 95);
+      pdf.text('BILL TO:', 20, 50);
 
       pdf.setFont(undefined, 'normal');
       pdf.setFontSize(10);
-      pdf.text(booking.client_name, 20, 103);
+      pdf.text(booking.client_name, 20, 58);
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(9);
       pdf.setTextColor(184, 149, 106);
-      pdf.text('Listing Address:', 20, 110);
+      pdf.text('Listing Address:', 20, 65);
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(26, 26, 26);
-      pdf.text(jobAddress, 20, 117);
-      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 124);
+      pdf.text(jobAddress, 20, 72);
+      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 79);
 
       // Services table
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
       pdf.setTextColor(184, 149, 106); // Gold
-      pdf.text('SERVICES PROVIDED', 20, 142);
+      pdf.text('SERVICES PROVIDED', 20, 97);
 
       pdf.setDrawColor(184, 149, 106);
-      pdf.line(20, 147, pageWidth - 20, 147);
+      pdf.line(20, 102, pageWidth - 20, 102);
 
       // Table headers
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(10);
       pdf.setTextColor(26, 26, 26);
-      pdf.text('Description', 20, 155);
-      pdf.text('Amount', pageWidth - 50, 155, { align: 'right' });
+      pdf.text('Description', 20, 110);
+      pdf.text('Amount', pageWidth - 50, 110, { align: 'right' });
 
       // Table rows
       pdf.setFont(undefined, 'normal');
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
 
       const packageBaseAmount = packagePrices[booking.package] || 0;
       const packageDescText = packageDescriptions[booking.package] || booking.package;
-      let yPos = 163;
+      let yPos = 118;
 
       pdf.text(packageDescText, 20, yPos);
       pdf.text(`$${packageBaseAmount.toFixed(2)}`, pageWidth - 50, yPos, { align: 'right' });
@@ -192,15 +192,12 @@ Deno.serve(async (req) => {
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
       pdf.setTextColor(26, 26, 26);
-      pdf.text('PAYMENT INSTRUCTIONS', 20, yPos + 25);
+      pdf.text('PAYMENT INSTRUCTIONS', 20, yPos + 20);
 
       pdf.setFont(undefined, 'normal');
       pdf.setFontSize(9);
-      pdf.text('Full payment is required before your scheduled shoot.', 20, yPos + 33);
-      pdf.setTextColor(0, 0, 255);
-      pdf.textWithLink('Click here to pay', 20, yPos + 41, { pageNumber: 1, x: 0, y: 0, name: stripeData.url }, 'URI');
-      pdf.setTextColor(26, 26, 26);
-      pdf.text(`(${stripeData.url})`, 55, yPos + 41);
+      pdf.text('Full payment is required before your scheduled shoot.', 20, yPos + 28);
+      pdf.text(`Pay here: ${stripeData.url}`, 20, yPos + 36);
 
       // Footer
       pdf.setFontSize(8);
