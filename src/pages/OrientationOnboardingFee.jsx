@@ -100,6 +100,17 @@ export default function OrientationOnboardingFee() {
   useEffect(() => {
     const initPayment = async () => {
       try {
+        // First, get the Stripe publishable key from backend
+        const keyResponse = await base44.functions.invoke('getStripePublishableKey', {});
+        if (!keyResponse.data.publishableKey) {
+          setError("Payment processor not configured. Please contact support.");
+          setLoading(false);
+          return;
+        }
+
+        // Initialize Stripe with the key
+        stripePromise = loadStripe(keyResponse.data.publishableKey);
+        
         const email = localStorage.getItem('user_email');
         if (!email) {
           navigate(createPageUrl("SignIn"));
