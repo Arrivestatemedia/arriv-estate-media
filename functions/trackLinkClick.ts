@@ -6,15 +6,20 @@ Deno.serve(async (req) => {
     const { token } = await req.json();
     
     // Find invoice by tracked link token
+    console.log('Looking for invoice with token:', token);
     const invoices = await base44.asServiceRole.entities.Invoice.filter({ tracked_link_token: token });
+    console.log('Found invoices:', invoices.length);
     const invoice = invoices[0];
     
     if (!invoice) {
+      console.error('Invoice not found for token:', token);
       return Response.json({ 
         error: 'Invoice not found',
         redirectUrl: 'https://arrivestatemedia.com'
       }, { status: 404 });
     }
+    
+    console.log('Invoice found:', invoice.id, 'Google Drive URL:', invoice.google_drive_unpaid_url);
     
     // Update invoice with first click time if not already set
     if (!invoice.link_clicked_at) {
