@@ -3,8 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const url = new URL(req.url);
-    const token = url.searchParams.get('token');
+    const { token } = await req.json();
     
     // Find invoice by tracked link token
     console.log('Looking for invoice with token:', token);
