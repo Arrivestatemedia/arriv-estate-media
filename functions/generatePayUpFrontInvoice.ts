@@ -87,14 +87,14 @@ Deno.serve(async (req) => {
     let googleDriveUrl = stripeData.url;
     let googleDriveFileId = 'temp';
     try {
-      driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
+      const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
         fileName: `${jobAddress}.pdf`,
         invoiceContent: invoiceContent.formatted_content,
         folderType: 'unpaid',
         invoiceNumber,
         stripeLink: stripeData.url
       });
-      if (driveResult.data.fileUrl) {
+      if (driveResult.data?.fileUrl) {
         googleDriveUrl = driveResult.data.fileUrl;
         googleDriveFileId = driveResult.data.fileId;
       }
