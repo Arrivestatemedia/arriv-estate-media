@@ -26,7 +26,7 @@ function CheckoutForm({ totalAmount }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!stripe || !elements) {
       setErrorMessage("Payment form not ready. Please refresh the page.");
       return;
@@ -43,7 +43,7 @@ function CheckoutForm({ totalAmount }) {
       const result = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}${createPageUrl("MediaPartnerDashboard")}?payment_success=true`,
+          return_url: `${window.location.origin}${createPageUrl("MediaPartnerDashboard")}?payment_success=true&payment_intent={PAYMENT_INTENT_ID}`,
         },
       });
 
