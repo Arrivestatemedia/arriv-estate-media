@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
       // Add text fields to the PDF
       const fontSize = 11;
       const textColor = { r: 0, g: 0, b: 0 };
+      const { rgb } = await import('npm:pdf-lib@1.17.1');
       
       // Invoice number and date
       page.drawText(invoiceNumber, { x: 180, y: height - 260, size: fontSize, color: textColor });
