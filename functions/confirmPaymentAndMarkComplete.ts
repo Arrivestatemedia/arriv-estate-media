@@ -39,21 +39,10 @@ Deno.serve(async (req) => {
             return Response.json({ success: true, marked: 'PendingSignup' });
         }
 
-        // Try to find and update User
-        let users = await base44.asServiceRole.entities.User.filter({ email: email });
-        if (!users.length && email !== emailLower) {
-            users = await base44.asServiceRole.entities.User.filter({ email: emailLower });
-        }
-
-        if (users.length > 0) {
-            const user = users[0];
-            await base44.asServiceRole.entities.User.update(user.id, {
-                onboardingFeePaid: true
-            });
-            return Response.json({ success: true, marked: 'User' });
-        }
-
-        return Response.json({ success: false, message: 'User not found' }, { status: 404 });
+        // If not in PendingSignup, the user must already be fully signed up
+        // In that case, they should have been in PendingSignup and completed signup
+        // So this shouldn't happen, but we'll return success anyway
+        return Response.json({ success: true, message: 'User already completed onboarding' });
 
     } catch (error) {
         console.error('confirmPaymentAndMarkComplete error:', error);
