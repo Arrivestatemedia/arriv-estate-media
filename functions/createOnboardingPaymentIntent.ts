@@ -56,7 +56,9 @@ Deno.serve(async (req) => {
         return Response.json({
             success: true,
             clientSecret: paymentIntent.client_secret,
-            totalAmount: totalAmount / 100
+            totalAmount: totalAmount / 100,
+            addGearBag: !!targetUser.addGearBag,
+            addWaterBottle: !!targetUser.addWaterBottle
         });
 
     } catch (error) {
