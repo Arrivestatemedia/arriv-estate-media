@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { invoiceId, clientEmail, clientName, jobAddress, trackedLink, isReminder, reminderNumber } = await req.json();
+    const { invoiceId, clientEmail, clientName, jobAddress, trackedLink, googleDriveLink, isReminder, reminderNumber } = await req.json();
     
     // Get Gmail access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
@@ -20,11 +20,12 @@ Deno.serve(async (req) => {
       }
     }
     
+    const invoiceLink = googleDriveLink || trackedLink;
     const emailBody = `Hi ${clientName},
 
 ${bodyPrefix}${isReminder ? 'your' : 'Your'} invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
 
-👉 View Invoice: ${trackedLink}
+👉 View Invoice: ${invoiceLink}
 
 If you have any questions or need anything at all, feel free to reach out. Thank you again for the opportunity to work with you.
 
