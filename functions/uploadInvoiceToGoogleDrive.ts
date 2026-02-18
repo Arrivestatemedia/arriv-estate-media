@@ -1,19 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
-        try {
-          const base44 = createClientFromRequest(req);
-          const { fileName, pdfBase64, folderType } = await req.json();
+  try {
+    const base44 = createClientFromRequest(req);
+    const { fileName, pdfBase64, folderType } = await req.json();
 
-          console.log('uploadInvoiceToGoogleDrive called with fileName:', fileName, 'folderType:', folderType);
+    console.log('uploadInvoiceToGoogleDrive called with fileName:', fileName, 'folderType:', folderType);
 
-          const folderId = folderType === 'unpaid' 
-            ? '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh'
-            : '1Jwc1L00KV-lseq1kGEo8jcN5sTJ9LoOt';
+    const folderId = folderType === 'unpaid' 
+      ? '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh'
+      : '1Jwc1L00KV-lseq1kGEo8jcN5sTJ9LoOt';
 
-          // Get access token - use user auth since connector was authorized on your account
-          console.log('Getting Google Drive access token...');
-          const accessToken = await base44.connectors.getAccessToken('googledrive');
+    // Get access token - use service role since connector was authorized by admin
+    console.log('Getting Google Drive access token...');
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
     console.log('Access token obtained, length:', accessToken.length);
 
     // Convert base64 to binary
