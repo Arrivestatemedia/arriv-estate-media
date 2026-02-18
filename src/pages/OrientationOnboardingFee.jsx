@@ -40,7 +40,7 @@ function CheckoutForm({ totalAmount, onSuccess }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+      <PaymentElement onReady={() => setStripeReady(true)} />
       <div className="pt-4 border-t border-[var(--border-color)]">
         <div className="flex justify-between text-lg font-semibold text-[var(--text-primary)] mb-4">
           <span>Total:</span>
@@ -53,7 +53,7 @@ function CheckoutForm({ totalAmount, onSuccess }) {
         )}
         <Button
           type="submit"
-          disabled={!stripe || processing}
+          disabled={!stripe || !elements || !stripeReady || processing}
           className="w-full bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
           size="lg"
         >
