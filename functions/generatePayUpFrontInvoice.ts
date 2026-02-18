@@ -138,14 +138,13 @@ Return the formatted text for the invoice body.`,
       pay_at_closing: false
     });
 
-    // Send invoice email via Gmail with Google Drive link
+    // Send invoice email via Gmail
     await base44.asServiceRole.functions.invoke('sendInvoiceEmailViaGmail', {
       invoiceId: invoice.id,
       clientEmail: booking.client_email,
       clientName: booking.client_name.split(' ')[0],
       jobAddress,
       trackedLink: trackedUrl,
-      googleDriveLink: driveResult.data.fileUrl,
       isReminder: false
     });
 
