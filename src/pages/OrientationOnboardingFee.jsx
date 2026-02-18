@@ -71,6 +71,7 @@ export default function OrientationOnboardingFee() {
   const [totalAmount, setTotalAmount] = useState(50);
   const [addGearBag, setAddGearBag] = useState(false);
   const [addWaterBottle, setAddWaterBottle] = useState(false);
+  const [isTestUser, setIsTestUser] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
