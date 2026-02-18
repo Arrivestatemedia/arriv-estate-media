@@ -1,5 +1,8 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+
 Deno.serve(async (req) => {
     try {
+        const base44 = createClientFromRequest(req);
         const { email, password } = await req.json();
 
         if (!email || !password) {
@@ -7,116 +10,68 @@ Deno.serve(async (req) => {
         }
 
         const emailTrimmed = email.trim();
+        const emailLower = emailTrimmed.toLowerCase();
 
         // Hash the password
         const encoder = new TextEncoder();
         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
         const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Call backend API - use internal service endpoint
-        const appId = Deno.env.get('BASE44_APP_ID');
-        const apiUrl = `https://api.base44.com/v1/apps/${appId}/entities/PendingSignup?email=${encodeURIComponent(emailTrimmed)}`;
-        const serviceToken = Deno.env.get('BASE44_SERVICE_TOKEN');
-
-        let response = await fetch(apiUrl, {
-            headers: {
-                'Authorization': `Bearer ${serviceToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).catch(() => null);
-
-        let data = null;
-        if (response?.ok) {
-            const body = await response.json();
-            if (Array.isArray(body) && body.length > 0) {
-                data = body[0];
-            }
+        // List all PendingSignup and filter in-memory to avoid filter() API timeout issues
+        let allPending = [];
+        try {
+            allPending = await base44.asServiceRole.entities.PendingSignup.list();
+        } catch (e) {
+            console.error('Error listing PendingSignup:', e);
         }
 
-        // If not found and email has different case, try lowercase
-        if (!data && emailTrimmed.toLowerCase() !== emailTrimmed) {
-            const apiUrl2 = `https://api.base44.com/v1/apps/${appId}/entities/PendingSignup?email=${encodeURIComponent(emailTrimmed.toLowerCase())}`;
-            response = await fetch(apiUrl2, {
-                headers: {
-                    'Authorization': `Bearer ${serviceToken}`,
-                    'Content-Type': 'application/json'
-                }
-            }).catch(() => null);
+        let matchedUser = allPending.find(u => 
+            u.email && u.email.toLowerCase() === emailLower
+        );
 
-            if (response?.ok) {
-                const body = await response.json();
-                if (Array.isArray(body) && body.length > 0) {
-                    data = body[0];
-                }
-            }
-        }
-
-        // Check if it's a PendingSignup
-        if (data) {
-            if (hashHex !== data.password_hash) {
+        if (matchedUser) {
+            if (hashHex !== matchedUser.password_hash) {
                 return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
             }
             return Response.json({
                 success: true,
-                id: data.id,
-                email: data.email,
-                full_name: data.full_name,
-                user_type: data.user_type,
-                user_role: data.user_role === 'admin' ? 'admin' : 'user',
-                phone_number: data.phone_number || '',
-                orientationCompleted: data.orientationCompleted || false,
-                onboardingFeePaid: data.onboardingFeePaid || false
+                id: matchedUser.id,
+                email: matchedUser.email,
+                full_name: matchedUser.full_name,
+                user_type: matchedUser.user_type,
+                user_role: matchedUser.user_role === 'admin' ? 'admin' : 'user',
+                phone_number: matchedUser.phone_number || '',
+                orientationCompleted: matchedUser.orientationCompleted || false,
+                onboardingFeePaid: matchedUser.onboardingFeePaid || false
             });
         }
 
         // Try User entity
-        const userApiUrl = `https://api.base44.com/v1/apps/${appId}/entities/User?email=${encodeURIComponent(emailTrimmed)}`;
-        response = await fetch(userApiUrl, {
-            headers: {
-                'Authorization': `Bearer ${serviceToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).catch(() => null);
-
-        let userData = null;
-        if (response?.ok) {
-            const body = await response.json();
-            if (Array.isArray(body) && body.length > 0) {
-                userData = body[0];
-            }
+        let allUsers = [];
+        try {
+            allUsers = await base44.asServiceRole.entities.User.list();
+        } catch (e) {
+            console.error('Error listing User:', e);
         }
 
-        if (!userData && emailTrimmed.toLowerCase() !== emailTrimmed) {
-            const userApiUrl2 = `https://api.base44.com/v1/apps/${appId}/entities/User?email=${encodeURIComponent(emailTrimmed.toLowerCase())}`;
-            response = await fetch(userApiUrl2, {
-                headers: {
-                    'Authorization': `Bearer ${serviceToken}`,
-                    'Content-Type': 'application/json'
-                }
-            }).catch(() => null);
+        let matchedAppUser = allUsers.find(u => 
+            u.email && u.email.toLowerCase() === emailLower
+        );
 
-            if (response?.ok) {
-                const body = await response.json();
-                if (Array.isArray(body) && body.length > 0) {
-                    userData = body[0];
-                }
-            }
-        }
-
-        if (userData) {
-            if (hashHex !== userData.password_hash) {
+        if (matchedAppUser) {
+            if (hashHex !== matchedAppUser.password_hash) {
                 return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
             }
             return Response.json({
                 success: true,
-                id: userData.id,
-                email: userData.email,
-                full_name: userData.full_name,
-                user_type: userData.user_type || 'user',
-                user_role: userData.user_role === 'admin' ? 'admin' : 'user',
-                phone_number: userData.phone_number || '',
-                orientationCompleted: userData.orientationCompleted || false,
-                onboardingFeePaid: userData.onboardingFeePaid || false
+                id: matchedAppUser.id,
+                email: matchedAppUser.email,
+                full_name: matchedAppUser.full_name,
+                user_type: matchedAppUser.user_type || 'user',
+                user_role: matchedAppUser.user_role === 'admin' ? 'admin' : 'user',
+                phone_number: matchedAppUser.phone_number || '',
+                orientationCompleted: matchedAppUser.orientationCompleted || false,
+                onboardingFeePaid: matchedAppUser.onboardingFeePaid || false
             });
         }
 
