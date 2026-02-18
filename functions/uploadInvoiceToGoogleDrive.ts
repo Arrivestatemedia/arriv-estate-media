@@ -47,11 +47,14 @@ Deno.serve(async (req) => {
         body: body
       }
     );
-    
+
     const fileData = await uploadResponse.json();
-    
+
     if (!uploadResponse.ok) {
-      throw new Error(`Google Drive error: ${fileData.error?.message || 'Unknown error'}`);
+      console.error('Upload response status:', uploadResponse.status);
+      console.error('Error details:', JSON.stringify(fileData, null, 2));
+      console.error('Folder ID being used:', folderId);
+      throw new Error(`Google Drive error: ${fileData.error?.message || JSON.stringify(fileData)}`);
     }
     
     // Make file shareable
