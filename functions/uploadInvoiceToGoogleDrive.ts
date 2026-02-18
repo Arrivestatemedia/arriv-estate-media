@@ -20,10 +20,11 @@ Deno.serve(async (req) => {
     }
 
     // Create file metadata
+    const mimeType = fileName.endsWith('.html') ? 'text/html' : 'application/pdf';
     const metadata = {
       name: fileName,
       parents: [folderId],
-      mimeType: 'application/pdf'
+      mimeType
     };
 
     // Create multipart upload
