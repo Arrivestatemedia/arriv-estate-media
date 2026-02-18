@@ -31,28 +31,36 @@ export default function MediaPartnerGate({ children }) {
         const orientationRoutes = ['OrientationVideo', 'OrientationSizes', 'OrientationOnboardingFee'];
         const isOnOrientationRoute = orientationRoutes.some(route => currentPath.includes(route));
 
-        // If coming back from Stripe (payment_intent param in URL), poll until webhook fires
+        // If coming back from Stripe payment
         const urlParams = new URLSearchParams(window.location.search);
-        const isStripeReturn = urlParams.has('payment_intent');
+        const isPaymentSuccess = urlParams.get('payment_success') === 'true';
 
-        if (isStripeReturn) {
-          // Poll up to 10 times (10 seconds) waiting for webhook to mark paid
-          let attempts = 0;
-          while (attempts < 10) {
-            const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
-            const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
-            if (isComplete) {
-              setIsFullyOnboarded(true);
-              setIsReady(true);
-              return;
-            }
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            attempts++;
+        if (isPaymentSuccess) {
+          // Confirm payment and mark complete, then check status
+          try {
+            await base44.functions.invoke('confirmPaymentAndMarkComplete', { email });
+            // Give the database a moment to update
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (err) {
+            console.error('Error confirming payment:', err);
           }
-          // Polling complete but not paid yet – redirect to payment
-          navigate(createPageUrl('OrientationOnboardingFee'), { replace: true });
-          setIsReady(true);
-          return;
+          
+          // Now check if payment was marked
+          const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
+          const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
+          
+          if (isComplete) {
+            setIsFullyOnboarded(true);
+            // Clear the payment_success param from URL
+            window.history.replaceState({}, document.title, createPageUrl('MediaPartnerDashboard'));
+            setIsReady(true);
+            return;
+          } else {
+            // Payment not confirmed yet, redirect back to fee page
+            navigate(createPageUrl('OrientationOnboardingFee'), { replace: true });
+            setIsReady(true);
+            return;
+          }
         }
 
         const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
