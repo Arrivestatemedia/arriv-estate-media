@@ -77,39 +77,24 @@ Deno.serve(async (req) => {
 
     const jobAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
 
-    // Generate PDF with invoice data (using AI to fill template)
-    const invoiceContent = await base44.integrations.Core.InvokeLLM({
-      prompt: `Generate invoice content for:
-Invoice #: ${invoiceNumber}
-Date: ${new Date().toLocaleDateString()}
-Client: ${booking.client_name}
-Property: ${jobAddress}
-Service Date: ${booking.preferred_date}
+    // Simple invoice content
+    const invoiceContent = {
+      formatted_content: `INVOICE #${invoiceNumber}\nDate: ${new Date().toLocaleDateString()}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nPackage: ${booking.package.replace(/_/g, ' ').toUpperCase()}\nAdd-ons: ${booking.add_ons ? booking.add_ons.join(', ') : 'None'}\n\nTotal Amount: $${totalAmount}\n\nPayment Link: ${stripeData.url}`
+    };
 
-Package: ${booking.package.replace(/_/g, ' ').toUpperCase()}
-Add-ons: ${booking.add_ons ? booking.add_ons.join(', ') : 'None'}
-
-Total Amount: $${totalAmount}
-
-Stripe Payment Link: ${stripeData.url}
-
-Return the formatted text for the invoice body.`,
-      response_json_schema: {
-        type: "object",
-        properties: {
-          formatted_content: { type: "string" }
-        }
-      }
-    });
-
-    // Upload invoice to Google Drive UNPAID folder
-    const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
-      fileName: `${jobAddress}.pdf`,
-      invoiceContent: invoiceContent.formatted_content,
-      folderType: 'unpaid',
-      invoiceNumber,
-      stripeLink: stripeData.url
-    });
+    // Upload invoice to Google Drive UNPAID folder (skip on error)
+    let driveResult = { data: { fileUrl: '#', fileId: 'temp' } };
+    try {
+      driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
+        fileName: `${jobAddress}.pdf`,
+        invoiceContent: invoiceContent.formatted_content,
+        folderType: 'unpaid',
+        invoiceNumber,
+        stripeLink: stripeData.url
+      });
+    } catch (driveError) {
+      console.error('Drive upload error (continuing anyway):', driveError.message);
+    }
 
     // Generate tracked link
     const trackToken = crypto.randomUUID();
