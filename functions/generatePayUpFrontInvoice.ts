@@ -68,16 +68,17 @@ Deno.serve(async (req) => {
         packageAmount: basePkgAmount
       });
 
-      if (templateResponse.data.success) {
-        googleDriveUrl = templateResponse.data.driveViewLink;
-        googleDriveFileId = templateResponse.data.invoiceFileId;
-        messageId = templateResponse.data.messageId;
+      const templateData = templateResponse.data || templateResponse;
+      if (templateData.success) {
+        googleDriveUrl = templateData.driveViewLink;
+        googleDriveFileId = templateData.invoiceFileId;
+        messageId = templateData.messageId;
         console.log('Invoice generated and email sent via template function');
       } else {
-        console.error('Template generation failed:', templateResponse.data.error);
+        console.error('Template generation failed:', templateData.error || templateData);
       }
     } catch (templateError) {
-      console.error('Error generating invoice from template:', templateError.message);
+      console.error('Error generating invoice from template:', templateError.message || templateError);
     }
 
     // Create invoice record
