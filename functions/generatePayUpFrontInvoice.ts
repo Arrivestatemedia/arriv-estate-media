@@ -113,7 +113,178 @@ Deno.serve(async (req) => {
         'rush_delivery': 100, 'vertical_reel': 40, 'ai_staging': 125
       };
 
-      const invoiceHTML = `<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px;background:#fff;color:#333}.header{text-align:center;margin-bottom:40px}.logo-text{font-size:28px;font-weight:bold;letter-spacing:2px;color:#1a1a1a;margin-bottom:5px}.logo-subtitle{font-size:12px;color:#b8956a;letter-spacing:1px}.title{font-size:24px;font-weight:bold;margin:30px 0 10px 0}.invoice-details{display:flex;justify-content:space-between;margin:20px 0;font-size:14px}.details-column{flex:1}.detail-row{margin:8px 0}.detail-label{font-weight:bold}.section-title{font-weight:bold;font-size:14px;margin-top:25px;margin-bottom:10px}table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px}th{background-color:#f5f5f5;padding:12px;text-align:left;font-weight:bold;border:1px solid #ddd}td{padding:12px;border:1px solid #ddd}.amount-right{text-align:right}.total-row{background-color:#f9f9f9;font-weight:bold}.payment-button{display:inline-block;background-color:#b8956a;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;margin-top:20px;font-weight:bold}.footer{text-align:center;margin-top:40px;font-size:13px;color:#666}.payment-terms{background-color:#f9f9f9;padding:15px;margin:20px 0;border-left:4px solid #b8956a;font-size:13px}</style></head><body><div class="header"><div class="logo-text">ARRIV</div><div class="logo-subtitle">ESTATE MEDIA</div></div><div class="title">MEDIA INVOICE</div><div class="invoice-details"><div class="details-column"><div class="detail-row"><span class="detail-label">Invoice #:</span> ${invoiceNumber}</div><div class="detail-row"><span class="detail-label">Client:</span> ${booking.client_name}</div><div class="detail-row"><span class="detail-label">Property:</span> ${jobAddress}</div><div class="detail-row"><span class="detail-label">Service Date:</span> ${booking.preferred_date}</div></div><div class="details-column" style="text-align:right"><div class="detail-row"><span class="detail-label">Invoice Date:</span> ${new Date().toLocaleDateString()}</div></div></div><div class="section-title">Services Provided</div><table><tr><th>Description</th><th class="amount-right">Amount</th></tr><tr><td>${packageDescriptions[booking.package] || booking.package}</td><td class="amount-right">$${(totalAmount - (booking.add_ons || []).reduce((sum, addon) => sum + (addonPrices[addon] || 0), 0)).toFixed(2)}</td></tr>${(booking.add_ons || []).map(addon => `<tr><td>${addonDescriptions[addon] || addon}</td><td class="amount-right">$${(addonPrices[addon] || 0).toFixed(2)}</td></tr>`).join('')}<tr class="total-row"><td>Total Due</td><td class="amount-right">$${totalAmount.toFixed(2)}</td></tr></table><div class="section-title">Payment Terms</div><div class="payment-terms"><strong>Pay-Up-Front</strong><br>Full payment is required prior to the scheduled shoot. Appointments are confirmed once payment is received.</div><a href="${stripeData.url}" class="payment-button">Pay Now (Stripe)</a><div class="footer"><p>Thank you for choosing <strong>Arriv Estate Media</strong>.</p><p>Please feel free to reach out if any adjustments are needed.</p></div></body></html>`;
+      const packageBaseAmount = packagePrices[booking.package] || 0;
+      const addonRows = (booking.add_ons || []).map(addon => `<tr><td>${addonDescriptions[addon] || addon}</td><td>${(addonPrices[addon] || 0).toFixed(2)}</td></tr>`).join('');
+
+      const invoiceHTML = `<!DOCTYPE html>
+      <html>
+      <head>
+      <style>
+      body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: #f5f1ed;
+      color: #333;
+      }
+      .container {
+      background: white;
+      padding: 60px 40px;
+      }
+      .header {
+      text-align: center;
+      margin-bottom: 40px;
+      border-bottom: 2px solid #b8956a;
+      padding-bottom: 20px;
+      }
+      .logo {
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      color: #1a1a1a;
+      margin-bottom: 5px;
+      }
+      .logo-subtitle {
+      font-size: 11px;
+      color: #b8956a;
+      letter-spacing: 2px;
+      }
+      .title {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      margin: 30px 0;
+      }
+      .invoice-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      font-size: 13px;
+      }
+      .info-block {
+      flex: 1;
+      }
+      .info-row {
+      margin: 8px 0;
+      }
+      .info-label {
+      font-weight: bold;
+      }
+      .section-title {
+      font-weight: bold;
+      font-size: 13px;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      }
+      table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 13px;
+      }
+      thead {
+      background-color: #e8e0d8;
+      border: 1px solid #ccc;
+      }
+      th {
+      padding: 12px;
+      text-align: left;
+      font-weight: bold;
+      border: 1px solid #ccc;
+      }
+      td {
+      padding: 12px;
+      border: 1px solid #ccc;
+      }
+      .amount-col {
+      text-align: right;
+      }
+      .total-row {
+      background-color: #e8e0d8;
+      font-weight: bold;
+      }
+      .payment-terms {
+      margin-bottom: 30px;
+      font-size: 13px;
+      line-height: 1.6;
+      }
+      .payment-button {
+      display: inline-block;
+      background-color: #b8956a;
+      color: white;
+      padding: 12px 28px;
+      text-decoration: none;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 13px;
+      margin-top: 15px;
+      }
+      .footer {
+      text-align: center;
+      margin-top: 50px;
+      font-size: 12px;
+      color: #666;
+      }
+      </style>
+      </head>
+      <body>
+      <div class="container">
+      <div class="header">
+      <div class="logo">◎ ARRIV</div>
+      <div class="logo-subtitle">ESTATE MEDIA</div>
+      </div>
+
+      <div class="title">MEDIA INVOICE</div>
+
+      <div class="invoice-info">
+      <div class="info-block">
+      <div class="info-row"><span class="info-label">Invoice #:</span> ${invoiceNumber}</div>
+      <div class="info-row"><span class="info-label">Client:</span> ${booking.client_name}</div>
+      <div class="info-row"><span class="info-label">Property:</span> ${jobAddress}</div>
+      <div class="info-row"><span class="info-label">Service Date:</span> ${booking.preferred_date}</div>
+      </div>
+      <div class="info-block" style="text-align: right;">
+      <div class="info-row"><span class="info-label">Invoice Date:</span> ${new Date().toLocaleDateString()}</div>
+      </div>
+      </div>
+
+      <div class="section-title">Services Provided</div>
+      <table>
+      <thead>
+      <tr>
+      <th>Description</th>
+      <th class="amount-col">Amount</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>${packageDescriptions[booking.package] || booking.package}</td>
+      <td class="amount-col">$${packageBaseAmount.toFixed(2)}</td>
+      </tr>
+      ${addonRows}
+      <tr class="total-row">
+      <td>Total Due</td>
+      <td class="amount-col">$${totalAmount.toFixed(2)}</td>
+      </tr>
+      </tbody>
+      </table>
+
+      <div class="section-title">Payment Terms</div>
+      <div class="payment-terms">
+      <strong>Pay-Up-Front</strong><br>
+      Full payment is required prior to the scheduled shoot. Appointments are confirmed once payment is received.
+      </div>
+
+      <a href="${stripeData.url}" class="payment-button">Pay Now (Stripe)</a>
+
+      <div class="footer">
+      <p>Thank you for choosing <strong>Arriv Estate Media</strong>.</p>
+      <p>Please feel free to reach out if any adjustments are needed.</p>
+      </div>
+      </div>
+      </body>
+      </html>`;
 
       // Upload HTML invoice to Google Drive directly using access token
       console.log('Uploading invoice to Google Drive...');
