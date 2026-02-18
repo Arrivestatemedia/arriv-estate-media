@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { fileName, invoiceContent, folderType } = await req.json();
+    const { fileName, pdfBase64, folderType } = await req.json();
 
     const folderId = folderType === 'unpaid' 
       ? '1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY'
@@ -12,17 +12,42 @@ Deno.serve(async (req) => {
     // Get access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
 
-    // Create file metadata and content
+    // Convert base64 to binary
+    const binaryString = atob(pdfBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Create file metadata
     const metadata = {
       name: fileName,
-      parents: [folderId]
+      parents: [folderId],
+      mimeType: 'application/pdf'
     };
 
-    // Create form data with metadata and file content
+    // Create multipart upload
     const boundary = '===============7330845974216740156==';
     const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`;
-    const contentPart = `--${boundary}\r\nContent-Type: text/plain\r\n\r\n${invoiceContent}\r\n--${boundary}--`;
-    const body = metadataPart + contentPart;
+    const filePart = `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`;
+    const footer = `\r\n--${boundary}--`;
+
+    // Combine parts - need to handle binary data
+    const metadataBuffer = new TextEncoder().encode(metadataPart);
+    const filePartBuffer = new TextEncoder().encode(filePart);
+    const footerBuffer = new TextEncoder().encode(footer);
+
+    const totalLength = metadataBuffer.length + filePartBuffer.length + bytes.length + footerBuffer.length;
+    const body = new Uint8Array(totalLength);
+    let offset = 0;
+
+    body.set(metadataBuffer, offset);
+    offset += metadataBuffer.length;
+    body.set(filePartBuffer, offset);
+    offset += filePartBuffer.length;
+    body.set(bytes, offset);
+    offset += bytes.length;
+    body.set(footerBuffer, offset);
 
     // Upload to Drive
     const uploadRes = await fetch(
