@@ -76,7 +76,8 @@ Deno.serve(async (req) => {
     const fileData = await uploadRes.json();
 
     if (!uploadRes.ok) {
-      throw new Error(`Drive upload failed: ${fileData.error?.message || 'Unknown error'}`);
+      console.error('Drive upload response:', JSON.stringify(fileData));
+      throw new Error(`Drive upload failed: ${fileData.error?.message || 'Unknown error'} - Status: ${uploadRes.status}`);
     }
 
     // Make shareable
