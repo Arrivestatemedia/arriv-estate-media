@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
             binary += String.fromCharCode(uint8Array[i]);
           }
           const logoBase64 = btoa(binary);
-          pdf.addImage('data:image/png;base64,' + logoBase64, 'PNG', pageWidth / 2 - 30, 8, 60, 45);
+          pdf.addImage('data:image/png;base64,' + logoBase64, 'PNG', pageWidth / 2 - 25, 10, 50, 50);
         }
       } catch (e) {
         console.error('Logo loading error:', e.message);
