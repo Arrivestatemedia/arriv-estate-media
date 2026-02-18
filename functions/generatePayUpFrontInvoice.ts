@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 10;
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 25;
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 11,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 12;
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 10;
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 9,
-        color: rgb(184/255, 149/255, 106/255)
+        color: rgb(184/256, 149/256, 106/256)
       });
 
       yPos -= 10;
@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 10;
@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 25;
@@ -174,14 +174,14 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 11,
-        color: rgb(184/255, 149/255, 106/255)
+        color: rgb(184/256, 149/256, 106/256)
       });
 
       yPos -= 8;
       page.drawLine({
         start: { x: 40, y: yPos },
         end: { x: width - 40, y: yPos },
-        color: rgb(184/255, 149/255, 106/255),
+        color: rgb(184/256, 149/256, 106/256),
         thickness: 1
       });
 
@@ -190,13 +190,13 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
       page.drawText('Amount', {
         x: width - 100,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       // Services
@@ -223,13 +223,13 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
       page.drawText(`$${packageBaseAmount.toFixed(2)}`, {
         x: width - 100,
         y: yPos,
         size: 10,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 12;
@@ -241,13 +241,13 @@ Deno.serve(async (req) => {
             x: 40,
             y: yPos,
             size: 10,
-            color: rgb(26/255, 26/255, 26/255)
+            color: rgb(26/256, 26/256, 26/256)
           });
           page.drawText(`$${addonPrice.toFixed(2)}`, {
             x: width - 100,
             y: yPos,
             size: 10,
-            color: rgb(26/255, 26/255, 26/255)
+            color: rgb(26/256, 26/256, 26/256)
           });
           yPos -= 12;
         });
@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
       page.drawLine({
         start: { x: 40, y: yPos },
         end: { x: width - 40, y: yPos },
-        color: rgb(184/255, 149/255, 106/255),
+        color: rgb(184/256, 149/256, 106/256),
         thickness: 1
       });
 
@@ -267,13 +267,13 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 12,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
       page.drawText(`$${totalAmount.toFixed(2)}`, {
         x: width - 100,
         y: yPos,
         size: 12,
-        color: rgb(184/255, 149/255, 106/255)
+        color: rgb(184/256, 149/256, 106/256)
       });
 
       // Payment section
@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 11,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 12;
@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 9,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 12;
@@ -298,13 +298,13 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 9,
-        color: rgb(0, 0, 255)
+        color: rgb(0, 0, 1)
       });
       page.drawText(stripeData.url, {
         x: 130,
         y: yPos,
         size: 9,
-        color: rgb(0, 0, 255)
+        color: rgb(0, 0, 1)
       });
 
       const pdfBytes = await pdfDoc.save();
