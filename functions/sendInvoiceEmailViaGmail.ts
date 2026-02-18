@@ -25,13 +25,35 @@ Arriv Estate Media
 📞 678-242-9107
 🌐 arrivestatemedia.com`;
     
-    // Send email using Base44's built-in email integration
-    await base44.integrations.Core.SendEmail({
-      to: clientEmail,
-      subject,
-      body: emailBody,
-      from_name: 'Arriv Estate Media'
+    // Get Gmail access token via connector
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    
+    // Format email message
+    const message = [
+      `To: ${clientEmail}`,
+      `Subject: ${subject}`,
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      emailBody
+    ].join('\r\n');
+    
+    // Encode for Gmail API
+    const encodedMessage = btoa(unescape(encodeURIComponent(message)));
+    
+    // Send via Gmail
+    const gmailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ raw: encodedMessage })
     });
+    
+    if (!gmailResponse.ok) {
+      const error = await gmailResponse.json();
+      throw new Error(`Gmail error: ${error.error?.message || 'Failed to send'}`);
+    }
     
     // Update invoice record
     const updateData = {
