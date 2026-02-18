@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
     const trackToken = crypto.randomUUID();
     const trackedUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/TrackLink?token=${trackToken}`;
 
-    // Create invoice record
+    // Create invoice record (Drive URL will be set once upload completes)
     const invoice = await base44.asServiceRole.entities.Invoice.create({
       invoice_number: invoiceNumber,
       invoice_type: 'pay_up_front',
@@ -118,8 +118,6 @@ Deno.serve(async (req) => {
       payment_status: 'unpaid',
       stripe_payment_link_id: stripeData.id,
       stripe_payment_link_url: stripeData.url,
-      google_drive_unpaid_url: googleDriveUrl,
-      google_drive_file_id: googleDriveFileId,
       tracked_link_token: trackToken,
       tracked_link_url: trackedUrl,
       pay_at_closing: false
