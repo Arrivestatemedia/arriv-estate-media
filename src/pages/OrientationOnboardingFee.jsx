@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createPageUrl } from "../utils";
 
-console.log('Stripe key:', import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+let stripePromise = null;
 
 function CheckoutForm({ totalAmount }) {
   const stripe = useStripe();
