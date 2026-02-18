@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
 
         // If not found and email has different case, try lowercase
         if (!data && emailTrimmed.toLowerCase() !== emailTrimmed) {
-            const apiUrl2 = `${Deno.env.get('BASE44_APP_DOMAIN')}/api/entities/PendingSignup?email=${encodeURIComponent(emailTrimmed.toLowerCase())}`;
+            const apiUrl2 = `https://api.base44.com/v1/apps/${appId}/entities/PendingSignup?email=${encodeURIComponent(emailTrimmed.toLowerCase())}`;
             response = await fetch(apiUrl2, {
                 headers: {
                     'Authorization': `Bearer ${serviceToken}`,
