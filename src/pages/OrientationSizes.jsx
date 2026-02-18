@@ -25,30 +25,10 @@ export default function OrientationSizes() {
   const [addWaterBottle, setAddWaterBottle] = useState(false);
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userData = await base44.auth.me();
-        setUser(userData);
-
-        // Pre-fill if already set
-        if (userData.shirtFit) setShirtFit(userData.shirtFit);
-        if (userData.shirtSize) setShirtSize(userData.shirtSize);
-        if (userData.jacketSize) setJacketSize(userData.jacketSize);
-        if (userData.addGearBag) setAddGearBag(userData.addGearBag);
-        if (userData.addWaterBottle) setAddWaterBottle(userData.addWaterBottle);
-
-        // If already completed, redirect
-        if (userData.orientationCompleted && userData.onboardingFeePaid) {
-          navigate(createPageUrl("MediaPartnerDashboard"));
-        }
-      } catch (error) {
-        console.error("Error loading user:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUser();
+    const email = localStorage.getItem('user_email');
+    const name = localStorage.getItem('user_name');
+    if (email) setUser({ email, full_name: name });
+    setLoading(false);
   }, [navigate]);
 
   const handleContinue = async () => {
