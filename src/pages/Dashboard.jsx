@@ -260,8 +260,16 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <InviteUsersCard />
+            <Card className="border-2 border-[#B8956A]/20 bg-white">
+              <CardHeader>
+                <CardTitle className="text-sm font-medium text-[#1A1A1A]">Invoice Template</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <InvoiceTemplateSelector />
+              </CardContent>
+            </Card>
           </div>
         </div>
 
