@@ -102,9 +102,15 @@ Deno.serve(async (req) => {
       const logoUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/314d93d36_IMG_5660.png';
       try {
         const logoRes = await fetch(logoUrl);
-        const logoBuffer = await logoRes.arrayBuffer();
-        const logoBase64 = btoa(String.fromCharCode(...new Uint8Array(logoBuffer)));
-        pdf.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', pageWidth / 2 - 20, 10, 40, 40);
+        if (logoRes.ok) {
+          const logoBlob = await logoRes.blob();
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const logoBase64 = reader.result.split(',')[1];
+            pdf.addImage(logoBase64, 'PNG', pageWidth / 2 - 30, 8, 60, 45);
+          };
+          reader.readAsDataURL(logoBlob);
+        }
       } catch (e) {
         console.error('Logo loading error:', e.message);
       }
