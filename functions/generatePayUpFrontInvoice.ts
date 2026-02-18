@@ -84,45 +84,19 @@ Deno.serve(async (req) => {
     };
 
     // Upload invoice to Google Drive UNPAID folder (skip on error)
-    let googleDriveUrl = '#';
+    let googleDriveUrl = stripeData.url;
     let googleDriveFileId = 'temp';
     try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-      const doc = new jsPDF();
-      doc.setFontSize(12);
-      doc.text(invoiceContent.formatted_content || 'Invoice', 20, 40);
-      const pdfBuffer = doc.output('arraybuffer');
-
-      const metadata = {
-        name: `${jobAddress}.pdf`,
-        parents: ['1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY']
-      };
-
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }));
-
-      const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: form
+      driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
+        fileName: `${jobAddress}.pdf`,
+        invoiceContent: invoiceContent.formatted_content,
+        folderType: 'unpaid',
+        invoiceNumber,
+        stripeLink: stripeData.url
       });
-
-      const fileData = await uploadResponse.json();
-      if (uploadResponse.ok) {
-        googleDriveFileId = fileData.id;
-        googleDriveUrl = `https://drive.google.com/file/d/${fileData.id}/view?usp=sharing`;
-
-        await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ role: 'reader', type: 'anyone' })
-        });
+      if (driveResult.data.fileUrl) {
+        googleDriveUrl = driveResult.data.fileUrl;
+        googleDriveFileId = driveResult.data.fileId;
       }
     } catch (driveError) {
       console.error('Drive upload error:', driveError.message);
