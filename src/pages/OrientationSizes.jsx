@@ -59,13 +59,12 @@ export default function OrientationSizes() {
 
     setSaving(true);
     try {
-      await base44.auth.updateMe({
-        shirtFit,
-        shirtSize,
-        jacketSize,
-        addGearBag,
-        addWaterBottle,
-        apparelSizesConfirmedAt: new Date().toISOString()
+      const userEmail = localStorage.getItem('user_email');
+      
+      // Save via backend function (works for both PendingSignup and User)
+      await base44.functions.invoke('saveOrientationData', {
+        email: userEmail,
+        shirtFit, shirtSize, jacketSize, addGearBag, addWaterBottle
       });
 
       navigate(createPageUrl("OrientationOnboardingFee"));
