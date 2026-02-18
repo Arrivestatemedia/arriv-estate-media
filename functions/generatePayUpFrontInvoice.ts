@@ -82,19 +82,23 @@ Deno.serve(async (req) => {
       formatted_content: `INVOICE #${invoiceNumber}\nDate: ${new Date().toLocaleDateString()}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nPackage: ${booking.package.replace(/_/g, ' ').toUpperCase()}\nAdd-ons: ${booking.add_ons ? booking.add_ons.join(', ') : 'None'}\n\nTotal Amount: $${totalAmount}\n\nPayment Link: ${stripeData.url}`
     };
 
-    // Upload invoice to Google Drive UNPAID folder (async, don't block)
-    base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
-      fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.txt`,
-      invoiceContent: `INVOICE #${invoiceNumber}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nAmount Due: $${totalAmount}\n\nPayment Link: ${stripeData.url}`,
-      folderType: 'unpaid'
-    }).then(driveResult => {
+    // Upload invoice to Google Drive UNPAID folder
+    try {
+      const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
+        fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.txt`,
+        invoiceContent: `INVOICE #${invoiceNumber}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nAmount Due: $${totalAmount}\n\nPayment Link: ${stripeData.url}`,
+        folderType: 'unpaid'
+      });
+
       if (driveResult.data?.fileUrl) {
-        base44.asServiceRole.entities.Invoice.update(invoice.id, {
+        await base44.asServiceRole.entities.Invoice.update(invoice.id, {
           google_drive_unpaid_url: driveResult.data.fileUrl,
           google_drive_file_id: driveResult.data.fileId
-        }).catch(err => console.error('Error updating Drive URL:', err));
+        });
       }
-    }).catch(err => console.error('Drive upload error:', err.message));
+    } catch (driveError) {
+      console.error('Drive upload error:', driveError.message);
+    }
 
     // Generate tracked link
     const trackToken = crypto.randomUUID();
