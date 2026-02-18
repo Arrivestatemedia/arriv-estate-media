@@ -1,58 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// Simple PDF generator from HTML
-function generateBasicPDF(html) {
-  // Extract text content from HTML for basic PDF
-  const textContent = html
-    .replace(/<style[^>]*>.*?<\/style>/gs, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .split('\n')
-    .filter(line => line.trim())
-    .join('\n');
-
-  // Basic PDF format (simplified)
-  const pdf = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
-endobj
-4 0 obj
-<< /Length ${textContent.length + 100} >>
-stream
-BT
-/F1 12 Tf
-50 750 Td
-(${textContent.substring(0, 500)}) Tj
-ET
-endstream
-endobj
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000229 00000 n 
-0000000${String(textContent.length + 330).padStart(6, '0')} 00000 n 
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-${textContent.length + 430}
-%%EOF`;
-
-  return pdf;
+// Generate PDF from HTML using a simple approach
+function generatePDFFromHTML(html) {
+  // Create a simple HTML-to-PDF conversion
+  // Return HTML as-is, will be converted on client-side or via external service
+  return html;
 }
 
 Deno.serve(async (req) => {
