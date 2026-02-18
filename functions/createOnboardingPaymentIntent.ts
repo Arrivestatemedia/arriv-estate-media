@@ -13,23 +13,18 @@ Deno.serve(async (req) => {
         }
 
         const emailTrimmed = email.trim();
+        const emailLower = emailTrimmed.toLowerCase();
 
-        // Try exact match first, then case-insensitive fallback
-        let signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed });
-        if (!signups.length) {
-            signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed.toLowerCase() });
-        }
-        if (!signups.length) {
-            signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed.toUpperCase() });
-        }
-        const pendingUser = signups[0] || null;
+        // Try both original and lowercase
+        const [signupsExact, signupsLower, usersExact, usersLower] = await Promise.all([
+            base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed }),
+            base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower }),
+            base44.asServiceRole.entities.User.filter({ email: emailTrimmed }),
+            base44.asServiceRole.entities.User.filter({ email: emailLower }),
+        ]);
 
-        // Also check User entity
-        let users = await base44.asServiceRole.entities.User.filter({ email: emailTrimmed });
-        if (!users.length) {
-            users = await base44.asServiceRole.entities.User.filter({ email: emailTrimmed.toLowerCase() });
-        }
-        const appUser = users[0] || null;
+        const pendingUser = (signupsExact[0] || signupsLower[0]) || null;
+        const appUser = (usersExact[0] || usersLower[0]) || null;
 
         const targetUser = pendingUser || appUser;
 
