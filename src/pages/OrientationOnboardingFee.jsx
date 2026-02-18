@@ -161,18 +161,18 @@ export default function OrientationOnboardingFee() {
             <div className="bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] space-y-2">
               <div className="flex justify-between text-[var(--text-primary)]">
                 <span>Required Apparel (Shirt & Jacket)</span>
-                <span>$50.00</span>
+                <span>{isTestUser ? "$1.00" : "$50.00"}</span>
               </div>
               {addGearBag && (
                 <div className="flex justify-between text-[var(--text-primary)]">
                   <span>Gear Bag</span>
-                  <span>$50.00</span>
+                  <span>{isTestUser ? "$1.00" : "$50.00"}</span>
                 </div>
               )}
               {addWaterBottle && (
                 <div className="flex justify-between text-[var(--text-primary)]">
                   <span>Water Bottle</span>
-                  <span>$40.00</span>
+                  <span>{isTestUser ? "$1.00" : "$40.00"}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-[var(--text-primary)] border-t border-[var(--border-color)] pt-2">
