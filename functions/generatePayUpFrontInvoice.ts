@@ -98,19 +98,24 @@ Deno.serve(async (req) => {
       pdf.setFillColor(255, 251, 245); // #FFFBF5
       pdf.rect(0, 0, pageWidth, pageHeight, 'F');
 
-      // Logo
+      // Logo - use embedded logo
       const logoUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/314d93d36_IMG_5660.png';
       try {
         const logoRes = await fetch(logoUrl);
         if (logoRes.ok) {
-          const logoBuffer = await logoRes.arrayBuffer();
-          const uint8Array = new Uint8Array(logoBuffer);
-          let binary = '';
-          for (let i = 0; i < uint8Array.length; i++) {
-            binary += String.fromCharCode(uint8Array[i]);
-          }
-          const logoBase64 = btoa(binary);
-          pdf.addImage('data:image/png;base64,' + logoBase64, 'PNG', pageWidth / 2 - 25, 10, 50, 50);
+          const logoBlob = await logoRes.blob();
+          const reader = new FileReader();
+          reader.readAsDataURL(logoBlob);
+          await new Promise((resolve) => {
+            reader.onload = () => {
+              try {
+                pdf.addImage(reader.result, 'PNG', pageWidth / 2 - 25, 10, 50, 50);
+              } catch (imgErr) {
+                console.error('Image add error:', imgErr.message);
+              }
+              resolve();
+            };
+          });
         }
       } catch (e) {
         console.error('Logo loading error:', e.message);
