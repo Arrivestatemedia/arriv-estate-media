@@ -367,43 +367,56 @@ Deno.serve(async (req) => {
 
     const invoiceId = invoice.id;
 
-    // Send invoice email via Gmail
+    // Send invoice email via Brevo with click tracking
     try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      const brevoApiKey = Deno.env.get('BREVO_API_KEY');
       const emailBody = `Hi ${booking.client_name.split(' ')[0]},
 
-Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
+    Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
 
-👉 View Invoice: ${googleDriveUrl}
+    👉 <a href="${googleDriveUrl}">View Invoice</a>
 
-If you have any questions or need anything at all, feel free to reach out. Thank you again for the opportunity to work with you.
+    If you have any questions or need anything at all, feel free to reach out. Thank you again for the opportunity to work with you.
 
-Best regards,
-Bradley Burke
-Arriv Estate Media
-📞 678-242-9107
-🌐 arrivestatemedia.com`;
+    Best regards,
+    Bradley Burke
+    Arriv Estate Media
+    📞 678-242-9107
+    🌐 arrivestatemedia.com`;
 
-      const message = [
-        `To: ${booking.client_email}`,
-        'Subject: Your Invoice from Arriv Estate Media',
-        'Content-Type: text/plain; charset=utf-8',
-        '',
-        emailBody
-      ].join('\r\n');
-
-      const encodedMessage = btoa(unescape(encodeURIComponent(message)));
-
-      await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'api-key': brevoApiKey,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ raw: encodedMessage })
+        body: JSON.stringify({
+          sender: {
+            name: 'Bradley Burke - Arriv Estate Media',
+            email: Deno.env.get('ADMIN_EMAIL')
+          },
+          to: [
+            {
+              email: booking.client_email,
+              name: booking.client_name
+            }
+          ],
+          subject: 'Your Invoice from Arriv Estate Media',
+          htmlContent: emailBody,
+          trackingParams: {
+            utmSource: 'invoice_email'
+          }
+        })
       });
+
+      const brevoData = await brevoResponse.json();
+      if (brevoResponse.ok && brevoData.messageId) {
+        console.log('Invoice email sent via Brevo:', brevoData.messageId);
+      } else {
+        console.error('Brevo email send failed:', brevoData.message || 'Unknown error');
+      }
     } catch (emailError) {
-      console.error('Error sending email:', emailError.message);
+      console.error('Error sending email via Brevo:', emailError.message);
     }
 
     // Schedule reminders
