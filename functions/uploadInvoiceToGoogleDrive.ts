@@ -9,8 +9,18 @@ Deno.serve(async (req) => {
       ? '1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY'
       : '1KIGXqbeiF4JU1uSYKu92pA_1PJIyskHS';
 
-    // Get access token
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+    // Get access token - try user token first, then service role
+    let accessToken;
+    try {
+      const user = await base44.auth.me();
+      if (user) {
+        accessToken = await base44.connectors.getAccessToken('googledrive');
+      } else {
+        accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+      }
+    } catch (e) {
+      accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+    }
 
     // Convert base64 to binary
     const binaryString = atob(pdfBase64);
