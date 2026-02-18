@@ -82,18 +82,51 @@ Deno.serve(async (req) => {
       formatted_content: `INVOICE #${invoiceNumber}\nDate: ${new Date().toLocaleDateString()}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nPackage: ${booking.package.replace(/_/g, ' ').toUpperCase()}\nAdd-ons: ${booking.add_ons ? booking.add_ons.join(', ') : 'None'}\n\nTotal Amount: $${totalAmount}\n\nPayment Link: ${stripeData.url}`
     };
 
-    // Upload invoice to Google Drive UNPAID folder (skip on error)
-    let driveResult = { data: { fileUrl: '#', fileId: 'temp' } };
+    // Upload invoice to Google Drive UNPAID folder
+    let googleDriveUrl = '#';
+    let googleDriveFileId = 'temp';
     try {
-      driveResult = await base44.functions.invoke('uploadInvoiceToGoogleDrive', {
-        fileName: `${jobAddress}.pdf`,
-        invoiceContent: invoiceContent.formatted_content,
-        folderType: 'unpaid',
-        invoiceNumber,
-        stripeLink: stripeData.url
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+      const { jsPDF: PDFConstructor } = await import('npm:jspdf@4.0.0');
+      const doc = new PDFConstructor();
+      doc.setFontSize(12);
+      doc.text(invoiceContent.formatted_content || 'Invoice', 20, 40);
+      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+      const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+
+      const metadata = {
+        name: `${jobAddress}.pdf`,
+        parents: ['1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY']
+      };
+
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', blob);
+
+      const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: form
       });
+
+      const fileData = await uploadResponse.json();
+      if (uploadResponse.ok) {
+        googleDriveFileId = fileData.id;
+        googleDriveUrl = `https://drive.google.com/file/d/${fileData.id}/view?usp=sharing`;
+
+        await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ role: 'reader', type: 'anyone' })
+        });
+      }
     } catch (driveError) {
-      console.error('Drive upload error (continuing anyway):', driveError.message);
+      console.error('Drive upload error:', driveError.message);
     }
 
     // Generate tracked link
