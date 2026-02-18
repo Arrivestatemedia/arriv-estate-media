@@ -7,31 +7,15 @@ Deno.serve(async (req) => {
     
     console.log('Email params:', { invoiceId, clientEmail, clientName, jobAddress, trackedLink });
     
-    // Get Gmail access token
-    let accessToken;
-    try {
-      accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-      console.log('Gmail token retrieved successfully');
-    } catch (tokenError) {
-      console.error('Failed to get Gmail token:', tokenError);
-      throw new Error(`Failed to get Gmail access token: ${tokenError.message}`);
-    }
-    
     let subject = 'Your Invoice from Arriv Estate Media';
-    let bodyPrefix = '';
     
     if (isReminder) {
       subject = `Reminder: Invoice for ${jobAddress}`;
-      if (reminderNumber === 2) {
-        bodyPrefix = 'This is a friendly reminder that ';
-      } else if (reminderNumber === 3) {
-        bodyPrefix = 'Final reminder: ';
-      }
     }
     
     const emailBody = `Hi ${clientName},
 
-${bodyPrefix}${isReminder ? 'your' : 'Your'} invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
+Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
 
 👉 View Invoice: ${trackedLink}
 
@@ -43,39 +27,17 @@ Arriv Estate Media
 📞 678-242-9107
 🌐 arrivestatemedia.com`;
 
-    const message = [
-      `To: ${clientEmail}`,
-      `Subject: ${subject}`,
-      'Content-Type: text/plain; charset=utf-8',
-      '',
-      emailBody
-    ].join('\r\n');
+    console.log('Sending email via Core.SendEmail to:', clientEmail);
     
-    const encodedMessage = btoa(unescape(encodeURIComponent(message)));
-    
-    console.log('Sending email to:', clientEmail, 'Subject:', subject);
-    
-    const gmailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        raw: encodedMessage
-      })
+    // Use Base44's built-in SendEmail integration
+    const emailResult = await base44.asServiceRole.integrations.Core.SendEmail({
+      to: clientEmail,
+      subject,
+      body: emailBody,
+      from_name: 'Arriv Estate Media'
     });
     
-    const gmailData = await gmailResponse.json();
-    
-    console.log('Gmail response status:', gmailResponse.status);
-    console.log('Gmail response data:', gmailData);
-    
-    if (!gmailResponse.ok) {
-      throw new Error(`Gmail error: ${gmailData.error?.message || 'Unknown error'}`);
-    }
-    
-    console.log('Email sent successfully, messageId:', gmailData.id);
+    console.log('Email sent successfully');
     
     // Update invoice record
     const updateData = {
@@ -93,19 +55,23 @@ Arriv Estate Media
     await base44.asServiceRole.entities.Invoice.update(invoiceId, updateData);
     
     // Log to HubSpot
-    await base44.asServiceRole.functions.invoke('logHubSpotEvent', {
-      contactEmail: clientEmail,
-      eventType: isReminder ? 'reminder_sent' : 'email_sent',
-      invoiceId,
-      jobAddress,
-      details: {
-        subject,
-        trackedLink,
-        reminderNumber: isReminder ? reminderNumber : null
-      }
-    });
+    try {
+      await base44.asServiceRole.functions.invoke('logHubSpotEvent', {
+        contactEmail: clientEmail,
+        eventType: isReminder ? 'reminder_sent' : 'email_sent',
+        invoiceId,
+        jobAddress,
+        details: {
+          subject,
+          trackedLink,
+          reminderNumber: isReminder ? reminderNumber : null
+        }
+      });
+    } catch (hubspotError) {
+      console.error('HubSpot logging error:', hubspotError.message);
+    }
     
-    return Response.json({ success: true, messageId: gmailData.id });
+    return Response.json({ success: true });
     
   } catch (error) {
     console.error('Error sending email:', error);
