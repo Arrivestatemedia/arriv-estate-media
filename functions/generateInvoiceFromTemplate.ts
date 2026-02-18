@@ -312,16 +312,18 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error generating invoice from template:', error);
+    console.error('Attempting fallback email...');
     
     // Fallback: Send basic invoice email if template generation fails
     try {
       const brevoApiKey = Deno.env.get('BREVO_API_KEY');
       const adminEmail = Deno.env.get('ADMIN_EMAIL');
+      const clientFirstName = clientName?.split(' ')[0] || 'there';
       
       const htmlEmailBody = `<!DOCTYPE html>
       <html>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <p>Hi ${clientName.split(' ')[0]},</p>
+      <p>Hi ${clientFirstName},</p>
       
       <p>Thank you for your booking! Your invoice is ready for payment.</p>
       
