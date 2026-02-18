@@ -161,13 +161,13 @@ export default function OrientationOnboardingFee() {
                 <span>Required Apparel (Shirt & Jacket)</span>
                 <span>$50.00</span>
               </div>
-              {userData?.addGearBag && (
+              {addGearBag && (
                 <div className="flex justify-between text-[var(--text-primary)]">
                   <span>Gear Bag</span>
                   <span>$50.00</span>
                 </div>
               )}
-              {userData?.addWaterBottle && (
+              {addWaterBottle && (
                 <div className="flex justify-between text-[var(--text-primary)]">
                   <span>Water Bottle</span>
                   <span>$40.00</span>
