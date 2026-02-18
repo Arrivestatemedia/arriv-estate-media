@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
 
       // Upload HTML invoice to Google Drive (Google Drive can render HTML as PDF)
       console.log('Uploading invoice to Google Drive...');
-      const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
+      const driveResult = await base44.functions.invoke('uploadInvoiceToGoogleDrive', {
         fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.html`,
         pdfBase64: btoa(invoiceHTML),
         folderType: 'unpaid'
