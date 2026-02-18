@@ -22,8 +22,8 @@ Deno.serve(async (req) => {
         link_clicked_at: new Date().toISOString()
       });
       
-      // Log to HubSpot
-      await base44.asServiceRole.functions.invoke('logHubSpotEvent', {
+      // Log to HubSpot, email, and SMS asynchronously (don't wait)
+      base44.asServiceRole.functions.invoke('logHubSpotEvent', {
         contactEmail: invoice.client_email,
         eventType: 'link_clicked',
         invoiceId: invoice.id,
@@ -31,10 +31,9 @@ Deno.serve(async (req) => {
         details: {
           clickedAt: new Date().toISOString()
         }
-      });
+      }).catch(err => console.error('HubSpot log failed:', err));
 
-      // Notify admin via email
-      await base44.asServiceRole.integrations.Core.SendEmail({
+      base44.asServiceRole.integrations.Core.SendEmail({
         to: Deno.env.get('ADMIN_EMAIL'),
         subject: `Payment Link Opened - ${invoice.job_address}`,
         body: `
@@ -45,15 +44,14 @@ Deno.serve(async (req) => {
           <p><strong>Amount:</strong> $${invoice.amount.toFixed(2)}</p>
           <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
         `
-      });
+      }).catch(err => console.error('Email notification failed:', err));
 
-      // Notify admin via SMS
       const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
       const adminPhone = Deno.env.get('ADMIN_PHONE');
 
-      await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+      fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
         method: 'POST',
         headers: {
           'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
@@ -64,7 +62,7 @@ Deno.serve(async (req) => {
           To: adminPhone,
           Body: `Payment link opened by ${invoice.client_name} for ${invoice.job_address} - $${invoice.amount.toFixed(2)}`
         })
-      });
+      }).catch(err => console.error('SMS notification failed:', err));
     }
     
     // Return redirect URL
