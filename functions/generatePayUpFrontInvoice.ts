@@ -108,18 +108,21 @@ Deno.serve(async (req) => {
       const invoiceHTML = htmlResult.data.html;
 
       // Upload HTML invoice to Google Drive (Google Drive can render HTML as PDF)
+      console.log('Uploading invoice to Google Drive...');
       const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
         fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.html`,
         pdfBase64: btoa(invoiceHTML),
         folderType: 'unpaid'
       });
 
+      console.log('Drive upload result:', JSON.stringify(driveResult.data));
       if (driveResult.data?.fileUrl) {
         googleDriveUrl = driveResult.data.fileUrl;
         googleDriveFileId = driveResult.data.fileId;
+        console.log('Successfully set Google Drive URL:', googleDriveUrl);
       }
     } catch (driveError) {
-      console.error('PDF generation/upload error:', driveError.message);
+      console.error('PDF generation/upload error:', driveError.message || driveError);
     }
 
     // Create invoice record with Google Drive URL already populated
