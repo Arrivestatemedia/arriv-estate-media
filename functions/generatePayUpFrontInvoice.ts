@@ -138,19 +138,27 @@ Return the formatted text for the invoice body.`,
     });
 
     // Send invoice email via Gmail
-    await base44.asServiceRole.functions.invoke('sendInvoiceEmailViaGmail', {
-      invoiceId: invoice.id,
-      clientEmail: booking.client_email,
-      clientName: booking.client_name.split(' ')[0],
-      jobAddress,
-      trackedLink: trackedUrl,
-      isReminder: false
-    });
+    try {
+      await base44.asServiceRole.functions.invoke('sendInvoiceEmailViaGmail', {
+        invoiceId: invoice.id,
+        clientEmail: booking.client_email,
+        clientName: booking.client_name.split(' ')[0],
+        jobAddress,
+        trackedLink: trackedUrl,
+        isReminder: false
+      });
+    } catch (emailError) {
+      console.error('Error sending email:', emailError.message);
+    }
 
     // Schedule reminders
-    await base44.asServiceRole.functions.invoke('scheduleInvoiceReminders', {
-      invoiceId: invoice.id
-    });
+    try {
+      await base44.asServiceRole.functions.invoke('scheduleInvoiceReminders', {
+        invoiceId: invoice.id
+      });
+    } catch (reminderError) {
+      console.error('Error scheduling reminders:', reminderError.message);
+    }
 
     return Response.json({ 
       success: true, 
