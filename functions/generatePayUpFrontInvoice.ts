@@ -292,12 +292,13 @@ Deno.serve(async (req) => {
       const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.html`;
       
       try {
+        console.log('Getting Google Drive access token...');
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-        const binaryString = atob(btoa(invoiceHTML));
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
+        console.log('Access token obtained, uploading to Google Drive...');
+        
+        // Convert HTML string to bytes
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(invoiceHTML);
         
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [folderId] })], { type: 'application/json' }));
@@ -310,6 +311,8 @@ Deno.serve(async (req) => {
         });
         
         const fileData = await uploadRes.json();
+        console.log('Upload response status:', uploadRes.status, 'File data:', fileData);
+        
         if (uploadRes.ok && fileData.id) {
           googleDriveUrl = `https://drive.google.com/file/d/${fileData.id}/view`;
           googleDriveFileId = fileData.id;
@@ -323,12 +326,12 @@ Deno.serve(async (req) => {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ role: 'reader', type: 'anyone' })
-          }).catch(() => {});
+          }).catch((e) => console.error('Share error:', e.message));
         } else {
-          console.error('Drive upload failed:', fileData.error?.message);
+          console.error('Drive upload failed:', fileData.error?.message || 'Unknown error', uploadRes.status);
         }
       } catch (uploadErr) {
-        console.error('Direct upload error:', uploadErr.message);
+        console.error('Direct upload error:', uploadErr.message || uploadErr);
       }
     } catch (driveError) {
       console.error('PDF generation/upload error:', driveError.message || driveError);
