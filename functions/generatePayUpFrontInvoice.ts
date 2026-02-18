@@ -309,6 +309,7 @@ Deno.serve(async (req) => {
 
       const pdfBytes = await pdfDoc.save();
 
+      console.log('PDF generated, size:', pdfBytes.length, 'bytes');
       console.log('Getting Google Drive access token...');
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
       console.log('Uploading to Google Drive...');
@@ -334,16 +335,21 @@ Deno.serve(async (req) => {
         console.log('Successfully uploaded to Google Drive:', googleDriveUrl);
 
         // Make shareable
-        await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ role: 'reader', type: 'anyone' })
-        }).catch((e) => console.error('Share error:', e.message));
+        try {
+          await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ role: 'reader', type: 'anyone' })
+          });
+        } catch (e) {
+          console.error('Share error:', e.message);
+        }
       } else {
         console.error('Drive upload failed:', fileData.error?.message || 'Unknown error');
+        throw new Error(`Failed to upload PDF to Google Drive: ${fileData.error?.message}`);
       }
     } catch (pdfErr) {
       console.error('PDF generation error:', pdfErr.message || pdfErr);
