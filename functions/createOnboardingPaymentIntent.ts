@@ -11,65 +11,47 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Email required' }, { status: 400 });
         }
 
-        const emailLower = email.toLowerCase();
+        // Try both original case and lowercase versions
+        const emailVariants = [...new Set([email, email.toLowerCase(), email.toUpperCase()])];
 
-        // Fetch all pending media partner signups and find by email
-        const allSignups = await base44.asServiceRole.entities.PendingSignup.list();
-        const pendingUser = allSignups.find(s => s.email && s.email.toLowerCase() === emailLower) || null;
-
-        if (!pendingUser) {
-            // Try User entity
-            const allUsers = await base44.asServiceRole.entities.User.list();
-            const appUser = allUsers.find(u => u.email && u.email.toLowerCase() === emailLower) || null;
-
-            if (!appUser) {
-                return Response.json({ error: 'User not found' }, { status: 404 });
-            }
-
-            if (appUser.onboardingFeePaid) {
-                return Response.json({ alreadyPaid: true });
-            }
-
-            const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
-            const isTestUser = appUser.user_role === 'test_user';
-            let total = isTestUser ? 100 : 5000;
-            if (appUser.addGearBag) total += isTestUser ? 100 : 5000;
-            if (appUser.addWaterBottle) total += isTestUser ? 100 : 4000;
-
-            const pi = await stripe.paymentIntents.create({
-                amount: total,
-                currency: 'usd',
-                metadata: { purpose: 'media_partner_onboarding_fee', userEmail: appUser.email },
-                automatic_payment_methods: { enabled: true },
-            });
-
-            return Response.json({
-                success: true,
-                clientSecret: pi.client_secret,
-                totalAmount: total / 100,
-                addGearBag: !!appUser.addGearBag,
-                addWaterBottle: !!appUser.addWaterBottle,
-                isTestUser
-            });
+        let pendingUser = null;
+        for (const variant of emailVariants) {
+            const results = await base44.asServiceRole.entities.PendingSignup.filter({ email: variant });
+            if (results.length) { pendingUser = results[0]; break; }
         }
 
-        if (pendingUser.onboardingFeePaid) {
+        let appUser = null;
+        if (!pendingUser) {
+            for (const variant of emailVariants) {
+                const results = await base44.asServiceRole.entities.User.filter({ email: variant });
+                if (results.length) { appUser = results[0]; break; }
+            }
+        }
+
+        const targetUser = pendingUser || appUser;
+
+        if (!targetUser) {
+            return Response.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        if (targetUser.onboardingFeePaid) {
             return Response.json({ alreadyPaid: true });
         }
 
         const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
-        const isTestUser = pendingUser.user_role === 'test_user';
+        const isTestUser = targetUser.user_role === 'test_user';
         let total = isTestUser ? 100 : 5000;
-        if (pendingUser.addGearBag) total += isTestUser ? 100 : 5000;
-        if (pendingUser.addWaterBottle) total += isTestUser ? 100 : 4000;
+        if (targetUser.addGearBag) total += isTestUser ? 100 : 5000;
+        if (targetUser.addWaterBottle) total += isTestUser ? 100 : 4000;
 
         const pi = await stripe.paymentIntents.create({
             amount: total,
             currency: 'usd',
             metadata: {
                 purpose: 'media_partner_onboarding_fee',
-                userEmail: pendingUser.email,
-                pendingSignupId: pendingUser.id,
+                userEmail: targetUser.email,
+                pendingSignupId: pendingUser ? pendingUser.id : '',
+                userId: appUser ? appUser.id : '',
             },
             automatic_payment_methods: { enabled: true },
         });
@@ -78,8 +60,8 @@ Deno.serve(async (req) => {
             success: true,
             clientSecret: pi.client_secret,
             totalAmount: total / 100,
-            addGearBag: !!pendingUser.addGearBag,
-            addWaterBottle: !!pendingUser.addWaterBottle,
+            addGearBag: !!targetUser.addGearBag,
+            addWaterBottle: !!targetUser.addWaterBottle,
             isTestUser
         });
 
