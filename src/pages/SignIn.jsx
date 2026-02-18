@@ -57,10 +57,6 @@ export default function SignIn() {
 
       // Track first login for media partners
       if (response.data.user_type === 'media_partner' && !response.data.hasLoggedInBefore) {
-        await base44.auth.updateMe({
-          hasLoggedInBefore: true,
-          firstLoginAt: new Date().toISOString()
-        });
         base44.analytics.track({
           eventName: 'first_media_partner_login',
           properties: { userId: response.data.id }
