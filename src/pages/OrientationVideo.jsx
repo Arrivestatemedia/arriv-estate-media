@@ -11,23 +11,10 @@ export default function OrientationVideo() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userData = await base44.auth.me();
-        setUser(userData);
-        
-        // If already completed, redirect to dashboard
-        if (userData.orientationCompleted && userData.onboardingFeePaid) {
-          navigate(createPageUrl("MediaPartnerDashboard"));
-        }
-      } catch (error) {
-        console.error("Error loading user:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUser();
+    const email = localStorage.getItem('user_email');
+    const name = localStorage.getItem('user_name');
+    if (email) setUser({ email, full_name: name });
+    setLoading(false);
   }, [navigate]);
 
   const handleNext = () => {
