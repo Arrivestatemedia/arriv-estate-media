@@ -11,18 +11,23 @@ Deno.serve(async (req) => {
         }
 
         const emailTrimmed = email.trim();
+        const emailLower = emailTrimmed.toLowerCase();
 
         // Hash the password immediately
         const encoder = new TextEncoder();
         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
         const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Use case-insensitive regex to find matching accounts in parallel
-        const emailRegex = { $regex: `^${emailTrimmed}$`, $options: 'i' };
-        const [signups, users] = await Promise.all([
-            base44.asServiceRole.entities.PendingSignup.filter({ email: emailRegex }),
-            base44.asServiceRole.entities.User.filter({ email: emailRegex })
-        ]);
+        // Try exact match first, then lowercase – no regex to avoid CPU timeouts
+        let signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed });
+        if (!signups.length && emailTrimmed !== emailLower) {
+            signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower });
+        }
+
+        let users = await base44.asServiceRole.entities.User.filter({ email: emailTrimmed });
+        if (!users.length && emailTrimmed !== emailLower) {
+            users = await base44.asServiceRole.entities.User.filter({ email: emailLower });
+        }
 
         const pendingUser = signups[0] || null;
         const appUser = users[0] || null;
