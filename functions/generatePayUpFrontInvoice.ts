@@ -135,8 +135,14 @@ Deno.serve(async (req) => {
       pdf.setFont(undefined, 'normal');
       pdf.setFontSize(10);
       pdf.text(booking.client_name, 20, 103);
-      pdf.text(jobAddress, 20, 110);
-      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 117);
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(184, 149, 106);
+      pdf.text('Listing Address:', 20, 110);
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(26, 26, 26);
+      pdf.text(jobAddress, 20, 117);
+      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 124);
 
       // Services table
       pdf.setFont(undefined, 'bold');
