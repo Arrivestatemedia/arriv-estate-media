@@ -25,11 +25,14 @@ export default function OrientationSizes() {
   const [addGearBag, setAddGearBag] = useState(false);
   const [addWaterBottle, setAddWaterBottle] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [isTestUser, setIsTestUser] = useState(false);
 
   useEffect(() => {
     const email = localStorage.getItem('user_email');
     const name = localStorage.getItem('user_name');
+    const userRole = localStorage.getItem('user_role');
     if (email) setUser({ email, full_name: name });
+    setIsTestUser(userRole === 'test_user');
     setLoading(false);
   }, [navigate]);
 
