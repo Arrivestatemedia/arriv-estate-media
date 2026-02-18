@@ -98,34 +98,11 @@ Deno.serve(async (req) => {
       pdf.setFillColor(255, 251, 245); // #FFFBF5
       pdf.rect(0, 0, pageWidth, pageHeight, 'F');
 
-      // Logo - use embedded logo
-      const logoUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/314d93d36_IMG_5660.png';
-      try {
-        const logoRes = await fetch(logoUrl);
-        if (logoRes.ok) {
-          const logoBlob = await logoRes.blob();
-          const reader = new FileReader();
-          reader.readAsDataURL(logoBlob);
-          await new Promise((resolve) => {
-            reader.onload = () => {
-              try {
-                pdf.addImage(reader.result, 'PNG', pageWidth / 2 - 25, 10, 50, 50);
-              } catch (imgErr) {
-                console.error('Image add error:', imgErr.message);
-              }
-              resolve();
-            };
-          });
-        }
-      } catch (e) {
-        console.error('Logo loading error:', e.message);
-      }
-
       // Invoice title and details
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(18);
       pdf.setTextColor(26, 26, 26); // Black
-      pdf.text('INVOICE', 20, 65);
+      pdf.text('INVOICE', 20, 20);
 
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'normal');
