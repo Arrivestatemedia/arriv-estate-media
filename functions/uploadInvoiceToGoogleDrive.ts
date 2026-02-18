@@ -14,29 +14,16 @@ Deno.serve(async (req) => {
     // Get Google Drive access token via service role
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
     
-    // Create actual PDF using jsPDF
-    const doc = new jsPDF();
-
+    // Simple text-based invoice
+    let invoiceText = invoiceContent || 'Invoice';
     if (markAsPaid) {
-      doc.setTextColor(0, 128, 0);
-      doc.setFontSize(20);
-      doc.text('[PAID]', 20, 20);
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
+      invoiceText = '[PAID]\n\n' + invoiceText;
     }
-
-    doc.setFontSize(12);
-    doc.text(invoiceContent || 'Invoice', 20, 40);
-
     if (stripeLink) {
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 255);
-      doc.textWithLink('Click here to pay', 20, doc.lastAutoTable?.finalY + 20 || 200, { pageNumber: 1 });
-      doc.textWithLink(stripeLink, 20, doc.lastAutoTable?.finalY + 25 || 205, { pageNumber: 1 });
+      invoiceText += '\n\nPay here: ' + stripeLink;
     }
-
-    const pdfBuffer = doc.output('arraybuffer');
-    const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+    const pdfContent = new TextEncoder().encode(invoiceText);
+    const blob = new Blob([pdfContent], { type: 'application/pdf' });
     
     // Upload to Google Drive
     const metadata = {
