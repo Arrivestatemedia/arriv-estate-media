@@ -82,12 +82,22 @@ Deno.serve(async (req) => {
     const trackToken = crypto.randomUUID();
     const trackedUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/TrackLink?token=${trackToken}`;
 
-    // Generate PDF invoice and upload to Google Drive
+    // Load and fill the PDF template
     let googleDriveUrl = null;
     let googleDriveFileId = null;
     
     try {
-      // Generate invoice HTML inline
+      console.log('Fetching PDF template...');
+      const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/2179fb4ca_c1b504ec3_Arriv_Estate_Media_Pay_Up_Front_Invoice.pdf';
+      const templateRes = await fetch(templateUrl);
+      const templateBytes = await templateRes.arrayBuffer();
+      
+      // Load the PDF
+      const pdfDoc = await PDFDocument.load(templateBytes);
+      const page = pdfDoc.getPage(0);
+      const { width, height } = page.getSize();
+      
+      // Define package and addon descriptions
       const packageDescriptions = {
         'mls_walkthrough': 'MLS Walkthrough',
         'photo_essentials': 'Photo Essentials Package',
@@ -106,229 +116,89 @@ Deno.serve(async (req) => {
         'drone': 125, '3d_tour': 125, 'twilight': 125,
         'rush_delivery': 100, 'vertical_reel': 40, 'ai_staging': 125
       };
-
-      const packageBaseAmount = packagePrices[booking.package] || 0;
-      const addonRows = (booking.add_ons || []).map(addon => `<tr><td>${addonDescriptions[addon] || addon}</td><td>${(addonPrices[addon] || 0).toFixed(2)}</td></tr>`).join('');
-
-      const invoiceHTML = `<!DOCTYPE html>
-      <html>
-      <head>
-      <style>
-      body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 40px 20px;
-      background: #f5f1ed;
-      color: #333;
-      }
-      .container {
-      background: white;
-      padding: 60px 40px;
-      }
-      .header {
-      text-align: center;
-      margin-bottom: 40px;
-      border-bottom: 2px solid #b8956a;
-      padding-bottom: 20px;
-      }
-      .logo {
-      font-size: 32px;
-      font-weight: bold;
-      letter-spacing: 3px;
-      color: #1a1a1a;
-      margin-bottom: 5px;
-      }
-      .logo-subtitle {
-      font-size: 11px;
-      color: #b8956a;
-      letter-spacing: 2px;
-      }
-      .title {
-      font-size: 20px;
-      font-weight: bold;
-      text-align: center;
-      margin: 30px 0;
-      }
-      .invoice-info {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 40px;
-      font-size: 13px;
-      }
-      .info-block {
-      flex: 1;
-      }
-      .info-row {
-      margin: 8px 0;
-      }
-      .info-label {
-      font-weight: bold;
-      }
-      .section-title {
-      font-weight: bold;
-      font-size: 13px;
-      margin-top: 30px;
-      margin-bottom: 15px;
-      }
-      table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-      font-size: 13px;
-      }
-      thead {
-      background-color: #e8e0d8;
-      border: 1px solid #ccc;
-      }
-      th {
-      padding: 12px;
-      text-align: left;
-      font-weight: bold;
-      border: 1px solid #ccc;
-      }
-      td {
-      padding: 12px;
-      border: 1px solid #ccc;
-      }
-      .amount-col {
-      text-align: right;
-      }
-      .total-row {
-      background-color: #e8e0d8;
-      font-weight: bold;
-      }
-      .payment-terms {
-      margin-bottom: 30px;
-      font-size: 13px;
-      line-height: 1.6;
-      }
-      .payment-button {
-      display: inline-block;
-      background-color: #b8956a;
-      color: white;
-      padding: 12px 28px;
-      text-decoration: none;
-      border-radius: 3px;
-      font-weight: bold;
-      font-size: 13px;
-      margin-top: 15px;
-      }
-      .footer {
-      text-align: center;
-      margin-top: 50px;
-      font-size: 12px;
-      color: #666;
-      }
-      </style>
-      </head>
-      <body>
-      <div class="container">
-      <div class="header">
-      <div class="logo">◎ ARRIV</div>
-      <div class="logo-subtitle">ESTATE MEDIA</div>
-      </div>
-
-      <div class="title">MEDIA INVOICE</div>
-
-      <div class="invoice-info">
-      <div class="info-block">
-      <div class="info-row"><span class="info-label">Invoice #:</span> ${invoiceNumber}</div>
-      <div class="info-row"><span class="info-label">Client:</span> ${booking.client_name}</div>
-      <div class="info-row"><span class="info-label">Property:</span> ${jobAddress}</div>
-      <div class="info-row"><span class="info-label">Service Date:</span> ${booking.preferred_date}</div>
-      </div>
-      <div class="info-block" style="text-align: right;">
-      <div class="info-row"><span class="info-label">Invoice Date:</span> ${new Date().toLocaleDateString()}</div>
-      </div>
-      </div>
-
-      <div class="section-title">Services Provided</div>
-      <table>
-      <thead>
-      <tr>
-      <th>Description</th>
-      <th class="amount-col">Amount</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-      <td>${packageDescriptions[booking.package] || booking.package}</td>
-      <td class="amount-col">$${packageBaseAmount.toFixed(2)}</td>
-      </tr>
-      ${addonRows}
-      <tr class="total-row">
-      <td>Total Due</td>
-      <td class="amount-col">$${totalAmount.toFixed(2)}</td>
-      </tr>
-      </tbody>
-      </table>
-
-      <div class="section-title">Payment Terms</div>
-      <div class="payment-terms">
-      <strong>Pay-Up-Front</strong><br>
-      Full payment is required prior to the scheduled shoot. Appointments are confirmed once payment is received.
-      </div>
-
-      <a href="${stripeData.url}" class="payment-button">Pay Now (Stripe)</a>
-
-      <div class="footer">
-      <p>Thank you for choosing <strong>Arriv Estate Media</strong>.</p>
-      <p>Please feel free to reach out if any adjustments are needed.</p>
-      </div>
-      </div>
-      </body>
-      </html>`;
-
-      // Upload HTML invoice to Google Drive directly using access token
-      console.log('Uploading invoice to Google Drive...');
-      const folderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
-      const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.html`;
       
-      try {
-        console.log('Getting Google Drive access token...');
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-        console.log('Access token obtained, uploading to Google Drive...');
-        
-        // Convert HTML string to bytes
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(invoiceHTML);
-        
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [folderId] })], { type: 'application/json' }));
-        form.append('file', new Blob([bytes], { type: 'text/html' }));
-        
-        const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${accessToken}` },
-          body: form
-        });
-        
-        const fileData = await uploadRes.json();
-        console.log('Upload response status:', uploadRes.status, 'File data:', fileData);
-        
-        if (uploadRes.ok && fileData.id) {
-          googleDriveUrl = `https://drive.google.com/file/d/${fileData.id}/view`;
-          googleDriveFileId = fileData.id;
-          console.log('Successfully uploaded to Google Drive:', googleDriveUrl);
-          
-          // Make shareable
-          await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ role: 'reader', type: 'anyone' })
-          }).catch((e) => console.error('Share error:', e.message));
+      const packageBaseAmount = packagePrices[booking.package] || 0;
+      const packageDescText = packageDescriptions[booking.package] || booking.package;
+      const servicesList = [packageDescText];
+      booking.add_ons?.forEach(addon => {
+        servicesList.push(addonDescriptions[addon] || addon);
+      });
+      
+      // Add text fields to the PDF
+      const fontSize = 11;
+      const textColor = { r: 0, g: 0, b: 0 };
+      
+      // Invoice number and date
+      page.drawText(invoiceNumber, { x: 180, y: height - 260, size: fontSize, color: textColor });
+      page.drawText(new Date().toLocaleDateString(), { x: 440, y: height - 260, size: fontSize, color: textColor });
+      
+      // Client info
+      page.drawText(booking.client_name, { x: 120, y: height - 300, size: fontSize, color: textColor });
+      page.drawText(jobAddress, { x: 120, y: height - 330, size: fontSize, color: textColor });
+      page.drawText(booking.preferred_date, { x: 120, y: height - 360, size: fontSize, color: textColor });
+      
+      // Services provided
+      let servicesY = height - 440;
+      servicesList.forEach((service, idx) => {
+        if (idx === 0) {
+          page.drawText(service, { x: 120, y: servicesY, size: fontSize, color: textColor });
+          page.drawText(`$${(idx === 0 ? packageBaseAmount : addonPrices[booking.add_ons?.[idx - 1]] || 0).toFixed(2)}`, { x: 400, y: servicesY, size: fontSize, color: textColor });
         } else {
-          console.error('Drive upload failed:', fileData.error?.message || 'Unknown error', uploadRes.status);
+          servicesY -= 25;
+          page.drawText(service, { x: 120, y: servicesY, size: fontSize, color: textColor });
+          page.drawText(`$${(addonPrices[booking.add_ons?.[idx - 1]] || 0).toFixed(2)}`, { x: 400, y: servicesY, size: fontSize, color: textColor });
         }
-      } catch (uploadErr) {
-        console.error('Direct upload error:', uploadErr.message || uploadErr);
+      });
+      
+      // Total due
+      const totalY = servicesY - 40;
+      page.drawText(`$${totalAmount.toFixed(2)}`, { x: 400, y: totalY, size: fontSize, color: textColor });
+      
+      // Stripe link
+      page.drawText(stripeData.url, { x: 120, y: totalY - 40, size: 9, color: { r: 0, g: 0, b: 0.8 } });
+      
+      // Save the modified PDF
+      const pdfBytes = await pdfDoc.save();
+      
+      console.log('Getting Google Drive access token...');
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+      console.log('Access token obtained, uploading to Google Drive...');
+      
+      const folderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
+      const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
+      
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [folderId] })], { type: 'application/json' }));
+      form.append('file', new Blob([pdfBytes], { type: 'application/pdf' }));
+      
+      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        body: form
+      });
+      
+      const fileData = await uploadRes.json();
+      console.log('Upload response status:', uploadRes.status, 'File data:', fileData);
+      
+      if (uploadRes.ok && fileData.id) {
+        googleDriveUrl = `https://drive.google.com/file/d/${fileData.id}/view`;
+        googleDriveFileId = fileData.id;
+        console.log('Successfully uploaded to Google Drive:', googleDriveUrl);
+        
+        // Make shareable
+        await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ role: 'reader', type: 'anyone' })
+        }).catch((e) => console.error('Share error:', e.message));
+      } else {
+        console.error('Drive upload failed:', fileData.error?.message || 'Unknown error', uploadRes.status);
       }
-    } catch (driveError) {
-      console.error('PDF generation/upload error:', driveError.message || driveError);
+    } catch (pdfErr) {
+      console.error('PDF template error:', pdfErr.message || pdfErr);
     }
 
     // Create invoice record with Google Drive URL already populated
