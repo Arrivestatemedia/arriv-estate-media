@@ -16,22 +16,7 @@ export default function MediaPartnerDashboard() {
   const [user, setUser] = useState(null);
   const queryClient = useQueryClient();
 
-  // Handle payment success redirect
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('payment_success') === 'true') {
-      const email = localStorage.getItem('user_email');
-      if (email) {
-        base44.functions.invoke('confirmPaymentAndMarkComplete', { email }).then(() => {
-          // Remove the query param and reload
-          window.history.replaceState({}, document.title, createPageUrl('MediaPartnerDashboard'));
-          window.location.reload();
-        }).catch(err => {
-          console.error('Error confirming payment:', err);
-        });
-      }
-    }
-  }, []);
+
 
   useEffect(() => {
     const userName = localStorage.getItem('user_name');
