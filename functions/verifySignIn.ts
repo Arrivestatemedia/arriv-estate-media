@@ -10,44 +10,62 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Email and password required' }, { status: 400 });
         }
 
-        // Check if user exists in PendingSignup
-        const signups = await base44.asServiceRole.entities.PendingSignup.filter({ email });
-        let user = signups[0] || null;
+        const normalizedEmail = email.toLowerCase().trim();
 
-        // If not in PendingSignup, check User entity
-        if (!user) {
-            const users = await base44.asServiceRole.entities.User.filter({ email });
-            user = users[0] || null;
-        }
-
-        if (!user) {
-            return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
-        }
-
-        // Hash the provided password to compare
+        // Hash the password immediately (no need to wait for DB)
         const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+        const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Compare hashes
-        if (hashHex !== user.password_hash) {
-            return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
+        // Query PendingSignup and User in parallel
+        const [signups, users] = await Promise.all([
+            base44.asServiceRole.entities.PendingSignup.filter({ email: normalizedEmail }),
+            base44.asServiceRole.entities.User.filter({ email: normalizedEmail })
+        ]);
+
+        const pendingUser = signups[0] || null;
+        const appUser = users[0] || null;
+
+        // PendingSignup takes priority (has password_hash)
+        if (pendingUser) {
+            if (hashHex !== pendingUser.password_hash) {
+                return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
+            }
+            return Response.json({
+                success: true,
+                id: pendingUser.id,
+                email: pendingUser.email,
+                full_name: pendingUser.full_name,
+                user_type: pendingUser.user_type,
+                user_role: pendingUser.user_role || 'user',
+                phone_number: pendingUser.phone_number || '',
+                hasLoggedInBefore: pendingUser.hasLoggedInBefore || false,
+                orientationCompleted: pendingUser.orientationCompleted || false,
+                onboardingFeePaid: pendingUser.onboardingFeePaid || false
+            });
         }
 
-        return Response.json({
-            success: true,
-            id: user.id,
-            email: user.email,
-            full_name: user.full_name,
-            user_type: user.user_type,
-            user_role: user.user_role || 'user',
-            phone_number: user.phone_number || '',
-            hasLoggedInBefore: user.hasLoggedInBefore || false,
-            orientationCompleted: user.orientationCompleted || false,
-            onboardingFeePaid: user.onboardingFeePaid || false
-        });
+        // Fallback to User entity
+        if (appUser) {
+            if (hashHex !== appUser.password_hash) {
+                return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
+            }
+            return Response.json({
+                success: true,
+                id: appUser.id,
+                email: appUser.email,
+                full_name: appUser.full_name,
+                user_type: appUser.user_type || 'user',
+                user_role: appUser.user_role || appUser.role || 'user',
+                phone_number: appUser.phone_number || '',
+                hasLoggedInBefore: appUser.hasLoggedInBefore || false,
+                orientationCompleted: appUser.orientationCompleted || false,
+                onboardingFeePaid: appUser.onboardingFeePaid || false
+            });
+        }
+
+        return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
+
     } catch (error) {
         console.error('SignIn error:', error);
         return Response.json({ success: false, error: error.message || 'Sign in failed' }, { status: 500 });
