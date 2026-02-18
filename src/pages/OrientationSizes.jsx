@@ -24,6 +24,7 @@ export default function OrientationSizes() {
   const [jacketSize, setJacketSize] = useState("");
   const [addGearBag, setAddGearBag] = useState(false);
   const [addWaterBottle, setAddWaterBottle] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState(null);
 
   useEffect(() => {
     const email = localStorage.getItem('user_email');
