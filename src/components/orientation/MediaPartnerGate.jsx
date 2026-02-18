@@ -29,16 +29,16 @@ export default function MediaPartnerGate({ children }) {
 
         const urlParams = new URLSearchParams(window.location.search);
         const isPaymentSuccess = urlParams.get('payment_success') === 'true';
+        const paymentIntentId = urlParams.get('payment_intent');
 
         // If coming back from Stripe payment, confirm it immediately
-        if (isPaymentSuccess) {
+        if (isPaymentSuccess && paymentIntentId) {
           try {
-            await base44.functions.invoke('confirmPaymentAndMarkComplete', { email });
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await base44.functions.invoke('confirmPaymentAndMarkComplete', { email, paymentIntentId });
           } catch (err) {
             console.error('Error confirming payment:', err);
           }
-          // Clear the payment_success param and reload to get fresh data
+          // Clear the payment params from URL
           window.history.replaceState({}, document.title, createPageUrl('MediaPartnerDashboard'));
         }
 
