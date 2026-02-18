@@ -107,16 +107,10 @@ Deno.serve(async (req) => {
 
       const invoiceHTML = htmlResult.data.html;
 
-      // Convert HTML to PDF using simple approach
-      // Encode HTML as UTF-8 and convert to base64
-      const encoder = new TextEncoder();
-      const htmlBytes = encoder.encode(invoiceHTML);
-      const pdfBase64 = btoa(String.fromCharCode.apply(null, Array.from(htmlBytes)));
-
-      // Upload to Google Drive
+      // Upload HTML invoice to Google Drive (Google Drive can render HTML as PDF)
       const driveResult = await base44.functions.invoke('uploadInvoiceToGoogleDrive', {
-        fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`,
-        pdfBase64,
+        fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.html`,
+        pdfBase64: btoa(invoiceHTML),
         folderType: 'unpaid'
       });
 
