@@ -103,13 +103,14 @@ Deno.serve(async (req) => {
       try {
         const logoRes = await fetch(logoUrl);
         if (logoRes.ok) {
-          const logoBlob = await logoRes.blob();
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const logoBase64 = reader.result.split(',')[1];
-            pdf.addImage(logoBase64, 'PNG', pageWidth / 2 - 30, 8, 60, 45);
-          };
-          reader.readAsDataURL(logoBlob);
+          const logoBuffer = await logoRes.arrayBuffer();
+          const uint8Array = new Uint8Array(logoBuffer);
+          let binary = '';
+          for (let i = 0; i < uint8Array.length; i++) {
+            binary += String.fromCharCode(uint8Array[i]);
+          }
+          const logoBase64 = btoa(binary);
+          pdf.addImage('data:image/png;base64,' + logoBase64, 'PNG', pageWidth / 2 - 30, 8, 60, 45);
         }
       } catch (e) {
         console.error('Logo loading error:', e.message);
