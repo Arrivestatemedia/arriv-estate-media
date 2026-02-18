@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 9,
-        color: rgb(184/256, 149/256, 106/256)
+        color: rgb(140/256, 105/256, 60/256)
       });
 
       yPos -= 12;
