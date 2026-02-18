@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     
     try {
       // Get invoice HTML template
-      const htmlResult = await base44.functions.invoke('generateInvoicePDF', {
+      const htmlResult = await base44.asServiceRole.functions.invoke('generateInvoicePDF', {
         invoiceNumber,
         clientName: booking.client_name,
         jobAddress,
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
 
       // Upload HTML invoice to Google Drive (Google Drive can render HTML as PDF)
       console.log('Uploading invoice to Google Drive...');
-      const driveResult = await base44.functions.invoke('uploadInvoiceToGoogleDrive', {
+      const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
         fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.html`,
         pdfBase64: btoa(invoiceHTML),
         folderType: 'unpaid'
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
 
     // Send invoice email via Gmail
     try {
-      const accessToken = await base44.connectors.getAccessToken('gmail');
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
       const emailBody = `Hi ${booking.client_name.split(' ')[0]},
 
     Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
 
     // Schedule reminders
     try {
-      await base44.functions.invoke('scheduleInvoiceReminders', {
+      await base44.asServiceRole.functions.invoke('scheduleInvoiceReminders', {
         invoiceId: invoice.id
       });
     } catch (reminderError) {
