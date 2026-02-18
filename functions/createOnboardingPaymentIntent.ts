@@ -11,22 +11,24 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Email required' }, { status: 400 });
         }
 
-        // Try both original case and lowercase versions
-        const emailVariants = [...new Set([email, email.toLowerCase(), email.toUpperCase()])];
+        const emailLower = email.toLowerCase();
 
-        let pendingUser = null;
-        for (const variant of emailVariants) {
-            const results = await base44.asServiceRole.entities.PendingSignup.filter({ email: variant });
-            if (results.length) { pendingUser = results[0]; break; }
+        // Try exact then lowercase for PendingSignup
+        let signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: email });
+        if (!signups.length && email !== emailLower) {
+            signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower });
         }
+        const pendingUser = signups[0] || null;
 
-        let appUser = null;
+        // Try exact then lowercase for User
+        let users = [];
         if (!pendingUser) {
-            for (const variant of emailVariants) {
-                const results = await base44.asServiceRole.entities.User.filter({ email: variant });
-                if (results.length) { appUser = results[0]; break; }
+            users = await base44.asServiceRole.entities.User.filter({ email: email });
+            if (!users.length && email !== emailLower) {
+                users = await base44.asServiceRole.entities.User.filter({ email: emailLower });
             }
         }
+        const appUser = users[0] || null;
 
         const targetUser = pendingUser || appUser;
 
