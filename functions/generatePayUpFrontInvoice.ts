@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required data' }, { status: 400 });
     }
 
-const totalAmount = total_price;
+    const totalAmount = total_price;
 
     // Generate invoice number
     const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
@@ -49,8 +49,6 @@ const totalAmount = total_price;
 
     const jobAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
     const basePkgAmount = packagePrices[booking.package] || 0;
-
-
 
     // Generate invoice using Google Docs template
     let googleDriveUrl = null;
