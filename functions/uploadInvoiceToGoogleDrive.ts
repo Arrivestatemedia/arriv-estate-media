@@ -33,32 +33,13 @@ Deno.serve(async (req) => {
     const mimeType = fileName.endsWith('.html') ? 'text/html' : 'application/pdf';
     const metadata = {
       name: fileName,
-      parents: [folderId],
-      mimeType
+      parents: [folderId]
     };
 
-    // Create multipart upload
-    const boundary = '===============7330845974216740156==';
-    const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`;
-    const filePart = `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
-    const footer = `\r\n--${boundary}--`;
-
-    // Combine parts - need to handle binary data
-    const metadataBuffer = new TextEncoder().encode(metadataPart);
-    const filePartBuffer = new TextEncoder().encode(filePart);
-    const footerBuffer = new TextEncoder().encode(footer);
-
-    const totalLength = metadataBuffer.length + filePartBuffer.length + bytes.length + footerBuffer.length;
-    const body = new Uint8Array(totalLength);
-    let offset = 0;
-
-    body.set(metadataBuffer, offset);
-    offset += metadataBuffer.length;
-    body.set(filePartBuffer, offset);
-    offset += filePartBuffer.length;
-    body.set(bytes, offset);
-    offset += bytes.length;
-    body.set(footerBuffer, offset);
+    // Use FormData for proper multipart encoding
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', new Blob([bytes], { type: mimeType }));
 
     // Upload to Drive
     const uploadRes = await fetch(
@@ -66,10 +47,9 @@ Deno.serve(async (req) => {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': `multipart/related; boundary="${boundary}"`
+          'Authorization': `Bearer ${accessToken}`
         },
-        body: body
+        body: form
       }
     );
 
