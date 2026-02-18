@@ -76,7 +76,7 @@ function CheckoutForm({ totalAmount }) {
         
         <button
           type="submit"
-          disabled={processing || !stripe}
+          disabled={processing}
           className="w-full px-4 py-3 bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
         >
           {processing ? "Processing..." : `Pay $${totalAmount.toFixed(2)}`}
