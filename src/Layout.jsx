@@ -21,7 +21,7 @@ import PageTransition from "@/components/layout/PageTransition";
     const userName = localStorage.getItem('user_name');
     const userType = localStorage.getItem('user_type');
     const userRole = localStorage.getItem('user_role');
-
+    
     if (userEmail && userName && userType) {
       setUser({
         email: userEmail,
@@ -31,22 +31,20 @@ import PageTransition from "@/components/layout/PageTransition";
       });
     }
 
-    // Only try to get user if they're authenticated (skip for public routes like TrackLink)
-    if (currentPageName !== 'TrackLink') {
-      base44.auth.isAuthenticated().then(isAuth => {
-        if (isAuth) {
-          base44.auth.me().then((userData) => {
-            if (userData) {
-              setUser(userData);
-              // Save the role to localStorage for future loads
-              if (userData.role) {
-                localStorage.setItem('user_role', userData.role);
-              }
+    // Only try to get user if they're authenticated
+    base44.auth.isAuthenticated().then(isAuth => {
+      if (isAuth) {
+        base44.auth.me().then((userData) => {
+          if (userData) {
+            setUser(userData);
+            // Save the role to localStorage for future loads
+            if (userData.role) {
+              localStorage.setItem('user_role', userData.role);
             }
-          }).catch(() => {});
-        }
-      }).catch(() => {});
-    }
+          }
+        }).catch(() => {});
+      }
+    }).catch(() => {});
   }, [currentPageName]);
 
   const isAdmin = user?.role === "admin";
