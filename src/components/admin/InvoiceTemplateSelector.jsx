@@ -1,12 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Upload, Check, AlertCircle } from "lucide-react";
 
 export default function InvoiceTemplateSelector({ onTemplateSelected }) {
-  const [templateId, setTemplateId] = useState(localStorage.getItem('invoice_template_id') || '');
-  const [status, setStatus] = useState('idle');
+  const [templateId, setTemplateId] = useState('');
+  const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    // Load existing template ID from database
+    base44.asServiceRole.entities.AdminSettings.list().then(settings => {
+      if (settings.length > 0 && settings[0].invoice_template_id) {
+        setTemplateId(settings[0].invoice_template_id);
+      }
+      setStatus('idle');
+    }).catch(err => {
+      console.error('Error loading settings:', err);
+      setStatus('idle');
+    });
+  }, []);
 
   const handleFileSelect = async (event) => {
     const file = event.target.files?.[0];
