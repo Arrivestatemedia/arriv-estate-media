@@ -1,11 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-
-// Generate PDF from HTML using a simple approach
-function generatePDFFromHTML(html) {
-  // Create a simple HTML-to-PDF conversion
-  // Return HTML as-is, will be converted on client-side or via external service
-  return html;
-}
+import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 
 Deno.serve(async (req) => {
   try {
