@@ -5,8 +5,6 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { invoiceId, clientEmail, clientName, jobAddress, trackedLink, isReminder, reminderNumber } = await req.json();
     
-    console.log('Email params:', { invoiceId, clientEmail, clientName, jobAddress, trackedLink });
-    
     let subject = 'Your Invoice from Arriv Estate Media';
     
     if (isReminder) {
@@ -26,18 +24,14 @@ Bradley Burke
 Arriv Estate Media
 📞 678-242-9107
 🌐 arrivestatemedia.com`;
-
-    console.log('Sending email via Core.SendEmail to:', clientEmail);
     
-    // Use Base44's built-in SendEmail integration
-    const emailResult = await base44.asServiceRole.integrations.Core.SendEmail({
+    // Send email using Base44's built-in email integration
+    await base44.integrations.Core.SendEmail({
       to: clientEmail,
       subject,
       body: emailBody,
       from_name: 'Arriv Estate Media'
     });
-    
-    console.log('Email sent successfully');
     
     // Update invoice record
     const updateData = {
@@ -54,27 +48,23 @@ Arriv Estate Media
     
     await base44.asServiceRole.entities.Invoice.update(invoiceId, updateData);
     
-    // Log to HubSpot
+    // Log to HubSpot (non-blocking)
     try {
       await base44.asServiceRole.functions.invoke('logHubSpotEvent', {
         contactEmail: clientEmail,
         eventType: isReminder ? 'reminder_sent' : 'email_sent',
         invoiceId,
         jobAddress,
-        details: {
-          subject,
-          trackedLink,
-          reminderNumber: isReminder ? reminderNumber : null
-        }
+        details: { subject, trackedLink }
       });
-    } catch (hubspotError) {
-      console.error('HubSpot logging error:', hubspotError.message);
+    } catch (e) {
+      console.error('HubSpot log error:', e.message);
     }
     
     return Response.json({ success: true });
     
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Email error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
