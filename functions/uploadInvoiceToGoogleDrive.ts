@@ -1,19 +1,25 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
-    const { fileName, pdfBase64, folderType } = await req.json();
-    
-    console.log('uploadInvoiceToGoogleDrive called with fileName:', fileName, 'folderType:', folderType);
+        try {
+          const base44 = createClientFromRequest(req);
+          const user = await base44.auth.me();
 
-    const folderId = folderType === 'unpaid' 
-      ? '1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY'
-      : '1KIGXqbeiF4JU1uSYKu92pA_1PJIyskHS';
+          if (!user || user.role !== 'admin') {
+            return Response.json({ error: 'Admin access required' }, { status: 403 });
+          }
 
-    // Get access token using service role
-    console.log('Getting Google Drive access token...');
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+          const { fileName, pdfBase64, folderType } = await req.json();
+
+          console.log('uploadInvoiceToGoogleDrive called with fileName:', fileName, 'folderType:', folderType);
+
+          const folderId = folderType === 'unpaid' 
+            ? '1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY'
+            : '1KIGXqbeiF4JU1uSYKu92pA_1PJIyskHS';
+
+          // Get access token using service role (app connector authorized by admin)
+          console.log('Getting Google Drive access token...');
+          const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
     console.log('Access token obtained, length:', accessToken.length);
 
     // Convert base64 to binary
