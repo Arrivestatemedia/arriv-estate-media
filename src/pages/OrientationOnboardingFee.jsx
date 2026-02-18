@@ -74,6 +74,7 @@ export default function OrientationOnboardingFee() {
   const [addWaterBottle, setAddWaterBottle] = useState(false);
   const [isTestUser, setIsTestUser] = useState(false);
   const [error, setError] = useState("");
+  const [stripePromise] = useState(() => loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY));
 
   useEffect(() => {
     const initPayment = async () => {
