@@ -153,7 +153,8 @@ export default function OrientationOnboardingFee() {
         setLoading(false);
       } catch (err) {
         console.error("Payment initialization error:", err);
-        setError("Failed to initialize payment. Please try again.");
+        const errorMsg = err.response?.data?.error || err.message || "Failed to initialize payment";
+        setError(`Error: ${errorMsg}`);
         setLoading(false);
       }
     };
