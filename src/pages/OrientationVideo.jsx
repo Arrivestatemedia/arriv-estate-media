@@ -65,10 +65,11 @@ export default function OrientationVideo() {
 
             <Button
               onClick={handleNext}
+              disabled={saving}
               className="w-full bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
               size="lg"
             >
-              Next
+              {saving ? "Loading..." : "Next"}
             </Button>
           </CardContent>
         </Card>
