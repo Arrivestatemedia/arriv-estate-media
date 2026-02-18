@@ -104,8 +104,6 @@ Deno.serve(async (req) => {
         const logoRes = await fetch(logoUrl);
         if (logoRes.ok) {
           const logoBlob = await logoRes.arrayBuffer();
-          const logoBase64 = new TextEncoder().encode(logoBlob).toString();
-          // Convert ArrayBuffer to base64 for Deno
           const bytes = new Uint8Array(logoBlob);
           let binary = '';
           for (let i = 0; i < bytes.byteLength; i++) {
@@ -113,9 +111,11 @@ Deno.serve(async (req) => {
           }
           const logoBase64Encoded = btoa(binary);
           pdf.addImage(`data:image/png;base64,${logoBase64Encoded}`, 'PNG', pageWidth / 2 - 25, 10, 50, 50);
+          console.log('Logo added successfully');
         }
-      } catch (e) {
-        console.error('Logo loading error:', e.message);
+      } catch (logoErr) {
+        console.warn('Logo loading skipped:', logoErr.message);
+        // Continue without logo if fetch fails
       }
 
       // Invoice title and details
