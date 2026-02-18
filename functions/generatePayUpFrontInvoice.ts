@@ -77,12 +77,13 @@ Deno.serve(async (req) => {
 
     const jobAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
 
-    // Simple invoice content
-    const invoiceContent = {
-      formatted_content: `INVOICE #${invoiceNumber}\nDate: ${new Date().toLocaleDateString()}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nPackage: ${booking.package.replace(/_/g, ' ').toUpperCase()}\nAdd-ons: ${booking.add_ons ? booking.add_ons.join(', ') : 'None'}\n\nTotal Amount: $${totalAmount}\n\nPayment Link: ${stripeData.url}`
-    };
+    // Generate tracked link
+    const trackToken = crypto.randomUUID();
+    const trackedUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/TrackLink?token=${trackToken}`;
 
-    // Upload invoice to Google Drive UNPAID folder
+    // Upload invoice to Google Drive UNPAID folder BEFORE creating invoice record
+    let googleDriveUrl = null;
+    let googleDriveFileId = null;
     try {
       const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
         fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.txt`,
@@ -91,20 +92,14 @@ Deno.serve(async (req) => {
       });
 
       if (driveResult.data?.fileUrl) {
-        await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-          google_drive_unpaid_url: driveResult.data.fileUrl,
-          google_drive_file_id: driveResult.data.fileId
-        });
+        googleDriveUrl = driveResult.data.fileUrl;
+        googleDriveFileId = driveResult.data.fileId;
       }
     } catch (driveError) {
       console.error('Drive upload error:', driveError.message);
     }
 
-    // Generate tracked link
-    const trackToken = crypto.randomUUID();
-    const trackedUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/TrackLink?token=${trackToken}`;
-
-    // Create invoice record (Drive URL will be set once upload completes)
+    // Create invoice record with Google Drive URL already populated
     const invoice = await base44.asServiceRole.entities.Invoice.create({
       invoice_number: invoiceNumber,
       invoice_type: 'pay_up_front',
