@@ -5,8 +5,17 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { invoiceId, clientEmail, clientName, jobAddress, trackedLink, isReminder, reminderNumber } = await req.json();
     
+    console.log('Email params:', { invoiceId, clientEmail, clientName, jobAddress, trackedLink });
+    
     // Get Gmail access token
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    let accessToken;
+    try {
+      accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      console.log('Gmail token retrieved successfully');
+    } catch (tokenError) {
+      console.error('Failed to get Gmail token:', tokenError);
+      throw new Error(`Failed to get Gmail access token: ${tokenError.message}`);
+    }
     
     let subject = 'Your Invoice from Arriv Estate Media';
     let bodyPrefix = '';
@@ -44,6 +53,8 @@ Arriv Estate Media
     
     const encodedMessage = btoa(unescape(encodeURIComponent(message)));
     
+    console.log('Sending email to:', clientEmail, 'Subject:', subject);
+    
     const gmailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: {
@@ -57,9 +68,14 @@ Arriv Estate Media
     
     const gmailData = await gmailResponse.json();
     
+    console.log('Gmail response status:', gmailResponse.status);
+    console.log('Gmail response data:', gmailData);
+    
     if (!gmailResponse.ok) {
       throw new Error(`Gmail error: ${gmailData.error?.message || 'Unknown error'}`);
     }
+    
+    console.log('Email sent successfully, messageId:', gmailData.id);
     
     // Update invoice record
     const updateData = {
