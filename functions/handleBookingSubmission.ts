@@ -83,67 +83,75 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send client confirmation email
-    try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    // For pay-up-front bookings (no pay-at-closing), generate and send invoice
+    if (!booking.request_pay_at_closing) {
+      try {
+        await base44.asServiceRole.functions.invoke('generatePayUpFrontInvoice', {
+          bookingId: createdBooking.id
+        });
+      } catch (error) {
+        console.error('Invoice generation error:', error);
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'email',
+          recipient_type: 'client',
+          recipient_email: booking.client_email,
+          message_content: `Failed to generate invoice for booking`,
+          subject: 'Booking Confirmation - Invoice Pending',
+          status: 'failed',
+          error_message: error.message
+        });
+      }
+    } else {
+      // For pay-at-closing, send simple confirmation
+      try {
+        const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-      const emailSubject = 'Your Booking Request Confirmation';
-      const priceInfo = booking.request_pay_at_closing 
-        ? `We'll be in contact to discuss your Pay-at-closing details.`
-        : `Total Price: $${booking.total_price}`;
-      const emailBody = `Thank you for your booking request!\n\nWe've received your request for:\n\nPackage: ${booking.package}\nProperty: ${propertyAddress}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\n${priceInfo}\n\nWe'll review your request and get back to you shortly to confirm availability and finalize the details.\n\nThank you!`;
+        const emailSubject = 'Your Booking Request Confirmation';
+        const emailBody = `Thank you for your booking request!\n\nWe've received your request for:\n\nPackage: ${booking.package}\nProperty: ${propertyAddress}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\n\nWe'll be in contact to discuss your Pay-at-closing details.\n\nThank you!`;
 
-      const messageLines = [
-        `To: ${booking.client_email}`,
-        `From: ${adminEmail}`,
-        `Subject: ${emailSubject}`,
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset="UTF-8"',
-        '',
-        emailBody
-      ];
+        const messageLines = [
+          `To: ${booking.client_email}`,
+          `From: ${adminEmail}`,
+          `Subject: ${emailSubject}`,
+          'MIME-Version: 1.0',
+          'Content-Type: text/plain; charset="UTF-8"',
+          '',
+          emailBody
+        ];
 
-      const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
-      const messageBytes = messageParts.reduce((acc, part) => {
-        const newAcc = new Uint8Array(acc.length + part.length);
-        newAcc.set(acc);
-        newAcc.set(part, acc.length);
-        return newAcc;
-      }, new Uint8Array());
+        const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
+        const messageBytes = messageParts.reduce((acc, part) => {
+          const newAcc = new Uint8Array(acc.length + part.length);
+          newAcc.set(acc);
+          newAcc.set(part, acc.length);
+          return newAcc;
+        }, new Uint8Array());
 
-      const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+        const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=/g, '');
 
-      const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ raw: base64urlMessage })
-      });
+        const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ raw: base64urlMessage })
+        });
 
-      await base44.asServiceRole.entities.MessageLog.create({
-        message_type: 'email',
-        recipient_type: 'client',
-        recipient_email: booking.client_email,
-        message_content: emailBody,
-        subject: emailSubject,
-        status: response.ok ? 'success' : 'failed'
-      });
-    } catch (error) {
-      console.error('Client email error:', error);
-      await base44.asServiceRole.entities.MessageLog.create({
-        message_type: 'email',
-        recipient_type: 'client',
-        recipient_email: booking.client_email,
-        message_content: `Booking confirmation for ${propertyAddress}`,
-        subject: 'Your Booking Request Confirmation',
-        status: 'failed',
-        error_message: error.message
-      });
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'email',
+          recipient_type: 'client',
+          recipient_email: booking.client_email,
+          message_content: emailBody,
+          subject: emailSubject,
+          status: response.ok ? 'success' : 'failed'
+        });
+      } catch (error) {
+        console.error('Client confirmation email error:', error);
+      }
     }
 
     // Send SMS to admin if pay-at-closing requested
