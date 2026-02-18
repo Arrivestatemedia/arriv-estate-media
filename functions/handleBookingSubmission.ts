@@ -87,7 +87,18 @@ Deno.serve(async (req) => {
     if (!booking.request_pay_at_closing) {
       try {
         const invoiceResult = await base44.asServiceRole.functions.invoke('generatePayUpFrontInvoice', {
-          bookingId: createdBooking.id
+          bookingId: createdBooking.id,
+          booking: {
+            client_name: booking.client_name,
+            client_email: booking.client_email,
+            street_address: booking.street_address,
+            city: booking.city,
+            state: booking.state,
+            preferred_date: booking.preferred_date,
+            package: booking.package,
+            add_ons: booking.add_ons || []
+          },
+          total_price: booking.total_price
         });
         if (invoiceResult.data?.success) {
           console.log('Invoice generated:', invoiceResult.data.invoiceNumber);

@@ -3,49 +3,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    
+    const { bookingId, booking, total_price } = await req.json();
 
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Admin access required' }, { status: 403 });
+    if (!booking || !bookingId || !total_price) {
+      return Response.json({ error: 'Missing required data' }, { status: 400 });
     }
 
-    const { bookingId } = await req.json();
-
-    // Get booking details
-    const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
-
-    if (!booking) {
-      return Response.json({ error: 'Booking not found' }, { status: 404 });
-    }
-
-    // Calculate total amount
-    const packagePrices = {
-      'mls_walkthrough': 100,
-      'photo_essentials': 275,
-      'photo_cinematic': 475,
-      'premium_bundle': 675
-    };
-
-    const addonPrices = {
-      'drone': 125,
-      '3d_tour': 125,
-      'twilight': 125,
-      'rush_delivery': 100,
-      'vertical_reel': 40,
-      'ai_staging': 125
-    };
-
-    let totalAmount = packagePrices[booking.package] || 0;
-    if (booking.add_ons && booking.add_ons.length > 0) {
-      booking.add_ons.forEach(addon => {
-        totalAmount += addonPrices[addon] || 0;
-      });
-    }
-
-    // Use $1 for test accounts
-    if (booking.client_email.includes('BradCBurke') || booking.client_email.includes('test-user')) {
-      totalAmount = 1;
-    }
+const totalAmount = total_price;
 
     // Generate invoice number
     const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
@@ -76,6 +41,7 @@ Deno.serve(async (req) => {
     }
 
     const jobAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
+    const basePkgAmount = packagePrices[booking.package] || 0;
 
 
 
@@ -85,14 +51,6 @@ Deno.serve(async (req) => {
     let messageId = null;
 
     try {
-      const packagePrices = {
-        'mls_walkthrough': 100,
-        'photo_essentials': 275,
-        'photo_cinematic': 475,
-        'premium_bundle': 675
-      };
-      const basePkgAmount = packagePrices[booking.package] || 0;
-
       const templateResponse = await base44.asServiceRole.functions.invoke('generateInvoiceFromTemplate', {
         invoiceNumber,
         clientName: booking.client_name,
