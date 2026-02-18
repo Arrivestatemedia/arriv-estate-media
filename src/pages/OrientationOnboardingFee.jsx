@@ -109,6 +109,18 @@ export default function OrientationOnboardingFee() {
   useEffect(() => {
     const initPayment = async () => {
       try {
+        // Load Stripe first
+        const key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+        if (!key) {
+          console.error('Stripe key missing');
+          setError("Payment configuration error. Please contact support.");
+          setLoading(false);
+          return;
+        }
+        
+        stripePromise = loadStripe(key);
+        setStripeLoaded(true);
+
         const email = localStorage.getItem('user_email');
         if (!email) {
           navigate(createPageUrl("SignIn"));
