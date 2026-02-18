@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     // Create actual PDF using jsPDF
     const { jsPDF: PDFConstructor } = await import('npm:jspdf@4.0.0');
     const doc = new PDFConstructor();
-    
+
     if (markAsPaid) {
       doc.setTextColor(0, 128, 0);
       doc.setFontSize(20);
@@ -26,18 +26,18 @@ Deno.serve(async (req) => {
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(12);
     }
-    
+
     doc.setFontSize(12);
     doc.text(invoiceContent || 'Invoice', 20, 40);
-    
+
     if (stripeLink) {
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 255);
       doc.textWithLink('Click here to pay', 20, doc.lastAutoTable?.finalY + 20 || 200, { pageNumber: 1 });
       doc.textWithLink(stripeLink, 20, doc.lastAutoTable?.finalY + 25 || 205, { pageNumber: 1 });
     }
-    
-    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+
+    const pdfBuffer = doc.output('arraybuffer');
     const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
     
     // Upload to Google Drive
