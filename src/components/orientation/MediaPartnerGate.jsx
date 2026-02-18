@@ -7,6 +7,7 @@ export default function MediaPartnerGate({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isReady, setIsReady] = useState(false);
+  const [isFullyOnboarded, setIsFullyOnboarded] = useState(false);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -16,6 +17,7 @@ export default function MediaPartnerGate({ children }) {
         // Only gate media partners
         if (userType !== 'media_partner') {
           setIsReady(true);
+          setIsFullyOnboarded(true);
           return;
         }
 
@@ -39,10 +41,16 @@ export default function MediaPartnerGate({ children }) {
           while (attempts < 10) {
             const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
             const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
-            if (isComplete) break;
+            if (isComplete) {
+              setIsFullyOnboarded(true);
+              setIsReady(true);
+              return;
+            }
             await new Promise(resolve => setTimeout(resolve, 1000));
             attempts++;
           }
+          // Polling complete but not paid yet – redirect to payment
+          navigate(createPageUrl('OrientationOnboardingFee'), { replace: true });
           setIsReady(true);
           return;
         }
@@ -53,22 +61,24 @@ export default function MediaPartnerGate({ children }) {
 
         // Already fully onboarded – let through
         if (orientationCompleted && onboardingFeePaid) {
+          setIsFullyOnboarded(true);
           setIsReady(true);
           return;
         }
 
-        // If not onboarded and not on an orientation route, redirect to correct step
+        // Not fully onboarded – block access unless on an orientation route
         if (!isOnOrientationRoute) {
           if (!orientationCompleted) {
             navigate(createPageUrl('OrientationVideo'), { replace: true });
           } else {
-            // Orientation done but fee not paid – send to payment page
+            // Orientation done but fee not paid – send to payment page (only allowed orientation route)
             navigate(createPageUrl('OrientationOnboardingFee'), { replace: true });
           }
+          setIsReady(true);
           return;
         }
 
-        // They are on an orientation route – allow them through regardless
+        // On an orientation route but not fully onboarded – allow the route
         setIsReady(true);
       } catch (error) {
         console.error('Gate check error:', error);
