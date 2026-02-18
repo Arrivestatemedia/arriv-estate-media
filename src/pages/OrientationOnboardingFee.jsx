@@ -15,11 +15,10 @@ function CheckoutForm({ totalAmount, onSuccess }) {
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [stripeReady, setStripeReady] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || processing) return;
 
     setProcessing(true);
     setErrorMessage("");
@@ -35,12 +34,11 @@ function CheckoutForm({ totalAmount, onSuccess }) {
       setErrorMessage(error.message);
       setProcessing(false);
     }
-    // On success, Stripe redirects to return_url
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement onReady={() => setStripeReady(true)} />
+      <PaymentElement />
       <div className="pt-4 border-t border-[var(--border-color)]">
         <div className="flex justify-between text-lg font-semibold text-[var(--text-primary)] mb-4">
           <span>Total:</span>
@@ -53,7 +51,7 @@ function CheckoutForm({ totalAmount, onSuccess }) {
         )}
         <Button
           type="submit"
-          disabled={!stripe || !elements || !stripeReady || processing}
+          disabled={!stripe || !elements || processing}
           className="w-full bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
           size="lg"
         >
