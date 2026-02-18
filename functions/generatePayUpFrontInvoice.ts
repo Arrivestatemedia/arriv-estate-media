@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         y: 0,
         width,
         height,
-        color: rgb(240/255, 235/255, 225/255)
+        color: rgb(240/256, 235/256, 225/256)
       });
 
       let yPos = height - 60;
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
         x: 40,
         y: yPos,
         size: 24,
-        color: rgb(26/255, 26/255, 26/255)
+        color: rgb(26/256, 26/256, 26/256)
       });
 
       yPos -= 20;
