@@ -82,27 +82,23 @@ Deno.serve(async (req) => {
       formatted_content: `INVOICE #${invoiceNumber}\nDate: ${new Date().toLocaleDateString()}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nPackage: ${booking.package.replace(/_/g, ' ').toUpperCase()}\nAdd-ons: ${booking.add_ons ? booking.add_ons.join(', ') : 'None'}\n\nTotal Amount: $${totalAmount}\n\nPayment Link: ${stripeData.url}`
     };
 
-    // Upload invoice to Google Drive UNPAID folder
+    // Upload invoice to Google Drive UNPAID folder (async, don't block)
     let googleDriveUrl = stripeData.url;
     let googleDriveFileId = 'temp';
-    try {
-      const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
-        fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`,
-        invoiceContent: `INVOICE #${invoiceNumber}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nAmount Due: $${totalAmount}\n\nPayment Link: ${stripeData.url}`,
-        folderType: 'unpaid',
-        invoiceNumber,
-        stripeLink: stripeData.url
-      });
+    base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
+      fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.txt`,
+      invoiceContent: `INVOICE #${invoiceNumber}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nAmount Due: $${totalAmount}\n\nPayment Link: ${stripeData.url}`,
+      folderType: 'unpaid',
+      invoiceNumber,
+      stripeLink: stripeData.url
+    }).then(driveResult => {
       if (driveResult.data?.fileUrl) {
-        googleDriveUrl = driveResult.data.fileUrl;
-        googleDriveFileId = driveResult.data.fileId;
-        console.log('Google Drive upload successful:', googleDriveUrl);
-      } else {
-        console.error('No file URL returned from Drive upload');
+        base44.asServiceRole.entities.Invoice.update(invoiceId, {
+          google_drive_unpaid_url: driveResult.data.fileUrl,
+          google_drive_file_id: driveResult.data.fileId
+        }).catch(err => console.error('Error updating invoice with Drive URL:', err));
       }
-    } catch (driveError) {
-      console.error('Drive upload error:', driveError.message);
-    }
+    }).catch(driveError => console.error('Drive upload error:', driveError.message));
 
     // Generate tracked link
     const trackToken = crypto.randomUUID();
