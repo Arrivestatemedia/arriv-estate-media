@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     console.log('Starting Google Drive upload...');
     try {
       console.log('Invoking uploadInvoiceToGoogleDrive function...');
-      const driveResult = await base44.functions.invoke('uploadInvoiceToGoogleDrive', {
+      const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
         fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.txt`,
         invoiceContent: `INVOICE #${invoiceNumber}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nAmount Due: $${totalAmount}\n\nPayment Link: ${stripeData.url}`,
         folderType: 'unpaid'
