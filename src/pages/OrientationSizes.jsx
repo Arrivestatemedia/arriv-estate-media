@@ -84,6 +84,19 @@ export default function OrientationSizes() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] py-8 px-4">
+      {/* Image zoom modal */}
+      {zoomedImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setZoomedImage(null)}
+        >
+          <button className="absolute top-4 right-4 text-white" onClick={() => setZoomedImage(null)}>
+            <X className="w-8 h-8" />
+          </button>
+          <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-full rounded-xl object-contain" />
+        </div>
+      )}
+
       <div className="max-w-3xl mx-auto">
         <Card className="border-2 border-[var(--border-color)] bg-[var(--card-bg)]">
           <CardHeader>
@@ -97,45 +110,35 @@ export default function OrientationSizes() {
               {/* Shirt Fit */}
               <div className="space-y-2">
                 <Label className="text-[var(--text-primary)]">Shirt Fit *</Label>
-                <Select value={shirtFit} onValueChange={(val) => { setShirtFit(val); setShirtSize(""); }}>
-                  <SelectTrigger className="bg-[var(--bg-secondary)] border-[var(--border-color)]">
-                    <SelectValue placeholder="Select fit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MEN">Men's</SelectItem>
-                    <SelectItem value="WOMEN">Women's</SelectItem>
-                  </SelectContent>
-                </Select>
+                <NativeSelect
+                  value={shirtFit}
+                  onChange={(val) => { setShirtFit(val); setShirtSize(""); }}
+                  placeholder="Select fit"
+                  options={["MEN", "WOMEN"]}
+                />
               </div>
 
               {/* Shirt Size */}
               <div className="space-y-2">
                 <Label className="text-[var(--text-primary)]">Shirt Size *</Label>
-                <Select value={shirtSize} onValueChange={setShirtSize} disabled={!shirtFit}>
-                  <SelectTrigger className="bg-[var(--bg-secondary)] border-[var(--border-color)]">
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {shirtSizes.map(size => (
-                      <SelectItem key={size} value={size}>{size}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <NativeSelect
+                  value={shirtSize}
+                  onChange={setShirtSize}
+                  disabled={!shirtFit}
+                  placeholder="Select size"
+                  options={shirtSizes}
+                />
               </div>
 
               {/* Jacket Size */}
               <div className="space-y-2">
                 <Label className="text-[var(--text-primary)]">Jacket Size *</Label>
-                <Select value={jacketSize} onValueChange={setJacketSize}>
-                  <SelectTrigger className="bg-[var(--bg-secondary)] border-[var(--border-color)]">
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {JACKET_SIZES.map(size => (
-                      <SelectItem key={size} value={size}>{size}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <NativeSelect
+                  value={jacketSize}
+                  onChange={setJacketSize}
+                  placeholder="Select size"
+                  options={JACKET_SIZES}
+                />
               </div>
             </div>
 
@@ -148,7 +151,8 @@ export default function OrientationSizes() {
                 <img 
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/87121d65d_GearBagImage.png" 
                   alt="Gear Bag" 
-                  className="w-24 h-24 object-cover rounded" 
+                  className="w-24 h-24 object-cover rounded cursor-pointer active:opacity-80"
+                  onClick={() => setZoomedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/87121d65d_GearBagImage.png")}
                 />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
@@ -173,7 +177,8 @@ export default function OrientationSizes() {
                 <img 
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/8ca33b43d_WaterBottleImage.png" 
                   alt="Water Bottle" 
-                  className="w-24 h-24 object-cover rounded" 
+                  className="w-24 h-24 object-cover rounded cursor-pointer active:opacity-80"
+                  onClick={() => setZoomedImage("https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/8ca33b43d_WaterBottleImage.png")}
                 />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
