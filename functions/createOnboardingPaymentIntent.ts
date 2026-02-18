@@ -3,9 +3,6 @@ import Stripe from 'npm:stripe@17.5.0';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
 
-// Test user emails that should be charged $1 for everything
-const TEST_EMAILS = ['test@test.com', 'demo@demo.com'];
-
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
