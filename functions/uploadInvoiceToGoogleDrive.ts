@@ -11,9 +11,9 @@ Deno.serve(async (req) => {
             ? '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh'
             : '1Jwc1L00KV-lseq1kGEo8jcN5sTJ9LoOt';
 
-          // Get access token using service role (app connector authorized by admin)
+          // Get access token - use user auth since connector was authorized on your account
           console.log('Getting Google Drive access token...');
-          const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+          const accessToken = await base44.connectors.getAccessToken('googledrive');
     console.log('Access token obtained, length:', accessToken.length);
 
     // Convert base64 to binary
