@@ -148,8 +148,8 @@ Deno.serve(async (req) => {
       payment_status: 'unpaid',
       stripe_payment_link_id: stripeData.id,
       stripe_payment_link_url: stripeData.url,
-      google_drive_unpaid_url: driveResult.data.fileUrl,
-      google_drive_file_id: driveResult.data.fileId,
+      google_drive_unpaid_url: googleDriveUrl,
+      google_drive_file_id: googleDriveFileId,
       tracked_link_token: trackToken,
       tracked_link_url: trackedUrl,
       pay_at_closing: false
