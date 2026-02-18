@@ -12,15 +12,15 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Email required' }, { status: 400 });
         }
 
-        const emailRegex = { $regex: `^${email.trim()}$`, $options: 'i' };
+        const emailLower = email.trim().toLowerCase();
 
         // Look up in PendingSignup first
-        const signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailRegex });
-        const pendingUser = signups[0] || null;
+        const allSignups = await base44.asServiceRole.entities.PendingSignup.filter({ user_type: 'media_partner' });
+        const pendingUser = allSignups.find(s => s.email?.toLowerCase() === emailLower) || null;
 
         // Also check User entity
-        const users = await base44.asServiceRole.entities.User.filter({ email: emailRegex });
-        const appUser = users[0] || null;
+        const allUsers = await base44.asServiceRole.entities.User.filter({ user_type: 'media_partner' });
+        const appUser = allUsers.find(u => u.email?.toLowerCase() === emailLower) || null;
 
         const targetUser = pendingUser || appUser;
 
