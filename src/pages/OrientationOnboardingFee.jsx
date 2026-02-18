@@ -184,7 +184,7 @@ export default function OrientationOnboardingFee() {
     );
   }
 
-  if (!clientSecret) {
+  if (!clientSecret || !stripeLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
         <div className="text-center">
@@ -193,8 +193,6 @@ export default function OrientationOnboardingFee() {
       </div>
     );
   }
-
-  const stripePromiseInstance = getStripePromise();
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] py-8 px-4">
@@ -231,15 +229,9 @@ export default function OrientationOnboardingFee() {
               </div>
             </div>
 
-            {stripePromiseInstance ? (
-              <Elements stripe={stripePromiseInstance} options={{ clientSecret }}>
-                <CheckoutForm totalAmount={totalAmount} />
-              </Elements>
-            ) : (
-              <div className="p-4 bg-red-50 border border-red-200 rounded text-red-600">
-                Failed to load payment processor. Please refresh the page.
-              </div>
-            )}
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <CheckoutForm totalAmount={totalAmount} />
+            </Elements>
           </CardContent>
         </Card>
       </div>
