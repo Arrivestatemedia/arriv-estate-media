@@ -7,56 +7,67 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createPageUrl } from "../utils";
 
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-
-function CheckoutForm({ totalAmount, onSuccess }) {
+function CheckoutForm({ totalAmount }) {
   const stripe = useStripe();
   const elements = useElements();
-  const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements || processing) return;
+    
+    if (!stripe || !elements || processing) {
+      console.log('Cannot submit - stripe:', !!stripe, 'elements:', !!elements, 'processing:', processing);
+      return;
+    }
 
     setProcessing(true);
     setErrorMessage("");
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/MediaPartnerDashboard`,
-      },
-    });
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/MediaPartnerDashboard`,
+        },
+      });
 
-    if (error) {
-      setErrorMessage(error.message);
+      if (error) {
+        setErrorMessage(error.message || "Payment failed");
+        setProcessing(false);
+      }
+    } catch (err) {
+      console.error('Stripe error:', err);
+      setErrorMessage("Payment failed. Please try again.");
       setProcessing(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+      <PaymentElement options={{ layout: "tabs" }} />
+      
       <div className="pt-4 border-t border-[var(--border-color)]">
         <div className="flex justify-between text-lg font-semibold text-[var(--text-primary)] mb-4">
           <span>Total:</span>
-          <span>${totalAmount}.00</span>
+          <span>${totalAmount.toFixed(2)}</span>
         </div>
+        
         {errorMessage && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
             {errorMessage}
           </div>
         )}
-        <Button
+        
+        <button
           type="submit"
-          disabled={!stripe || !elements || processing}
-          className="w-full bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
-          size="lg"
+          disabled={processing || !stripe}
+          className="w-full px-4 py-3 bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
         >
-          {processing ? "Processing..." : `Pay $${totalAmount}.00`}
-        </Button>
+          {processing ? "Processing..." : `Pay $${totalAmount.toFixed(2)}`}
+        </button>
       </div>
     </form>
   );
@@ -70,31 +81,20 @@ export default function OrientationOnboardingFee() {
   const [totalAmount, setTotalAmount] = useState(50);
   const [addGearBag, setAddGearBag] = useState(false);
   const [addWaterBottle, setAddWaterBottle] = useState(false);
-  const [isTestUser, setIsTestUser] = useState(false);
   const [error, setError] = useState("");
-  const [stripePromise] = useState(() => loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY));
 
   useEffect(() => {
     const initPayment = async () => {
       try {
-        // Get email from localStorage (set during verifySignIn)
         const email = localStorage.getItem('user_email');
         if (!email) {
           navigate(createPageUrl("SignIn"));
           return;
         }
 
-        const storedData = {
-          email,
-          full_name: localStorage.getItem('user_name'),
-          user_type: localStorage.getItem('user_type'),
-        };
-
-        // Call backend to create payment intent (backend reads addGearBag/addWaterBottle from DB)
         const response = await base44.functions.invoke('createOnboardingPaymentIntent', { email });
         
         if (response.data.alreadyPaid) {
-          // Mark paid and navigate to dashboard
           localStorage.setItem('onboardingFeePaid', 'true');
           navigate(createPageUrl("MediaPartnerDashboard"));
           return;
@@ -106,16 +106,19 @@ export default function OrientationOnboardingFee() {
           return;
         }
 
-        setUserData(storedData);
+        setUserData({
+          email,
+          full_name: localStorage.getItem('user_name'),
+          user_type: localStorage.getItem('user_type'),
+        });
         setTotalAmount(response.data.totalAmount || 50);
         setAddGearBag(response.data.addGearBag || false);
         setAddWaterBottle(response.data.addWaterBottle || false);
-        setIsTestUser(response.data.isTestUser || false);
         setClientSecret(response.data.clientSecret);
+        setLoading(false);
       } catch (err) {
-        console.error("Error initializing payment:", err);
+        console.error("Payment initialization error:", err);
         setError("Failed to initialize payment. Please try again.");
-      } finally {
         setLoading(false);
       }
     };
@@ -146,6 +149,16 @@ export default function OrientationOnboardingFee() {
     );
   }
 
+  if (!clientSecret) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+        <div className="text-center">
+          <p className="text-[var(--text-primary)]">Loading payment form...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] py-8 px-4">
       <div className="max-w-3xl mx-auto">
@@ -161,31 +174,29 @@ export default function OrientationOnboardingFee() {
             <div className="bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] space-y-2">
               <div className="flex justify-between text-[var(--text-primary)]">
                 <span>Required Apparel (Shirt & Jacket)</span>
-                <span>{isTestUser ? "$1.00" : "$50.00"}</span>
+                <span>$1.00</span>
               </div>
               {addGearBag && (
                 <div className="flex justify-between text-[var(--text-primary)]">
                   <span>Gear Bag</span>
-                  <span>{isTestUser ? "$1.00" : "$50.00"}</span>
+                  <span>$1.00</span>
                 </div>
               )}
               {addWaterBottle && (
                 <div className="flex justify-between text-[var(--text-primary)]">
                   <span>Water Bottle</span>
-                  <span>{isTestUser ? "$1.00" : "$40.00"}</span>
+                  <span>$1.00</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-[var(--text-primary)] border-t border-[var(--border-color)] pt-2">
                 <span>Total</span>
-                <span>${totalAmount}.00</span>
+                <span>${totalAmount.toFixed(2)}</span>
               </div>
             </div>
 
-            {clientSecret && (
-              <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <CheckoutForm totalAmount={totalAmount} />
-              </Elements>
-            )}
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <CheckoutForm totalAmount={totalAmount} />
+            </Elements>
           </CardContent>
         </Card>
       </div>
