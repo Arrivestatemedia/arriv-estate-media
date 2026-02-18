@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     
     try {
       // Get invoice HTML template
-      const htmlResult = await base44.functions.invoke('generateInvoicePDF', {
+      const htmlResult = await base44.asServiceRole.functions.invoke('generateInvoicePDF', {
         invoiceNumber,
         clientName: booking.client_name,
         jobAddress,
