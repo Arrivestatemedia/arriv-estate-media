@@ -81,23 +81,10 @@ export default function OrientationOnboardingFee() {
           return;
         }
 
-        // Fetch user data from PendingSignup using backend
-        const emailRegex = { $regex: `^${email}$`, $options: 'i' };
-        const [signups, users] = await Promise.all([
-          base44.asServiceRole ? base44.asServiceRole.entities.PendingSignup.filter({ email: emailRegex }) : Promise.resolve([]),
-          Promise.resolve([])
-        ]);
-
-        // Use verifySignIn response data cached in localStorage
         const storedData = {
           email,
           full_name: localStorage.getItem('user_name'),
           user_type: localStorage.getItem('user_type'),
-          onboardingFeePaid: false,
-          addGearBag: false,
-          addWaterBottle: false,
-          shirtSize: null,
-          jacketSize: null
         };
 
         // If already paid, skip
