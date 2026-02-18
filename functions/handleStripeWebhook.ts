@@ -21,33 +21,37 @@ Deno.serve(async (req) => {
       
       // Check if this is a media partner onboarding payment
       if (paymentIntent.metadata?.purpose === 'media_partner_onboarding_fee') {
+        const userEmail = paymentIntent.metadata.userEmail;
+        const pendingSignupId = paymentIntent.metadata.pendingSignupId;
         const userId = paymentIntent.metadata.userId;
         
-        // Update user records
-        await base44.asServiceRole.entities.User.update(userId, {
+        const onboardingUpdate = {
           onboardingFeePaid: true,
           onboardingFeePaidAt: new Date().toISOString(),
           orientationCompleted: true,
           orientationCompletedAt: new Date().toISOString()
-        });
+        };
+
+        // Update PendingSignup if we have the ID
+        if (pendingSignupId) {
+          await base44.asServiceRole.entities.PendingSignup.update(pendingSignupId, onboardingUpdate);
+        }
         
-        // Generate and upload receipt
-        const receiptResponse = await base44.asServiceRole.functions.invoke('generateOnboardingReceipt', {
-          userId,
-          paymentIntentId: paymentIntent.id,
-          paidAt: new Date().toISOString()
-        });
-        
-        // Send notifications
-        await base44.asServiceRole.functions.invoke('sendOnboardingReceiptNotifications', {
-          userId,
-          receiptUrl: receiptResponse.data.driveUrl
-        });
-        
-        // Notify admin
-        await base44.asServiceRole.functions.invoke('sendAdminOnboardingNotification', {
-          userId
-        });
+        // Update User entity if we have the ID
+        if (userId) {
+          await base44.asServiceRole.entities.User.update(userId, onboardingUpdate);
+        }
+
+        // If only email, find and update both
+        if (!pendingSignupId && !userId && userEmail) {
+          const emailRegex = { $regex: `^${userEmail}$`, $options: 'i' };
+          const [signups, users] = await Promise.all([
+            base44.asServiceRole.entities.PendingSignup.filter({ email: emailRegex }),
+            base44.asServiceRole.entities.User.filter({ email: emailRegex })
+          ]);
+          if (signups[0]) await base44.asServiceRole.entities.PendingSignup.update(signups[0].id, onboardingUpdate);
+          if (users[0]) await base44.asServiceRole.entities.User.update(users[0].id, onboardingUpdate);
+        }
         
         return Response.json({ received: true });
       }
