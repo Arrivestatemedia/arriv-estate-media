@@ -86,9 +86,12 @@ Deno.serve(async (req) => {
     // For pay-up-front bookings (no pay-at-closing), generate and send invoice
     if (!booking.request_pay_at_closing) {
       try {
-        await base44.asServiceRole.functions.invoke('generatePayUpFrontInvoice', {
+        const invoiceResult = await base44.asServiceRole.functions.invoke('generatePayUpFrontInvoice', {
           bookingId: createdBooking.id
         });
+        if (invoiceResult.data?.success) {
+          console.log('Invoice generated:', invoiceResult.data.invoiceNumber);
+        }
       } catch (error) {
         console.error('Invoice generation error:', error);
         await base44.asServiceRole.entities.MessageLog.create({
