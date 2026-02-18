@@ -105,9 +105,14 @@ Deno.serve(async (req) => {
         stripeUrl: stripeData.url
       });
 
+      if (!htmlResult.data?.html) {
+        console.error('generateInvoicePDF failed:', htmlResult.data);
+        throw new Error('Failed to generate invoice HTML');
+      }
+
       const invoiceHTML = htmlResult.data.html;
 
-      // Upload HTML invoice to Google Drive (Google Drive can render HTML as PDF)
+      // Upload HTML invoice to Google Drive
       console.log('Uploading invoice to Google Drive...');
       const driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
         fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.html`,
@@ -120,6 +125,8 @@ Deno.serve(async (req) => {
         googleDriveUrl = driveResult.data.fileUrl;
         googleDriveFileId = driveResult.data.fileId;
         console.log('Successfully set Google Drive URL:', googleDriveUrl);
+      } else if (driveResult.data?.error) {
+        console.error('Drive upload error:', driveResult.data.error);
       }
     } catch (driveError) {
       console.error('PDF generation/upload error:', driveError.message || driveError);
