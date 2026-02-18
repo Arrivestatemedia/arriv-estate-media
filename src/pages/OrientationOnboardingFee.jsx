@@ -99,6 +99,7 @@ export default function OrientationOnboardingFee() {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stripeLoaded, setStripeLoaded] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [totalAmount, setTotalAmount] = useState(50);
   const [addGearBag, setAddGearBag] = useState(false);
