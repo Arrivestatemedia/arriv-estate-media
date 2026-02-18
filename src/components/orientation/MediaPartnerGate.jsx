@@ -11,31 +11,32 @@ export default function MediaPartnerGate({ children }) {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const isAuth = await base44.auth.isAuthenticated();
-        
-        if (!isAuth) {
-          setIsReady(true);
-          return;
-        }
-
-        const user = await base44.auth.me();
+        const userType = localStorage.getItem('user_type');
 
         // Only gate media partners
-        if (user.user_type !== 'media_partner') {
+        if (userType !== 'media_partner') {
           setIsReady(true);
           return;
         }
 
-        // Check orientation completion
-        const isComplete = user.orientationCompleted && user.onboardingFeePaid;
+        // Check orientation completion via backend
+        const email = localStorage.getItem('user_email');
+        if (!email) {
+          setIsReady(true);
+          return;
+        }
+
+        const response = await base44.functions.invoke('verifySignIn', { email, passwordHash: '__skip__' }).catch(() => null);
+        // Use a lightweight check: just read from PendingSignup
+        const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
+        
+        const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
         const currentPath = location.pathname;
 
-        // Allowed routes during orientation
-        const orientationRoutes = ['/OrientationVideo', '/OrientationSizes', '/OrientationOnboardingFee'];
-        const isOnOrientationRoute = orientationRoutes.some(route => currentPath.includes(route.substring(1)));
+        const orientationRoutes = ['OrientationVideo', 'OrientationSizes', 'OrientationOnboardingFee'];
+        const isOnOrientationRoute = orientationRoutes.some(route => currentPath.includes(route));
 
         if (!isComplete && !isOnOrientationRoute) {
-          // Redirect to orientation
           navigate(createPageUrl('OrientationVideo'), { replace: true });
           return;
         }
