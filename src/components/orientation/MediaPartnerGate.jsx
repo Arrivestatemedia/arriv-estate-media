@@ -27,40 +27,19 @@ export default function MediaPartnerGate({ children }) {
           return;
         }
 
-        const currentPath = location.pathname;
-        const orientationRoutes = ['OrientationVideo', 'OrientationSizes', 'OrientationOnboardingFee'];
-        const isOnOrientationRoute = orientationRoutes.some(route => currentPath.includes(route));
-
-        // If coming back from Stripe payment
         const urlParams = new URLSearchParams(window.location.search);
         const isPaymentSuccess = urlParams.get('payment_success') === 'true';
 
+        // If coming back from Stripe payment, confirm it immediately
         if (isPaymentSuccess) {
-          // Confirm payment and mark complete, then check status
           try {
             await base44.functions.invoke('confirmPaymentAndMarkComplete', { email });
-            // Give the database a moment to update
             await new Promise(resolve => setTimeout(resolve, 500));
           } catch (err) {
             console.error('Error confirming payment:', err);
           }
-          
-          // Now check if payment was marked
-          const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
-          const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
-          
-          if (isComplete) {
-            setIsFullyOnboarded(true);
-            // Clear the payment_success param from URL
-            window.history.replaceState({}, document.title, createPageUrl('MediaPartnerDashboard'));
-            setIsReady(true);
-            return;
-          } else {
-            // Payment not confirmed yet, redirect back to fee page
-            navigate(createPageUrl('OrientationOnboardingFee'), { replace: true });
-            setIsReady(true);
-            return;
-          }
+          // Clear the payment_success param and reload to get fresh data
+          window.history.replaceState({}, document.title, createPageUrl('MediaPartnerDashboard'));
         }
 
         const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
@@ -74,12 +53,16 @@ export default function MediaPartnerGate({ children }) {
           return;
         }
 
+        const currentPath = location.pathname;
+        const orientationRoutes = ['OrientationVideo', 'OrientationSizes', 'OrientationOnboardingFee'];
+        const isOnOrientationRoute = orientationRoutes.some(route => currentPath.includes(route));
+
         // Not fully onboarded – block access unless on an orientation route
         if (!isOnOrientationRoute) {
           if (!orientationCompleted) {
             navigate(createPageUrl('OrientationVideo'), { replace: true });
           } else {
-            // Orientation done but fee not paid – send to payment page (only allowed orientation route)
+            // Orientation done but fee not paid – send to payment page
             navigate(createPageUrl('OrientationOnboardingFee'), { replace: true });
           }
           setIsReady(true);
