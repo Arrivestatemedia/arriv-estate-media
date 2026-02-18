@@ -87,7 +87,7 @@ export default function OrientationOnboardingFee() {
           user_type: localStorage.getItem('user_type'),
         };
 
-        // Call backend to create payment intent
+        // Call backend to create payment intent (backend reads addGearBag/addWaterBottle from DB)
         const response = await base44.functions.invoke('createOnboardingPaymentIntent', { email });
         
         if (response.data.alreadyPaid) {
