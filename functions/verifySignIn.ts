@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
         }
 
         // Try User entity
-        const userApiUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/api/entities/User?email=${encodeURIComponent(emailTrimmed)}`;
+        const userApiUrl = `https://api.base44.com/v1/apps/${appId}/entities/User?email=${encodeURIComponent(emailTrimmed)}`;
         response = await fetch(userApiUrl, {
             headers: {
                 'Authorization': `Bearer ${serviceToken}`,
