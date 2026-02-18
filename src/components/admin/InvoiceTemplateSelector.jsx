@@ -37,13 +37,13 @@ export default function InvoiceTemplateSelector({ onTemplateSelected }) {
         setError('');
         
         // Save to database
-        const existingSettings = await base44.asServiceRole.entities.AdminSettings.list();
+        const existingSettings = await base44.entities.AdminSettings.list();
         if (existingSettings.length > 0) {
-          await base44.asServiceRole.entities.AdminSettings.update(existingSettings[0].id, {
+          await base44.entities.AdminSettings.update(existingSettings[0].id, {
             invoice_template_id: fileId
           });
         } else {
-          await base44.asServiceRole.entities.AdminSettings.create({
+          await base44.entities.AdminSettings.create({
             invoice_template_id: fileId
           });
         }
