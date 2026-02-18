@@ -3,6 +3,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Admin access required' }, { status: 403 });
+    }
+    
     const { invoiceId, clientEmail, clientName, jobAddress, trackedLink, isReminder, reminderNumber } = await req.json();
     
     let subject = 'Your Invoice from Arriv Estate Media';
@@ -25,7 +31,7 @@ Arriv Estate Media
 📞 678-242-9107
 🌐 arrivestatemedia.com`;
     
-    // Get Gmail access token via connector
+    // Get Gmail access token via connector (user-authenticated)
     const accessToken = await base44.connectors.getAccessToken('gmail');
     
     // Format email message

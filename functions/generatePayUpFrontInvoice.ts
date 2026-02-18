@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     // Upload invoice to Google Drive UNPAID folder (skip on error)
     let driveResult = { data: { fileUrl: '#', fileId: 'temp' } };
     try {
-      driveResult = await base44.functions.invoke('uploadInvoiceToGoogleDrive', {
+      driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
         fileName: `${jobAddress}.pdf`,
         invoiceContent: invoiceContent.formatted_content,
         folderType: 'unpaid',
@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
 
     // Send invoice email via Gmail
     try {
-      await base44.functions.invoke('sendInvoiceEmailViaGmail', {
+      await base44.asServiceRole.functions.invoke('sendInvoiceEmailViaGmail', {
         invoiceId: invoice.id,
         clientEmail: booking.client_email,
         clientName: booking.client_name.split(' ')[0],
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
 
     // Schedule reminders
     try {
-      await base44.functions.invoke('scheduleInvoiceReminders', {
+      await base44.asServiceRole.functions.invoke('scheduleInvoiceReminders', {
         invoiceId: invoice.id
       });
     } catch (reminderError) {

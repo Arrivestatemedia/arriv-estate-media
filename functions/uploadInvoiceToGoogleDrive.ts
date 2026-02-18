@@ -7,11 +7,17 @@ const PAID_FOLDER_ID = '1KIGXqbeiF4JU1uSYKu92pA_1PJIyskHS';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Admin access required' }, { status: 403 });
+    }
+    
     const { fileName, invoiceContent, folderType, invoiceNumber, stripeLink, markAsPaid } = await req.json();
     
     const folderId = folderType === 'unpaid' ? UNPAID_FOLDER_ID : PAID_FOLDER_ID;
     
-    // Get Google Drive access token
+    // Get Google Drive access token (user-authenticated)
     const accessToken = await base44.connectors.getAccessToken('googledrive');
     
     // Create actual PDF using jsPDF
