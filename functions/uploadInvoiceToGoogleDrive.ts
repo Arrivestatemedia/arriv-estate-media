@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     // Create multipart upload
     const boundary = '===============7330845974216740156==';
     const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`;
-    const filePart = `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`;
+    const filePart = `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
     const footer = `\r\n--${boundary}--`;
 
     // Combine parts - need to handle binary data
