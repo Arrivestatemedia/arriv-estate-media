@@ -159,9 +159,9 @@ export default function OrientationSizes() {
                 />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-[var(--text-primary)]">Gear Bag</h4>
-                    <span className="text-[var(--accent-color)] font-bold">$50</span>
-                  </div>
+                      <h4 className="font-semibold text-[var(--text-primary)]">Gear Bag</h4>
+                      <span className="text-[var(--accent-color)] font-bold">{isTestUser ? "$1" : "$50"}</span>
+                    </div>
                   <div className="flex items-center gap-2">
                     <Checkbox 
                       checked={addGearBag} 
