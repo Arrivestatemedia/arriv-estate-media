@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { jsPDF } from 'npm:jspdf@4.0.0';
+import { PDFDocument, rgb, degrees } from 'npm:pdf-lib@1.17.1';
 
 Deno.serve(async (req) => {
   try {
