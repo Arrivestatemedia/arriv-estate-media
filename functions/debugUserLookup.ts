@@ -28,38 +28,66 @@ Deno.serve(async (req) => {
 
         console.log('Total PendingSignup records:', allPending.length);
         
-        // Find matching user
-        const found = allPending.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+        // Get all User records
+        const resp2 = await fetch(
+            `https://api.base44.com/v1/apps/${appId}/entities/User`,
+            { headers }
+        );
         
-        if (found) {
-            console.log('Found user:', {
-                email: found.email,
-                name: found.full_name,
-                storedHash: found.password_hash,
+        let allUsers = [];
+        if (resp2.ok) {
+            allUsers = await resp2.json();
+        }
+
+        console.log('Total User records:', allUsers.length);
+
+        // Find matching user in PendingSignup
+        const foundPending = allPending.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+        
+        if (foundPending) {
+            console.log('Found in PendingSignup:', {
+                email: foundPending.email,
+                storedHash: foundPending.password_hash,
                 calculatedHash: hashHex,
-                match: found.password_hash === hashHex
+                match: foundPending.password_hash === hashHex
             });
 
             return Response.json({
                 found: true,
-                email: found.email,
-                storedHash: found.password_hash,
+                location: 'PendingSignup',
+                email: foundPending.email,
+                storedHash: foundPending.password_hash,
                 calculatedHash: hashHex,
-                hashMatch: found.password_hash === hashHex,
-                user: {
-                    email: found.email,
-                    full_name: found.full_name,
-                    user_type: found.user_type,
-                    orientationCompleted: found.orientationCompleted
-                }
-            });
-        } else {
-            console.log('User not found in PendingSignup');
-            return Response.json({
-                found: false,
-                emails_in_db: allPending.map(u => u.email)
+                hashMatch: foundPending.password_hash === hashHex
             });
         }
+
+        // Find matching user in User
+        const foundUser = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+        
+        if (foundUser) {
+            console.log('Found in User:', {
+                email: foundUser.email,
+                storedHash: foundUser.password_hash,
+                calculatedHash: hashHex,
+                match: foundUser.password_hash === hashHex
+            });
+
+            return Response.json({
+                found: true,
+                location: 'User',
+                email: foundUser.email,
+                storedHash: foundUser.password_hash,
+                calculatedHash: hashHex,
+                hashMatch: foundUser.password_hash === hashHex
+            });
+        }
+
+        return Response.json({
+            found: false,
+            pending_emails: allPending.map(u => u.email),
+            user_emails: allUsers.map(u => u.email)
+        });
 
     } catch (error) {
         console.error('Debug error:', error);
