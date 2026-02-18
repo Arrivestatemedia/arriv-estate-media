@@ -83,21 +83,18 @@ Deno.serve(async (req) => {
     };
 
     // Upload invoice to Google Drive UNPAID folder (async, don't block)
-    // Don't set initial values - let Drive upload update them
     base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
       fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.txt`,
       invoiceContent: `INVOICE #${invoiceNumber}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nAmount Due: $${totalAmount}\n\nPayment Link: ${stripeData.url}`,
-      folderType: 'unpaid',
-      invoiceNumber,
-      stripeLink: stripeData.url
+      folderType: 'unpaid'
     }).then(driveResult => {
       if (driveResult.data?.fileUrl) {
-        base44.asServiceRole.entities.Invoice.update(invoiceId, {
+        base44.asServiceRole.entities.Invoice.update(invoice.id, {
           google_drive_unpaid_url: driveResult.data.fileUrl,
           google_drive_file_id: driveResult.data.fileId
-        }).catch(err => console.error('Error updating invoice with Drive URL:', err));
+        }).catch(err => console.error('Error updating Drive URL:', err));
       }
-    }).catch(driveError => console.error('Drive upload error:', driveError.message));
+    }).catch(err => console.error('Drive upload error:', err.message));
 
     // Generate tracked link
     const trackToken = crypto.randomUUID();
