@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
 
     // Schedule reminders
     try {
-      await base44.functions.invoke('scheduleInvoiceReminders', {
+      await base44.asServiceRole.functions.invoke('scheduleInvoiceReminders', {
         invoiceId: invoice.id
       });
     } catch (reminderError) {
