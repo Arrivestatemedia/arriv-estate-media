@@ -1,20 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { PDFDocument } from 'npm:pdf-lib@1.17.1';
+import { jsPDF } from 'npm:jspdf@4.0.0';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    
+
     if (!user || user.role !== 'admin') {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const { bookingId } = await req.json();
-    
+
     // Get booking details
     const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
-    
+
     if (!booking) {
       return Response.json({ error: 'Booking not found' }, { status: 404 });
     }
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       'photo_cinematic': 475,
       'premium_bundle': 675
     };
-    
+
     const addonPrices = {
       'drone': 125,
       '3d_tour': 125,
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       'vertical_reel': 40,
       'ai_staging': 125
     };
-    
+
     let totalAmount = packagePrices[booking.package] || 0;
     if (booking.add_ons && booking.add_ons.length > 0) {
       booking.add_ons.forEach(addon => {
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     });
 
     const stripeData = await stripeResponse.json();
-    
+
     if (!stripeResponse.ok) {
       throw new Error(`Stripe error: ${stripeData.error?.message || 'Unknown error'}`);
     }
@@ -82,22 +82,73 @@ Deno.serve(async (req) => {
     const trackToken = crypto.randomUUID();
     const trackedUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/TrackLink?token=${trackToken}`;
 
-    // Load and fill the PDF template
+    // Generate beautifully formatted invoice PDF
     let googleDriveUrl = null;
     let googleDriveFileId = null;
-    
+
     try {
-      console.log('Fetching PDF template...');
-      const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/2179fb4ca_c1b504ec3_Arriv_Estate_Media_Pay_Up_Front_Invoice.pdf';
-      const templateRes = await fetch(templateUrl);
-      const templateBytes = await templateRes.arrayBuffer();
-      
-      // Load the PDF
-      const pdfDoc = await PDFDocument.load(templateBytes);
-      const page = pdfDoc.getPage(0);
-      const { width, height } = page.getSize();
-      
-      // Define package and addon descriptions
+      console.log('Generating branded invoice PDF...');
+
+      // Create PDF with cream background
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // Cream background
+      pdf.setFillColor(255, 251, 245); // #FFFBF5
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+      // Logo
+      const logoUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/314d93d36_IMG_5660.png';
+      try {
+        const logoRes = await fetch(logoUrl);
+        const logoBuffer = await logoRes.arrayBuffer();
+        const logoBase64 = btoa(String.fromCharCode(...new Uint8Array(logoBuffer)));
+        pdf.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', pageWidth / 2 - 20, 10, 40, 40);
+      } catch (e) {
+        console.error('Logo loading error:', e.message);
+      }
+
+      // Invoice title and details
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(18);
+      pdf.setTextColor(26, 26, 26); // Black
+      pdf.text('INVOICE', 20, 65);
+
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(`Invoice #: ${invoiceNumber}`, 20, 75);
+      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, 82);
+
+      // Client section
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(11);
+      pdf.text('BILL TO:', 20, 95);
+
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(10);
+      pdf.text(booking.client_name, 20, 103);
+      pdf.text(jobAddress, 20, 110);
+      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 117);
+
+      // Services table
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(184, 149, 106); // Gold
+      pdf.text('SERVICES PROVIDED', 20, 135);
+
+      pdf.setDrawColor(184, 149, 106);
+      pdf.line(20, 140, pageWidth - 20, 140);
+
+      // Table headers
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(10);
+      pdf.setTextColor(26, 26, 26);
+      pdf.text('Description', 20, 148);
+      pdf.text('Amount', pageWidth - 40, 148);
+
+      // Table rows
+      pdf.setFont(undefined, 'normal');
       const packageDescriptions = {
         'mls_walkthrough': 'MLS Walkthrough',
         'photo_essentials': 'Photo Essentials Package',
@@ -112,78 +163,77 @@ Deno.serve(async (req) => {
         'vertical_reel': 'Vertical Reel',
         'ai_staging': 'AI Staging'
       };
-      const addonPrices = {
-        'drone': 125, '3d_tour': 125, 'twilight': 125,
-        'rush_delivery': 100, 'vertical_reel': 40, 'ai_staging': 125
-      };
-      
+
       const packageBaseAmount = packagePrices[booking.package] || 0;
       const packageDescText = packageDescriptions[booking.package] || booking.package;
-      const servicesList = [packageDescText];
-      booking.add_ons?.forEach(addon => {
-        servicesList.push(addonDescriptions[addon] || addon);
-      });
-      
-      // Add text fields to the PDF
-      const fontSize = 11;
-      
-      // Invoice number and date
-      page.drawText(invoiceNumber, { x: 180, y: height - 260, size: fontSize });
-      page.drawText(new Date().toLocaleDateString(), { x: 440, y: height - 260, size: fontSize });
-      
-      // Client info
-      page.drawText(booking.client_name, { x: 120, y: height - 300, size: fontSize });
-      page.drawText(jobAddress, { x: 120, y: height - 330, size: fontSize });
-      page.drawText(booking.preferred_date, { x: 120, y: height - 360, size: fontSize });
-      
-      // Services provided
-      let servicesY = height - 440;
-      servicesList.forEach((service, idx) => {
-        if (idx === 0) {
-          page.drawText(service, { x: 120, y: servicesY, size: fontSize });
-          page.drawText(`$${(idx === 0 ? packageBaseAmount : addonPrices[booking.add_ons?.[idx - 1]] || 0).toFixed(2)}`, { x: 400, y: servicesY, size: fontSize });
-        } else {
-          servicesY -= 25;
-          page.drawText(service, { x: 120, y: servicesY, size: fontSize });
-          page.drawText(`$${(addonPrices[booking.add_ons?.[idx - 1]] || 0).toFixed(2)}`, { x: 400, y: servicesY, size: fontSize });
-        }
-      });
-      
-      // Total due
-      const totalY = servicesY - 40;
-      page.drawText(`$${totalAmount.toFixed(2)}`, { x: 400, y: totalY, size: fontSize });
-      
-      // Stripe link
-      page.drawText(stripeData.url, { x: 120, y: totalY - 40, size: 9 });
-      
-      // Save the modified PDF
-      const pdfBytes = await pdfDoc.save();
-      
+      let yPos = 156;
+
+      pdf.text(packageDescText, 20, yPos);
+      pdf.text(`$${packageBaseAmount.toFixed(2)}`, pageWidth - 40, yPos, { align: 'right' });
+
+      yPos += 8;
+      if (booking.add_ons && booking.add_ons.length > 0) {
+        booking.add_ons.forEach(addon => {
+          const addonName = addonDescriptions[addon] || addon;
+          const addonPrice = addonPrices[addon] || 0;
+          pdf.text(addonName, 20, yPos);
+          pdf.text(`$${addonPrice.toFixed(2)}`, pageWidth - 40, yPos, { align: 'right' });
+          yPos += 8;
+        });
+      }
+
+      // Total line
+      pdf.setDrawColor(184, 149, 106);
+      pdf.line(20, yPos - 2, pageWidth - 20, yPos - 2);
+
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(12);
+      pdf.text('TOTAL DUE:', 20, yPos + 8);
+      pdf.setTextColor(184, 149, 106);
+      pdf.text(`$${totalAmount.toFixed(2)}`, pageWidth - 40, yPos + 8, { align: 'right' });
+
+      // Payment section
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(26, 26, 26);
+      pdf.text('PAYMENT INSTRUCTIONS', 20, yPos + 25);
+
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(9);
+      pdf.text('Full payment is required before your scheduled shoot.', 20, yPos + 33);
+      pdf.text(`Payment Link: ${stripeData.url}`, 20, yPos + 41);
+
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(184, 149, 106);
+      pdf.text('Arriv Estate Media | Professional Property Photography & Videography', pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+      const pdfBytes = pdf.output('arraybuffer');
+
       console.log('Getting Google Drive access token...');
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-      console.log('Access token obtained, uploading to Google Drive...');
-      
+      console.log('Uploading to Google Drive...');
+
       const folderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
       const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
-      
+
       const form = new FormData();
       form.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [folderId] })], { type: 'application/json' }));
       form.append('file', new Blob([pdfBytes], { type: 'application/pdf' }));
-      
+
       const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}` },
         body: form
       });
-      
+
       const fileData = await uploadRes.json();
-      console.log('Upload response status:', uploadRes.status, 'File data:', fileData);
-      
+
       if (uploadRes.ok && fileData.id) {
         googleDriveUrl = `https://drive.google.com/file/d/${fileData.id}/view`;
         googleDriveFileId = fileData.id;
         console.log('Successfully uploaded to Google Drive:', googleDriveUrl);
-        
+
         // Make shareable
         await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
           method: 'POST',
@@ -194,10 +244,10 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ role: 'reader', type: 'anyone' })
         }).catch((e) => console.error('Share error:', e.message));
       } else {
-        console.error('Drive upload failed:', fileData.error?.message || 'Unknown error', uploadRes.status);
+        console.error('Drive upload failed:', fileData.error?.message || 'Unknown error');
       }
     } catch (pdfErr) {
-      console.error('PDF template error:', pdfErr.message || pdfErr);
+      console.error('PDF generation error:', pdfErr.message || pdfErr);
     }
 
     // Create invoice record with Google Drive URL already populated
