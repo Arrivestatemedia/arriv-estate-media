@@ -15,6 +15,7 @@ function CheckoutForm({ totalAmount, onSuccess }) {
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [stripeReady, setStripeReady] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
