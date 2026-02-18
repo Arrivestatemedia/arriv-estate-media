@@ -4,6 +4,8 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const { fileName, pdfBase64, folderType } = await req.json();
+    
+    console.log('uploadInvoiceToGoogleDrive called with fileName:', fileName, 'folderType:', folderType);
 
     const folderId = folderType === 'unpaid' 
       ? '1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY'
