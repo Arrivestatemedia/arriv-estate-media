@@ -6,13 +6,19 @@ const PAID_FOLDER_ID = '1KIGXqbeiF4JU1uSYKu92pA_1PJIyskHS';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
+
     const { fileName, invoiceContent, folderType, invoiceNumber, stripeLink, markAsPaid } = await req.json();
 
     const folderId = folderType === 'unpaid' ? UNPAID_FOLDER_ID : PAID_FOLDER_ID;
 
-    // Get Google Drive access token via service role
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+    // Get Google Drive access token via admin authorization
+    let accessToken;
+    try {
+      accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+    } catch (e) {
+      console.error('Token fetch error:', e.message);
+      throw e;
+    }
     
     // Simple text-based invoice
     let invoiceText = invoiceContent || 'Invoice';
