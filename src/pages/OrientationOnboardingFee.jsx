@@ -15,11 +15,24 @@ function CheckoutForm({ totalAmount }) {
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  useEffect(() => {
+    if (!stripe) {
+      console.log('Stripe not loaded yet');
+    }
+    if (!elements) {
+      console.log('Elements not ready yet');
+    }
+  }, [stripe, elements]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!stripe || !elements || processing) {
-      console.log('Cannot submit - stripe:', !!stripe, 'elements:', !!elements, 'processing:', processing);
+    if (!stripe || !elements) {
+      setErrorMessage("Payment form not ready. Please refresh the page.");
+      return;
+    }
+
+    if (processing) {
       return;
     }
 
@@ -27,17 +40,17 @@ function CheckoutForm({ totalAmount }) {
     setErrorMessage("");
 
     try {
-      const { error } = await stripe.confirmPayment({
+      const result = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/MediaPartnerDashboard`,
         },
       });
 
-      if (error) {
-        setErrorMessage(error.message || "Payment failed");
-        setProcessing(false);
+      if (result.error) {
+        setErrorMessage(result.error.message || "Payment failed");
       }
+      setProcessing(false);
     } catch (err) {
       console.error('Stripe error:', err);
       setErrorMessage("Payment failed. Please try again.");
