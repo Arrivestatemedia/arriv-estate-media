@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createPageUrl } from "../utils";
+import { X } from "lucide-react";
 
 const MEN_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
 const WOMEN_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
