@@ -8,7 +8,6 @@ import JobForm from "../components/jobs/JobForm";
 import JobCard from "../components/jobs/JobCard";
 import PendingBookingCard from "../components/booking/PendingBookingCard";
 import InviteUsersCard from "../components/dashboard/InviteUsersCard";
-import InvoiceTemplateSelector from "../components/admin/InvoiceTemplateSelector";
 import { AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
@@ -260,16 +259,8 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1">
             <InviteUsersCard />
-            <Card className="border-2 border-[#B8956A]/20 bg-white">
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-[#1A1A1A]">Invoice Template</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <InvoiceTemplateSelector />
-              </CardContent>
-            </Card>
           </div>
         </div>
 

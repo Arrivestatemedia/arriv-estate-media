@@ -24,17 +24,9 @@ Deno.serve(async (req) => {
     } = await req.json();
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-
-    // Get template ID from database
-    const settings = await base44.asServiceRole.entities.AdminSettings.list();
-    const adminSettings = settings.length > 0 ? settings[0] : null;
-
-    const templateFileId = adminSettings?.invoice_template_id;
-    const unpaindFolderId = adminSettings?.unpaid_folder_id || '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
-
-    if (!templateFileId) {
-      throw new Error('Invoice template ID not configured. Please select a template in the admin dashboard.');
-    }
+    
+    const templateFileId = '1Rdy5wlkeugEjNf2akpgZxwbmcDY8HzsAU95U_VIHFzk';
+    const unpaindFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
 
     // Step 1: Copy template file
     console.log('Step 1: Copying template file...');
@@ -320,18 +312,16 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error generating invoice from template:', error);
-    console.error('Attempting fallback email...');
     
     // Fallback: Send basic invoice email if template generation fails
     try {
       const brevoApiKey = Deno.env.get('BREVO_API_KEY');
       const adminEmail = Deno.env.get('ADMIN_EMAIL');
-      const clientFirstName = clientName?.split(' ')[0] || 'there';
       
       const htmlEmailBody = `<!DOCTYPE html>
       <html>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <p>Hi ${clientFirstName},</p>
+      <p>Hi ${clientName.split(' ')[0]},</p>
       
       <p>Thank you for your booking! Your invoice is ready for payment.</p>
       
