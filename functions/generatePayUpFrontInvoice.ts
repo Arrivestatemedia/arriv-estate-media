@@ -374,17 +374,17 @@ Deno.serve(async (req) => {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
       const emailBody = `Hi ${booking.client_name.split(' ')[0]},
 
-    Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
+Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
 
-    👉 View Invoice: ${trackedUrl}
+👉 View Invoice: ${googleDriveUrl}
 
-    If you have any questions or need anything at all, feel free to reach out. Thank you again for the opportunity to work with you.
+If you have any questions or need anything at all, feel free to reach out. Thank you again for the opportunity to work with you.
 
-    Best regards,
-    Bradley Burke
-    Arriv Estate Media
-    📞 678-242-9107
-    🌐 arrivestatemedia.com`;
+Best regards,
+Bradley Burke
+Arriv Estate Media
+📞 678-242-9107
+🌐 arrivestatemedia.com`;
 
       const message = [
         `To: ${booking.client_email}`,
