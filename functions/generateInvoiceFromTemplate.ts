@@ -24,8 +24,8 @@ Deno.serve(async (req) => {
     } = await req.json();
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-    
-    const templateFileId = '1Rdy5wlkeugEjNf2akpgZxwbmcDY8HzsAU95U_VIHFzk';
+
+    const templateFileId = '17o50ew2RInrTPx6GhJRnjizN-bzhFKRN';
     const unpaindFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
 
     // Step 1: Copy template file
