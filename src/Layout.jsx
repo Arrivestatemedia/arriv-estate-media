@@ -8,9 +8,10 @@ import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import NewJobsBadge from "@/components/layout/NewJobsBadge";
 import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
-import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
+      import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
+      import TrackLink from "@/pages/TrackLink";
 
-export default function Layout({ children, currentPageName }) {
+      export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -289,11 +290,15 @@ export default function Layout({ children, currentPageName }) {
       </header>
 
       <main>
-        <MediaPartnerGate>
-          <PageTransition>
-            {children}
-          </PageTransition>
-        </MediaPartnerGate>
+        {currentPageName === "TrackLink" ? (
+          <TrackLink />
+        ) : (
+          <MediaPartnerGate>
+            <PageTransition>
+              {children}
+            </PageTransition>
+          </MediaPartnerGate>
+        )}
       </main>
 
       {/* Mobile Bottom Tabs */}
