@@ -312,6 +312,80 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error generating invoice from template:', error);
+    
+    // Fallback: Send basic invoice email if template generation fails
+    try {
+      const brevoApiKey = Deno.env.get('BREVO_API_KEY');
+      const adminEmail = Deno.env.get('ADMIN_EMAIL');
+      
+      const htmlEmailBody = `<!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <p>Hi ${clientName.split(' ')[0]},</p>
+      
+      <p>Thank you for your booking! Your invoice is ready for payment.</p>
+      
+      <p><strong>Invoice Details:</strong></p>
+      <ul>
+      <li>Invoice #: ${invoiceNumber}</li>
+      <li>Property: ${jobAddress}</li>
+      <li>Amount Due: $${parseFloat(amountDue).toFixed(2)}</li>
+      <li>Package: ${packageName}</li>
+      </ul>
+      
+      <p>
+      <a href="${stripePaymentLink}" style="background-color: #B8956A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+        👉 Pay Invoice
+      </a>
+      </p>
+      
+      <p>If you have any questions, feel free to reach out.</p>
+      
+      <p>
+      Best regards,<br>
+      <strong>Bradley Burke</strong><br>
+      Arriv Estate Media<br>
+      📞 678-242-9107
+      </p>
+      </body>
+      </html>`;
+      
+      const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: {
+            name: 'Bradley Burke - Arriv Estate Media',
+            email: adminEmail
+          },
+          to: [
+            {
+              email: clientEmail,
+              name: clientName
+            }
+          ],
+          subject: 'Your Invoice from Arriv Estate Media',
+          htmlContent: htmlEmailBody
+        })
+      });
+
+      const brevoData = await brevoResponse.json();
+      if (brevoResponse.ok) {
+        return Response.json({
+          success: true,
+          invoiceFileId: null,
+          driveViewLink: stripePaymentLink,
+          messageId: brevoData.messageId,
+          fallback: true
+        });
+      }
+    } catch (fallbackError) {
+      console.error('Fallback email error:', fallbackError);
+    }
+    
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
