@@ -130,33 +130,33 @@ Deno.serve(async (req) => {
       const { rgb } = await import('npm:pdf-lib@1.17.1');
       
       // Invoice number and date
-      page.drawText(invoiceNumber, { x: 180, y: height - 260, size: fontSize, color: textColor });
-      page.drawText(new Date().toLocaleDateString(), { x: 440, y: height - 260, size: fontSize, color: textColor });
+      page.drawText(invoiceNumber, { x: 180, y: height - 260, size: fontSize });
+      page.drawText(new Date().toLocaleDateString(), { x: 440, y: height - 260, size: fontSize });
       
       // Client info
-      page.drawText(booking.client_name, { x: 120, y: height - 300, size: fontSize, color: textColor });
-      page.drawText(jobAddress, { x: 120, y: height - 330, size: fontSize, color: textColor });
-      page.drawText(booking.preferred_date, { x: 120, y: height - 360, size: fontSize, color: textColor });
+      page.drawText(booking.client_name, { x: 120, y: height - 300, size: fontSize });
+      page.drawText(jobAddress, { x: 120, y: height - 330, size: fontSize });
+      page.drawText(booking.preferred_date, { x: 120, y: height - 360, size: fontSize });
       
       // Services provided
       let servicesY = height - 440;
       servicesList.forEach((service, idx) => {
         if (idx === 0) {
-          page.drawText(service, { x: 120, y: servicesY, size: fontSize, color: textColor });
-          page.drawText(`$${(idx === 0 ? packageBaseAmount : addonPrices[booking.add_ons?.[idx - 1]] || 0).toFixed(2)}`, { x: 400, y: servicesY, size: fontSize, color: textColor });
+          page.drawText(service, { x: 120, y: servicesY, size: fontSize });
+          page.drawText(`$${(idx === 0 ? packageBaseAmount : addonPrices[booking.add_ons?.[idx - 1]] || 0).toFixed(2)}`, { x: 400, y: servicesY, size: fontSize });
         } else {
           servicesY -= 25;
-          page.drawText(service, { x: 120, y: servicesY, size: fontSize, color: textColor });
-          page.drawText(`$${(addonPrices[booking.add_ons?.[idx - 1]] || 0).toFixed(2)}`, { x: 400, y: servicesY, size: fontSize, color: textColor });
+          page.drawText(service, { x: 120, y: servicesY, size: fontSize });
+          page.drawText(`$${(addonPrices[booking.add_ons?.[idx - 1]] || 0).toFixed(2)}`, { x: 400, y: servicesY, size: fontSize });
         }
       });
       
       // Total due
       const totalY = servicesY - 40;
-      page.drawText(`$${totalAmount.toFixed(2)}`, { x: 400, y: totalY, size: fontSize, color: textColor });
+      page.drawText(`$${totalAmount.toFixed(2)}`, { x: 400, y: totalY, size: fontSize });
       
       // Stripe link
-      page.drawText(stripeData.url, { x: 120, y: totalY - 40, size: 9, color: { r: 0, g: 0, b: 0.8 } });
+      page.drawText(stripeData.url, { x: 120, y: totalY - 40, size: 9 });
       
       // Save the modified PDF
       const pdfBytes = await pdfDoc.save();
