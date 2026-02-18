@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import jsPDF from 'npm:jspdf@4.0.0';
 
 const UNPAID_FOLDER_ID = '1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY';
 const PAID_FOLDER_ID = '1KIGXqbeiF4JU1uSYKu92pA_1PJIyskHS';
@@ -13,15 +14,30 @@ Deno.serve(async (req) => {
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
     
-    // Create PDF content with invoice data
-    let pdfContent = invoiceContent;
+    // Create actual PDF using jsPDF
+    const { jsPDF: PDFConstructor } = await import('npm:jspdf@4.0.0');
+    const doc = new PDFConstructor();
+    
     if (markAsPaid) {
-      pdfContent = `[PAID] ${pdfContent}`;
+      doc.setTextColor(0, 128, 0);
+      doc.setFontSize(20);
+      doc.text('[PAID]', 20, 20);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(12);
     }
     
-    // For simplicity, we'll create a text file representation
-    // In production, you'd use a PDF library to generate actual PDFs
-    const blob = new Blob([pdfContent], { type: 'application/pdf' });
+    doc.setFontSize(12);
+    doc.text(invoiceContent || 'Invoice', 20, 40);
+    
+    if (stripeLink) {
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 255);
+      doc.textWithLink('Click here to pay', 20, doc.lastAutoTable?.finalY + 20 || 200, { pageNumber: 1 });
+      doc.textWithLink(stripeLink, 20, doc.lastAutoTable?.finalY + 25 || 205, { pageNumber: 1 });
+    }
+    
+    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+    const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
     
     // Upload to Google Drive
     const metadata = {
