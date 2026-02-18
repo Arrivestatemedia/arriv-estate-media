@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import jsPDF from 'npm:jspdf@4.0.0';
 
 const UNPAID_FOLDER_ID = '1SQSZErZthzQYpz9qDpnlmVnB1AOzw6JY';
 const PAID_FOLDER_ID = '1KIGXqbeiF4JU1uSYKu92pA_1PJIyskHS';
