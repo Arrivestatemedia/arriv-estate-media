@@ -110,6 +110,7 @@ export default function OrientationOnboardingFee() {
         setTotalAmount(response.data.totalAmount || 50);
         setAddGearBag(response.data.addGearBag || false);
         setAddWaterBottle(response.data.addWaterBottle || false);
+        setIsTestUser(response.data.isTestUser || false);
         setClientSecret(response.data.clientSecret);
       } catch (err) {
         console.error("Error initializing payment:", err);
