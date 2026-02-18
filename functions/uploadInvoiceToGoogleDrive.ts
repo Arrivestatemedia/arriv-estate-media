@@ -9,11 +9,11 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     
     const { fileName, invoiceContent, folderType, invoiceNumber, stripeLink, markAsPaid } = await req.json();
-    
+
     const folderId = folderType === 'unpaid' ? UNPAID_FOLDER_ID : PAID_FOLDER_ID;
-    
-    // Get Google Drive access token (user-authenticated)
-    const accessToken = await base44.connectors.getAccessToken('googledrive');
+
+    // Get Google Drive access token via service role
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
     
     // Create actual PDF using jsPDF
     const { jsPDF: PDFConstructor } = await import('npm:jspdf@4.0.0');
