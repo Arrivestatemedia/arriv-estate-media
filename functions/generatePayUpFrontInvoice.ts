@@ -89,79 +89,118 @@ Deno.serve(async (req) => {
     try {
       console.log('Generating branded invoice PDF...');
 
-      // Create PDF with cream background
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
+      // Create PDF document
+      const pdfDoc = await PDFDocument.create();
+      const page = pdfDoc.addPage([612, 792]); // Letter size
+      const { width, height } = page.getSize();
 
       // Cream background
-      pdf.setFillColor(240, 235, 225); // Darker cream
-      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      page.drawRectangle({
+        x: 0,
+        y: 0,
+        width,
+        height,
+        color: rgb(240/255, 235/255, 225/255)
+      });
 
-      // Logo
-      const logoUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/314d93d36_IMG_5660.png';
-      try {
-        const logoRes = await fetch(logoUrl);
-        if (logoRes.ok) {
-          const logoBuffer = await logoRes.arrayBuffer();
-          const uint8Array = new Uint8Array(logoBuffer);
-          let binary = '';
-          for (let i = 0; i < uint8Array.length; i++) {
-            binary += String.fromCharCode(uint8Array[i]);
-          }
-          const logoBase64 = btoa(binary);
-          pdf.addImage('data:image/png;base64,' + logoBase64, 'PNG', pageWidth / 2 - 25, 10, 50, 50);
-        }
-      } catch (e) {
-        console.error('Logo loading error:', e.message);
-      }
+      let yPos = height - 60;
 
-      // Invoice title and details
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(18);
-      pdf.setTextColor(26, 26, 26); // Black
-      pdf.text('INVOICE', 20, 65);
+      // Invoice title
+      page.drawText('INVOICE', {
+        x: 40,
+        y: yPos,
+        size: 24,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      pdf.text(`Invoice #: ${invoiceNumber}`, 20, 75);
-      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, 82);
+      yPos -= 20;
+      page.drawText(`Invoice #: ${invoiceNumber}`, {
+        x: 40,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      // Client section
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(11);
-      pdf.text('BILL TO:', 20, 95);
+      yPos -= 10;
+      page.drawText(`Date: ${new Date().toLocaleDateString()}`, {
+        x: 40,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(10);
-      pdf.text(booking.client_name, 20, 103);
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(9);
-      pdf.setTextColor(184, 149, 106);
-      pdf.text('Listing Address:', 20, 110);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(26, 26, 26);
-      pdf.text(jobAddress, 20, 117);
-      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 124);
+      yPos -= 25;
+      page.drawText('BILL TO:', {
+        x: 40,
+        y: yPos,
+        size: 11,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      // Services table
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(11);
-      pdf.setTextColor(184, 149, 106); // Gold
-      pdf.text('SERVICES PROVIDED', 20, 142);
+      yPos -= 12;
+      page.drawText(booking.client_name, {
+        x: 40,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      pdf.setDrawColor(184, 149, 106);
-      pdf.line(20, 147, pageWidth - 20, 147);
+      yPos -= 10;
+      page.drawText('Listing Address:', {
+        x: 40,
+        y: yPos,
+        size: 9,
+        color: rgb(184/255, 149/255, 106/255)
+      });
 
-      // Table headers
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(10);
-      pdf.setTextColor(26, 26, 26);
-      pdf.text('Description', 20, 155);
-      pdf.text('Amount', pageWidth - 50, 155, { align: 'right' });
+      yPos -= 10;
+      page.drawText(jobAddress, {
+        x: 40,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      // Table rows
-      pdf.setFont(undefined, 'normal');
+      yPos -= 10;
+      page.drawText(`Service Date: ${booking.preferred_date}`, {
+        x: 40,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
+
+      yPos -= 25;
+      page.drawText('SERVICES PROVIDED', {
+        x: 40,
+        y: yPos,
+        size: 11,
+        color: rgb(184/255, 149/255, 106/255)
+      });
+
+      yPos -= 8;
+      page.drawLine({
+        start: { x: 40, y: yPos },
+        end: { x: width - 40, y: yPos },
+        color: rgb(184/255, 149/255, 106/255),
+        thickness: 1
+      });
+
+      yPos -= 15;
+      page.drawText('Description', {
+        x: 40,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
+      page.drawText('Amount', {
+        x: width - 100,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
+
+      // Services
+      yPos -= 12;
       const packageDescriptions = {
         'mls_walkthrough': 'MLS Walkthrough',
         'photo_essentials': 'Photo Essentials Package',
@@ -179,53 +218,96 @@ Deno.serve(async (req) => {
 
       const packageBaseAmount = packagePrices[booking.package] || 0;
       const packageDescText = packageDescriptions[booking.package] || booking.package;
-      let yPos = 163;
 
-      pdf.text(packageDescText, 20, yPos);
-      pdf.text(`$${packageBaseAmount.toFixed(2)}`, pageWidth - 50, yPos, { align: 'right' });
+      page.drawText(packageDescText, {
+        x: 40,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
+      page.drawText(`$${packageBaseAmount.toFixed(2)}`, {
+        x: width - 100,
+        y: yPos,
+        size: 10,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      yPos += 8;
+      yPos -= 12;
       if (booking.add_ons && booking.add_ons.length > 0) {
         booking.add_ons.forEach(addon => {
           const addonName = addonDescriptions[addon] || addon;
           const addonPrice = addonPrices[addon] || 0;
-          pdf.text(addonName, 20, yPos);
-          pdf.text(`$${addonPrice.toFixed(2)}`, pageWidth - 50, yPos, { align: 'right' });
-          yPos += 8;
+          page.drawText(addonName, {
+            x: 40,
+            y: yPos,
+            size: 10,
+            color: rgb(26/255, 26/255, 26/255)
+          });
+          page.drawText(`$${addonPrice.toFixed(2)}`, {
+            x: width - 100,
+            y: yPos,
+            size: 10,
+            color: rgb(26/255, 26/255, 26/255)
+          });
+          yPos -= 12;
         });
       }
 
-      // Total line
-      pdf.setDrawColor(184, 149, 106);
-      pdf.line(20, yPos - 2, pageWidth - 20, yPos - 2);
+      // Total
+      yPos -= 8;
+      page.drawLine({
+        start: { x: 40, y: yPos },
+        end: { x: width - 40, y: yPos },
+        color: rgb(184/255, 149/255, 106/255),
+        thickness: 1
+      });
 
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(12);
-      pdf.setTextColor(26, 26, 26);
-      pdf.text('TOTAL DUE:', 20, yPos + 8);
-      pdf.setTextColor(184, 149, 106);
-      pdf.text(`$${totalAmount.toFixed(2)}`, pageWidth - 50, yPos + 8, { align: 'right' });
+      yPos -= 15;
+      page.drawText('TOTAL DUE:', {
+        x: 40,
+        y: yPos,
+        size: 12,
+        color: rgb(26/255, 26/255, 26/255)
+      });
+      page.drawText(`$${totalAmount.toFixed(2)}`, {
+        x: width - 100,
+        y: yPos,
+        size: 12,
+        color: rgb(184/255, 149/255, 106/255)
+      });
 
       // Payment section
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(11);
-      pdf.setTextColor(26, 26, 26);
-      pdf.text('PAYMENT INSTRUCTIONS', 20, yPos + 25);
+      yPos -= 30;
+      page.drawText('PAYMENT INSTRUCTIONS', {
+        x: 40,
+        y: yPos,
+        size: 11,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
-      pdf.text('Full payment is required before your scheduled shoot.', 20, yPos + 33);
-      pdf.setTextColor(0, 0, 255);
-      pdf.textWithLink('Click here to pay', 20, yPos + 41, stripeData.url);
-      pdf.setTextColor(26, 26, 26);
-      pdf.text(`(${stripeData.url})`, 55, yPos + 41);
+      yPos -= 12;
+      page.drawText('Full payment is required before your scheduled shoot.', {
+        x: 40,
+        y: yPos,
+        size: 9,
+        color: rgb(26/255, 26/255, 26/255)
+      });
 
-      // Footer
-      pdf.setFontSize(8);
-      pdf.setTextColor(184, 149, 106);
-      pdf.text('Arriv Estate Media | Professional Property Photography & Videography', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      yPos -= 12;
+      page.drawText('Click here to pay:', {
+        x: 40,
+        y: yPos,
+        size: 9,
+        color: rgb(0, 0, 255)
+      });
+      page.drawText(stripeData.url, {
+        x: 130,
+        y: yPos,
+        size: 9,
+        color: rgb(0, 0, 255)
+      });
 
-      const pdfBytes = pdf.output('arraybuffer');
+      const pdfBytes = await pdfDoc.save();
 
       console.log('Getting Google Drive access token...');
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
