@@ -185,9 +185,9 @@ export default function OrientationSizes() {
                 />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-[var(--text-primary)]">Stainless Steel Water Bottle</h4>
-                    <span className="text-[var(--accent-color)] font-bold">$40</span>
-                  </div>
+                      <h4 className="font-semibold text-[var(--text-primary)]">Stainless Steel Water Bottle</h4>
+                      <span className="text-[var(--accent-color)] font-bold">{isTestUser ? "$1" : "$40"}</span>
+                    </div>
                   <div className="flex items-center gap-2">
                     <Checkbox 
                       checked={addWaterBottle} 
