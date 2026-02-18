@@ -13,8 +13,9 @@ Deno.serve(async (req) => {
         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
         const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Call backend directly without SDK to avoid timeouts
-        const apiUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/api/entities/PendingSignup?email=${encodeURIComponent(emailTrimmed)}`;
+        // Call backend API - use internal service endpoint
+        const appId = Deno.env.get('BASE44_APP_ID');
+        const apiUrl = `https://api.base44.com/v1/apps/${appId}/entities/PendingSignup?email=${encodeURIComponent(emailTrimmed)}`;
         const serviceToken = Deno.env.get('BASE44_SERVICE_TOKEN');
 
         let response = await fetch(apiUrl, {
