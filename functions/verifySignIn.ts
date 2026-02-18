@@ -1,8 +1,5 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-
 Deno.serve(async (req) => {
     try {
-        const base44 = createClientFromRequest(req);
         const { email, password } = await req.json();
 
         if (!email || !password) {
@@ -10,58 +7,115 @@ Deno.serve(async (req) => {
         }
 
         const emailTrimmed = email.trim();
-        const emailLower = emailTrimmed.toLowerCase();
 
         // Hash the password
         const encoder = new TextEncoder();
         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
         const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Try exact then lowercase
-        let signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed }).catch(() => []);
-        if (!signups.length && emailTrimmed !== emailLower) {
-            signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower }).catch(() => []);
+        // Call backend directly without SDK to avoid timeouts
+        const apiUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/api/entities/PendingSignup?email=${encodeURIComponent(emailTrimmed)}`;
+        const serviceToken = Deno.env.get('BASE44_SERVICE_TOKEN');
+
+        let response = await fetch(apiUrl, {
+            headers: {
+                'Authorization': `Bearer ${serviceToken}`,
+                'Content-Type': 'application/json'
+            }
+        }).catch(() => null);
+
+        let data = null;
+        if (response?.ok) {
+            const body = await response.json();
+            if (Array.isArray(body) && body.length > 0) {
+                data = body[0];
+            }
         }
 
-        const pendingUser = signups[0];
-        if (pendingUser) {
-            if (hashHex !== pendingUser.password_hash) {
+        // If not found and email has different case, try lowercase
+        if (!data && emailTrimmed.toLowerCase() !== emailTrimmed) {
+            const apiUrl2 = `${Deno.env.get('BASE44_APP_DOMAIN')}/api/entities/PendingSignup?email=${encodeURIComponent(emailTrimmed.toLowerCase())}`;
+            response = await fetch(apiUrl2, {
+                headers: {
+                    'Authorization': `Bearer ${serviceToken}`,
+                    'Content-Type': 'application/json'
+                }
+            }).catch(() => null);
+
+            if (response?.ok) {
+                const body = await response.json();
+                if (Array.isArray(body) && body.length > 0) {
+                    data = body[0];
+                }
+            }
+        }
+
+        // Check if it's a PendingSignup
+        if (data) {
+            if (hashHex !== data.password_hash) {
                 return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
             }
             return Response.json({
                 success: true,
-                id: pendingUser.id,
-                email: pendingUser.email,
-                full_name: pendingUser.full_name,
-                user_type: pendingUser.user_type,
-                user_role: pendingUser.user_role === 'admin' ? 'admin' : 'user',
-                phone_number: pendingUser.phone_number || '',
-                orientationCompleted: pendingUser.orientationCompleted || false,
-                onboardingFeePaid: pendingUser.onboardingFeePaid || false
+                id: data.id,
+                email: data.email,
+                full_name: data.full_name,
+                user_type: data.user_type,
+                user_role: data.user_role === 'admin' ? 'admin' : 'user',
+                phone_number: data.phone_number || '',
+                orientationCompleted: data.orientationCompleted || false,
+                onboardingFeePaid: data.onboardingFeePaid || false
             });
         }
 
         // Try User entity
-        let users = await base44.asServiceRole.entities.User.filter({ email: emailTrimmed }).catch(() => []);
-        if (!users.length && emailTrimmed !== emailLower) {
-            users = await base44.asServiceRole.entities.User.filter({ email: emailLower }).catch(() => []);
+        const userApiUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/api/entities/User?email=${encodeURIComponent(emailTrimmed)}`;
+        response = await fetch(userApiUrl, {
+            headers: {
+                'Authorization': `Bearer ${serviceToken}`,
+                'Content-Type': 'application/json'
+            }
+        }).catch(() => null);
+
+        let userData = null;
+        if (response?.ok) {
+            const body = await response.json();
+            if (Array.isArray(body) && body.length > 0) {
+                userData = body[0];
+            }
         }
 
-        const appUser = users[0];
-        if (appUser) {
-            if (hashHex !== appUser.password_hash) {
+        if (!userData && emailTrimmed.toLowerCase() !== emailTrimmed) {
+            const userApiUrl2 = `${Deno.env.get('BASE44_APP_DOMAIN')}/api/entities/User?email=${encodeURIComponent(emailTrimmed.toLowerCase())}`;
+            response = await fetch(userApiUrl2, {
+                headers: {
+                    'Authorization': `Bearer ${serviceToken}`,
+                    'Content-Type': 'application/json'
+                }
+            }).catch(() => null);
+
+            if (response?.ok) {
+                const body = await response.json();
+                if (Array.isArray(body) && body.length > 0) {
+                    userData = body[0];
+                }
+            }
+        }
+
+        if (userData) {
+            if (hashHex !== userData.password_hash) {
                 return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
             }
             return Response.json({
                 success: true,
-                id: appUser.id,
-                email: appUser.email,
-                full_name: appUser.full_name,
-                user_type: appUser.user_type || 'user',
-                user_role: appUser.user_role === 'admin' ? 'admin' : 'user',
-                phone_number: appUser.phone_number || '',
-                orientationCompleted: appUser.orientationCompleted || false,
-                onboardingFeePaid: appUser.onboardingFeePaid || false
+                id: userData.id,
+                email: userData.email,
+                full_name: userData.full_name,
+                user_type: userData.user_type || 'user',
+                user_role: userData.user_role === 'admin' ? 'admin' : 'user',
+                phone_number: userData.phone_number || '',
+                orientationCompleted: userData.orientationCompleted || false,
+                onboardingFeePaid: userData.onboardingFeePaid || false
             });
         }
 
