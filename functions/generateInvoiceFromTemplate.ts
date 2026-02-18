@@ -18,7 +18,9 @@ Deno.serve(async (req) => {
       packageName,
       addOns,
       bookingId,
-      jobId
+      jobId,
+      stripePaymentLink,
+      packageAmount
     } = await req.json();
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
@@ -53,9 +55,37 @@ Deno.serve(async (req) => {
     // Step 2: Replace placeholders in Google Docs
     console.log('Step 2: Replacing placeholders...');
     
+    // Format service and add-ons list
+    let servicesList = packageName || 'Media Services';
+    if (addOns && addOns.length > 0) {
+      const addonDescriptions = {
+        'drone': 'Drone Photography',
+        '3d_tour': '3D Virtual Tour',
+        'twilight': 'Twilight Photography',
+        'rush_delivery': 'Rush Delivery',
+        'vertical_reel': 'Vertical Reel',
+        'ai_staging': 'AI Staging'
+      };
+      const addonNames = addOns.map(addon => addonDescriptions[addon] || addon).join(', ');
+      servicesList = `${servicesList}, ${addonNames}`;
+    }
+
+    // Calculate package amount
+    const packagePrices = {
+      'mls_walkthrough': 100,
+      'photo_essentials': 275,
+      'photo_cinematic': 475,
+      'premium_bundle': 675
+    };
+    const basePkgAmount = packagePrices[packageName] || 0;
+
     const replacements = [
       {
         find: { text: '{{INVOICE_NUMBER}}' },
+        replaceText: invoiceNumber
+      },
+      {
+        find: { text: '{{NEXT_INVOICE_NUMBER}}' },
         replaceText: invoiceNumber
       },
       {
@@ -71,8 +101,28 @@ Deno.serve(async (req) => {
         replaceText: `$${parseFloat(amountDue).toFixed(2)}`
       },
       {
+        find: { text: '{{TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS}}' },
+        replaceText: `$${parseFloat(amountDue).toFixed(2)}`
+      },
+      {
+        find: { text: '{{AMOUNT_OF_PACKAGE}}' },
+        replaceText: `$${basePkgAmount.toFixed(2)}`
+      },
+      {
         find: { text: '{{PACKAGE_NAME}}' },
         replaceText: packageName || 'Media Services'
+      },
+      {
+        find: { text: '{{SERVICE_AND_ADD-ONS_CHOSEN}}' },
+        replaceText: servicesList
+      },
+      {
+        find: { text: '{{PLACE_STRIP_LINK}}' },
+        replaceText: stripePaymentLink || ''
+      },
+      {
+        find: { text: '{{DATE_OF_INVOICE_CREATION}}' },
+        replaceText: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
       }
     ];
 

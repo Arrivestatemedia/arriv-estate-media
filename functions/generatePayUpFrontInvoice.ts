@@ -85,6 +85,14 @@ Deno.serve(async (req) => {
     let messageId = null;
 
     try {
+      const packagePrices = {
+        'mls_walkthrough': 100,
+        'photo_essentials': 275,
+        'photo_cinematic': 475,
+        'premium_bundle': 675
+      };
+      const basePkgAmount = packagePrices[booking.package] || 0;
+
       const templateResponse = await base44.asServiceRole.functions.invoke('generateInvoiceFromTemplate', {
         invoiceNumber,
         clientName: booking.client_name,
@@ -92,7 +100,9 @@ Deno.serve(async (req) => {
         jobAddress,
         amountDue: totalAmount,
         packageName: booking.package,
-        addOns: booking.add_ons || []
+        addOns: booking.add_ons || [],
+        stripePaymentLink: stripeData.url,
+        packageAmount: basePkgAmount
       });
 
       if (templateResponse.data.success) {
