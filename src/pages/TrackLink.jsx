@@ -6,7 +6,16 @@ export default function TrackLink() {
 
   useEffect(() => {
     const trackAndRedirect = async () => {
-      const token = window.location.pathname.split('/').pop();
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      
+      if (!token) {
+        setStatus('error');
+        setTimeout(() => {
+          window.location.href = 'https://arrivestatemedia.com';
+        }, 1000);
+        return;
+      }
       
       try {
         const response = await base44.functions.invoke('trackLinkClick', { token });

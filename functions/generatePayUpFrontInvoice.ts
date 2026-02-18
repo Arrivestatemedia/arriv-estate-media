@@ -113,7 +113,7 @@ Return the formatted text for the invoice body.`,
 
     // Generate tracked link
     const trackToken = crypto.randomUUID();
-    const trackedUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/t/${trackToken}`;
+    const trackedUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/TrackLink?token=${trackToken}`;
 
     // Create invoice record
     const invoice = await base44.asServiceRole.entities.Invoice.create({
