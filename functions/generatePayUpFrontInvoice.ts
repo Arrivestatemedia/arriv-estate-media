@@ -148,17 +148,17 @@ Deno.serve(async (req) => {
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
       pdf.setTextColor(184, 149, 106); // Gold
-      pdf.text('SERVICES PROVIDED', 20, 135);
+      pdf.text('SERVICES PROVIDED', 20, 142);
 
       pdf.setDrawColor(184, 149, 106);
-      pdf.line(20, 140, pageWidth - 20, 140);
+      pdf.line(20, 147, pageWidth - 20, 147);
 
       // Table headers
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(10);
       pdf.setTextColor(26, 26, 26);
-      pdf.text('Description', 20, 148);
-      pdf.text('Amount', pageWidth - 40, 148);
+      pdf.text('Description', 20, 155);
+      pdf.text('Amount', pageWidth - 50, 155, { align: 'right' });
 
       // Table rows
       pdf.setFont(undefined, 'normal');
@@ -179,10 +179,10 @@ Deno.serve(async (req) => {
 
       const packageBaseAmount = packagePrices[booking.package] || 0;
       const packageDescText = packageDescriptions[booking.package] || booking.package;
-      let yPos = 156;
+      let yPos = 163;
 
       pdf.text(packageDescText, 20, yPos);
-      pdf.text(`$${packageBaseAmount.toFixed(2)}`, pageWidth - 40, yPos, { align: 'right' });
+      pdf.text(`$${packageBaseAmount.toFixed(2)}`, pageWidth - 50, yPos, { align: 'right' });
 
       yPos += 8;
       if (booking.add_ons && booking.add_ons.length > 0) {
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
           const addonName = addonDescriptions[addon] || addon;
           const addonPrice = addonPrices[addon] || 0;
           pdf.text(addonName, 20, yPos);
-          pdf.text(`$${addonPrice.toFixed(2)}`, pageWidth - 40, yPos, { align: 'right' });
+          pdf.text(`$${addonPrice.toFixed(2)}`, pageWidth - 50, yPos, { align: 'right' });
           yPos += 8;
         });
       }
@@ -201,9 +201,10 @@ Deno.serve(async (req) => {
 
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(12);
+      pdf.setTextColor(26, 26, 26);
       pdf.text('TOTAL DUE:', 20, yPos + 8);
       pdf.setTextColor(184, 149, 106);
-      pdf.text(`$${totalAmount.toFixed(2)}`, pageWidth - 40, yPos + 8, { align: 'right' });
+      pdf.text(`$${totalAmount.toFixed(2)}`, pageWidth - 50, yPos + 8, { align: 'right' });
 
       // Payment section
       pdf.setFont(undefined, 'bold');
