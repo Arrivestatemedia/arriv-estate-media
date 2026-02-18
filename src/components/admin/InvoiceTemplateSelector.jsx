@@ -10,7 +10,7 @@ export default function InvoiceTemplateSelector({ onTemplateSelected }) {
 
   useEffect(() => {
     // Load existing template ID from database
-    base44.asServiceRole.entities.AdminSettings.list().then(settings => {
+    base44.entities.AdminSettings.list().then(settings => {
       if (settings.length > 0 && settings[0].invoice_template_id) {
         setTemplateId(settings[0].invoice_template_id);
       }
