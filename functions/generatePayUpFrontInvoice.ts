@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
 
     // Send invoice email via Gmail
     try {
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      const accessToken = await base44.connectors.getAccessToken('gmail');
       const emailBody = `Hi ${booking.client_name.split(' ')[0]},
 
     Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
 
     // Schedule reminders
     try {
-      await base44.asServiceRole.functions.invoke('scheduleInvoiceReminders', {
+      await base44.functions.invoke('scheduleInvoiceReminders', {
         invoiceId: invoice.id
       });
     } catch (reminderError) {
