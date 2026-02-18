@@ -16,8 +16,7 @@ Deno.serve(async (req) => {
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
     
     // Create actual PDF using jsPDF
-    const { jsPDF: PDFConstructor } = await import('npm:jspdf@4.0.0');
-    const doc = new PDFConstructor();
+    const doc = new jsPDF();
 
     if (markAsPaid) {
       doc.setTextColor(0, 128, 0);
