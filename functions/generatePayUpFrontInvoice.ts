@@ -78,10 +78,6 @@ Deno.serve(async (req) => {
 
     const jobAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
 
-    // Generate tracked link
-    const trackToken = crypto.randomUUID();
-    const trackedUrl = `${Deno.env.get('BASE44_APP_DOMAIN')}/TrackLink?token=${trackToken}`;
-
     // Generate beautifully formatted invoice PDF
     let googleDriveUrl = null;
     let googleDriveFileId = null;
