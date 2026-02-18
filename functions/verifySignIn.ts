@@ -18,19 +18,28 @@ Deno.serve(async (req) => {
         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
         const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Try exact match first, then lowercase – no regex to avoid CPU timeouts
-        let signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed });
-        if (!signups.length && emailTrimmed !== emailLower) {
-            signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower });
+        // Check PendingSignup first
+        let pendingUser = null;
+        let appUser = null;
+
+        const signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed });
+        pendingUser = signups[0] || null;
+
+        if (!pendingUser && emailTrimmed !== emailLower) {
+            const signups2 = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower });
+            pendingUser = signups2[0] || null;
         }
 
-        let users = await base44.asServiceRole.entities.User.filter({ email: emailTrimmed });
-        if (!users.length && emailTrimmed !== emailLower) {
-            users = await base44.asServiceRole.entities.User.filter({ email: emailLower });
-        }
+        // Only check User if PendingSignup not found
+        if (!pendingUser) {
+            const users = await base44.asServiceRole.entities.User.filter({ email: emailTrimmed });
+            appUser = users[0] || null;
 
-        const pendingUser = signups[0] || null;
-        const appUser = users[0] || null;
+            if (!appUser && emailTrimmed !== emailLower) {
+                const users2 = await base44.asServiceRole.entities.User.filter({ email: emailLower });
+                appUser = users2[0] || null;
+            }
+        }
 
         // PendingSignup takes priority (has password_hash)
         if (pendingUser) {
