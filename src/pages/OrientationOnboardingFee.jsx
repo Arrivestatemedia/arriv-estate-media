@@ -43,7 +43,7 @@ function CheckoutForm({ totalAmount }) {
       const result = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/MediaPartnerDashboard`,
+          return_url: `${window.location.origin}${createPageUrl("MediaPartnerDashboard")}?payment_success=true`,
         },
       });
 
