@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
         }
 
         if (!userData && emailTrimmed.toLowerCase() !== emailTrimmed) {
-            const userApiUrl2 = `${Deno.env.get('BASE44_APP_DOMAIN')}/api/entities/User?email=${encodeURIComponent(emailTrimmed.toLowerCase())}`;
+            const userApiUrl2 = `https://api.base44.com/v1/apps/${appId}/entities/User?email=${encodeURIComponent(emailTrimmed.toLowerCase())}`;
             response = await fetch(userApiUrl2, {
                 headers: {
                     'Authorization': `Bearer ${serviceToken}`,
