@@ -205,12 +205,12 @@ Deno.serve(async (req) => {
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
       pdf.setTextColor(26, 26, 26);
-      pdf.text('PAYMENT INSTRUCTIONS', 20, yPos + 20);
+      pdf.text('PAYMENT INSTRUCTIONS', 20, yPos + 25);
 
       pdf.setFont(undefined, 'normal');
       pdf.setFontSize(9);
-      pdf.text('Full payment is required before your scheduled shoot.', 20, yPos + 28);
-      pdf.text(`Pay here: ${stripeData.url}`, 20, yPos + 36);
+      pdf.text('Full payment is required before your scheduled shoot.', 20, yPos + 33);
+      pdf.text(`Pay here: ${stripeData.url}`, 20, yPos + 41);
 
       // Footer
       pdf.setFontSize(8);
