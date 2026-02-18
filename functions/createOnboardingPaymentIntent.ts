@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('createOnboardingPaymentIntent error:', error);
-        return Response.json({ error: error.message }, { status: 500 });
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        return Response.json({ error: `Error: ${error.message || 'Unknown error occurred'}` }, { status: 500 });
     }
 });
