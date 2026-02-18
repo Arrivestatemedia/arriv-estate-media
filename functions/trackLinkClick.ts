@@ -3,7 +3,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { token } = await req.json();
+    
+    let token;
+    try {
+      const body = await req.json();
+      token = body.token;
+    } catch (e) {
+      console.error('JSON parse error:', e.message);
+      return Response.json({ 
+        redirectUrl: 'https://arrivestatemedia.com'
+      }, { status: 400 });
+    }
+    
+    if (!token) {
+      console.error('No token provided');
+      return Response.json({ 
+        redirectUrl: 'https://arrivestatemedia.com'
+      }, { status: 400 });
+    }
     
     // Find invoice by tracked link token
     console.log('Looking for invoice with token:', token);
@@ -14,7 +31,6 @@ Deno.serve(async (req) => {
     if (!invoice) {
       console.error('Invoice not found for token:', token);
       return Response.json({ 
-        error: 'Invoice not found',
         redirectUrl: 'https://arrivestatemedia.com'
       }, { status: 404 });
     }
