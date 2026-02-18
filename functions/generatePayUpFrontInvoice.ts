@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
       const col2X = pageWidth - 50;
 
       // Table header
-      pdf.setFillColor(240, 240, 240);
+      pdf.setFillColor(230, 220, 205); // Light cream border
       pdf.rect(col1X, tableTop, pageWidth - 40, 8, 'F');
 
       pdf.setFont(undefined, 'bold');
