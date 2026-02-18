@@ -12,15 +12,24 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Email required' }, { status: 400 });
         }
 
-        const emailLower = email.trim().toLowerCase();
+        const emailTrimmed = email.trim();
 
-        // Look up in PendingSignup first
-        const allSignups = await base44.asServiceRole.entities.PendingSignup.filter({ user_type: 'media_partner' });
-        const pendingUser = allSignups.find(s => s.email?.toLowerCase() === emailLower) || null;
+        // Try exact match first, then case-insensitive fallback
+        let signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed });
+        if (!signups.length) {
+            signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed.toLowerCase() });
+        }
+        if (!signups.length) {
+            signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailTrimmed.toUpperCase() });
+        }
+        const pendingUser = signups[0] || null;
 
         // Also check User entity
-        const allUsers = await base44.asServiceRole.entities.User.filter({ user_type: 'media_partner' });
-        const appUser = allUsers.find(u => u.email?.toLowerCase() === emailLower) || null;
+        let users = await base44.asServiceRole.entities.User.filter({ email: emailTrimmed });
+        if (!users.length) {
+            users = await base44.asServiceRole.entities.User.filter({ email: emailTrimmed.toLowerCase() });
+        }
+        const appUser = users[0] || null;
 
         const targetUser = pendingUser || appUser;
 
