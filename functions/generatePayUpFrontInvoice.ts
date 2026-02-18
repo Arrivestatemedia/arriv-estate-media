@@ -40,6 +40,13 @@ const totalAmount = total_price;
       throw new Error(`Stripe error: ${stripeData.error?.message || 'Unknown error'}`);
     }
 
+    const packagePrices = {
+      'mls_walkthrough': 100,
+      'photo_essentials': 275,
+      'photo_cinematic': 475,
+      'premium_bundle': 675
+    };
+
     const jobAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
     const basePkgAmount = packagePrices[booking.package] || 0;
 
