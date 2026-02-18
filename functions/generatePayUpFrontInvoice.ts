@@ -126,6 +126,8 @@ Deno.serve(async (req) => {
       pay_at_closing: false
     });
 
+    const invoiceId = invoice.id;
+
     // Send invoice email via Gmail
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
