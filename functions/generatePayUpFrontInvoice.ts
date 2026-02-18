@@ -103,9 +103,23 @@ Deno.serve(async (req) => {
         color: rgb(240/256, 235/256, 225/256)
       });
 
-      let yPos = height - 60;
+      let yPos = height - 40;
 
-      // Invoice title
+      // Logo text
+      page.drawText('ARRIV', {
+        x: 40,
+        y: yPos,
+        size: 20,
+        color: rgb(184/256, 149/256, 106/256)
+      });
+      page.drawText('ESTATE MEDIA', {
+        x: 40,
+        y: yPos - 15,
+        size: 8,
+        color: rgb(184/256, 149/256, 106/256)
+      });
+
+      yPos -= 50;
       page.drawText('INVOICE', {
         x: 40,
         y: yPos,
@@ -113,7 +127,7 @@ Deno.serve(async (req) => {
         color: rgb(26/256, 26/256, 26/256)
       });
 
-      yPos -= 20;
+      yPos -= 35;
       page.drawText(`Invoice #: ${invoiceNumber}`, {
         x: 40,
         y: yPos,
@@ -121,7 +135,7 @@ Deno.serve(async (req) => {
         color: rgb(26/256, 26/256, 26/256)
       });
 
-      yPos -= 10;
+      yPos -= 15;
       page.drawText(`Date: ${new Date().toLocaleDateString()}`, {
         x: 40,
         y: yPos,
@@ -129,7 +143,7 @@ Deno.serve(async (req) => {
         color: rgb(26/256, 26/256, 26/256)
       });
 
-      yPos -= 25;
+      yPos -= 30;
       page.drawText('BILL TO:', {
         x: 40,
         y: yPos,
@@ -137,7 +151,7 @@ Deno.serve(async (req) => {
         color: rgb(26/256, 26/256, 26/256)
       });
 
-      yPos -= 12;
+      yPos -= 15;
       page.drawText(booking.client_name, {
         x: 40,
         y: yPos,
@@ -145,7 +159,7 @@ Deno.serve(async (req) => {
         color: rgb(26/256, 26/256, 26/256)
       });
 
-      yPos -= 10;
+      yPos -= 12;
       page.drawText('Listing Address:', {
         x: 40,
         y: yPos,
@@ -153,7 +167,7 @@ Deno.serve(async (req) => {
         color: rgb(184/256, 149/256, 106/256)
       });
 
-      yPos -= 10;
+      yPos -= 12;
       page.drawText(jobAddress, {
         x: 40,
         y: yPos,
@@ -161,7 +175,7 @@ Deno.serve(async (req) => {
         color: rgb(26/256, 26/256, 26/256)
       });
 
-      yPos -= 10;
+      yPos -= 12;
       page.drawText(`Service Date: ${booking.preferred_date}`, {
         x: 40,
         y: yPos,
