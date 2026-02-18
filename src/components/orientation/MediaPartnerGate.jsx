@@ -26,8 +26,6 @@ export default function MediaPartnerGate({ children }) {
           return;
         }
 
-        const response = await base44.functions.invoke('verifySignIn', { email, passwordHash: '__skip__' }).catch(() => null);
-        // Use a lightweight check: just read from PendingSignup
         const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
         
         const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
