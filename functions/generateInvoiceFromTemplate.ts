@@ -25,8 +25,13 @@ Deno.serve(async (req) => {
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
     
-    const templateFileId = '1Rdy5wlkeugEjNf2akpgZxwbmcDY8HzsAU95U_VIHFzk';
-    const unpaindFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
+    // Get template ID from environment or database
+    let templateFileId = Deno.env.get('INVOICE_TEMPLATE_ID');
+    const unpaindFolderId = Deno.env.get('UNPAID_FOLDER_ID') || '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
+    
+    if (!templateFileId) {
+      throw new Error('Invoice template ID not configured. Please set INVOICE_TEMPLATE_ID environment variable or configure in admin settings.');
+    }
 
     // Step 1: Copy template file
     console.log('Step 1: Copying template file...');
