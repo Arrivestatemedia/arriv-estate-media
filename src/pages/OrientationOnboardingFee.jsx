@@ -87,13 +87,6 @@ export default function OrientationOnboardingFee() {
           user_type: localStorage.getItem('user_type'),
         };
 
-        // If already paid, skip
-        if (storedData.onboardingFeePaid) {
-          setUserData(storedData);
-          setLoading(false);
-          return;
-        }
-
         // Call backend to create payment intent
         const response = await base44.functions.invoke('createOnboardingPaymentIntent', { email });
         
