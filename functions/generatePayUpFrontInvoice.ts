@@ -94,32 +94,36 @@ Deno.serve(async (req) => {
       const page = pdfDoc.addPage([612, 792]); // Letter size
       const { width, height } = page.getSize();
 
-      // Cream background
+      // Cream background - slightly darker
       page.drawRectangle({
         x: 0,
         y: 0,
         width,
         height,
-        color: rgb(240/256, 235/256, 225/256)
+        color: rgb(235/256, 228/256, 216/256)
       });
 
       let yPos = height - 40;
 
-      // Logo text
-      page.drawText('ARRIV', {
-        x: 40,
-        y: yPos,
-        size: 20,
-        color: rgb(184/256, 149/256, 106/256)
-      });
-      page.drawText('ESTATE MEDIA', {
-        x: 40,
-        y: yPos - 15,
-        size: 8,
-        color: rgb(184/256, 149/256, 106/256)
-      });
+      // Logo image
+      try {
+        const logoResponse = await fetch('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png');
+        const logoBuffer = await logoResponse.arrayBuffer();
+        const logoImage = await pdfDoc.embedPng(logoBuffer);
+        const logoDims = logoImage.scale(0.12); // Non-stretched scaling
+        page.drawImage(logoImage, {
+          x: 40,
+          y: yPos - logoDims.height + 10,
+          width: logoDims.width,
+          height: logoDims.height
+        });
+        yPos -= 35;
+      } catch (e) {
+        console.error('Logo load error:', e);
+        yPos -= 35;
+      }
 
-      yPos -= 50;
+      yPos -= 15;
       page.drawText('INVOICE', {
         x: 40,
         y: yPos,
