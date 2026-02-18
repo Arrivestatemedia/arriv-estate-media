@@ -36,10 +36,9 @@ export default function MediaPartnerGate({ children }) {
         if (isStripeReturn) {
           // Poll up to 10 times (10 seconds) waiting for webhook to mark paid
           let attempts = 0;
-          let isComplete = false;
           while (attempts < 10) {
             const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
-            isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
+            const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
             if (isComplete) break;
             await new Promise(resolve => setTimeout(resolve, 1000));
             attempts++;
@@ -49,13 +48,27 @@ export default function MediaPartnerGate({ children }) {
         }
 
         const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
-        const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
+        const orientationCompleted = checkResponse?.data?.orientationCompleted || false;
+        const onboardingFeePaid = checkResponse?.data?.onboardingFeePaid || false;
 
-        if (!isComplete && !isOnOrientationRoute) {
-          navigate(createPageUrl('OrientationVideo'), { replace: true });
+        // Already fully onboarded – let through
+        if (orientationCompleted && onboardingFeePaid) {
+          setIsReady(true);
           return;
         }
 
+        // If not onboarded and not on an orientation route, redirect to correct step
+        if (!isOnOrientationRoute) {
+          if (!orientationCompleted) {
+            navigate(createPageUrl('OrientationVideo'), { replace: true });
+          } else {
+            // Orientation done but fee not paid – send to payment page
+            navigate(createPageUrl('OrientationOnboardingFee'), { replace: true });
+          }
+          return;
+        }
+
+        // They are on an orientation route – allow them through regardless
         setIsReady(true);
       } catch (error) {
         console.error('Gate check error:', error);
