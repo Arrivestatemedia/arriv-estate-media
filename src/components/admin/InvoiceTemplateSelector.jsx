@@ -21,43 +21,35 @@ export default function InvoiceTemplateSelector({ onTemplateSelected }) {
     });
   }, []);
 
-  const handleFileSelect = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleSave = async () => {
+    if (!templateId.trim()) {
+      setError('Please enter a template ID');
+      return;
+    }
 
-    // This will trigger Google Drive's file picker through the browser's file input
-    // However, we need to use Google Drive's official picker for better UX
-    
-    // For now, ask user to paste the file ID directly
-    const fileId = prompt('Please paste the Google Doc template file ID from the URL:\n\nExample: 1Rdy5wlkeugEjNf2akpgZxwbmcDY8HzsAU95U_VIHFzk');
-    
-    if (fileId) {
-      try {
-        setStatus('saving');
-        setError('');
-        
-        // Save to database
-        const existingSettings = await base44.entities.AdminSettings.list();
-        if (existingSettings.length > 0) {
-          await base44.entities.AdminSettings.update(existingSettings[0].id, {
-            invoice_template_id: fileId
-          });
-        } else {
-          await base44.entities.AdminSettings.create({
-            invoice_template_id: fileId
-          });
-        }
-        
-        setTemplateId(fileId);
-        
-        setStatus('success');
-        onTemplateSelected?.(fileId);
-        
-        setTimeout(() => setStatus('idle'), 3000);
-      } catch (err) {
-        setError(err.message);
-        setStatus('error');
+    try {
+      setStatus('saving');
+      setError('');
+      
+      // Save to database
+      const existingSettings = await base44.entities.AdminSettings.list();
+      if (existingSettings.length > 0) {
+        await base44.entities.AdminSettings.update(existingSettings[0].id, {
+          invoice_template_id: templateId
+        });
+      } else {
+        await base44.entities.AdminSettings.create({
+          invoice_template_id: templateId
+        });
       }
+      
+      setStatus('success');
+      onTemplateSelected?.(templateId);
+      
+      setTimeout(() => setStatus('idle'), 3000);
+    } catch (err) {
+      setError(err.message);
+      setStatus('error');
     }
   };
 
