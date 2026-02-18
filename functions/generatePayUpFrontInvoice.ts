@@ -157,13 +157,38 @@ Deno.serve(async (req) => {
 
     // Send invoice email via Gmail
     try {
-      await base44.functions.invoke('sendInvoiceEmailViaGmail', {
-        invoiceId: invoice.id,
-        clientEmail: booking.client_email,
-        clientName: booking.client_name.split(' ')[0],
-        jobAddress,
-        trackedLink: trackedUrl,
-        isReminder: false
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      const emailBody = `Hi ${booking.client_name.split(' ')[0]},
+
+    Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
+
+    👉 View Invoice: ${trackedUrl}
+
+    If you have any questions or need anything at all, feel free to reach out. Thank you again for the opportunity to work with you.
+
+    Best regards,
+    Bradley Burke
+    Arriv Estate Media
+    📞 678-242-9107
+    🌐 arrivestatemedia.com`;
+
+      const message = [
+        `To: ${booking.client_email}`,
+        'Subject: Your Invoice from Arriv Estate Media',
+        'Content-Type: text/plain; charset=utf-8',
+        '',
+        emailBody
+      ].join('\r\n');
+
+      const encodedMessage = btoa(unescape(encodeURIComponent(message)));
+
+      await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw: encodedMessage })
       });
     } catch (emailError) {
       console.error('Error sending email:', emailError.message);
