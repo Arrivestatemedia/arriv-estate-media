@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
       // Logo
       try {
-        const logoUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/314d93d36_IMG_5660.png';
+        const logoUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/2fc0e9531_Arriv_Estate_Media_Logo.png';
         const logoRes = await fetch(logoUrl);
         if (logoRes.ok) {
           const logoBlob = await logoRes.arrayBuffer();
@@ -110,119 +110,179 @@ Deno.serve(async (req) => {
             binary += String.fromCharCode(bytes[i]);
           }
           const logoBase64Encoded = btoa(binary);
-          pdf.addImage(`data:image/png;base64,${logoBase64Encoded}`, 'PNG', pageWidth / 2 - 25, 10, 50, 50);
-          console.log('Logo added successfully');
+          pdf.addImage(`data:image/png;base64,${logoBase64Encoded}`, 'PNG', pageWidth / 2 - 20, 12, 40, 20);
         }
       } catch (logoErr) {
         console.warn('Logo loading skipped:', logoErr.message);
-        // Continue without logo if fetch fails
       }
 
-      // Invoice title and details
+      // Main title
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(18);
-      pdf.setTextColor(26, 26, 26); // Black
-      pdf.text('INVOICE', 20, 65);
+      pdf.setFontSize(24);
+      pdf.setTextColor(26, 26, 26);
+      pdf.text('MEDIA INVOICE', pageWidth / 2, 50, { align: 'center' });
 
-      pdf.setFontSize(10);
+      // Invoice details
       pdf.setFont(undefined, 'normal');
-      pdf.text(`Invoice #: ${invoiceNumber}`, 20, 75);
-      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, 82);
+      pdf.setFontSize(10);
+      pdf.setTextColor(26, 26, 26);
+      pdf.text(`Invoice #: ${invoiceNumber}`, 20, 62);
+      pdf.text(`Invoice Date: ${new Date().toLocaleDateString()}`, 120, 62);
 
-      // Client section
+      // Client info
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(10);
+      pdf.text('Client:', 20, 72);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(booking.client_name, 55, 72);
+
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Property:', 20, 80);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(jobAddress, 55, 80);
+
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Service Date:', 20, 88);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(booking.preferred_date, 55, 88);
+
+      // Services section
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
-      pdf.text('BILL TO:', 20, 95);
+      pdf.setTextColor(26, 26, 26);
+      pdf.text('Services Provided', 20, 100);
 
       pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(10);
-      pdf.text(booking.client_name, 20, 103);
-      pdf.setFont(undefined, 'bold');
       pdf.setFontSize(9);
-      pdf.setTextColor(184, 149, 106);
-      pdf.text('Listing Address:', 20, 110);
-      pdf.setFont(undefined, 'normal');
-      pdf.setTextColor(26, 26, 26);
-      pdf.text(jobAddress, 20, 117);
-      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 124);
-
-      // Services table
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(11);
-      pdf.setTextColor(184, 149, 106); // Gold
-      pdf.text('SERVICES PROVIDED', 20, 142);
-
-      pdf.setDrawColor(184, 149, 106);
-      pdf.line(20, 147, pageWidth - 20, 147);
-
-      // Table headers
-      pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(10);
-      pdf.setTextColor(26, 26, 26);
-      pdf.text('Description', 20, 155);
-      pdf.text('Amount', pageWidth - 50, 155, { align: 'right' });
-
-      // Table rows
-      pdf.setFont(undefined, 'normal');
       const packageDescriptions = {
         'mls_walkthrough': 'MLS Walkthrough',
         'photo_essentials': 'Photo Essentials Package',
         'photo_cinematic': 'Photo Cinematic Package',
         'premium_bundle': 'Premium Bundle Package'
       };
-      const addonDescriptions = {
-        'drone': 'Drone Photography',
-        '3d_tour': '3D Virtual Tour',
-        'twilight': 'Twilight Photography',
-        'rush_delivery': 'Rush Delivery',
-        'vertical_reel': 'Vertical Reel',
-        'ai_staging': 'AI Staging'
+      const packageDescText = packageDescriptions[booking.package] || booking.package;
+      let servicesList = [packageDescText];
+      if (booking.add_ons && booking.add_ons.length > 0) {
+        const addonDescriptions = {
+          'drone': 'Drone Photography',
+          '3d_tour': '3D Virtual Tour',
+          'twilight': 'Twilight Photography',
+          'rush_delivery': 'Rush Delivery',
+          'vertical_reel': 'Vertical Reel',
+          'ai_staging': 'AI Staging'
+        };
+        booking.add_ons.forEach(addon => {
+          servicesList.push(addonDescriptions[addon] || addon);
+        });
+      }
+      let yPos = 108;
+      servicesList.forEach(service => {
+        pdf.text(`• ${service}`, 25, yPos);
+        yPos += 6;
+      });
+
+      // Payment terms section
+      yPos += 5;
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(11);
+      pdf.text('Payment Terms', 20, yPos);
+
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(9);
+      yPos += 8;
+      pdf.text('Pay-Up-Front', 20, yPos);
+
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(9);
+      yPos += 6;
+      pdf.text('Full payment is required prior to the scheduled shoot. Appointments are confirmed once payment is received.', 20, yPos, { maxWidth: pageWidth - 40 });
+
+      // Pricing table
+      yPos += 12;
+      const tableTop = yPos;
+      const col1X = 20;
+      const col2X = pageWidth - 50;
+
+      // Table header
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(col1X, tableTop, pageWidth - 40, 8, 'F');
+
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(26, 26, 26);
+      pdf.text('Description', col1X + 2, tableTop + 6);
+      pdf.text('Amount', col2X, tableTop + 6, { align: 'right' });
+
+      // Table rows
+      yPos = tableTop + 8;
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(9);
+
+      const packagePrices = {
+        'mls_walkthrough': 100,
+        'photo_essentials': 275,
+        'photo_cinematic': 475,
+        'premium_bundle': 675
+      };
+      const addonPrices = {
+        'drone': 125,
+        '3d_tour': 125,
+        'twilight': 125,
+        'rush_delivery': 100,
+        'vertical_reel': 40,
+        'ai_staging': 125
       };
 
       const packageBaseAmount = packagePrices[booking.package] || 0;
-      const packageDescText = packageDescriptions[booking.package] || booking.package;
-      let yPos = 163;
+      pdf.text(packageDescText, col1X + 2, yPos);
+      pdf.text(`$${packageBaseAmount.toFixed(2)}`, col2X, yPos, { align: 'right' });
 
-      pdf.text(packageDescText, 20, yPos);
-      pdf.text(`$${packageBaseAmount.toFixed(2)}`, pageWidth - 50, yPos, { align: 'right' });
-
-      yPos += 8;
+      yPos += 7;
       if (booking.add_ons && booking.add_ons.length > 0) {
         booking.add_ons.forEach(addon => {
           const addonName = addonDescriptions[addon] || addon;
           const addonPrice = addonPrices[addon] || 0;
-          pdf.text(addonName, 20, yPos);
-          pdf.text(`$${addonPrice.toFixed(2)}`, pageWidth - 50, yPos, { align: 'right' });
-          yPos += 8;
+          pdf.text(addonName, col1X + 2, yPos);
+          pdf.text(`$${addonPrice.toFixed(2)}`, col2X, yPos, { align: 'right' });
+          yPos += 7;
         });
       }
 
-      // Total line
-      pdf.setDrawColor(184, 149, 106);
-      pdf.line(20, yPos - 2, pageWidth - 20, yPos - 2);
+      // Total row
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(col1X, yPos, pageWidth - 40, 8, 'F');
 
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(12);
-      pdf.setTextColor(26, 26, 26);
-      pdf.text('TOTAL DUE:', 20, yPos + 8);
-      pdf.setTextColor(184, 149, 106);
-      pdf.text(`$${totalAmount.toFixed(2)}`, pageWidth - 50, yPos + 8, { align: 'right' });
+      pdf.setFontSize(10);
+      pdf.text('Total Due', col1X + 2, yPos + 6);
+      pdf.text(`$${totalAmount.toFixed(2)}`, col2X, yPos + 6, { align: 'right' });
 
-      // Payment section
+      // Pay now section
+      yPos += 12;
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
-      pdf.setTextColor(26, 26, 26);
-      pdf.text('PAYMENT INSTRUCTIONS', 20, yPos + 25);
+      pdf.text('Pay Now (Stripe)', 20, yPos);
 
       pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
-      pdf.text('Full payment is required before your scheduled shoot.', 20, yPos + 33);
-      pdf.text(`Pay here: ${stripeData.url}`, 20, yPos + 41);
-
-      // Footer
       pdf.setFontSize(8);
-      pdf.setTextColor(184, 149, 106);
-      pdf.text('Arriv Estate Media | Professional Property Photography & Videography', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      pdf.setTextColor(0, 102, 204);
+      yPos += 6;
+      pdf.text(stripeData.url, 20, yPos);
+
+      // Footer message
+      yPos += 12;
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(10);
+      pdf.setTextColor(26, 26, 26);
+      pdf.text('Thank you for choosing ', 20, yPos);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Arriv Estate Media', 61, yPos);
+      pdf.setFont(undefined, 'normal');
+      pdf.text('.', 99, yPos);
+
+      yPos += 6;
+      pdf.setFontSize(9);
+      pdf.text('Please feel free to reach out if any adjustments are needed.', 20, yPos);
 
       const pdfBytes = pdf.output('arraybuffer');
 
