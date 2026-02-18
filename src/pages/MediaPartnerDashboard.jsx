@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Briefcase, DollarSign, TrendingUp, Calendar } from "lucide-react";
+import { createPageUrl } from "../utils";
 import PayoutSettings from "../components/mediapartner/PayoutSettings";
 import PayoutMethodInfo from "../components/mediapartner/PayoutMethodInfo";
 import PayoutHistoryList from "../components/mediapartner/PayoutHistoryList";
@@ -14,6 +15,23 @@ import PullToRefresh from "@/components/shared/PullToRefresh";
 export default function MediaPartnerDashboard() {
   const [user, setUser] = useState(null);
   const queryClient = useQueryClient();
+
+  // Handle payment success redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment_success') === 'true') {
+      const email = localStorage.getItem('user_email');
+      if (email) {
+        base44.functions.invoke('confirmPaymentAndMarkComplete', { email }).then(() => {
+          // Remove the query param and reload
+          window.history.replaceState({}, document.title, createPageUrl('MediaPartnerDashboard'));
+          window.location.reload();
+        }).catch(err => {
+          console.error('Error confirming payment:', err);
+        });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const userName = localStorage.getItem('user_name');
