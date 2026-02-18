@@ -3,6 +3,9 @@ import Stripe from 'npm:stripe@17.5.0';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
 
+// Test user emails that should be charged $1 for everything
+const TEST_EMAILS = ['test@test.com', 'demo@demo.com'];
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -33,10 +36,16 @@ Deno.serve(async (req) => {
             return Response.json({ alreadyPaid: true });
         }
 
-        // Calculate total
-        let totalAmount = 5000; // $50 base
-        if (targetUser.addGearBag) totalAmount += 5000;
-        if (targetUser.addWaterBottle) totalAmount += 4000;
+        const isTestUser = TEST_EMAILS.includes(email.trim().toLowerCase());
+
+        // Calculate total — $1 for test users, real prices for everyone else
+        let baseAmount = isTestUser ? 100 : 5000; // $1 or $50
+        let gearBagAmount = isTestUser ? 100 : 5000; // $1 or $50
+        let waterBottleAmount = isTestUser ? 100 : 4000; // $1 or $40
+
+        let totalAmount = baseAmount;
+        if (targetUser.addGearBag) totalAmount += gearBagAmount;
+        if (targetUser.addWaterBottle) totalAmount += waterBottleAmount;
 
         // Create PaymentIntent
         const paymentIntent = await stripe.paymentIntents.create({
@@ -58,7 +67,8 @@ Deno.serve(async (req) => {
             clientSecret: paymentIntent.client_secret,
             totalAmount: totalAmount / 100,
             addGearBag: !!targetUser.addGearBag,
-            addWaterBottle: !!targetUser.addWaterBottle
+            addWaterBottle: !!targetUser.addWaterBottle,
+            isTestUser
         });
 
     } catch (error) {

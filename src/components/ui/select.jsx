@@ -65,24 +65,6 @@ SelectScrollDownButton.displayName =
   SelectPrimitive.ScrollDownButton.displayName
 
 const SelectContent = React.forwardRef(({ className, children, position = "popper", ...props }, ref) => {
-  const isMobile = useIsMobile();
-  const [open, setOpen] = React.useState(false);
-  
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Select an option</DrawerTitle>
-          </DrawerHeader>
-          <div className="max-h-[60vh] overflow-y-auto p-4">
-            {children}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-  
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
