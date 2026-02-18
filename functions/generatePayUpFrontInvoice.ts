@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       const pageHeight = pdf.internal.pageSize.getHeight();
 
       // Cream background
-      pdf.setFillColor(255, 251, 245); // #FFFBF5
+      pdf.setFillColor(250, 245, 235); // Slightly darker cream
       pdf.rect(0, 0, pageWidth, pageHeight, 'F');
 
       // Logo
