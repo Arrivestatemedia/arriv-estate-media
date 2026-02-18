@@ -59,6 +59,9 @@ export default function InvoiceTemplateSelector({ onTemplateSelected }) {
         <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
           Invoice Template File ID
         </label>
+        <p className="text-xs text-[#1A1A1A]/60 mb-3">
+          Get the ID from your Google Docs URL: <code className="bg-[#1A1A1A]/5 px-1">docs.google.com/document/d/<strong>YOUR_ID_HERE</strong>/edit</code>
+        </p>
         <div className="flex gap-2">
           <input
             type="text"
@@ -66,14 +69,14 @@ export default function InvoiceTemplateSelector({ onTemplateSelected }) {
             onChange={(e) => setTemplateId(e.target.value)}
             placeholder="Paste your Google Doc template ID here"
             className="flex-1 px-3 py-2 border border-[#B8956A]/30 rounded-lg text-sm"
-            readOnly
           />
           <Button
-            onClick={handleFileSelect}
+            onClick={handleSave}
+            disabled={status === 'saving'}
             className="bg-[#B8956A] hover:bg-[#A68559] text-white"
           >
             <Upload className="w-4 h-4 mr-2" />
-            Select
+            Save
           </Button>
         </div>
       </div>
