@@ -216,7 +216,7 @@ Deno.serve(async (req) => {
       pdf.setFontSize(9);
       pdf.text('Full payment is required before your scheduled shoot.', 20, yPos + 33);
       pdf.setTextColor(0, 0, 255);
-      pdf.textWithLink('Click here to pay', 20, yPos + 41, { pageNumber: 1, x: 0, y: 0, name: stripeData.url }, 'URI');
+      pdf.textWithLink('Click here to pay', 20, yPos + 41, stripeData.url);
       pdf.setTextColor(26, 26, 26);
       pdf.text(`(${stripeData.url})`, 55, yPos + 41);
 
