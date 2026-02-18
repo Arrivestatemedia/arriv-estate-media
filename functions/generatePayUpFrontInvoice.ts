@@ -239,14 +239,37 @@ Deno.serve(async (req) => {
       const folderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
       const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
 
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [folderId] })], { type: 'application/json' }));
-      form.append('file', new Blob([pdfBytes], { type: 'application/pdf' }));
+      // Construct multipart body manually for Deno compatibility
+      const boundary = '===============7330845974216740156==';
+      const metadata = { name: fileName, parents: [folderId] };
+      const metadataStr = JSON.stringify(metadata);
+
+      const parts = [
+        `--${boundary}`,
+        'Content-Type: application/json; charset=UTF-8',
+        '',
+        metadataStr,
+        `--${boundary}`,
+        'Content-Type: application/pdf',
+        '',
+      ];
+
+      const textEncoder = new TextEncoder();
+      const beforeBytes = textEncoder.encode(parts.join('\r\n'));
+      const afterBytes = textEncoder.encode(`\r\n--${boundary}--`);
+
+      const body = new Uint8Array(beforeBytes.length + pdfBytes.length + afterBytes.length);
+      body.set(beforeBytes);
+      body.set(new Uint8Array(pdfBytes), beforeBytes.length);
+      body.set(afterBytes, beforeBytes.length + pdfBytes.length);
 
       const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-        body: form
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': `multipart/related; boundary="${boundary}"`
+        },
+        body: body
       });
 
       const fileData = await uploadRes.json();
