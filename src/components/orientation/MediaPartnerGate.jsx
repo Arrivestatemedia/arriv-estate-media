@@ -19,20 +19,37 @@ export default function MediaPartnerGate({ children }) {
           return;
         }
 
-        // Check orientation completion via backend
         const email = localStorage.getItem('user_email');
         if (!email) {
           setIsReady(true);
           return;
         }
 
-        const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
-        
-        const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
         const currentPath = location.pathname;
-
         const orientationRoutes = ['OrientationVideo', 'OrientationSizes', 'OrientationOnboardingFee'];
         const isOnOrientationRoute = orientationRoutes.some(route => currentPath.includes(route));
+
+        // If coming back from Stripe (payment_intent param in URL), poll until webhook fires
+        const urlParams = new URLSearchParams(window.location.search);
+        const isStripeReturn = urlParams.has('payment_intent');
+
+        if (isStripeReturn) {
+          // Poll up to 10 times (10 seconds) waiting for webhook to mark paid
+          let attempts = 0;
+          let isComplete = false;
+          while (attempts < 10) {
+            const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
+            isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
+            if (isComplete) break;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
+          }
+          setIsReady(true);
+          return;
+        }
+
+        const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
+        const isComplete = checkResponse?.data?.orientationCompleted && checkResponse?.data?.onboardingFeePaid;
 
         if (!isComplete && !isOnOrientationRoute) {
           navigate(createPageUrl('OrientationVideo'), { replace: true });
