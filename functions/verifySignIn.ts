@@ -1,8 +1,5 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-
 Deno.serve(async (req) => {
     try {
-        const base44 = createClientFromRequest(req);
         const { email, password } = await req.json();
 
         if (!email || !password) {
@@ -17,61 +14,96 @@ Deno.serve(async (req) => {
         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
         const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // List all PendingSignup and filter in-memory to avoid filter() API timeout issues
-        let allPending = [];
-        try {
-            allPending = await base44.asServiceRole.entities.PendingSignup.list();
-        } catch (e) {
-            console.error('Error listing PendingSignup:', e);
+        // Use direct REST call for PendingSignup - simpler, faster, no SDK timeout
+        const appId = Deno.env.get('BASE44_APP_ID');
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('BASE44_SERVICE_TOKEN')}`
+        };
+
+        // Try PendingSignup with exact email
+        let resp = await fetch(
+            `https://api.base44.com/v1/apps/${appId}/entities/PendingSignup?query={"email":"${emailTrimmed}"}`,
+            { headers }
+        ).catch(() => null);
+
+        let data = null;
+        if (resp?.ok) {
+            const json = await resp.json().catch(() => null);
+            if (Array.isArray(json) && json[0]) data = json[0];
         }
 
-        let matchedUser = allPending.find(u => 
-            u.email && u.email.toLowerCase() === emailLower
-        );
+        // Try lowercase if not found
+        if (!data && emailTrimmed !== emailLower) {
+            resp = await fetch(
+                `https://api.base44.com/v1/apps/${appId}/entities/PendingSignup?query={"email":"${emailLower}"}`,
+                { headers }
+            ).catch(() => null);
 
-        if (matchedUser) {
-            if (hashHex !== matchedUser.password_hash) {
+            if (resp?.ok) {
+                const json = await resp.json().catch(() => null);
+                if (Array.isArray(json) && json[0]) data = json[0];
+            }
+        }
+
+        // Check password if found
+        if (data) {
+            if (hashHex !== data.password_hash) {
                 return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
             }
             return Response.json({
                 success: true,
-                id: matchedUser.id,
-                email: matchedUser.email,
-                full_name: matchedUser.full_name,
-                user_type: matchedUser.user_type,
-                user_role: matchedUser.user_role === 'admin' ? 'admin' : 'user',
-                phone_number: matchedUser.phone_number || '',
-                orientationCompleted: matchedUser.orientationCompleted || false,
-                onboardingFeePaid: matchedUser.onboardingFeePaid || false
+                id: data.id,
+                email: data.email,
+                full_name: data.full_name,
+                user_type: data.user_type,
+                user_role: data.user_role === 'admin' ? 'admin' : 'user',
+                phone_number: data.phone_number || '',
+                orientationCompleted: data.orientationCompleted || false,
+                onboardingFeePaid: data.onboardingFeePaid || false
             });
         }
 
-        // Try User entity
-        let allUsers = [];
-        try {
-            allUsers = await base44.asServiceRole.entities.User.list();
-        } catch (e) {
-            console.error('Error listing User:', e);
+        // Try User entity with exact email
+        resp = await fetch(
+            `https://api.base44.com/v1/apps/${appId}/entities/User?query={"email":"${emailTrimmed}"}`,
+            { headers }
+        ).catch(() => null);
+
+        let userData = null;
+        if (resp?.ok) {
+            const json = await resp.json().catch(() => null);
+            if (Array.isArray(json) && json[0]) userData = json[0];
         }
 
-        let matchedAppUser = allUsers.find(u => 
-            u.email && u.email.toLowerCase() === emailLower
-        );
+        // Try lowercase if not found
+        if (!userData && emailTrimmed !== emailLower) {
+            resp = await fetch(
+                `https://api.base44.com/v1/apps/${appId}/entities/User?query={"email":"${emailLower}"}`,
+                { headers }
+            ).catch(() => null);
 
-        if (matchedAppUser) {
-            if (hashHex !== matchedAppUser.password_hash) {
+            if (resp?.ok) {
+                const json = await resp.json().catch(() => null);
+                if (Array.isArray(json) && json[0]) userData = json[0];
+            }
+        }
+
+        // Check password if found
+        if (userData) {
+            if (hashHex !== userData.password_hash) {
                 return Response.json({ success: false, error: 'Email or password incorrect' }, { status: 401 });
             }
             return Response.json({
                 success: true,
-                id: matchedAppUser.id,
-                email: matchedAppUser.email,
-                full_name: matchedAppUser.full_name,
-                user_type: matchedAppUser.user_type || 'user',
-                user_role: matchedAppUser.user_role === 'admin' ? 'admin' : 'user',
-                phone_number: matchedAppUser.phone_number || '',
-                orientationCompleted: matchedAppUser.orientationCompleted || false,
-                onboardingFeePaid: matchedAppUser.onboardingFeePaid || false
+                id: userData.id,
+                email: userData.email,
+                full_name: userData.full_name,
+                user_type: userData.user_type || 'user',
+                user_role: userData.user_role === 'admin' ? 'admin' : 'user',
+                phone_number: userData.phone_number || '',
+                orientationCompleted: userData.orientationCompleted || false,
+                onboardingFeePaid: userData.onboardingFeePaid || false
             });
         }
 
