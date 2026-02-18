@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       packageAmount
     } = await req.json();
 
-    const accessToken = await base44.connectors.getAccessToken('googledrive');
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
 
     // Get template ID from database
     const settings = await base44.entities.AdminSettings.list();
