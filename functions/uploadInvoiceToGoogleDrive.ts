@@ -22,27 +22,29 @@ Deno.serve(async (req) => {
     if (stripeLink) {
       invoiceText += '\n\nPay here: ' + stripeLink;
     }
-    const pdfContent = new TextEncoder().encode(invoiceText);
-    const blob = new Blob([pdfContent], { type: 'application/pdf' });
     
-    // Upload to Google Drive
+    // Create metadata
     const metadata = {
       name: fileName,
-      parents: [folderId]
+      parents: [folderId],
+      mimeType: 'text/plain'
     };
     
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', blob);
+    // Prepare multipart body
+    const boundary = '===============7330845974216740156==';
+    const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`;
+    const filePart = `--${boundary}\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: base64\r\n\r\n${btoa(invoiceText)}\r\n--${boundary}--`;
+    const body = metadataPart + filePart;
     
     const uploadResponse = await fetch(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': `multipart/related; boundary="${boundary}"`
         },
-        body: form
+        body: body
       }
     );
     
@@ -53,17 +55,21 @@ Deno.serve(async (req) => {
     }
     
     // Make file shareable
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        role: 'reader',
-        type: 'anyone'
-      })
-    });
+    try {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          role: 'reader',
+          type: 'anyone'
+        })
+      });
+    } catch (e) {
+      console.error('Permission error:', e.message);
+    }
     
     const fileUrl = `https://drive.google.com/file/d/${fileData.id}/view?usp=sharing`;
     
