@@ -82,7 +82,19 @@ Deno.serve(async (req) => {
       formatted_content: `INVOICE #${invoiceNumber}\nDate: ${new Date().toLocaleDateString()}\n\nClient: ${booking.client_name}\nProperty: ${jobAddress}\nService Date: ${booking.preferred_date}\n\nPackage: ${booking.package.replace(/_/g, ' ').toUpperCase()}\nAdd-ons: ${booking.add_ons ? booking.add_ons.join(', ') : 'None'}\n\nTotal Amount: $${totalAmount}\n\nPayment Link: ${stripeData.url}`
     };
 
-    // Note: Google Drive upload skipped - connector not authorized
+    // Upload invoice to Google Drive UNPAID folder (skip on error)
+    let driveResult = { data: { fileUrl: '#', fileId: 'temp' } };
+    try {
+      driveResult = await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
+        fileName: `${jobAddress}.pdf`,
+        invoiceContent: invoiceContent.formatted_content,
+        folderType: 'unpaid',
+        invoiceNumber,
+        stripeLink: stripeData.url
+      });
+    } catch (driveError) {
+      console.error('Drive upload error (continuing anyway):', driveError.message);
+    }
 
     // Generate tracked link
     const trackToken = crypto.randomUUID();
@@ -103,6 +115,8 @@ Deno.serve(async (req) => {
       payment_status: 'unpaid',
       stripe_payment_link_id: stripeData.id,
       stripe_payment_link_url: stripeData.url,
+      google_drive_unpaid_url: driveResult.data.fileUrl,
+      google_drive_file_id: driveResult.data.fileId,
       tracked_link_token: trackToken,
       tracked_link_url: trackedUrl,
       pay_at_closing: false
