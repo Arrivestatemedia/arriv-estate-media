@@ -8,6 +8,7 @@ import JobForm from "../components/jobs/JobForm";
 import JobCard from "../components/jobs/JobCard";
 import PendingBookingCard from "../components/booking/PendingBookingCard";
 import InviteUsersCard from "../components/dashboard/InviteUsersCard";
+import InvoiceTemplateSelector from "../components/admin/InvoiceTemplateSelector";
 import { AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
