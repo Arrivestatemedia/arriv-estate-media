@@ -246,19 +246,30 @@ Deno.serve(async (req) => {
     const brevoApiKey = Deno.env.get('BREVO_API_KEY');
     const adminEmail = Deno.env.get('ADMIN_EMAIL');
 
-    const emailBody = `Hi ${clientName.split(' ')[0]},
+    const htmlEmailBody = `<!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <p>Hi ${clientName.split(' ')[0]},</p>
 
-Your invoice for media services at ${jobAddress} is ready. Please use the link below to view the invoice and submit payment at your convenience.
+    <p>Your invoice for media services at <strong>${jobAddress}</strong> is ready. Please use the link below to view the invoice and submit payment at your convenience.</p>
 
-<a href="${driveViewLink}">👉 View Invoice</a>
+    <p>
+    <a href="${driveViewLink}" style="background-color: #B8956A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+      👉 View Invoice
+    </a>
+    </p>
 
-If you have any questions or need anything at all, feel free to reach out. Thank you again for the opportunity to work with you.
+    <p>If you have any questions or need anything at all, feel free to reach out. Thank you again for the opportunity to work with you.</p>
 
-Best regards,
-Bradley Burke
-Arriv Estate Media
-📞 678-242-9107
-🌐 arrivestatemedia.com`;
+    <p>
+    Best regards,<br>
+    <strong>Bradley Burke</strong><br>
+    Arriv Estate Media<br>
+    📞 678-242-9107<br>
+    🌐 arrivestatemedia.com
+    </p>
+    </body>
+    </html>`;
 
     const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
@@ -278,19 +289,19 @@ Arriv Estate Media
           }
         ],
         subject: 'Your Invoice from Arriv Estate Media',
-        htmlContent: emailBody,
-        trackingParams: {
-          utmSource: 'invoice_email'
-        }
+        htmlContent: htmlEmailBody
       })
     });
 
     const brevoData = await brevoResponse.json();
+    console.log('Brevo response status:', brevoResponse.status);
+    console.log('Brevo response data:', brevoData);
+
     if (!brevoResponse.ok) {
-      throw new Error(`Brevo error: ${brevoData.message}`);
+      throw new Error(`Brevo error (${brevoResponse.status}): ${brevoData.message || JSON.stringify(brevoData)}`);
     }
 
-    console.log('Email sent via Brevo:', brevoData.messageId);
+    console.log('Email sent via Brevo, messageId:', brevoData.messageId);
 
     return Response.json({
       success: true,
