@@ -36,25 +36,19 @@ export default function InvoiceTemplateSelector({ onTemplateSelected }) {
         setStatus('saving');
         setError('');
         
-        // Save to localStorage and entity
-        localStorage.setItem('invoice_template_id', fileId);
-        setTemplateId(fileId);
-        
-        // Try to save to database as well
-        try {
-          const existingSettings = await base44.asServiceRole.entities.AdminSettings.list();
-          if (existingSettings.length > 0) {
-            await base44.asServiceRole.entities.AdminSettings.update(existingSettings[0].id, {
-              invoice_template_id: fileId
-            });
-          } else {
-            await base44.asServiceRole.entities.AdminSettings.create({
-              invoice_template_id: fileId
-            });
-          }
-        } catch (dbError) {
-          console.warn('Could not save to database, using localStorage:', dbError);
+        // Save to database
+        const existingSettings = await base44.asServiceRole.entities.AdminSettings.list();
+        if (existingSettings.length > 0) {
+          await base44.asServiceRole.entities.AdminSettings.update(existingSettings[0].id, {
+            invoice_template_id: fileId
+          });
+        } else {
+          await base44.asServiceRole.entities.AdminSettings.create({
+            invoice_template_id: fileId
+          });
         }
+        
+        setTemplateId(fileId);
         
         setStatus('success');
         onTemplateSelected?.(fileId);
