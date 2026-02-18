@@ -25,8 +25,8 @@ Arriv Estate Media
 📞 678-242-9107
 🌐 arrivestatemedia.com`;
     
-    // Get Gmail access token via connector (use service role)
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    // Get Gmail access token via connector
+    const accessToken = await base44.connectors.getAccessToken('gmail');
     
     // Format email message
     const message = [

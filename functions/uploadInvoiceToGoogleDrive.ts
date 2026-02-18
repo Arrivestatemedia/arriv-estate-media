@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     const folderId = folderType === 'unpaid' ? UNPAID_FOLDER_ID : PAID_FOLDER_ID;
     
     // Get Google Drive access token
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+    const accessToken = await base44.connectors.getAccessToken('googledrive');
     
     // Create actual PDF using jsPDF
     const { jsPDF: PDFConstructor } = await import('npm:jspdf@4.0.0');
