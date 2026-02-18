@@ -119,41 +119,41 @@ Deno.serve(async (req) => {
 
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'normal');
-      pdf.text(`Invoice #: ${invoiceNumber}`, 20, 30);
-      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, 37);
+      pdf.text(`Invoice #: ${invoiceNumber}`, 20, 75);
+      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, 82);
 
       // Client section
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
-      pdf.text('BILL TO:', 20, 50);
+      pdf.text('BILL TO:', 20, 95);
 
       pdf.setFont(undefined, 'normal');
       pdf.setFontSize(10);
-      pdf.text(booking.client_name, 20, 58);
+      pdf.text(booking.client_name, 20, 103);
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(9);
       pdf.setTextColor(184, 149, 106);
-      pdf.text('Listing Address:', 20, 65);
+      pdf.text('Listing Address:', 20, 110);
       pdf.setFont(undefined, 'normal');
       pdf.setTextColor(26, 26, 26);
-      pdf.text(jobAddress, 20, 72);
-      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 79);
+      pdf.text(jobAddress, 20, 117);
+      pdf.text(`Service Date: ${booking.preferred_date}`, 20, 124);
 
       // Services table
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(11);
       pdf.setTextColor(184, 149, 106); // Gold
-      pdf.text('SERVICES PROVIDED', 20, 97);
+      pdf.text('SERVICES PROVIDED', 20, 142);
 
       pdf.setDrawColor(184, 149, 106);
-      pdf.line(20, 102, pageWidth - 20, 102);
+      pdf.line(20, 147, pageWidth - 20, 147);
 
       // Table headers
       pdf.setFont(undefined, 'bold');
       pdf.setFontSize(10);
       pdf.setTextColor(26, 26, 26);
-      pdf.text('Description', 20, 110);
-      pdf.text('Amount', pageWidth - 50, 110, { align: 'right' });
+      pdf.text('Description', 20, 155);
+      pdf.text('Amount', pageWidth - 50, 155, { align: 'right' });
 
       // Table rows
       pdf.setFont(undefined, 'normal');
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
 
       const packageBaseAmount = packagePrices[booking.package] || 0;
       const packageDescText = packageDescriptions[booking.package] || booking.package;
-      let yPos = 118;
+      let yPos = 163;
 
       pdf.text(packageDescText, 20, yPos);
       pdf.text(`$${packageBaseAmount.toFixed(2)}`, pageWidth - 50, yPos, { align: 'right' });
