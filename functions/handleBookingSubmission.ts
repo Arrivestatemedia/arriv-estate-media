@@ -190,22 +190,34 @@ Deno.serve(async (req) => {
           });
           const docContent = await docContentRes.json();
 
-          // Find "Pay Now" text range in the document body
+          // Find "Pay Now" text range in the document body (including tables)
           let payNowStart = -1, payNowEnd = -1;
-          const body = docContent.body?.content || [];
-          for (const elem of body) {
-            if (elem.paragraph) {
-              for (const pe of elem.paragraph.elements || []) {
-                if (pe.textRun?.content?.includes('Pay Now')) {
-                  const idx = pe.textRun.content.indexOf('Pay Now');
-                  payNowStart = pe.startIndex + idx;
-                  payNowEnd = payNowStart + 'Pay Now'.length;
-                  break;
+
+          function searchElements(elements) {
+            for (const elem of elements || []) {
+              if (elem.paragraph) {
+                for (const pe of elem.paragraph.elements || []) {
+                  if (pe.textRun?.content?.includes('Pay Now')) {
+                    const idx = pe.textRun.content.indexOf('Pay Now');
+                    payNowStart = pe.startIndex + idx;
+                    payNowEnd = payNowStart + 'Pay Now'.length;
+                    return;
+                  }
+                }
+              }
+              if (elem.table) {
+                for (const row of elem.table.tableRows || []) {
+                  for (const cell of row.tableCells || []) {
+                    searchElements(cell.content);
+                    if (payNowStart !== -1) return;
+                  }
                 }
               }
             }
-            if (payNowStart !== -1) break;
           }
+
+          searchElements(docContent.body?.content || []);
+          console.log('Pay Now search result - start:', payNowStart, 'end:', payNowEnd);
 
           if (payNowStart !== -1) {
             await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
