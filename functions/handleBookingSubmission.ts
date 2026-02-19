@@ -118,17 +118,61 @@ Deno.serve(async (req) => {
 
         let xmlContent = decoder.decode(zipData['word/document.xml']);
 
-        // Replace placeholders
-        xmlContent = xmlContent.replace(/\{\{JOB_ADDRESS\}\}/g, propertyAddress);
-        xmlContent = xmlContent.replace(/\{\{CLIENT_NAME\}\}/g, booking.client_name);
-        xmlContent = xmlContent.replace(/\{\{INVOICE_NUMBER\}\}/g, invoiceNumber);
-        xmlContent = xmlContent.replace(/\{\{AMOUNT_DUE\}\}/g, `$${totalAmount.toFixed(2)}`);
-        xmlContent = xmlContent.replace(/\{\{SERVICE_AND_ADD-ONS_CHOSEN\}\}/g, servicesLine);
-        xmlContent = xmlContent.replace(/\{\{AMOUNT_OF_PACKAGE\}\}/g, `$${basePkgAmount.toFixed(2)}`);
-        xmlContent = xmlContent.replace(/\{\{TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS\}\}/g, `$${totalAmount.toFixed(2)}`);
-        xmlContent = xmlContent.replace(/\{\{PLACE_STRIP_LINK\}\}/g, stripeData.url);
-        xmlContent = xmlContent.replace(/\{\{NEXT_INVOICE_NUMBER\}\}/g, nextInvoiceNumber);
-        xmlContent = xmlContent.replace(/\{\{DATE_OF_INVOICE_CREATION\}\}/g, invoiceDate);
+        // DOCX XML often splits placeholder text across multiple <w:t> tags.
+        // Reconstruct full run text before replacing, by collapsing split runs.
+        // Strategy: strip XML tags temporarily for placeholder detection, then replace in raw XML.
+        // Instead: do a regex that matches the placeholder even if split by XML tags.
+        function xmlSafeReplace(xml, placeholder, value) {
+          // Escape the placeholder chars into a pattern that allows XML tags between each char
+          const escapedChars = placeholder.split('').map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+          const pattern = escapedChars.join('(?:<[^>]*>)*');
+          const regex = new RegExp(pattern, 'g');
+          // Find all matches and replace them by rebuilding the text node
+          return xml.replace(regex, (match) => {
+            // Keep the XML tags from the match but replace all text content with value
+            // Replace all w:t content with the value in the first w:t, clear the rest
+            let first = true;
+            return match.replace(/(<w:t[^>]*>)[^<]*(<\/w:t>)/g, (m, open, close) => {
+              if (first) { first = false; return `${open}${value}${close}`; }
+              return `${open}${close}`;
+            });
+          });
+        }
+
+        // Escape XML special chars in values
+        function escapeXml(str) {
+          return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+        }
+
+        xmlContent = xmlSafeReplace(xmlContent, '{{JOB_ADDRESS}}', escapeXml(propertyAddress));
+        xmlContent = xmlSafeReplace(xmlContent, '{{PROPERTY_ADDRESS}}', escapeXml(propertyAddress));
+        xmlContent = xmlSafeReplace(xmlContent, '{{CLIENT_NAME}}', escapeXml(booking.client_name));
+        xmlContent = xmlSafeReplace(xmlContent, '{{INVOICE_NUMBER}}', escapeXml(invoiceNumber));
+        xmlContent = xmlSafeReplace(xmlContent, '{{AMOUNT_DUE}}', escapeXml(`$${totalAmount.toFixed(2)}`));
+        xmlContent = xmlSafeReplace(xmlContent, '{{SERVICE_AND_ADD-ONS_CHOSEN}}', escapeXml(servicesLine));
+        xmlContent = xmlSafeReplace(xmlContent, '{{AMOUNT_OF_PACKAGE}}', escapeXml(`$${basePkgAmount.toFixed(2)}`));
+        xmlContent = xmlSafeReplace(xmlContent, '{{TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS}}', escapeXml(`$${totalAmount.toFixed(2)}`));
+        xmlContent = xmlSafeReplace(xmlContent, '{{NEXT_INVOICE_NUMBER}}', escapeXml(nextInvoiceNumber));
+        xmlContent = xmlSafeReplace(xmlContent, '{{DATE_OF_INVOICE_CREATION}}', escapeXml(invoiceDate));
+        xmlContent = xmlSafeReplace(xmlContent, '{{DATE OF JOB}}', escapeXml(booking.preferred_date));
+
+        // For the Stripe link placeholder: replace plain text with a proper hyperlink
+        // First, add the relationship for the hyperlink
+        const stripeUrl = stripeData.url;
+        const relsFile = 'word/_rels/document.xml.rels';
+        let relsContent = zipData[relsFile] ? decoder.decode(zipData[relsFile]) : '';
+        const hyperlinkRelId = 'rIdStripeLink';
+        const hyperlinkRel = `<Relationship Id="${hyperlinkRelId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${stripeUrl}" TargetMode="External"/>`;
+        if (relsContent && !relsContent.includes(hyperlinkRelId)) {
+          relsContent = relsContent.replace('</Relationships>', `${hyperlinkRel}</Relationships>`);
+          zipData[relsFile] = encoder.encode(relsContent);
+        }
+
+        // Replace the {{PLACE_STRIP_LINK}} placeholder with a hyperlink element
+        const hyperlinkXml = `<w:hyperlink r:id="${hyperlinkRelId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr><w:t>${escapeXml(stripeUrl)}</w:t></w:r></w:hyperlink>`;
+        xmlContent = xmlSafeReplace(xmlContent, '{{PLACE_STRIP_LINK}}', escapeXml(stripeUrl));
+        // Also try direct string replace in case it didn't get split
+        xmlContent = xmlContent.replace(/\{\{PLACE_STRIP_LINK\}\}/g, escapeXml(stripeUrl));
 
         zipData['word/document.xml'] = encoder.encode(xmlContent);
 
