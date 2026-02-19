@@ -119,21 +119,19 @@ Deno.serve(async (req) => {
         const relsPath = 'word/_rels/document.xml.rels';
         if (zip.files[relsPath]) {
           let relsXml = zip.files[relsPath].asText();
-          console.log('Original rels XML:', relsXml);
           
-          // Find all hyperlink relationships
-          const hyperlinkMatches = relsXml.match(/Id="rId\d+"[^>]*Type="[^"]*hyperlink[^"]*"[^>]*/gi) || [];
-          console.log('Found hyperlinks:', hyperlinkMatches);
-          
-          // Replace only once - find the hyperlink relationship and update its Target attribute
+          // Replace ALL hyperlink relationships that point to https://example.com/ with Stripe URL
+          let replacedCount = 0;
           relsXml = relsXml.replace(
-            /(<Relationship\s+[^>]*?Id="([^"]+)"[^>]*?Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]*?Target=")[^"]*(")/i,
-            (match, before, id, after) => {
-              console.log(`Updating hyperlink relationship ${id} with Stripe URL`);
+            /(<Relationship[^>]*?Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]*?Target=")[^"]*(")/gi,
+            (match, before, after) => {
+              console.log(`Updating hyperlink with Stripe URL`);
+              replacedCount++;
               return `${before}${stripeUrl}${after}`;
             }
           );
           
+          console.log(`Updated ${replacedCount} hyperlink(s)`);
           zip.file(relsPath, relsXml);
         }
 
