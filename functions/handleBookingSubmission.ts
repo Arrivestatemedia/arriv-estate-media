@@ -351,6 +351,7 @@ Deno.serve(async (req) => {
 
         console.log('Sending invoice email via Brevo to:', booking.client_email);
         let brevoResponse;
+        let brevoData;
         try {
           brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
@@ -364,7 +365,7 @@ Deno.serve(async (req) => {
           });
           console.log('Brevo response status:', brevoResponse.status);
           
-          const brevoData = await brevoResponse.json();
+          brevoData = await brevoResponse.json();
           console.log('Brevo response:', JSON.stringify(brevoData).substring(0, 200));
           
           if (!brevoResponse.ok) {
@@ -377,38 +378,58 @@ Deno.serve(async (req) => {
           throw error;
         }
 
-        // Save invoice record
-        const invoice = await base44.asServiceRole.entities.Invoice.create({
-          invoice_number: invoiceNumber,
-          invoice_type: 'pay_up_front',
-          booking_id: createdBooking.id,
-          client_name: booking.client_name,
-          client_email: booking.client_email,
-          job_address: propertyAddress,
-          service_date: booking.preferred_date,
-          package: booking.package,
-          add_ons: addOns,
-          amount: totalAmount,
-          payment_status: 'unpaid',
-          stripe_payment_link_id: stripeData.id,
-          stripe_payment_link_url: stripeData.url,
-          google_drive_unpaid_url: driveViewLink,
-          google_drive_file_id: pdfFileId,
-          pay_at_closing: false,
-          email_sent_at: new Date().toISOString()
-        });
+        // Save invoice record with all data
+        console.log('Creating invoice record...');
+        let invoice;
+        try {
+          invoice = await base44.asServiceRole.entities.Invoice.create({
+            invoice_number: invoiceNumber,
+            invoice_type: 'pay_up_front',
+            booking_id: createdBooking.id,
+            client_name: booking.client_name,
+            client_email: booking.client_email,
+            job_address: propertyAddress,
+            service_date: booking.preferred_date,
+            package: booking.package,
+            add_ons: addOns,
+            amount: totalAmount,
+            payment_status: 'unpaid',
+            stripe_payment_link_id: stripeData.id,
+            stripe_payment_link_url: stripeData.url,
+            google_drive_unpaid_url: driveViewLink,
+            google_drive_file_id: pdfFileId,
+            pay_at_closing: false,
+            email_sent_at: new Date().toISOString()
+          });
+          console.log('Invoice created successfully:', invoice.id);
+        } catch (error) {
+          console.error('Error creating invoice record:', error.message);
+          throw error;
+        }
 
         // Log success
-        await base44.asServiceRole.entities.MessageLog.create({
-          message_type: 'email', recipient_type: 'client',
-          recipient_email: booking.client_email,
-          message_content: `Invoice #${invoiceNumber} sent for ${propertyAddress}`,
-          subject: 'Your Invoice from Arriv Estate Media',
-          status: 'success'
-        });
+        console.log('Logging message success...');
+        try {
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'email', recipient_type: 'client',
+            recipient_email: booking.client_email,
+            message_content: `Invoice #${invoiceNumber} sent for ${propertyAddress}`,
+            subject: 'Your Invoice from Arriv Estate Media',
+            status: 'success'
+          });
+          console.log('Message log created');
+        } catch (error) {
+          console.error('Error logging message:', error.message);
+        }
 
         // Update booking with invoice ID
-        await base44.asServiceRole.entities.Booking.update(createdBooking.id, { invoice_id: invoice.id });
+        console.log('Updating booking with invoice ID...');
+        try {
+          await base44.asServiceRole.entities.Booking.update(createdBooking.id, { invoice_id: invoice.id });
+          console.log('Booking updated with invoice ID');
+        } catch (error) {
+          console.error('Error updating booking:', error.message);
+        }
 
       } catch (invoiceError) {
         console.error('Invoice generation error:', invoiceError);
