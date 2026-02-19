@@ -136,7 +136,18 @@ export default function ClientTermsConditions() {
               </div>
 
               <div>
-                <h4 className="text-lg font-bold mb-2">10. Acceptance</h4>
+                <h4 className="text-lg font-bold mb-2">10. Communications & Messaging Consent</h4>
+                <p className="text-[#1A1A1A]/80">
+                  By creating an account and booking services with ARRIV Estate Media LLC, Clients consent to
+                  receiving communications via email and SMS/text message regarding the status of their bookings,
+                  including but not limited to booking confirmations, scheduling updates, media partner arrival
+                  notifications, job completion notices, invoice delivery, and payment reminders. Message and data
+                  rates may apply. You may opt out of SMS communications at any time by replying STOP.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-bold mb-2">11. Acceptance</h4>
                 <p className="text-[#1A1A1A]/80">
                   By booking services with ARRIV Estate Media LLC, Clients agree to these Terms & Conditions.
                   Continued use of the ARRIV platform constitutes acceptance of these terms.
