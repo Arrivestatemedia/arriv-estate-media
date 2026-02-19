@@ -218,6 +218,27 @@ Deno.serve(async (req) => {
 
           searchElements(docContent.body?.content || []);
           console.log('Pay Now search result - start:', payNowStart, 'end:', payNowEnd);
+          // Debug: log all text runs to see what text is in the doc
+          function collectText(elements) {
+            const texts = [];
+            for (const elem of elements || []) {
+              if (elem.paragraph) {
+                for (const pe of elem.paragraph.elements || []) {
+                  if (pe.textRun?.content) texts.push(JSON.stringify(pe.textRun.content));
+                }
+              }
+              if (elem.table) {
+                for (const row of elem.table.tableRows || []) {
+                  for (const cell of row.tableCells || []) {
+                    texts.push(...collectText(cell.content));
+                  }
+                }
+              }
+            }
+            return texts;
+          }
+          const allTexts = collectText(docContent.body?.content || []);
+          console.log('Doc text runs:', allTexts.join(' | ').substring(0, 2000));
 
           if (payNowStart !== -1) {
             await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
