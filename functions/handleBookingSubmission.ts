@@ -181,6 +181,78 @@ Deno.serve(async (req) => {
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
+        // Update hyperlink using Google Docs API
+        console.log('Updating hyperlink via Google Docs API...');
+        const docsToken = driveToken; // Same auth token works for Docs API
+
+        // Get document content to find the link text range
+        const docRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}`, {
+          headers: { 'Authorization': `Bearer ${docsToken}` }
+        });
+        const docContent = await docRes.json();
+        if (!docRes.ok) throw new Error(`Failed to get document: ${JSON.stringify(docContent.error)}`);
+
+        // Search for the hyperlink text in the document
+        let linkStartIndex = -1;
+        let linkEndIndex = -1;
+        const content = docContent.body.content;
+
+        // Flatten paragraphs and search for "View Invoice & Pay" or any text with existing link
+        for (const element of content) {
+          if (element.paragraph) {
+            for (const run of element.paragraph.elements) {
+              if (run.textRun && run.textRun.text) {
+                // Look for link text (common patterns)
+                if (run.textRun.text.includes('View Invoice') || 
+                    run.textRun.text.includes('Pay') ||
+                    run.textRun.text.includes('Click')) {
+                  // This might be our link - update it
+                  if (run.textRun.textStyle && run.textRun.textStyle.link) {
+                    // Calculate indices in the document
+                    linkStartIndex = run.startIndex;
+                    linkEndIndex = run.endIndex;
+                    console.log(`Found link text at indices ${linkStartIndex}-${linkEndIndex}`);
+                    break;
+                  }
+                }
+              }
+            }
+            if (linkStartIndex !== -1) break;
+          }
+        }
+
+        // If we found the link, update it
+        if (linkStartIndex !== -1 && linkEndIndex !== -1) {
+          console.log(`Updating link URL via Docs API...`);
+          const updateRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${docsToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requests: [
+                {
+                  updateTextStyle: {
+                    range: {
+                      startIndex: linkStartIndex,
+                      endIndex: linkEndIndex
+                    },
+                    textStyle: {
+                      link: {
+                        url: stripeUrl
+                      }
+                    },
+                    fields: 'link'
+                  }
+                }
+              ]
+            })
+          });
+          const updateResult = await updateRes.json();
+          if (!updateRes.ok) throw new Error(`Failed to update link: ${JSON.stringify(updateResult.error)}`);
+          console.log('Link URL updated successfully');
+        } else {
+          console.log('Warning: Could not find hyperlink text in document');
+        }
+
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
         const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
