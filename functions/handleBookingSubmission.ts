@@ -169,7 +169,11 @@ Deno.serve(async (req) => {
         const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
-        if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
+        if (!pdfExportRes.ok) {
+          const errorText = await pdfExportRes.text();
+          console.error('PDF export failed:', pdfExportRes.status, errorText);
+          throw new Error(`PDF export failed: ${errorText}`);
+        }
         let pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
         console.log('PDF exported, size:', pdfBytes.length);
 
