@@ -158,15 +158,12 @@ Deno.serve(async (req) => {
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
 
-        // Convert DOCX to PDF directly using simple library instead of Zamzar
+        // Convert DOCX to PDF directly using jsPDF (simpler approach)
         console.log('Exporting as PDF...');
-        const html2pdf = (await import('npm:html2pdf.js@0.10.1')).default;
+        const { jsPDF: JPdf } = await import('npm:jspdf@4.0.0');
+        const pdfDoc = new JPdf();
         
-        // For now, use a simpler approach: create PDF via jsPDF and embed DOCX as base64
-        const jsPDF = (await import('npm:jspdf@4.0.0')).jsPDF;
-        const pdfDoc = new jsPDF.jsPDF();
-        
-        // Add a simple note that PDF is ready for download
+        // Add invoice content
         pdfDoc.setFontSize(24);
         pdfDoc.text('Invoice', 20, 30);
         pdfDoc.setFontSize(12);
@@ -175,18 +172,11 @@ Deno.serve(async (req) => {
         pdfDoc.text(`Property: ${propertyAddress}`, 20, 90);
         pdfDoc.text(`Amount Due: $${totalAmount.toFixed(2)}`, 20, 110);
         pdfDoc.setFontSize(10);
-        pdfDoc.text([
-          `Package: ${packageNames[booking.package]}`,
-          `Date: ${booking.preferred_date}`,
-          `Created: ${invoiceDate}`
-        ], 20, 130);
-        
-        // Add payment link as clickable button
+        pdfDoc.text(`Package: ${packageNames[booking.package]}`, 20, 130);
+        pdfDoc.text(`Date: ${booking.preferred_date}`, 20, 140);
+        pdfDoc.text(`Created: ${invoiceDate}`, 20, 150);
         pdfDoc.setTextColor(184, 149, 106);
-        pdfDoc.textWithLink('Click here to pay', 20, 160, { pageNumber: 1, url: stripeUrl });
-        pdfDoc.setTextColor(0, 0, 0);
-        
-        pdfDoc.text(`Payment Link: ${stripeUrl}`, 20, 180);
+        pdfDoc.textWithLink('Click here to pay', 20, 170, { url: stripeUrl });
         
         const pdfBytes = new Uint8Array(pdfDoc.output('arraybuffer'));
         console.log('PDF exported, size:', pdfBytes.length);
