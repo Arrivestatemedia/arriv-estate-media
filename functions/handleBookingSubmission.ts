@@ -192,9 +192,43 @@ Deno.serve(async (req) => {
           throw error;
         }
 
-        // Stripe link is now embedded in the DOCX template via PLACE_STRIP_LINK
-        // Google Drive's conversion process will preserve the link in the PDF
-        console.log('Stripe payment link embedded in DOCX template, relying on Google Drive conversion');
+        // Add clickable Stripe link to PDF using pdf-lib
+        console.log('Adding clickable Stripe payment link to PDF...');
+        try {
+          const { PDFDocument } = await import('npm:pdf-lib@1.17.1');
+          const pdfDoc = await PDFDocument.load(pdfBytes);
+          const pages = pdfDoc.getPages();
+          
+          if (pages.length > 0) {
+            const lastPage = pages[pages.length - 1];
+            const { height } = lastPage.getSize();
+            
+            // Add a clickable rectangle over the link area (adjust coordinates as needed)
+            const linkAnnotation = pdfDoc.context.obj({
+              Type: 'Annot',
+              Subtype: 'Link',
+              Rect: [40, height - 100, 240, height - 75],
+              Border: [0, 0, 0],
+              A: {
+                S: 'URI',
+                URI: `(${stripeUrl})`
+              }
+            });
+            
+            const pageAnnots = lastPage.node.lookup('Annots') || pdfDoc.context.obj([]);
+            pageAnnots.push(linkAnnotation);
+            lastPage.node.set('Annots', pageAnnots);
+            
+            console.log('Clickable link added to PDF');
+          }
+          
+          const modifiedPdfBytes = await pdfDoc.save();
+          pdfBytes = new Uint8Array(modifiedPdfBytes);
+          console.log('PDF updated with clickable link, size:', pdfBytes.length);
+        } catch (pdfError) {
+          console.error('Error adding link to PDF:', pdfError.message);
+          // Continue with PDF even if link addition fails
+        }
 
         // Delete the temporary Google Doc
         console.log('Deleting temporary Google Doc:', uploadedDoc.id);
