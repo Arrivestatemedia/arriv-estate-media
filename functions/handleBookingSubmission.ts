@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
 
         const zamzarRes = await fetch('https://api.zamzar.com/v1/files', {
           method: 'POST',
-          headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:${Deno.env.get('ZAMZAR_API_KEY')`)}` },
+          headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}` },
           body: zamzarFormData
         });
         const zamzarData = await zamzarRes.json();
@@ -198,16 +198,17 @@ Deno.serve(async (req) => {
         let pdfBytes = null;
         let pollCount = 0;
         const maxPolls = 30;
+        const zamzarAuth = `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`;
         while (!conversionComplete && pollCount < maxPolls) {
           await new Promise(resolve => setTimeout(resolve, 2000));
           const statusRes = await fetch(`https://api.zamzar.com/v1/files/${zamzarData.id}`, {
-            headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:${Deno.env.get('ZAMZAR_API_KEY'`)}` }
+            headers: { 'Authorization': zamzarAuth }
           });
           const statusData = await statusRes.json();
           console.log(`Zamzar status (poll ${pollCount + 1}):`, statusData.status);
           if (statusData.status === 'successful') {
             const downloadRes = await fetch(statusData.output_md5_url, {
-              headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:${Deno.env.get('ZAMZAR_API_KEY'`)}` }
+              headers: { 'Authorization': zamzarAuth }
             });
             pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
             conversionComplete = true;
