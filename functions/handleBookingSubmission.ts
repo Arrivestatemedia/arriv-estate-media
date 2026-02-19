@@ -119,19 +119,18 @@ Deno.serve(async (req) => {
         const relsPath = 'word/_rels/document.xml.rels';
         if (zip.files[relsPath]) {
           let relsXml = zip.files[relsPath].asText();
-          console.log('Rels file hyperlinks:', relsXml.match(/Type="[^"]*hyperlink[^"]*"[^/]*/gi));
-          // Replace ALL hyperlink targets in the rels file with the Stripe URL
-          // This works because the template should only have one hyperlink (the payment link)
+          // Only replace hyperlinks with the placeholder URL (https://example.com/)
+          // This preserves any other hyperlinks in the document
           let replacedCount = 0;
           relsXml = relsXml.replace(
-            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")([^"]*)(")/gi,
-            (match, before, oldUrl, after) => {
-              console.log('Replacing hyperlink URL:', oldUrl, '->', stripeUrl);
+            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")https:\/\/example\.com\/(")/gi,
+            (match, before, after) => {
+              console.log('Replacing placeholder hyperlink with Stripe URL:', stripeUrl);
               replacedCount++;
               return `${before}${stripeUrl}${after}`;
             }
           );
-          console.log(`Replaced ${replacedCount} hyperlink(s)`);
+          console.log(`Replaced ${replacedCount} hyperlink(s) with Stripe URL`);
           zip.file(relsPath, relsXml);
         }
 
