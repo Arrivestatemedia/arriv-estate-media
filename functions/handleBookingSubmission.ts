@@ -158,9 +158,7 @@ Deno.serve(async (req) => {
         console.log('Converting DOCX to PDF using LibreOffice...');
         const docxPath = '/tmp/invoice_temp.docx';
         const pdfPath = '/tmp/invoice_temp.pdf';
-        const docxFile = await Deno.open(docxPath, { write: true, create: true });
-        await docxFile.writeSync(updatedDocx);
-        docxFile.close();
+        await Deno.writeFile(docxPath, updatedDocx);
 
         const command = new Deno.Command('libreoffice', {
           args: ['--headless', '--convert-to', 'pdf', '--outdir', '/tmp', docxPath]
