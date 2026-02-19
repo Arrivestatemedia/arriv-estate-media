@@ -176,10 +176,10 @@ Deno.serve(async (req) => {
             for (const el of elements || []) {
               if (el.paragraph) {
                 for (const pe of el.paragraph.elements || []) {
-                  if (pe.textRun && pe.textRun.content && pe.textRun.content.includes(stripeUrl)) {
-                    const offset = pe.textRun.content.indexOf(stripeUrl);
+                  if (pe.textRun && pe.textRun.content && pe.textRun.content.includes(stripeLinkPlaceholder)) {
+                    const offset = pe.textRun.content.indexOf(stripeLinkPlaceholder);
                     startIndex = pe.startIndex + offset;
-                    endIndex = startIndex + stripeUrl.length;
+                    endIndex = startIndex + stripeLinkPlaceholder.length;
                     return;
                   }
                 }
