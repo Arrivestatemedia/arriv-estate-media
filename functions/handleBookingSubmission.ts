@@ -114,6 +114,27 @@ Deno.serve(async (req) => {
 
         const zip = new PizZip(templateBytes);
 
+        // Replace hyperlink target URL in the relationship file (word/_rels/document.xml.rels)
+        // The template has a placeholder hyperlink target we replace with the actual Stripe URL
+        const relsPath = 'word/_rels/document.xml.rels';
+        if (zip.files[relsPath]) {
+          let relsXml = zip.files[relsPath].asText();
+          console.log('Rels file hyperlinks:', relsXml.match(/Type="[^"]*hyperlink[^"]*"[^/]*/gi));
+          // Replace ALL hyperlink targets in the rels file with the Stripe URL
+          // This works because the template should only have one hyperlink (the payment link)
+          let replacedCount = 0;
+          relsXml = relsXml.replace(
+            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")([^"]*)(")/gi,
+            (match, before, oldUrl, after) => {
+              console.log('Replacing hyperlink URL:', oldUrl, '->', stripeUrl);
+              replacedCount++;
+              return `${before}${stripeUrl}${after}`;
+            }
+          );
+          console.log(`Replaced ${replacedCount} hyperlink(s)`);
+          zip.file(relsPath, relsXml);
+        }
+
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
@@ -159,69 +180,6 @@ Deno.serve(async (req) => {
         const uploadedDoc = await uploadRes.json();
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
-
-        // Update hyperlink using Google Docs API
-        console.log('Updating hyperlink via Google Docs API...');
-        const docsToken = driveToken; // Same auth token works for Docs API
-
-        // Get document content to find the link text range
-        const docRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}`, {
-          headers: { 'Authorization': `Bearer ${docsToken}` }
-        });
-        const docContent = await docRes.json();
-        if (!docRes.ok) throw new Error(`Failed to get document: ${JSON.stringify(docContent.error)}`);
-
-        // Search for "Pay Now" hyperlink text in the document
-        let linkStartIndex = -1;
-        let linkEndIndex = -1;
-        const content = docContent.body.content;
-
-        // Find "Pay Now" text
-        for (const element of content) {
-          if (element.paragraph) {
-            for (const run of element.paragraph.elements) {
-              if (run.textRun && run.textRun.text.includes('Pay Now')) {
-                linkStartIndex = run.startIndex;
-                linkEndIndex = run.endIndex;
-                console.log(`Found "Pay Now" at indices ${linkStartIndex}-${linkEndIndex}`);
-                break;
-              }
-            }
-            if (linkStartIndex !== -1) break;
-          }
-        }
-
-        // Update the "Pay Now" link with Stripe URL
-        if (linkStartIndex !== -1 && linkEndIndex !== -1) {
-          console.log(`Updating "Pay Now" link URL via Docs API...`);
-          const updateRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${docsToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              requests: [
-                {
-                  updateTextStyle: {
-                    range: {
-                      startIndex: linkStartIndex,
-                      endIndex: linkEndIndex
-                    },
-                    textStyle: {
-                      link: {
-                        url: stripeUrl
-                      }
-                    },
-                    fields: 'link'
-                  }
-                }
-              ]
-            })
-          });
-          const updateResult = await updateRes.json();
-          if (!updateRes.ok) throw new Error(`Failed to update link: ${JSON.stringify(updateResult.error)}`);
-          console.log('Pay Now link updated successfully');
-        } else {
-          throw new Error('Could not find "Pay Now" text in document');
-        }
 
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
