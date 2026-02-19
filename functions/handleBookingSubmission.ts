@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
           console.error('Brevo error details:', brevoData);
           throw new Error(`Brevo error (${brevoResponse.status}): ${brevoData.message || JSON.stringify(brevoData)}`);
         }
-        console.log('Invoice email sent successfully');
+        console.log('Invoice email sent, messageId:', brevoData.messageId);
 
         // Save invoice record
         const invoice = await base44.asServiceRole.entities.Invoice.create({
