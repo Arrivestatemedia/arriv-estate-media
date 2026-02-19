@@ -1,36 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-
-const TEMPLATE_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/2eb7f14e3_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
-
-const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
-const packageNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Media Bundle' };
-const addonPrices = { drone: 150, '3d_tour': 200, twilight: 175, rush_delivery: 100, vertical_reel: 125, ai_staging: 75 };
-const addonDescriptions = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
-
-async function replaceInDocx(templateArrayBuffer, replacements) {
-  // DOCX is a ZIP file - we need to manipulate it
-  // We'll use the JSZip approach via npm
-  const JSZip = (await import('npm:jszip@3.10.1')).default;
-  const zip = await JSZip.loadAsync(templateArrayBuffer);
-
-  // The main document content is in word/document.xml
-  const docXmlFile = zip.file('word/document.xml');
-  if (!docXmlFile) throw new Error('Invalid DOCX: no word/document.xml found');
-
-  let xmlContent = await docXmlFile.async('string');
-
-  // Replace all placeholders
-  for (const [placeholder, value] of Object.entries(replacements)) {
-    // Placeholders may be split across XML runs, so we do a simple string replace
-    // First try direct replace, then try XML-escaped version
-    const escaped = placeholder.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    xmlContent = xmlContent.split(placeholder).join(value);
-    xmlContent = xmlContent.split(escaped).join(value);
-  }
-
-  zip.file('word/document.xml', xmlContent);
-  return await zip.generateAsync({ type: 'arraybuffer' });
-}
+import { PDFDocument, rgb } from 'npm:pdf-lib@^1.17.1';
 
 Deno.serve(async (req) => {
   try {
@@ -88,7 +57,7 @@ Deno.serve(async (req) => {
       console.error('Admin email error:', error);
     }
 
-    // For pay-up-front: fill template and send invoice
+    // For pay-up-front: generate PDF invoice and send via Brevo
     if (!booking.request_pay_at_closing) {
       try {
         const totalAmount = parseFloat(booking.total_price);
@@ -98,7 +67,6 @@ Deno.serve(async (req) => {
         const lastNumber = allInvoices.length > 0 && allInvoices[0].invoice_number
           ? parseInt(allInvoices[0].invoice_number) : 1000;
         const invoiceNumber = String(lastNumber + 1);
-        const nextInvoiceNumber = String(lastNumber + 2);
 
         // Stripe payment link
         const stripeResponse = await fetch('https://api.stripe.com/v1/payment_links', {
@@ -117,54 +85,73 @@ Deno.serve(async (req) => {
         const stripeData = await stripeResponse.json();
         if (!stripeResponse.ok) throw new Error(`Stripe error: ${stripeData.error?.message}`);
 
-        const addOns = booking.add_ons || [];
+        const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
+        const packageNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Media Bundle' };
+        const addonDescriptions = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
+
         const basePkgAmount = packagePrices[booking.package] || 0;
-        const addOnsTotal = addOns.reduce((sum, a) => sum + (addonPrices[a] || 0), 0);
+        const addOns = booking.add_ons || [];
 
-        // Build services text
-        const pkgLine = packageNames[booking.package] || booking.package;
-        const addOnsLines = addOns.map(a => addonDescriptions[a] || a).join(', ');
-        const servicesText = addOnsLines ? `${pkgLine}, ${addOnsLines}` : pkgLine;
+        // Generate PDF
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([612, 792]);
+        const gold = rgb(0.72, 0.59, 0.42);
+        const black = rgb(0.1, 0.1, 0.1);
+        const gray = rgb(0.4, 0.4, 0.4);
+        let y = 750;
 
-        const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        page.drawText('ARRIV ESTATE MEDIA', { x: 50, y, size: 18, color: gold });
+        y -= 30;
+        page.drawText('INVOICE', { x: 50, y, size: 14, color: black });
+        page.drawText(`#${invoiceNumber}`, { x: 480, y, size: 14, color: black });
+        y -= 25;
+        page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+        y -= 20;
+        page.drawText(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, { x: 50, y, size: 10, color: black });
+        y -= 25;
+        page.drawText('BILL TO:', { x: 50, y, size: 10, color: gold });
+        y -= 15;
+        page.drawText(booking.client_name, { x: 50, y, size: 12, color: black });
+        y -= 15;
+        page.drawText(propertyAddress, { x: 50, y, size: 12, color: black, maxWidth: 400 });
+        y -= 30;
+        page.drawText('SERVICES', { x: 50, y, size: 10, color: gold });
+        y -= 15;
+        page.drawText(packageNames[booking.package] || booking.package, { x: 50, y, size: 12, color: black });
+        page.drawText(`$${basePkgAmount.toFixed(2)}`, { x: 480, y, size: 12, color: black });
+        y -= 18;
+        for (const addon of addOns) {
+          page.drawText(`  + ${addonDescriptions[addon] || addon}`, { x: 50, y, size: 10, color: black });
+          y -= 14;
+        }
+        y -= 15;
+        page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+        y -= 25;
+        page.drawText('AMOUNT DUE', { x: 50, y, size: 11, color: gold });
+        page.drawText(`$${totalAmount.toFixed(2)}`, { x: 480, y, size: 16, color: black });
+        y -= 45;
+        page.drawText('PAYMENT', { x: 50, y, size: 10, color: gold });
+        y -= 15;
+        page.drawText('Please use the link below to submit payment:', { x: 50, y, size: 10, color: black });
+        y -= 15;
+        page.drawText(stripeData.url, { x: 50, y, size: 9, color: rgb(0, 0, 0.8), maxWidth: 500 });
+        page.drawText('Thank you for your business!', { x: 50, y: 50, size: 10, color: black });
+        page.drawText('Arriv Estate Media | 678-242-9107 | arrivestatemedia.com', { x: 50, y: 30, size: 9, color: gray });
 
-        const replacements = {
-          '{{JOB_ADDRESS}}': propertyAddress,
-          '{{CLIENT_NAME}}': booking.client_name,
-          '{{INVOICE_NUMBER}}': invoiceNumber,
-          '{{AMOUNT_DUE}}': `$${totalAmount.toFixed(2)}`,
-          '{{SERVICE_AND_ADD-ONS_CHOSEN}}': servicesText,
-          '{{AMOUNT_OF_PACKAGE}}': `$${basePkgAmount.toFixed(2)}`,
-          '{{TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS}}': `$${totalAmount.toFixed(2)}`,
-          '{{PLACE_STRIP_LINK}}': stripeData.url,
-          '{{NEXT_INVOICE_NUMBER}}': nextInvoiceNumber,
-          '{{DATE_OF_INVOICE_CREATION}}': invoiceDate,
-        };
+        const pdfBytes = await pdfDoc.save();
+        console.log('PDF generated, size:', pdfBytes.length);
 
-        // Download template
-        console.log('Downloading DOCX template...');
-        const templateRes = await fetch(TEMPLATE_URL);
-        if (!templateRes.ok) throw new Error('Failed to download template');
-        const templateBuffer = await templateRes.arrayBuffer();
-
-        // Fill template
-        console.log('Filling template placeholders...');
-        const filledDocxBuffer = await replaceInDocx(templateBuffer, replacements);
-
-        // Upload filled DOCX to Google Drive
-        console.log('Uploading filled DOCX to Google Drive...');
+        // Upload to Google Drive
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
-        const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.docx`;
+        const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
         const boundary = 'boundary_arriv_invoice';
         const metadata = JSON.stringify({ name: fileName, parents: [unpaidFolderId] });
-
         const enc = new TextEncoder();
-        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
+        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
         const after = enc.encode(`\r\n--${boundary}--`);
-        const docxBytes = new Uint8Array(filledDocxBuffer);
-        const uploadBody = new Uint8Array(before.length + docxBytes.length + after.length);
-        uploadBody.set(before); uploadBody.set(docxBytes, before.length); uploadBody.set(after, before.length + docxBytes.length);
+        const uploadBody = new Uint8Array(before.length + pdfBytes.length + after.length);
+        uploadBody.set(before); uploadBody.set(new Uint8Array(pdfBytes), before.length); uploadBody.set(after, before.length + pdfBytes.length);
 
         const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
@@ -174,16 +161,13 @@ Deno.serve(async (req) => {
         const uploadedFile = await uploadRes.json();
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${uploadedFile.error?.message}`);
 
-        const docxFileId = uploadedFile.id;
-
-        // Make shareable
-        await fetch(`https://www.googleapis.com/drive/v3/files/${docxFileId}/permissions`, {
+        const pdfFileId = uploadedFile.id;
+        await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: 'reader', type: 'anyone' })
         });
-
-        const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${docxFileId}?fields=webViewLink`, {
+        const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}?fields=webViewLink`, {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
         const { webViewLink: driveViewLink } = await fileDetailsRes.json();
@@ -233,11 +217,12 @@ Deno.serve(async (req) => {
           stripe_payment_link_id: stripeData.id,
           stripe_payment_link_url: stripeData.url,
           google_drive_unpaid_url: driveViewLink,
-          google_drive_file_id: docxFileId,
+          google_drive_file_id: pdfFileId,
           pay_at_closing: false,
           email_sent_at: new Date().toISOString()
         });
 
+        // Log success
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email', recipient_type: 'client',
           recipient_email: booking.client_email,
@@ -246,6 +231,7 @@ Deno.serve(async (req) => {
           status: 'success'
         });
 
+        // Update booking with invoice ID
         await base44.asServiceRole.entities.Booking.update(createdBooking.id, { invoice_id: invoice.id });
 
       } catch (invoiceError) {
