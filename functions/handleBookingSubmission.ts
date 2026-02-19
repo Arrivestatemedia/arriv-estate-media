@@ -296,11 +296,10 @@ Deno.serve(async (req) => {
       } catch (invoiceError) {
         console.error('Invoice generation error:', invoiceError.message);
         console.error('Invoice generation error stack:', invoiceError.stack);
-        console.error('Full error object:', JSON.stringify(invoiceError));
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email', recipient_type: 'client',
           recipient_email: booking.client_email,
-          message_content: `Failed to generate invoice for booking: ${invoiceError.message}`,
+          message_content: `Failed to generate invoice for booking`,
           subject: 'Booking Confirmation - Invoice Pending',
           status: 'failed',
           error_message: invoiceError.message
