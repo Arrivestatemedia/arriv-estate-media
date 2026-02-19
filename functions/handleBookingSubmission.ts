@@ -184,6 +184,8 @@ Deno.serve(async (req) => {
           const docsErr = await docsRes.text();
           console.error('Docs API replaceAllText error (non-fatal):', docsErr);
         } else {
+          // Wait for Drive conversion to finish before fetching doc content
+          await new Promise(r => setTimeout(r, 4000));
           // Now fetch the doc to find the "Pay Now" text range
           const docContentRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}`, {
             headers: { 'Authorization': `Bearer ${docsToken}` }
