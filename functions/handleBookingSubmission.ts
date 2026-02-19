@@ -196,11 +196,6 @@ Deno.serve(async (req) => {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
 
-        const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-        const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
-        const enc = new TextEncoder();
-        const boundary = 'boundary_arriv_invoice';
-
         // Upload the final PDF to the UNPAID folder
         console.log('Uploading PDF to UNPAID folder...');
         const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
