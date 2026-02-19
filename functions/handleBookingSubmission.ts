@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
     // For pay-up-front: generate PDF invoice and send via Brevo
     if (!booking.request_pay_at_closing) {
       try {
+        console.log('Starting invoice generation for:', booking.client_name);
         const totalAmount = parseFloat(booking.total_price);
 
         // Invoice number
