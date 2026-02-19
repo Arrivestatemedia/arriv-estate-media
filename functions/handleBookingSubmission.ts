@@ -186,13 +186,14 @@ Deno.serve(async (req) => {
             color: rgb(0, 0.5, 1),
           });
           
-          lastPage.drawLinkAnnotations([{
-            uri: stripeUrl,
+          lastPage.addAnnotation({
+            type: 'Link',
             x: 50,
             y: linkY - 12,
             width: 60,
             height: 16,
-          }]);
+            uri: stripeUrl,
+          });
           
           const modifiedPdfBytes = await pdfDoc.save();
           pdfBytes = new Uint8Array(modifiedPdfBytes);
