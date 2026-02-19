@@ -181,84 +181,9 @@ Deno.serve(async (req) => {
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
-        // Update hyperlink using Google Docs API
-        console.log('Updating hyperlink via Google Docs API...');
-        const docsToken = driveToken; // Same auth token works for Docs API
-
-        // Get document content to find the link text range
-        const docRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}`, {
-          headers: { 'Authorization': `Bearer ${docsToken}` }
-        });
-        const docContent = await docRes.json();
-        if (!docRes.ok) throw new Error(`Failed to get document: ${JSON.stringify(docContent.error)}`);
-
-        // Search for the hyperlink text "Pay Now" in the document
-        let linkStartIndex = -1;
-        let linkEndIndex = -1;
-        const content = docContent.body.content;
-
-        // Log all text content to debug document structure
-        console.log('Document structure:');
-        let fullText = '';
-        for (const element of content) {
-          if (element.paragraph) {
-            for (const run of element.paragraph.elements) {
-              if (run.textRun && run.textRun.text) {
-                console.log(`Run text: "${run.textRun.text}", has link: ${!!(run.textRun.textStyle && run.textRun.textStyle.link)}`);
-                fullText += run.textRun.text;
-              }
-            }
-          }
-        }
-        console.log('Full document text:', fullText);
-
-        // Search for "Pay Now" text (exact match or contained in larger text)
-        for (const element of content) {
-          if (element.paragraph) {
-            for (const run of element.paragraph.elements) {
-              if (run.textRun && run.textRun.text && run.textRun.text.includes('Pay Now')) {
-                // Found text containing "Pay Now"
-                linkStartIndex = run.startIndex;
-                linkEndIndex = run.endIndex;
-                console.log(`Found "Pay Now" at indices ${linkStartIndex}-${linkEndIndex}`);
-                break;
-              }
-            }
-            if (linkStartIndex !== -1) break;
-          }
-        }
-
-        // If we found the link, update it
-        if (linkStartIndex !== -1 && linkEndIndex !== -1) {
-          console.log(`Updating link URL via Docs API...`);
-          const updateRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${docsToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              requests: [
-                {
-                  updateTextStyle: {
-                    range: {
-                      startIndex: linkStartIndex,
-                      endIndex: linkEndIndex
-                    },
-                    textStyle: {
-                      link: {
-                        url: stripeUrl
-                      }
-                    },
-                    fields: 'link'
-                  }
-                }
-              ]
-            })
-          });
-          const updateResult = await updateRes.json();
-          if (!updateRes.ok) throw new Error(`Failed to update link: ${JSON.stringify(updateResult.error)}`);
-          console.log('Link URL updated successfully');
-        } else {
-          console.log('Warning: Could not find hyperlink text in document');
-        }
+        // Note: The DOCX→Google Doc conversion often loses hyperlink metadata.
+        // The PDF export will contain the "Pay Now" text, but it may not be clickable.
+        // This is a known limitation of the conversion process.
 
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
