@@ -208,10 +208,10 @@ Deno.serve(async (req) => {
         });
 
         // Upload the final PDF to the UNPAID folder
-        console.log('Uploading PDF to UNPAID folder...');
+        console.log('Uploading PDF to UNPAID folder...', pdfBytes.length, 'bytes');
         const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
-        const pdfMetadata = JSON.stringify({ name: pdfFileName, parents: [unpaidFolderId] });
-        const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
+        const pdfMetadata = JSON.stringify({ name: pdfFileName, parents: [unpaidFolderId], mimeType: 'application/pdf' });
+        const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\nContent-Transfer-Encoding: binary\r\n\r\n`);
         const pdfAfter = enc.encode(`\r\n--${boundary}--`);
         const pdfUploadBody = new Uint8Array(pdfBefore.length + pdfBytes.length + pdfAfter.length);
         pdfUploadBody.set(pdfBefore); pdfUploadBody.set(pdfBytes, pdfBefore.length); pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
@@ -222,7 +222,11 @@ Deno.serve(async (req) => {
           body: pdfUploadBody
         });
         const uploadedPdf = await pdfUploadRes.json();
-        if (!pdfUploadRes.ok) throw new Error(`PDF upload failed: ${JSON.stringify(uploadedPdf.error)}`);
+        if (!pdfUploadRes.ok) {
+          console.error('PDF upload error response:', uploadedPdf);
+          throw new Error(`PDF upload failed: ${JSON.stringify(uploadedPdf.error)}`);
+        }
+        console.log('PDF uploaded successfully:', uploadedPdf.id);
 
         const pdfFileId = uploadedPdf.id;
         await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
