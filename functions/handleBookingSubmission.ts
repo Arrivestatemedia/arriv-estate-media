@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
         // Add clickable Stripe link to PDF using pdf-lib
         console.log('Adding clickable Stripe payment link to PDF...');
         try {
-          const { PDFDocument, PDFString, PDFName, PDFDictionary } = await import('npm:pdf-lib@1.17.1');
+          const { PDFDocument, PDFString, PDFName, PDFArray } = await import('npm:pdf-lib@1.17.1');
           const pdfDoc = await PDFDocument.load(pdfBytes);
           const pages = pdfDoc.getPages();
           
@@ -203,24 +203,29 @@ Deno.serve(async (req) => {
             const lastPage = pages[pages.length - 1];
             const { height } = lastPage.getSize();
             
-            // Create link annotation using PDFDictionary.from() as per pdf-lib docs
-            const linkRect = [40, height - 100, 240, height - 75];
-            const linkAnnotation = PDFDictionary.from({
-              Type: PDFName.of('Annot'),
-              Subtype: PDFName.of('Link'),
-              Rect: [linkRect[0], linkRect[1], linkRect[2], linkRect[3]],
-              Border: [0, 0, 0],
-              A: PDFDictionary.from({
-                S: PDFName.of('URI'),
-                URI: PDFString.of(stripeUrl)
-              })
+            // Create action dictionary for URI
+            const actionDict = pdfDoc.context.obj({
+              S: PDFName.of('URI'),
+              URI: PDFString.of(stripeUrl)
             });
             
+            // Create link annotation rectangle and properties
+            const linkRect = [40, height - 100, 240, height - 75];
+            const linkAnnotation = pdfDoc.context.obj({
+              Type: PDFName.of('Annot'),
+              Subtype: PDFName.of('Link'),
+              Rect: PDFArray.of([40, height - 100, 240, height - 75]),
+              Border: PDFArray.of([0, 0, 0]),
+              A: actionDict
+            });
+            
+            // Register and add annotation to page
+            const registeredAnnotation = pdfDoc.context.register(linkAnnotation);
             const annots = lastPage.node.get('Annots');
             if (annots) {
-              annots.push(pdfDoc.context.register(linkAnnotation));
+              annots.push(registeredAnnotation);
             } else {
-              lastPage.node.set('Annots', [pdfDoc.context.register(linkAnnotation)]);
+              lastPage.node.set('Annots', PDFArray.of([registeredAnnotation]));
             }
             
             console.log('Clickable link added to PDF with URI:', stripeUrl);
