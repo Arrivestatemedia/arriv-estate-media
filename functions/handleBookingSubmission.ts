@@ -269,6 +269,7 @@ Deno.serve(async (req) => {
         }
 
         // Export the Google Doc as PDF
+        console.log('=== LINK UPDATE COMPLETE ===');
         console.log('Exporting as PDF...');
         const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
           headers: { 'Authorization': `Bearer ${driveToken}` }
