@@ -186,8 +186,7 @@ Deno.serve(async (req) => {
             color: rgb(0, 0.5, 1),
           });
           
-          lastPage.addAnnotation({
-            type: 'Link',
+          lastPage.drawLink({
             x: 50,
             y: linkY - 12,
             width: 60,
