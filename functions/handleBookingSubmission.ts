@@ -119,18 +119,21 @@ Deno.serve(async (req) => {
         const relsPath = 'word/_rels/document.xml.rels';
         if (zip.files[relsPath]) {
           let relsXml = zip.files[relsPath].asText();
-          // Only replace hyperlinks with the placeholder URL (https://example.com/)
-          // This preserves any other hyperlinks in the document
-          let replacedCount = 0;
+          console.log('Original rels XML:', relsXml);
+          
+          // Find all hyperlink relationships
+          const hyperlinkMatches = relsXml.match(/Id="rId\d+"[^>]*Type="[^"]*hyperlink[^"]*"[^>]*/gi) || [];
+          console.log('Found hyperlinks:', hyperlinkMatches);
+          
+          // Replace only once - find the hyperlink relationship and update its Target attribute
           relsXml = relsXml.replace(
-            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")https:\/\/example\.com\/(")/gi,
-            (match, before, after) => {
-              console.log('Replacing placeholder hyperlink with Stripe URL:', stripeUrl);
-              replacedCount++;
+            /(<Relationship\s+[^>]*?Id="([^"]+)"[^>]*?Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]*?Target=")[^"]*(")/i,
+            (match, before, id, after) => {
+              console.log(`Updating hyperlink relationship ${id} with Stripe URL`);
               return `${before}${stripeUrl}${after}`;
             }
           );
-          console.log(`Replaced ${replacedCount} hyperlink(s) with Stripe URL`);
+          
           zip.file(relsPath, relsXml);
         }
 
