@@ -136,79 +136,62 @@ Deno.serve(async (req) => {
 
         const updatedDocx = doc.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
 
-        // Convert DOCX to PDF using CloudConvert API
-        console.log('Converting DOCX to PDF via CloudConvert...');
-        const cloudConvertApiKey = Deno.env.get('CLOUDCONVERT_API_KEY');
-
-        // Create a job
-        const jobRes = await fetch('https://api.cloudconvert.com/v2/jobs', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${cloudConvertApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tasks: {
-              'upload-file': { operation: 'import/upload' },
-              'convert-file': { operation: 'convert', input: 'upload-file', output_format: 'pdf' },
-              'export-file': { operation: 'export/url', input: 'convert-file' }
-            }
-          })
-        });
-        const jobData = await jobRes.json();
-        if (!jobRes.ok) throw new Error(`CloudConvert job creation failed: ${JSON.stringify(jobData)}`);
-
-        const uploadTask = jobData.data.tasks.find(t => t.name === 'upload-file');
-        const uploadForm = uploadTask.result?.form;
-        if (!uploadForm) throw new Error('No upload form from CloudConvert');
-
-        // Upload DOCX to CloudConvert
-        const formData = new FormData();
-        for (const [k, v] of Object.entries(uploadForm.parameters)) formData.append(k, v);
-        formData.append('file', new Blob([updatedDocx], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), 'invoice.docx');
-
-        await fetch(uploadForm.url, { method: 'POST', body: formData });
-
-        // Wait for job to finish
-        let pdfUrl = null;
-        for (let i = 0; i < 30; i++) {
-          await new Promise(r => setTimeout(r, 2000));
-          const statusRes = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobData.data.id}`, {
-            headers: { 'Authorization': `Bearer ${cloudConvertApiKey}` }
-          });
-          const statusData = await statusRes.json();
-          const exportTask = statusData.data.tasks.find(t => t.name === 'export-file');
-          if (exportTask?.status === 'finished') {
-            pdfUrl = exportTask.result.files[0].url;
-            break;
-          }
-          if (statusData.data.status === 'error') throw new Error('CloudConvert conversion failed');
-        }
-        if (!pdfUrl) throw new Error('CloudConvert timed out');
-
-        // Download the PDF
-        const pdfRes = await fetch(pdfUrl);
-        const pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
-        console.log('PDF generated from template, size:', pdfBytes.length);
-
-        // Upload to Google Drive
+        // Upload filled DOCX to Google Drive as Google Doc (auto-converts to Google Doc format)
+        console.log('Uploading filled DOCX to Google Drive...');
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
-        const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
-        const boundary = 'boundary_arriv_invoice';
-        const metadata = JSON.stringify({ name: fileName, parents: [unpaidFolderId] });
         const enc = new TextEncoder();
-        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
+        const boundary = 'boundary_arriv_invoice';
+        const docFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}`;
+
+        // Upload as Google Doc (Drive converts DOCX -> Google Doc)
+        const docMetadata = JSON.stringify({ name: docFileName, parents: [unpaidFolderId], mimeType: 'application/vnd.google-apps.document' });
+        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${docMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
         const after = enc.encode(`\r\n--${boundary}--`);
-        const uploadBody = new Uint8Array(before.length + pdfBytes.length + after.length);
-        uploadBody.set(before); uploadBody.set(new Uint8Array(pdfBytes), before.length); uploadBody.set(after, before.length + pdfBytes.length);
+        const uploadBody = new Uint8Array(before.length + updatedDocx.length + after.length);
+        uploadBody.set(before); uploadBody.set(updatedDocx, before.length); uploadBody.set(after, before.length + updatedDocx.length);
 
         const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
           body: uploadBody
         });
-        const uploadedFile = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${uploadedFile.error?.message}`);
+        const uploadedDoc = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
+        console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
-        const pdfFileId = uploadedFile.id;
+        // Export the Google Doc as PDF
+        console.log('Exporting as PDF...');
+        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
+          headers: { 'Authorization': `Bearer ${driveToken}` }
+        });
+        if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
+        const pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
+        console.log('PDF exported, size:', pdfBytes.length);
+
+        // Delete the temporary Google Doc
+        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}`, {
+          method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
+        });
+
+        // Upload the final PDF to the UNPAID folder
+        console.log('Uploading PDF to UNPAID folder...');
+        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
+        const pdfMetadata = JSON.stringify({ name: pdfFileName, parents: [unpaidFolderId] });
+        const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
+        const pdfAfter = enc.encode(`\r\n--${boundary}--`);
+        const pdfUploadBody = new Uint8Array(pdfBefore.length + pdfBytes.length + pdfAfter.length);
+        pdfUploadBody.set(pdfBefore); pdfUploadBody.set(pdfBytes, pdfBefore.length); pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
+
+        const pdfUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
+          body: pdfUploadBody
+        });
+        const uploadedPdf = await pdfUploadRes.json();
+        if (!pdfUploadRes.ok) throw new Error(`PDF upload failed: ${JSON.stringify(uploadedPdf.error)}`);
+
+        const pdfFileId = uploadedPdf.id;
         await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
@@ -218,7 +201,7 @@ Deno.serve(async (req) => {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
         const { webViewLink: driveViewLink } = await fileDetailsRes.json();
-        console.log('Drive link:', driveViewLink);
+        console.log('Drive PDF link:', driveViewLink);
 
         // Send invoice email via Brevo
         const brevoApiKey = Deno.env.get('BREVO_API_KEY');
