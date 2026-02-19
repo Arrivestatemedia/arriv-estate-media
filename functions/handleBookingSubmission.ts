@@ -286,19 +286,48 @@ Deno.serve(async (req) => {
         }
 
         const pdfFileId = uploadedPdf.id;
-        await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: 'reader', type: 'anyone' })
-        });
-        const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}?fields=webViewLink`, {
-          headers: { 'Authorization': `Bearer ${driveToken}` }
-        });
-        const { webViewLink: driveViewLink } = await fileDetailsRes.json();
-        console.log('Drive PDF link:', driveViewLink);
+        console.log('Setting PDF permissions to public...');
+        try {
+          const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'reader', type: 'anyone' })
+          });
+          if (!permRes.ok) {
+            console.warn('Warning: Failed to set public permissions, continuing anyway');
+          } else {
+            console.log('PDF permissions set to public');
+          }
+        } catch (error) {
+          console.warn('Warning: Error setting permissions:', error.message);
+        }
+
+        console.log('Getting PDF share link...');
+        let driveViewLink;
+        try {
+          const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}?fields=webViewLink`, {
+            headers: { 'Authorization': `Bearer ${driveToken}` }
+          });
+          if (!fileDetailsRes.ok) {
+            throw new Error(`Failed to get file details: ${fileDetailsRes.status}`);
+          }
+          const fileDetails = await fileDetailsRes.json();
+          driveViewLink = fileDetails.webViewLink;
+          console.log('Drive PDF link:', driveViewLink);
+          if (!driveViewLink) {
+            throw new Error('No webViewLink returned from Google Drive');
+          }
+        } catch (error) {
+          console.error('Error getting PDF link:', error.message);
+          throw error;
+        }
 
         // Send invoice email via Brevo
+        console.log('Preparing Brevo email...');
         const brevoApiKey = Deno.env.get('BREVO_API_KEY');
+        if (!brevoApiKey) {
+          throw new Error('BREVO_API_KEY not set');
+        }
         const firstName = booking.client_name.split(' ')[0];
         const htmlEmailBody = `<!DOCTYPE html>
 <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -312,22 +341,32 @@ Deno.serve(async (req) => {
 </body></html>`;
 
         console.log('Sending invoice email via Brevo to:', booking.client_email);
-        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
-            to: [{ email: booking.client_email, name: booking.client_name }],
-            subject: 'Your Invoice from Arriv Estate Media',
-            htmlContent: htmlEmailBody
-          })
-        });
-        const brevoData = await brevoResponse.json();
-        if (!brevoResponse.ok) {
-          console.error('Brevo API error:', brevoData);
-          throw new Error(`Brevo error: ${brevoData.message || JSON.stringify(brevoData)}`);
+        let brevoResponse;
+        try {
+          brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
+              to: [{ email: booking.client_email, name: booking.client_name }],
+              subject: 'Your Invoice from Arriv Estate Media',
+              htmlContent: htmlEmailBody
+            })
+          });
+          console.log('Brevo response status:', brevoResponse.status);
+          
+          const brevoData = await brevoResponse.json();
+          console.log('Brevo response:', JSON.stringify(brevoData).substring(0, 200));
+          
+          if (!brevoResponse.ok) {
+            console.error('Brevo API error:', brevoData);
+            throw new Error(`Brevo error: ${brevoResponse.status} ${brevoData.message || JSON.stringify(brevoData)}`);
+          }
+          console.log('Invoice email sent successfully, messageId:', brevoData.messageId);
+        } catch (error) {
+          console.error('Brevo email error:', error.message);
+          throw error;
         }
-        console.log('Invoice email sent, messageId:', brevoData.messageId);
 
         // Save invoice record
         const invoice = await base44.asServiceRole.entities.Invoice.create({
