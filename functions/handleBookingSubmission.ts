@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
         // Fetch the DOCX template from storage
         console.log('Fetching DOCX template...');
-        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/34be47478_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
+        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/a3caf273e_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
         const templateRes = await fetch(templateUrl);
         if (!templateRes.ok) throw new Error('Failed to fetch invoice template');
         const templateBytes = new Uint8Array(await templateRes.arrayBuffer());
@@ -113,6 +113,27 @@ Deno.serve(async (req) => {
         const stripeUrl = stripeData.url;
 
         const zip = new PizZip(templateBytes);
+
+        // Replace hyperlink target URL in the relationship file (word/_rels/document.xml.rels)
+        // The template has a placeholder hyperlink target we replace with the actual Stripe URL
+        const relsPath = 'word/_rels/document.xml.rels';
+        if (zip.files[relsPath]) {
+          let relsXml = zip.files[relsPath].asText();
+          
+          // Replace ALL hyperlink relationships that point to https://example.com/ with Stripe URL
+          let replacedCount = 0;
+          relsXml = relsXml.replace(
+            /(<Relationship[^>]*?Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]*?Target=")[^"]*(")/gi,
+            (match, before, after) => {
+              console.log(`Updating hyperlink with Stripe URL`);
+              replacedCount++;
+              return `${before}${stripeUrl}${after}`;
+            }
+          );
+          
+          console.log(`Updated ${replacedCount} hyperlink(s)`);
+          zip.file(relsPath, relsXml);
+        }
 
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
@@ -134,37 +155,19 @@ Deno.serve(async (req) => {
           'DATE OF JOB': booking.preferred_date,
         });
 
-        const filledZip = doc.getZip();
+        const updatedDocx = doc.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
 
-        // Update hyperlink in the relationships file (word/_rels/document.xml.rels)
-        const relsPath = 'word/_rels/document.xml.rels';
-        if (filledZip.files[relsPath]) {
-          let relsXml = filledZip.files[relsPath].asText();
-          let replacedCount = 0;
-          relsXml = relsXml.replace(
-            /(<Relationship[^>]*?Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]*?Target=")[^"]*(")/gi,
-            (match, before, after) => {
-              replacedCount++;
-              return `${before}${stripeUrl}${after}`;
-            }
-          );
-          console.log(`Updated ${replacedCount} hyperlink(s) in DOCX relationships`);
-          filledZip.file(relsPath, relsXml);
-        }
-
-        const updatedDocx = filledZip.generate({ type: 'uint8array', compression: 'DEFLATE' });
-
-        // Upload filled DOCX to Google Drive then convert to Google Doc for PDF export
+        // Upload filled DOCX to Google Drive as Google Doc (auto-converts to Google Doc format)
         console.log('Uploading filled DOCX to Google Drive...');
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
-        const docxFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.docx`;
+        const docFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}`;
 
-        // Upload as DOCX
-        const fileMetadata = JSON.stringify({ name: docxFileName, parents: [unpaidFolderId] });
-        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${fileMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
+        // Upload as Google Doc (Drive converts DOCX -> Google Doc)
+        const docMetadata = JSON.stringify({ name: docFileName, parents: [unpaidFolderId], mimeType: 'application/vnd.google-apps.document' });
+        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${docMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
         const after = enc.encode(`\r\n--${boundary}--`);
         const uploadBody = new Uint8Array(before.length + updatedDocx.length + after.length);
         uploadBody.set(before); uploadBody.set(updatedDocx, before.length); uploadBody.set(after, before.length + updatedDocx.length);
@@ -174,60 +177,93 @@ Deno.serve(async (req) => {
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
           body: uploadBody
         });
-        const uploadedFile = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedFile.error)}`);
-        console.log('Uploaded DOCX file ID:', uploadedFile.id);
+        const uploadedDoc = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
+        console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
-        // Convert DOCX to Google Doc by copying with convertation
-        console.log('Converting DOCX to Google Doc...');
-        const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}/copy`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: docxFileName.replace('.docx', ''),
-            mimeType: 'application/vnd.google-apps.document',
-            parents: [unpaidFolderId]
-          })
+        // Update hyperlink using Google Docs API
+        console.log('Updating hyperlink via Google Docs API...');
+        const docsToken = driveToken; // Same auth token works for Docs API
+
+        // Get document content to find the link text range
+        const docRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}`, {
+          headers: { 'Authorization': `Bearer ${docsToken}` }
         });
-        const copiedDoc = await copyRes.json();
-        if (!copyRes.ok) throw new Error(`Convert to Google Doc failed: ${JSON.stringify(copiedDoc.error)}`);
-        const googleDocId = copiedDoc.id;
-        console.log('Google Doc ID:', googleDocId);
+        const docContent = await docRes.json();
+        if (!docRes.ok) throw new Error(`Failed to get document: ${JSON.stringify(docContent.error)}`);
 
-        // Export Google Doc to PDF
-        console.log('Exporting Google Doc to PDF...');
-        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${googleDocId}/export?mimeType=application/pdf`, {
+        // Search for the hyperlink text in the document
+        let linkStartIndex = -1;
+        let linkEndIndex = -1;
+        const content = docContent.body.content;
+
+        // Flatten paragraphs and search for "View Invoice & Pay" or any text with existing link
+        for (const element of content) {
+          if (element.paragraph) {
+            for (const run of element.paragraph.elements) {
+              if (run.textRun && run.textRun.text) {
+                // Look for link text (common patterns)
+                if (run.textRun.text.includes('View Invoice') || 
+                    run.textRun.text.includes('Pay') ||
+                    run.textRun.text.includes('Click')) {
+                  // This might be our link - update it
+                  if (run.textRun.textStyle && run.textRun.textStyle.link) {
+                    // Calculate indices in the document
+                    linkStartIndex = run.startIndex;
+                    linkEndIndex = run.endIndex;
+                    console.log(`Found link text at indices ${linkStartIndex}-${linkEndIndex}`);
+                    break;
+                  }
+                }
+              }
+            }
+            if (linkStartIndex !== -1) break;
+          }
+        }
+
+        // If we found the link, update it
+        if (linkStartIndex !== -1 && linkEndIndex !== -1) {
+          console.log(`Updating link URL via Docs API...`);
+          const updateRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${docsToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requests: [
+                {
+                  updateTextStyle: {
+                    range: {
+                      startIndex: linkStartIndex,
+                      endIndex: linkEndIndex
+                    },
+                    textStyle: {
+                      link: {
+                        url: stripeUrl
+                      }
+                    },
+                    fields: 'link'
+                  }
+                }
+              ]
+            })
+          });
+          const updateResult = await updateRes.json();
+          if (!updateRes.ok) throw new Error(`Failed to update link: ${JSON.stringify(updateResult.error)}`);
+          console.log('Link URL updated successfully');
+        } else {
+          console.log('Warning: Could not find hyperlink text in document');
+        }
+
+        // Export the Google Doc as PDF
+        console.log('Exporting as PDF...');
+        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
         if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
-        let pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
+        const pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
         console.log('PDF exported, size:', pdfBytes.length);
 
-        // Add clickable link to PDF using pdf-lib
-        console.log('Adding clickable link to PDF...');
-        const { PDFDocument, PDFPage } = await import('npm:pdf-lib@1.17.1');
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-        const pages = pdfDoc.getPages();
-        const firstPage = pages[0];
-        const { width, height } = firstPage.getSize();
-
-        // Add link annotation at estimated position of "Pay Now" button (bottom center)
-        firstPage.drawAnnotation(firstPage.createAnnotation({
-          type: 'Link',
-          x: width / 2 - 40,
-          y: 100,
-          width: 80,
-          height: 30,
-          url: stripeUrl
-        }));
-
-        pdfBytes = new Uint8Array(await pdfDoc.save({ useObjectStreams: false }));
-
-        // Delete temporary files
-        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}`, {
-          method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
-        });
-        await fetch(`https://www.googleapis.com/drive/v3/files/${googleDocId}`, {
+        // Delete the temporary Google Doc
+        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}`, {
           method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
         });
 
