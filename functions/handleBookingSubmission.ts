@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
         // Fetch the DOCX template from storage
         console.log('Fetching DOCX template...');
-        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/20161a1d0_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
+        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/f37da45ab_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
         const templateRes = await fetch(templateUrl);
         if (!templateRes.ok) throw new Error('Failed to fetch invoice template');
         const templateBytes = new Uint8Array(await templateRes.arrayBuffer());
