@@ -188,14 +188,23 @@ Deno.serve(async (req) => {
           console.log(`Zamzar status (poll ${pollCount + 1}):`, statusData.status);
           
           if (statusData.status === 'successful') {
-            // Download the converted PDF
-            const downloadUrl = statusData.output_file_url || statusData.download_url;
-            if (!downloadUrl) throw new Error('No download URL in Zamzar response');
-            
-            const downloadRes = await fetch(downloadUrl, {
-              headers: { 'Authorization': zamzarAuth }
-            });
-            pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
+            // Get output files list
+            if (!statusData.output_file_url) {
+              const filesRes = await fetch(`https://api.zamzar.com/v1/files?parent_id=${zamzarData.id}`, {
+                headers: { 'Authorization': zamzarAuth }
+              });
+              const filesData = await filesRes.json();
+              if (filesData.data && filesData.data.length > 0) {
+                const downloadUrl = filesData.data[0].download_url;
+                const downloadRes = await fetch(downloadUrl, { headers: { 'Authorization': zamzarAuth } });
+                pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
+              }
+            } else {
+              const downloadRes = await fetch(statusData.output_file_url, {
+                headers: { 'Authorization': zamzarAuth }
+              });
+              pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
+            }
             conversionComplete = true;
             console.log('PDF converted via Zamzar, size:', pdfBytes.length);
           } else if (statusData.status === 'failed') {
