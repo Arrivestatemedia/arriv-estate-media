@@ -134,32 +134,7 @@ Deno.serve(async (req) => {
           'DATE OF JOB': booking.preferred_date,
         });
 
-        // After docxtemplater render, inject a real hyperlink into the DOCX XML
-        // The placeholder text is now stripeUrl in the XML - we need to wrap it in a proper w:hyperlink element
-        const zipObj = doc.getZip();
-        let documentXml = zipObj.files['word/document.xml'].asText();
-
-        // Find the run containing the stripeUrl text and replace with a hyperlink run
-        // First add the relationship
-        let relsXml = zipObj.files['word/_rels/document.xml.rels'].asText();
-        const relId = 'rStripeLink1';
-        const newRel = `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${stripeUrl}" TargetMode="External"/>`;
-        relsXml = relsXml.replace('</Relationships>', `${newRel}</Relationships>`);
-        zipObj.file('word/_rels/document.xml.rels', relsXml);
-
-        // Find and replace the run containing the stripe URL with a proper hyperlink element
-        // The URL may be split across runs, so search for the full URL text in runs and replace the surrounding paragraph content
-        const escapedUrl = stripeUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // Replace <w:t ...>stripeUrl</w:t> with a hyperlink
-        const hyperlinkXml = `</w:r></w:hyperlink><w:hyperlink r:id="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:color w:val="1155CC"/><w:u w:val="single"/></w:rPr><w:t>${stripeUrl}</w:t></w:r>`;
-        // Simple approach: find <w:t>STRIPEURL</w:t> and wrap the whole run in a hyperlink
-        documentXml = documentXml.replace(
-          new RegExp(`(<w:r[^>]*>(?:<w:rPr>[\\s\\S]*?</w:rPr>)?<w:t[^>]*>)${escapedUrl}(</w:t></w:r>)`),
-          `</w:p><w:p><w:hyperlink r:id="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:r><w:rPr><w:color w:val="1155CC"/><w:u w:val="single"/></w:rPr><w:t>${stripeUrl}</w:t></w:r></w:hyperlink></w:p><w:p>`
-        );
-        zipObj.file('word/document.xml', documentXml);
-
-        const updatedDocx = zipObj.generate({ type: 'uint8array', compression: 'DEFLATE' });
+        const updatedDocx = doc.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
 
         // Upload filled DOCX to Google Drive as Google Doc (auto-converts to Google Doc format)
         console.log('Uploading filled DOCX to Google Drive...');
