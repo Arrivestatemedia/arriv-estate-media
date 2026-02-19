@@ -154,46 +154,42 @@ Deno.serve(async (req) => {
 
         const updatedDocx = filledZip.generate({ type: 'uint8array', compression: 'DEFLATE' });
 
-        // Upload DOCX to Google Drive and convert to PDF (preserves hyperlinks)
-        console.log('Preparing to upload DOCX and convert to PDF...');
+        // Upload filled DOCX to Google Drive
+        console.log('Uploading filled DOCX to Google Drive...');
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
         const enc = new TextEncoder();
-        const boundary = 'boundary_arriv_docx';
-        const docxFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}_temp.docx`;
+        const boundary = 'boundary_arriv_invoice';
+        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
 
-        // Upload DOCX
-        const docxMetadata = JSON.stringify({ name: docxFileName, parents: [unpaidFolderId] });
-        const docxBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${docxMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
-        const docxAfter = enc.encode(`\r\n--${boundary}--`);
-        const docxUploadBody = new Uint8Array(docxBefore.length + updatedDocx.length + docxAfter.length);
-        docxUploadBody.set(docxBefore);
-        docxUploadBody.set(updatedDocx, docxBefore.length);
-        docxUploadBody.set(docxAfter, docxBefore.length + updatedDocx.length);
+        // Upload as DOCX (we'll convert to PDF)
+        const fileMetadata = JSON.stringify({ name: pdfFileName.replace('.pdf', '.docx'), parents: [unpaidFolderId] });
+        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${fileMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
+        const after = enc.encode(`\r\n--${boundary}--`);
+        const uploadBody = new Uint8Array(before.length + updatedDocx.length + after.length);
+        uploadBody.set(before); uploadBody.set(updatedDocx, before.length); uploadBody.set(after, before.length + updatedDocx.length);
 
-        console.log('Uploading DOCX to Drive...');
-        const docxUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
-          body: docxUploadBody
+          body: uploadBody
         });
-        const uploadedDocx = await docxUploadRes.json();
-        if (!docxUploadRes.ok) throw new Error(`DOCX upload failed: ${JSON.stringify(uploadedDocx.error)}`);
-        console.log('DOCX uploaded, ID:', uploadedDocx.id);
+        const uploadedFile = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedFile.error)}`);
+        console.log('Uploaded DOCX file ID:', uploadedFile.id);
 
-        // Export DOCX to PDF
-        console.log('Exporting DOCX to PDF via Google Drive...');
-        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDocx.id}/export?mimeType=application/pdf`, {
+        // Export DOCX to PDF directly (preserves hyperlinks better than Google Doc conversion)
+        console.log('Exporting DOCX to PDF...');
+        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}/export?mimeType=application/pdf`, {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
         if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
         const pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
         console.log('PDF exported, size:', pdfBytes.length);
 
-        // Delete temporary DOCX
-        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDocx.id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${driveToken}` }
+        // Delete the temporary DOCX file
+        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}`, {
+          method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
         });
 
         // Upload the final PDF to the UNPAID folder
@@ -203,9 +199,7 @@ Deno.serve(async (req) => {
         const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
         const pdfAfter = enc.encode(`\r\n--${boundary}--`);
         const pdfUploadBody = new Uint8Array(pdfBefore.length + pdfBytes.length + pdfAfter.length);
-        pdfUploadBody.set(pdfBefore);
-        pdfUploadBody.set(pdfBytes, pdfBefore.length);
-        pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
+        pdfUploadBody.set(pdfBefore); pdfUploadBody.set(pdfBytes, pdfBefore.length); pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
 
         const pdfUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
@@ -241,28 +235,18 @@ Deno.serve(async (req) => {
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
 </body></html>`;
 
-        const brevoPayload = {
-          sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
-          to: [{ email: booking.client_email, name: booking.client_name }],
-          subject: 'Your Invoice from Arriv Estate Media',
-          htmlContent: htmlEmailBody
-        };
-        console.log('Brevo payload:', JSON.stringify(brevoPayload));
-        console.log('Brevo API Key:', brevoApiKey ? brevoApiKey.substring(0, 10) + '...' : 'MISSING');
-
         const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify(brevoPayload)
+          body: JSON.stringify({
+            sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
+            to: [{ email: booking.client_email, name: booking.client_name }],
+            subject: 'Your Invoice from Arriv Estate Media',
+            htmlContent: htmlEmailBody
+          })
         });
         const brevoData = await brevoResponse.json();
-        console.log('Brevo status:', brevoResponse.status);
-        console.log('Brevo response:', JSON.stringify(brevoData));
-
-        if (!brevoResponse.ok) {
-          console.error('Brevo error details:', brevoData);
-          throw new Error(`Brevo error (${brevoResponse.status}): ${brevoData.message || JSON.stringify(brevoData)}`);
-        }
+        if (!brevoResponse.ok) throw new Error(`Brevo error: ${brevoData.message}`);
         console.log('Invoice email sent, messageId:', brevoData.messageId);
 
         // Save invoice record
@@ -299,8 +283,7 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.Booking.update(createdBooking.id, { invoice_id: invoice.id });
 
       } catch (invoiceError) {
-        console.error('Invoice generation error:', invoiceError.message);
-        console.error('Invoice generation error stack:', invoiceError.stack);
+        console.error('Invoice generation error:', invoiceError);
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email', recipient_type: 'client',
           recipient_email: booking.client_email,
