@@ -192,28 +192,22 @@ Deno.serve(async (req) => {
         const docContent = await docRes.json();
         if (!docRes.ok) throw new Error(`Failed to get document: ${JSON.stringify(docContent.error)}`);
 
-        // Search for the hyperlink text in the document
+        // Search for the hyperlink text "Pay Now" in the document
         let linkStartIndex = -1;
         let linkEndIndex = -1;
         const content = docContent.body.content;
 
-        // Flatten paragraphs and search for "View Invoice & Pay" or any text with existing link
+        // Search for "Pay Now" text with existing link
         for (const element of content) {
           if (element.paragraph) {
             for (const run of element.paragraph.elements) {
-              if (run.textRun && run.textRun.text) {
-                // Look for link text (common patterns)
-                if (run.textRun.text.includes('View Invoice') || 
-                    run.textRun.text.includes('Pay') ||
-                    run.textRun.text.includes('Click')) {
-                  // This might be our link - update it
-                  if (run.textRun.textStyle && run.textRun.textStyle.link) {
-                    // Calculate indices in the document
-                    linkStartIndex = run.startIndex;
-                    linkEndIndex = run.endIndex;
-                    console.log(`Found link text at indices ${linkStartIndex}-${linkEndIndex}`);
-                    break;
-                  }
+              if (run.textRun && run.textRun.text === 'Pay Now') {
+                // Found the link text
+                if (run.textRun.textStyle && run.textRun.textStyle.link) {
+                  linkStartIndex = run.startIndex;
+                  linkEndIndex = run.endIndex;
+                  console.log(`Found "Pay Now" link at indices ${linkStartIndex}-${linkEndIndex}`);
+                  break;
                 }
               }
             }
