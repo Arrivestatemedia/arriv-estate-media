@@ -203,7 +203,9 @@ Deno.serve(async (req) => {
         const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
         const pdfAfter = enc.encode(`\r\n--${boundary}--`);
         const pdfUploadBody = new Uint8Array(pdfBefore.length + pdfBytes.length + pdfAfter.length);
-        pdfUploadBody.set(pdfBefore); pdfUploadBody.set(pdfBytes, pdfBefore.length); pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
+        pdfUploadBody.set(pdfBefore);
+        pdfUploadBody.set(pdfBytes, pdfBefore.length);
+        pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
 
         const pdfUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
