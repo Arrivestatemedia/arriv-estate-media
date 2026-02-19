@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
         // Fetch the DOCX template from storage
         console.log('Fetching DOCX template...');
-        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/c6ccd30b6_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
+        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/f37da45ab_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
         const templateRes = await fetch(templateUrl);
         if (!templateRes.ok) throw new Error('Failed to fetch invoice template');
         const templateBytes = new Uint8Array(await templateRes.arrayBuffer());
@@ -119,8 +119,6 @@ Deno.serve(async (req) => {
           delimiters: { start: '{{', end: '}}' }
         });
 
-        // Use a short, unique placeholder for the Stripe link so it won't get split across XML runs
-        const stripeLinkPlaceholder = 'STRIPEPAYNOW';
         doc.render({
           JOB_ADDRESS: propertyAddress,
           PROPERTY_ADDRESS: propertyAddress,
@@ -130,47 +128,13 @@ Deno.serve(async (req) => {
           'SERVICE_AND_ADD-ONS_CHOSEN': servicesLine,
           AMOUNT_OF_PACKAGE: `$${basePkgAmount.toFixed(2)}`,
           'TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS': `$${totalAmount.toFixed(2)}`,
-          PLACE_STRIP_LINK: stripeLinkPlaceholder,
+          PLACE_STRIP_LINK: stripeUrl,
           NEXT_INVOICE_NUMBER: nextInvoiceNumber,
           DATE_OF_INVOICE_CREATION: invoiceDate,
           'DATE OF JOB': booking.preferred_date,
         });
 
-        // The Stripe link placeholder is inside a DOCX text box (drawing object).
-        // Google Docs API can't reach it, so we inject a real hyperlink directly into the DOCX XML.
-        const zipObj = doc.getZip();
-        let documentXml = zipObj.files['word/document.xml'].asText();
-
-        // Add hyperlink relationship
-        let relsXml = zipObj.files['word/_rels/document.xml.rels'].asText();
-        const relId = 'rStripeHyperlink';
-        if (!relsXml.includes(relId)) {
-          relsXml = relsXml.replace(
-            '</Relationships>',
-            `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${stripeUrl}" TargetMode="External"/></Relationships>`
-          );
-          zipObj.file('word/_rels/document.xml.rels', relsXml);
-        }
-
-        // Replace the run containing STRIPEPAYNOW with a hyperlink run
-        // Pattern: <w:r>...<w:t>STRIPEPAYNOW</w:t></w:r>
-        documentXml = documentXml.replace(
-          /(<w:r>(?:<w:rPr>[\s\S]*?<\/w:rPr>)?<w:t[^>]*>)STRIPEPAYNOW(<\/w:t><\/w:r>)/,
-          `<w:hyperlink r:id="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/><w:color w:val="1155CC"/><w:u w:val="single"/></w:rPr><w:t>${stripeUrl}</w:t></w:r></w:hyperlink>`
-        );
-
-        // Also try with rPr already present in template (broader match)
-        if (documentXml.includes('STRIPEPAYNOW')) {
-          documentXml = documentXml.replace(
-            /<w:r><w:rPr>([\s\S]*?)<\/w:rPr><w:t[^>]*>STRIPEPAYNOW<\/w:t><\/w:r>/,
-            `<w:hyperlink r:id="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:r><w:rPr>$1<w:color w:val="1155CC"/><w:u w:val="single"/></w:rPr><w:t>${stripeUrl}</w:t></w:r></w:hyperlink>`
-          );
-        }
-
-        zipObj.file('word/document.xml', documentXml);
-        console.log('Stripe hyperlink injected into DOCX XML, URL in doc:', !documentXml.includes('STRIPEPAYNOW'));
-
-        const updatedDocx = zipObj.generate({ type: 'uint8array', compression: 'DEFLATE' });
+        const updatedDocx = doc.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
 
         // Upload filled DOCX to Google Drive as Google Doc (auto-converts to Google Doc format)
         console.log('Uploading filled DOCX to Google Drive...');
