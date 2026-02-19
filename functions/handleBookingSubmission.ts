@@ -153,30 +153,10 @@ Deno.serve(async (req) => {
         }
 
         const updatedDocx = filledZip.generate({ type: 'uint8array', compression: 'DEFLATE' });
-
-        // Upload filled DOCX to Google Drive
-        console.log('Uploading filled DOCX to Google Drive...');
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
-        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
-
-        // Upload as DOCX (we'll convert to PDF)
-        const fileMetadata = JSON.stringify({ name: pdfFileName.replace('.pdf', '.docx'), parents: [unpaidFolderId] });
-        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${fileMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
-        const after = enc.encode(`\r\n--${boundary}--`);
-        const uploadBody = new Uint8Array(before.length + updatedDocx.length + after.length);
-        uploadBody.set(before); uploadBody.set(updatedDocx, before.length); uploadBody.set(after, before.length + updatedDocx.length);
-
-        const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
-          body: uploadBody
-        });
-        const uploadedFile = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedFile.error)}`);
-        console.log('Uploaded DOCX file ID:', uploadedFile.id);
 
         // Convert DOCX to PDF using Zamzar (preserves clickable hyperlinks)
         console.log('Converting DOCX to PDF via Zamzar...');
