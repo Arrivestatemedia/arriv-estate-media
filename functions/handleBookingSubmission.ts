@@ -158,28 +158,65 @@ Deno.serve(async (req) => {
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
 
-        // Convert DOCX to PDF directly using jsPDF (simpler approach)
-        console.log('Exporting as PDF...');
-        const { jsPDF: JPdf } = await import('npm:jspdf@4.0.0');
-        const pdfDoc = new JPdf();
+        // Convert DOCX to PDF using Zamzar with proper multipart upload
+        console.log('Converting DOCX to PDF via Zamzar...');
         
-        // Add invoice content
-        pdfDoc.setFontSize(24);
-        pdfDoc.text('Invoice', 20, 30);
-        pdfDoc.setFontSize(12);
-        pdfDoc.text(`Invoice #${invoiceNumber}`, 20, 50);
-        pdfDoc.text(`Client: ${booking.client_name}`, 20, 70);
-        pdfDoc.text(`Property: ${propertyAddress}`, 20, 90);
-        pdfDoc.text(`Amount Due: $${totalAmount.toFixed(2)}`, 20, 110);
-        pdfDoc.setFontSize(10);
-        pdfDoc.text(`Package: ${packageNames[booking.package]}`, 20, 130);
-        pdfDoc.text(`Date: ${booking.preferred_date}`, 20, 140);
-        pdfDoc.text(`Created: ${invoiceDate}`, 20, 150);
-        pdfDoc.setTextColor(184, 149, 106);
-        pdfDoc.textWithLink('Click here to pay', 20, 170, { url: stripeUrl });
+        // Create FormData for multipart upload
+        const FormData = (await import('npm:form-data@4.0.0')).default;
+        const Readable = (await import('npm:stream@0.0.2')).Readable;
         
-        const pdfBytes = new Uint8Array(pdfDoc.output('arraybuffer'));
-        console.log('PDF exported, size:', pdfBytes.length);
+        const formData = new FormData();
+        
+        // Create readable stream from DOCX bytes
+        const docxStream = Readable.from([Buffer.from(updatedDocx)]);
+        formData.append('file', docxStream, { filename: `invoice_${invoiceNumber}.docx` });
+        formData.append('target_format', 'pdf');
+        
+        const zamzarRes = await fetch('https://api.zamzar.com/v1/files', {
+          method: 'POST',
+          headers: {
+            ...formData.getHeaders(),
+            'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`
+          },
+          body: formData
+        });
+        
+        const zamzarData = await zamzarRes.json();
+        if (!zamzarRes.ok) throw new Error(`Zamzar upload failed: ${JSON.stringify(zamzarData)}`);
+        console.log('Zamzar job ID:', zamzarData.id);
+
+        // Poll Zamzar for conversion completion
+        let conversionComplete = false;
+        let pdfBytes = null;
+        let pollCount = 0;
+        const maxPolls = 60;
+        const zamzarAuth = `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`; 
+        
+        while (!conversionComplete && pollCount < maxPolls) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const statusRes = await fetch(`https://api.zamzar.com/v1/files/${zamzarData.id}`, {
+            headers: { 'Authorization': zamzarAuth }
+          });
+          const statusData = await statusRes.json();
+          console.log(`Zamzar status (poll ${pollCount + 1}):`, statusData.status);
+          
+          if (statusData.status === 'successful') {
+            // Download the converted PDF
+            const downloadUrl = statusData.output_file_url || statusData.download_url;
+            if (!downloadUrl) throw new Error('No download URL in Zamzar response');
+            
+            const downloadRes = await fetch(downloadUrl, {
+              headers: { 'Authorization': zamzarAuth }
+            });
+            pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
+            conversionComplete = true;
+            console.log('PDF converted via Zamzar, size:', pdfBytes.length);
+          } else if (statusData.status === 'failed') {
+            throw new Error(`Zamzar conversion failed: ${statusData.failure_reason || 'Unknown error'}`);
+          }
+          pollCount++;
+        }
+        if (!conversionComplete) throw new Error('Zamzar conversion timeout after ' + (pollCount * 2) + ' seconds');
 
         // Upload the final PDF to the UNPAID folder
         console.log('Uploading PDF to UNPAID folder...');
