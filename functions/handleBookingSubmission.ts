@@ -185,28 +185,7 @@ Deno.serve(async (req) => {
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
-        // Use Google Docs API to replace placeholder with a real clickable hyperlink
-        console.log('Inserting clickable Stripe hyperlink via Google Docs API...');
-        const docsUpdateRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            requests: [
-              {
-                replaceAllText: {
-                  containsText: { text: '{{STRIPE_LINK_PLACEHOLDER}}', matchCase: true },
-                  replaceText: stripeUrl
-                }
-              }
-            ]
-          })
-        });
-        if (docsUpdateRes.ok) {
-          console.log('Stripe link inserted as plain text with URL (Google Docs auto-links URLs)');
-        } else {
-          const docsErr = await docsUpdateRes.text();
-          console.error('Docs API error (non-fatal):', docsErr);
-        }
+        console.log('Stripe hyperlink injected into DOCX XML');
 
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
