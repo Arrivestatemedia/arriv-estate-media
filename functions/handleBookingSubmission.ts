@@ -193,6 +193,12 @@ Deno.serve(async (req) => {
           };
           walkContent(docData.body?.content);
 
+          // If not found in a single run, try searching the full document text
+          if (startIndex === -1) {
+            const fullText = JSON.stringify(docData.body?.content || '');
+            console.log('URL not found in single run. Checking document for URL presence:', fullText.includes(stripeUrl));
+          }
+
           if (startIndex !== -1) {
             console.log(`Found Stripe URL at index ${startIndex}-${endIndex}, inserting hyperlink...`);
             const updateLinkRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
