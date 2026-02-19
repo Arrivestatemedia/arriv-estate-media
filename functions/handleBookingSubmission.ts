@@ -178,16 +178,48 @@ Deno.serve(async (req) => {
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedFile.error)}`);
         console.log('Uploaded DOCX file ID:', uploadedFile.id);
 
-        // Export DOCX to PDF directly (preserves hyperlinks better than Google Doc conversion)
-        console.log('Exporting DOCX to PDF...');
-        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}/export?mimeType=application/pdf`, {
-          headers: { 'Authorization': `Bearer ${driveToken}` }
-        });
-        if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
-        const pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
-        console.log('PDF exported, size:', pdfBytes.length);
+        // Convert DOCX to PDF using Zamzar (preserves clickable hyperlinks)
+        console.log('Converting DOCX to PDF via Zamzar...');
+        const zamzarFormData = new FormData();
+        zamzarFormData.append('source_file', new File([updatedDocx], 'invoice.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
+        zamzarFormData.append('target_format', 'pdf');
 
-        // Delete the temporary DOCX file
+        const zamzarRes = await fetch('https://api.zamzar.com/v1/files', {
+          method: 'POST',
+          headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:${Deno.env.get('ZAMZAR_API_KEY')`)}` },
+          body: zamzarFormData
+        });
+        const zamzarData = await zamzarRes.json();
+        if (!zamzarRes.ok) throw new Error(`Zamzar upload failed: ${JSON.stringify(zamzarData)}`);
+        console.log('Zamzar job ID:', zamzarData.id);
+
+        // Poll Zamzar for conversion completion
+        let conversionComplete = false;
+        let pdfBytes = null;
+        let pollCount = 0;
+        const maxPolls = 30;
+        while (!conversionComplete && pollCount < maxPolls) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const statusRes = await fetch(`https://api.zamzar.com/v1/files/${zamzarData.id}`, {
+            headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:${Deno.env.get('ZAMZAR_API_KEY'`)}` }
+          });
+          const statusData = await statusRes.json();
+          console.log(`Zamzar status (poll ${pollCount + 1}):`, statusData.status);
+          if (statusData.status === 'successful') {
+            const downloadRes = await fetch(statusData.output_md5_url, {
+              headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:${Deno.env.get('ZAMZAR_API_KEY'`)}` }
+            });
+            pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
+            conversionComplete = true;
+            console.log('PDF converted via Zamzar, size:', pdfBytes.length);
+          } else if (statusData.status === 'failed') {
+            throw new Error(`Zamzar conversion failed: ${statusData.failure_reason}`);
+          }
+          pollCount++;
+        }
+        if (!conversionComplete) throw new Error('Zamzar conversion timeout');
+
+        // Delete the temporary DOCX file from Google Drive
         await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}`, {
           method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
         });
