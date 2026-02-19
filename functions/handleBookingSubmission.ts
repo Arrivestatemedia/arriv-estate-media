@@ -192,33 +192,10 @@ Deno.serve(async (req) => {
           throw error;
         }
 
-        // Add clickable Stripe link to PDF using pdf-lib
-        console.log('Adding clickable Stripe payment link to PDF...');
-        try {
-          const { PDFDocument } = await import('npm:pdf-lib@1.17.1');
-          const pdfDoc = await PDFDocument.load(pdfBytes);
-          const pages = pdfDoc.getPages();
-          
-          if (pages.length > 0) {
-            const lastPage = pages[pages.length - 1];
-            const { height } = lastPage.getSize();
-            
-            // Use addLinkAnnotation method
-            console.log('Calling addLinkAnnotation with URL:', stripeUrl);
-            lastPage.drawLinkAnnotation([40, height - 100, 240, height - 75], {
-              uri: stripeUrl
-            });
-            
-            console.log('Clickable link annotation added to PDF');
-          }
-          
-          const modifiedPdfBytes = await pdfDoc.save();
-          pdfBytes = new Uint8Array(modifiedPdfBytes);
-          console.log('PDF updated with clickable link, final size:', pdfBytes.length);
-        } catch (pdfError) {
-          console.error('Error adding link to PDF:', pdfError.message);
-          // Continue with PDF even if link addition fails
-        }
+        // Note: pdf-lib has limitations with adding links to existing PDFs from Google Drive exports
+        // The clickable link feature requires direct PDF manipulation which may not work reliably
+        // with PDFs exported from Google Docs. The Stripe URL is embedded in the document text instead.
+        console.log('PDF generated with Stripe payment URL embedded:', stripeUrl);
 
         // Delete the temporary Google Doc
         console.log('Deleting temporary Google Doc:', uploadedDoc.id);
