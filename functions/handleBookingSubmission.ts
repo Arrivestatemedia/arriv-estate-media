@@ -154,43 +154,32 @@ Deno.serve(async (req) => {
 
         const updatedDocx = filledZip.generate({ type: 'uint8array', compression: 'DEFLATE' });
 
-        // Upload filled DOCX to Google Drive
-        console.log('Uploading filled DOCX to Google Drive...');
+        // Convert DOCX to PDF using LibreOffice CLI (preserves hyperlinks)
+        console.log('Converting DOCX to PDF using LibreOffice...');
+        const docxPath = '/tmp/invoice_temp.docx';
+        const pdfPath = '/tmp/invoice_temp.pdf';
+        const docxFile = await Deno.open(docxPath, { write: true, create: true });
+        await docxFile.writeSync(updatedDocx);
+        docxFile.close();
+
+        const command = new Deno.Command('libreoffice', {
+          args: ['--headless', '--convert-to', 'pdf', '--outdir', '/tmp', docxPath]
+        });
+        const process = command.spawn();
+        const { success } = await process.output();
+        if (!success) throw new Error('LibreOffice PDF conversion failed');
+
+        const pdfBytes = await Deno.readFile(pdfPath);
+        console.log('PDF converted, size:', pdfBytes.length);
+
+        // Cleanup temp files
+        await Deno.remove(docxPath).catch(() => {});
+        await Deno.remove(pdfPath).catch(() => {});
+
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
-        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
-
-        // Upload as DOCX (we'll convert to PDF)
-        const fileMetadata = JSON.stringify({ name: pdfFileName.replace('.pdf', '.docx'), parents: [unpaidFolderId] });
-        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${fileMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
-        const after = enc.encode(`\r\n--${boundary}--`);
-        const uploadBody = new Uint8Array(before.length + updatedDocx.length + after.length);
-        uploadBody.set(before); uploadBody.set(updatedDocx, before.length); uploadBody.set(after, before.length + updatedDocx.length);
-
-        const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
-          body: uploadBody
-        });
-        const uploadedFile = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedFile.error)}`);
-        console.log('Uploaded DOCX file ID:', uploadedFile.id);
-
-        // Export DOCX to PDF directly (preserves hyperlinks better than Google Doc conversion)
-        console.log('Exporting DOCX to PDF...');
-        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}/export?mimeType=application/pdf`, {
-          headers: { 'Authorization': `Bearer ${driveToken}` }
-        });
-        if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
-        const pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
-        console.log('PDF exported, size:', pdfBytes.length);
-
-        // Delete the temporary DOCX file
-        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}`, {
-          method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
-        });
 
         // Upload the final PDF to the UNPAID folder
         console.log('Uploading PDF to UNPAID folder...');
