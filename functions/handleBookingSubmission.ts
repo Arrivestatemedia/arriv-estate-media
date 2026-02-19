@@ -158,27 +158,14 @@ Deno.serve(async (req) => {
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
 
-        // Convert DOCX to PDF using Zamzar with proper multipart upload
+        // Convert DOCX to PDF using Zamzar with base64 upload
         console.log('Converting DOCX to PDF via Zamzar...');
-        
-        // Create FormData for multipart upload
-        const FormData = (await import('npm:form-data@4.0.0')).default;
-        const Readable = (await import('npm:stream@0.0.2')).Readable;
-        
-        const formData = new FormData();
-        
-        // Create readable stream from DOCX bytes
-        const docxStream = Readable.from([Buffer.from(updatedDocx)]);
-        formData.append('file', docxStream, { filename: `invoice_${invoiceNumber}.docx` });
-        formData.append('target_format', 'pdf');
+        const base64Docx = btoa(String.fromCharCode(...new Uint8Array(updatedDocx)));
         
         const zamzarRes = await fetch('https://api.zamzar.com/v1/files', {
           method: 'POST',
-          headers: {
-            ...formData.getHeaders(),
-            'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`
-          },
-          body: formData
+          headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source_file: base64Docx, target_format: 'pdf' })
         });
         
         const zamzarData = await zamzarRes.json();
