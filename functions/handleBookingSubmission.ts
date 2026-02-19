@@ -160,7 +160,69 @@ Deno.serve(async (req) => {
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
-        console.log('Stripe hyperlink injected into DOCX XML');
+        // Use Google Docs API to replace the plain Stripe URL text with a real clickable hyperlink
+        console.log('Fetching document to find Stripe URL position...');
+        const getDocRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}`, {
+          headers: { 'Authorization': `Bearer ${driveToken}` }
+        });
+        if (getDocRes.ok) {
+          const docData = await getDocRes.json();
+          // Walk through document body to find the stripe URL text and its start/end index
+          let startIndex = -1;
+          let endIndex = -1;
+          const walkContent = (elements) => {
+            for (const el of elements || []) {
+              if (el.paragraph) {
+                for (const pe of el.paragraph.elements || []) {
+                  if (pe.textRun && pe.textRun.content && pe.textRun.content.includes(stripeUrl)) {
+                    const offset = pe.textRun.content.indexOf(stripeUrl);
+                    startIndex = pe.startIndex + offset;
+                    endIndex = startIndex + stripeUrl.length;
+                    return;
+                  }
+                }
+              }
+              if (el.table) {
+                for (const row of el.table.tableRows || []) {
+                  for (const cell of row.tableCells || []) {
+                    walkContent(cell.content);
+                  }
+                }
+              }
+            }
+          };
+          walkContent(docData.body?.content);
+
+          if (startIndex !== -1) {
+            console.log(`Found Stripe URL at index ${startIndex}-${endIndex}, inserting hyperlink...`);
+            const updateLinkRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requests: [
+                  {
+                    updateTextStyle: {
+                      range: { startIndex, endIndex },
+                      textStyle: {
+                        link: { url: stripeUrl },
+                        foregroundColor: { color: { rgbColor: { red: 0.067, green: 0.333, blue: 0.8 } } },
+                        underline: true
+                      },
+                      fields: 'link,foregroundColor,underline'
+                    }
+                  }
+                ]
+              })
+            });
+            if (updateLinkRes.ok) {
+              console.log('Stripe hyperlink successfully inserted via Google Docs API');
+            } else {
+              console.error('Failed to insert hyperlink:', await updateLinkRes.text());
+            }
+          } else {
+            console.warn('Stripe URL not found in document text');
+          }
+        }
 
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
