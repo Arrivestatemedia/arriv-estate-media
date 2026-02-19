@@ -241,6 +241,9 @@ Deno.serve(async (req) => {
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
 </body></html>`;
 
+        console.log('Sending invoice email via Brevo to:', booking.client_email);
+        console.log('Brevo API Key present:', !!brevoApiKey);
+        console.log('Drive link:', driveViewLink);
         const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
@@ -252,6 +255,8 @@ Deno.serve(async (req) => {
           })
         });
         const brevoData = await brevoResponse.json();
+        console.log('Brevo response status:', brevoResponse.status);
+        console.log('Brevo response data:', JSON.stringify(brevoData));
         if (!brevoResponse.ok) throw new Error(`Brevo error: ${brevoData.message}`);
         console.log('Invoice email sent, messageId:', brevoData.messageId);
 
