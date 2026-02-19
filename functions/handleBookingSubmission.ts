@@ -192,52 +192,9 @@ Deno.serve(async (req) => {
           throw error;
         }
 
-        // Add clickable Stripe link to PDF
-        console.log('Adding Stripe payment link to PDF...');
-        try {
-          const { PDFDocument, rgb } = await import('npm:pdf-lib@1.17.1');
-          const pdfDoc = await PDFDocument.load(pdfBytes);
-          const pages = pdfDoc.getPages();
-          if (pages.length === 0) {
-            console.warn('PDF has no pages, skipping link addition');
-          } else {
-            const lastPage = pages[pages.length - 1];
-            const { height, width } = lastPage.getSize();
-            
-            const linkX = 50;
-            const linkY = height - 80;
-            const linkWidth = 100;
-            const linkHeight = 24;
-            
-            // Draw visible text
-            lastPage.drawText('Pay Now', {
-              x: linkX,
-              y: linkY,
-              size: 14,
-              color: rgb(0.72, 0.59, 0.42), // Gold color (#B8956A)
-            });
-            
-            // Add link annotation
-            lastPage.drawRectangle({
-              x: linkX,
-              y: linkY - linkHeight,
-              width: linkWidth,
-              height: linkHeight,
-              borderColor: rgb(0.72, 0.59, 0.42),
-              borderWidth: 1,
-              link: stripeUrl,
-            });
-            
-            console.log('Stripe link added to PDF at', linkX, linkY);
-          }
-          
-          const modifiedPdfBytes = await pdfDoc.save();
-          pdfBytes = new Uint8Array(modifiedPdfBytes);
-          console.log('PDF saved with link, new size:', pdfBytes.length);
-        } catch (pdfError) {
-          console.error('Error adding link to PDF:', pdfError.message);
-          // Continue with PDF even if link addition fails
-        }
+        // Stripe link is now embedded in the DOCX template via PLACE_STRIP_LINK
+        // Google Drive's conversion process will preserve the link in the PDF
+        console.log('Stripe payment link embedded in DOCX template, relying on Google Drive conversion');
 
         // Delete the temporary Google Doc
         console.log('Deleting temporary Google Doc:', uploadedDoc.id);
