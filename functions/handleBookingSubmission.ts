@@ -154,16 +154,16 @@ Deno.serve(async (req) => {
 
         const updatedDocx = filledZip.generate({ type: 'uint8array', compression: 'DEFLATE' });
 
-        // Upload filled DOCX to Google Drive
+        // Upload filled DOCX to Google Drive then convert to Google Doc for PDF export
         console.log('Uploading filled DOCX to Google Drive...');
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
-        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
+        const docxFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.docx`;
 
-        // Upload as DOCX (we'll convert to PDF)
-        const fileMetadata = JSON.stringify({ name: pdfFileName.replace('.pdf', '.docx'), parents: [unpaidFolderId] });
+        // Upload as DOCX
+        const fileMetadata = JSON.stringify({ name: docxFileName, parents: [unpaidFolderId] });
         const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${fileMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
         const after = enc.encode(`\r\n--${boundary}--`);
         const uploadBody = new Uint8Array(before.length + updatedDocx.length + after.length);
@@ -178,9 +178,25 @@ Deno.serve(async (req) => {
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedFile.error)}`);
         console.log('Uploaded DOCX file ID:', uploadedFile.id);
 
-        // Export DOCX to PDF directly (preserves hyperlinks better than Google Doc conversion)
-        console.log('Exporting DOCX to PDF...');
-        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}/export?mimeType=application/pdf`, {
+        // Convert DOCX to Google Doc by copying with convertation
+        console.log('Converting DOCX to Google Doc...');
+        const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}/copy`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: docxFileName.replace('.docx', ''),
+            mimeType: 'application/vnd.google-apps.document',
+            parents: [unpaidFolderId]
+          })
+        });
+        const copiedDoc = await copyRes.json();
+        if (!copyRes.ok) throw new Error(`Convert to Google Doc failed: ${JSON.stringify(copiedDoc.error)}`);
+        const googleDocId = copiedDoc.id;
+        console.log('Google Doc ID:', googleDocId);
+
+        // Export Google Doc to PDF
+        console.log('Exporting Google Doc to PDF...');
+        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${googleDocId}/export?mimeType=application/pdf`, {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
         if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
@@ -207,8 +223,11 @@ Deno.serve(async (req) => {
 
         pdfBytes = new Uint8Array(await pdfDoc.save({ useObjectStreams: false }));
 
-        // Delete the temporary DOCX file
+        // Delete temporary files
         await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}`, {
+          method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
+        });
+        await fetch(`https://www.googleapis.com/drive/v3/files/${googleDocId}`, {
           method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
         });
 
