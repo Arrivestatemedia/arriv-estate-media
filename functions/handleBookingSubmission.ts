@@ -197,18 +197,31 @@ Deno.serve(async (req) => {
         let linkEndIndex = -1;
         const content = docContent.body.content;
 
-        // Search for "Pay Now" text with existing link
+        // Log all text content to debug document structure
+        console.log('Document structure:');
+        let fullText = '';
         for (const element of content) {
           if (element.paragraph) {
             for (const run of element.paragraph.elements) {
-              if (run.textRun && run.textRun.text === 'Pay Now') {
-                // Found the link text
-                if (run.textRun.textStyle && run.textRun.textStyle.link) {
-                  linkStartIndex = run.startIndex;
-                  linkEndIndex = run.endIndex;
-                  console.log(`Found "Pay Now" link at indices ${linkStartIndex}-${linkEndIndex}`);
-                  break;
-                }
+              if (run.textRun && run.textRun.text) {
+                console.log(`Run text: "${run.textRun.text}", has link: ${!!(run.textRun.textStyle && run.textRun.textStyle.link)}`);
+                fullText += run.textRun.text;
+              }
+            }
+          }
+        }
+        console.log('Full document text:', fullText);
+
+        // Search for "Pay Now" text (exact match or contained in larger text)
+        for (const element of content) {
+          if (element.paragraph) {
+            for (const run of element.paragraph.elements) {
+              if (run.textRun && run.textRun.text && run.textRun.text.includes('Pay Now')) {
+                // Found text containing "Pay Now"
+                linkStartIndex = run.startIndex;
+                linkEndIndex = run.endIndex;
+                console.log(`Found "Pay Now" at indices ${linkStartIndex}-${linkEndIndex}`);
+                break;
               }
             }
             if (linkStartIndex !== -1) break;
