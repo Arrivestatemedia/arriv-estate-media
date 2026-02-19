@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
           delimiters: { start: '{{', end: '}}' }
         });
 
+        // Render all placeholders EXCEPT the Stripe link (we'll handle that as a real hyperlink in Google Docs)
         doc.render({
           JOB_ADDRESS: propertyAddress,
           PROPERTY_ADDRESS: propertyAddress,
@@ -128,7 +129,7 @@ Deno.serve(async (req) => {
           'SERVICE_AND_ADD-ONS_CHOSEN': servicesLine,
           AMOUNT_OF_PACKAGE: `$${basePkgAmount.toFixed(2)}`,
           'TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS': `$${totalAmount.toFixed(2)}`,
-          PLACE_STRIP_LINK: stripeUrl,
+          PLACE_STRIP_LINK: '{{STRIPE_LINK_PLACEHOLDER}}',
           NEXT_INVOICE_NUMBER: nextInvoiceNumber,
           DATE_OF_INVOICE_CREATION: invoiceDate,
           'DATE OF JOB': booking.preferred_date,
@@ -159,6 +160,29 @@ Deno.serve(async (req) => {
         const uploadedDoc = await uploadRes.json();
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
+
+        // Use Google Docs API to replace placeholder with a real clickable hyperlink
+        console.log('Inserting clickable Stripe hyperlink via Google Docs API...');
+        const docsUpdateRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requests: [
+              {
+                replaceAllText: {
+                  containsText: { text: '{{STRIPE_LINK_PLACEHOLDER}}', matchCase: true },
+                  replaceText: stripeUrl
+                }
+              }
+            ]
+          })
+        });
+        if (docsUpdateRes.ok) {
+          console.log('Stripe link inserted as plain text with URL (Google Docs auto-links URLs)');
+        } else {
+          const docsErr = await docsUpdateRes.text();
+          console.error('Docs API error (non-fatal):', docsErr);
+        }
 
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
