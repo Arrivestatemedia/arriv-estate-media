@@ -195,40 +195,58 @@ Deno.serve(async (req) => {
           };
           walkContent(docData.body?.content);
 
-          // If not found in a single run, try searching the full document text
-          if (startIndex === -1) {
-            const fullText = JSON.stringify(docData.body?.content || '');
-            console.log('URL not found in single run. Checking document for URL presence:', fullText.includes(stripeUrl));
-          }
-
           if (startIndex !== -1) {
-            console.log(`Found Stripe URL at index ${startIndex}-${endIndex}, inserting hyperlink...`);
+            console.log(`Found placeholder at index ${startIndex}-${endIndex}, replacing with Stripe hyperlink...`);
+            // First replace the placeholder text with the stripe URL, then apply hyperlink style
             const updateLinkRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 requests: [
                   {
-                    updateTextStyle: {
-                      range: { startIndex, endIndex },
-                      textStyle: {
-                        link: { url: stripeUrl },
-                        foregroundColor: { color: { rgbColor: { red: 0.067, green: 0.333, blue: 0.8 } } },
-                        underline: true
-                      },
-                      fields: 'link,foregroundColor,underline'
+                    replaceAllText: {
+                      containsText: { text: stripeLinkPlaceholder, matchCase: true },
+                      replaceText: stripeUrl
                     }
                   }
                 ]
               })
             });
             if (updateLinkRes.ok) {
-              console.log('Stripe hyperlink successfully inserted via Google Docs API');
+              const replaceResult = await updateLinkRes.json();
+              const occurrences = replaceResult.replies?.[0]?.replaceAllText?.occurrencesChanged || 0;
+              console.log(`Replaced ${occurrences} occurrence(s) of placeholder`);
+              // Now apply hyperlink style to the stripe URL text
+              const newEndIndex = startIndex + stripeUrl.length;
+              const styleRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  requests: [
+                    {
+                      updateTextStyle: {
+                        range: { startIndex, endIndex: newEndIndex },
+                        textStyle: {
+                          link: { url: stripeUrl },
+                          foregroundColor: { color: { rgbColor: { red: 0.067, green: 0.333, blue: 0.8 } } },
+                          underline: true
+                        },
+                        fields: 'link,foregroundColor,underline'
+                      }
+                    }
+                  ]
+                })
+              });
+              if (styleRes.ok) {
+                console.log('Stripe hyperlink style applied successfully');
+              } else {
+                console.error('Failed to apply hyperlink style:', await styleRes.text());
+              }
             } else {
-              console.error('Failed to insert hyperlink:', await updateLinkRes.text());
+              console.error('Failed to replace placeholder:', await updateLinkRes.text());
             }
           } else {
-            console.warn('Stripe URL not found in document text');
+            console.warn(`Placeholder "${stripeLinkPlaceholder}" not found in document`);
           }
         }
 
