@@ -306,6 +306,7 @@ Deno.serve(async (req) => {
 
       } catch (invoiceError) {
         console.error('Invoice generation error:', invoiceError);
+        console.error('Error stack:', invoiceError.stack);
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email', recipient_type: 'client',
           recipient_email: booking.client_email,
