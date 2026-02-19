@@ -119,19 +119,20 @@ Deno.serve(async (req) => {
         const relsPath = 'word/_rels/document.xml.rels';
         if (zip.files[relsPath]) {
           let relsXml = zip.files[relsPath].asText();
-          // Replace any placeholder hyperlink that contains PLACE_STRIPE_LINK or a dummy URL
-          // We look for a hyperlink relationship with a placeholder target and replace it
+          console.log('Rels file hyperlinks:', relsXml.match(/Type="[^"]*hyperlink[^"]*"[^/]*/gi));
+          // Replace ALL hyperlink targets in the rels file with the Stripe URL
+          // This works because the template should only have one hyperlink (the payment link)
+          let replacedCount = 0;
           relsXml = relsXml.replace(
-            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")[^"]*PLACE_STRIPE_LINK[^"]*(")/gi,
-            `$1${stripeUrl}$2`
+            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")([^"]*)(")/gi,
+            (match, before, oldUrl, after) => {
+              console.log('Replacing hyperlink URL:', oldUrl, '->', stripeUrl);
+              replacedCount++;
+              return `${before}${stripeUrl}${after}`;
+            }
           );
-          // Also handle if the template uses a dummy URL like https://stripe.com or example.com as placeholder
-          relsXml = relsXml.replace(
-            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")(https?:\/\/(?:stripe\.com|example\.com|pay\.stripe\.com\/placeholder)[^"]*)(")/gi,
-            `$1${stripeUrl}$3`
-          );
+          console.log(`Replaced ${replacedCount} hyperlink(s)`);
           zip.file(relsPath, relsXml);
-          console.log('Updated hyperlink in rels file');
         }
 
         const doc = new Docxtemplater(zip, {
