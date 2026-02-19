@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
         // Fetch the DOCX template from storage
         console.log('Fetching DOCX template...');
-        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/a3caf273e_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
+        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/f37da45ab_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
         const templateRes = await fetch(templateUrl);
         if (!templateRes.ok) throw new Error('Failed to fetch invoice template');
         const templateBytes = new Uint8Array(await templateRes.arrayBuffer());
@@ -113,28 +113,6 @@ Deno.serve(async (req) => {
         const stripeUrl = stripeData.url;
 
         const zip = new PizZip(templateBytes);
-
-        // Replace hyperlink target URL in the relationship file (word/_rels/document.xml.rels)
-        // The template has a placeholder hyperlink target we replace with the actual Stripe URL
-        const relsPath = 'word/_rels/document.xml.rels';
-        if (zip.files[relsPath]) {
-          let relsXml = zip.files[relsPath].asText();
-          console.log('Rels file hyperlinks:', relsXml.match(/Type="[^"]*hyperlink[^"]*"[^/]*/gi));
-          // Replace ALL hyperlink targets in the rels file with the Stripe URL
-          // This works because the template should only have one hyperlink (the payment link)
-          let replacedCount = 0;
-          relsXml = relsXml.replace(
-            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")([^"]*)(")/gi,
-            (match, before, oldUrl, after) => {
-              console.log('Replacing hyperlink URL:', oldUrl, '->', stripeUrl);
-              replacedCount++;
-              return `${before}${stripeUrl}${after}`;
-            }
-          );
-          console.log(`Replaced ${replacedCount} hyperlink(s)`);
-          zip.file(relsPath, relsXml);
-        }
-
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
@@ -150,6 +128,7 @@ Deno.serve(async (req) => {
           'SERVICE_AND_ADD-ONS_CHOSEN': servicesLine,
           AMOUNT_OF_PACKAGE: `$${basePkgAmount.toFixed(2)}`,
           'TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS': `$${totalAmount.toFixed(2)}`,
+          PLACE_STRIP_LINK: stripeUrl,
           NEXT_INVOICE_NUMBER: nextInvoiceNumber,
           DATE_OF_INVOICE_CREATION: invoiceDate,
           'DATE OF JOB': booking.preferred_date,
