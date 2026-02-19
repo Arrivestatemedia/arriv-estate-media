@@ -158,23 +158,17 @@ Deno.serve(async (req) => {
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
 
-        // Convert DOCX to PDF using libreoffice via a simpler approach
-        console.log('Converting DOCX to PDF...');
-        // Use a direct base64 encoding approach for Zamzar
-        const docxBase64 = btoa(String.fromCharCode(...new Uint8Array(updatedDocx)));
-        
+        // Convert DOCX to PDF using Zamzar (preserves clickable hyperlinks)
+        console.log('Converting DOCX to PDF via Zamzar...');
+        const zamzarFormData = new FormData();
+        zamzarFormData.append('source_file', new File([updatedDocx], 'invoice.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
+        zamzarFormData.append('target_format', 'pdf');
+
         const zamzarRes = await fetch('https://api.zamzar.com/v1/files', {
           method: 'POST',
-          headers: {
-            'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            source_file: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBase64}`,
-            target_format: 'pdf'
-          })
+          headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}` },
+          body: zamzarFormData
         });
-        
         const zamzarData = await zamzarRes.json();
         if (!zamzarRes.ok) throw new Error(`Zamzar upload failed: ${JSON.stringify(zamzarData)}`);
         console.log('Zamzar job ID:', zamzarData.id);
@@ -193,7 +187,7 @@ Deno.serve(async (req) => {
           const statusData = await statusRes.json();
           console.log(`Zamzar status (poll ${pollCount + 1}):`, statusData.status);
           if (statusData.status === 'successful') {
-            const downloadRes = await fetch(statusData.output_url, {
+            const downloadRes = await fetch(statusData.output_md5_url, {
               headers: { 'Authorization': zamzarAuth }
             });
             pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
