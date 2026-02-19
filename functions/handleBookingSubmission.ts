@@ -139,19 +139,28 @@ Deno.serve(async (req) => {
         // Update hyperlink in the relationships file (word/_rels/document.xml.rels)
         // This updates the actual URL that hyperlinks point to
         const relsPath = 'word/_rels/document.xml.rels';
+        console.log('Looking for rels file...');
         if (filledZip.files[relsPath]) {
           let relsXml = filledZip.files[relsPath].asText();
+          console.log('Original rels content:', relsXml.substring(0, 500));
           let replacedCount = 0;
           relsXml = relsXml.replace(
             /(<Relationship[^>]*?Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]*?Target=")[^"]*(")/gi,
             (match, before, after) => {
-              console.log(`Updating hyperlink relationship with Stripe URL`);
+              console.log(`Found hyperlink to replace: ${match}`);
+              console.log(`Updating with Stripe URL: ${stripeUrl}`);
               replacedCount++;
               return `${before}${stripeUrl}${after}`;
             }
           );
           console.log(`Updated ${replacedCount} hyperlink relationship(s)`);
+          if (replacedCount === 0) {
+            console.log('No hyperlinks found to update. rels content:', relsXml);
+          }
           filledZip.file(relsPath, relsXml);
+        } else {
+          console.log('WARNING: rels file not found at', relsPath);
+          console.log('Available files:', Object.keys(filledZip.files).filter(k => k.includes('rels')));
         }
 
         const updatedDocx = filledZip.generate({ type: 'uint8array', compression: 'DEFLATE' });
