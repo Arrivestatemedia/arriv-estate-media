@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { PDFDocument, rgb } from 'npm:pdf-lib@^1.17.1';
 
 Deno.serve(async (req) => {
   try {
