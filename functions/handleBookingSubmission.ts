@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
           stripe_payment_link_id: stripeData.id,
           stripe_payment_link_url: stripeData.url,
           google_drive_unpaid_url: driveViewLink,
-          google_drive_file_id: pdfFileId,
+          google_drive_file_id: docxFileId,
           pay_at_closing: false,
           email_sent_at: new Date().toISOString()
         });
