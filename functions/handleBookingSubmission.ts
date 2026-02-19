@@ -172,16 +172,25 @@ Deno.serve(async (req) => {
 
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
-        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
-          headers: { 'Authorization': `Bearer ${driveToken}` }
-        });
-        if (!pdfExportRes.ok) {
-          const errorText = await pdfExportRes.text();
-          console.error('PDF export failed:', pdfExportRes.status, errorText);
-          throw new Error(`PDF export failed: ${errorText}`);
+        let pdfBytes;
+        try {
+          const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
+            headers: { 'Authorization': `Bearer ${driveToken}` }
+          });
+          if (!pdfExportRes.ok) {
+            const errorText = await pdfExportRes.text();
+            console.error('PDF export failed:', pdfExportRes.status, errorText);
+            throw new Error(`PDF export failed: ${pdfExportRes.status} ${errorText}`);
+          }
+          pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
+          console.log('PDF exported successfully, size:', pdfBytes.length);
+          if (!pdfBytes || pdfBytes.length === 0) {
+            throw new Error('PDF export returned empty buffer');
+          }
+        } catch (error) {
+          console.error('PDF export error:', error.message);
+          throw error;
         }
-        let pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
-        console.log('PDF exported, size:', pdfBytes.length);
 
         // Add clickable Stripe link to PDF
         console.log('Adding Stripe payment link to PDF...');
@@ -189,58 +198,92 @@ Deno.serve(async (req) => {
           const { PDFDocument, rgb } = await import('npm:pdf-lib@1.17.1');
           const pdfDoc = await PDFDocument.load(pdfBytes);
           const pages = pdfDoc.getPages();
-          const lastPage = pages[pages.length - 1];
-          const { height } = lastPage.getSize();
-          
-          const linkY = height - 50;
-          lastPage.drawText('Pay Now', {
-            x: 50,
-            y: linkY,
-            size: 12,
-            color: rgb(0, 0.5, 1),
-          });
-          
-          lastPage.drawLink({
-            x: 50,
-            y: linkY - 12,
-            width: 60,
-            height: 16,
-            uri: stripeUrl,
-          });
+          if (pages.length === 0) {
+            console.warn('PDF has no pages, skipping link addition');
+          } else {
+            const lastPage = pages[pages.length - 1];
+            const { height } = lastPage.getSize();
+            
+            const linkY = height - 50;
+            lastPage.drawText('Pay Now', {
+              x: 50,
+              y: linkY,
+              size: 12,
+              color: rgb(0, 0.5, 1),
+            });
+            
+            lastPage.drawLink({
+              x: 50,
+              y: linkY - 12,
+              width: 60,
+              height: 16,
+              uri: stripeUrl,
+            });
+            console.log('Stripe link added to PDF');
+          }
           
           const modifiedPdfBytes = await pdfDoc.save();
           pdfBytes = new Uint8Array(modifiedPdfBytes);
-          console.log('Stripe link added, new PDF size:', pdfBytes.length);
+          console.log('PDF saved with link, new size:', pdfBytes.length);
         } catch (pdfError) {
-          console.error('Error adding link to PDF:', pdfError);
-          throw pdfError;
+          console.error('Error adding link to PDF:', pdfError.message);
+          // Continue with PDF even if link addition fails
         }
 
         // Delete the temporary Google Doc
-        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}`, {
-          method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
-        });
+        console.log('Deleting temporary Google Doc:', uploadedDoc.id);
+        try {
+          const deleteRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}`, {
+            method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
+          });
+          if (deleteRes.ok) {
+            console.log('Temporary Google Doc deleted');
+          } else {
+            console.warn('Failed to delete temporary Google Doc, continuing anyway');
+          }
+        } catch (error) {
+          console.warn('Error deleting temporary doc:', error.message);
+        }
 
         // Upload the final PDF to the UNPAID folder
-        console.log('Uploading PDF to UNPAID folder...', pdfBytes.length, 'bytes');
-        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
-        const pdfMetadata = JSON.stringify({ name: pdfFileName, parents: [unpaidFolderId], mimeType: 'application/pdf' });
-        const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\nContent-Transfer-Encoding: binary\r\n\r\n`);
-        const pdfAfter = enc.encode(`\r\n--${boundary}--`);
-        const pdfUploadBody = new Uint8Array(pdfBefore.length + pdfBytes.length + pdfAfter.length);
-        pdfUploadBody.set(pdfBefore); pdfUploadBody.set(pdfBytes, pdfBefore.length); pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
-
-        const pdfUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
-          body: pdfUploadBody
-        });
-        const uploadedPdf = await pdfUploadRes.json();
-        if (!pdfUploadRes.ok) {
-          console.error('PDF upload error response:', uploadedPdf);
-          throw new Error(`PDF upload failed: ${JSON.stringify(uploadedPdf.error)}`);
+        console.log('Starting PDF upload to UNPAID folder, PDF size:', pdfBytes.length, 'bytes');
+        let uploadedPdf;
+        try {
+          const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
+          console.log('PDF filename:', pdfFileName);
+          
+          const pdfMetadata = JSON.stringify({ name: pdfFileName, parents: [unpaidFolderId], mimeType: 'application/pdf' });
+          const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\nContent-Transfer-Encoding: binary\r\n\r\n`);
+          const pdfAfter = enc.encode(`\r\n--${boundary}--`);
+          const pdfUploadBody = new Uint8Array(pdfBefore.length + pdfBytes.length + pdfAfter.length);
+          pdfUploadBody.set(pdfBefore);
+          pdfUploadBody.set(pdfBytes, pdfBefore.length);
+          pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
+          console.log('PDF multipart body assembled, total size:', pdfUploadBody.length);
+  
+          const pdfUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
+            body: pdfUploadBody
+          });
+          console.log('PDF upload response status:', pdfUploadRes.status);
+          
+          uploadedPdf = await pdfUploadRes.json();
+          console.log('PDF upload response:', JSON.stringify(uploadedPdf).substring(0, 200));
+          
+          if (!pdfUploadRes.ok) {
+            console.error('PDF upload failed, response:', uploadedPdf);
+            throw new Error(`PDF upload failed: ${pdfUploadRes.status} ${JSON.stringify(uploadedPdf.error)}`);
+          }
+          if (!uploadedPdf.id) {
+            console.error('PDF upload succeeded but no file ID returned:', uploadedPdf);
+            throw new Error('PDF uploaded but no file ID returned');
+          }
+          console.log('PDF uploaded successfully:', uploadedPdf.id);
+        } catch (error) {
+          console.error('PDF upload error:', error.message);
+          throw error;
         }
-        console.log('PDF uploaded successfully:', uploadedPdf.id);
 
         const pdfFileId = uploadedPdf.id;
         await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
