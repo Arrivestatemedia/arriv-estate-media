@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
           'SERVICE_AND_ADD-ONS_CHOSEN': servicesLine,
           AMOUNT_OF_PACKAGE: `$${basePkgAmount.toFixed(2)}`,
           'TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS': `$${totalAmount.toFixed(2)}`,
-          PLACE_STRIP_LINK: stripeUrl,
+          PLACE_STRIP_LINK: '',
           NEXT_INVOICE_NUMBER: nextInvoiceNumber,
           DATE_OF_INVOICE_CREATION: invoiceDate,
           'DATE OF JOB': booking.preferred_date,
