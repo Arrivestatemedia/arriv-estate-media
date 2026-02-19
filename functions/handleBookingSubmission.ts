@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
         // Add clickable Stripe link to PDF using pdf-lib
         console.log('Adding clickable Stripe payment link to PDF...');
         try {
-          const { PDFDocument, PDFString, PDFName } = await import('npm:pdf-lib@1.17.1');
+          const { PDFDocument } = await import('npm:pdf-lib@1.17.1');
           const pdfDoc = await PDFDocument.load(pdfBytes);
           const pages = pdfDoc.getPages();
           
@@ -203,43 +203,20 @@ Deno.serve(async (req) => {
             const lastPage = pages[pages.length - 1];
             const { height } = lastPage.getSize();
             
-            // Create action dictionary and register it first
-            const actionDict = pdfDoc.context.obj({
-              S: PDFName.of('URI'),
-              URI: PDFString.of(stripeUrl)
-            });
-            const actionRef = pdfDoc.context.register(actionDict);
-            
-            // Create link annotation object
-            const linkAnnotation = pdfDoc.context.obj({
-              Type: PDFName.of('Annot'),
-              Subtype: PDFName.of('Link'),
-              Rect: [40, height - 100, 240, height - 75],
-              Border: [0, 0, 0],
-              A: actionRef
+            // Use addLinkAnnotation method
+            console.log('Calling addLinkAnnotation with URL:', stripeUrl);
+            lastPage.drawLinkAnnotation([40, height - 100, 240, height - 75], {
+              uri: stripeUrl
             });
             
-            // Register the annotation
-            const annotRef = pdfDoc.context.register(linkAnnotation);
-            
-            // Get or create Annots array
-            let annots = lastPage.node.get('Annots');
-            if (annots && typeof annots.push === 'function') {
-              annots.push(annotRef);
-              console.log('Added annotation to existing Annots array');
-            } else {
-              lastPage.node.set('Annots', [annotRef]);
-              console.log('Created new Annots array with annotation');
-            }
-            
-            console.log('Clickable link added to PDF with Stripe URL:', stripeUrl);
+            console.log('Clickable link annotation added to PDF');
           }
           
           const modifiedPdfBytes = await pdfDoc.save();
           pdfBytes = new Uint8Array(modifiedPdfBytes);
           console.log('PDF updated with clickable link, final size:', pdfBytes.length);
         } catch (pdfError) {
-          console.error('Error adding link to PDF:', pdfError.message, pdfError.stack);
+          console.error('Error adding link to PDF:', pdfError.message);
           // Continue with PDF even if link addition fails
         }
 
