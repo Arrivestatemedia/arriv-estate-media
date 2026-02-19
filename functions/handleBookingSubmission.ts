@@ -195,7 +195,8 @@ Deno.serve(async (req) => {
         // Add clickable Stripe link to PDF using pdf-lib
         console.log('Adding clickable Stripe payment link to PDF...');
         try {
-          const { PDFDocument, PDFName, PDFNumber, PDFArray, PDFString } = await import('npm:pdf-lib@1.17.1');
+          const pdfLibModule = await import('npm:pdf-lib@1.17.1');
+          const PDFDocument = pdfLibModule.PDFDocument;
           const pdfDoc = await PDFDocument.load(pdfBytes);
           const pages = pdfDoc.getPages();
           
@@ -203,50 +204,27 @@ Deno.serve(async (req) => {
             const lastPage = pages[pages.length - 1];
             const { height } = lastPage.getSize();
             
-            // Create link annotation using PDFDocument's addPage method
-            const link = {
-              x: 40,
-              y: height - 100,
-              width: 200,
-              height: 25,
-              uri: stripeUrl
+            // Create raw object for link annotation
+            const linkRect = [40, height - 100, 240, height - 75];
+            const linkDict = {
+              Type: { name: 'Annot' },
+              Subtype: { name: 'Link' },
+              Rect: linkRect,
+              Border: [0, 0, 0],
+              A: {
+                S: { name: 'URI' },
+                URI: stripeUrl
+              }
             };
             
-            try {
-              // Add clickable link using PDFPage's methods
-              lastPage.drawRectangle({
-                x: link.x,
-                y: link.y,
-                width: link.width,
-                height: link.height,
-                borderWidth: 0,
-                opacity: 0
-              });
-              
-              const linkDict = pdfDoc.context.obj({
-                Type: PDFName.of('Annot'),
-                Subtype: PDFName.of('Link'),
-                Rect: PDFArray.of([
-                  PDFNumber.of(link.x),
-                  PDFNumber.of(link.y),
-                  PDFNumber.of(link.x + link.width),
-                  PDFNumber.of(link.y + link.height)
-                ]),
-                Border: PDFArray.of([PDFNumber.of(0), PDFNumber.of(0), PDFNumber.of(0)]),
-                A: pdfDoc.context.obj({
-                  S: PDFName.of('URI'),
-                  URI: PDFString.of(stripeUrl)
-                })
-              });
-              
-              const annots = lastPage.node.get('Annots');
-              const annotsArray = annots ? pdfDoc.context.obj(annots.asArray().push(linkDict)) : pdfDoc.context.obj([linkDict]);
-              lastPage.node.set('Annots', annotsArray);
-              
-              console.log('Clickable link added to PDF at', link.x, link.y);
-            } catch (annotErr) {
-              console.warn('Could not add annotation, trying alternative method:', annotErr.message);
+            const annots = lastPage.node.get('Annots');
+            if (annots) {
+              annots.push(pdfDoc.context.register(linkDict));
+            } else {
+              lastPage.node.set('Annots', pdfDoc.context.obj([linkDict]));
             }
+            
+            console.log('Clickable link added to PDF');
           }
           
           const modifiedPdfBytes = await pdfDoc.save();
