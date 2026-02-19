@@ -203,38 +203,43 @@ Deno.serve(async (req) => {
             const lastPage = pages[pages.length - 1];
             const { height } = lastPage.getSize();
             
-            // Create action dictionary for URI
+            // Create action dictionary and register it first
             const actionDict = pdfDoc.context.obj({
               S: PDFName.of('URI'),
               URI: PDFString.of(stripeUrl)
             });
+            const actionRef = pdfDoc.context.register(actionDict);
             
-            // Create link annotation with raw numbers for Rect and Border
+            // Create link annotation object
             const linkAnnotation = pdfDoc.context.obj({
               Type: PDFName.of('Annot'),
               Subtype: PDFName.of('Link'),
               Rect: [40, height - 100, 240, height - 75],
               Border: [0, 0, 0],
-              A: actionDict
+              A: actionRef
             });
             
-            // Register and add annotation to page
-            const registeredAnnotation = pdfDoc.context.register(linkAnnotation);
-            const annots = lastPage.node.get('Annots');
-            if (annots) {
-              annots.push(registeredAnnotation);
+            // Register the annotation
+            const annotRef = pdfDoc.context.register(linkAnnotation);
+            
+            // Get or create Annots array
+            let annots = lastPage.node.get('Annots');
+            if (annots && typeof annots.push === 'function') {
+              annots.push(annotRef);
+              console.log('Added annotation to existing Annots array');
             } else {
-              lastPage.node.set('Annots', [registeredAnnotation]);
+              lastPage.node.set('Annots', [annotRef]);
+              console.log('Created new Annots array with annotation');
             }
             
-            console.log('Clickable link added to PDF with URI:', stripeUrl);
+            console.log('Clickable link added to PDF with Stripe URL:', stripeUrl);
           }
           
           const modifiedPdfBytes = await pdfDoc.save();
           pdfBytes = new Uint8Array(modifiedPdfBytes);
-          console.log('PDF updated with clickable link, size:', pdfBytes.length);
+          console.log('PDF updated with clickable link, final size:', pdfBytes.length);
         } catch (pdfError) {
-          console.error('Error adding link to PDF:', pdfError.message);
+          console.error('Error adding link to PDF:', pdfError.message, pdfError.stack);
           // Continue with PDF even if link addition fails
         }
 
