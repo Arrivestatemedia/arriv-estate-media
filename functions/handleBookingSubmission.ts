@@ -191,9 +191,9 @@ Deno.serve(async (req) => {
           }
         }
 
-        // If we found the link, update it
+        // Update the "Pay Now" link with Stripe URL
         if (linkStartIndex !== -1 && linkEndIndex !== -1) {
-          console.log(`Updating link URL via Docs API...`);
+          console.log(`Updating "Pay Now" link URL via Docs API...`);
           const updateRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${docsToken}`, 'Content-Type': 'application/json' },
@@ -218,9 +218,9 @@ Deno.serve(async (req) => {
           });
           const updateResult = await updateRes.json();
           if (!updateRes.ok) throw new Error(`Failed to update link: ${JSON.stringify(updateResult.error)}`);
-          console.log('Link URL updated successfully');
+          console.log('Pay Now link updated successfully');
         } else {
-          console.log('Warning: Could not find hyperlink text in document');
+          throw new Error('Could not find "Pay Now" text in document');
         }
 
         // Export the Google Doc as PDF
