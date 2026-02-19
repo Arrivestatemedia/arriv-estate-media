@@ -59,7 +59,6 @@ Deno.serve(async (req) => {
     // For pay-up-front: generate PDF invoice and send via Brevo
     if (!booking.request_pay_at_closing) {
       try {
-        console.log('Starting invoice generation for:', booking.client_name);
         const totalAmount = parseFloat(booking.total_price);
 
         // Invoice number
@@ -102,7 +101,7 @@ Deno.serve(async (req) => {
 
         // Fetch the DOCX template from storage
         console.log('Fetching DOCX template...');
-        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/21a6b453a_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
+        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/34be47478_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
         const templateRes = await fetch(templateUrl);
         if (!templateRes.ok) throw new Error('Failed to fetch invoice template');
         const templateBytes = new Uint8Array(await templateRes.arrayBuffer());
@@ -154,39 +153,73 @@ Deno.serve(async (req) => {
         }
 
         const updatedDocx = filledZip.generate({ type: 'uint8array', compression: 'DEFLATE' });
+
+        // Upload filled DOCX to Google Drive
+        console.log('Uploading filled DOCX to Google Drive...');
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
+        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
 
-        // Upload the DOCX directly to Google Drive
-        console.log('Uploading DOCX to UNPAID folder...');
-        const docxFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.docx`;
-        const docxMetadata = JSON.stringify({ name: docxFileName, parents: [unpaidFolderId] });
-        const docxBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${docxMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
-        const docxAfter = enc.encode(`\r\n--${boundary}--`);
-        const docxUploadBody = new Uint8Array(docxBefore.length + updatedDocx.length + docxAfter.length);
-        docxUploadBody.set(docxBefore); docxUploadBody.set(updatedDocx, docxBefore.length); docxUploadBody.set(docxAfter, docxBefore.length + updatedDocx.length);
+        // Upload as DOCX (we'll convert to PDF)
+        const fileMetadata = JSON.stringify({ name: pdfFileName.replace('.pdf', '.docx'), parents: [unpaidFolderId] });
+        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${fileMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
+        const after = enc.encode(`\r\n--${boundary}--`);
+        const uploadBody = new Uint8Array(before.length + updatedDocx.length + after.length);
+        uploadBody.set(before); uploadBody.set(updatedDocx, before.length); uploadBody.set(after, before.length + updatedDocx.length);
 
-        const docxUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
-          body: docxUploadBody
+          body: uploadBody
         });
-        const uploadedDocx = await docxUploadRes.json();
-        if (!docxUploadRes.ok) throw new Error(`DOCX upload failed: ${JSON.stringify(uploadedDocx.error)}`);
+        const uploadedFile = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedFile.error)}`);
+        console.log('Uploaded DOCX file ID:', uploadedFile.id);
 
-        const docxFileId = uploadedDocx.id;
-        await fetch(`https://www.googleapis.com/drive/v3/files/${docxFileId}/permissions`, {
+        // Export DOCX to PDF directly (preserves hyperlinks better than Google Doc conversion)
+        console.log('Exporting DOCX to PDF...');
+        const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}/export?mimeType=application/pdf`, {
+          headers: { 'Authorization': `Bearer ${driveToken}` }
+        });
+        if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
+        const pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
+        console.log('PDF exported, size:', pdfBytes.length);
+
+        // Delete the temporary DOCX file
+        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}`, {
+          method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
+        });
+
+        // Upload the final PDF to the UNPAID folder
+        console.log('Uploading PDF to UNPAID folder...');
+        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
+        const pdfMetadata = JSON.stringify({ name: pdfFileName, parents: [unpaidFolderId] });
+        const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
+        const pdfAfter = enc.encode(`\r\n--${boundary}--`);
+        const pdfUploadBody = new Uint8Array(pdfBefore.length + pdfBytes.length + pdfAfter.length);
+        pdfUploadBody.set(pdfBefore); pdfUploadBody.set(pdfBytes, pdfBefore.length); pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
+
+        const pdfUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
+          body: pdfUploadBody
+        });
+        const uploadedPdf = await pdfUploadRes.json();
+        if (!pdfUploadRes.ok) throw new Error(`PDF upload failed: ${JSON.stringify(uploadedPdf.error)}`);
+
+        const pdfFileId = uploadedPdf.id;
+        await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: 'reader', type: 'anyone' })
         });
-        const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${docxFileId}?fields=webViewLink`, {
+        const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}?fields=webViewLink`, {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
         const { webViewLink: driveViewLink } = await fileDetailsRes.json();
-        console.log('Drive DOCX link:', driveViewLink);
+        console.log('Drive PDF link:', driveViewLink);
 
         // Send invoice email via Brevo
         const brevoApiKey = Deno.env.get('BREVO_API_KEY');
@@ -232,7 +265,7 @@ Deno.serve(async (req) => {
           stripe_payment_link_id: stripeData.id,
           stripe_payment_link_url: stripeData.url,
           google_drive_unpaid_url: driveViewLink,
-          google_drive_file_id: docxFileId,
+          google_drive_file_id: pdfFileId,
           pay_at_closing: false,
           email_sent_at: new Date().toISOString()
         });
@@ -251,7 +284,6 @@ Deno.serve(async (req) => {
 
       } catch (invoiceError) {
         console.error('Invoice generation error:', invoiceError);
-        console.error('Error stack:', invoiceError.stack);
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email', recipient_type: 'client',
           recipient_email: booking.client_email,
