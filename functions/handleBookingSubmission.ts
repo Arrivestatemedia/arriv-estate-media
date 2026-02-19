@@ -159,90 +159,34 @@ Deno.serve(async (req) => {
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
 
-        // Convert DOCX to PDF using Zamzar with base64 upload
-        console.log('Converting DOCX to PDF via Zamzar...');
-        const base64Docx = btoa(String.fromCharCode(...new Uint8Array(updatedDocx)));
-        
-        const zamzarRes = await fetch('https://api.zamzar.com/v1/files', {
-          method: 'POST',
-          headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source_file: base64Docx, target_format: 'pdf' })
-        });
-        
-        const zamzarData = await zamzarRes.json();
-        if (!zamzarRes.ok) throw new Error(`Zamzar upload failed: ${JSON.stringify(zamzarData)}`);
-        console.log('Zamzar job ID:', zamzarData.id);
+        // Upload the DOCX directly to Google Drive
+        console.log('Uploading DOCX to UNPAID folder...');
+        const docxFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.docx`;
+        const docxMetadata = JSON.stringify({ name: docxFileName, parents: [unpaidFolderId] });
+        const docxBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${docxMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
+        const docxAfter = enc.encode(`\r\n--${boundary}--`);
+        const docxUploadBody = new Uint8Array(docxBefore.length + updatedDocx.length + docxAfter.length);
+        docxUploadBody.set(docxBefore); docxUploadBody.set(updatedDocx, docxBefore.length); docxUploadBody.set(docxAfter, docxBefore.length + updatedDocx.length);
 
-        // Poll Zamzar for conversion completion
-        let conversionComplete = false;
-        let pdfBytes = null;
-        let pollCount = 0;
-        const maxPolls = 60;
-        const zamzarAuth = `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`; 
-        
-        while (!conversionComplete && pollCount < maxPolls) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          const statusRes = await fetch(`https://api.zamzar.com/v1/files/${zamzarData.id}`, {
-            headers: { 'Authorization': zamzarAuth }
-          });
-          const statusData = await statusRes.json();
-          console.log(`Zamzar status (poll ${pollCount + 1}):`, statusData.status);
-          
-          if (statusData.status === 'successful') {
-            // Get output files list
-            if (!statusData.output_file_url) {
-              const filesRes = await fetch(`https://api.zamzar.com/v1/files?parent_id=${zamzarData.id}`, {
-                headers: { 'Authorization': zamzarAuth }
-              });
-              const filesData = await filesRes.json();
-              if (filesData.data && filesData.data.length > 0) {
-                const downloadUrl = filesData.data[0].download_url;
-                const downloadRes = await fetch(downloadUrl, { headers: { 'Authorization': zamzarAuth } });
-                pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
-              }
-            } else {
-              const downloadRes = await fetch(statusData.output_file_url, {
-                headers: { 'Authorization': zamzarAuth }
-              });
-              pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
-            }
-            conversionComplete = true;
-            console.log('PDF converted via Zamzar, size:', pdfBytes.length);
-          } else if (statusData.status === 'failed') {
-            throw new Error(`Zamzar conversion failed: ${statusData.failure_reason || 'Unknown error'}`);
-          }
-          pollCount++;
-        }
-        if (!conversionComplete) throw new Error('Zamzar conversion timeout after ' + (pollCount * 2) + ' seconds');
-
-        // Upload the final PDF to the UNPAID folder
-        console.log('Uploading PDF to UNPAID folder...');
-        const pdfFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
-        const pdfMetadata = JSON.stringify({ name: pdfFileName, parents: [unpaidFolderId] });
-        const pdfBefore = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${pdfMetadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
-        const pdfAfter = enc.encode(`\r\n--${boundary}--`);
-        const pdfUploadBody = new Uint8Array(pdfBefore.length + pdfBytes.length + pdfAfter.length);
-        pdfUploadBody.set(pdfBefore); pdfUploadBody.set(pdfBytes, pdfBefore.length); pdfUploadBody.set(pdfAfter, pdfBefore.length + pdfBytes.length);
-
-        const pdfUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        const docxUploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
-          body: pdfUploadBody
+          body: docxUploadBody
         });
-        const uploadedPdf = await pdfUploadRes.json();
-        if (!pdfUploadRes.ok) throw new Error(`PDF upload failed: ${JSON.stringify(uploadedPdf.error)}`);
+        const uploadedDocx = await docxUploadRes.json();
+        if (!docxUploadRes.ok) throw new Error(`DOCX upload failed: ${JSON.stringify(uploadedDocx.error)}`);
 
-        const pdfFileId = uploadedPdf.id;
-        await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
+        const docxFileId = uploadedDocx.id;
+        await fetch(`https://www.googleapis.com/drive/v3/files/${docxFileId}/permissions`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: 'reader', type: 'anyone' })
         });
-        const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}?fields=webViewLink`, {
+        const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${docxFileId}?fields=webViewLink`, {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
         const { webViewLink: driveViewLink } = await fileDetailsRes.json();
-        console.log('Drive PDF link:', driveViewLink);
+        console.log('Drive DOCX link:', driveViewLink);
 
         // Send invoice email via Brevo
         const brevoApiKey = Deno.env.get('BREVO_API_KEY');
