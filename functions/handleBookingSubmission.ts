@@ -158,32 +158,23 @@ Deno.serve(async (req) => {
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
 
-        // Convert DOCX to PDF using Zamzar (preserves clickable hyperlinks)
-        console.log('Converting DOCX to PDF via Zamzar...');
-        const zamzarBoundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
-        const enc = new TextEncoder();
-        const parts = [];
+        // Convert DOCX to PDF using libreoffice via a simpler approach
+        console.log('Converting DOCX to PDF...');
+        // Use a direct base64 encoding approach for Zamzar
+        const docxBase64 = btoa(String.fromCharCode(...new Uint8Array(updatedDocx)));
         
-        // Build multipart form data manually
-        parts.push(enc.encode(`--${zamzarBoundary}\r\nContent-Disposition: form-data; name="source_file"; filename="invoice.docx"\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`));
-        parts.push(updatedDocx);
-        parts.push(enc.encode(`\r\n--${zamzarBoundary}\r\nContent-Disposition: form-data; name="target_format"\r\n\r\npdf\r\n--${zamzarBoundary}--\r\n`));
-        
-        const zamzarBody = new Uint8Array(parts.reduce((acc, part) => acc + part.length, 0));
-        let offset = 0;
-        for (const part of parts) {
-          zamzarBody.set(part, offset);
-          offset += part.length;
-        }
-
         const zamzarRes = await fetch('https://api.zamzar.com/v1/files', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`,
-            'Content-Type': `multipart/form-data; boundary=${zamzarBoundary}`
+            'Content-Type': 'application/json'
           },
-          body: zamzarBody
+          body: JSON.stringify({
+            source_file: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBase64}`,
+            target_format: 'pdf'
+          })
         });
+        
         const zamzarData = await zamzarRes.json();
         if (!zamzarRes.ok) throw new Error(`Zamzar upload failed: ${JSON.stringify(zamzarData)}`);
         console.log('Zamzar job ID:', zamzarData.id);
@@ -202,7 +193,7 @@ Deno.serve(async (req) => {
           const statusData = await statusRes.json();
           console.log(`Zamzar status (poll ${pollCount + 1}):`, statusData.status);
           if (statusData.status === 'successful') {
-            const downloadRes = await fetch(statusData.output_md5_url, {
+            const downloadRes = await fetch(statusData.output_url, {
               headers: { 'Authorization': zamzarAuth }
             });
             pdfBytes = new Uint8Array(await downloadRes.arrayBuffer());
