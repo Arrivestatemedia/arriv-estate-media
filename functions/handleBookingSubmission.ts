@@ -166,8 +166,36 @@ Deno.serve(async (req) => {
           headers: { 'Authorization': `Bearer ${driveToken}` }
         });
         if (!pdfExportRes.ok) throw new Error(`PDF export failed: ${await pdfExportRes.text()}`);
-        const pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
+        let pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
         console.log('PDF exported, size:', pdfBytes.length);
+
+        // Add clickable Stripe link to PDF using pdf-lib
+        console.log('Adding Stripe link to PDF...');
+        const PDFDocument = (await import('npm:pdf-lib@1.17.1')).PDFDocument;
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const pages = pdfDoc.getPages();
+        const lastPage = pages[pages.length - 1];
+        const { height } = lastPage.getSize();
+        
+        // Add link annotation near bottom of page (typical payment area)
+        lastPage.drawText('Pay Now', {
+          x: 50,
+          y: height - 50,
+          size: 12,
+          color: (await import('npm:pdf-lib@1.17.1')).rgb(0, 0.4, 1),
+        });
+        lastPage.addAnnotation({
+          type: 'Link',
+          x: 50,
+          y: height - 62,
+          width: 60,
+          height: 20,
+          uri: stripeUrl,
+        });
+        
+        const modifiedPdfBytes = await pdfDoc.save();
+        pdfBytes = new Uint8Array(modifiedPdfBytes);
+        console.log('Stripe link added to PDF, new size:', pdfBytes.length);
 
         // Delete the temporary Google Doc
         await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}`, {
