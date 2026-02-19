@@ -113,6 +113,27 @@ Deno.serve(async (req) => {
         const stripeUrl = stripeData.url;
 
         const zip = new PizZip(templateBytes);
+
+        // Replace hyperlink target URL in the relationship file (word/_rels/document.xml.rels)
+        // The template has a placeholder hyperlink target we replace with the actual Stripe URL
+        const relsPath = 'word/_rels/document.xml.rels';
+        if (zip.files[relsPath]) {
+          let relsXml = zip.files[relsPath].asText();
+          // Replace any placeholder hyperlink that contains PLACE_STRIPE_LINK or a dummy URL
+          // We look for a hyperlink relationship with a placeholder target and replace it
+          relsXml = relsXml.replace(
+            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")[^"]*PLACE_STRIPE_LINK[^"]*(")/gi,
+            `$1${stripeUrl}$2`
+          );
+          // Also handle if the template uses a dummy URL like https://stripe.com or example.com as placeholder
+          relsXml = relsXml.replace(
+            /(<Relationship[^>]+Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]+Target=")(https?:\/\/(?:stripe\.com|example\.com|pay\.stripe\.com\/placeholder)[^"]*)(")/gi,
+            `$1${stripeUrl}$3`
+          );
+          zip.file(relsPath, relsXml);
+          console.log('Updated hyperlink in rels file');
+        }
+
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
@@ -128,7 +149,6 @@ Deno.serve(async (req) => {
           'SERVICE_AND_ADD-ONS_CHOSEN': servicesLine,
           AMOUNT_OF_PACKAGE: `$${basePkgAmount.toFixed(2)}`,
           'TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS': `$${totalAmount.toFixed(2)}`,
-          PLACE_STRIP_LINK: stripeUrl,
           NEXT_INVOICE_NUMBER: nextInvoiceNumber,
           DATE_OF_INVOICE_CREATION: invoiceDate,
           'DATE OF JOB': booking.preferred_date,
