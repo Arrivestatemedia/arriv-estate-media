@@ -160,14 +160,29 @@ Deno.serve(async (req) => {
 
         // Convert DOCX to PDF using Zamzar (preserves clickable hyperlinks)
         console.log('Converting DOCX to PDF via Zamzar...');
-        const zamzarFormData = new FormData();
-        zamzarFormData.append('source_file', new File([updatedDocx], 'invoice.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
-        zamzarFormData.append('target_format', 'pdf');
+        const zamzarBoundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
+        const enc = new TextEncoder();
+        const parts = [];
+        
+        // Build multipart form data manually
+        parts.push(enc.encode(`--${zamzarBoundary}\r\nContent-Disposition: form-data; name="source_file"; filename="invoice.docx"\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`));
+        parts.push(updatedDocx);
+        parts.push(enc.encode(`\r\n--${zamzarBoundary}\r\nContent-Disposition: form-data; name="target_format"\r\n\r\npdf\r\n--${zamzarBoundary}--\r\n`));
+        
+        const zamzarBody = new Uint8Array(parts.reduce((acc, part) => acc + part.length, 0));
+        let offset = 0;
+        for (const part of parts) {
+          zamzarBody.set(part, offset);
+          offset += part.length;
+        }
 
         const zamzarRes = await fetch('https://api.zamzar.com/v1/files', {
           method: 'POST',
-          headers: { 'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}` },
-          body: zamzarFormData
+          headers: { 
+            'Authorization': `Basic ${btoa(`${Deno.env.get('ZAMZAR_API_KEY')}:`)}`,
+            'Content-Type': `multipart/form-data; boundary=${zamzarBoundary}`
+          },
+          body: zamzarBody
         });
         const zamzarData = await zamzarRes.json();
         if (!zamzarRes.ok) throw new Error(`Zamzar upload failed: ${JSON.stringify(zamzarData)}`);
