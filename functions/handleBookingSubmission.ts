@@ -136,7 +136,41 @@ Deno.serve(async (req) => {
           'DATE OF JOB': booking.preferred_date,
         });
 
-        const updatedDocx = doc.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
+        // The Stripe link placeholder is inside a DOCX text box (drawing object).
+        // Google Docs API can't reach it, so we inject a real hyperlink directly into the DOCX XML.
+        const zipObj = doc.getZip();
+        let documentXml = zipObj.files['word/document.xml'].asText();
+
+        // Add hyperlink relationship
+        let relsXml = zipObj.files['word/_rels/document.xml.rels'].asText();
+        const relId = 'rStripeHyperlink';
+        if (!relsXml.includes(relId)) {
+          relsXml = relsXml.replace(
+            '</Relationships>',
+            `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${stripeUrl}" TargetMode="External"/></Relationships>`
+          );
+          zipObj.file('word/_rels/document.xml.rels', relsXml);
+        }
+
+        // Replace the run containing STRIPEPAYNOW with a hyperlink run
+        // Pattern: <w:r>...<w:t>STRIPEPAYNOW</w:t></w:r>
+        documentXml = documentXml.replace(
+          /(<w:r>(?:<w:rPr>[\s\S]*?<\/w:rPr>)?<w:t[^>]*>)STRIPEPAYNOW(<\/w:t><\/w:r>)/,
+          `<w:hyperlink r:id="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/><w:color w:val="1155CC"/><w:u w:val="single"/></w:rPr><w:t>${stripeUrl}</w:t></w:r></w:hyperlink>`
+        );
+
+        // Also try with rPr already present in template (broader match)
+        if (documentXml.includes('STRIPEPAYNOW')) {
+          documentXml = documentXml.replace(
+            /<w:r><w:rPr>([\s\S]*?)<\/w:rPr><w:t[^>]*>STRIPEPAYNOW<\/w:t><\/w:r>/,
+            `<w:hyperlink r:id="${relId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:r><w:rPr>$1<w:color w:val="1155CC"/><w:u w:val="single"/></w:rPr><w:t>${stripeUrl}</w:t></w:r></w:hyperlink>`
+          );
+        }
+
+        zipObj.file('word/document.xml', documentXml);
+        console.log('Stripe hyperlink injected into DOCX XML, URL in doc:', !documentXml.includes('STRIPEPAYNOW'));
+
+        const updatedDocx = zipObj.generate({ type: 'uint8array', compression: 'DEFLATE' });
 
         // Upload filled DOCX to Google Drive as Google Doc (auto-converts to Google Doc format)
         console.log('Uploading filled DOCX to Google Drive...');
