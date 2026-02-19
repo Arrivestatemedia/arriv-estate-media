@@ -181,9 +181,92 @@ Deno.serve(async (req) => {
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
-        // Note: The DOCX→Google Doc conversion often loses hyperlink metadata.
-        // The PDF export will contain the "Pay Now" text, but it may not be clickable.
-        // This is a known limitation of the conversion process.
+        // Update hyperlink using Google Docs API
+        console.log('Updating hyperlink via Google Docs API...');
+        const docsToken = driveToken; // Same auth token works for Docs API
+
+        // Get document content to find the link text range
+        const docRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}`, {
+          headers: { 'Authorization': `Bearer ${docsToken}` }
+        });
+        const docContent = await docRes.json();
+        if (!docRes.ok) throw new Error(`Failed to get document: ${JSON.stringify(docContent.error)}`);
+
+        // Log full document structure for debugging
+        console.log('Document title:', docContent.title);
+        console.log('Document body elements count:', docContent.body?.content?.length || 0);
+        
+        let fullText = '';
+        let textElements = [];
+        
+        // Extract all text and track element positions
+        if (docContent.body?.content) {
+          for (const element of docContent.body.content) {
+            if (element.paragraph?.elements) {
+              for (const run of element.paragraph.elements) {
+                if (run.textRun?.text) {
+                  console.log(`Text run: "${run.textRun.text}", startIndex: ${run.startIndex}, endIndex: ${run.endIndex}`);
+                  textElements.push({
+                    text: run.textRun.text,
+                    startIndex: run.startIndex,
+                    endIndex: run.endIndex,
+                    hasLink: !!(run.textRun.textStyle?.link?.url)
+                  });
+                  fullText += run.textRun.text;
+                }
+              }
+            }
+          }
+        }
+        console.log('Full document text:', fullText);
+
+        // Find the text containing "View Invoice" or similar link text
+        let linkStartIndex = -1;
+        let linkEndIndex = -1;
+        
+        for (const elem of textElements) {
+          if (elem.text.includes('View') || elem.text.includes('Invoice') || elem.text.includes('Pay')) {
+            linkStartIndex = elem.startIndex;
+            linkEndIndex = elem.endIndex;
+            console.log(`Found link text: "${elem.text}" at ${linkStartIndex}-${linkEndIndex}`);
+            break;
+          }
+        }
+
+        // If we found text that could be a link, update it
+        if (linkStartIndex !== -1) {
+          console.log(`Updating link URL for text range ${linkStartIndex}-${linkEndIndex}...`);
+          const updateRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${docsToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requests: [
+                {
+                  updateTextStyle: {
+                    range: {
+                      startIndex: linkStartIndex,
+                      endIndex: linkEndIndex
+                    },
+                    textStyle: {
+                      link: {
+                        url: stripeUrl
+                      }
+                    },
+                    fields: 'link'
+                  }
+                }
+              ]
+            })
+          });
+          const updateResult = await updateRes.json();
+          if (!updateRes.ok) {
+            console.error(`Link update response:`, JSON.stringify(updateResult));
+            throw new Error(`Failed to update link: ${JSON.stringify(updateResult.error)}`);
+          }
+          console.log('Link updated successfully via Docs API');
+        } else {
+          console.log('Warning: Could not find suitable text for hyperlink');
+        }
 
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
