@@ -105,12 +105,15 @@ Deno.serve(async (req) => {
         const templateRes = await fetch(templateUrl);
         if (!templateRes.ok) throw new Error('Failed to fetch invoice template');
         const templateBytes = new Uint8Array(await templateRes.arrayBuffer());
+        console.log('Template fetched, size:', templateBytes.length);
 
         // Use docxtemplater for proper DOCX templating (handles split XML runs)
         const PizZip = (await import('npm:pizzip@3.1.7')).default;
         const Docxtemplater = (await import('npm:docxtemplater@3.56.0')).default;
+        console.log('Docxtemplater imported successfully');
 
         const stripeUrl = stripeData.url;
+        console.log('Stripe URL:', stripeUrl);
 
         const zip = new PizZip(templateBytes);
         const doc = new Docxtemplater(zip, {
@@ -118,6 +121,7 @@ Deno.serve(async (req) => {
           linebreaks: true,
           delimiters: { start: '{{', end: '}}' }
         });
+        console.log('Docxtemplater instance created');
 
         doc.render({
           JOB_ADDRESS: propertyAddress,
@@ -133,8 +137,10 @@ Deno.serve(async (req) => {
           DATE_OF_INVOICE_CREATION: invoiceDate,
           'DATE OF JOB': booking.preferred_date,
         });
+        console.log('Template rendered successfully');
 
         const updatedDocx = doc.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
+        console.log('DOCX generated, size:', updatedDocx.length);
 
         // Upload filled DOCX to Google Drive as Google Doc (auto-converts to Google Doc format)
         console.log('Uploading filled DOCX to Google Drive...');
