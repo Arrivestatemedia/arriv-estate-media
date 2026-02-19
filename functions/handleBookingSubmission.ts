@@ -205,21 +205,21 @@ Deno.serve(async (req) => {
 
         // Add clickable link to PDF using pdf-lib
         console.log('Adding clickable link to PDF...');
-        const { PDFDocument } = await import('npm:pdf-lib@1.17.1');
+        const { PDFDocument, PDFPage } = await import('npm:pdf-lib@1.17.1');
         const pdfDoc = await PDFDocument.load(pdfBytes);
         const pages = pdfDoc.getPages();
         const firstPage = pages[0];
         const { width, height } = firstPage.getSize();
 
         // Add link annotation at estimated position of "Pay Now" button (bottom center)
-        // Adjust these coordinates based on your template layout
-        firstPage.drawLinkAnnotation({
+        firstPage.drawAnnotation(firstPage.createAnnotation({
+          type: 'Link',
           x: width / 2 - 40,
           y: 100,
           width: 80,
           height: 30,
           url: stripeUrl
-        });
+        }));
 
         pdfBytes = new Uint8Array(await pdfDoc.save({ useObjectStreams: false }));
 
