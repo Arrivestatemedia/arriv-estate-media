@@ -114,27 +114,6 @@ Deno.serve(async (req) => {
 
         const zip = new PizZip(templateBytes);
 
-        // Replace hyperlink target URL in the relationship file (word/_rels/document.xml.rels)
-        // The template has a placeholder hyperlink target we replace with the actual Stripe URL
-        const relsPath = 'word/_rels/document.xml.rels';
-        if (zip.files[relsPath]) {
-          let relsXml = zip.files[relsPath].asText();
-          
-          // Replace ALL hyperlink relationships that point to https://example.com/ with Stripe URL
-          let replacedCount = 0;
-          relsXml = relsXml.replace(
-            /(<Relationship[^>]*?Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/hyperlink"[^>]*?Target=")[^"]*(")/gi,
-            (match, before, after) => {
-              console.log(`Updating hyperlink with Stripe URL`);
-              replacedCount++;
-              return `${before}${stripeUrl}${after}`;
-            }
-          );
-          
-          console.log(`Updated ${replacedCount} hyperlink(s)`);
-          zip.file(relsPath, relsXml);
-        }
-
         const doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
