@@ -202,24 +202,33 @@ Deno.serve(async (req) => {
             console.warn('PDF has no pages, skipping link addition');
           } else {
             const lastPage = pages[pages.length - 1];
-            const { height } = lastPage.getSize();
+            const { height, width } = lastPage.getSize();
             
-            const linkY = height - 50;
+            const linkX = 50;
+            const linkY = height - 80;
+            const linkWidth = 100;
+            const linkHeight = 24;
+            
+            // Draw visible text
             lastPage.drawText('Pay Now', {
-              x: 50,
+              x: linkX,
               y: linkY,
-              size: 12,
-              color: rgb(0, 0.5, 1),
+              size: 14,
+              color: rgb(0.72, 0.59, 0.42), // Gold color (#B8956A)
             });
             
-            lastPage.drawLink({
-              x: 50,
-              y: linkY - 12,
-              width: 60,
-              height: 16,
-              uri: stripeUrl,
+            // Add link annotation
+            lastPage.drawRectangle({
+              x: linkX,
+              y: linkY - linkHeight,
+              width: linkWidth,
+              height: linkHeight,
+              borderColor: rgb(0.72, 0.59, 0.42),
+              borderWidth: 1,
+              link: stripeUrl,
             });
-            console.log('Stripe link added to PDF');
+            
+            console.log('Stripe link added to PDF at', linkX, linkY);
           }
           
           const modifiedPdfBytes = await pdfDoc.save();
