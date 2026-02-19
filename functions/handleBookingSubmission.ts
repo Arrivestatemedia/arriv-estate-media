@@ -163,6 +163,90 @@ Deno.serve(async (req) => {
         if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
+        // Replace sentinel text with a clickable "Pay Now" hyperlink using Google Docs API
+        console.log('Inserting Pay Now hyperlink into Google Doc...');
+        const docsToken = driveToken; // same OAuth token works for Docs API
+        const docsRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${docsToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requests: [
+              {
+                replaceAllText: {
+                  containsText: { text: STRIPE_SENTINEL, matchCase: true },
+                  replaceText: 'Pay Now'
+                }
+              },
+              {
+                updateTextStyle: {
+                  textStyle: {
+                    link: { url: stripeUrl },
+                    foregroundColor: { color: { rgbColor: { red: 0.0, green: 0.0, blue: 0.87 } } },
+                    underline: true,
+                    bold: true,
+                    fontSize: { magnitude: 14, unit: 'PT' }
+                  },
+                  fields: 'link,foregroundColor,underline,bold,fontSize',
+                  range: { startIndex: 1, endIndex: 1 } // placeholder — will be overridden below
+                }
+              }
+            ]
+          })
+        });
+
+        // The above updateTextStyle with a static range won't work perfectly, so we do a two-step:
+        // First replaceAllText, then find the "Pay Now" text location and style it
+        if (!docsRes.ok) {
+          const docsErr = await docsRes.text();
+          console.error('Docs API replaceAllText error (non-fatal):', docsErr);
+        } else {
+          // Now fetch the doc to find the "Pay Now" text range
+          const docContentRes = await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}`, {
+            headers: { 'Authorization': `Bearer ${docsToken}` }
+          });
+          const docContent = await docContentRes.json();
+
+          // Find "Pay Now" text range in the document body
+          let payNowStart = -1, payNowEnd = -1;
+          const body = docContent.body?.content || [];
+          for (const elem of body) {
+            if (elem.paragraph) {
+              for (const pe of elem.paragraph.elements || []) {
+                if (pe.textRun?.content?.includes('Pay Now')) {
+                  const idx = pe.textRun.content.indexOf('Pay Now');
+                  payNowStart = pe.startIndex + idx;
+                  payNowEnd = payNowStart + 'Pay Now'.length;
+                  break;
+                }
+              }
+            }
+            if (payNowStart !== -1) break;
+          }
+
+          if (payNowStart !== -1) {
+            await fetch(`https://docs.googleapis.com/v1/documents/${uploadedDoc.id}:batchUpdate`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${docsToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requests: [{
+                  updateTextStyle: {
+                    textStyle: {
+                      link: { url: stripeUrl },
+                      foregroundColor: { color: { rgbColor: { red: 0.0, green: 0.0, blue: 0.87 } } },
+                      underline: true,
+                      bold: true,
+                      fontSize: { magnitude: 14, unit: 'PT' }
+                    },
+                    fields: 'link,foregroundColor,underline,bold,fontSize',
+                    range: { startIndex: payNowStart, endIndex: payNowEnd }
+                  }
+                }]
+              })
+            });
+            console.log('Pay Now hyperlink inserted at index', payNowStart);
+          }
+        }
+
         // Export the Google Doc as PDF
         console.log('Exporting as PDF...');
         const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
