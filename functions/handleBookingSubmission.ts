@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
         // Add clickable Stripe link to PDF using pdf-lib
         console.log('Adding clickable Stripe payment link to PDF...');
         try {
-          const { PDFDocument, PDFString, PDFName, PDFArray } = await import('npm:pdf-lib@1.17.1');
+          const { PDFDocument, PDFString, PDFName } = await import('npm:pdf-lib@1.17.1');
           const pdfDoc = await PDFDocument.load(pdfBytes);
           const pages = pdfDoc.getPages();
           
@@ -209,13 +209,12 @@ Deno.serve(async (req) => {
               URI: PDFString.of(stripeUrl)
             });
             
-            // Create link annotation rectangle and properties
-            const linkRect = [40, height - 100, 240, height - 75];
+            // Create link annotation with raw numbers for Rect and Border
             const linkAnnotation = pdfDoc.context.obj({
               Type: PDFName.of('Annot'),
               Subtype: PDFName.of('Link'),
-              Rect: PDFArray.of([40, height - 100, 240, height - 75]),
-              Border: PDFArray.of([0, 0, 0]),
+              Rect: [40, height - 100, 240, height - 75],
+              Border: [0, 0, 0],
               A: actionDict
             });
             
@@ -225,7 +224,7 @@ Deno.serve(async (req) => {
             if (annots) {
               annots.push(registeredAnnotation);
             } else {
-              lastPage.node.set('Annots', PDFArray.of([registeredAnnotation]));
+              lastPage.node.set('Annots', [registeredAnnotation]);
             }
             
             console.log('Clickable link added to PDF with URI:', stripeUrl);
