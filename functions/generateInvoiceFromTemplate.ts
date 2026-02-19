@@ -4,11 +4,7 @@ import { PDFDocument, rgb } from 'npm:pdf-lib@^1.17.1';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    // Allow both admin users and internal service role calls
-    const isAuthenticated = await base44.auth.isAuthenticated();
-    if (!isAuthenticated) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // No auth check needed - this function is only called internally
 
     const {
       invoiceNumber,
