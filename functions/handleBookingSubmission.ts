@@ -119,9 +119,6 @@ Deno.serve(async (req) => {
           delimiters: { start: '{{', end: '}}' }
         });
 
-        // Use a unique sentinel for the Stripe link placeholder
-        const STRIPE_SENTINEL = 'STRIPE_PAY_NOW_LINK_PLACEHOLDER';
-
         doc.render({
           JOB_ADDRESS: propertyAddress,
           PROPERTY_ADDRESS: propertyAddress,
@@ -131,13 +128,37 @@ Deno.serve(async (req) => {
           'SERVICE_AND_ADD-ONS_CHOSEN': servicesLine,
           AMOUNT_OF_PACKAGE: `$${basePkgAmount.toFixed(2)}`,
           'TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS': `$${totalAmount.toFixed(2)}`,
-          PLACE_STRIP_LINK: STRIPE_SENTINEL,
+          PLACE_STRIP_LINK: stripeUrl,
           NEXT_INVOICE_NUMBER: nextInvoiceNumber,
           DATE_OF_INVOICE_CREATION: invoiceDate,
           'DATE OF JOB': booking.preferred_date,
         });
 
-        const updatedDocx = doc.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
+        // Inject a clickable hyperlink for the Stripe URL directly into the DOCX XML
+        // We find the run containing the Stripe URL and wrap it with a proper hyperlink relationship
+        const renderedZip = doc.getZip();
+
+        // Add relationship for hyperlink
+        const relsPath = 'word/_rels/document.xml.rels';
+        let relsXml = renderedZip.files[relsPath]?.asText() || '';
+        const hyperlinkRelId = 'rIdStripePayNow';
+        const hyperlinkRel = `<Relationship Id="${hyperlinkRelId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${stripeUrl}" TargetMode="External"/>`;
+        relsXml = relsXml.replace('</Relationships>', `${hyperlinkRel}</Relationships>`);
+        renderedZip.file(relsPath, relsXml);
+
+        // Find the text run in document.xml that contains the Stripe URL and wrap it in a hyperlink element
+        let docXml = renderedZip.files['word/document.xml']?.asText() || '';
+        // Escape stripeUrl for XML search
+        const escapedUrl = stripeUrl.replace(/&/g, '&amp;');
+        // Replace the run containing the stripe URL with a hyperlink element
+        // The run will look like: <w:r>...<w:t>https://buy.stripe.com/...</w:t>...</w:r>
+        docXml = docXml.replace(
+          new RegExp(`(<w:r[^>]*>(?:<w:rPr>[^<]*(?:<[^>]+>[^<]*<\\/[^>]+>)*<\\/w:rPr>)?<w:t[^>]*>)(${escapedUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})(</w:t></w:r>)`),
+          `<w:hyperlink r:id="${hyperlinkRelId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>Pay Now</w:t></w:r></w:hyperlink>`
+        );
+        renderedZip.file('word/document.xml', docXml);
+
+        const updatedDocx = renderedZip.generate({ type: 'uint8array', compression: 'DEFLATE' });
 
         // Upload filled DOCX to Google Drive as Google Doc (auto-converts to Google Doc format)
         console.log('Uploading filled DOCX to Google Drive...');
