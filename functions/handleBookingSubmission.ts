@@ -156,8 +156,12 @@ Deno.serve(async (req) => {
           headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
           body: uploadBody
         });
+        console.log('Google Drive upload response status:', uploadRes.status);
         const uploadedDoc = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
+        if (!uploadRes.ok) {
+          console.error('Drive upload error:', uploadedDoc);
+          throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
+        }
         console.log('Uploaded Google Doc ID:', uploadedDoc.id);
 
         // Export the Google Doc as PDF
