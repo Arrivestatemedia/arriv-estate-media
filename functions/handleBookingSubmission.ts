@@ -241,23 +241,28 @@ Deno.serve(async (req) => {
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
 </body></html>`;
 
-        console.log('Sending invoice email via Brevo to:', booking.client_email);
-        console.log('Brevo API Key present:', !!brevoApiKey);
-        console.log('Drive link:', driveViewLink);
+        const brevoPayload = {
+          sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
+          to: [{ email: booking.client_email, name: booking.client_name }],
+          subject: 'Your Invoice from Arriv Estate Media',
+          htmlContent: htmlEmailBody
+        };
+        console.log('Brevo payload:', JSON.stringify(brevoPayload));
+        console.log('Brevo API Key:', brevoApiKey ? brevoApiKey.substring(0, 10) + '...' : 'MISSING');
+
         const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
-            to: [{ email: booking.client_email, name: booking.client_name }],
-            subject: 'Your Invoice from Arriv Estate Media',
-            htmlContent: htmlEmailBody
-          })
+          body: JSON.stringify(brevoPayload)
         });
         const brevoData = await brevoResponse.json();
-        console.log('Brevo response status:', brevoResponse.status);
-        console.log('Brevo response data:', JSON.stringify(brevoData));
-        if (!brevoResponse.ok) throw new Error(`Brevo error: ${brevoData.message}`);
+        console.log('Brevo status:', brevoResponse.status);
+        console.log('Brevo response:', JSON.stringify(brevoData));
+
+        if (!brevoResponse.ok) {
+          console.error('Brevo error details:', brevoData);
+          throw new Error(`Brevo error (${brevoResponse.status}): ${brevoData.message || JSON.stringify(brevoData)}`);
+        }
         console.log('Invoice email sent, messageId:', brevoData.messageId);
 
         // Save invoice record
