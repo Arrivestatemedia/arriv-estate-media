@@ -119,6 +119,9 @@ Deno.serve(async (req) => {
           delimiters: { start: '{{', end: '}}' }
         });
 
+        // Use a unique sentinel for the Stripe link placeholder
+        const STRIPE_SENTINEL = 'STRIPE_PAY_NOW_LINK_PLACEHOLDER';
+
         doc.render({
           JOB_ADDRESS: propertyAddress,
           PROPERTY_ADDRESS: propertyAddress,
@@ -128,7 +131,7 @@ Deno.serve(async (req) => {
           'SERVICE_AND_ADD-ONS_CHOSEN': servicesLine,
           AMOUNT_OF_PACKAGE: `$${basePkgAmount.toFixed(2)}`,
           'TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS': `$${totalAmount.toFixed(2)}`,
-          PLACE_STRIP_LINK: stripeUrl,
+          PLACE_STRIP_LINK: STRIPE_SENTINEL,
           NEXT_INVOICE_NUMBER: nextInvoiceNumber,
           DATE_OF_INVOICE_CREATION: invoiceDate,
           'DATE OF JOB': booking.preferred_date,
