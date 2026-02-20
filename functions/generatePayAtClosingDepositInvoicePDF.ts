@@ -1,261 +1,124 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { PDFDocument, rgb } from 'npm:pdf-lib@^1.17.1';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
     
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Admin access required' }, { status: 403 });
-    }
-    
-    const { invoiceNumber, clientName, jobAddress, serviceDate, packageName, addOns, packageMinimum, payAtClosingRate, stripeUrl, isDepositReceived = false } = await req.json();
+    const { invoiceNumber, booking, depositAmount } = await req.json();
 
-    // Package descriptions
-    const packageDescriptions = {
+    if (!booking || !invoiceNumber || depositAmount === undefined) {
+      return Response.json({ error: 'Missing required data' }, { status: 400 });
+    }
+
+    const totalAmount = parseFloat(depositAmount);
+
+    // Create Stripe payment link for deposit
+    const stripeResponse = await fetch('https://api.stripe.com/v1/payment_links', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('STRIPE_SECRET_KEY')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        'line_items[0][price_data][currency]': 'usd',
+        'line_items[0][price_data][product_data][name]': `Media Services Deposit - ${booking.street_address}`,
+        'line_items[0][price_data][unit_amount]': String(Math.round(totalAmount * 100)),
+        'line_items[0][quantity]': '1',
+      }),
+    });
+
+    const stripeData = await stripeResponse.json();
+    if (!stripeResponse.ok) {
+      throw new Error(`Stripe error: ${stripeData.error?.message || 'Unknown error'}`);
+    }
+
+    const packageNames = {
       'mls_walkthrough': 'MLS Walkthrough',
-      'photo_essentials': 'Photo Essentials Package',
-      'photo_cinematic': 'Photo Cinematic Package',
-      'premium_bundle': 'Premium Bundle Package'
+      'photo_essentials': 'Photo Essentials',
+      'photo_cinematic': 'Photo + Cinematic Walkthrough',
+      'premium_bundle': 'Premium Media Bundle'
     };
 
     const addonDescriptions = {
-      'drone': 'Drone add-on (photos + short clips)',
-      '3d_tour': '3D Tour',
-      'twilight': 'Twilight exterior edits (up to 5 photos)',
-      'rush_delivery': 'Next day rush delivery',
-      'vertical_reel': 'Additional vertical reel',
+      'drone': 'Drone Photography',
+      '3d_tour': '3D Virtual Tour',
+      'twilight': 'Twilight Photography',
+      'rush_delivery': 'Rush Delivery',
+      'vertical_reel': 'Vertical Reel',
       'ai_staging': 'AI Staging'
     };
 
-    const addonPrices = {
-      'drone': 125,
-      '3d_tour': 125,
-      'twilight': 125,
-      'rush_delivery': 100,
-      'vertical_reel': 40,
-      'ai_staging': 125
-    };
+    const jobAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
+    const addOns = booking.add_ons || [];
 
-    const depositAmount = 50;
-    const balanceDueAtClosing = packageMinimum - depositAmount;
-    const payAtClosingPercentageDisplay = (payAtClosingRate * 100).toFixed(2);
+    // Generate PDF - EXACT SAME FORMAT as pay-up-front
+    console.log('Generating deposit invoice PDF...');
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([612, 792]);
 
-    // Create invoice HTML
-    const invoiceHTML = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 40px;
-          background: white;
-          color: #333;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 40px;
-        }
-        .logo-text {
-          font-size: 28px;
-          font-weight: bold;
-          letter-spacing: 2px;
-          color: #1a1a1a;
-          margin-bottom: 5px;
-        }
-        .logo-subtitle {
-          font-size: 12px;
-          color: #b8956a;
-          letter-spacing: 1px;
-        }
-        .title {
-          font-size: 24px;
-          font-weight: bold;
-          margin: 30px 0 10px 0;
-        }
-        .invoice-details {
-          display: flex;
-          justify-content: space-between;
-          margin: 20px 0;
-          font-size: 14px;
-        }
-        .details-column {
-          flex: 1;
-        }
-        .detail-row {
-          margin: 8px 0;
-        }
-        .detail-label {
-          font-weight: bold;
-        }
-        .section-title {
-          font-weight: bold;
-          font-size: 14px;
-          margin-top: 25px;
-          margin-bottom: 10px;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 20px 0;
-          font-size: 14px;
-        }
-        th {
-          background-color: #f5f5f5;
-          padding: 12px;
-          text-align: left;
-          font-weight: bold;
-          border: 1px solid #ddd;
-        }
-        td {
-          padding: 12px;
-          border: 1px solid #ddd;
-        }
-        .amount-right {
-          text-align: right;
-        }
-        .total-row {
-          background-color: #f9f9f9;
-          font-weight: bold;
-        }
-        .payment-button {
-          display: inline-block;
-          background-color: #b8956a;
-          color: white;
-          padding: 12px 24px;
-          text-decoration: none;
-          border-radius: 4px;
-          margin-top: 20px;
-          font-weight: bold;
-        }
-        .footer {
-          text-align: center;
-          margin-top: 40px;
-          font-size: 13px;
-          color: #666;
-        }
-        .payment-terms {
-          background-color: #f9f9f9;
-          padding: 15px;
-          margin: 20px 0;
-          border-left: 4px solid #b8956a;
-          font-size: 13px;
-          line-height: 1.6;
-        }
-        .payment-terms ul {
-          margin: 10px 0;
-          padding-left: 20px;
-        }
-        .payment-terms li {
-          margin: 5px 0;
-        }
-        .info-box {
-          background-color: #f9f9f9;
-          padding: 15px;
-          margin: 20px 0;
-          border-left: 4px solid #b8956a;
-          font-size: 13px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="logo-text">ARRIV</div>
-        <div class="logo-subtitle">ESTATE MEDIA</div>
-      </div>
+    const gold = rgb(0.72, 0.59, 0.42);
+    const black = rgb(0.1, 0.1, 0.1);
+    const gray = rgb(0.4, 0.4, 0.4);
 
-      <div class="title">${isDepositReceived ? 'MEDIA INVOICE' : 'MEDIA INVOICE'}</div>
+    let y = 750;
 
-      <div class="invoice-details">
-        <div class="details-column">
-          <div class="detail-row"><span class="detail-label">Invoice #:</span> ${invoiceNumber}</div>
-          <div class="detail-row"><span class="detail-label">Client:</span> ${clientName}</div>
-          <div class="detail-row"><span class="detail-label">Property:</span> ${jobAddress}</div>
-          <div class="detail-row"><span class="detail-label">Service Date:</span> ${serviceDate}</div>
-        </div>
-        <div class="details-column" style="text-align: right;">
-          <div class="detail-row"><span class="detail-label">Invoice Date:</span> ${new Date().toLocaleDateString()}</div>
-        </div>
-      </div>
+    page.drawText('ARRIV ESTATE MEDIA', { x: 50, y, size: 18, color: gold });
+    y -= 30;
+    page.drawText('DEPOSIT INVOICE', { x: 50, y, size: 14, color: black });
+    page.drawText(`#${invoiceNumber}`, { x: 480, y, size: 14, color: black });
+    y -= 25;
+    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+    y -= 20;
 
-      <div class="section-title">Payment Method</div>
-      <div class="info-box">
-        <strong>Pay-at-Closing</strong>
-      </div>
+    const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    page.drawText(`Date: ${invoiceDate}`, { x: 50, y, size: 10, color: black });
+    y -= 25;
 
-      <div class="section-title">Services & Pricing Details</div>
-      <table>
-        <tr>
-          <th>Description</th>
-          <th class="amount-right">Amount</th>
-        </tr>
-        <tr>
-          <td><strong>Package Minimum:</strong> ${packageDescriptions[packageName] || packageName}</td>
-          <td class="amount-right"><strong>$${packageMinimum.toFixed(2)}</strong></td>
-        </tr>
-        ${(addOns || []).map(addon => `
-        <tr>
-          <td style="padding-left: 24px;">${addonDescriptions[addon] || addon}</td>
-          <td class="amount-right">$${(addonPrices[addon] || 0).toFixed(2)}</td>
-        </tr>
-        `).join('')}
-      </table>
+    page.drawText('BILL TO:', { x: 50, y, size: 10, color: gold });
+    y -= 15;
+    page.drawText(booking.client_name, { x: 50, y, size: 12, color: black });
+    y -= 15;
+    page.drawText(jobAddress, { x: 50, y, size: 12, color: black, maxWidth: 400 });
+    y -= 30;
 
-      <div class="section-title">Pay-at-Closing Rate</div>
-      <div class="info-box">
-        <strong>${payAtClosingPercentageDisplay}% of Final Sale Price</strong> (Calculated at closing)
-      </div>
+    page.drawText('SERVICES', { x: 50, y, size: 10, color: gold });
+    y -= 15;
+    page.drawText(packageNames[booking.package] || booking.package, { x: 50, y, size: 12, color: black });
+    y -= 18;
 
-      <div class="section-title">Payment Terms</div>
-      <table>
-        <tr>
-          <th>Description</th>
-          <th class="amount-right">Amount</th>
-        </tr>
-        <tr>
-          <td>${isDepositReceived ? 'Booking deposit received' : 'Booking deposit due now'}</td>
-          <td class="amount-right">${isDepositReceived ? '-$50.00' : '$50.00'}</td>
-        </tr>
-        <tr class="total-row">
-          <td>${isDepositReceived ? 'Minimum Due at Closing' : 'Minimum Due at Closing'}</td>
-          <td class="amount-right">$${balanceDueAtClosing.toFixed(2)} OR ${payAtClosingPercentageDisplay}% of Final Sale Price</td>
-        </tr>
-      </table>
+    for (const addon of addOns) {
+      page.drawText(`  + ${addonDescriptions[addon] || addon}`, { x: 50, y, size: 10, color: black });
+      y -= 14;
+    }
 
-      <div class="section-title">Pay-at-Closing Terms</div>
-      <div class="payment-terms">
-        <p>If any of the following occur, this Agreement shall automatically convert to a flat fee of the package minimum, with payment due within seven (7) days of written notice (less deposit):</p>
-        <ul>
-          <li>The property is withdrawn, canceled, or expires</li>
-          <li>The listing is terminated, transferred, or reassigned to another agent or brokerage</li>
-          <li>The property is relisted under a new MLS number</li>
-          <li>The seller changes representation</li>
-          <li>The property is rented, leased, or otherwise disposed of without a sale</li>
-          <li>The sale does not occur within six (6) months of the original listing date</li>
-          <li>Payment is not received at closing for any reason</li>
-        </ul>
-      </div>
+    y -= 15;
+    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+    y -= 25;
 
-      ${!isDepositReceived ? `<a href="${stripeUrl}" class="payment-button">Pay Deposit Now (Stripe)</a>` : ''}
+    page.drawText('DEPOSIT DUE', { x: 50, y, size: 11, color: gold });
+    page.drawText(`$${totalAmount.toFixed(2)}`, { x: 480, y, size: 16, color: black });
+    y -= 45;
 
-      <div class="footer">
-        <p>Thank you for choosing <strong>Arriv Estate Media</strong>.</p>
-        <p>Please feel free to reach out if any adjustments are needed.</p>
-      </div>
-    </body>
-    </html>
-    `;
+    page.drawText('PAYMENT', { x: 50, y, size: 10, color: gold });
+    y -= 15;
+    page.drawText('Please use the link below to submit your deposit payment:', { x: 50, y, size: 10, color: black });
+    y -= 15;
+    page.drawText(stripeData.url, { x: 50, y, size: 9, color: rgb(0, 0, 0.8), maxWidth: 500 });
+
+    page.drawText('Thank you for your business!', { x: 50, y: 50, size: 10, color: black });
+    page.drawText('Arriv Estate Media | 678-242-9107 | arrivestatemedia.com', { x: 50, y: 30, size: 9, color: gray });
+
+    const pdfBytes = await pdfDoc.save();
+    console.log('PDF generated, size:', pdfBytes.length);
 
     return Response.json({ 
-      success: true,
-      html: invoiceHTML
+      pdfBytes: Array.from(pdfBytes),
+      stripeUrl: stripeData.url,
+      stripePaymentLinkId: stripeData.id
     });
-
   } catch (error) {
-    console.error('Error generating pay-at-closing deposit invoice HTML:', error);
+    console.error('Error generating deposit invoice PDF:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
