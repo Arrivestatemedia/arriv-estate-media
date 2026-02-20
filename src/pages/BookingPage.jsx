@@ -188,6 +188,7 @@ export default function BookingPage() {
   const handleSubmitBooking = async (bookingData) => {
     if (requestPayAtClosing) {
       setShowPayAtClosingDialog(true);
+      setPendingBookingData(bookingData);
       return;
     }
     return new Promise((resolve) => {
