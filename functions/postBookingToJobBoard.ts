@@ -438,7 +438,10 @@ Deno.serve(async (req) => {
         });
 
         const brevoData = await brevoResponse.json();
-        if (!brevoResponse.ok) throw new Error(`Brevo error: ${brevoData.message}`);
+        if (!brevoResponse.ok) {
+          console.error('[ERROR] Brevo failed:', brevoData);
+          throw new Error(`Brevo error: ${brevoData.message}`);
+        }
 
         // Update invoice record
         await base44.asServiceRole.entities.Invoice.update(invoice.id, {
@@ -447,7 +450,7 @@ Deno.serve(async (req) => {
           email_sent_at: new Date().toISOString()
         });
         
-        console.log('[INFO] Sent deposit invoice PDF email via Brevo');
+        console.log('[INFO] Sent deposit invoice email to', booking.client_email, 'via Brevo');
 
         // Create ClosingDetection record to monitor for closing
         const jobId = existingJobs && existingJobs.length > 0 ? existingJobs[0].id : null;
