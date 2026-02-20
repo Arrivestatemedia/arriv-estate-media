@@ -79,6 +79,33 @@ Deno.serve(async (req) => {
       console.error('Failed to send notifications:', error);
     }
 
+    // Handle pay-at-closing workflow if applicable
+    if (booking.request_pay_at_closing) {
+      console.log('[INFO] Pay-at-closing booking detected, generating deposit invoice');
+      try {
+        // Generate deposit invoice
+        await base44.asServiceRole.functions.invoke('generatePayAtClosingDepositInvoicePDF', { 
+          bookingId: bookingId,
+          booking: booking,
+          jobId: existingJobs && existingJobs.length > 0 ? existingJobs[0].id : null
+        });
+
+        // Create ClosingDetection record to monitor for closing
+        const jobId = existingJobs && existingJobs.length > 0 ? existingJobs[0].id : null;
+        if (jobId) {
+          await base44.asServiceRole.entities.ClosingDetection.create({
+            job_id: jobId,
+            job_address: propertyAddress,
+            monitoring_start_date: booking.preferred_date,
+            status: 'pending'
+          });
+          console.log('[INFO] Created ClosingDetection record for monitoring');
+        }
+      } catch (error) {
+        console.error('Failed to handle pay-at-closing workflow:', error);
+      }
+    }
+
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
