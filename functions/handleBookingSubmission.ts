@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
         doc.setDrawColor(184, 149, 106);
         doc.setLineWidth(1);
         doc.line(margin, curY, pageWidth - margin, curY);
-        curY += 20;
+        curY += 30;
 
         // INVOICE title
         doc.setFont('helvetica', 'bold');
