@@ -313,9 +313,12 @@ Deno.serve(async (req) => {
       console.error('Failed to send notifications:', error);
     }
 
-    // Handle pay-at-closing workflow if applicable
-    if (booking.request_pay_at_closing) {
-      console.log('[INFO] Pay-at-closing booking detected');
+    // Differentiate between pay-at-closing and pay-up-front workflows
+    const isPayAtClosing = booking.request_pay_at_closing === true;
+    console.log(`[INFO] Booking payment type: ${isPayAtClosing ? 'PAY-AT-CLOSING' : 'PAY-UP-FRONT'}`);
+    
+    if (isPayAtClosing) {
+      console.log('[INFO] Processing PAY-AT-CLOSING deposit invoice workflow');
       try {
         // Create Invoice record for deposit
         const invoiceNumber = `INV-PAC-${Date.now()}`;
