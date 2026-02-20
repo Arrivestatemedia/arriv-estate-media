@@ -341,17 +341,21 @@ Deno.serve(async (req) => {
     }
 
     // ── 9. Log to HubSpot ────────────────────────────────────────────────────
-    await base44.asServiceRole.functions.invoke('logHubSpotEvent', {
-      contactEmail: invoice.client_email,
-      eventType: 'payment_confirmed',
-      invoiceId: invoice.id,
-      jobAddress: invoice.job_address,
-      details: {
-        amount: invoice.amount,
-        paidAt: invoice.paid_at,
-        stripePaymentIntentId: invoice.stripe_payment_intent_id
-      }
-    });
+    try {
+      await base44.asServiceRole.functions.invoke('logHubSpotEvent', {
+        contactEmail: invoice.client_email,
+        eventType: 'payment_confirmed',
+        invoiceId: invoice.id,
+        jobAddress: invoice.job_address,
+        details: {
+          amount: invoice.amount,
+          paidAt: invoice.paid_at,
+          stripePaymentIntentId: invoice.stripe_payment_intent_id
+        }
+      });
+    } catch (e) {
+      console.warn('HubSpot log failed:', e.message);
+    }
 
     return Response.json({ success: true, receiptDriveLink });
 
