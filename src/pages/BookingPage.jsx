@@ -186,9 +186,9 @@ export default function BookingPage() {
   const totalPrice = (selectedPackage?.price || 0) + cartAddOns.reduce((sum, a) => sum + a.price, 0);
 
   const handleSubmitBooking = async (bookingData) => {
-    if (requestPayAtClosing && !payAtClosingDialogShown) {
-      setPayAtClosingDialogShown(true);
+    if (requestPayAtClosing) {
       setShowPayAtClosingDialog(true);
+      setRequestPayAtClosing(false);
       return;
     }
     return new Promise((resolve) => {
