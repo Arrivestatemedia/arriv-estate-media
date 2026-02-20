@@ -127,8 +127,6 @@ export default function BookingPage() {
   const [editingBooking, setEditingBooking] = useState(null);
   const [requestPayAtClosing, setRequestPayAtClosing] = useState(false);
   const [showPayAtClosingDialog, setShowPayAtClosingDialog] = useState(false);
-  const [payAtClosingDialogConfirmed, setPayAtClosingDialogConfirmed] = useState(false);
-  const [pendingBookingData, setPendingBookingData] = useState(null);
 
   useEffect(() => {
     // Check if we're editing a booking
