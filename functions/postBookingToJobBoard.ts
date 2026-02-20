@@ -339,7 +339,7 @@ Deno.serve(async (req) => {
         });
         
         const { pdfBytes: pdfBytesArray, stripeUrl, stripePaymentLinkId } = pdfResponse.data;
-        const pdfBytes = Buffer.from(pdfBytesArray);
+        const pdfBytes = new Uint8Array(pdfBytesArray);
         
         const invoice = await base44.asServiceRole.entities.Invoice.create({
           invoice_number: invoiceNumber,
