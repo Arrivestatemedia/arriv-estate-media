@@ -330,10 +330,14 @@ Deno.serve(async (req) => {
 
     // ── 8. Unlock booking approval ───────────────────────────────────────────
     if (!invoice.pay_at_closing && invoice.booking_id) {
-      await base44.asServiceRole.entities.Booking.update(invoice.booking_id, {
-        status: 'confirmed',
-        payment_locked: false
-      });
+      try {
+        await base44.asServiceRole.entities.Booking.update(invoice.booking_id, {
+          status: 'confirmed',
+          payment_locked: false
+        });
+      } catch (e) {
+        console.warn('Could not update booking:', e.message);
+      }
     }
 
     // ── 9. Log to HubSpot ────────────────────────────────────────────────────
