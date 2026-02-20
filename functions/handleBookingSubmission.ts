@@ -122,11 +122,13 @@ Deno.serve(async (req) => {
         doc.setFillColor(255, 251, 245);
         doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-        // Logo on cream background
+        // Logo on cream background - use real image dimensions for correct aspect ratio
         if (logoBase64) {
+          const imgData = `data:image/png;base64,${logoBase64}`;
+          const imgProps = doc.getImageProperties(imgData);
           const logoH = 45;
-          const logoW = logoH * 3.5;
-          doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', (pageWidth - logoW) / 2, 30, logoW, logoH);
+          const logoW = (imgProps.width / imgProps.height) * logoH;
+          doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, 30, logoW, logoH);
         } else {
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(26);
