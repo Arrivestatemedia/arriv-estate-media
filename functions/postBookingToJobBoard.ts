@@ -73,7 +73,22 @@ Deno.serve(async (req) => {
 
     // Send approval email and calendar invite using existing functions
     try {
-      await base44.asServiceRole.functions.invoke('sendBookingNotifications', { booking });
+      await base44.asServiceRole.functions.invoke('sendBookingNotifications', { 
+        booking: {
+          client_name: booking.client_name,
+          client_email: booking.client_email,
+          client_phone: booking.client_phone,
+          street_address: booking.street_address,
+          city: booking.city,
+          state: booking.state,
+          preferred_date: booking.preferred_date,
+          preferred_time: booking.preferred_time,
+          package: booking.package,
+          notes: booking.notes
+        },
+        type: 'confirmation',
+        sendEmail: true 
+      });
       await base44.asServiceRole.functions.invoke('createCalendarEvent', { booking });
     } catch (error) {
       console.error('Failed to send notifications:', error);
