@@ -352,28 +352,20 @@ Deno.serve(async (req) => {
         // Generate PDF
         const pdfBytes = await generatePayAtClosingDepositPDF(booking, invoiceNumber, propertyAddress, depositAmount, packageMinimum);
 
-        // Upload to Google Drive
+        // Upload to Google Drive - same folder as pay upfront
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-        
-        const boundary = 'boundary_' + Date.now();
-        const mimeType = 'application/pdf';
-        const metadata = {
-          name: `Invoice_${invoiceNumber}_Deposit.pdf`,
-          mimeType: 'application/pdf'
-        };
+        const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
+        const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
+        const boundary = 'boundary_arriv_invoice';
+        const metadata = JSON.stringify({ name: fileName, parents: [unpaidFolderId] });
 
-        const multipartBody = [
-          `--${boundary}`,
-          'Content-Type: application/json; charset=UTF-8',
-          '',
-          JSON.stringify(metadata),
-          `--${boundary}`,
-          `Content-Type: ${mimeType}`,
-          'Content-Transfer-Encoding: base64',
-          '',
-          btoa(String.fromCharCode(...pdfBytes)),
-          `--${boundary}--`
-        ].join('\n');
+        const textEncoder = new TextEncoder();
+        const before = textEncoder.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
+        const after = textEncoder.encode(`\r\n--${boundary}--`);
+        const uploadBody = new Uint8Array(before.length + pdfBytes.length + after.length);
+        uploadBody.set(before);
+        uploadBody.set(new Uint8Array(pdfBytes), before.length);
+        uploadBody.set(after, before.length + pdfBytes.length);
 
         const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
@@ -381,7 +373,7 @@ Deno.serve(async (req) => {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': `multipart/related; boundary="${boundary}"`
           },
-          body: multipartBody
+          body: uploadBody
         });
 
         const uploadedFile = await uploadRes.json();
