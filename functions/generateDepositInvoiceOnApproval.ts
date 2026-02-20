@@ -19,11 +19,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Booking not found' }, { status: 404 });
     }
     
-    // Generate deposit invoice first
-    const depositResult = await base44.asServiceRole.functions.invoke('generateDepositInvoice', {
-      bookingId,
-      jobId: booking.booking_id
-    });
+    try {
+      // Generate deposit invoice first
+      const depositResult = await base44.asServiceRole.functions.invoke('generateDepositInvoice', {
+        bookingId,
+        jobId: booking.booking_id
+      });
+      console.log('Invoice generated successfully:', depositResult);
+    } catch (invoiceError) {
+      console.error('Invoice generation failed, continuing with action:', invoiceError.message);
+      // Continue anyway - don't block the action if invoice fails
+    }
     
     // Then perform the requested action (post to job board or accept for myself)
     if (actionType === 'post_to_job_board') {
@@ -34,7 +40,7 @@ Deno.serve(async (req) => {
     
     return Response.json({ 
       success: true,
-      invoiceId: depositResult.data.invoiceId
+      message: 'Action completed'
     });
 
   } catch (error) {
