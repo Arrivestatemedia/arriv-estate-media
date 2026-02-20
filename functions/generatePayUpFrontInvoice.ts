@@ -191,6 +191,9 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
+    console.log('[BREVO DEBUG] Sending to:', booking.client_email);
+    console.log('[BREVO DEBUG] Admin email:', adminEmail);
+    
     const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
@@ -203,8 +206,10 @@ Deno.serve(async (req) => {
     });
 
     const brevoData = await brevoResponse.json();
+    console.log('[BREVO DEBUG] Response status:', brevoResponse.status);
+    console.log('[BREVO DEBUG] Response:', JSON.stringify(brevoData));
     if (!brevoResponse.ok) throw new Error(`Brevo error: ${brevoData.message}`);
-    console.log('Email sent, messageId:', brevoData.messageId);
+    console.log('[BREVO DEBUG] Email sent successfully, messageId:', brevoData.messageId);
 
     // Create invoice record
     const invoice = await base44.asServiceRole.entities.Invoice.create({
