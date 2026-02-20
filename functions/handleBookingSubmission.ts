@@ -99,20 +99,22 @@ Deno.serve(async (req) => {
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 60;
 
-        // Fetch and embed Arriv logo
-        try {
-          const logoRes = await fetch('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png');
-          if (logoRes.ok) {
-            const logoBytes = new Uint8Array(await logoRes.arrayBuffer());
-            // Safe base64 encoding that avoids stack overflow on large arrays
-            let logoBase64 = '';
-            const chunkSize = 8192;
-            for (let i = 0; i < logoBytes.length; i += chunkSize) {
-              logoBase64 += btoa(String.fromCharCode(...logoBytes.slice(i, i + chunkSize)));
-            }
-            doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', pageWidth / 2 - 60, 40, 120, 40);
-          }
-        } catch (e) { console.warn('Logo load failed:', e.message); }
+        // Header - logo symbol + text (matching screenshot style)
+        // Draw a small circle/shield icon placeholder in gold
+        doc.setFillColor(184, 149, 106);
+        doc.circle(pageWidth / 2 - 28, 55, 8, 'F');
+
+        // ARRIV text
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(184, 149, 106);
+        doc.text('ARRIV', pageWidth / 2 - 16, 60);
+
+        // ESTATE MEDIA subtitle
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(184, 149, 106);
+        doc.text('ESTATE MEDIA', pageWidth / 2 - 2, 72, { align: 'center' });
 
         // INVOICE title
         doc.setFont('helvetica', 'bold');
