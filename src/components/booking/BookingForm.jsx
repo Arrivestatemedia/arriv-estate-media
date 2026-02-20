@@ -167,7 +167,10 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
     
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({
+        ...formData,
+        request_pay_at_closing: requestPayAtClosing
+      });
       setIsSubmitting(false);
     } catch (error) {
       setIsSubmitting(false);
