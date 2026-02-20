@@ -423,7 +423,7 @@ Deno.serve(async (req) => {
         try {
           invoice = await base44.asServiceRole.entities.Invoice.create({
             invoice_number: invoiceNumber,
-            invoice_type: 'pay_up_front',
+            invoice_type: booking.request_pay_at_closing ? 'deposit' : 'pay_up_front',
             booking_id: createdBooking.id,
             client_name: booking.client_name,
             client_email: booking.client_email,
