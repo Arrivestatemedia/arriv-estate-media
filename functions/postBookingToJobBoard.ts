@@ -142,8 +142,8 @@ Deno.serve(async (req) => {
     if (booking.request_pay_at_closing) {
       console.log('[INFO] Pay-at-closing booking detected');
       try {
-        // Generate deposit invoice
-        const invoiceNumber = `INV-${Date.now()}`;
+        // Create Invoice record for deposit
+        const invoiceNumber = `INV-PAC-${Date.now()}`;
         const packageMinimumPrices = {
           'mls_walkthrough': 500,
           'photo_essentials': 750,
@@ -151,18 +151,69 @@ Deno.serve(async (req) => {
           'premium_bundle': 1500
         };
         const packageMinimum = packageMinimumPrices[booking.package] || booking.total_price;
+        const depositAmount = 50;
         
-        await base44.asServiceRole.functions.invoke('generatePayAtClosingDepositInvoicePDF', { 
-          invoiceNumber,
-          clientName: booking.client_name,
-          jobAddress: propertyAddress,
-          serviceDate: booking.preferred_date,
-          packageName: booking.package,
-          addOns: booking.add_ons || [],
-          packageMinimum,
-          payAtClosingRate: 0.05,
-          stripeUrl: ''
+        const invoice = await base44.asServiceRole.entities.Invoice.create({
+          invoice_number: invoiceNumber,
+          invoice_type: 'deposit',
+          job_id: existingJobs && existingJobs.length > 0 ? existingJobs[0].id : null,
+          booking_id: bookingId,
+          client_name: booking.client_name,
+          client_email: booking.client_email,
+          job_address: propertyAddress,
+          service_date: booking.preferred_date,
+          package: booking.package,
+          add_ons: booking.add_ons || [],
+          amount: packageMinimum,
+          deposit_amount: depositAmount,
+          payment_status: 'unpaid',
+          pay_at_closing: true,
+          pay_at_closing_rate: 0.05,
+          package_minimum: packageMinimum
         });
+        
+        console.log('[INFO] Created Invoice record:', invoice.id);
+        
+        // Send deposit invoice email
+        const adminEmail = Deno.env.get('ADMIN_EMAIL') || 'BradCBurke@arrivestatemedia.com';
+        const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+        
+        const emailSubject = `Your Deposit Invoice #${invoiceNumber}`;
+        const emailBody = `Hi ${booking.client_name},\n\nThank you for choosing Arriv Estate Media for your property at ${propertyAddress}!\n\nAs discussed, this is a pay-at-closing property. We require a $${depositAmount} deposit to confirm your booking.\n\nInvoice #${invoiceNumber}\nDeposit Due: $${depositAmount}\nBalance Due at Closing: $${packageMinimum - depositAmount}\n\nPlease let us know once your property closes so we can finalize the balance.\n\nThank you,\nArriv Team`;
+        
+        const messageLines = [
+          `To: ${booking.client_email}`,
+          `From: ${adminEmail}`,
+          `Subject: ${emailSubject}`,
+          'MIME-Version: 1.0',
+          'Content-Type: text/plain; charset="UTF-8"',
+          '',
+          emailBody
+        ];
+
+        const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
+        const messageBytes = messageParts.reduce((acc, part) => {
+          const newAcc = new Uint8Array(acc.length + part.length);
+          newAcc.set(acc);
+          newAcc.set(part, acc.length);
+          return newAcc;
+        }, new Uint8Array());
+
+        const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=/g, '');
+
+        await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ raw: base64urlMessage })
+        });
+        
+        console.log('[INFO] Sent deposit invoice email');
 
         // Create ClosingDetection record to monitor for closing
         const jobId = existingJobs && existingJobs.length > 0 ? existingJobs[0].id : null;
