@@ -331,6 +331,16 @@ Deno.serve(async (req) => {
         const packageMinimum = packageMinimumPrices[booking.package] || booking.total_price;
         const depositAmount = 50;
         
+        // Generate PDF with Stripe payment link
+        const pdfResponse = await base44.asServiceRole.functions.invoke('generatePayAtClosingDepositInvoicePDF', {
+          invoiceNumber,
+          booking,
+          depositAmount
+        });
+        
+        const { pdfBytes: pdfBytesArray, stripeUrl, stripePaymentLinkId } = pdfResponse.data;
+        const pdfBytes = Buffer.from(pdfBytesArray);
+        
         const invoice = await base44.asServiceRole.entities.Invoice.create({
           invoice_number: invoiceNumber,
           invoice_type: 'deposit',
@@ -347,13 +357,12 @@ Deno.serve(async (req) => {
           payment_status: 'unpaid',
           pay_at_closing: true,
           pay_at_closing_rate: 0.05,
-          package_minimum: packageMinimum
+          package_minimum: packageMinimum,
+          stripe_payment_link_id: stripePaymentLinkId,
+          stripe_payment_link_url: stripeUrl
         });
         
         console.log('[INFO] Created Invoice record:', invoice.id);
-        
-        // Generate PDF
-        const pdfBytes = await generatePayAtClosingDepositPDF(booking, invoiceNumber, propertyAddress, depositAmount, packageMinimum);
 
         // Upload to Google Drive - same folder as pay upfront
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
