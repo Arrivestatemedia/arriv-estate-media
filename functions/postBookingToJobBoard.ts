@@ -81,13 +81,28 @@ Deno.serve(async (req) => {
 
     // Handle pay-at-closing workflow if applicable
     if (booking.request_pay_at_closing) {
-      console.log('[INFO] Pay-at-closing booking detected, generating deposit invoice');
+      console.log('[INFO] Pay-at-closing booking detected');
       try {
         // Generate deposit invoice
+        const invoiceNumber = `INV-${Date.now()}`;
+        const packageMinimumPrices = {
+          'mls_walkthrough': 500,
+          'photo_essentials': 750,
+          'photo_cinematic': 1200,
+          'premium_bundle': 1500
+        };
+        const packageMinimum = packageMinimumPrices[booking.package] || booking.total_price;
+        
         await base44.asServiceRole.functions.invoke('generatePayAtClosingDepositInvoicePDF', { 
-          bookingId: bookingId,
-          booking: booking,
-          jobId: existingJobs && existingJobs.length > 0 ? existingJobs[0].id : null
+          invoiceNumber,
+          clientName: booking.client_name,
+          jobAddress: propertyAddress,
+          serviceDate: booking.preferred_date,
+          packageName: booking.package,
+          addOns: booking.add_ons || [],
+          packageMinimum,
+          payAtClosingRate: 0.05,
+          stripeUrl: ''
         });
 
         // Create ClosingDetection record to monitor for closing
