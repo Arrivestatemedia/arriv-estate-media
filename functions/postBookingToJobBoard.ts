@@ -54,130 +54,123 @@ async function generatePayAtClosingDepositPDF(booking, invoiceNumber, jobAddress
   const rate = getPayAtClosingRate(booking.package, addOnTotal);
   const rateDisplay = formatPercentage(rate);
 
+  const packageNames = {
+    'mls_walkthrough': 'MLS Walkthrough',
+    'photo_essentials': 'Photo Essentials',
+    'photo_cinematic': 'Photo + Cinematic Walkthrough',
+    'premium_bundle': 'Premium Media Bundle'
+  };
+
+  const addonDescriptions = {
+    'drone': 'Drone Photography',
+    '3d_tour': '3D Virtual Tour',
+    'twilight': 'Twilight Photography',
+    'rush_delivery': 'Rush Delivery',
+    'vertical_reel': 'Vertical Reel',
+    'ai_staging': 'AI Staging'
+  };
+
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([612, 792]);
+  let page = pdfDoc.addPage([612, 792]);
   const gold = rgb(0.72, 0.59, 0.42);
   const black = rgb(0.1, 0.1, 0.1);
-  const gray = rgb(0.5, 0.5, 0.5);
-  const boldFont = await pdfDoc.embedFont('Helvetica-Bold');
-  const regularFont = await pdfDoc.embedFont('Helvetica');
+  const gray = rgb(0.4, 0.4, 0.4);
 
   let y = 750;
 
-  // Header
-  page.drawText('ARRIV ESTATE MEDIA', {
-    x: 50,
-    y,
-    size: 20,
-    color: black,
-    font: boldFont
-  });
+  // Header matching pay upfront style
+  page.drawText('ARRIV ESTATE MEDIA', { x: 50, y, size: 18, color: gold });
+  y -= 30;
+  page.drawText('INVOICE', { x: 50, y, size: 14, color: black });
+  page.drawText(`#${invoiceNumber}`, { x: 480, y, size: 14, color: black });
+  y -= 25;
+  page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+  y -= 20;
+
+  const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  page.drawText(`Date: ${invoiceDate}`, { x: 50, y, size: 10, color: black });
   y -= 25;
 
-  page.drawText('Deposit Invoice', {
-    x: 50,
-    y,
-    size: 14,
-    color: gold,
-    font: boldFont
-  });
-  y -= 35;
-
-  // Invoice details
-  page.drawText(`Invoice #: ${invoiceNumber}`, { x: 50, y, size: 10, color: black, font: regularFont });
-  y -= 15;
-  page.drawText(`Invoice Date: ${new Date().toLocaleDateString()}`, { x: 50, y, size: 10, color: black, font: regularFont });
-  y -= 30;
-
   // Bill to
-  page.drawText('BILL TO:', { x: 50, y, size: 10, color: black, font: boldFont });
+  page.drawText('BILL TO:', { x: 50, y, size: 10, color: gold });
   y -= 15;
-  page.drawText(booking.client_name, { x: 50, y, size: 10, color: black, font: regularFont });
+  page.drawText(booking.client_name, { x: 50, y, size: 12, color: black });
   y -= 15;
-  page.drawText(jobAddress, { x: 50, y, size: 10, color: black, font: regularFont });
+  page.drawText(jobAddress, { x: 50, y, size: 12, color: black, maxWidth: 400 });
   y -= 30;
 
-  // Service details
-  page.drawText('SERVICE DETAILS', { x: 50, y, size: 10, color: black, font: boldFont });
+  // Services
+  page.drawText('SERVICES', { x: 50, y, size: 10, color: gold });
   y -= 15;
-  page.drawText(`Service Date: ${booking.preferred_date}`, { x: 50, y, size: 10, color: black, font: regularFont });
-  y -= 15;
-  page.drawText(`Package: ${booking.package.replace(/_/g, ' ')}`, { x: 50, y, size: 10, color: black, font: regularFont });
-  if (booking.add_ons && booking.add_ons.length > 0) {
-    y -= 15;
-    page.drawText(`Add-ons: ${booking.add_ons.join(', ')}`, { x: 50, y, size: 9, color: black, font: regularFont });
-  }
-  y -= 30;
-
-  // Description section
-  page.drawText('DESCRIPTION', { x: 50, y, size: 10, color: black, font: boldFont });
+  page.drawText(packageNames[booking.package] || booking.package, { x: 50, y, size: 12, color: black });
   y -= 18;
-  page.drawText(`Package Minimum:`, { x: 70, y, size: 9, color: black, font: regularFont });
-  page.drawText(`$${packageMinimum.toFixed(2)}`, { x: 450, y, size: 9, color: black, font: regularFont });
-  y -= 15;
-  page.drawText(`Booking Deposit Due:`, { x: 70, y, size: 9, color: black, font: regularFont });
-  page.drawText(`$${depositAmount.toFixed(2)}`, { x: 450, y, size: 9, color: black, font: regularFont });
-  y -= 15;
-  page.drawText(`Minimum Due at Closing:`, { x: 70, y, size: 9, color: black, font: regularFont });
-  page.drawText(`$${packageMinimum.toFixed(2)} OR ${rateDisplay} of Final Sale Price`, { x: 450, y, size: 8, color: black, font: regularFont });
-  y -= 30;
 
-  // Payment Method
-  page.drawText('PAYMENT METHOD', { x: 50, y, size: 10, color: black, font: boldFont });
+  // Add-ons
+  const addOns = booking.add_ons || [];
+  for (const addon of addOns) {
+    page.drawText(`  + ${addonDescriptions[addon] || addon}`, { x: 50, y, size: 10, color: black });
+    y -= 14;
+  }
+
   y -= 15;
-  page.drawText('Pay-at-Closing', { x: 70, y, size: 9, color: black, font: regularFont });
+  page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+  y -= 25;
+
+  // Pay-at-closing details
+  page.drawText('PAY-AT-CLOSING DETAILS', { x: 50, y, size: 10, color: gold });
+  y -= 18;
+  page.drawText('Booking Deposit Due Now:', { x: 50, y, size: 10, color: black });
+  page.drawText(`$${depositAmount.toFixed(2)}`, { x: 480, y, size: 12, color: black });
+  y -= 18;
+  page.drawText('Package Minimum:', { x: 50, y, size: 10, color: black });
+  page.drawText(`$${packageMinimum.toFixed(2)}`, { x: 480, y, size: 12, color: black });
+  y -= 18;
+  page.drawText('Pay-at-Closing Rate:', { x: 50, y, size: 10, color: black });
+  page.drawText(rateDisplay, { x: 480, y, size: 12, color: black });
+  y -= 25;
+
+  page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+  y -= 25;
+
+  page.drawText('AMOUNT DUE NOW', { x: 50, y, size: 11, color: gold });
+  page.drawText(`$${depositAmount.toFixed(2)}`, { x: 480, y, size: 16, color: black });
+  y -= 45;
+
+  // Payment instructions
+  page.drawText('PAYMENT', { x: 50, y, size: 10, color: gold });
+  y -= 15;
+  page.drawText('Please use the payment link you received to submit your deposit.', { x: 50, y, size: 10, color: black });
   y -= 20;
 
-  // Pay-at-closing rate
-  page.drawText('PAY-AT-CLOSING RATE', { x: 50, y, size: 10, color: black, font: boldFont });
+  // Pay-at-closing terms
+  page.drawText('PAY-AT-CLOSING TERMS', { x: 50, y, size: 10, color: gold });
   y -= 15;
-  page.drawText(rateDisplay, { x: 70, y, size: 9, color: black, font: regularFont });
-  y -= 20;
-
-  // Package minimum applies
-  page.drawText('PACKAGE MINIMUM APPLIES', { x: 50, y, size: 10, color: black, font: boldFont });
-  y -= 15;
-  page.drawText(`$${packageMinimum.toFixed(2)}`, { x: 70, y, size: 9, color: black, font: regularFont });
-  y -= 30;
-
-  // Amount due
-  page.drawText('TOTAL DUE NOW', { x: 50, y, size: 12, color: gold, font: boldFont });
-  y -= 20;
-  page.drawText(`$${depositAmount.toFixed(2)}`, { x: 70, y, size: 14, color: gold, font: boldFont });
-  y -= 30;
-
-  // Balance due at closing
-  page.drawText('BALANCE DUE AT CLOSING', { x: 50, y, size: 10, color: black, font: boldFont });
-  y -= 15;
-  page.drawText('Balance due upon successful sale of the property.', { x: 70, y, size: 9, color: black, font: regularFont });
-  y -= 30;
-
-  // Pay-at-Closing Terms
-  page.drawText('PAY-AT-CLOSING TERMS', { x: 50, y, size: 10, color: black, font: boldFont });
-  y -= 15;
-  page.drawText('If any of the following occur, this Agreement shall automatically convert to a flat fee of the', { x: 70, y, size: 8, color: black, font: regularFont });
+  page.drawText('If any of the following occur, this Agreement converts to a flat fee of the', { x: 50, y, size: 9, color: black });
   y -= 12;
-  page.drawText('package minimum, with payment due within seven (7) days of written notice (less deposit):', { x: 70, y, size: 8, color: black, font: regularFont });
+  page.drawText('package minimum, payable within seven (7) days (less deposit paid):', { x: 50, y, size: 9, color: black });
   y -= 16;
-  
+
   const terms = [
-    '• The property is withdrawn, canceled, or expires',
-    '• The listing is terminated, transferred, or reassigned to another agent or brokerage',
-    '• The property is relisted under a new MLS number',
-    '• The seller changes representation',
-    '• The property is rented, leased, or otherwise disposed of without a sale',
-    '• The sale does not occur within six (6) months of the original listing date',
-    '• Payment is not received at closing for any reason'
+    '• Property is withdrawn, canceled, or expires',
+    '• Listing is terminated or transferred to another agent/brokerage',
+    '• Property is relisted under a new MLS number',
+    '• Seller changes representation',
+    '• Property is rented or disposed of without sale',
+    '• Sale does not occur within six (6) months of listing',
+    '• Payment is not received at closing'
   ];
-  
-  terms.forEach(term => {
+
+  for (const term of terms) {
     if (y < 100) {
       page = pdfDoc.addPage([612, 792]);
       y = 750;
     }
-    page.drawText(term, { x: 80, y, size: 8, color: black, font: regularFont });
+    page.drawText(term, { x: 70, y, size: 8, color: black });
     y -= 12;
-  });
+  }
+
+  page.drawText('Thank you for your business!', { x: 50, y: 50, size: 10, color: black });
+  page.drawText('Arriv Estate Media | 678-242-9107 | arrivestatemedia.com', { x: 50, y: 30, size: 9, color: gray });
 
   return await pdfDoc.save();
 }
