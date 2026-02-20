@@ -17,9 +17,17 @@ Deno.serve(async (req) => {
     console.log(`[INFO] Found ${closingDetections.length} properties to monitor for closing`);
 
     const results = [];
+    const today = new Date();
 
     for (const detection of closingDetections) {
       const { job_id, job_address, monitoring_start_date } = detection;
+      
+      // Only scan for closings AFTER the shoot date has passed
+      const monitoringDate = new Date(monitoring_start_date);
+      if (monitoringDate > today) {
+        console.log(`[INFO] Skipping ${job_address} - shoot date is ${monitoring_start_date}, not yet scheduled`);
+        continue;
+      }
 
       // Use OpenAI to search MLS and real estate sites for sold status
       const searchResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
