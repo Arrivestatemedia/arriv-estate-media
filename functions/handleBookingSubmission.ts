@@ -126,9 +126,9 @@ Deno.serve(async (req) => {
         if (logoBase64) {
           const imgData = `data:image/png;base64,${logoBase64}`;
           const imgProps = doc.getImageProperties(imgData);
-          const logoH = 100;
+          const logoH = 120;
           const logoW = (imgProps.width / imgProps.height) * logoH;
-          doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, 10, logoW, logoH);
+          doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, 2, logoW, logoH);
         } else {
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(26);
