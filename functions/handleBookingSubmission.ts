@@ -56,10 +56,12 @@ Deno.serve(async (req) => {
       console.error('Admin email error:', error);
     }
 
-    // For pay-up-front: generate PDF invoice and send via Brevo
-    if (!booking.request_pay_at_closing) {
+    // For pay-up-front and pay-at-closing deposit: generate PDF invoice and send via Brevo
+    if (!booking.request_pay_at_closing || booking.request_pay_at_closing) {
       try {
-        const totalAmount = parseFloat(booking.total_price);
+        // For pay-at-closing, invoice amount is always $50; otherwise use total_price
+        const totalAmount = booking.request_pay_at_closing ? 50 : parseFloat(booking.total_price);
+        const invoiceTypeLabel = booking.request_pay_at_closing ? 'Pay-at-Closing Deposit' : null;
 
         // Invoice number
         const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
@@ -76,7 +78,7 @@ Deno.serve(async (req) => {
           },
           body: new URLSearchParams({
             'line_items[0][price_data][currency]': 'usd',
-            'line_items[0][price_data][product_data][name]': `Media Services - ${booking.street_address}`,
+            'line_items[0][price_data][product_data][name]': invoiceTypeLabel || `Media Services - ${booking.street_address}`,
             'line_items[0][price_data][unit_amount]': String(Math.round(totalAmount * 100)),
             'line_items[0][quantity]': '1',
           }),
