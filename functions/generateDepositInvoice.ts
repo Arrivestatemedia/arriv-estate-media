@@ -104,186 +104,111 @@ Deno.serve(async (req) => {
       package_minimum: packageMinimum
     });
 
-    // Generate PDF HTML with pay-at-closing terms
-    const invoiceHTML = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 40px;
-          background: white;
-          color: #333;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 40px;
-        }
-        .logo-text {
-          font-size: 28px;
-          font-weight: bold;
-          letter-spacing: 2px;
-          color: #1a1a1a;
-          margin-bottom: 5px;
-        }
-        .logo-subtitle {
-          font-size: 12px;
-          color: #b8956a;
-          letter-spacing: 1px;
-        }
-        .title {
-          font-size: 24px;
-          font-weight: bold;
-          margin: 30px 0 10px 0;
-        }
-        .invoice-details {
-          display: flex;
-          justify-content: space-between;
-          margin: 20px 0;
-          font-size: 14px;
-        }
-        .details-column {
-          flex: 1;
-        }
-        .detail-row {
-          margin: 8px 0;
-        }
-        .detail-label {
-          font-weight: bold;
-        }
-        .section-title {
-          font-weight: bold;
-          font-size: 14px;
-          margin-top: 25px;
-          margin-bottom: 10px;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 20px 0;
-          font-size: 14px;
-        }
-        th {
-          background-color: #f5f5f5;
-          padding: 12px;
-          text-align: left;
-          font-weight: bold;
-          border: 1px solid #ddd;
-        }
-        td {
-          padding: 12px;
-          border: 1px solid #ddd;
-        }
-        .amount-right {
-          text-align: right;
-        }
-        .total-row {
-          background-color: #f9f9f9;
-          font-weight: bold;
-        }
-        .payment-button {
-          display: inline-block;
-          background-color: #b8956a;
-          color: white;
-          padding: 12px 24px;
-          text-decoration: none;
-          border-radius: 4px;
-          margin-top: 20px;
-          font-weight: bold;
-        }
-        .footer {
-          text-align: center;
-          margin-top: 40px;
-          font-size: 13px;
-          color: #666;
-        }
-        .payment-terms {
-          background-color: #f9f9f9;
-          padding: 15px;
-          margin: 20px 0;
-          border-left: 4px solid #b8956a;
-          font-size: 13px;
-          line-height: 1.6;
-        }
-        .terms-list {
-          margin-left: 20px;
-          font-size: 12px;
-        }
-        .terms-list li {
-          margin-bottom: 8px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="logo-text">ARRIV</div>
-        <div class="logo-subtitle">ESTATE MEDIA</div>
-      </div>
-
-      <div class="title">DEPOSIT INVOICE</div>
-
-      <div class="invoice-details">
-        <div class="details-column">
-          <div class="detail-row"><span class="detail-label">Invoice #:</span> ${invoiceNumber}</div>
-          <div class="detail-row"><span class="detail-label">Client:</span> ${booking.client_name}</div>
-          <div class="detail-row"><span class="detail-label">Property:</span> ${jobAddress}</div>
-          <div class="detail-row"><span class="detail-label">Service Date:</span> ${booking.preferred_date}</div>
-        </div>
-        <div class="details-column" style="text-align: right;">
-          <div class="detail-row"><span class="detail-label">Invoice Date:</span> ${new Date().toLocaleDateString()}</div>
-        </div>
-      </div>
-
-      <div class="section-title">Services Provided</div>
-      <table>
-        <tr>
-          <th>Description</th>
-          <th class="amount-right">Amount</th>
-        </tr>
-        <tr>
-          <td>Deposit Payment</td>
-          <td class="amount-right">$${depositAmount.toFixed(2)}</td>
-        </tr>
-        <tr class="total-row">
-          <td>Total Due</td>
-          <td class="amount-right">$${depositAmount.toFixed(2)}</td>
-        </tr>
-      </table>
-
-      <div class="section-title">Pay-at-Closing Terms</div>
-      <div class="payment-terms">
-        If any of the following occur, this Agreement shall automatically convert to a flat fee of the package minimum, with payment due within seven (7) days of written notice (less deposit):
-        <ol class="terms-list">
-          <li>The property is withdrawn, canceled, or expires</li>
-          <li>The listing is terminated, transferred, or reassigned to another agent or brokerage</li>
-          <li>The property is relisted under a new MLS number</li>
-          <li>The seller changes representation</li>
-          <li>The property is rented, leased, or otherwise disposed of without a sale</li>
-          <li>The sale does not occur within six (6) months of the original listing date</li>
-          <li>Payment is not received at closing for any reason</li>
-        </ol>
-      </div>
-
-      <div class="section-title">Payment Instructions</div>
-      <div class="payment-terms">
-        <strong>Deposit payment is required</strong> to confirm your booking. Please use the link below to submit payment. Once received, your shoot date will be confirmed.
-      </div>
-
-      <a href="${stripeData.url}" class="payment-button">Pay Deposit Now (Stripe)</a>
-
-      <div class="footer">
-        <p>Thank you for choosing <strong>Arriv Estate Media</strong>.</p>
-        <p>Please feel free to reach out if any adjustments are needed.</p>
-      </div>
-    </body>
-    </html>
-    `;
-
+    // Generate PDF using pdf-lib with consistent branding
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([612, 792]); // Letter size
+    
+    const fontSize = 12;
+    const smallFontSize = 10;
+    const titleFontSize = 18;
+    const gold = rgb(0.72, 0.59, 0.42);
+    const black = rgb(0.1, 0.1, 0.1);
+    const gray = rgb(0.4, 0.4, 0.4);
+    const lightGray = rgb(0.97, 0.97, 0.97);
+    
+    let y = 750;
+    
+    // Header
+    page.drawText('ARRIV ESTATE MEDIA', { x: 50, y, size: titleFontSize, color: gold });
+    y -= 30;
+    page.drawText('DEPOSIT INVOICE', { x: 50, y, size: 14, color: black });
+    page.drawText(`#${invoiceNumber}`, { x: 480, y, size: 14, color: black });
+    y -= 25;
+    
+    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+    y -= 20;
+    
+    // Invoice details
+    const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    page.drawText(`Date: ${invoiceDate}`, { x: 50, y, size: smallFontSize, color: black });
+    y -= 25;
+    
+    // Bill To
+    page.drawText('BILL TO:', { x: 50, y, size: 10, color: gold });
+    y -= 15;
+    page.drawText(booking.client_name, { x: 50, y, size: fontSize, color: black });
+    y -= 15;
+    page.drawText(jobAddress, { x: 50, y, size: fontSize, color: black, maxWidth: 400 });
+    y -= 30;
+    
+    // Services
+    page.drawText('DEPOSIT PAYMENT', { x: 50, y, size: 10, color: gold });
+    y -= 18;
+    page.drawText(`$${depositAmount.toFixed(2)}`, { x: 480, y, size: fontSize, color: black });
+    y -= 15;
+    
+    y -= 15;
+    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+    y -= 25;
+    
+    // Total
+    page.drawText('AMOUNT DUE', { x: 50, y, size: 11, color: gold });
+    page.drawText(`$${depositAmount.toFixed(2)}`, { x: 480, y, size: 16, color: black });
+    y -= 45;
+    
+    // Pay-at-Closing Terms section
+    page.drawText('PAY-AT-CLOSING TERMS', { x: 50, y, size: 10, color: gold });
+    y -= 18;
+    
+    const termsText = 'If any of the following occur, this Agreement shall automatically convert to a flat fee of the package minimum, with payment due within seven (7) days of written notice (less deposit):';
+    const wrappedTerms = termsText.match(/.{1,80}/g) || [];
+    wrappedTerms.forEach(line => {
+      page.drawText(line, { x: 50, y, size: 9, color: black, maxWidth: 500 });
+      y -= 12;
+    });
+    
+    y -= 8;
+    const termsList = [
+      '1. The property is withdrawn, canceled, or expires',
+      '2. The listing is terminated, transferred, or reassigned to another agent or brokerage',
+      '3. The property is relisted under a new MLS number',
+      '4. The seller changes representation',
+      '5. The property is rented, leased, or otherwise disposed of without a sale',
+      '6. The sale does not occur within six (6) months of the original listing date',
+      '7. Payment is not received at closing for any reason'
+    ];
+    
+    termsList.forEach(term => {
+      page.drawText(term, { x: 60, y, size: 8, color: black, maxWidth: 480 });
+      y -= 11;
+    });
+    
+    y -= 15;
+    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+    y -= 20;
+    
+    // Payment Instructions
+    page.drawText('PAYMENT INSTRUCTIONS', { x: 50, y, size: 10, color: gold });
+    y -= 18;
+    
+    const paymentText = 'Deposit payment is required to confirm your booking. Please use the link below to submit payment. Once received, your shoot date will be confirmed.';
+    const wrappedPayment = paymentText.match(/.{1,80}/g) || [];
+    wrappedPayment.forEach(line => {
+      page.drawText(line, { x: 50, y, size: smallFontSize, color: black, maxWidth: 500 });
+      y -= 12;
+    });
+    
+    y -= 15;
+    page.drawText(`Payment Link: ${stripeData.url}`, { x: 50, y, size: 9, color: rgb(0, 0, 0.8), maxWidth: 500 });
+    
+    // Footer
+    page.drawText('Thank you for your business!', { x: 50, y: 50, size: smallFontSize, color: black });
+    page.drawText('Arriv Estate Media | 678-242-9107 | arrivestatemedia.com', { x: 50, y: 30, size: 9, color: gray });
+    
+    const pdfBytes = await pdfDoc.save();
+    const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
+    
     // Upload to Google Drive and send email
-    const pdfBase64 = btoa(invoiceHTML);
     await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
       fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`,
       pdfBase64,
