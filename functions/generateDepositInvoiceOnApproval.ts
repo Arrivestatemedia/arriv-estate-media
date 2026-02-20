@@ -278,8 +278,46 @@ Deno.serve(async (req) => {
     const pdfBytes = await pdfDoc.save();
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
     
-    // Note: Google Drive upload via connector is performed by the sendInvoiceEmailViaGmail function
-    // which handles the full email and document workflow
+    // Send invoice email via Gmail connector
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    
+    const emailBody = `Hi ${booking.client_name},
+
+Thank you for choosing Arriv Estate Media! We're excited to help showcase your property.
+
+To confirm your booking, we require a ${depositAmount.toFixed(2)} deposit. Please use the secure payment link below to submit payment:
+
+${stripeData.url}
+
+Once we receive your deposit, your shoot date will be confirmed, and you'll receive additional details about your session.
+
+If you have any questions, please don't hesitate to reach out to us at 678-242-9107.
+
+Best regards,
+Arriv Estate Media
+arrivestatemedia.com`;
+
+    const gmailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        raw: btoa(
+          `From: ${Deno.env.get('ADMIN_EMAIL')}\n` +
+          `To: ${booking.client_email}\n` +
+          `Subject: Your Booking Deposit Invoice #${invoiceNumber}\n` +
+          `MIME-Version: 1.0\n` +
+          `Content-Type: text/plain; charset="UTF-8"\n\n` +
+          emailBody
+        ).replace(/\+/g, '-').replace(/\//g, '_')
+      })
+    });
+
+    if (!gmailResponse.ok) {
+      console.error('Gmail send error:', await gmailResponse.text());
+    }
     
     // Create closing detection record
     await base44.asServiceRole.entities.ClosingDetection.create({
