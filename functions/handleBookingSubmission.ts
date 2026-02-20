@@ -270,7 +270,7 @@ Deno.serve(async (req) => {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(184, 149, 106);
-        doc.text('Arriv Estate Media | Professional Property Photography & Videography', pageWidth / 2, pageHeight - 28, { align: 'center' });
+        doc.text('Arriv Estate Media LLC | Professional Property Photography & Videography', pageWidth / 2, pageHeight - 28, { align: 'center' });
 
         const pdfBytes = new Uint8Array(doc.output('arraybuffer'));
         console.log('PDF generated, size:', pdfBytes.length);
