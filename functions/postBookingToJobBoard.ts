@@ -174,33 +174,17 @@ Deno.serve(async (req) => {
         
         console.log('[INFO] Created Invoice record:', invoice.id);
         
-        // Send deposit invoice email via Brevo
-        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'api-key': Deno.env.get('BREVO_API_KEY'),
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            to: [{ email: booking.client_email, name: booking.client_name }],
-            from: { email: 'noreply@arrivestatemedia.com', name: 'Arriv Estate Media' },
-            subject: `Your Deposit Invoice #${invoiceNumber}`,
-            htmlContent: `<p>Hi ${booking.client_name},</p>
-<p>Thank you for choosing Arriv Estate Media for your property at <strong>${propertyAddress}</strong>!</p>
-<p>We've received your booking request for a pay-at-closing property. Your deposit invoice is attached.</p>
-<p><strong>Invoice #${invoiceNumber}</strong><br/>
-Deposit Amount Due: <strong>$${depositAmount}</strong></p>
-<p>Once your property closes, please let us know so we can send the final invoice.</p>
-<p>Thank you,<br/>Arriv Estate Media Team</p>`
-          })
+        // Generate PDF and send via Brevo
+        await base44.asServiceRole.functions.invoke('generatePayAtClosingDepositInvoiceAndSend', {
+          invoiceId: invoice.id,
+          booking,
+          invoiceNumber,
+          jobAddress: propertyAddress,
+          depositAmount,
+          packageMinimum
         });
-
-        if (!brevoResponse.ok) {
-          const error = await brevoResponse.json();
-          throw new Error(`Brevo error: ${error.message || 'Failed to send email'}`);
-        }
         
-        console.log('[INFO] Sent deposit invoice email via Brevo');
+        console.log('[INFO] Sent deposit invoice PDF email via Brevo');
 
         // Create ClosingDetection record to monitor for closing
         const jobId = existingJobs && existingJobs.length > 0 ? existingJobs[0].id : null;
