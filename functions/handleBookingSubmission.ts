@@ -222,15 +222,22 @@ Deno.serve(async (req) => {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
         let y = curY;
-        doc.text(pkgNames[booking.package] || booking.package, margin, y);
-        doc.text(`$${basePkgAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
-        y += 18;
-
-        for (const addon of addOns) {
-          const price = addonPrices2[addon] || 0;
-          doc.text(addonDescriptions2[addon] || addon, margin, y);
-          doc.text(`$${price.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+        
+        if (booking.request_pay_at_closing) {
+          doc.text('Pay-at-Closing Deposit', margin, y);
+          doc.text('$50.00', pageWidth - margin, y, { align: 'right' });
           y += 18;
+        } else {
+          doc.text(pkgNames[booking.package] || booking.package, margin, y);
+          doc.text(`$${basePkgAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+          y += 18;
+
+          for (const addon of addOns) {
+            const price = addonPrices2[addon] || 0;
+            doc.text(addonDescriptions2[addon] || addon, margin, y);
+            doc.text(`$${price.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+            y += 18;
+          }
         }
 
         // Total
