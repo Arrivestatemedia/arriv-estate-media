@@ -91,6 +91,25 @@ Deno.serve(async (req) => {
         const stripeUrl = stripeData.url;
         console.log('Stripe URL:', stripeUrl);
 
+        // Fetch logo (transparent PNG - looks great on dark header)
+        let logoBase64 = null;
+        try {
+          const logoRes = await fetch('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png');
+          if (logoRes.ok) {
+            const logoBuffer = await logoRes.arrayBuffer();
+            const logoBytes = new Uint8Array(logoBuffer);
+            let b64 = '';
+            const chunkSize = 1024;
+            for (let i = 0; i < logoBytes.length; i += chunkSize) {
+              b64 += String.fromCharCode(...logoBytes.subarray(i, i + chunkSize));
+            }
+            logoBase64 = btoa(b64);
+            console.log('Logo fetched, size:', logoBytes.length);
+          }
+        } catch (e) {
+          console.warn('Logo fetch failed:', e.message);
+        }
+
         // Generate PDF using jsPDF - consistent branded layout
         console.log('Generating PDF with jsPDF...');
         const { jsPDF } = await import('npm:jspdf@2.5.1');
@@ -99,33 +118,41 @@ Deno.serve(async (req) => {
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 60;
 
-        // Dark header banner (matches the app's dark branding)
+        // Cream page background
+        doc.setFillColor(255, 251, 245);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+        // Dark header banner
         doc.setFillColor(26, 26, 26);
-        doc.rect(0, 0, pageWidth, 90, 'F');
+        doc.rect(0, 0, pageWidth, 100, 'F');
 
         // Gold accent bar at bottom of header
         doc.setFillColor(184, 149, 106);
-        doc.rect(0, 87, pageWidth, 3, 'F');
+        doc.rect(0, 97, pageWidth, 3, 'F');
 
-        // White ARRIV logo text on dark background
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(26);
-        doc.setTextColor(255, 255, 255);
-        doc.text('ARRIV', pageWidth / 2, 52, { align: 'center' });
+        // Logo image on dark background (transparent PNG shows white logo perfectly)
+        if (logoBase64) {
+          const logoW = 130;
+          const logoH = 45;
+          doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', (pageWidth - logoW) / 2, 28, logoW, logoH);
+        } else {
+          // Fallback text
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(26);
+          doc.setTextColor(255, 255, 255);
+          doc.text('ARRIV', pageWidth / 2, 52, { align: 'center' });
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(184, 149, 106);
+          doc.text('ESTATE MEDIA', pageWidth / 2, 68, { align: 'center' });
+        }
 
-        // Gold ESTATE MEDIA subtitle
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(184, 149, 106);
-        doc.text('ESTATE MEDIA', pageWidth / 2, 68, { align: 'center' });
-
-        // Gold decorative lines flanking the subtitle
-        const subTextW = doc.getTextWidth('ESTATE MEDIA');
+        // Gold decorative lines flanking ESTATE MEDIA (always shown)
         const subCenter = pageWidth / 2;
         doc.setDrawColor(184, 149, 106);
         doc.setLineWidth(0.5);
-        doc.line(subCenter - subTextW / 2 - 30, 65, subCenter - subTextW / 2 - 5, 65);
-        doc.line(subCenter + subTextW / 2 + 5, 65, subCenter + subTextW / 2 + 30, 65);
+        doc.line(subCenter - 65, 82, subCenter - 30, 82);
+        doc.line(subCenter + 30, 82, subCenter + 65, 82);
 
         // INVOICE title
         doc.setFont('helvetica', 'bold');
