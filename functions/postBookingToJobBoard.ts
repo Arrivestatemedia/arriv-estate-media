@@ -63,22 +63,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Call generatePayUpFrontInvoice with booking data
-    const invoiceResponse = await base44.functions.invoke('generatePayUpFrontInvoice', {
+    // Generate invoice (this sends email via Brevo)
+    await base44.asServiceRole.functions.invoke('generatePayUpFrontInvoice', {
       bookingId,
       booking,
       total_price: booking.total_price
     });
 
-    if (!invoiceResponse.data.success) {
-      throw new Error('Failed to generate invoice');
-    }
-
-    // If this was pay-at-closing, update the invoice record
+    // If pay-at-closing, mark the invoice
     if (booking.request_pay_at_closing) {
-      const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
-      if (allInvoices && allInvoices.length > 0) {
-        await base44.asServiceRole.entities.Invoice.update(allInvoices[0].id, {
+      const invoices = await base44.asServiceRole.entities.Invoice.filter({ booking_id: bookingId });
+      if (invoices && invoices.length > 0) {
+        await base44.asServiceRole.entities.Invoice.update(invoices[0].id, {
           pay_at_closing: true,
           invoice_type: 'deposit'
         });
@@ -87,11 +83,10 @@ Deno.serve(async (req) => {
 
     // Update booking status
     await base44.asServiceRole.entities.Booking.update(bookingId, {
-      status: 'approved',
-      invoice_id: invoiceResponse.data.invoiceId
+      status: 'approved'
     });
 
-    return Response.json({ success: true, invoiceId: invoiceResponse.data.invoiceId });
+    return Response.json({ success: true });
   } catch (error) {
     console.error('[ERROR]', error.message);
     return Response.json({ error: error.message }, { status: 500 });Booking.update(bookingId, { status: 'approved' });
