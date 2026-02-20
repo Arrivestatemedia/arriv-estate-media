@@ -10,7 +10,6 @@ Deno.serve(async (req) => {
     }
 
     const { bookingId } = await req.json();
-
     const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
 
     // Contractor pricing mapping
@@ -30,23 +29,18 @@ Deno.serve(async (req) => {
       'rush_delivery': 0
     };
 
-    // Calculate contractor pay rate
     const packageRate = contractorPackagePricing[booking.package] || 0;
     let addonsTotal = 0;
-    
     if (booking.add_ons && Array.isArray(booking.add_ons)) {
       addonsTotal = booking.add_ons.reduce((sum, addon) => {
         return sum + (contractorAddonPricing[addon] || 0);
       }, 0);
     }
-
     const contractorPayRate = packageRate + addonsTotal;
-
     const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
 
-    // Check if job already exists for this booking
+    // Create job if doesn't exist
     const existingJobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
-    
     if (!existingJobs || existingJobs.length === 0) {
       await base44.asServiceRole.entities.Job.create({
         title: `Photography - ${propertyAddress}`,
@@ -69,7 +63,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
+    // Call generatePayUpFrontInvoice with booking data
+    const invoiceResponse = await base44.functions.invoke('generatePayUpFrontInvoice', {
+      bookingId,
+      booking,
+      total_price: booking.total_price
+    });
+
+    if (!invoiceResponse.data.success) {
+      throw new Error('Failed to generate invoice');
+    }
+
+    // If this was pay-at-closing, update the invoice record
+    if (booking.request_pay_at_closing) {
+      const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
+      if (allInvoices && allInvoices.length > 0) {
+        await base44.asServiceRole.entities.Invoice.update(allInvoices[0].id, {
+          pay_at_closing: true,
+          invoice_type: 'deposit'
+        });
+      }
+    }
+
+    // Update booking status
+    await base44.asServiceRole.entities.Booking.update(bookingId, {
+      status: 'approved',
+      invoice_id: invoiceResponse.data.invoiceId
+    });
+
+    return Response.json({ success: true, invoiceId: invoiceResponse.data.invoiceId });
+  } catch (error) {
+    console.error('[ERROR]', error.message);
+    return Response.json({ error: error.message }, { status: 500 });Booking.update(bookingId, { status: 'approved' });
 
     // Send approval email and calendar invite
     try {
