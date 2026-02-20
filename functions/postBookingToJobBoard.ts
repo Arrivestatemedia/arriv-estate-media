@@ -71,25 +71,69 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
-    // Send approval email and calendar invite using existing functions
+    // Send approval email and calendar invite
     try {
-      await base44.asServiceRole.functions.invoke('sendBookingNotifications', { 
-        booking: {
-          client_name: booking.client_name,
-          client_email: booking.client_email,
-          client_phone: booking.client_phone,
-          street_address: booking.street_address,
-          city: booking.city,
-          state: booking.state,
-          preferred_date: booking.preferred_date,
-          preferred_time: booking.preferred_time,
-          package: booking.package,
-          notes: booking.notes
+      // Send SMS confirmation
+      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      
+      if (booking.client_phone && twilioPhone && accountSid && authToken) {
+        const messageText = `Hi ${booking.client_name}! Your booking at ${propertyAddress} on ${booking.preferred_date} at ${booking.preferred_time} has been confirmed. You'll receive an email shortly. - Arriv`;
+        await fetch('https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
+          },
+          body: new URLSearchParams({
+            'From': twilioPhone,
+            'To': booking.client_phone,
+            'Body': messageText,
+          }).toString(),
+        });
+      }
+
+      // Send email confirmation via Gmail
+      const adminEmail = Deno.env.get('ADMIN_EMAIL') || 'BradCBurke@arrivestatemedia.com';
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      
+      const emailSubject = 'Your Booking Confirmation - Arriv';
+      const emailBody = `Hi ${booking.client_name},\n\nYour booking has been confirmed!\n\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\n\nYou should receive a calendar invite shortly. We'll contact you if there are any changes.\n\nThank you,\nArriv Team`;
+      
+      const messageLines = [
+        `To: ${booking.client_email}`,
+        `From: ${adminEmail}`,
+        `Subject: ${emailSubject}`,
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset="UTF-8"',
+        '',
+        emailBody
+      ];
+
+      const messageParts = messageLines.map(line => new TextEncoder().encode(line + '\r\n'));
+      const messageBytes = messageParts.reduce((acc, part) => {
+        const newAcc = new Uint8Array(acc.length + part.length);
+        newAcc.set(acc);
+        newAcc.set(part, acc.length);
+        return newAcc;
+      }, new Uint8Array());
+
+      const base64urlMessage = btoa(String.fromCharCode(...messageBytes))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+
+      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         },
-        type: 'confirmation',
-        sendEmail: true 
+        body: JSON.stringify({ raw: base64urlMessage })
       });
-      await base44.asServiceRole.functions.invoke('createCalendarEvent', { booking });
+      
+      console.log('[INFO] Sent confirmation email to', booking.client_email);
     } catch (error) {
       console.error('Failed to send notifications:', error);
     }
