@@ -11,9 +11,18 @@ Deno.serve(async (req) => {
 
     const { bookingId, actionType } = await req.json();
     
+    // Get booking to access jobId if it exists
+    const bookings = await base44.asServiceRole.entities.Booking.filter({ id: bookingId });
+    const booking = bookings[0];
+    
+    if (!booking) {
+      return Response.json({ error: 'Booking not found' }, { status: 404 });
+    }
+    
     // Generate deposit invoice first
     const depositResult = await base44.asServiceRole.functions.invoke('generateDepositInvoice', {
-      bookingId
+      bookingId,
+      jobId: booking.booking_id
     });
     
     // Then perform the requested action (post to job board or accept for myself)
