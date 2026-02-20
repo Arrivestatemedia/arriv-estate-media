@@ -10,9 +10,10 @@ Deno.serve(async (req) => {
     }
 
     const { bookingId } = await req.json();
+
     const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
 
-    // Contractor pricing
+    // Contractor pricing mapping
     const contractorPackagePricing = {
       'mls_walkthrough': 60,
       'photo_essentials': 150,
@@ -29,18 +30,23 @@ Deno.serve(async (req) => {
       'rush_delivery': 0
     };
 
+    // Calculate contractor pay rate
     const packageRate = contractorPackagePricing[booking.package] || 0;
     let addonsTotal = 0;
+    
     if (booking.add_ons && Array.isArray(booking.add_ons)) {
       addonsTotal = booking.add_ons.reduce((sum, addon) => {
         return sum + (contractorAddonPricing[addon] || 0);
       }, 0);
     }
+
     const contractorPayRate = packageRate + addonsTotal;
+
     const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
 
-    // Create job if doesn't exist
+    // Check if job already exists for this booking
     const existingJobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    
     if (!existingJobs || existingJobs.length === 0) {
       await base44.asServiceRole.entities.Job.create({
         title: `Photography - ${propertyAddress}`,
@@ -63,32 +69,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Generate invoice (this sends email via Brevo)
-    await base44.asServiceRole.functions.invoke('generatePayUpFrontInvoice', {
-      bookingId,
-      booking,
-      total_price: booking.total_price
-    });
+    await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
 
-    // If pay-at-closing, mark the invoice
-    if (booking.request_pay_at_closing) {
-      const invoices = await base44.asServiceRole.entities.Invoice.filter({ booking_id: bookingId });
-      if (invoices && invoices.length > 0) {
-        await base44.asServiceRole.entities.Invoice.update(invoices[0].id, {
-          pay_at_closing: true,
-          invoice_type: 'deposit'
-        });
-      }
+    // Send approval email and calendar invite using existing functions
+    try {
+      await base44.asServiceRole.functions.invoke('sendBookingNotifications', { booking });
+      await base44.asServiceRole.functions.invoke('createCalendarEvent', { booking });
+    } catch (error) {
+      console.error('Failed to send notifications:', error);
     }
-
-    // Update booking status
-    await base44.asServiceRole.entities.Booking.update(bookingId, {
-      status: 'approved'
-    });
 
     return Response.json({ success: true });
   } catch (error) {
-    console.error('[ERROR]', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
