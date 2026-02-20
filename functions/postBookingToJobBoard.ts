@@ -454,6 +454,8 @@ Deno.serve(async (req) => {
       } catch (error) {
         console.error('Failed to handle pay-at-closing workflow:', error);
       }
+    } else {
+      console.log('[INFO] Skipping pay-at-closing process - this is a PAY-UP-FRONT booking');
     }
 
     return Response.json({ success: true });
