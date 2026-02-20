@@ -124,13 +124,13 @@ Deno.serve(async (req) => {
 
         // Logo on cream background - use real image dimensions for correct aspect ratio
         const logoH = 175;
-        let curY = 5;
+        let curY = 0;
         if (logoBase64) {
           const imgData = `data:image/png;base64,${logoBase64}`;
           const imgProps = doc.getImageProperties(imgData);
           const logoW = (imgProps.width / imgProps.height) * logoH;
           doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, curY, logoW, logoH);
-          curY += logoH;
+          curY += logoH - 20; // PNG has bottom transparent padding, pull line up slightly
         } else {
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(26);
