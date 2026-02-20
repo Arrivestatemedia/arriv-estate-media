@@ -356,14 +356,98 @@ Deno.serve(async (req) => {
         
         console.log('[INFO] Created Invoice record:', invoice.id);
         
-        // Generate PDF and send via Brevo
-        await base44.asServiceRole.functions.invoke('generatePayAtClosingDepositInvoiceAndSend', {
-          invoiceId: invoice.id,
-          booking,
-          invoiceNumber,
-          jobAddress: propertyAddress,
-          depositAmount,
-          packageMinimum
+        // Generate PDF
+        const pdfBytes = await generatePayAtClosingDepositPDF(booking, invoiceNumber, propertyAddress, depositAmount, packageMinimum);
+
+        // Upload to Google Drive
+        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+        
+        const boundary = 'boundary_' + Date.now();
+        const mimeType = 'application/pdf';
+        const metadata = {
+          name: `Invoice_${invoiceNumber}_Deposit.pdf`,
+          mimeType: 'application/pdf'
+        };
+
+        const multipartBody = [
+          `--${boundary}`,
+          'Content-Type: application/json; charset=UTF-8',
+          '',
+          JSON.stringify(metadata),
+          `--${boundary}`,
+          `Content-Type: ${mimeType}`,
+          'Content-Transfer-Encoding: base64',
+          '',
+          btoa(String.fromCharCode(...pdfBytes)),
+          `--${boundary}--`
+        ].join('\n');
+
+        const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': `multipart/related; boundary="${boundary}"`
+          },
+          body: multipartBody
+        });
+
+        const uploadedFile = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(`Drive upload failed: ${uploadedFile.error?.message}`);
+
+        const pdfFileId = uploadedFile.id;
+
+        // Make publicly viewable
+        await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}/permissions`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'reader', type: 'anyone' })
+        });
+
+        const fileDetailsRes = await fetch(`https://www.googleapis.com/drive/v3/files/${pdfFileId}?fields=webViewLink`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const { webViewLink: driveViewLink } = await fileDetailsRes.json();
+
+        // Send email via Brevo
+        const adminEmail = Deno.env.get('ADMIN_EMAIL');
+        const firstName = booking.client_name.split(' ')[0];
+
+        const htmlEmailBody = `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <p>Hi ${firstName},</p>
+  <p>Thank you for choosing Arriv Estate Media for your property at <strong>${propertyAddress}</strong>!</p>
+  <p>We've received your booking request for a pay-at-closing property. Your deposit invoice is ready below.</p>
+  <p style="text-align: center; margin: 30px 0;">
+    <a href="${driveViewLink}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
+      👉 View Invoice
+    </a>
+  </p>
+  <p><strong>Deposit Due: $${depositAmount.toFixed(2)}</strong></p>
+  <p>Once your property closes, please let us know so we can send the final invoice.</p>
+  <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
+</body>
+</html>`;
+
+        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: { 'api-key': Deno.env.get('BREVO_API_KEY'), 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
+            to: [{ email: booking.client_email, name: booking.client_name }],
+            subject: `Your Deposit Invoice #${invoiceNumber}`,
+            htmlContent: htmlEmailBody
+          })
+        });
+
+        const brevoData = await brevoResponse.json();
+        if (!brevoResponse.ok) throw new Error(`Brevo error: ${brevoData.message}`);
+
+        // Update invoice record
+        await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+          google_drive_unpaid_url: driveViewLink,
+          google_drive_file_id: pdfFileId,
+          email_sent_at: new Date().toISOString()
         });
         
         console.log('[INFO] Sent deposit invoice PDF email via Brevo');
