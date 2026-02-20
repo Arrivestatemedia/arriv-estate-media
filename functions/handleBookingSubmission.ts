@@ -96,121 +96,142 @@ Deno.serve(async (req) => {
           ? `${packageNames[booking.package] || booking.package}, ${addOns.map(a => addonDescriptions[a] || a).join(', ')}`
           : (packageNames[booking.package] || booking.package);
 
-        const nextInvoiceNumber = String(parseInt(invoiceNumber) + 1);
-        const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-        // Fetch the DOCX template from storage
-        console.log('Fetching DOCX template...');
-        const templateUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/a3caf273e_Arriv_Estate_Media_Pay_Up_Front_Invoice.docx';
-        const templateRes = await fetch(templateUrl);
-        if (!templateRes.ok) throw new Error('Failed to fetch invoice template');
-        const templateBytes = new Uint8Array(await templateRes.arrayBuffer());
-        console.log('Template fetched, size:', templateBytes.length);
-
-        // Use docxtemplater for proper DOCX templating (handles split XML runs)
-        const PizZip = (await import('npm:pizzip@3.1.7')).default;
-        const Docxtemplater = (await import('npm:docxtemplater@3.56.0')).default;
-        console.log('Docxtemplater imported successfully');
-
         const stripeUrl = stripeData.url;
         console.log('Stripe URL:', stripeUrl);
 
-        const zip = new PizZip(templateBytes);
-        const doc = new Docxtemplater(zip, {
-          paragraphLoop: true,
-          linebreaks: true,
-          delimiters: { start: '{{', end: '}}' }
-        });
-        console.log('Docxtemplater instance created');
+        // Generate PDF using jsPDF - consistent branded layout
+        console.log('Generating PDF with jsPDF...');
+        const { jsPDF } = await import('npm:jspdf@2.5.1');
+        const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 60;
 
-        doc.render({
-          JOB_ADDRESS: propertyAddress,
-          PROPERTY_ADDRESS: propertyAddress,
-          CLIENT_NAME: booking.client_name,
-          INVOICE_NUMBER: invoiceNumber,
-          AMOUNT_DUE: `$${totalAmount.toFixed(2)}`,
-          'SERVICE_AND_ADD-ONS_CHOSEN': servicesLine,
-          AMOUNT_OF_PACKAGE: `$${basePkgAmount.toFixed(2)}`,
-          'TOTAL_AMOUNT_OF_PACKAGE_AND_ADD-ONS': `$${totalAmount.toFixed(2)}`,
-          PLACE_STRIP_LINK: stripeUrl,
-          NEXT_INVOICE_NUMBER: nextInvoiceNumber,
-          DATE_OF_INVOICE_CREATION: invoiceDate,
-          'DATE OF JOB': booking.preferred_date,
-        });
-        console.log('Template rendered successfully');
+        // Fetch and embed Arriv logo
+        try {
+          const logoRes = await fetch('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png');
+          if (logoRes.ok) {
+            const logoBytes = new Uint8Array(await logoRes.arrayBuffer());
+            const logoBase64 = btoa(String.fromCharCode(...logoBytes));
+            doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', pageWidth / 2 - 60, 40, 120, 40);
+          }
+        } catch (e) { console.warn('Logo load failed:', e.message); }
 
-        const updatedDocx = doc.getZip().generate({ type: 'uint8array', compression: 'DEFLATE' });
-        console.log('DOCX generated, size:', updatedDocx.length);
+        // INVOICE title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.setTextColor(26, 26, 26);
+        doc.text('INVOICE', margin, 120);
 
-        // Upload filled DOCX to Google Drive as Google Doc (auto-converts to Google Doc format)
-        console.log('Uploading filled DOCX to Google Drive...');
+        // Invoice # and Date
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Invoice #: ${invoiceNumber}`, margin, 138);
+        doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}`, margin, 152);
+
+        // BILL TO
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(26, 26, 26);
+        doc.text('BILL TO:', margin, 178);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80, 80, 80);
+        doc.text(booking.client_name, margin, 193);
+
+        doc.setTextColor(184, 149, 106);
+        doc.text('Listing Address:', margin, 210);
+
+        doc.setTextColor(80, 80, 80);
+        doc.text(propertyAddress, margin, 225);
+        doc.text(`Service Date: ${booking.preferred_date}`, margin, 240);
+
+        // Divider
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, 255, pageWidth - margin, 255);
+
+        // SERVICES PROVIDED
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(184, 149, 106);
+        doc.text('SERVICES PROVIDED', margin, 275);
+
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, 285, pageWidth - margin, 285);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(26, 26, 26);
+        doc.text('Description', margin, 298);
+        doc.text('Amount', pageWidth - margin, 298, { align: 'right' });
+        doc.line(margin, 305, pageWidth - margin, 305);
+
+        // Line items
+        const addonPrices2 = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
+        const addonDescriptions2 = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
+        const pkgNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80, 80, 80);
+        let y = 320;
+        doc.text(pkgNames[booking.package] || booking.package, margin, y);
+        doc.text(`$${basePkgAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+        y += 18;
+
+        for (const addon of addOns) {
+          const price = addonPrices2[addon] || 0;
+          doc.text(addonDescriptions2[addon] || addon, margin, y);
+          doc.text(`$${price.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+          y += 18;
+        }
+
+        // Total
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 14;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(26, 26, 26);
+        doc.text('TOTAL DUE:', margin, y);
+        doc.setTextColor(184, 149, 106);
+        doc.text(`$${totalAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+        y += 30;
+
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 20;
+
+        // PAYMENT INSTRUCTIONS
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(26, 26, 26);
+        doc.text('PAYMENT INSTRUCTIONS', margin, y);
+        y += 16;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80, 80, 80);
+        doc.text('Full payment is required before your scheduled shoot.', margin, y);
+        y += 16;
+
+        const linkLabel = 'Payment Link: ';
+        doc.text(linkLabel, margin, y);
+        const labelWidth = doc.getTextWidth(linkLabel);
+        doc.setTextColor(184, 149, 106);
+        doc.textWithLink(stripeUrl, margin + labelWidth, y, { url: stripeUrl });
+
+        // Footer
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(160, 160, 160);
+        doc.text('Arriv Estate Media | Professional Property Photography & Videography', pageWidth / 2, pageHeight - 40, { align: 'center' });
+
+        const pdfBytes = new Uint8Array(doc.output('arraybuffer'));
+        console.log('PDF generated, size:', pdfBytes.length);
+
+        // Upload PDF to Google Drive UNPAID folder
         const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
         const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
         const enc = new TextEncoder();
         const boundary = 'boundary_arriv_invoice';
-        const docFileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}`;
-
-        // Upload as Google Doc (Drive converts DOCX -> Google Doc)
-        const docMetadata = JSON.stringify({ name: docFileName, parents: [unpaidFolderId], mimeType: 'application/vnd.google-apps.document' });
-        const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${docMetadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`);
-        const after = enc.encode(`\r\n--${boundary}--`);
-        const uploadBody = new Uint8Array(before.length + updatedDocx.length + after.length);
-        uploadBody.set(before); uploadBody.set(updatedDocx, before.length); uploadBody.set(after, before.length + updatedDocx.length);
-
-        const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
-          body: uploadBody
-        });
-        console.log('Google Drive upload response status:', uploadRes.status);
-        const uploadedDoc = await uploadRes.json();
-        if (!uploadRes.ok) {
-          console.error('Drive upload error:', uploadedDoc);
-          throw new Error(`Drive upload failed: ${JSON.stringify(uploadedDoc.error)}`);
-        }
-        console.log('Uploaded Google Doc ID:', uploadedDoc.id);
-
-        // Export the Google Doc as PDF
-        console.log('Exporting as PDF...');
-        let pdfBytes;
-        try {
-          const pdfExportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}/export?mimeType=application/pdf`, {
-            headers: { 'Authorization': `Bearer ${driveToken}` }
-          });
-          if (!pdfExportRes.ok) {
-            const errorText = await pdfExportRes.text();
-            console.error('PDF export failed:', pdfExportRes.status, errorText);
-            throw new Error(`PDF export failed: ${pdfExportRes.status} ${errorText}`);
-          }
-          pdfBytes = new Uint8Array(await pdfExportRes.arrayBuffer());
-          console.log('PDF exported successfully, size:', pdfBytes.length);
-          if (!pdfBytes || pdfBytes.length === 0) {
-            throw new Error('PDF export returned empty buffer');
-          }
-        } catch (error) {
-          console.error('PDF export error:', error.message);
-          throw error;
-        }
-
-        // Note: pdf-lib has limitations with adding links to existing PDFs from Google Drive exports
-        // The clickable link feature requires direct PDF manipulation which may not work reliably
-        // with PDFs exported from Google Docs. The Stripe URL is embedded in the document text instead.
-        console.log('PDF generated with Stripe payment URL embedded:', stripeUrl);
-
-        // Delete the temporary Google Doc
-        console.log('Deleting temporary Google Doc:', uploadedDoc.id);
-        try {
-          const deleteRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedDoc.id}`, {
-            method: 'DELETE', headers: { 'Authorization': `Bearer ${driveToken}` }
-          });
-          if (deleteRes.ok) {
-            console.log('Temporary Google Doc deleted');
-          } else {
-            console.warn('Failed to delete temporary Google Doc, continuing anyway');
-          }
-        } catch (error) {
-          console.warn('Error deleting temporary doc:', error.message);
-        }
 
         // Upload the final PDF to the UNPAID folder
         console.log('Starting PDF upload to UNPAID folder, PDF size:', pdfBytes.length, 'bytes');
