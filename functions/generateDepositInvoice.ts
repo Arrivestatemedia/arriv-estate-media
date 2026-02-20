@@ -103,13 +103,190 @@ Deno.serve(async (req) => {
       package_minimum: packageMinimum
     });
 
+    // Generate PDF HTML with pay-at-closing terms
+    const invoiceHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 40px;
+          background: white;
+          color: #333;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 40px;
+        }
+        .logo-text {
+          font-size: 28px;
+          font-weight: bold;
+          letter-spacing: 2px;
+          color: #1a1a1a;
+          margin-bottom: 5px;
+        }
+        .logo-subtitle {
+          font-size: 12px;
+          color: #b8956a;
+          letter-spacing: 1px;
+        }
+        .title {
+          font-size: 24px;
+          font-weight: bold;
+          margin: 30px 0 10px 0;
+        }
+        .invoice-details {
+          display: flex;
+          justify-content: space-between;
+          margin: 20px 0;
+          font-size: 14px;
+        }
+        .details-column {
+          flex: 1;
+        }
+        .detail-row {
+          margin: 8px 0;
+        }
+        .detail-label {
+          font-weight: bold;
+        }
+        .section-title {
+          font-weight: bold;
+          font-size: 14px;
+          margin-top: 25px;
+          margin-bottom: 10px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+          font-size: 14px;
+        }
+        th {
+          background-color: #f5f5f5;
+          padding: 12px;
+          text-align: left;
+          font-weight: bold;
+          border: 1px solid #ddd;
+        }
+        td {
+          padding: 12px;
+          border: 1px solid #ddd;
+        }
+        .amount-right {
+          text-align: right;
+        }
+        .total-row {
+          background-color: #f9f9f9;
+          font-weight: bold;
+        }
+        .payment-button {
+          display: inline-block;
+          background-color: #b8956a;
+          color: white;
+          padding: 12px 24px;
+          text-decoration: none;
+          border-radius: 4px;
+          margin-top: 20px;
+          font-weight: bold;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 40px;
+          font-size: 13px;
+          color: #666;
+        }
+        .payment-terms {
+          background-color: #f9f9f9;
+          padding: 15px;
+          margin: 20px 0;
+          border-left: 4px solid #b8956a;
+          font-size: 13px;
+          line-height: 1.6;
+        }
+        .terms-list {
+          margin-left: 20px;
+          font-size: 12px;
+        }
+        .terms-list li {
+          margin-bottom: 8px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="logo-text">ARRIV</div>
+        <div class="logo-subtitle">ESTATE MEDIA</div>
+      </div>
+
+      <div class="title">DEPOSIT INVOICE</div>
+
+      <div class="invoice-details">
+        <div class="details-column">
+          <div class="detail-row"><span class="detail-label">Invoice #:</span> ${invoiceNumber}</div>
+          <div class="detail-row"><span class="detail-label">Client:</span> ${booking.client_name}</div>
+          <div class="detail-row"><span class="detail-label">Property:</span> ${jobAddress}</div>
+          <div class="detail-row"><span class="detail-label">Service Date:</span> ${booking.preferred_date}</div>
+        </div>
+        <div class="details-column" style="text-align: right;">
+          <div class="detail-row"><span class="detail-label">Invoice Date:</span> ${new Date().toLocaleDateString()}</div>
+        </div>
+      </div>
+
+      <div class="section-title">Services Provided</div>
+      <table>
+        <tr>
+          <th>Description</th>
+          <th class="amount-right">Amount</th>
+        </tr>
+        <tr>
+          <td>Deposit Payment</td>
+          <td class="amount-right">$${depositAmount.toFixed(2)}</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total Due</td>
+          <td class="amount-right">$${depositAmount.toFixed(2)}</td>
+        </tr>
+      </table>
+
+      <div class="section-title">Pay-at-Closing Terms</div>
+      <div class="payment-terms">
+        If any of the following occur, this Agreement shall automatically convert to a flat fee of the package minimum, with payment due within seven (7) days of written notice (less deposit):
+        <ol class="terms-list">
+          <li>The property is withdrawn, canceled, or expires</li>
+          <li>The listing is terminated, transferred, or reassigned to another agent or brokerage</li>
+          <li>The property is relisted under a new MLS number</li>
+          <li>The seller changes representation</li>
+          <li>The property is rented, leased, or otherwise disposed of without a sale</li>
+          <li>The sale does not occur within six (6) months of the original listing date</li>
+          <li>Payment is not received at closing for any reason</li>
+        </ol>
+      </div>
+
+      <div class="section-title">Payment Instructions</div>
+      <div class="payment-terms">
+        <strong>Deposit payment is required</strong> to confirm your booking. Please use the link below to submit payment. Once received, your shoot date will be confirmed.
+      </div>
+
+      <a href="${stripeData.url}" class="payment-button">Pay Deposit Now (Stripe)</a>
+
+      <div class="footer">
+        <p>Thank you for choosing <strong>Arriv Estate Media</strong>.</p>
+        <p>Please feel free to reach out if any adjustments are needed.</p>
+      </div>
+    </body>
+    </html>
+    `;
+
     // Upload to Google Drive and send email
+    const pdfBase64 = btoa(invoiceHTML);
     await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
-      fileName: `${jobAddress}.pdf`,
-      invoiceContent: `Deposit Invoice for ${jobAddress}`,
-      folderType: 'unpaid',
-      invoiceNumber,
-      stripeLink: stripeData.url
+      fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`,
+      pdfBase64,
+      folderType: 'unpaid'
     });
 
     await base44.asServiceRole.functions.invoke('sendInvoiceEmailViaGmail', {
