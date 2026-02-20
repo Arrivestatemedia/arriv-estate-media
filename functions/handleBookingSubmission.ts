@@ -122,26 +122,15 @@ Deno.serve(async (req) => {
         doc.setFillColor(255, 251, 245);
         doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-        // Dark header banner
-        doc.setFillColor(26, 26, 26);
-        doc.rect(0, 0, pageWidth, 100, 'F');
-
-        // Gold accent bar at bottom of header
-        doc.setFillColor(184, 149, 106);
-        doc.rect(0, 97, pageWidth, 3, 'F');
-
-        // Logo image on dark background (transparent PNG shows white logo perfectly)
+        // Logo on cream background
         if (logoBase64) {
-          // Use a fixed height and let width be calculated to maintain aspect ratio
-          // The logo is roughly 3:1 width:height ratio based on the Arriv branding
-          const logoH = 40;
-          const logoW = logoH * 3.5; // approx aspect ratio
+          const logoH = 45;
+          const logoW = logoH * 3.5;
           doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', (pageWidth - logoW) / 2, 30, logoW, logoH);
         } else {
-          // Fallback text
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(26);
-          doc.setTextColor(255, 255, 255);
+          doc.setTextColor(26, 26, 26);
           doc.text('ARRIV', pageWidth / 2, 52, { align: 'center' });
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(9);
@@ -149,61 +138,60 @@ Deno.serve(async (req) => {
           doc.text('ESTATE MEDIA', pageWidth / 2, 68, { align: 'center' });
         }
 
-        // Gold decorative lines flanking ESTATE MEDIA (always shown)
-        const subCenter = pageWidth / 2;
+        // Thin gold divider under logo
         doc.setDrawColor(184, 149, 106);
-        doc.setLineWidth(0.5);
-        doc.line(subCenter - 65, 82, subCenter - 30, 82);
-        doc.line(subCenter + 30, 82, subCenter + 65, 82);
+        doc.setLineWidth(1);
+        doc.line(margin, 85, pageWidth - margin, 85);
 
         // INVOICE title
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(18);
         doc.setTextColor(26, 26, 26);
-        doc.text('INVOICE', margin, 120);
+        doc.text('INVOICE', margin, 110);
 
         // Invoice # and Date
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80);
-        doc.text(`Invoice #: ${invoiceNumber}`, margin, 138);
-        doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}`, margin, 152);
+        doc.text(`Invoice #: ${invoiceNumber}`, margin, 128);
+        doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}`, margin, 142);
 
         // BILL TO
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(26, 26, 26);
-        doc.text('BILL TO:', margin, 178);
+        doc.text('BILL TO:', margin, 168);
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
-        doc.text(booking.client_name, margin, 193);
+        doc.text(booking.client_name, margin, 183);
 
         doc.setTextColor(184, 149, 106);
-        doc.text('Listing Address:', margin, 210);
+        doc.text('Listing Address:', margin, 200);
 
         doc.setTextColor(80, 80, 80);
-        doc.text(propertyAddress, margin, 225);
-        doc.text(`Service Date: ${booking.preferred_date}`, margin, 240);
+        doc.text(propertyAddress, margin, 215);
+        doc.text(`Service Date: ${booking.preferred_date}`, margin, 230);
 
         // Divider
         doc.setDrawColor(200, 200, 200);
-        doc.line(margin, 255, pageWidth - margin, 255);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 245, pageWidth - margin, 245);
 
         // SERVICES PROVIDED
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(184, 149, 106);
-        doc.text('SERVICES PROVIDED', margin, 275);
+        doc.text('SERVICES PROVIDED', margin, 265);
 
         doc.setDrawColor(200, 200, 200);
-        doc.line(margin, 285, pageWidth - margin, 285);
+        doc.line(margin, 275, pageWidth - margin, 275);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(26, 26, 26);
-        doc.text('Description', margin, 298);
-        doc.text('Amount', pageWidth - margin, 298, { align: 'right' });
-        doc.line(margin, 305, pageWidth - margin, 305);
+        doc.text('Description', margin, 288);
+        doc.text('Amount', pageWidth - margin, 288, { align: 'right' });
+        doc.line(margin, 295, pageWidth - margin, 295);
 
         // Line items
         const addonPrices2 = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
@@ -212,7 +200,7 @@ Deno.serve(async (req) => {
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
-        let y = 320;
+        let y = 310;
         doc.text(pkgNames[booking.package] || booking.package, margin, y);
         doc.text(`$${basePkgAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
         y += 18;
