@@ -123,57 +123,68 @@ Deno.serve(async (req) => {
         doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
         // Logo on cream background - use real image dimensions for correct aspect ratio
+        const logoH = 175;
+        let curY = 5;
         if (logoBase64) {
           const imgData = `data:image/png;base64,${logoBase64}`;
           const imgProps = doc.getImageProperties(imgData);
-          const logoH = 120;
           const logoW = (imgProps.width / imgProps.height) * logoH;
-          doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, 2, logoW, logoH);
+          doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, curY, logoW, logoH);
+          curY += logoH + 5;
         } else {
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(26);
           doc.setTextColor(26, 26, 26);
-          doc.text('ARRIV', pageWidth / 2, 52, { align: 'center' });
+          doc.text('ARRIV', pageWidth / 2, curY + 30, { align: 'center' });
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(9);
           doc.setTextColor(184, 149, 106);
-          doc.text('ESTATE MEDIA', pageWidth / 2, 68, { align: 'center' });
+          doc.text('ESTATE MEDIA', pageWidth / 2, curY + 46, { align: 'center' });
+          curY += 60;
         }
 
         // Thin gold divider under logo
         doc.setDrawColor(184, 149, 106);
         doc.setLineWidth(1);
-        doc.line(margin, 85, pageWidth - margin, 85);
+        doc.line(margin, curY, pageWidth - margin, curY);
+        curY += 20;
 
         // INVOICE title
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(18);
         doc.setTextColor(26, 26, 26);
-        doc.text('INVOICE', margin, 110);
+        doc.text('INVOICE', margin, curY);
+        curY += 18;
 
         // Invoice # and Date
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80);
-        doc.text(`Invoice #: ${invoiceNumber}`, margin, 128);
-        doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}`, margin, 142);
+        doc.text(`Invoice #: ${invoiceNumber}`, margin, curY);
+        curY += 14;
+        doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}`, margin, curY);
+        curY += 26;
 
         // BILL TO
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(26, 26, 26);
-        doc.text('BILL TO:', margin, 168);
+        doc.text('BILL TO:', margin, curY);
+        curY += 15;
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
-        doc.text(booking.client_name, margin, 183);
+        doc.text(booking.client_name, margin, curY);
+        curY += 17;
 
         doc.setTextColor(184, 149, 106);
-        doc.text('Listing Address:', margin, 200);
+        doc.text('Listing Address:', margin, curY);
+        curY += 15;
 
         doc.setTextColor(80, 80, 80);
-        doc.text(propertyAddress, margin, 215);
-        doc.text(`Service Date: ${booking.preferred_date}`, margin, 230);
+        doc.text(propertyAddress, margin, curY);
+        curY += 15;
+        doc.text(`Service Date: ${booking.preferred_date}`, margin, curY);
 
         // Divider
         doc.setDrawColor(200, 200, 200);
