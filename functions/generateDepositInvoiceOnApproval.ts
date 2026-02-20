@@ -272,20 +272,11 @@ Deno.serve(async (req) => {
     const pdfBytes = await pdfDoc.save();
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
     
-    // Upload to Google Drive and send email
+    // Upload to Google Drive
     await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
       fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`,
       pdfBase64,
       folderType: 'unpaid'
-    });
-
-    await base44.asServiceRole.functions.invoke('sendInvoiceEmailViaGmail', {
-      invoiceId: invoice.id,
-      clientEmail: booking.client_email,
-      clientName: booking.client_name.split(' ')[0],
-      jobAddress: propertyAddress,
-      trackedLink: trackedUrl,
-      isReminder: false
     });
     
     // Create closing detection record
