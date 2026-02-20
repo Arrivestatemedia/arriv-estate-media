@@ -132,9 +132,11 @@ Deno.serve(async (req) => {
 
         // Logo image on dark background (transparent PNG shows white logo perfectly)
         if (logoBase64) {
-          const logoW = 130;
-          const logoH = 45;
-          doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', (pageWidth - logoW) / 2, 28, logoW, logoH);
+          // Use a fixed height and let width be calculated to maintain aspect ratio
+          // The logo is roughly 3:1 width:height ratio based on the Arriv branding
+          const logoH = 40;
+          const logoW = logoH * 3.5; // approx aspect ratio
+          doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', (pageWidth - logoW) / 2, 30, logoW, logoH);
         } else {
           // Fallback text
           doc.setFont('helvetica', 'bold');
