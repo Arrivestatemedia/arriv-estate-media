@@ -169,54 +169,124 @@ Deno.serve(async (req) => {
       package_minimum: packageMinimum
     });
     
-    // Send invoice email via Gmail
-    const invoiceEmailContent = `
-Hello ${booking.client_name},
+    // Generate PDF using pdf-lib with consistent branding
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([612, 792]); // Letter size
+    
+    const fontSize = 12;
+    const smallFontSize = 10;
+    const titleFontSize = 18;
+    const gold = rgb(0.72, 0.59, 0.42);
+    const black = rgb(0.1, 0.1, 0.1);
+    const gray = rgb(0.4, 0.4, 0.4);
+    
+    let y = 750;
+    
+    // Header
+    page.drawText('ARRIV ESTATE MEDIA', { x: 50, y, size: titleFontSize, color: gold });
+    y -= 30;
+    page.drawText('DEPOSIT INVOICE', { x: 50, y, size: 14, color: black });
+    page.drawText(`#${invoiceNumber}`, { x: 480, y, size: 14, color: black });
+    y -= 25;
+    
+    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+    y -= 20;
+    
+    // Invoice details
+    const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    page.drawText(`Date: ${invoiceDate}`, { x: 50, y, size: smallFontSize, color: black });
+    y -= 25;
+    
+    // Bill To
+    page.drawText('BILL TO:', { x: 50, y, size: 10, color: gold });
+    y -= 15;
+    page.drawText(booking.client_name, { x: 50, y, size: fontSize, color: black });
+    y -= 15;
+    page.drawText(propertyAddress, { x: 50, y, size: fontSize, color: black, maxWidth: 400 });
+    y -= 30;
+    
+    // Services
+    page.drawText('DEPOSIT PAYMENT', { x: 50, y, size: 10, color: gold });
+    y -= 18;
+    page.drawText(`$${depositAmount.toFixed(2)}`, { x: 480, y, size: fontSize, color: black });
+    y -= 15;
+    
+    y -= 15;
+    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+    y -= 25;
+    
+    // Total
+    page.drawText('AMOUNT DUE', { x: 50, y, size: 11, color: gold });
+    page.drawText(`$${depositAmount.toFixed(2)}`, { x: 480, y, size: 16, color: black });
+    y -= 45;
+    
+    // Pay-at-Closing Terms section
+    page.drawText('PAY-AT-CLOSING TERMS', { x: 50, y, size: 10, color: gold });
+    y -= 18;
+    
+    const termsText = 'If any of the following occur, this Agreement shall automatically convert to a flat fee of the package minimum, with payment due within seven (7) days of written notice (less deposit):';
+    const wrappedTerms = termsText.match(/.{1,80}/g) || [];
+    wrappedTerms.forEach(line => {
+      page.drawText(line, { x: 50, y, size: 9, color: black, maxWidth: 500 });
+      y -= 12;
+    });
+    
+    y -= 8;
+    const termsList = [
+      '1. The property is withdrawn, canceled, or expires',
+      '2. The listing is terminated, transferred, or reassigned to another agent or brokerage',
+      '3. The property is relisted under a new MLS number',
+      '4. The seller changes representation',
+      '5. The property is rented, leased, or otherwise disposed of without a sale',
+      '6. The sale does not occur within six (6) months of the original listing date',
+      '7. Payment is not received at closing for any reason'
+    ];
+    
+    termsList.forEach(term => {
+      page.drawText(term, { x: 60, y, size: 8, color: black, maxWidth: 480 });
+      y -= 11;
+    });
+    
+    y -= 15;
+    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
+    y -= 20;
+    
+    // Payment Instructions
+    page.drawText('PAYMENT INSTRUCTIONS', { x: 50, y, size: 10, color: gold });
+    y -= 18;
+    
+    const paymentText = 'Deposit payment is required to confirm your booking. Please use the link below to submit payment. Once received, your shoot date will be confirmed.';
+    const wrappedPayment = paymentText.match(/.{1,80}/g) || [];
+    wrappedPayment.forEach(line => {
+      page.drawText(line, { x: 50, y, size: smallFontSize, color: black, maxWidth: 500 });
+      y -= 12;
+    });
+    
+    y -= 15;
+    page.drawText(`Payment Link: ${stripeData.url}`, { x: 50, y, size: 9, color: rgb(0, 0, 0.8), maxWidth: 500 });
+    
+    // Footer
+    page.drawText('Thank you for your business!', { x: 50, y: 50, size: smallFontSize, color: black });
+    page.drawText('Arriv Estate Media | 678-242-9107 | arrivestatemedia.com', { x: 50, y: 30, size: 9, color: gray });
+    
+    const pdfBytes = await pdfDoc.save();
+    const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
+    
+    // Upload to Google Drive and send email
+    await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
+      fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`,
+      pdfBase64,
+      folderType: 'unpaid'
+    });
 
-Your deposit invoice #${invoiceNumber} is ready for payment.
-
-Deposit Amount: $${depositAmount.toFixed(2)}
-
-Property: ${propertyAddress}
-Shoot Date: ${booking.preferred_date}
-
-Please click the link below to complete your deposit payment:
-${stripeData.url}
-
-Once payment is received, your shoot date will be confirmed.
-
-Best regards,
-Arriv Estate Media
-678-242-9107
-arrivestatemedia.com
-    `;
-
-    const gmailHeaders = {
-      'Authorization': `Bearer ${await base44.asServiceRole.connectors.getAccessToken('gmail')}`,
-      'Content-Type': 'application/json'
-    };
-
-    const emailBody = {
-      to: booking.client_email,
-      subject: `Invoice #${invoiceNumber} - Deposit Payment Required`,
-      message: invoiceEmailContent
-    };
-
-    // Try to send via Gmail, but don't block if it fails
-    try {
-      const base64Message = btoa(JSON.stringify(emailBody));
-      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: gmailHeaders,
-        body: JSON.stringify({
-          raw: base64Message
-        })
-      });
-      console.log('Email sent via Gmail');
-    } catch (emailError) {
-      console.error('Failed to send email:', emailError);
-      // Continue anyway - invoice was created
-    }
+    await base44.asServiceRole.functions.invoke('sendInvoiceEmailViaGmail', {
+      invoiceId: invoice.id,
+      clientEmail: booking.client_email,
+      clientName: booking.client_name.split(' ')[0],
+      jobAddress: propertyAddress,
+      trackedLink: trackedUrl,
+      isReminder: false
+    });
     
     // Update booking status
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
