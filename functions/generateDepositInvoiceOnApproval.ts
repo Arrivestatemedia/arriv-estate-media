@@ -273,11 +273,31 @@ Deno.serve(async (req) => {
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
     
     // Upload to Google Drive
-    await base44.asServiceRole.functions.invoke('uploadInvoiceToGoogleDrive', {
-      fileName: `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`,
-      pdfBase64,
-      folderType: 'unpaid'
+    const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
+    const folderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh'; // unpaid folder
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
+    
+    const binaryString = atob(pdfBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const metadata = { name: fileName, parents: [folderId] };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', new Blob([bytes], { type: 'application/pdf' }));
+    
+    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+      body: form
     });
+    
+    const fileData = await uploadRes.json();
+    if (!uploadRes.ok) {
+      console.error('Drive upload failed:', fileData);
+    }
     
     // Create closing detection record
     await base44.asServiceRole.entities.ClosingDetection.create({
