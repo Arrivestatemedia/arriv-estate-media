@@ -189,22 +189,28 @@ Deno.serve(async (req) => {
         // Divider
         doc.setDrawColor(200, 200, 200);
         doc.setLineWidth(0.5);
-        doc.line(margin, 245, pageWidth - margin, 245);
+        curY += 20;
+        doc.line(margin, curY, pageWidth - margin, curY);
+        curY += 20;
 
         // SERVICES PROVIDED
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(184, 149, 106);
-        doc.text('SERVICES PROVIDED', margin, 265);
+        doc.text('SERVICES PROVIDED', margin, curY);
+        curY += 10;
 
         doc.setDrawColor(200, 200, 200);
-        doc.line(margin, 275, pageWidth - margin, 275);
+        doc.line(margin, curY, pageWidth - margin, curY);
+        curY += 13;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(26, 26, 26);
-        doc.text('Description', margin, 288);
-        doc.text('Amount', pageWidth - margin, 288, { align: 'right' });
-        doc.line(margin, 295, pageWidth - margin, 295);
+        doc.text('Description', margin, curY);
+        doc.text('Amount', pageWidth - margin, curY, { align: 'right' });
+        curY += 7;
+        doc.line(margin, curY, pageWidth - margin, curY);
+        curY += 15;
 
         // Line items
         const addonPrices2 = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
@@ -213,7 +219,7 @@ Deno.serve(async (req) => {
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
-        let y = 310;
+        let y = curY;
         doc.text(pkgNames[booking.package] || booking.package, margin, y);
         doc.text(`$${basePkgAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
         y += 18;
