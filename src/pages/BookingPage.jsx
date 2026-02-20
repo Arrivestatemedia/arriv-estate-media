@@ -186,10 +186,14 @@ export default function BookingPage() {
   const totalPrice = (selectedPackage?.price || 0) + cartAddOns.reduce((sum, a) => sum + a.price, 0);
 
   const handleSubmitBooking = async (bookingData) => {
+    if (requestPayAtClosing) {
+      setShowPayAtClosingDialog(true);
+      return;
+    }
     return new Promise((resolve) => {
       createBookingMutation.mutate({
         ...bookingData,
-        request_pay_at_closing: requestPayAtClosing
+        request_pay_at_closing: false
       }, {
         onSettled: () => resolve(),
       });
@@ -226,7 +230,25 @@ export default function BookingPage() {
 
   return (
     <>
-
+      <Dialog open={showPayAtClosingDialog} onOpenChange={setShowPayAtClosingDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pay-at-Closing Request Received</DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Someone will be in contact with you shortly to discuss your pay-at-closing options.
+            </DialogDescription>
+          </DialogHeader>
+          <Button
+            onClick={() => {
+              setShowPayAtClosingDialog(false);
+              setShowBookingForm(true);
+            }}
+            className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
+          >
+            Continue
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       <div className="min-h-screen bg-[#FFFBF5]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
