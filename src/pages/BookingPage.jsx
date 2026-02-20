@@ -449,7 +449,7 @@ export default function BookingPage() {
               type="checkbox"
               id="payAtClosing"
               checked={requestPayAtClosing}
-              onChange={(e) => setRequestPayAtClosing(e.target.checked)}
+              onChange={(e) => handlePayAtClosingToggle(e.target.checked)}
               className="w-4 h-4 accent-[#B8956A]"
             />
             <label htmlFor="payAtClosing" className="text-sm text-[#1A1A1A]/70 cursor-pointer">
