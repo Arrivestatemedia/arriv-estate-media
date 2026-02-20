@@ -32,10 +32,19 @@ Deno.serve(async (req) => {
     }
     
     // Then perform the requested action (post to job board or accept for myself)
-    if (actionType === 'post_to_job_board') {
-      await base44.asServiceRole.functions.invoke('postBookingToJobBoard', { bookingId });
-    } else if (actionType === 'accept_for_myself') {
-      await base44.asServiceRole.functions.invoke('acceptBookingForMyself', { bookingId });
+    try {
+      if (actionType === 'post_to_job_board') {
+        console.log('Posting booking to job board:', bookingId);
+        const result = await base44.asServiceRole.functions.invoke('postBookingToJobBoard', { bookingId });
+        console.log('Post result:', result);
+      } else if (actionType === 'accept_for_myself') {
+        console.log('Accepting booking for myself:', bookingId);
+        const result = await base44.asServiceRole.functions.invoke('acceptBookingForMyself', { bookingId });
+        console.log('Accept result:', result);
+      }
+    } catch (actionError) {
+      console.error('Action failed:', actionError.message);
+      throw actionError;
     }
     
     return Response.json({ 
