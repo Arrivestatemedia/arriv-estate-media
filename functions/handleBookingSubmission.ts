@@ -104,7 +104,12 @@ Deno.serve(async (req) => {
           const logoRes = await fetch('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png');
           if (logoRes.ok) {
             const logoBytes = new Uint8Array(await logoRes.arrayBuffer());
-            const logoBase64 = btoa(String.fromCharCode(...logoBytes));
+            // Safe base64 encoding that avoids stack overflow on large arrays
+            let logoBase64 = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < logoBytes.length; i += chunkSize) {
+              logoBase64 += btoa(String.fromCharCode(...logoBytes.slice(i, i + chunkSize)));
+            }
             doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', pageWidth / 2 - 60, 40, 120, 40);
           }
         } catch (e) { console.warn('Logo load failed:', e.message); }
