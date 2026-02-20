@@ -186,10 +186,25 @@ export default function BookingPage() {
   const totalPrice = (selectedPackage?.price || 0) + cartAddOns.reduce((sum, a) => sum + a.price, 0);
 
   const handleSubmitBooking = async (bookingData) => {
+    if (requestPayAtClosing) {
+      setShowPayAtClosingDialog(true);
+      return;
+    }
     return new Promise((resolve) => {
       createBookingMutation.mutate({
         ...bookingData,
-        request_pay_at_closing: requestPayAtClosing
+        request_pay_at_closing: false
+      }, {
+        onSettled: () => resolve(),
+      });
+    });
+  };
+
+  const handleConfirmPayAtClosing = async (bookingData) => {
+    return new Promise((resolve) => {
+      createBookingMutation.mutate({
+        ...bookingData,
+        request_pay_at_closing: true
       }, {
         onSettled: () => resolve(),
       });
