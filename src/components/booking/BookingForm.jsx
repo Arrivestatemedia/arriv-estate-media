@@ -52,6 +52,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
     package: selectedPackage?.id || (editingBooking?.package || ""),
     add_ons: (cartAddOns || []).map(a => a.id),
     total_price: totalPrice,
+    request_pay_at_closing: requestPayAtClosing,
   });
 
   useEffect(() => {
