@@ -11,40 +11,20 @@ Deno.serve(async (req) => {
 
     const { bookingId, actionType } = await req.json();
     
-    // Get booking to access jobId if it exists
-    const bookings = await base44.asServiceRole.entities.Booking.filter({ id: bookingId });
-    const booking = bookings[0];
+    // Get booking
+    const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
     
     if (!booking) {
       return Response.json({ error: 'Booking not found' }, { status: 404 });
     }
     
-    try {
-      // Generate deposit invoice first
-      const depositResult = await base44.asServiceRole.functions.invoke('generateDepositInvoice', {
-        bookingId,
-        jobId: booking.booking_id
-      });
-      console.log('Invoice generated successfully:', depositResult);
-    } catch (invoiceError) {
-      console.error('Invoice generation failed, continuing with action:', invoiceError.message);
-      // Continue anyway - don't block the action if invoice fails
-    }
-    
-    // Then perform the requested action (post to job board or accept for myself)
-    try {
-      if (actionType === 'post_to_job_board') {
-        console.log('Posting booking to job board:', bookingId);
-        const result = await base44.asServiceRole.functions.invoke('postBookingToJobBoard', { bookingId });
-        console.log('Post result:', result);
-      } else if (actionType === 'accept_for_myself') {
-        console.log('Accepting booking for myself:', bookingId);
-        const result = await base44.asServiceRole.functions.invoke('acceptBookingForMyself', { bookingId });
-        console.log('Accept result:', result);
-      }
-    } catch (actionError) {
-      console.error('Action failed:', actionError.message);
-      throw actionError;
+    // Perform the requested action (post to job board or accept for myself)
+    if (actionType === 'post_to_job_board') {
+      console.log('Posting booking to job board:', bookingId);
+      await base44.asServiceRole.functions.invoke('postBookingToJobBoard', { bookingId });
+    } else if (actionType === 'accept_for_myself') {
+      console.log('Accepting booking for myself:', bookingId);
+      await base44.asServiceRole.functions.invoke('acceptBookingForMyself', { bookingId });
     }
     
     return Response.json({ 
