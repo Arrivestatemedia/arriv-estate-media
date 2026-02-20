@@ -10,7 +10,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { bookingId, actionType } = await req.json();
+    const body = await req.json();
+    const bookingId = body.bookingId || body.booking_id;
+    const actionType = body.actionType || body.action_type || 'post_to_job_board';
+    
+    if (!bookingId) {
+      return Response.json({ error: 'bookingId is required' }, { status: 400 });
+    }
     
     // Get booking
     const booking = await base44.asServiceRole.entities.Booking.get(bookingId);
