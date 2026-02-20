@@ -191,10 +191,7 @@ export default function BookingPage() {
       return;
     }
     return new Promise((resolve) => {
-      createBookingMutation.mutate({
-        ...bookingData,
-        request_pay_at_closing: false
-      }, {
+      createBookingMutation.mutate(bookingData, {
         onSettled: () => resolve(),
       });
     });
