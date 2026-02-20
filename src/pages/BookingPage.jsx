@@ -243,8 +243,8 @@ export default function BookingPage() {
           </DialogHeader>
           <Button
             onClick={() => {
+              setPayAtClosingDialogConfirmed(true);
               setShowPayAtClosingDialog(false);
-              setShowBookingForm(true);
             }}
             className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
           >
