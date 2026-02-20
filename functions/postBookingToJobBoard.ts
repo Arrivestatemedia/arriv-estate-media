@@ -319,6 +319,7 @@ Deno.serve(async (req) => {
     
     if (isPayAtClosing) {
       console.log('[INFO] Processing PAY-AT-CLOSING deposit invoice workflow');
+      console.log('[INFO] Booking details:', JSON.stringify(booking));
       try {
         // Create Invoice record for deposit
         const invoiceNumber = `INV-PAC-${Date.now()}`;
