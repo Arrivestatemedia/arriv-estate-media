@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
           const imgProps = doc.getImageProperties(imgData);
           const logoW = (imgProps.width / imgProps.height) * logoH;
           doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, curY, logoW, logoH);
-          curY += logoH - 20; // PNG has bottom transparent padding, pull line up slightly
+          curY += logoH - 55; // Pull line up to account for PNG bottom transparent padding
         } else {
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(26);
