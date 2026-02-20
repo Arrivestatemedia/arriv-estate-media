@@ -255,7 +255,10 @@ Deno.serve(async (req) => {
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
-        doc.text('Full payment is required for your shoot to be confirmed.', margin, y);
+        const paymentInstruction = booking.request_pay_at_closing 
+          ? 'Deposit payment is required for your shoot to be confirmed.'
+          : 'Full payment is required for your shoot to be confirmed.';
+        doc.text(paymentInstruction, margin, y);
         y += 16;
 
         const linkLabel = 'Payment Link: ';
