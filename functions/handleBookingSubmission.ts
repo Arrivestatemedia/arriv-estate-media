@@ -85,16 +85,8 @@ Deno.serve(async (req) => {
         if (!stripeResponse.ok) throw new Error(`Stripe error: ${stripeData.error?.message}`);
 
         const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
-        const packageNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Media Bundle' };
-        const addonDescriptions = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
-
         const basePkgAmount = packagePrices[booking.package] || 0;
         const addOns = booking.add_ons || [];
-
-        // Build services line
-        const servicesLine = addOns.length > 0
-          ? `${packageNames[booking.package] || booking.package}, ${addOns.map(a => addonDescriptions[a] || a).join(', ')}`
-          : (packageNames[booking.package] || booking.package);
 
         const stripeUrl = stripeData.url;
         console.log('Stripe URL:', stripeUrl);
