@@ -288,6 +288,14 @@ Deno.serve(async (req) => {
       isReminder: false
     });
     
+    // Create closing detection record
+    await base44.asServiceRole.entities.ClosingDetection.create({
+      job_id: jobId,
+      job_address: propertyAddress,
+      monitoring_start_date: booking.preferred_date,
+      status: 'pending'
+    });
+    
     // Update booking status
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });
     
