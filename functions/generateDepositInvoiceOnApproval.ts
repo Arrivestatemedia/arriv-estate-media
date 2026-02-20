@@ -115,9 +115,13 @@ Deno.serve(async (req) => {
 
     // Generate invoice number
     const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
-    const lastNumber = allInvoices.length > 0 && allInvoices[0].invoice_number 
-      ? parseInt(allInvoices[0].invoice_number) 
-      : 1000;
+    let lastNumber = 1000;
+    if (allInvoices.length > 0 && allInvoices[0].invoice_number) {
+      const num = parseInt(allInvoices[0].invoice_number);
+      if (!isNaN(num)) {
+        lastNumber = num;
+      }
+    }
     const invoiceNumber = String(lastNumber + 1);
 
     // Create Stripe payment link for deposit
