@@ -191,7 +191,12 @@ export default function BookingPage() {
         ...bookingData,
         request_pay_at_closing: requestPayAtClosing
       }, {
-        onSettled: () => resolve(),
+        onSettled: () => {
+          if (requestPayAtClosing) {
+            setShowPayAtClosingDialog(true);
+          }
+          resolve();
+        },
       });
     });
   };
