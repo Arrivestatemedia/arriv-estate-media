@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Phone, Mail, Calendar, Check, AlertCircle } from "lucide-react";
+import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap } from "lucide-react";
 import { format } from "date-fns";
 
 export default function HubSpotActivityLog() {
