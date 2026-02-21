@@ -85,6 +85,7 @@ import confirmDeleteUser from './pages/confirmDeleteUser';
 import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import AdminSalesSignup from './pages/AdminSalesSignup';
 import SalesLogin from './pages/SalesLogin';
+import AdminSalesRepActivity from './pages/AdminSalesRepActivity';
 import __Layout from './Layout.jsx';
 
 
@@ -127,6 +128,7 @@ export const PAGES = {
     "HubSpotActivityLog": HubSpotActivityLog,
     "AdminSalesSignup": AdminSalesSignup,
     "SalesLogin": SalesLogin,
+    "AdminSalesRepActivity": AdminSalesRepActivity,
 }
 
 export const pagesConfig = {
