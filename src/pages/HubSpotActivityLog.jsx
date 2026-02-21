@@ -143,7 +143,7 @@ export default function HubSpotActivityLog() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>Activity Log</h1>
-            <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log calls, emails, and meetings synced to HubSpot</p>
+            <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log your calls, emails, and meetings</p>
           </div>
           <Dialog open={showForm} onOpenChange={setShowForm}>
             <DialogTrigger asChild>
