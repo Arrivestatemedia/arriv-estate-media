@@ -83,6 +83,8 @@ import SupraAccess from './pages/SupraAccess';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import HubSpotActivityLog from './pages/HubSpotActivityLog';
+import AdminSalesSignup from './pages/AdminSalesSignup';
+import SalesLogin from './pages/SalesLogin';
 import __Layout from './Layout.jsx';
 
 
@@ -123,6 +125,8 @@ export const PAGES = {
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
     "HubSpotActivityLog": HubSpotActivityLog,
+    "AdminSalesSignup": AdminSalesSignup,
+    "SalesLogin": SalesLogin,
 }
 
 export const pagesConfig = {
