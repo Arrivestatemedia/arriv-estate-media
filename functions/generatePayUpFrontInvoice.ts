@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
     // Upload PDF to Google Drive
     console.log('Uploading to Google Drive...');
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-    const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
+    const unpaidFolderId = '1PMtihUlPa_LRcxYdi4ZDNeWWF2zfdv7J';
     const fileName = `Invoice_${invoiceNumber}_${booking.client_name.replace(/\s+/g, '_')}.pdf`;
     const boundary = 'boundary_arriv_invoice';
     const metadata = JSON.stringify({ name: fileName, parents: [unpaidFolderId] });

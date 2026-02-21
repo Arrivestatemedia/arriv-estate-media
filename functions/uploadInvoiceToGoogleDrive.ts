@@ -8,8 +8,8 @@ Deno.serve(async (req) => {
     console.log('uploadInvoiceToGoogleDrive called with fileName:', fileName, 'folderType:', folderType);
 
     const folderId = folderType === 'unpaid' 
-      ? '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh'
-      : '1Jwc1L00KV-lseq1kGEo8jcN5sTJ9LoOt';
+      ? '1PMtihUlPa_LRcxYdi4ZDNeWWF2zfdv7J'
+      : '1d8EjqEfDg21lfBG8LyUr89g8owVUkuWI';
 
     // Get access token - use service role since connector was authorized by admin
     console.log('Getting Google Drive access token...');
