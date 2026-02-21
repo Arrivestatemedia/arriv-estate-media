@@ -193,9 +193,9 @@ import PageTransition from "@/components/layout/PageTransition";
                       {item.showBadge && <NewJobsBadge />}
                     </Link>
                   );
-                })}
+                  })}
 
-                {user && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName) && (
+                  {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName) && (
                   <Link
                     to={createPageUrl("PublicAccountSettings")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -207,7 +207,7 @@ import PageTransition from "@/components/layout/PageTransition";
                     <Settings className="w-4 h-4" />
                     Account Settings
                   </Link>
-                )}
+                  )}
 
               </nav>
 
