@@ -10,7 +10,14 @@ Deno.serve(async (req) => {
     const todayString = today.toISOString().split('T')[0];
 
     const jobs = await base44.asServiceRole.entities.Job.filter({ from_booking: true }, '-created_date');
-    const pastJobs = jobs.filter(j => j.date && j.date < todayString);
+    const pastJobs = jobs.filter(j => {
+      if (!j.completed_at) return false;
+      const completedDate = new Date(j.completed_at);
+      completedDate.setHours(0, 0, 0, 0);
+      const oneDayAfterCompletion = new Date(completedDate);
+      oneDayAfterCompletion.setDate(oneDayAfterCompletion.getDate() + 1);
+      return oneDayAfterCompletion <= today;
+    });
 
     console.log(`Found ${pastJobs.length} past jobs to monitor for closings`);
 
