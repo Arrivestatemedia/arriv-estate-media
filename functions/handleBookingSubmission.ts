@@ -56,11 +56,10 @@ Deno.serve(async (req) => {
       console.error('Admin email error:', error);
     }
 
-    // For pay-up-front: generate PDF invoice and send via Brevo
+    // For pay-up-front: generate PDF invoice and send via Gmail/Twilio
     if (!booking.request_pay_at_closing) {
       try {
-        // Send booking confirmation email first
-        const brevoApiKey = Deno.env.get('BREVO_API_KEY');
+        // Send booking confirmation email via Gmail
         const firstName = booking.client_name.split(' ')[0];
         const packageNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
         const addOnsList = (booking.add_ons || []).map(addon => {
@@ -87,24 +86,54 @@ Deno.serve(async (req) => {
 </body></html>`;
         
         try {
-          await fetch('https://api.brevo.com/v3/smtp/email', {
+          const gmailToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+          const emailSubject = 'Your Booking Request Confirmation';
+          const messageLines = [
+            `To: ${booking.client_email}`, `From: ${adminEmail}`, `Subject: ${emailSubject}`,
+            'MIME-Version: 1.0', 'Content-Type: text/html; charset="UTF-8"', '', confirmationHtmlBody
+          ];
+          const messageBytes = messageLines.map(l => new TextEncoder().encode(l + '\r\n')).reduce((acc, part) => {
+            const merged = new Uint8Array(acc.length + part.length);
+            merged.set(acc); merged.set(part, acc.length);
+            return merged;
+          }, new Uint8Array());
+          const base64urlMessage = btoa(String.fromCharCode(...messageBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+          const gmailRes = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
             method: 'POST',
-            headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
-              to: [{ email: booking.client_email, name: booking.client_name }],
-              subject: 'Your Booking Request Confirmation',
-              htmlContent: confirmationHtmlBody
-            })
+            headers: { 'Authorization': `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ raw: base64urlMessage })
           });
           
           await base44.asServiceRole.entities.MessageLog.create({
             message_type: 'email', recipient_type: 'client', recipient_email: booking.client_email,
-            message_content: 'Booking confirmation sent', subject: 'Your Booking Request Confirmation',
-            status: 'success'
+            message_content: 'Booking confirmation sent', subject: emailSubject,
+            status: gmailRes.ok ? 'success' : 'failed'
           });
         } catch (error) {
           console.error('Confirmation email error:', error);
+        }
+
+        // Send SMS to admin via Twilio
+        try {
+          const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+          const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+          const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+          const adminPhone = Deno.env.get('ADMIN_PHONE');
+          const smsMessage = `NEW BOOKING REQUEST\n\nClient: ${booking.client_name}\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\nPackage: ${booking.package}\nTotal: $${booking.total_price}`;
+
+          const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+            method: 'POST',
+            headers: { 'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ From: fromPhone, To: adminPhone, Body: smsMessage }).toString(),
+          });
+
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'sms', recipient_type: 'admin', recipient_phone: adminPhone,
+            message_content: smsMessage, status: smsResponse.ok ? 'success' : 'failed'
+          });
+        } catch (error) {
+          console.error('Admin SMS error:', error);
         }
 
         const totalAmount = parseFloat(booking.total_price);
