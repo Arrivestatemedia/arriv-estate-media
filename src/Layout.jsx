@@ -59,6 +59,7 @@ import PageTransition from "@/components/layout/PageTransition";
             { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
             { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },
             { label: "Client Terms", page: "AdminClientTerms", icon: Settings },
+            { label: "Closing Invoice", page: "ManualClosingInvoice", icon: FileText },
             { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
           ]
     : isClient
