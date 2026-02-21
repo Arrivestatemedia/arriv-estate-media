@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap } from "lucide-react";
 import { format } from "date-fns";
+import EmailComposer from "@/components/sales/EmailComposer";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     activity_type: "call",
@@ -142,16 +144,17 @@ export default function HubSpotActivityLog() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>Activity Log</h1>
-            <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log your calls, emails, and meetings</p>
+            <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>Sales Tools</h1>
+            <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log activities and send emails</p>
           </div>
-          <Dialog open={showForm} onOpenChange={setShowForm}>
-            <DialogTrigger asChild>
-              <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
-                <Plus className="w-4 h-4" />
-                Log Activity
-              </Button>
-            </DialogTrigger>
+                  {activeTab === "activity" && (
+                    <Dialog open={showForm} onOpenChange={setShowForm}>
+                      <DialogTrigger asChild>
+                        <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
+                          <Plus className="w-4 h-4" />
+                          Log Activity
+                        </Button>
+                      </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Log New Activity</DialogTitle>
@@ -236,11 +239,46 @@ export default function HubSpotActivityLog() {
                   {createActivityMutation.isPending ? "Logging..." : "Log Activity"}
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DialogContent>
+              </Dialog>
+              )}
+              </div>
 
-        {upcomingActivities.length > 0 && (
+              {/* Tab Navigation */}
+              <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20">
+              <button
+              onClick={() => setActiveTab("activity")}
+              className="px-4 py-3 font-medium border-b-2 transition"
+              style={{
+              color: activeTab === "activity" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "activity" ? '#B8956A' : 'transparent'
+              }}
+              >
+              Activity Log
+              </button>
+              <button
+              onClick={() => setActiveTab("email")}
+              className="px-4 py-3 font-medium border-b-2 transition"
+              style={{
+              color: activeTab === "email" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "email" ? '#B8956A' : 'transparent'
+              }}
+              >
+              Send Email
+              </button>
+              </div>
+
+              {activeTab === "email" && (
+              <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
+              <CardContent className="pt-6">
+              <EmailComposer />
+              </CardContent>
+              </Card>
+              )}
+
+              {activeTab === "activity" && (
+              <>
+              {upcomingActivities.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
@@ -318,8 +356,10 @@ export default function HubSpotActivityLog() {
               ))
             )}
           </div>
-        </div>
-      </div>
-    </div>
-  );
+          </div>
+          </>
+          )}
+          </div>
+          </div>
+          );
               }
