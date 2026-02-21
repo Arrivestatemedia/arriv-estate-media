@@ -47,7 +47,9 @@ Deno.serve(async (req) => {
     let depositAmount = 50;
 
     // Use $1 for test accounts
-    if (booking.client_email === 'BradCBurke@gmail.com' || booking.client_email.includes('test-user')) {
+    const testEmails = ['bradcburke@gmail.com', 'bradcburke5@gmail.com'];
+    const isTestAccount = testEmails.includes(booking.client_email.toLowerCase()) || booking.client_email.toLowerCase().includes('test-user');
+    if (isTestAccount) {
       depositAmount = 1;
     }
 
