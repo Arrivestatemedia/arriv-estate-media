@@ -96,12 +96,12 @@ Deno.serve(async (req) => {
     const htmlEmailBody = `<!DOCTYPE html>
 <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <p>Hi ${firstName},</p>
-  <p>Thank you for choosing Arriv Estate Media for your property at <strong>${job.location}</strong>.</p>
-  <p>The closing has now been completed on <strong>${closingDate}</strong>. Please find your final closing invoice below.</p>
+  <p style="font-size: 18px; font-weight: bold; color: #B8956A;">Congratulations on making it to closing day!</p>
+  <p>Please find your final closing invoice for <strong>${job.location}</strong> below.</p>
   <p style="text-align: center; margin: 30px 0;">
-    <a href="${driveLink}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">👉 View Final Invoice</a>
+    <a href="${driveLink}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">👉 View Invoice</a>
   </p>
-  <p>We appreciate your business and look forward to working with you on future projects.</p>
+  <p>Thank you for choosing Arriv Estate Media!</p>
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
 </body></html>`;
 
