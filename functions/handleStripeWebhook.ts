@@ -65,12 +65,17 @@ Deno.serve(async (req) => {
       const invoices = await base44.asServiceRole.entities.Invoice.filter({ 
         payment_status: 'unpaid'
       });
-      
+
+      console.log('Found unpaid invoices:', invoices.length);
+      invoices.forEach(inv => console.log(`Invoice ${inv.id}: link_id=${inv.stripe_payment_link_id}`));
+
       const invoice = invoices.find(inv => 
         inv.stripe_payment_link_id && 
         session.payment_link === inv.stripe_payment_link_id
       );
-      
+
+      console.log('Matched invoice:', invoice?.id || 'NO MATCH');
+
       if (invoice) {
         // Update invoice to paid
         await base44.asServiceRole.entities.Invoice.update(invoice.id, {
