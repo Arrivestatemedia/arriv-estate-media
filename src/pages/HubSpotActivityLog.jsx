@@ -264,10 +264,10 @@ export default function HubSpotActivityLog() {
                               {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
                             </span>
                           </div>
-                          <p className="font-medium mt-2">{activity.contact_name || activity.company_name}</p>
-                          {activity.contact_email && <p className="text-sm text-gray-600">{activity.contact_email}</p>}
-                          {activity.company_name && <p className="text-sm text-gray-600">{activity.company_name}</p>}
-                          <p className="text-sm text-gray-700 mt-2">{activity.notes}</p>
+                          <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                          {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                          {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                          <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
                         </div>
                       </div>
                     </div>
