@@ -382,12 +382,15 @@ Deno.serve(async (req) => {
       package: booking.package,
       add_ons: addOns,
       amount: 50,
+      deposit_amount: 50,
       payment_status: 'unpaid',
       stripe_payment_link_id: stripeData.id,
       stripe_payment_link_url: stripeData.url,
       google_drive_unpaid_url: driveViewLink,
       google_drive_file_id: pdfFileId,
       pay_at_closing: true,
+      pay_at_closing_rate: pkgRate / 100,
+      package_minimum: basePkgAmount,
       email_sent_at: new Date().toISOString()
     });
 
