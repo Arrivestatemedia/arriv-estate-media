@@ -288,6 +288,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── 4. UPDATE INVOICE RECORD with receipt link ─────────────────────────────────────────────
+    await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+      google_drive_paid_url: receiptDriveLink,
+    });
+
     // ── 6. SMS to client ─────────────────────────────────────────────────────
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
