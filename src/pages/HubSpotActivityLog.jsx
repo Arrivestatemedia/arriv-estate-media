@@ -53,9 +53,28 @@ export default function HubSpotActivityLog() {
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
-    queryFn: () => base44.entities.ActivityLog.list('-created_date', 50),
+    queryFn: async () => {
+      const allActivities = await base44.entities.ActivityLog.list('-activity_date', 100);
+      // Filter to show only activities created by the current user
+      if (user?.type === 'sales') {
+        return allActivities.filter(a => a.created_by === user.email);
+      }
+      return allActivities;
+    },
     initialData: [],
+    enabled: !!user,
   });
+
+  // Get upcoming activities (future dates)
+  const upcomingActivities = activities
+    .filter(a => new Date(a.activity_date) > new Date())
+    .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
+    .slice(0, 5);
+
+  // Get past activities
+  const pastActivities = activities
+    .filter(a => new Date(a.activity_date) <= new Date())
+    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
 
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
