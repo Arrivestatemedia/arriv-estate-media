@@ -60,6 +60,7 @@ import PageTransition from "@/components/layout/PageTransition";
             { label: "Bookings", page: "AdminBookings", icon: Briefcase },
             { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
+            { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
             { label: "Activity Log", page: "HubSpotActivityLog", icon: FileText },
             { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },
             { label: "Client Terms", page: "AdminClientTerms", icon: Settings },
