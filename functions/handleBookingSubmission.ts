@@ -99,19 +99,24 @@ Deno.serve(async (req) => {
           }, new Uint8Array());
           const base64urlMessage = btoa(String.fromCharCode(...messageBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
+          console.log('Sending confirmation email via Gmail to:', booking.client_email);
           const gmailRes = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ raw: base64urlMessage })
           });
           
+          const gmailData = await gmailRes.json();
+          console.log('Gmail response status:', gmailRes.status, 'data:', JSON.stringify(gmailData).substring(0, 200));
+          
           await base44.asServiceRole.entities.MessageLog.create({
             message_type: 'email', recipient_type: 'client', recipient_email: booking.client_email,
             message_content: 'Booking confirmation sent', subject: emailSubject,
-            status: gmailRes.ok ? 'success' : 'failed'
+            status: gmailRes.ok ? 'success' : 'failed',
+            error_message: gmailRes.ok ? null : JSON.stringify(gmailData)
           });
         } catch (error) {
-          console.error('Confirmation email error:', error);
+          console.error('Confirmation email error:', error.message);
         }
 
         // Send SMS to admin via Twilio
