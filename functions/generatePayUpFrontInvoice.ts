@@ -23,7 +23,8 @@ Deno.serve(async (req) => {
     // Use $1 for test accounts
     const testEmails = ['bradcburke@gmail.com', 'bradcburke5@gmail.com'];
     const isTestAccount = testEmails.includes(booking.client_email.toLowerCase()) || booking.client_email.toLowerCase().includes('test-user');
-    const stripeAmount = isTestAccount ? 100 : Math.round(totalAmount * 100);
+    const chargeAmount = isTestAccount ? 1 : totalAmount;
+    const stripeAmount = Math.round(chargeAmount * 100);
 
     // Create Stripe payment link
     const stripeResponse = await fetch('https://api.stripe.com/v1/payment_links', {
