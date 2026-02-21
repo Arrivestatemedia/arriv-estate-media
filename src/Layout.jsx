@@ -289,7 +289,11 @@ import PageTransition from "@/components/layout/PageTransition";
                   <button
                   onClick={() => {
                     localStorage.clear();
-                    base44.auth.logout(createPageUrl("SignIn"));
+                    if (isSalesTeam) {
+                      window.location.href = createPageUrl("SalesLogin");
+                    } else {
+                      base44.auth.logout(createPageUrl("SignIn"));
+                    }
                   }}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full"
                 >
@@ -297,7 +301,7 @@ import PageTransition from "@/components/layout/PageTransition";
                   Sign Out
                 </button>
               </>
-            )}
+              )}
           </div>
         )}
       </header>
