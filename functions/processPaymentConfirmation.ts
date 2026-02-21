@@ -227,25 +227,29 @@ Deno.serve(async (req) => {
     console.log('Receipt Drive link:', receiptDriveLink);
 
     // ── 3. MOVE INVOICE to PAID INVOICES folder ──────────────────────────────
-    if (invoice.google_drive_file_id) {
-      // First get the current parents
-      const fileInfoRes = await fetch(`https://www.googleapis.com/drive/v3/files/${invoice.google_drive_file_id}?fields=parents`, {
-        headers: { 'Authorization': `Bearer ${driveToken}` }
-      });
-      const fileInfo = await fileInfoRes.json();
-      const currentParents = (fileInfo.parents || [unpaidFolderId]).join(',');
+    if (invoice.google_drive_file_id && paidInvoicesFolderId) {
+      try {
+        // First get the current parents
+        const fileInfoRes = await fetch(`https://www.googleapis.com/drive/v3/files/${invoice.google_drive_file_id}?fields=parents`, {
+          headers: { 'Authorization': `Bearer ${driveToken}` }
+        });
+        const fileInfo = await fileInfoRes.json();
+        const currentParents = (fileInfo.parents || [unpaidFolderId]).join(',');
 
-      // Move: add new parent, remove old parent
-      const moveRes = await fetch(`https://www.googleapis.com/drive/v3/files/${invoice.google_drive_file_id}?addParents=${paidInvoicesFolderId}&removeParents=${currentParents}`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      if (moveRes.ok) {
-        console.log('Invoice moved to PAID INVOICES folder');
-      } else {
-        const moveErr = await moveRes.json();
-        console.warn('Failed to move invoice:', JSON.stringify(moveErr));
+        // Move: add new parent, remove old parent
+        const moveRes = await fetch(`https://www.googleapis.com/drive/v3/files/${invoice.google_drive_file_id}?addParents=${paidInvoicesFolderId}&removeParents=${currentParents}`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${driveToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        if (moveRes.ok) {
+          console.log('Invoice moved to PAID INVOICES folder');
+        } else {
+          const moveErr = await moveRes.json();
+          console.warn('Failed to move invoice:', JSON.stringify(moveErr));
+        }
+      } catch (e) {
+        console.warn('Error moving invoice:', e.message);
       }
     }
 
