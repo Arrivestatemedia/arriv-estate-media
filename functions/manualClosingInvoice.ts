@@ -3,24 +3,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { jobId, closingDate, finalSalePrice } = await req.json();
+    const { bookingId, closingDate, finalSalePrice } = await req.json();
 
-    if (!jobId || !closingDate) {
-      return Response.json({ error: 'jobId and closingDate are required' }, { status: 400 });
-    }
-
-    // Get the job
-    const jobs = await base44.asServiceRole.entities.Job.filter({ id: jobId });
-    const job = jobs[0];
-    if (!job || !job.booking_id) {
-      return Response.json({ error: 'Job not found or no booking associated' }, { status: 404 });
+    if (!bookingId || !closingDate) {
+      return Response.json({ error: 'bookingId and closingDate are required' }, { status: 400 });
     }
 
     // Get the booking
-    const bookings = await base44.asServiceRole.entities.Booking.filter({ id: job.booking_id });
+    const bookings = await base44.asServiceRole.entities.Booking.filter({ id: bookingId });
     const booking = bookings[0];
     if (!booking) {
       return Response.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    // Get the job from booking
+    const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
+    const job = jobs[0];
+    if (!job) {
+      return Response.json({ error: 'No job found for this booking' }, { status: 404 });
     }
 
     // Update ClosingDetection
