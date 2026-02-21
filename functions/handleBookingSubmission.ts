@@ -59,6 +59,54 @@ Deno.serve(async (req) => {
     // For pay-up-front: generate PDF invoice and send via Brevo
     if (!booking.request_pay_at_closing) {
       try {
+        // Send booking confirmation email first
+        const brevoApiKey = Deno.env.get('BREVO_API_KEY');
+        const firstName = booking.client_name.split(' ')[0];
+        const packageNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
+        const addOnsList = (booking.add_ons || []).map(addon => {
+          const addonDesc = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
+          return addonDesc[addon] || addon;
+        }).join(', ');
+        const packageAndAddons = addOnsList ? `${packageNames[booking.package]} + ${addOnsList}` : packageNames[booking.package];
+        
+        const confirmationHtmlBody = `<!DOCTYPE html>
+<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <p>Hi ${firstName},</p>
+  <p>Thank you for your booking request!</p>
+  <p>We've received your request for:</p>
+  <ul style="line-height: 2;">
+    <li><strong>Package:</strong> ${packageAndAddons}</li>
+    <li><strong>Property:</strong> ${propertyAddress}</li>
+    <li><strong>Preferred Date:</strong> ${booking.preferred_date}</li>
+    <li><strong>Preferred Time:</strong> ${booking.preferred_time}</li>
+    <li><strong>Total Price:</strong> $${booking.total_price}</li>
+  </ul>
+  <p>Once your invoice is paid, your booking will be confirmed.</p>
+  <p>Thank you for choosing Arriv Estate Media!</p>
+  <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
+</body></html>`;
+        
+        try {
+          await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
+              to: [{ email: booking.client_email, name: booking.client_name }],
+              subject: 'Your Booking Request Confirmation',
+              htmlContent: confirmationHtmlBody
+            })
+          });
+          
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'email', recipient_type: 'client', recipient_email: booking.client_email,
+            message_content: 'Booking confirmation sent', subject: 'Your Booking Request Confirmation',
+            status: 'success'
+          });
+        } catch (error) {
+          console.error('Confirmation email error:', error);
+        }
+
         const totalAmount = parseFloat(booking.total_price);
 
         // Invoice number
