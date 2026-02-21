@@ -21,101 +21,76 @@ Deno.serve(async (req) => {
         console.log('Checkout session completed:', {
           sessionId: session.id,
           paymentLink: session.payment_link,
-          metadata: session.metadata
+          metadata: session.metadata,
+          paymentIntent: session.payment_intent
         });
 
         // Check if this is a media partner onboarding payment
         if (session.metadata?.purpose === 'media_partner_onboarding_fee') {
-        const userEmail = session.metadata.userEmail;
-        const pendingSignupId = session.metadata.pendingSignupId;
-        const userId = session.metadata.userId;
-        
-        const onboardingUpdate = {
-          onboardingFeePaid: true,
-          onboardingFeePaidAt: new Date().toISOString(),
-          orientationCompleted: true,
-          orientationCompletedAt: new Date().toISOString()
-        };
+          const userEmail = session.metadata.userEmail;
+          const pendingSignupId = session.metadata.pendingSignupId;
+          const userId = session.metadata.userId;
 
-        // Update PendingSignup if we have the ID
-        if (pendingSignupId) {
-          await base44.asServiceRole.entities.PendingSignup.update(pendingSignupId, onboardingUpdate);
+          const onboardingUpdate = {
+            onboardingFeePaid: true,
+            onboardingFeePaidAt: new Date().toISOString(),
+            orientationCompleted: true,
+            orientationCompletedAt: new Date().toISOString()
+          };
+
+          if (pendingSignupId) {
+            await base44.asServiceRole.entities.PendingSignup.update(pendingSignupId, onboardingUpdate);
+          }
+
+          if (userId) {
+            await base44.asServiceRole.entities.User.update(userId, onboardingUpdate);
+          }
+
+          if (!pendingSignupId && !userId && userEmail) {
+            const emailRegex = { $regex: `^${userEmail}$`, $options: 'i' };
+            const [signups, users] = await Promise.all([
+              base44.asServiceRole.entities.PendingSignup.filter({ email: emailRegex }),
+              base44.asServiceRole.entities.User.filter({ email: emailRegex })
+            ]);
+            if (signups[0]) await base44.asServiceRole.entities.PendingSignup.update(signups[0].id, onboardingUpdate);
+            if (users[0]) await base44.asServiceRole.entities.User.update(users[0].id, onboardingUpdate);
+          }
+
+          return Response.json({ received: true });
         }
-        
-        // Update User entity if we have the ID
-        if (userId) {
-          await base44.asServiceRole.entities.User.update(userId, onboardingUpdate);
+
+        // Find invoice by stripe_checkout_session_id (most reliable)
+        console.log('Searching for invoice with checkout session:', session.id);
+        const invoices = await base44.asServiceRole.entities.Invoice.filter({ 
+          payment_status: 'unpaid'
+        });
+
+        console.log('Found unpaid invoices:', invoices.length);
+
+        let invoice = invoices.find(inv => inv.stripe_checkout_session_id === session.id);
+
+        if (!invoice) {
+          console.log('No match on session ID, trying payment link ID:', session.payment_link);
+          invoice = invoices.find(inv => inv.stripe_payment_link_id === session.payment_link);
         }
 
-        // If only email, find and update both
-        if (!pendingSignupId && !userId && userEmail) {
-          const emailRegex = { $regex: `^${userEmail}$`, $options: 'i' };
-          const [signups, users] = await Promise.all([
-            base44.asServiceRole.entities.PendingSignup.filter({ email: emailRegex }),
-            base44.asServiceRole.entities.User.filter({ email: emailRegex })
-          ]);
-          if (signups[0]) await base44.asServiceRole.entities.PendingSignup.update(signups[0].id, onboardingUpdate);
-          if (users[0]) await base44.asServiceRole.entities.User.update(users[0].id, onboardingUpdate);
+        console.log('Matched invoice:', invoice?.id || 'NO MATCH', invoice?.client_email);
+
+        if (invoice) {
+          console.log('Updating invoice:', invoice.id, 'to paid status');
+          await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+            payment_status: 'paid',
+            paid_at: new Date().toISOString(),
+            stripe_payment_intent_id: session.payment_intent
+          });
+
+          console.log('Processing payment confirmation for invoice:', invoice.id);
+          await base44.asServiceRole.functions.invoke('processPaymentConfirmation', {
+            invoiceId: invoice.id
+          });
+        } else {
+          console.warn('No invoice matched for session:', session.id, 'Payment link:', session.payment_link);
         }
-        
-        return Response.json({ received: true });
-      }
-      
-      // Find invoice by payment link (for Stripe Payment Links)
-      const invoices = await base44.asServiceRole.entities.Invoice.filter({ 
-        payment_status: 'unpaid'
-      });
-
-      console.log('Found unpaid invoices:', invoices.length);
-      invoices.forEach(inv => console.log(`Invoice ${inv.id}: link_id=${inv.stripe_payment_link_id}`));
-
-      const invoice = invoices.find(inv => 
-        inv.stripe_payment_link_id && 
-        session.payment_link === inv.stripe_payment_link_id
-      );
-
-      console.log('Matched invoice:', invoice?.id || 'NO MATCH');
-
-      if (invoice) {
-        // Update invoice to paid
-        await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-          payment_status: 'paid',
-          paid_at: new Date().toISOString(),
-          stripe_payment_intent_id: session.payment_intent
-        });
-        
-        // Process payment confirmation
-        await base44.asServiceRole.functions.invoke('processPaymentConfirmation', {
-          invoiceId: invoice.id
-        });
-      }
-    }
-    
-    if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object;
-      
-      // Find invoice by payment intent ID (fallback for direct PI payments)
-      const invoices = await base44.asServiceRole.entities.Invoice.filter({ 
-        payment_status: 'unpaid'
-      });
-      
-      const invoice = invoices.find(inv => 
-        inv.stripe_payment_link_id && 
-        paymentIntent.charges?.data?.[0]?.payment_method_details?.card && 
-        inv.amount === (paymentIntent.amount / 100)
-      );
-      
-      if (invoice) {
-        await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-          payment_status: 'paid',
-          paid_at: new Date().toISOString(),
-          stripe_payment_intent_id: paymentIntent.id
-        });
-        
-        await base44.asServiceRole.functions.invoke('processPaymentConfirmation', {
-          invoiceId: invoice.id
-        });
-      }
     }
     
     return Response.json({ received: true });
