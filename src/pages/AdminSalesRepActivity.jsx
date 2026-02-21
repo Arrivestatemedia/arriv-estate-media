@@ -166,6 +166,84 @@ export default function AdminSalesRepActivity() {
             )}
           </div>
         </div>
+
+        {/* Activity Detail Modal */}
+        <Dialog open={!!selectedActivity} onOpenChange={() => setSelectedActivity(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle style={{ color: '#1A1A1A' }}>
+                {selectedActivity && activityLabels[selectedActivity.activity_type]} Details
+              </DialogTitle>
+            </DialogHeader>
+            {selectedActivity && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-medium" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Type</p>
+                    <p className="text-lg font-medium mt-1" style={{ color: '#1A1A1A' }}>
+                      {activityLabels[selectedActivity.activity_type]}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Date & Time</p>
+                    <p className="text-lg font-medium mt-1" style={{ color: '#1A1A1A' }}>
+                      {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Contact</p>
+                  <p className="text-lg font-medium mt-1" style={{ color: '#1A1A1A' }}>
+                    {selectedActivity.contact_name}
+                  </p>
+                  {selectedActivity.contact_email && (
+                    <p className="text-sm mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                      {selectedActivity.contact_email}
+                    </p>
+                  )}
+                </div>
+
+                {selectedActivity.company_name && (
+                  <div>
+                    <p className="text-xs font-medium" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Company</p>
+                    <p className="text-lg font-medium mt-1" style={{ color: '#1A1A1A' }}>
+                      {selectedActivity.company_name}
+                    </p>
+                  </div>
+                )}
+
+                {selectedActivity.duration_minutes > 0 && (
+                  <div>
+                    <p className="text-xs font-medium" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Duration</p>
+                    <p className="text-lg font-medium mt-1" style={{ color: '#1A1A1A' }}>
+                      {selectedActivity.duration_minutes} minutes
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-xs font-medium" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Notes</p>
+                  <p className="text-sm mt-2 leading-relaxed" style={{ color: '#1A1A1A' }}>
+                    {selectedActivity.notes}
+                  </p>
+                </div>
+
+                {selectedActivity.hubspot_synced && (
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
+                    <p className="text-sm font-medium" style={{ color: '#22c55e' }}>✓ Synced to HubSpot</p>
+                  </div>
+                )}
+                {selectedActivity.sync_error && (
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                    <p className="text-sm font-medium" style={{ color: '#ef4444' }}>⚠ Sync Error</p>
+                    <p className="text-sm mt-1" style={{ color: 'rgba(239, 68, 68, 0.8)' }}>{selectedActivity.sync_error}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
