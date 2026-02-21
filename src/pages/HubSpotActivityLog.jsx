@@ -240,15 +240,55 @@ export default function HubSpotActivityLog() {
           </Dialog>
         </div>
 
-        <div className="space-y-3">
-          {activities.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center text-gray-500">
-                No activities logged yet
-              </CardContent>
-            </Card>
-          ) : (
-            activities.map((activity) => (
+        {upcomingActivities.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-semibold text-gray-900">Upcoming Tasks</h2>
+              <Badge variant="secondary">{upcomingActivities.length}</Badge>
+            </div>
+            <div className="space-y-3">
+              {upcomingActivities.map((activity) => (
+                <Card key={activity.id} className="border-blue-200 bg-blue-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="mt-1 p-2 bg-blue-100 rounded-lg">
+                          {activityIcons[activity.activity_type]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800">{activityLabels[activity.activity_type]}</Badge>
+                            <Clock className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-blue-600 font-medium">
+                              {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
+                            </span>
+                          </div>
+                          <p className="font-medium mt-2">{activity.contact_name || activity.company_name}</p>
+                          {activity.contact_email && <p className="text-sm text-gray-600">{activity.contact_email}</p>}
+                          {activity.company_name && <p className="text-sm text-gray-600">{activity.company_name}</p>}
+                          <p className="text-sm text-gray-700 mt-2">{activity.notes}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity History</h2>
+          <div className="space-y-3">
+            {pastActivities.length === 0 && upcomingActivities.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center text-gray-500">
+                  No activities logged yet
+                </CardContent>
+              </Card>
+            ) : (
+              pastActivities.map((activity) => (
               <Card key={activity.id}>
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between gap-4">
