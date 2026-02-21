@@ -289,50 +289,50 @@ export default function HubSpotActivityLog() {
               </Card>
             ) : (
               pastActivities.map((activity) => (
-              <Card key={activity.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="mt-1 p-2 bg-gray-100 rounded-lg">
-                        {activityIcons[activity.activity_type]}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
-                          {activity.hubspot_synced ? (
-                            <div className="flex items-center gap-1 text-green-600 text-xs">
-                              <Check className="w-3 h-3" />
-                              Synced
-                            </div>
-                          ) : activity.sync_error ? (
-                            <div className="flex items-center gap-1 text-red-600 text-xs">
-                              <AlertCircle className="w-3 h-3" />
-                              Sync failed
-                            </div>
-                          ) : (
-                            <div className="text-xs text-gray-500">Syncing...</div>
+                <Card key={activity.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="mt-1 p-2 bg-gray-100 rounded-lg">
+                          {activityIcons[activity.activity_type]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+                            {activity.hubspot_synced ? (
+                              <div className="flex items-center gap-1 text-green-600 text-xs">
+                                <Check className="w-3 h-3" />
+                                Synced
+                              </div>
+                            ) : activity.sync_error ? (
+                              <div className="flex items-center gap-1 text-red-600 text-xs">
+                                <AlertCircle className="w-3 h-3" />
+                                Sync failed
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-500">Syncing...</div>
+                            )}
+                          </div>
+                          <p className="font-medium mt-2">{activity.contact_name || activity.company_name}</p>
+                          {activity.contact_email && <p className="text-sm text-gray-600">{activity.contact_email}</p>}
+                          {activity.company_name && <p className="text-sm text-gray-600">{activity.company_name}</p>}
+                          <p className="text-sm text-gray-700 mt-2">{activity.notes}</p>
+                          {activity.duration_minutes > 0 && (
+                            <p className="text-xs text-gray-500 mt-1">{activity.duration_minutes} minutes</p>
                           )}
                         </div>
-                        <p className="font-medium mt-2">{activity.contact_name || activity.company_name}</p>
-                        {activity.contact_email && <p className="text-sm text-gray-600">{activity.contact_email}</p>}
-                        {activity.company_name && <p className="text-sm text-gray-600">{activity.company_name}</p>}
-                        <p className="text-sm text-gray-700 mt-2">{activity.notes}</p>
-                        {activity.duration_minutes > 0 && (
-                          <p className="text-xs text-gray-500 mt-1">{activity.duration_minutes} minutes</p>
-                        )}
+                      </div>
+                      <div className="text-right text-sm text-gray-500 whitespace-nowrap">
+                        {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
                       </div>
                     </div>
-                    <div className="text-right text-sm text-gray-500 whitespace-nowrap">
-                      {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
               ))
-              )}
-              </div>
-              </div>
-              </div>
-              </div>
-              );
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
               }
