@@ -9,8 +9,6 @@ import { createPageUrl } from "../utils";
 export default function ManualClosingInvoice() {
   const [user, setUser] = useState(null);
   const [bookingId, setBookingId] = useState("");
-  const [closingDate, setClosingDate] = useState("");
-  const [finalSalePrice, setFinalSalePrice] = useState("");
   const [invoiceFile, setInvoiceFile] = useState(null);
   const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
