@@ -16,14 +16,14 @@ Deno.serve(async (req) => {
       Deno.env.get('STRIPE_WEBHOOK_SECRET')
     );
     
-    if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object;
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
       
       // Check if this is a media partner onboarding payment
-      if (paymentIntent.metadata?.purpose === 'media_partner_onboarding_fee') {
-        const userEmail = paymentIntent.metadata.userEmail;
-        const pendingSignupId = paymentIntent.metadata.pendingSignupId;
-        const userId = paymentIntent.metadata.userId;
+      if (session.metadata?.purpose === 'media_partner_onboarding_fee') {
+        const userEmail = session.metadata.userEmail;
+        const pendingSignupId = session.metadata.pendingSignupId;
+        const userId = session.metadata.userId;
         
         const onboardingUpdate = {
           onboardingFeePaid: true,
@@ -56,14 +56,14 @@ Deno.serve(async (req) => {
         return Response.json({ received: true });
       }
       
-      // Find invoice by payment link (existing flow)
+      // Find invoice by payment link (for Stripe Payment Links)
       const invoices = await base44.asServiceRole.entities.Invoice.filter({ 
         payment_status: 'unpaid'
       });
       
       const invoice = invoices.find(inv => 
         inv.stripe_payment_link_id && 
-        paymentIntent.payment_link === inv.stripe_payment_link_id
+        session.payment_link === inv.stripe_payment_link_id
       );
       
       if (invoice) {
@@ -71,10 +71,37 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.Invoice.update(invoice.id, {
           payment_status: 'paid',
           paid_at: new Date().toISOString(),
-          stripe_payment_intent_id: paymentIntent.id
+          stripe_payment_intent_id: session.payment_intent
         });
         
         // Process payment confirmation
+        await base44.asServiceRole.functions.invoke('processPaymentConfirmation', {
+          invoiceId: invoice.id
+        });
+      }
+    }
+    
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
+      
+      // Find invoice by payment intent ID (fallback for direct PI payments)
+      const invoices = await base44.asServiceRole.entities.Invoice.filter({ 
+        payment_status: 'unpaid'
+      });
+      
+      const invoice = invoices.find(inv => 
+        inv.stripe_payment_link_id && 
+        paymentIntent.charges?.data?.[0]?.payment_method_details?.card && 
+        inv.amount === (paymentIntent.amount / 100)
+      );
+      
+      if (invoice) {
+        await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+          stripe_payment_intent_id: paymentIntent.id
+        });
+        
         await base44.asServiceRole.functions.invoke('processPaymentConfirmation', {
           invoiceId: invoice.id
         });
