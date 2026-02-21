@@ -19,9 +19,36 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    const totalAmount = 50;
+    const depositAmount = 50;
     const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
     const adminEmail = 'BradCBurke@arrivestatemedia.com';
+
+    // Calculate pay-at-closing percentage based on pricing sheet
+    const packagePricesForRate = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
+    const packageRates = { mls_walkthrough: 0.03, photo_essentials: 0.05, photo_cinematic: 0.08, premium_bundle: 0.10 };
+    const addonPricesForRate = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
+
+    const basePkgStandardPrice = packagePricesForRate[booking.package] || 0;
+    const addOnsForCalc = booking.add_ons || [];
+    let addOnStandardTotal = 0;
+    for (const addon of addOnsForCalc) {
+      addOnStandardTotal += addonPricesForRate[addon] || 0;
+    }
+    const combinedStandardTotal = basePkgStandardPrice + addOnStandardTotal;
+
+    // Package percentage
+    const pkgRate = packageRates[booking.package] || 0.08;
+
+    // Add-on percentage based on combined total tier
+    let addonRate = 0.03;
+    if (combinedStandardTotal > 600) addonRate = 0.10;
+    else if (combinedStandardTotal > 400) addonRate = 0.08;
+    else if (combinedStandardTotal > 300) addonRate = 0.05;
+
+    // Display percentage string (e.g. "0.08%" for photo_cinematic with no addons)
+    // We use a single blended display rate for the terms text
+    // The "percentage" shown in the terms is the package rate (main rate for the package)
+    const displayPercentage = pkgRate.toFixed(2);
 
     // Generate invoice number
     const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
