@@ -226,7 +226,7 @@ export default function ClientSignup() {
 
             <Button
               type="submit"
-              disabled={loading || !termsAccepted}
+              disabled={loading || !termsAccepted || !smsConsented}
               className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white disabled:bg-[#1A1A1A]/50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating Account..." : "Sign Up"}
