@@ -211,6 +211,17 @@ export default function ClientSignup() {
                   Please read the Terms & Conditions first
                 </p>
               )}
+
+              <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-start gap-2 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
+                <Checkbox
+                  checked={smsConsented}
+                  onCheckedChange={setSmsConsented}
+                  className="mt-0.5 shrink-0"
+                />
+                <span>
+                  By signing up I agree to receive text messages from Arriv Estate Media LLC regarding the status of my bookings, including but not limited to booking confirmations, scheduling updates, media partner arrival notifications, job completion notices, invoice delivery, and payment reminders. Message and data rates may apply. You may opt out of SMS communications at any time by replying STOP.
+                </span>
+              </label>
             </div>
 
             <Button
