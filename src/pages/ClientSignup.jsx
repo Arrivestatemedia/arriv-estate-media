@@ -28,7 +28,6 @@ export default function ClientSignup() {
   const [error, setError] = useState("");
   const [termsScrolled, setTermsScrolled] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [smsConsent, setSmsConsent] = useState(false);
 
   React.useEffect(() => {
     const scrolled = localStorage.getItem('clientTermsScrolled') === 'true';
