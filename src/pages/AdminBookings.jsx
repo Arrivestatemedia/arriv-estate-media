@@ -172,17 +172,9 @@ export default function AdminBookings() {
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
         alert('Deposit invoice sent to client. Button will unlock after payment.');
       } else {
-        // Pay-up-front (always), OR pay-at-closing after deposit paid: post to job board
-        if (!booking.request_pay_at_closing) {
-          await base44.functions.invoke('generatePayUpFrontInvoice', { bookingId: booking.id });
-          await base44.entities.Booking.update(booking.id, { payment_locked: true });
-          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-          alert('Invoice sent to client. Buttons will unlock after payment.');
-        } else {
-          // Deposit already paid, now actually post to job board
-          await base44.functions.invoke('postBookingToJobBoard', { bookingId: booking.id });
-          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-        }
+        // Pay-up-front (invoice already sent at booking submission) OR pay-at-closing after deposit paid
+        await base44.functions.invoke('postBookingToJobBoard', { bookingId: booking.id });
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       }
     } catch (error) {
       console.error('Error:', error);
@@ -201,17 +193,9 @@ export default function AdminBookings() {
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
         alert('Deposit invoice sent to client. Button will unlock after payment.');
       } else {
-        if (!booking.request_pay_at_closing) {
-          // Pay-up-front: send invoice and lock
-          await base44.functions.invoke('generatePayUpFrontInvoice', { bookingId: booking.id });
-          await base44.entities.Booking.update(booking.id, { payment_locked: true });
-          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-          alert('Invoice sent to client. Buttons will unlock after payment.');
-        } else {
-          // Deposit already paid, now actually accept for myself
-          await base44.functions.invoke('acceptBookingForMyself', { bookingId: booking.id });
-          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-        }
+        // Pay-up-front (invoice already sent at booking submission) OR pay-at-closing after deposit paid
+        await base44.functions.invoke('acceptBookingForMyself', { bookingId: booking.id });
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       }
     } catch (error) {
       console.error('Error:', error);
