@@ -164,72 +164,48 @@ export default function AdminBookings() {
   };
 
   const handlePostToJobBoard = async (booking) => {
-    // Check if pay-at-closing or pay-up-front
-    if (booking.request_pay_at_closing) {
-      // For pay-at-closing, buttons never locked - send deposit invoice
-      setLoadingBookingId(booking.id);
-      try {
-        const response = await base44.functions.invoke('generateDepositInvoiceOnApproval', { 
-          bookingId: booking.id,
-          actionType: 'post_to_job_board'
-        });
+    setLoadingBookingId(booking.id);
+    try {
+      if (booking.request_pay_at_closing) {
+        // Pay-at-closing: first click sends deposit invoice and locks; second click (after payment) posts to board
+        await base44.functions.invoke('generatePayAtClosingInvoice', { bookingId: booking.id });
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to post job');
-      } finally {
-        setLoadingBookingId(null);
-      }
-    } else {
-      // For pay-up-front, generate invoice and lock buttons
-      setLoadingBookingId(booking.id);
-      try {
+        alert('Deposit invoice sent to client. Button will unlock after payment.');
+      } else {
+        // Pay-up-front: send invoice and lock
         await base44.functions.invoke('generatePayUpFrontInvoice', { bookingId: booking.id });
-        // Mark booking as payment locked
         await base44.entities.Booking.update(booking.id, { payment_locked: true });
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
         alert('Invoice sent to client. Buttons will unlock after payment.');
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to generate invoice');
-      } finally {
-        setLoadingBookingId(null);
       }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to process request');
+    } finally {
+      setLoadingBookingId(null);
     }
   };
 
   const handleAcceptForMyself = async (booking) => {
-    // Check if pay-at-closing or pay-up-front
-    if (booking.request_pay_at_closing) {
-      // For pay-at-closing, buttons never locked - send deposit invoice
-      setLoadingBookingId(booking.id);
-      try {
-        await base44.functions.invoke('generateDepositInvoiceOnApproval', { 
-          bookingId: booking.id,
-          actionType: 'accept_for_myself'
-        });
+    setLoadingBookingId(booking.id);
+    try {
+      if (booking.request_pay_at_closing) {
+        // Pay-at-closing: first click sends deposit invoice and locks; second click (after payment) accepts
+        await base44.functions.invoke('generatePayAtClosingInvoice', { bookingId: booking.id });
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to accept booking');
-      } finally {
-        setLoadingBookingId(null);
-      }
-    } else {
-      // For pay-up-front, generate invoice and lock buttons
-      setLoadingBookingId(booking.id);
-      try {
+        alert('Deposit invoice sent to client. Button will unlock after payment.');
+      } else {
+        // Pay-up-front: send invoice and lock
         await base44.functions.invoke('generatePayUpFrontInvoice', { bookingId: booking.id });
-        // Mark booking as payment locked
         await base44.entities.Booking.update(booking.id, { payment_locked: true });
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
         alert('Invoice sent to client. Buttons will unlock after payment.');
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to generate invoice');
-      } finally {
-        setLoadingBookingId(null);
       }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to process request');
+    } finally {
+      setLoadingBookingId(null);
     }
   };
 
