@@ -328,10 +328,11 @@ export default function HubSpotActivityLog() {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+              ))
+              )}
+              </div>
+              </div>
+              </div>
+              </div>
+              );
+              }
