@@ -449,55 +449,6 @@ Deno.serve(async (req) => {
           console.error('Error logging message:', error.message);
         }
 
-        // Send booking confirmation email to client via Brevo
-        console.log('Sending booking confirmation email via Brevo...');
-        try {
-          const brevoApiKey = Deno.env.get('BREVO_API_KEY');
-          const firstName = booking.client_name.split(' ')[0];
-          const addonDescriptions = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
-          const pkgNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
-          
-          const packageDisplay = pkgNames[booking.package] || booking.package;
-          const addonsDisplay = addOns.length > 0 ? addOns.map(a => addonDescriptions[a] || a).join(', ') : 'None';
-          const packageAndAddons = addOns.length > 0 ? `${packageDisplay} + ${addonsDisplay}` : packageDisplay;
-          
-          const confirmationHtml = `<!DOCTYPE html>
-<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <p>Hi ${firstName},</p>
-  <p>Thank you for your booking request!</p>
-  <p>We've received your request for:</p>
-  <ul style="line-height: 2;">
-    <li><strong>Package:</strong> ${packageAndAddons}</li>
-    <li><strong>Property:</strong> ${propertyAddress}</li>
-    <li><strong>Preferred Date:</strong> ${booking.preferred_date}</li>
-    <li><strong>Preferred Time:</strong> ${booking.preferred_time}</li>
-    <li><strong>Total Price:</strong> $${totalAmount.toFixed(2)}</li>
-  </ul>
-  <p>Once you pay your invoice, your booking will be confirmed.</p>
-  <p>Thank you for choosing Arriv Estate Media!</p>
-  <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
-</body></html>`;
-
-          const confirmRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
-              to: [{ email: booking.client_email, name: booking.client_name }],
-              subject: 'Your Booking Request Confirmation',
-              htmlContent: confirmationHtml
-            })
-          });
-          const confirmData = await confirmRes.json();
-          if (!confirmRes.ok) {
-            console.error('Confirmation email failed:', confirmData);
-          } else {
-            console.log('Booking confirmation email sent, messageId:', confirmData.messageId);
-          }
-        } catch (error) {
-          console.error('Confirmation email error:', error.message);
-        }
-
         // Update booking with invoice ID and lock until payment
         console.log('Updating booking with invoice ID and locking...');
         try {
