@@ -401,19 +401,19 @@ export default function AdminBookings() {
                         <Button
                           onClick={() => handlePostToJobBoard(booking)}
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:cursor-not-allowed"
-                          disabled={loadingBookingId !== null || booking.payment_locked}
+                          disabled={loadingBookingId !== null || (booking.payment_locked && booking.request_pay_at_closing)}
                         >
                           {loadingBookingId === booking.id ? 'Processing...' : 
-                           booking.payment_locked ? '🔒 Awaiting Payment' :
+                           (booking.payment_locked && booking.request_pay_at_closing) ? '🔒 Awaiting Deposit' :
                            'Post to Job Board'}
                         </Button>
                         <Button
                           onClick={() => handleAcceptForMyself(booking)}
                           className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-green-300 disabled:cursor-not-allowed"
-                          disabled={loadingBookingId !== null || booking.payment_locked}
+                          disabled={loadingBookingId !== null || (booking.payment_locked && booking.request_pay_at_closing)}
                         >
                           {loadingBookingId === booking.id ? 'Processing...' : 
-                           booking.payment_locked ? '🔒 Awaiting Payment' :
+                           (booking.payment_locked && booking.request_pay_at_closing) ? '🔒 Awaiting Deposit' :
                            'Accept for Myself'}
                         </Button>
                         <Button
