@@ -6,12 +6,10 @@ Deno.serve(async (req) => {
     const formData = await req.formData();
     
     const bookingId = formData.get('bookingId');
-    const closingDate = formData.get('closingDate');
-    const finalSalePrice = formData.get('finalSalePrice');
     const invoiceFile = formData.get('invoiceFile');
 
-    if (!bookingId || !closingDate || !invoiceFile) {
-      return Response.json({ error: 'bookingId, closingDate, and invoiceFile are required' }, { status: 400 });
+    if (!bookingId || !invoiceFile) {
+      return Response.json({ error: 'bookingId and invoiceFile are required' }, { status: 400 });
     }
 
     // Get the booking
