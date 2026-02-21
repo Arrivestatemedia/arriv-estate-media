@@ -451,12 +451,8 @@ Deno.serve(async (req) => {
           throw error;
         }
 
-        // Send invoice email via Brevo
-        console.log('Preparing Brevo email...');
-        const brevoApiKey = Deno.env.get('BREVO_API_KEY');
-        if (!brevoApiKey) {
-          throw new Error('BREVO_API_KEY not set');
-        }
+        // Send invoice email via Gmail
+        console.log('Sending invoice email via Gmail to:', booking.client_email);
         const firstName = booking.client_name.split(' ')[0];
         const htmlEmailBody = `<!DOCTYPE html>
 <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -469,32 +465,36 @@ Deno.serve(async (req) => {
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
 </body></html>`;
 
-        console.log('Sending invoice email via Brevo to:', booking.client_email);
-        let brevoResponse;
-        let brevoData;
         try {
-          brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+          const gmailInvoiceToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+          const invoiceEmailSubject = 'Your Invoice from Arriv Estate Media';
+          const invoiceMessageLines = [
+            `To: ${booking.client_email}`, `From: ${adminEmail}`, `Subject: ${invoiceEmailSubject}`,
+            'MIME-Version: 1.0', 'Content-Type: text/html; charset="UTF-8"', '', htmlEmailBody
+          ];
+          const invoiceMessageBytes = invoiceMessageLines.map(l => new TextEncoder().encode(l + '\r\n')).reduce((acc, part) => {
+            const merged = new Uint8Array(acc.length + part.length);
+            merged.set(acc); merged.set(part, acc.length);
+            return merged;
+          }, new Uint8Array());
+          const invoiceBase64urlMessage = btoa(String.fromCharCode(...invoiceMessageBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+          const gmailInvoiceRes = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
             method: 'POST',
-            headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
-              to: [{ email: booking.client_email, name: booking.client_name }],
-              subject: 'Your Invoice from Arriv Estate Media',
-              htmlContent: htmlEmailBody
-            })
+            headers: { 'Authorization': `Bearer ${gmailInvoiceToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ raw: invoiceBase64urlMessage })
           });
-          console.log('Brevo response status:', brevoResponse.status);
           
-          brevoData = await brevoResponse.json();
-          console.log('Brevo response:', JSON.stringify(brevoData).substring(0, 200));
+          const gmailInvoiceData = await gmailInvoiceRes.json();
+          console.log('Gmail invoice response status:', gmailInvoiceRes.status, 'data:', JSON.stringify(gmailInvoiceData).substring(0, 200));
           
-          if (!brevoResponse.ok) {
-            console.error('Brevo API error:', brevoData);
-            throw new Error(`Brevo error: ${brevoResponse.status} ${brevoData.message || JSON.stringify(brevoData)}`);
+          if (!gmailInvoiceRes.ok) {
+            console.error('Gmail invoice error:', gmailInvoiceData);
+            throw new Error(`Gmail error: ${gmailInvoiceRes.status} ${JSON.stringify(gmailInvoiceData)}`);
           }
-          console.log('Invoice email sent successfully, messageId:', brevoData.messageId);
+          console.log('Invoice email sent successfully via Gmail');
         } catch (error) {
-          console.error('Brevo email error:', error.message);
+          console.error('Gmail invoice email error:', error.message);
           throw error;
         }
 
