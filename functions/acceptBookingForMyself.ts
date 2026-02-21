@@ -70,15 +70,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Generate deposit invoice for pay-at-closing bookings
-    if (booking.request_pay_at_closing) {
-      try {
-        await base44.asServiceRole.functions.invoke('generateDepositInvoice', { bookingId });
-      } catch (error) {
-        console.error('Failed to generate deposit invoice:', error);
-      }
-    }
-
     // Send approval email and calendar invite using existing functions
     try {
       await base44.asServiceRole.functions.invoke('sendBookingNotifications', { booking });

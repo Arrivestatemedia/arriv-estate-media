@@ -187,17 +187,13 @@ export default function BookingPage() {
 
   const handleSubmitBooking = async (bookingData) => {
     return new Promise((resolve) => {
-      createBookingMutation.mutate(bookingData, {
+      createBookingMutation.mutate({
+        ...bookingData,
+        request_pay_at_closing: requestPayAtClosing
+      }, {
         onSettled: () => resolve(),
       });
     });
-  };
-
-  const handlePayAtClosingToggle = (checked) => {
-    setRequestPayAtClosing(checked);
-    if (checked) {
-      setShowPayAtClosingDialog(true);
-    }
   };
 
   if (showBookingForm) {
@@ -449,7 +445,7 @@ export default function BookingPage() {
               type="checkbox"
               id="payAtClosing"
               checked={requestPayAtClosing}
-              onChange={(e) => handlePayAtClosingToggle(e.target.checked)}
+              onChange={(e) => setRequestPayAtClosing(e.target.checked)}
               className="w-4 h-4 accent-[#B8956A]"
             />
             <label htmlFor="payAtClosing" className="text-sm text-[#1A1A1A]/70 cursor-pointer">
