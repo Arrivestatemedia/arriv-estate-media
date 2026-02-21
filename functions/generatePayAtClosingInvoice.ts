@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    const totalAmount = parseFloat(booking.total_price);
+    const totalAmount = 50;
     const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
     const adminEmail = 'BradCBurke@arrivestatemedia.com';
 
