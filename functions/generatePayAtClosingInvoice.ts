@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
       },
       body: new URLSearchParams({
         'line_items[0][price_data][currency]': 'usd',
-        'line_items[0][price_data][product_data][name]': `Media Services Deposit - ${booking.street_address}`,
-        'line_items[0][price_data][unit_amount]': String(Math.round(totalAmount * 100)),
+        'line_items[0][price_data][product_data][name]': `Booking Deposit - ${booking.street_address}`,
+        'line_items[0][price_data][unit_amount]': '5000',
         'line_items[0][quantity]': '1',
       }),
     });
