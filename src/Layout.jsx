@@ -266,7 +266,7 @@ import PageTransition from "@/components/layout/PageTransition";
                   </Link>
                 );
               })}
-            {user && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName) && (
+            {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName) && (
               <Link
                 to={createPageUrl("PublicAccountSettings")}
                 onClick={() => setMobileOpen(false)}
