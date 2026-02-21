@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     } = await req.json();
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
-    const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';
+    const unpaidFolderId = '1PMtihUlPa_LRcxYdi4ZDNeWWF2zfdv7J';
 
     // Step 1: Generate PDF using pdf-lib
     console.log('Step 1: Generating invoice PDF with pdf-lib...');
