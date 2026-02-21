@@ -200,6 +200,7 @@ Deno.serve(async (req) => {
 
     const basePkgAmount = packagePrices[booking.package] || 0;
     const addOns = booking.add_ons || [];
+    const addOnsForInvoice = addOns;
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
