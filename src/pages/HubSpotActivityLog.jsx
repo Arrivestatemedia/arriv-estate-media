@@ -27,7 +27,28 @@ export default function HubSpotActivityLog() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    // Check if sales member is logged in via localStorage
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    if (salesMemberId) {
+      setUser({
+        id: salesMemberId,
+        full_name: localStorage.getItem('sales_member_name'),
+        email: localStorage.getItem('sales_member_email'),
+        type: 'sales'
+      });
+    } else {
+      // Check for admin via base44
+      base44.auth.me().then((adminUser) => {
+        if (adminUser && adminUser.role === 'admin') {
+          setUser(adminUser);
+        } else {
+          // Redirect to sales login if not authenticated as sales or admin
+          window.location.href = '/SalesLogin';
+        }
+      }).catch(() => {
+        window.location.href = '/SalesLogin';
+      });
+    }
   }, []);
 
   const { data: activities = [] } = useQuery({
@@ -82,7 +103,7 @@ export default function HubSpotActivityLog() {
     createActivityMutation.mutate(formData);
   };
 
-  if (!user || user.role !== 'admin') {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -90,7 +111,7 @@ export default function HubSpotActivityLog() {
             <CardTitle className="text-red-600">Access Restricted</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>Only admins can access the activity log.</p>
+            <p>Only sales team members and admins can access the activity log.</p>
           </CardContent>
         </Card>
       </div>
