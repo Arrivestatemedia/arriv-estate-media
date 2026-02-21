@@ -205,14 +205,15 @@ Deno.serve(async (req) => {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
     let y = curY;
+    // Package row: show standard price and pay-at-closing rate
     doc.text(pkgNames[booking.package] || booking.package, margin, y);
-    doc.text(`$${basePkgAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+    doc.text(`$${basePkgAmount.toFixed(2)} (std) | ${pkgRate.toFixed(2)}% at closing`, pageWidth - margin, y, { align: 'right' });
     y += 18;
 
     for (const addon of addOns) {
       const price = addonPrices[addon] || 0;
       doc.text(addonDescriptions[addon] || addon, margin, y);
-      doc.text(`$${price.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+      doc.text(`$${price.toFixed(2)} (std) | ${addonRate.toFixed(2)}% at closing`, pageWidth - margin, y, { align: 'right' });
       y += 18;
     }
 
@@ -222,7 +223,7 @@ Deno.serve(async (req) => {
     y += 14;
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(26, 26, 26);
-    doc.text('DEPOSIT DUE:', margin, y);
+    doc.text('DEPOSIT DUE NOW:', margin, y);
     doc.setTextColor(184, 149, 106);
     doc.text('$50.00', pageWidth - margin, y, { align: 'right' });
     y += 30;
@@ -248,6 +249,48 @@ Deno.serve(async (req) => {
     const labelWidth = doc.getTextWidth(linkLabel);
     doc.setTextColor(184, 149, 106);
     doc.textWithLink(stripeUrl, margin + labelWidth, y, { url: stripeUrl });
+    y += 30;
+
+    // PAY-AT-CLOSING TERMS
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 18;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('PAY-AT-CLOSING TERMS', margin, y);
+    y += 16;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+
+    // Main percentage term
+    const mainTermLine = `${displayPercentage}% of closing price is due once the property closes, payment must be made within 7 days of receiving the final invoice.`;
+    const mainTermLines = doc.splitTextToSize(mainTermLine, pageWidth - margin * 2);
+    doc.text(mainTermLines, margin, y);
+    y += mainTermLines.length * 13 + 10;
+
+    // Conversion clause
+    const conversionLine = 'If any of the following occur, this Agreement shall automatically convert to a flat fee of the package minimum, with payment due within seven (7) days of written notice (less deposit):';
+    const conversionLines = doc.splitTextToSize(conversionLine, pageWidth - margin * 2);
+    doc.text(conversionLines, margin, y);
+    y += conversionLines.length * 13 + 8;
+
+    const clauses = [
+      '1. The property is withdrawn, canceled, or expires',
+      '2. The listing is terminated, transferred, or reassigned to another agent or brokerage',
+      '3. The property is relisted under a new MLS number',
+      '4. The seller changes representation',
+      '5. The property is rented, leased, or otherwise disposed of without a sale',
+      '6. The sale does not occur within six (6) months of the original listing date',
+    ];
+    for (const clause of clauses) {
+      const clauseLines = doc.splitTextToSize(clause, pageWidth - margin * 2 - 10);
+      doc.text(clauseLines, margin + 8, y);
+      y += clauseLines.length * 13;
+    }
 
     // Footer
     doc.setFillColor(26, 26, 26);
