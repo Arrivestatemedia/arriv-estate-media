@@ -77,16 +77,12 @@ Deno.serve(async (req) => {
         job_address: job.location || booking.street_address,
         monitoring_start_date: job.date,
         status: 'manual_closed',
-        closing_date: closingDate,
-        final_sale_price: finalSalePrice ? parseFloat(finalSalePrice) : null,
         closed_detected_at: new Date().toISOString(),
         detection_source: 'manual'
       });
     } else {
       await base44.asServiceRole.entities.ClosingDetection.update(detection.id, {
         status: 'manual_closed',
-        closing_date: closingDate,
-        final_sale_price: finalSalePrice ? parseFloat(finalSalePrice) : null,
         closed_detected_at: new Date().toISOString(),
         detection_source: 'manual'
       });
