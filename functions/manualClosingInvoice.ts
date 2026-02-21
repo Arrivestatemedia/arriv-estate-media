@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     let detection = (await base44.asServiceRole.entities.ClosingDetection.filter({ job_id: job.id }))[0];
     if (!detection) {
       detection = await base44.asServiceRole.entities.ClosingDetection.create({
-        job_id: jobId,
+        job_id: job.id,
         job_address: job.location || booking.street_address,
         monitoring_start_date: job.date,
         status: 'manual_closed',
@@ -46,9 +46,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Generate final closing invoice
+    // Generate final closing invoice (calls Brevo internally)
     const invoiceResult = await base44.asServiceRole.functions.invoke('generateFinalClosingInvoice', {
-      jobId,
+      bookingId,
       closingDate,
       finalSalePrice
     });
