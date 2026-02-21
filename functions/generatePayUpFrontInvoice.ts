@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
     y -= 25;
 
     page.drawText('AMOUNT DUE', { x: 50, y, size: 11, color: gold });
-    page.drawText(`$${totalAmount.toFixed(2)}`, { x: 480, y, size: 16, color: black });
+    page.drawText(`$${chargeAmount.toFixed(2)}`, { x: 480, y, size: 16, color: black });
     y -= 45;
 
     page.drawText('PAYMENT', { x: 50, y, size: 10, color: gold });
