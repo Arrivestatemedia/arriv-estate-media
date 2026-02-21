@@ -17,10 +17,15 @@ Deno.serve(async (req) => {
     );
     
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      
-      // Check if this is a media partner onboarding payment
-      if (session.metadata?.purpose === 'media_partner_onboarding_fee') {
+        const session = event.data.object;
+        console.log('Checkout session completed:', {
+          sessionId: session.id,
+          paymentLink: session.payment_link,
+          metadata: session.metadata
+        });
+
+        // Check if this is a media partner onboarding payment
+        if (session.metadata?.purpose === 'media_partner_onboarding_fee') {
         const userEmail = session.metadata.userEmail;
         const pendingSignupId = session.metadata.pendingSignupId;
         const userId = session.metadata.userId;
