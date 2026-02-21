@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     }
 
     // Update ClosingDetection
-    let detection = (await base44.asServiceRole.entities.ClosingDetection.filter({ job_id: jobId }))[0];
+    let detection = (await base44.asServiceRole.entities.ClosingDetection.filter({ job_id: job.id }))[0];
     if (!detection) {
       detection = await base44.asServiceRole.entities.ClosingDetection.create({
         job_id: jobId,
