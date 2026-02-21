@@ -34,6 +34,11 @@ Deno.serve(async (req) => {
       : 1000;
     const invoiceNumber = String(lastNumber + 1);
     
+    // Use $1 for test accounts
+    const testEmails = ['bradcburke@gmail.com', 'bradcburke5@gmail.com'];
+    const isTestAccount = testEmails.includes((job.client_email || '').toLowerCase()) || (job.client_email || '').toLowerCase().includes('test-user');
+    const stripeAmount = isTestAccount ? 100 : Math.round(balanceDue * 100);
+
     // Create Stripe payment link for balance
     const stripeResponse = await fetch('https://api.stripe.com/v1/payment_links', {
       method: 'POST',
@@ -44,7 +49,7 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({
         'line_items[0][price_data][currency]': 'usd',
         'line_items[0][price_data][product_data][name]': `Final Payment - ${job.location}`,
-        'line_items[0][price_data][unit_amount]': String(Math.round(balanceDue * 100)),
+        'line_items[0][price_data][unit_amount]': String(stripeAmount),
         'line_items[0][quantity]': '1',
       }),
     });
