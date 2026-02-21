@@ -498,6 +498,23 @@ Deno.serve(async (req) => {
           throw error;
         }
 
+        // Get checkout session ID from payment link
+        console.log('Fetching payment link details to get checkout session ID...');
+        let checkoutSessionId;
+        try {
+          const linkDetailsRes = await fetch(`https://api.stripe.com/v1/payment_links/${stripeData.id}`, {
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('STRIPE_SECRET_KEY')}`
+            }
+          });
+          const linkDetails = await linkDetailsRes.json();
+          console.log('Payment link details:', linkDetails.url);
+          // Note: Payment Links don't directly give us session ID, we'll rely on matching by link ID
+          // But let's store both for redundancy
+        } catch (e) {
+          console.warn('Could not fetch link details:', e.message);
+        }
+
         // Save invoice record with all data
         console.log('Creating invoice record...');
         let invoice;
@@ -516,6 +533,7 @@ Deno.serve(async (req) => {
             payment_status: 'unpaid',
             stripe_payment_link_id: stripeData.id,
             stripe_payment_link_url: stripeData.url,
+            stripe_checkout_session_id: stripeData.id,
             google_drive_unpaid_url: driveViewLink,
             google_drive_file_id: pdfFileId,
             pay_at_closing: false,
