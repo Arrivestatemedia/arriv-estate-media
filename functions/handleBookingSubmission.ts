@@ -56,10 +56,10 @@ Deno.serve(async (req) => {
       console.error('Admin email error:', error);
     }
 
-    // For pay-up-front: generate PDF invoice and send via Gmail/Twilio
+    // For pay-up-front: send booking confirmation email first (separate from invoice generation)
     if (!booking.request_pay_at_closing) {
+      // Send booking confirmation email via Gmail
       try {
-        // Send booking confirmation email via Gmail
         const firstName = booking.client_name.split(' ')[0];
         const packageNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
         const addOnsList = (booking.add_ons || []).map(addon => {
@@ -85,40 +85,46 @@ Deno.serve(async (req) => {
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
 </body></html>`;
         
-        try {
-          const gmailToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-          const emailSubject = 'Your Booking Request Confirmation';
-          const messageLines = [
-            `To: ${booking.client_email}`, `From: ${adminEmail}`, `Subject: ${emailSubject}`,
-            'MIME-Version: 1.0', 'Content-Type: text/html; charset="UTF-8"', '', confirmationHtmlBody
-          ];
-          const messageBytes = messageLines.map(l => new TextEncoder().encode(l + '\r\n')).reduce((acc, part) => {
-            const merged = new Uint8Array(acc.length + part.length);
-            merged.set(acc); merged.set(part, acc.length);
-            return merged;
-          }, new Uint8Array());
-          const base64urlMessage = btoa(String.fromCharCode(...messageBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        const gmailToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+        const emailSubject = 'Your Booking Request Confirmation';
+        const messageLines = [
+          `To: ${booking.client_email}`, `From: ${adminEmail}`, `Subject: ${emailSubject}`,
+          'MIME-Version: 1.0', 'Content-Type: text/html; charset="UTF-8"', '', confirmationHtmlBody
+        ];
+        const messageBytes = messageLines.map(l => new TextEncoder().encode(l + '\r\n')).reduce((acc, part) => {
+          const merged = new Uint8Array(acc.length + part.length);
+          merged.set(acc); merged.set(part, acc.length);
+          return merged;
+        }, new Uint8Array());
+        const base64urlMessage = btoa(String.fromCharCode(...messageBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-          console.log('Sending confirmation email via Gmail to:', booking.client_email);
-          const gmailRes = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ raw: base64urlMessage })
-          });
-          
-          const gmailData = await gmailRes.json();
-          console.log('Gmail response status:', gmailRes.status, 'data:', JSON.stringify(gmailData).substring(0, 200));
-          
-          await base44.asServiceRole.entities.MessageLog.create({
-            message_type: 'email', recipient_type: 'client', recipient_email: booking.client_email,
-            message_content: 'Booking confirmation sent', subject: emailSubject,
-            status: gmailRes.ok ? 'success' : 'failed',
-            error_message: gmailRes.ok ? null : JSON.stringify(gmailData)
-          });
-        } catch (error) {
-          console.error('Confirmation email error:', error.message);
-        }
+        console.log('Sending confirmation email via Gmail to:', booking.client_email);
+        const gmailRes = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw: base64urlMessage })
+        });
+        
+        const gmailData = await gmailRes.json();
+        console.log('Gmail response status:', gmailRes.status, 'data:', JSON.stringify(gmailData).substring(0, 200));
+        
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'email', recipient_type: 'client', recipient_email: booking.client_email,
+          message_content: 'Booking confirmation sent', subject: emailSubject,
+          status: gmailRes.ok ? 'success' : 'failed',
+          error_message: gmailRes.ok ? null : JSON.stringify(gmailData)
+        });
+      } catch (error) {
+        console.error('Confirmation email error:', error);
+        await base44.asServiceRole.entities.MessageLog.create({
+          message_type: 'email', recipient_type: 'client', recipient_email: booking.client_email,
+          message_content: 'Booking confirmation failed', subject: 'Your Booking Request Confirmation',
+          status: 'failed', error_message: error.message
+        });
+      }
 
+      // Now generate invoice (separate try/catch)
+      try {
         // Send SMS to admin via Twilio
         try {
           const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
