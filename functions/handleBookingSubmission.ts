@@ -449,11 +449,11 @@ Deno.serve(async (req) => {
           console.error('Error logging message:', error.message);
         }
 
-        // Update booking with invoice ID
-        console.log('Updating booking with invoice ID...');
+        // Update booking with invoice ID and lock until payment
+        console.log('Updating booking with invoice ID and locking...');
         try {
-          await base44.asServiceRole.entities.Booking.update(createdBooking.id, { invoice_id: invoice.id });
-          console.log('Booking updated with invoice ID');
+          await base44.asServiceRole.entities.Booking.update(createdBooking.id, { invoice_id: invoice.id, payment_locked: true });
+          console.log('Booking updated with invoice ID and locked');
         } catch (error) {
           console.error('Error updating booking:', error.message);
         }
