@@ -138,16 +138,16 @@ export default function HubSpotActivityLog() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Activity Log</h1>
-            <p className="text-gray-600 mt-1">Log calls, emails, and meetings synced to HubSpot</p>
+            <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>Activity Log</h1>
+            <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log calls, emails, and meetings synced to HubSpot</p>
           </div>
           <Dialog open={showForm} onOpenChange={setShowForm}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
                 <Plus className="w-4 h-4" />
                 Log Activity
               </Button>
@@ -243,24 +243,24 @@ export default function HubSpotActivityLog() {
         {upcomingActivities.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
-              <Zap className="w-5 h-5 text-blue-600" />
-              <h2 className="text-xl font-semibold text-gray-900">Upcoming Tasks</h2>
+              <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
+              <h2 className="text-xl font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
               <Badge variant="secondary">{upcomingActivities.length}</Badge>
             </div>
             <div className="space-y-3">
               {upcomingActivities.map((activity) => (
-                <Card key={activity.id} className="border-blue-200 bg-blue-50">
+                <Card key={activity.id} style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184, 149, 106, 0.1)' }}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1">
-                        <div className="mt-1 p-2 bg-blue-100 rounded-lg">
+                        <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)' }}>
                           {activityIcons[activity.activity_type]}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="bg-blue-100 text-blue-800">{activityLabels[activity.activity_type]}</Badge>
-                            <Clock className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm text-blue-600 font-medium">
+                            <Badge variant="outline" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
+                            <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
+                            <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
                               {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
                             </span>
                           </div>
@@ -279,11 +279,11 @@ export default function HubSpotActivityLog() {
         )}
 
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity History</h2>
+          <h2 className="text-xl font-semibold mb-4" style={{ color: '#1A1A1A' }}>Activity History</h2>
           <div className="space-y-3">
             {pastActivities.length === 0 && upcomingActivities.length === 0 ? (
               <Card>
-                <CardContent className="pt-6 text-center text-gray-500">
+                <CardContent className="pt-6 text-center" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
                   No activities logged yet
                 </CardContent>
               </Card>
@@ -293,36 +293,36 @@ export default function HubSpotActivityLog() {
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1">
-                        <div className="mt-1 p-2 bg-gray-100 rounded-lg">
+                        <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
                           {activityIcons[activity.activity_type]}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
                             {activity.hubspot_synced ? (
-                              <div className="flex items-center gap-1 text-green-600 text-xs">
+                              <div className="flex items-center gap-1 text-xs" style={{ color: '#10B981' }}>
                                 <Check className="w-3 h-3" />
                                 Synced
                               </div>
                             ) : activity.sync_error ? (
-                              <div className="flex items-center gap-1 text-red-600 text-xs">
+                              <div className="flex items-center gap-1 text-xs" style={{ color: '#EF4444' }}>
                                 <AlertCircle className="w-3 h-3" />
                                 Sync failed
                               </div>
                             ) : (
-                              <div className="text-xs text-gray-500">Syncing...</div>
+                              <div className="text-xs" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Syncing...</div>
                             )}
                           </div>
-                          <p className="font-medium mt-2">{activity.contact_name || activity.company_name}</p>
-                          {activity.contact_email && <p className="text-sm text-gray-600">{activity.contact_email}</p>}
-                          {activity.company_name && <p className="text-sm text-gray-600">{activity.company_name}</p>}
-                          <p className="text-sm text-gray-700 mt-2">{activity.notes}</p>
+                          <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                          {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                          {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                          <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
                           {activity.duration_minutes > 0 && (
-                            <p className="text-xs text-gray-500 mt-1">{activity.duration_minutes} minutes</p>
+                            <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
                           )}
                         </div>
                       </div>
-                      <div className="text-right text-sm text-gray-500 whitespace-nowrap">
+                      <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
                         {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
                       </div>
                     </div>
