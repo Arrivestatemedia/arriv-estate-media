@@ -62,7 +62,7 @@ export default function JobBoard() {
   });
 
   const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ["jobs", filter, user?.email, userEmail],
+    queryKey: ["jobs", filter, user?.email, userEmail, user?.state],
     queryFn: async () => {
       if (filter === "booked") {
         const email = user?.email || userEmail;
@@ -73,17 +73,20 @@ export default function JobBoard() {
           from_booking: true
         }, "-created_date");
       }
-      if (filter === "open") {
-        return base44.entities.Job.filter({ 
-          status: "open",
-          from_booking: true
-        }, "-created_date");
-      }
-      // Show all approved jobs (open and booked from bookings)
-      return base44.entities.Job.filter({ 
-        status: { $in: ["open", "booked"] },
+      
+      // Get user's state for filtering
+      const userState = user?.state;
+      const baseQuery = {
+        status: filter === "open" ? "open" : { $in: ["open", "booked"] },
         from_booking: true
-      }, "-created_date");
+      };
+      
+      // For media partners, filter by state
+      if (user?.user_type === "media_partner" && userState) {
+        baseQuery.state = userState;
+      }
+      
+      return base44.entities.Job.filter(baseQuery, "-created_date");
     },
     enabled: filter !== "booked" || !!user?.email || !!userEmail,
   });
