@@ -15,9 +15,9 @@ Deno.serve(async (req) => {
     const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
 
     // Folder IDs
-    const unpaidFolderId = '1CBoctYJXKv-shB54PIINOlAFBt5CJFeh';     // UNPAID - delete from here
-    const paidInvoicesFolderId = '17TvPnePQhOW22hDiLqzHoMd3hDc1q6_7'; // PAID INVOICES - move invoice here
-    const receiptsFolderId = '1Jwc1L00KV-lseq1kGEo8jcN5sTJ9LoOt';    // PAID RECEIPTS - upload receipt here
+    const unpaidFolderId = '1PMtihUlPa_LRcxYdi4ZDNeWWF2zfdv7J';     // UNPAID - delete from here
+              const paidInvoicesFolderId = '1bYUAfs8BwNrar1sCsnISme1Ov7a0y2vn'; // PAID INVOICES - move invoice here
+              const receiptsFolderId = '1d8EjqEfDg21lfBG8LyUr89g8owVUkuWI';    // PAID RECEIPTS - upload receipt here
 
     // ── 1. GENERATE RECEIPT PDF (same style as invoice) ─────────────────────
     let logoBase64 = null;
