@@ -299,19 +299,6 @@ export default function HubSpotActivityLog() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
-                            {activity.hubspot_synced ? (
-                              <div className="flex items-center gap-1 text-xs" style={{ color: '#10B981' }}>
-                                <Check className="w-3 h-3" />
-                                Synced
-                              </div>
-                            ) : activity.sync_error ? (
-                              <div className="flex items-center gap-1 text-xs" style={{ color: '#EF4444' }}>
-                                <AlertCircle className="w-3 h-3" />
-                                Sync failed
-                              </div>
-                            ) : (
-                              <div className="text-xs" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Syncing...</div>
-                            )}
                           </div>
                           <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
                           {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
