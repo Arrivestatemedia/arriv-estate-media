@@ -109,32 +109,7 @@ export default function ManualClosingInvoice() {
                 </label>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                  Closing Date *
-                </label>
-                <Input
-                  type="date"
-                  value={closingDate}
-                  onChange={(e) => setClosingDate(e.target.value)}
-                  disabled={loading}
-                  className="border-[var(--border-color)]"
-                />
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                  Final Sale Price (Optional)
-                </label>
-                <Input
-                  type="number"
-                  value={finalSalePrice}
-                  onChange={(e) => setFinalSalePrice(e.target.value)}
-                  placeholder="Enter final sale price"
-                  disabled={loading}
-                  className="border-[var(--border-color)]"
-                />
-              </div>
 
               {error && (
                 <div className="p-3 bg-red-100 border border-red-300 rounded text-red-800 text-sm">
