@@ -3,12 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Mail, Calendar } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Phone, Mail, Calendar, X } from "lucide-react";
 import { format } from "date-fns";
 
 export default function AdminSalesRepActivity() {
   const [user, setUser] = useState(null);
   const [selectedRep, setSelectedRep] = useState(null);
+  const [selectedActivity, setSelectedActivity] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then((authUser) => {
@@ -126,26 +128,32 @@ export default function AdminSalesRepActivity() {
                 <h3 className="text-lg font-semibold mb-4" style={{ color: '#1A1A1A' }}>Recent Activity</h3>
                 <div className="space-y-3">
                   {getActivitiesByRep(selectedRep.email).slice(0, 10).map((activity) => (
-                    <Card key={activity.id}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-start gap-3">
-                          <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
-                            {activityIcons[activity.activity_type]}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
-                              <span className="text-xs" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                                {format(new Date(activity.activity_date), "MMM d, h:mm a")}
-                              </span>
+                    <button
+                      key={activity.id}
+                      onClick={() => setSelectedActivity(activity)}
+                      className="w-full text-left hover:shadow-md transition"
+                    >
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
+                              {activityIcons[activity.activity_type]}
                             </div>
-                            <p className="font-medium" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                            {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                            <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+                                <span className="text-xs" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                                  {format(new Date(activity.activity_date), "MMM d, h:mm a")}
+                                </span>
+                              </div>
+                              <p className="font-medium" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                              {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                              <p className="text-sm mt-2 line-clamp-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </button>
                   ))}
                 </div>
               </div>
