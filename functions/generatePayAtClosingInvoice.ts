@@ -56,6 +56,11 @@ Deno.serve(async (req) => {
       ? parseInt(allInvoices[0].invoice_number) : 1000;
     const invoiceNumber = String(lastNumber + 1);
 
+    // Use $1 for test accounts, $50 for real clients
+    const testEmails = ['bradcburke@gmail.com', 'bradcburke5@gmail.com'];
+    const isTestAccount = testEmails.includes(booking.client_email.toLowerCase()) || booking.client_email.toLowerCase().includes('test-user');
+    const stripeAmount = isTestAccount ? 100 : 5000; // cents
+
     // Create Stripe payment link
     const stripeResponse = await fetch('https://api.stripe.com/v1/payment_links', {
       method: 'POST',
@@ -66,7 +71,7 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({
         'line_items[0][price_data][currency]': 'usd',
         'line_items[0][price_data][product_data][name]': `Booking Deposit - ${booking.street_address}`,
-        'line_items[0][price_data][unit_amount]': '5000',
+        'line_items[0][price_data][unit_amount]': String(stripeAmount),
         'line_items[0][quantity]': '1',
       }),
     });
