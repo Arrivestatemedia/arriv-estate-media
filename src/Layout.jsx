@@ -57,6 +57,7 @@ import PageTransition from "@/components/layout/PageTransition";
             { label: "Job Board", page: "JobBoard", icon: Briefcase },
             { label: "Bookings", page: "AdminBookings", icon: Briefcase },
             { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
+            { label: "Activity Log", page: "HubSpotActivityLog", icon: FileText },
             { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },
             { label: "Client Terms", page: "AdminClientTerms", icon: Settings },
             { label: "Closing Invoice", page: "ManualClosingInvoice", icon: FileText },
