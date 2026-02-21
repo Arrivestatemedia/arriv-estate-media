@@ -39,8 +39,8 @@ export default function ManualClosingInvoice() {
     setError(null);
     setResult(null);
 
-    if (!bookingId.trim() || !closingDate.trim() || !invoiceFile) {
-      setError("Booking ID, closing date, and invoice file are required");
+    if (!bookingId.trim() || !invoiceFile) {
+      setError("Booking ID and invoice file are required");
       return;
     }
 
@@ -48,15 +48,11 @@ export default function ManualClosingInvoice() {
     try {
       const response = await base44.functions.invoke("uploadAndSendClosingInvoice", {
         bookingId: bookingId.trim(),
-        closingDate: closingDate.trim(),
-        finalSalePrice: finalSalePrice ? parseFloat(finalSalePrice) : null,
         invoiceFile: invoiceFile
       });
 
       setResult(response.data);
       setBookingId("");
-      setClosingDate("");
-      setFinalSalePrice("");
       setInvoiceFile(null);
       setFileName("");
     } catch (err) {
