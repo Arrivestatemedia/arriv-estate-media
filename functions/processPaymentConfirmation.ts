@@ -329,12 +329,20 @@ Deno.serve(async (req) => {
     });
 
     // ── 8. Unlock booking approval ───────────────────────────────────────────
-    if (!invoice.pay_at_closing && invoice.booking_id) {
+    if (invoice.booking_id) {
       try {
-        await base44.asServiceRole.entities.Booking.update(invoice.booking_id, {
-          status: 'confirmed',
-          payment_locked: false
-        });
+        if (!invoice.pay_at_closing) {
+          // Pay-up-front: mark confirmed
+          await base44.asServiceRole.entities.Booking.update(invoice.booking_id, {
+            status: 'confirmed',
+            payment_locked: false
+          });
+        } else {
+          // Pay-at-closing: unlock so admin can click Post/Accept button again
+          await base44.asServiceRole.entities.Booking.update(invoice.booking_id, {
+            payment_locked: false
+          });
+        }
       } catch (e) {
         console.warn('Could not update booking:', e.message);
       }
