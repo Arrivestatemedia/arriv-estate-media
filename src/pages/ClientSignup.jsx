@@ -54,6 +54,12 @@ export default function ClientSignup() {
       return;
     }
 
+    if (!smsConsented) {
+      setError("You must consent to SMS communications to continue");
+      setLoading(false);
+      return;
+    }
+
     // Validate passwords match
     if (formData.password !== formData.password_confirmation) {
       setError("Passwords do not match");
