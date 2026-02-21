@@ -266,9 +266,9 @@ Deno.serve(async (req) => {
     const htmlEmailBody = `<!DOCTYPE html>
 <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <p>Hi ${firstName},</p>
-  <p>Thank you for your payment! Please find your invoice for media services at <strong>${invoice.job_address}</strong> below.</p>
+  <p>Thank you for your payment! Please find your receipt for media services at <strong>${invoice.job_address}</strong> below.</p>
   <p style="text-align: center; margin: 30px 0;">
-    <a href="${invoice.google_drive_unpaid_url}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">👉 View Invoice</a>
+    <a href="${receiptDriveLink}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">👉 View Receipt</a>
   </p>
   <p>We look forward to working with you!</p>
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
