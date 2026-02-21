@@ -310,7 +310,7 @@ Deno.serve(async (req) => {
       service_date: booking.preferred_date,
       package: booking.package,
       add_ons: addOns,
-      amount: totalAmount,
+      amount: 50,
       payment_status: 'unpaid',
       stripe_payment_link_id: stripeData.id,
       stripe_payment_link_url: stripeData.url,
