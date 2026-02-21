@@ -194,9 +194,9 @@ Deno.serve(async (req) => {
     y += 14;
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(26, 26, 26);
-    doc.text('TOTAL DUE:', margin, y);
+    doc.text('DEPOSIT DUE:', margin, y);
     doc.setTextColor(184, 149, 106);
-    doc.text(`$${totalAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+    doc.text('$50.00', pageWidth - margin, y, { align: 'right' });
     y += 30;
 
     doc.setDrawColor(200, 200, 200);
