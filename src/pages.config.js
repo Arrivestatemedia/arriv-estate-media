@@ -67,6 +67,7 @@ import ForgotEmail from './pages/ForgotEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import JobApplication from './pages/JobApplication';
 import JobBoard from './pages/JobBoard';
+import ManualClosingInvoice from './pages/ManualClosingInvoice';
 import MediaPartnerDashboard from './pages/MediaPartnerDashboard';
 import MediaPartnerSignup from './pages/MediaPartnerSignup';
 import MediaPartnerTermsConditions from './pages/MediaPartnerTermsConditions';
@@ -81,7 +82,7 @@ import SignIn from './pages/SignIn';
 import SupraAccess from './pages/SupraAccess';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import ManualClosingInvoice from './pages/ManualClosingInvoice';
+import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import __Layout from './Layout.jsx';
 
 
@@ -106,6 +107,7 @@ export const PAGES = {
     "ForgotPassword": ForgotPassword,
     "JobApplication": JobApplication,
     "JobBoard": JobBoard,
+    "ManualClosingInvoice": ManualClosingInvoice,
     "MediaPartnerDashboard": MediaPartnerDashboard,
     "MediaPartnerSignup": MediaPartnerSignup,
     "MediaPartnerTermsConditions": MediaPartnerTermsConditions,
@@ -120,7 +122,7 @@ export const PAGES = {
     "SupraAccess": SupraAccess,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "ManualClosingInvoice": ManualClosingInvoice,
+    "HubSpotActivityLog": HubSpotActivityLog,
 }
 
 export const pagesConfig = {
