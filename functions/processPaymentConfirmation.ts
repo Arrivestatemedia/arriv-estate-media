@@ -253,12 +253,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 4. UPDATE INVOICE RECORD ─────────────────────────────────────────────
-    await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-      google_drive_paid_url: receiptDriveLink,
-    });
-
-    // ── 5. SEND RECEIPT EMAIL via Brevo ───────────────────────────────────────
+    // ── 5. SEND RECEIPT EMAIL via Brevo (BEFORE updating invoice to ensure we use the newly generated receipt) ───────────────────────────────────────────────────────────────────
     const brevoApiKey = Deno.env.get('BREVO_API_KEY');
     const adminEmail = 'BradCBurke@arrivestatemedia.com';
     const firstName = invoice.client_name.split(' ')[0];
