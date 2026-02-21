@@ -217,7 +217,7 @@ import PageTransition from "@/components/layout/PageTransition";
                   <div className="text-right">
                     <p className="text-sm font-medium text-[#FFFBF5]">{user.full_name}</p>
                     <p className="text-xs text-[#B8956A]">
-                      {isAdmin ? "Admin" : isClient ? "Client" : "Media Partner"}
+                      {isSalesTeam ? "Sales Team" : isAdmin ? "Admin" : isClient ? "Client" : "Media Partner"}
                     </p>
                   </div>
                   <Button
@@ -226,7 +226,11 @@ import PageTransition from "@/components/layout/PageTransition";
                     className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
                     onClick={() => {
                       localStorage.clear();
-                      base44.auth.logout(createPageUrl("SignIn"));
+                      if (isSalesTeam) {
+                        window.location.href = createPageUrl("SalesLogin");
+                      } else {
+                        base44.auth.logout(createPageUrl("SignIn"));
+                      }
                     }}
                   >
                     <LogOut className="w-4 h-4 mr-2" />
