@@ -39,12 +39,18 @@ export default function IphoneDialer({ salesMemberId }) {
 
   useEffect(() => {
     if (!salesMemberId) return;
-    loadCallLogs();
-    loadConversations();
+    
+    // Initialize device first, then load data
     initDevice();
+    
+    // Delay data loading slightly to allow device to initialize
+    setTimeout(() => {
+      loadCallLogs().catch(() => {});
+      loadConversations().catch(() => {});
+    }, 500);
 
-    const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs());
-    const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations());
+    const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
+    const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
 
     // Keyboard support for dialing
     const handleKeydown = (e) => {
