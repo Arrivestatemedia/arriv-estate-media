@@ -112,7 +112,7 @@ export default function TwilioDialer({ salesMemberId }) {
     }
   };
 
-  const handleCallEnded = () => {
+  const handleCallEnded = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
     const duration = callStartRef.current
       ? Math.floor((Date.now() - callStartRef.current) / 1000)
@@ -120,6 +120,24 @@ export default function TwilioDialer({ salesMemberId }) {
     setCallDuration(duration);
     setCallState(CALL_STATES.ENDED);
     callRef.current = null;
+
+    // Auto-log to HubSpot if contact info exists
+    if (toNumber && (contactName || contactEmail)) {
+      try {
+        await base44.functions.invoke('logCallActivity', {
+          salesMemberId,
+          toNumber,
+          contactName: contactName || 'Unknown',
+          contactEmail: contactEmail || '',
+          companyName: companyName || '',
+          durationSeconds: duration,
+          notes: callNotes || `Outbound call to ${toNumber}`
+        });
+        // Don't show logged state - just log silently
+      } catch (err) {
+        console.error('Auto-log failed:', err);
+      }
+    }
   };
 
   const startCall = async () => {
