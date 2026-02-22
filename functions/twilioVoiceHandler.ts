@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
     const to = params.get('To');
     const from = params.get('From');
     
-    console.log('TwiML Handler received:', { to, from, bodyKeys: Array.from(params.keys()) }); // Token identity like "sales_rep_xxx"
+    console.log('TwiML Handler received:', { to, from, bodyKeys: Array.from(params.keys()) });
     
     if (!to) {
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -49,46 +49,31 @@ Deno.serve(async (req) => {
         }
       } catch (err) {
         console.error('Failed to look up sales member:', err);
-        // Fall through to default callerId
       }
     }
 
-    // Determine if this is an incoming call to the rep or an outbound call
-    let twiml;
+    // Determine if this is an outbound call from a sales rep device
     const isOutboundFromDevice = fromIdentity && fromIdentity.startsWith('sales_rep_');
     
-    console.log('Call routing - isOutboundFromDevice:', isOutboundFromDevice, 'to:', to, 'from:', from, 'fromIdentity:', fromIdentity);
+    console.log('Call routing - isOutboundFromDevice:', isOutboundFromDevice, 'to:', to, 'from:', from);
+    
+    let twiml;
     
     if (isOutboundFromDevice) {
-       // Call from device to external number (outbound)
-       console.log('Outbound call from device to:', to);
-       // Format number as E.164 if not already
-       let formattedNumber = to.trim();
-       if (!formattedNumber.startsWith('+1')) {
-         formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
-       }
-       twiml = `<?xml version="1.0" encoding="UTF-8"?>
-    <Response>
-    <Dial callerId="${callerId}" timeout="30">
-     <Number>${formattedNumber}</Number>
-    </Dial>
-    </Response>`;
-    } else {
-       // Call from device to external number (outbound)
-       console.log('Outbound call from device to:', to);
-       // Format number as E.164 if not already
-       let formattedNumber = to.trim();
-       if (!formattedNumber.startsWith('+1')) {
-         formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
-       }
-       twiml = `<?xml version="1.0" encoding="UTF-8"?>
+      // Call from device to external number (outbound)
+      console.log('Outbound call from device to:', to);
+      let formattedNumber = to.trim();
+      if (!formattedNumber.startsWith('+')) {
+        formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
+      }
+      twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" timeout="30">
     <Number>${formattedNumber}</Number>
   </Dial>
 </Response>`;
     } else {
-      // Default outbound (shouldn't normally happen)
+      // Default outbound call
       console.log('Default outbound call to:', to);
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
