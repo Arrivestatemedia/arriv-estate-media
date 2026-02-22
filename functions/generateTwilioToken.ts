@@ -6,14 +6,15 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+    const apiKey = Deno.env.get('TWILIO_API_KEY');
+    const apiSecret = Deno.env.get('TWILIO_API_SECRET');
+    const twimlAppSid = Deno.env.get('TWILIO_TWIML_APP_SID');
 
     const { salesMemberId } = await req.json();
     if (!salesMemberId) {
       return Response.json({ error: 'salesMemberId required' }, { status: 400 });
     }
 
-    // Fetch the sales team member
     const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
     const member = members[0];
     if (!member) {
@@ -23,13 +24,13 @@ Deno.serve(async (req) => {
     const callerNumber = member.twilio_phone_number || Deno.env.get('TWILIO_PHONE_NUMBER');
     const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
 
-    // Use AccountSid as both API Key and API Secret (valid for Twilio Access Tokens)
     const AccessToken = twilio.jwt.AccessToken;
     const VoiceGrant = AccessToken.VoiceGrant;
 
-    const token = new AccessToken(accountSid, accountSid, authToken, { identity });
+    const token = new AccessToken(accountSid, apiKey, apiSecret, { identity });
 
     const voiceGrant = new VoiceGrant({
+      outgoingApplicationSid: twimlAppSid,
       incomingAllow: false
     });
     token.addGrant(voiceGrant);
