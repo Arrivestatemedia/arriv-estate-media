@@ -397,6 +397,56 @@ export default function IphoneDialer({ salesMemberId }) {
           </div>
         )}
 
+        {callState === CALL_STATES.ENDED && (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <PhoneOff className="w-4 h-4" style={{ color: '#B8956A' }} />
+              <span className="font-medium" style={{ color: '#1A1A1A' }}>
+                Call ended — {formatDuration(callDuration)}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Contact Name *</label>
+                <Input
+                  placeholder="Jane Smith"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Company</label>
+                <Input
+                  placeholder="Acme Realty"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Notes</label>
+              <Textarea
+                placeholder="What was discussed?"
+                value={callNotes}
+                onChange={(e) => setCallNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <Button
+              onClick={logCall}
+              disabled={!contactName.trim()}
+              className="w-full gap-2"
+              style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+            >
+              <Check className="w-4 h-4" />
+              Log Call & Sync to HubSpot
+            </Button>
+          </div>
+        )}
+
         {activeTab === TABS.KEYPAD && (
           <div className="p-4 space-y-4">
             <Input
