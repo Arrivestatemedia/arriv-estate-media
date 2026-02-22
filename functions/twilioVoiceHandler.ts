@@ -60,42 +60,20 @@ Deno.serve(async (req) => {
     console.log('Call routing - isOutboundFromDevice:', isOutboundFromDevice, 'to:', to, 'from:', from, 'fromIdentity:', fromIdentity);
     
     if (isOutboundFromDevice) {
-      // Incoming call from external number - route to ALL active sales reps
-      let targetDevices = [];
-      
-      try {
-        const base44 = createClientFromRequest(req);
-        // Get ALL active sales reps
-        const allMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
-        console.log('Found active sales members:', allMembers.length);
-        
-        for (const member of allMembers) {
-          const deviceId = `sales_rep_${member.id.replace(/-/g, '_')}`;
-          targetDevices.push(deviceId);
-          console.log('Adding device to dial:', deviceId);
-        }
-      } catch (err) {
-        console.error('Failed to look up sales members for incoming call:', err);
-      }
-      
-      if (targetDevices.length > 0) {
-        // Dial all available sales reps simultaneously
-        const dialClients = targetDevices.map(device => `<Client>${device}</Client>`).join('\n  ');
-        twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${from}" timeout="30">
-    ${dialClients}
-  </Dial>
-</Response>`;
-        console.log('Routing incoming call to devices:', targetDevices);
-      } else {
-        console.warn('No active sales members found to route call');
-        twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>No one is available to take your call. Please try again later.</Say>
-</Response>`;
-      }
-    } else if (isOutboundFromDevice) {
+       // Call from device to external number (outbound)
+       console.log('Outbound call from device to:', to);
+       // Format number as E.164 if not already
+       let formattedNumber = to.trim();
+       if (!formattedNumber.startsWith('+1')) {
+         formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
+       }
+       twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    <Response>
+    <Dial callerId="${callerId}" timeout="30">
+     <Number>${formattedNumber}</Number>
+    </Dial>
+    </Response>`;
+    } else {
        // Call from device to external number (outbound)
        console.log('Outbound call from device to:', to);
        // Format number as E.164 if not already
