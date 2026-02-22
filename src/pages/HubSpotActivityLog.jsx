@@ -55,13 +55,9 @@ export default function HubSpotActivityLog() {
   }, []);
 
   const { data: activities = [] } = useQuery({
-    queryKey: ['activities'],
+    queryKey: ['activities', user?.email],
     queryFn: async () => {
-      const allActivities = await base44.entities.ActivityLog.list('-activity_date', 100);
-      // Filter to show only activities created by the current user
-      if (user?.type === 'sales') {
-        return allActivities.filter(a => a.created_by === user.email);
-      }
+      const allActivities = await base44.entities.ActivityLog.list('-activity_date', 200);
       return allActivities;
     },
     initialData: [],
@@ -148,237 +144,237 @@ export default function HubSpotActivityLog() {
             <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>Sales Tools</h1>
             <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log activities and send emails</p>
           </div>
-                  {activeTab === "activity" && (
-                    <Dialog open={showForm} onOpenChange={setShowForm}>
-                      <DialogTrigger asChild>
-                        <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
-                          <Plus className="w-4 h-4" />
-                          Log Activity
-                        </Button>
-                      </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Log New Activity</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Activity Type</label>
-                  <Select value={formData.activity_type} onValueChange={(val) => setFormData({...formData, activity_type: val})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="call">Call</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="meeting">Meeting</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Contact Name</label>
-                  <Input
-                    placeholder="e.g., John Doe"
-                    value={formData.contact_name}
-                    onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Contact Email</label>
-                  <Input
-                    type="email"
-                    placeholder="john@example.com"
-                    value={formData.contact_email}
-                    onChange={(e) => setFormData({...formData, contact_email: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Company Name</label>
-                  <Input
-                    placeholder="e.g., Acme Inc"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData({...formData, company_name: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Date & Time</label>
-                  <Input
-                    type="datetime-local"
-                    value={formData.activity_date}
-                    onChange={(e) => setFormData({...formData, activity_date: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={formData.duration_minutes}
-                    onChange={(e) => setFormData({...formData, duration_minutes: parseInt(e.target.value) || 0})}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Notes</label>
-                  <Textarea
-                    placeholder="Summary of the activity..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                    rows={4}
-                  />
-                </div>
-
-                <Button
-                  onClick={handleSubmit}
-                  disabled={createActivityMutation.isPending}
-                  className="w-full"
-                >
-                  {createActivityMutation.isPending ? "Logging..." : "Log Activity"}
+          {activeTab === "activity" && (
+            <Dialog open={showForm} onOpenChange={setShowForm}>
+              <DialogTrigger asChild>
+                <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
+                  <Plus className="w-4 h-4" />
+                  Log Activity
                 </Button>
-              </div>
-              </DialogContent>
-              </Dialog>
-              )}
-              </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Log New Activity</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Activity Type</label>
+                    <Select value={formData.activity_type} onValueChange={(val) => setFormData({...formData, activity_type: val})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="call">Call</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Tab Navigation */}
-              <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20">
-              <button
-              onClick={() => setActiveTab("activity")}
-              className="px-4 py-3 font-medium border-b-2 transition"
-              style={{
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Contact Name</label>
+                    <Input
+                      placeholder="e.g., John Doe"
+                      value={formData.contact_name}
+                      onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Contact Email</label>
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      value={formData.contact_email}
+                      onChange={(e) => setFormData({...formData, contact_email: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Company Name</label>
+                    <Input
+                      placeholder="e.g., Acme Inc"
+                      value={formData.company_name}
+                      onChange={(e) => setFormData({...formData, company_name: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Date & Time</label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.activity_date}
+                      onChange={(e) => setFormData({...formData, activity_date: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={formData.duration_minutes}
+                      onChange={(e) => setFormData({...formData, duration_minutes: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Notes</label>
+                    <Textarea
+                      placeholder="Summary of the activity..."
+                      value={formData.notes}
+                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      rows={4}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={createActivityMutation.isPending}
+                    className="w-full"
+                  >
+                    {createActivityMutation.isPending ? "Logging..." : "Log Activity"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20">
+          <button
+            onClick={() => setActiveTab("activity")}
+            className="px-4 py-3 font-medium border-b-2 transition"
+            style={{
               color: activeTab === "activity" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
               borderBottomColor: activeTab === "activity" ? '#B8956A' : 'transparent'
-              }}
-              >
-              Activity Log
-              </button>
-              <button
-              onClick={() => setActiveTab("email")}
-              className="px-4 py-3 font-medium border-b-2 transition"
-              style={{
+            }}
+          >
+            Activity Log
+          </button>
+          <button
+            onClick={() => setActiveTab("email")}
+            className="px-4 py-3 font-medium border-b-2 transition"
+            style={{
               color: activeTab === "email" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
               borderBottomColor: activeTab === "email" ? '#B8956A' : 'transparent'
-              }}
-              >
-              Send Email
-              </button>
-              <button
-              onClick={() => setActiveTab("call")}
-              className="px-4 py-3 font-medium border-b-2 transition"
-              style={{
+            }}
+          >
+            Send Email
+          </button>
+          <button
+            onClick={() => setActiveTab("call")}
+            className="px-4 py-3 font-medium border-b-2 transition"
+            style={{
               color: activeTab === "call" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
               borderBottomColor: activeTab === "call" ? '#B8956A' : 'transparent'
-              }}
-              >
-              <span className="flex items-center gap-1"><Phone className="w-4 h-4" />Dialer</span>
-              </button>
-              </div>
+            }}
+          >
+            <span className="flex items-center gap-1"><Phone className="w-4 h-4" />Dialer</span>
+          </button>
+        </div>
 
-              {activeTab === "email" && (
-              <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
-              <CardContent className="pt-6">
+        {activeTab === "email" && (
+          <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
+            <CardContent className="pt-6">
               <EmailComposer />
-              </CardContent>
-              </Card>
-              )}
-
-              {(activeTab === "call" || activeTab === "sms") && (
-              <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20', height: '600px' }}>
-              <CardContent className="pt-0 h-full">
-              <IphoneDialer salesMemberId={user?.id} />
-              </CardContent>
-              </Card>
-              )}
-
-              {activeTab === "activity" && (
-              <>
-              {upcomingActivities.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
-              <h2 className="text-xl font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
-              <Badge variant="secondary">{upcomingActivities.length}</Badge>
-            </div>
-            <div className="space-y-3">
-              {upcomingActivities.map((activity) => (
-                <Card key={activity.id} style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184, 149, 106, 0.1)' }}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)' }}>
-                          {activityIcons[activity.activity_type]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
-                            <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
-                            <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
-                              {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
-                            </span>
-                          </div>
-                          <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                          {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                          {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
-                          <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4" style={{ color: '#1A1A1A' }}>Activity History</h2>
-          <div className="space-y-3">
-            {pastActivities.length === 0 && upcomingActivities.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6 text-center" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                  No activities logged yet
-                </CardContent>
-              </Card>
-            ) : (
-              pastActivities.map((activity) => (
-                <Card key={activity.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
-                          {activityIcons[activity.activity_type]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+        {activeTab === "call" && (
+          <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20', height: '600px' }}>
+            <CardContent className="pt-0 h-full">
+              <IphoneDialer salesMemberId={user?.id} />
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === "activity" && (
+          <>
+            {upcomingActivities.length > 0 && (
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
+                  <h2 className="text-xl font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
+                  <Badge variant="secondary">{upcomingActivities.length}</Badge>
+                </div>
+                <div className="space-y-3">
+                  {upcomingActivities.map((activity) => (
+                    <Card key={activity.id} style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184, 149, 106, 0.1)' }}>
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)' }}>
+                              {activityIcons[activity.activity_type]}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
+                                <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
+                                <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
+                                  {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
+                                </span>
+                              </div>
+                              <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                              {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                              {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                              <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                            </div>
                           </div>
-                          <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                          {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                          {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
-                          <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
-                          {activity.duration_minutes > 0 && (
-                            <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
-                          )}
                         </div>
-                      </div>
-                      <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                        {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             )}
-          </div>
-          </div>
+
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4" style={{ color: '#1A1A1A' }}>Activity History</h2>
+              <div className="space-y-3">
+                {pastActivities.length === 0 && upcomingActivities.length === 0 ? (
+                  <Card>
+                    <CardContent className="pt-6 text-center" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                      No activities logged yet
+                    </CardContent>
+                  </Card>
+                ) : (
+                  pastActivities.map((activity) => (
+                    <Card key={activity.id}>
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
+                              {activityIcons[activity.activity_type]}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+                              </div>
+                              <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                              {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                              {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                              <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                              {activity.duration_minutes > 0 && (
+                                <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                            {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
           </>
-          )}
-          </div>
-          </div>
-          );
-              }
+        )}
+      </div>
+    </div>
+  );
+}
