@@ -8,12 +8,26 @@ Deno.serve(async (req) => {
     
     const from = params.get('From');
     const to = params.get('To');
+    const callSid = params.get('CallSid');
     
-    // Get the sales rep's phone number from Twilio number
+    // Check if this is an outbound call from the dialer (CallSid present, coming from our app)
+    const isOutbound = params.has('CallSid') && !from?.startsWith('+');
+    
+    if (isOutbound) {
+      // Outbound call from dialer - dial the number directly
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial>${to}</Dial>
+</Response>`;
+      return new Response(twiml, {
+        headers: { 'Content-Type': 'text/xml' }
+      });
+    }
+    
+    // Incoming call from external number
     const salesMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ twilio_phone_number: to });
     const salesMemberPhone = salesMembers.length > 0 ? salesMembers[0].phone_number : Deno.env.get('BRADLEY_PHONE');
     
-    // TwiML to handle incoming call
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="alice">You have an incoming call. Please hold while we connect you.</Say>
