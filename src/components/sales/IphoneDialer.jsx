@@ -133,6 +133,7 @@ export default function IphoneDialer({ salesMemberId }) {
     setCallDuration(duration);
     setCallState(CALL_STATES.ENDED);
     callRef.current = null;
+    setCurrentCall(null);
   };
 
   const startCall = async (phoneNumber = null) => {
@@ -195,26 +196,10 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
-  const hangUp = async () => {
+  const hangUp = () => {
     if (callRef.current) {
       callRef.current.disconnect();
     }
-
-    if (currentCall && !currentCall.incoming && callDuration > 0) {
-      try {
-        await base44.functions.invoke('logCallActivity', {
-          salesMemberId,
-          toNumber: currentCall.number,
-          durationSeconds: callDuration,
-          notes: `Outbound call to ${currentCall.number}`
-        });
-        setTimeout(() => loadCallLogs(), 500);
-      } catch (err) {
-        console.error('Failed to log call:', err);
-      }
-    }
-
-    setCurrentCall(null);
   };
 
   const toggleMute = () => {
