@@ -48,7 +48,7 @@ export default function TwilioDialer({ salesMemberId }) {
       if (!window.Twilio?.Device) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.js';
+          script.src = 'https://media.twiliocdn.com/sdk/js/voice/releases/2.10.0/twilio.min.js';
           script.onload = resolve;
           script.onerror = reject;
           document.head.appendChild(script);
