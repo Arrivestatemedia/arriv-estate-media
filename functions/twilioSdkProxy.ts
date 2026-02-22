@@ -1,6 +1,6 @@
 Deno.serve(async () => {
   try {
-    const res = await fetch('https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js');
+    const res = await fetch('https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2.10.0/dist/twilio.min.js');
     const text = await res.text();
     return new Response(text, {
       headers: {
