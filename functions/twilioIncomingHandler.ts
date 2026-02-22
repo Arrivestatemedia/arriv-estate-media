@@ -8,9 +8,12 @@ Deno.serve(async (req) => {
     
     const from = params.get('From');
     const to = params.get('To');
-    const isOutbound = params.get('isOutbound') === 'true';
     
-    if (isOutbound) {
+    // If From starts with +, it's an incoming call from external number
+    // If From doesn't start with +, it's an outbound call from the device (SDK identifies device by ID/name)
+    const isIncomingFromExternal = from && from.startsWith('+');
+    
+    if (!isIncomingFromExternal) {
       // Outbound call from dialer - dial the number directly
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
