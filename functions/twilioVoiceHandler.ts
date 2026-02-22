@@ -6,7 +6,9 @@ Deno.serve(async (req) => {
     const params = new URLSearchParams(body);
     
     const to = params.get('To');
-    const from = params.get('From'); // Token identity like "sales_rep_xxx"
+    const from = params.get('From');
+    
+    console.log('TwiML Handler received:', { to, from, bodyKeys: Array.from(params.keys()) }); // Token identity like "sales_rep_xxx"
     
     if (!to) {
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
