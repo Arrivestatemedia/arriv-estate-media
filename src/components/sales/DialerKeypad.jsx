@@ -1,24 +1,27 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Delete } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { DeleteIcon } from "lucide-react";
 
-export default function DialerKeypad({ onNumberPad }) {
+export default function DialerKeypad({ onDial }) {
   const [number, setNumber] = useState("");
 
   const handleKeyPress = (key) => {
     if (key === "backspace") {
       setNumber(number.slice(0, -1));
-    } else if (key === "*" || key === "#") {
-      setNumber(number + key);
     } else {
       setNumber(number + key);
     }
-    onNumberPad(number + (key !== "backspace" ? key : ""));
   };
 
   const handleClear = () => {
     setNumber("");
+  };
+
+  const handleCall = () => {
+    if (number.trim()) {
+      onDial(number);
+      setNumber("");
+    }
   };
 
   const keypad = [
@@ -45,41 +48,53 @@ export default function DialerKeypad({ onNumberPad }) {
   ];
 
   return (
-    <div className="space-y-4 bg-white p-4 rounded-lg">
-      <Input
-        type="tel"
-        placeholder="+1 (555) 000-0000"
-        value={number}
-        readOnly
-        className="text-center text-2xl font-bold tracking-wider h-12"
-      />
+    <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+      {/* Display */}
+      <div className="bg-gray-50 rounded-lg p-4 text-center">
+        <input
+          type="text"
+          value={number}
+          readOnly
+          placeholder="Enter number"
+          className="w-full text-center text-3xl font-mono font-bold bg-transparent border-none outline-none"
+        />
+      </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      {/* Keypad Grid */}
+      <div className="grid grid-cols-3 gap-2">
         {keypad.map((row, rowIdx) =>
           row.map((key) => (
             <Button
               key={`${rowIdx}-${key.label}`}
               onClick={() => handleKeyPress(key.label)}
-              className="h-16 text-xl font-semibold hover:bg-gray-100"
+              className="h-14 text-lg font-semibold"
               variant="outline"
             >
               <div className="flex flex-col items-center">
                 <span>{key.label}</span>
-                {key.letters && <span className="text-xs text-gray-500">{key.letters}</span>}
+                {key.letters && <span className="text-xs text-gray-400">{key.letters}</span>}
               </div>
             </Button>
           ))
         )}
       </div>
 
-      <Button
-        onClick={handleClear}
-        variant="outline"
-        className="w-full h-12 text-lg"
-      >
-        <Delete className="w-5 h-5 mr-2" />
-        Clear
-      </Button>
+      {/* Controls */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          onClick={handleClear}
+          variant="outline"
+          className="h-12"
+        >
+          Clear
+        </Button>
+        <Button
+          onClick={handleCall}
+          className="h-12 bg-green-600 hover:bg-green-700 text-white font-semibold"
+        >
+          Call
+        </Button>
+      </div>
     </div>
   );
 }
