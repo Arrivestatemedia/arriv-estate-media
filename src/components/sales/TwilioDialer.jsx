@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, PhoneOff, Loader2, Check, MicOff, Mic } from "lucide-react";
+import { Phone, PhoneOff, Loader2, Check, MicOff, Mic, Send } from "lucide-react";
 
 const CALL_STATES = {
   IDLE: "idle",
