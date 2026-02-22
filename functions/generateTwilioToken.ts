@@ -10,13 +10,21 @@ Deno.serve(async (req) => {
     const apiSecret = Deno.env.get('TWILIO_API_SECRET');
     const twimlAppSid = Deno.env.get('TWILIO_TWIML_APP_SID');
 
-    const { salesMemberId } = await req.json();
-    if (!salesMemberId) {
-      return Response.json({ error: 'salesMemberId required' }, { status: 400 });
+    const { salesMemberId, salesMemberEmail } = await req.json();
+    
+    if (!salesMemberId && !salesMemberEmail) {
+      return Response.json({ error: 'salesMemberId or salesMemberEmail required' }, { status: 400 });
     }
 
-    const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
-    const member = members[0];
+    let member;
+    if (salesMemberId) {
+      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+      member = members[0];
+    } else {
+      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: salesMemberEmail });
+      member = members[0];
+    }
+    
     if (!member) {
       return Response.json({ error: 'Sales member not found' }, { status: 404 });
     }
