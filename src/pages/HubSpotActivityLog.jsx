@@ -267,6 +267,16 @@ export default function HubSpotActivityLog() {
               >
               Send Email
               </button>
+              <button
+              onClick={() => setActiveTab("call")}
+              className="px-4 py-3 font-medium border-b-2 transition"
+              style={{
+              color: activeTab === "call" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "call" ? '#B8956A' : 'transparent'
+              }}
+              >
+              <span className="flex items-center gap-1"><Phone className="w-4 h-4" />Make a Call</span>
+              </button>
               </div>
 
               {activeTab === "email" && (
