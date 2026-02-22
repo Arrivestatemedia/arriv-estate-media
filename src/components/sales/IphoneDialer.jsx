@@ -26,6 +26,10 @@ export default function IphoneDialer({ salesMemberId }) {
   const [messages, setMessages] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [error, setError] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [callNotes, setCallNotes] = useState("");
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -248,6 +252,37 @@ export default function IphoneDialer({ salesMemberId }) {
     return isToday ? d.toLocaleString([], { hour: '2-digit', minute: '2-digit' }) : format(d, 'MMM d');
   };
 
+  const logCall = async () => {
+    if (!contactName.trim()) {
+      setError('Contact name is required');
+      return;
+    }
+
+    try {
+      await base44.functions.invoke('logCallActivity', {
+        salesMemberId,
+        toNumber: currentCall?.number || '',
+        contactName,
+        contactEmail,
+        companyName,
+        durationSeconds: callDuration,
+        notes: callNotes || `Call to ${currentCall?.number}`
+      });
+
+      // Reset form and show success message
+      setContactName('');
+      setContactEmail('');
+      setCompanyName('');
+      setCallNotes('');
+      setCallDuration(0);
+      setCallState(CALL_STATES.IDLE);
+
+      setTimeout(() => loadCallLogs(), 300);
+    } catch (err) {
+      setError('Failed to log call: ' + err.message);
+    }
+  };
+
   // Incoming call modal
   if (callState === CALL_STATES.INCOMING) {
     return (
@@ -334,26 +369,30 @@ export default function IphoneDialer({ salesMemberId }) {
                 <p className="text-sm">No recent calls</p>
               </div>
             ) : (
-              callLogs.map((log) => (
-                <button
-                  key={log.id}
-                  onClick={() => startCall(log.contact_email?.match(/\d+/)?.[0] || log.contact_name)}
-                  className="w-full text-left p-4 border-b hover:bg-gray-50 transition flex items-center justify-between"
-                  style={{ borderColor: 'rgba(184,149,106,0.1)' }}
-                >
-                  <div className="flex-1">
-                    <p className="font-medium" style={{ color: '#1A1A1A' }}>{log.contact_name}</p>
-                    <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{log.company_name}</p>
-                    {log.duration_minutes > 0 && (
-                      <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.4)' }}>{log.duration_minutes} min</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>{formatTime(log.activity_date)}</p>
-                    <Phone className="w-4 h-4 mt-1" style={{ color: '#B8956A' }} />
-                  </div>
-                </button>
-              ))
+              callLogs.map((log) => {
+                const phoneMatch = log.notes?.match(/\+?1?\d{10}/);
+                const phoneNumber = phoneMatch?.[0];
+                return (
+                  <button
+                    key={log.id}
+                    onClick={() => phoneNumber && startCall(phoneNumber)}
+                    className="w-full text-left p-4 border-b hover:bg-gray-50 transition flex items-center justify-between"
+                    style={{ borderColor: 'rgba(184,149,106,0.1)' }}
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium" style={{ color: '#1A1A1A' }}>{log.contact_name || 'Unknown'}</p>
+                      {log.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{log.company_name}</p>}
+                      {log.duration_minutes > 0 && (
+                        <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.4)' }}>{log.duration_minutes} min</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>{formatTime(log.activity_date)}</p>
+                      <Phone className="w-4 h-4 mt-1" style={{ color: '#B8956A' }} />
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         )}
