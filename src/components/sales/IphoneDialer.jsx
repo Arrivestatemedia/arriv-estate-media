@@ -94,7 +94,7 @@ export default function IphoneDialer({ salesMemberId }) {
     try {
       await loadTwilioSdk();
       const res = await base44.functions.invoke('generateTwilioToken', { salesMemberId });
-      const { token } = res.data;
+      const { token, identity } = res.data;
 
       if (!token) {
         setError('Failed to get access token');
@@ -104,27 +104,46 @@ export default function IphoneDialer({ salesMemberId }) {
       const { Device } = window.Twilio;
       const twilioDevice = new Device(token, { codecPreferences: ['opus', 'pcmu'], enableRingingState: true });
 
-      twilioDevice.on('registered', () => setDeviceReady(true));
+      twilioDevice.on('registered', () => {
+        console.log('Twilio Device registered with identity:', identity);
+        setDeviceReady(true);
+      });
+
       twilioDevice.on('error', (err) => {
+        console.error('Twilio Device error:', err);
         setError(err?.message || 'Twilio error');
         setCallState(CALL_STATES.IDLE);
       });
 
       twilioDevice.on('incoming', (call) => {
+        console.log('Incoming call received from:', call.parameters?.From);
         setIncomingCall(call);
         setIncomingFrom(call.parameters?.From || 'Unknown');
         setCallState(CALL_STATES.INCOMING);
-        call.on('disconnect', handleCallEnded);
+        
+        call.on('disconnect', () => {
+          console.log('Incoming call disconnected');
+          handleCallEnded();
+        });
         call.on('cancel', () => {
+          console.log('Incoming call cancelled');
+          setIncomingCall(null);
+          setIncomingFrom('');
+          setCallState(CALL_STATES.IDLE);
+        });
+        call.on('reject', () => {
+          console.log('Incoming call rejected');
           setIncomingCall(null);
           setIncomingFrom('');
           setCallState(CALL_STATES.IDLE);
         });
       });
 
+      console.log('Registering Twilio Device...');
       await twilioDevice.register();
       setDevice(twilioDevice);
     } catch (err) {
+      console.error('Device init error:', err);
       setError('Failed to initialize: ' + err?.message);
     }
   };
