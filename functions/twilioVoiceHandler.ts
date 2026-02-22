@@ -23,6 +23,18 @@ Deno.serve(async (req) => {
     
     let callerId = Deno.env.get('TWILIO_PHONE_NUMBER');
     
+    if (!callerId) {
+      console.error('TWILIO_PHONE_NUMBER not set in secrets');
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>Configuration error. Please contact support.</Say>
+</Response>`;
+      return new Response(twiml, {
+        status: 200,
+        headers: { 'Content-Type': 'application/xml; charset=utf-8' }
+      });
+    }
+    
     // Extract salesMemberId from token identity (format: sales_rep_xxx)
     if (from && from.startsWith('sales_rep_')) {
       const salesMemberId = from.replace('sales_rep_', '').replace(/_/g, '-');
