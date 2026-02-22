@@ -52,12 +52,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    // For incoming calls to a rep's number, route back to their device
+    let twiml;
+    if (from && from.startsWith('sales_rep_')) {
+      const salesMemberId = from.replace('sales_rep_', '').replace(/_/g, '-');
+      twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${callerId}" timeout="30">
+    <Client>${from}</Client>
+  </Dial>
+</Response>`;
+    } else {
+      // Outbound call - dial the number
+      twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}">
     <Number>${to}</Number>
   </Dial>
 </Response>`;
+    }
 
     return new Response(twiml, {
       status: 200,
