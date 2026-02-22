@@ -21,6 +21,7 @@ export default function HubSpotActivityLog() {
     activity_type: "call",
     contact_email: "",
     contact_name: "",
+    contact_phone: "",
     company_name: "",
     activity_date: new Date().toISOString().slice(0, 16),
     notes: "",
@@ -89,6 +90,7 @@ export default function HubSpotActivityLog() {
         activity_type: "call",
         contact_email: "",
         contact_name: "",
+        contact_phone: "",
         company_name: "",
         activity_date: new Date().toISOString().slice(0, 16),
         notes: "",
@@ -110,8 +112,8 @@ export default function HubSpotActivityLog() {
   };
 
   const handleSubmit = () => {
-    if (!formData.contact_name && !formData.company_name) {
-      alert("Please enter either a contact name or company name");
+    if (!formData.contact_name && !formData.contact_phone) {
+      alert("Please enter a contact name or phone number");
       return;
     }
     if (!formData.notes.trim()) {
@@ -172,11 +174,20 @@ export default function HubSpotActivityLog() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Contact Name</label>
+                    <label className="block text-sm font-medium mb-1">Contact Name *</label>
                     <Input
                       placeholder="e.g., John Doe"
                       value={formData.contact_name}
                       onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Phone Number *</label>
+                    <Input
+                      placeholder="e.g., (555) 123-4567"
+                      value={formData.contact_phone}
+                      onChange={(e) => setFormData({...formData, contact_phone: e.target.value})}
                     />
                   </div>
 
