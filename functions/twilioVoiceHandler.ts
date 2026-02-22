@@ -1,5 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+// In-memory store for call context (not ideal for production, but works for this POC)
+const callContextMap = new Map();
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -7,7 +10,15 @@ Deno.serve(async (req) => {
     const params = new URLSearchParams(body);
     
     const to = params.get('To');
-    const salesMemberId = params.get('salesMemberId');
+    const callSid = params.get('CallSid');
+    
+    // Try to get salesMemberId from the call context
+    let salesMemberId = params.get('salesMemberId');
+    if (!salesMemberId && callSid && callContextMap.has(callSid)) {
+      salesMemberId = callContextMap.get(callSid).salesMemberId;
+      // Clean up after 1 hour
+      setTimeout(() => callContextMap.delete(callSid), 3600000);
+    }
     
     let callerId = Deno.env.get('TWILIO_PHONE_NUMBER');
     
