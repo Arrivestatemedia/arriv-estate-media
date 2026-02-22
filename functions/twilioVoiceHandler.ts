@@ -56,14 +56,45 @@ Deno.serve(async (req) => {
     let twiml;
     const isIncomingToRep = !from || from.startsWith('+1') || /^\d+$/.test(from);
     
-    if (isIncomingToRep && to && to.startsWith('sales_rep_')) {
-      // Incoming call to rep's number - route to device
-      twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    if (isIncomingToRep && to) {
+      // Incoming call from external number - look up which sales rep owns this number
+      let targetDevice = null;
+      
+      try {
+        const base44 = createClientFromRequest(req);
+        // Check if the Twilio number belongs to a specific sales rep
+        const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ twilio_phone_number: to });
+        if (members.length > 0) {
+          const member = members[0];
+          targetDevice = `sales_rep_${member.id.replace(/-/g, '_')}`;
+        } else {
+          // Check against the main calling number
+          const mainNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+          if (to === mainNumber) {
+            // Route to all available sales reps (or just use default)
+            const allMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true }, null, 1);
+            if (allMembers.length > 0) {
+              targetDevice = `sales_rep_${allMembers[0].id.replace(/-/g, '_')}`;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to look up sales member for incoming call:', err);
+      }
+      
+      if (targetDevice) {
+        twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${from}" timeout="30">
-    <Client>${to}</Client>
+    <Client>${targetDevice}</Client>
   </Dial>
 </Response>`;
+      } else {
+        twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>No one is available to take your call. Please try again later.</Say>
+</Response>`;
+      }
     } else if (from && from.startsWith('sales_rep_')) {
       // Call from device to external number
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
