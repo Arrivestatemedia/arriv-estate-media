@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
     const voiceGrant = new VoiceGrant({
       outgoingApplicationSid: twimlAppSid,
-      incomingAllow: false
+      incomingAllow: true
     });
     token.addGrant(voiceGrant);
 

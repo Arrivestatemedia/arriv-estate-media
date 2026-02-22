@@ -45,13 +45,30 @@ export default function IphoneDialer({ salesMemberId }) {
     const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs());
     const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations());
 
+    // Keyboard support for dialing
+    const handleKeydown = (e) => {
+      if (activeTab !== TABS.KEYPAD || callState !== CALL_STATES.IDLE) return;
+      if (/^[0-9*#]$/.test(e.key)) {
+        e.preventDefault();
+        addKeypadDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        backspace();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        startCall();
+      }
+    };
+    window.addEventListener('keydown', handleKeydown);
+
     return () => {
       if (device) device.destroy();
       if (timerRef.current) clearInterval(timerRef.current);
       callLogsUnsub();
       convoUnsub();
+      window.removeEventListener('keydown', handleKeydown);
     };
-  }, [salesMemberId]);
+  }, [salesMemberId, activeTab, callState]);
 
   useEffect(() => {
     if (selectedConvo?.id) {
@@ -135,9 +152,9 @@ export default function IphoneDialer({ salesMemberId }) {
     if (timerRef.current) clearInterval(timerRef.current);
     const duration = callStartRef.current ? Math.floor((Date.now() - callStartRef.current) / 1000) : 0;
     setCallDuration(duration);
+    setMuted(false);
     setCallState(CALL_STATES.ENDED);
     callRef.current = null;
-    setCurrentCall(null);
   };
 
   const startCall = async (phoneNumber = null) => {
@@ -398,7 +415,7 @@ export default function IphoneDialer({ salesMemberId }) {
         )}
 
         {callState === CALL_STATES.ENDED && (
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-4 bg-white">
             <div className="flex items-center gap-2 mb-4">
               <PhoneOff className="w-4 h-4" style={{ color: '#B8956A' }} />
               <span className="font-medium" style={{ color: '#1A1A1A' }}>
@@ -435,15 +452,24 @@ export default function IphoneDialer({ salesMemberId }) {
               />
             </div>
 
-            <Button
-              onClick={logCall}
-              disabled={!contactName.trim()}
-              className="w-full gap-2"
-              style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-            >
-              <Check className="w-4 h-4" />
-              Log Call & Sync to HubSpot
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setCallState(CALL_STATES.IDLE)}
+                variant="outline"
+                className="flex-1"
+              >
+                Skip
+              </Button>
+              <Button
+                onClick={logCall}
+                disabled={!contactName.trim()}
+                className="flex-1 gap-2"
+                style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+              >
+                <Check className="w-4 h-4" />
+                Log Call
+              </Button>
+            </div>
           </div>
         )}
 
