@@ -44,11 +44,11 @@ export default function TwilioDialer({ salesMemberId }) {
 
   const initDevice = async () => {
     try {
-      // Dynamically load Twilio client SDK
-      if (!window.Twilio) {
+      // Dynamically load Twilio Voice SDK v2
+      if (!window.Twilio?.Device) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = 'https://sdk.twilio.com/js/client/v1.14/twilio.js';
+          script.src = 'https://sdk.twilio.com/js/voice/2.x/twilio.min.js';
           script.onload = resolve;
           script.onerror = reject;
           document.head.appendChild(script);
@@ -60,19 +60,17 @@ export default function TwilioDialer({ salesMemberId }) {
 
       const twilioDevice = new window.Twilio.Device(token, {
         codecPreferences: ['opus', 'pcmu'],
-        fakeLocalDTMF: true,
-        enableRingingState: true
+        enableRingingState: true,
+        logLevel: 1
       });
 
-      twilioDevice.on('ready', () => setDeviceReady(true));
+      twilioDevice.on('registered', () => setDeviceReady(true));
       twilioDevice.on('error', (err) => {
-        setError(err.message);
+        setError(err.message || JSON.stringify(err));
         setCallState(CALL_STATES.IDLE);
       });
-      twilioDevice.on('disconnect', () => {
-        handleCallEnded();
-      });
 
+      await twilioDevice.register();
       setDevice(twilioDevice);
     } catch (err) {
       setError('Failed to initialize calling: ' + err.message);
