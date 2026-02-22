@@ -320,13 +320,13 @@ export default function IphoneDialer({ salesMemberId }) {
   };
 
   // Incoming call modal
-  if (callState === CALL_STATES.INCOMING) {
+  if (callState === CALL_STATES.INCOMING && incomingCall) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
           <Phone className="w-12 h-12 mx-auto mb-4 animate-pulse" style={{ color: '#22c55e' }} />
           <p className="text-lg font-semibold mb-2">Incoming Call</p>
-          <p className="text-2xl font-bold mb-8" style={{ color: '#B8956A' }}>{incomingFrom}</p>
+          <p className="text-2xl font-bold mb-8" style={{ color: '#B8956A' }}>{incomingFrom || 'Unknown'}</p>
           <div className="flex gap-3">
             <Button onClick={rejectCall} variant="destructive" className="flex-1 h-12 text-base">
               <PhoneOff className="w-5 h-5 mr-2" /> Decline
