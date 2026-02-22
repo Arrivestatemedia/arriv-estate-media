@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { phone, message, recipientType, jobId } = body;
+    const { phone, message, recipientType, jobId, salesMemberId } = body;
 
     if (!phone || !message) {
       return Response.json({ error: 'Phone and message are required' }, { status: 400 });
@@ -12,7 +12,16 @@ Deno.serve(async (req) => {
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+    let fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+
+    // Use sales rep's assigned number if provided
+    if (salesMemberId) {
+      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+      const member = members[0];
+      if (member && member.twilio_phone_number) {
+        fromPhone = member.twilio_phone_number;
+      }
+    }
 
     // Format phone number with country code if not already present
     const formattedPhone = phone.startsWith('+') ? phone : `+1${phone}`;
