@@ -244,6 +244,16 @@ export default function TwilioDialer({ salesMemberId }) {
     }
   };
 
+  const resetForm = () => {
+    setToNumber('');
+    setContactName('');
+    setContactEmail('');
+    setCompanyName('');
+    setCallNotes('');
+    setCallDuration(0);
+    setCallState(CALL_STATES.IDLE);
+  };
+
   const formatDuration = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
