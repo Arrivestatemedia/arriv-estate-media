@@ -3,10 +3,19 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const body = await req.text();
-    const params = new URLSearchParams(body);
     
-    const to = params.get('To');
-    const from = params.get('From');
+    let to, from;
+    
+    // Try parsing as JSON first, then fall back to URLSearchParams
+    try {
+      const json = JSON.parse(body);
+      to = json.To;
+      from = json.From;
+    } catch {
+      const params = new URLSearchParams(body);
+      to = params.get('To');
+      from = params.get('From');
+    }
     
     console.log('TwiML Handler received:', { to, from, bodyKeys: Array.from(params.keys()) });
     
