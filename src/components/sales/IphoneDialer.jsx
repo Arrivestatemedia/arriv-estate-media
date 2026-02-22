@@ -123,26 +123,10 @@ export default function IphoneDialer({ salesMemberId }) {
     setMessages(data);
   };
 
-  const handleCallEnded = async () => {
+  const handleCallEnded = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     const duration = callStartRef.current ? Math.floor((Date.now() - callStartRef.current) / 1000) : 0;
     setCallDuration(duration);
-    
-    // Auto-log outbound calls
-    if (currentCall && !currentCall.incoming && duration > 0) {
-      try {
-        await base44.functions.invoke('logCallActivity', {
-          salesMemberId,
-          toNumber: currentCall.number,
-          durationSeconds: duration,
-          notes: `Outbound call to ${currentCall.number}`
-        });
-        loadCallLogs();
-      } catch (err) {
-        console.error('Failed to log call:', err);
-      }
-    }
-    
     setCallState(CALL_STATES.ENDED);
     callRef.current = null;
   };
@@ -171,13 +155,6 @@ export default function IphoneDialer({ salesMemberId }) {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
         }, 1000);
       });
-      call.on('connect', () => {
-        setCallState(CALL_STATES.IN_CALL);
-        callStartRef.current = Date.now();
-        timerRef.current = setInterval(() => {
-          setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
-        }, 1000);
-      });
       call.on('disconnect', handleCallEnded);
       call.on('error', (err) => {
         setError(err.message);
@@ -196,14 +173,11 @@ export default function IphoneDialer({ salesMemberId }) {
       incomingCall.accept();
       callRef.current = incomingCall;
       setCurrentCall({ number: incomingFrom, startTime: Date.now(), incoming: true });
-      incomingCall.on('connect', () => {
-        setCallState(CALL_STATES.IN_CALL);
-        callStartRef.current = Date.now();
-        timerRef.current = setInterval(() => {
-          setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
-        }, 1000);
-      });
-      incomingCall.on('disconnect', handleCallEnded);
+      setCallState(CALL_STATES.IN_CALL);
+      callStartRef.current = Date.now();
+      timerRef.current = setInterval(() => {
+        setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+      }, 1000);
       setIncomingCall(null);
     }
   };
@@ -221,6 +195,21 @@ export default function IphoneDialer({ salesMemberId }) {
     if (callRef.current) {
       callRef.current.disconnect();
     }
+
+    if (currentCall && !currentCall.incoming && callDuration > 0) {
+      try {
+        await base44.functions.invoke('logCallActivity', {
+          salesMemberId,
+          toNumber: currentCall.number,
+          durationSeconds: callDuration,
+          notes: `Outbound call to ${currentCall.number}`
+        });
+        loadCallLogs();
+      } catch (err) {
+        console.error('Failed to log call:', err);
+      }
+    }
+
     setCurrentCall(null);
   };
 
