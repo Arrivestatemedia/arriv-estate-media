@@ -3,11 +3,20 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { conversationId, toNumber, body } = await req.json();
+    const { conversationId, toNumber, body, salesMemberId } = await req.json();
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const fromNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+    let fromNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+
+    // Use sales rep's assigned number if provided
+    if (salesMemberId) {
+      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+      const member = members[0];
+      if (member && member.twilio_phone_number) {
+        fromNumber = member.twilio_phone_number;
+      }
+    }
 
     const formData = new URLSearchParams({
       From: fromNumber,
