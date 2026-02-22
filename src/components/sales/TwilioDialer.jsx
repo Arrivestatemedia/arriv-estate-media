@@ -295,6 +295,7 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
     setCallDuration(0);
     setCallState(CALL_STATES.IDLE);
     setMessages([]);
+    if (onClose) onClose();
   };
 
   const sendMessage = async () => {
