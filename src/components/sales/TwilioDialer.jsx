@@ -81,6 +81,17 @@ export default function TwilioDialer({ salesMemberId }) {
         setError(twilioError?.message || twilioError?.description || 'Twilio error');
         setCallState(CALL_STATES.IDLE);
       });
+      twilioDevice.on('incoming', (call) => {
+        setIncomingCall(call);
+        setIncomingFrom(call.parameters?.From || 'Unknown');
+        setCallState(CALL_STATES.INCOMING);
+        call.on('disconnect', handleCallEnded);
+        call.on('cancel', () => {
+          setIncomingCall(null);
+          setIncomingFrom('');
+          setCallState(CALL_STATES.IDLE);
+        });
+      });
 
       await twilioDevice.register();
       setDevice(twilioDevice);
