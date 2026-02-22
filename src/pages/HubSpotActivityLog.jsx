@@ -69,6 +69,21 @@ export default function HubSpotActivityLog() {
     enabled: !!user,
   });
 
+  // Real-time subscription to ActivityLog
+  useEffect(() => {
+    if (!user) return;
+    
+    const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
+      if (event.type === 'create') {
+        // Check if activity is by current user (for sales) or show all (for admin)
+        if (user.type === 'sales' && event.data?.created_by !== user.email) return;
+        queryClient.invalidateQueries({ queryKey: ['activities'] });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, queryClient]);
+
   // Get upcoming activities (future dates)
   const upcomingActivities = activities
     .filter(a => new Date(a.activity_date) > new Date())
