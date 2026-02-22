@@ -95,15 +95,15 @@ Deno.serve(async (req) => {
   <Say>No one is available to take your call. Please try again later.</Say>
 </Response>`;
       }
-    } else if (from && from.startsWith('sales_rep_')) {
-      // Call from device to external number
-      console.log('Outbound call from device to:', to);
-      // Format number as E.164 if not already
-      let formattedNumber = to.trim();
-      if (!formattedNumber.startsWith('+1')) {
-        formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
-      }
-      twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    } else if (isOutboundFromDevice) {
+       // Call from device to external number (outbound)
+       console.log('Outbound call from device to:', to);
+       // Format number as E.164 if not already
+       let formattedNumber = to.trim();
+       if (!formattedNumber.startsWith('+1')) {
+         formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
+       }
+       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" timeout="30">
     <Number>${formattedNumber}</Number>
