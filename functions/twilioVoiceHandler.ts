@@ -97,10 +97,12 @@ Deno.serve(async (req) => {
     } else if (from && from.startsWith('sales_rep_')) {
       // Call from device to external number
       console.log('Outbound call from device to:', to);
+      // Format number as E.164 if not already
+      const formattedNumber = to.startsWith('+') ? to : '+1' + to.replace(/\D/g, '');
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" timeout="30">
-    <Number>${to}</Number>
+    <Number>${formattedNumber}</Number>
   </Dial>
 </Response>`;
     } else {
