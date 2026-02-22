@@ -100,6 +100,7 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
   });
 
   const initDevice = async () => {
+    if (!salesMemberId) return;
     try {
       await loadTwilioSdk();
 
