@@ -8,46 +8,44 @@ import SmsInbox from "@/components/sales/SmsInbox.jsx";
 
 export default function SalesDialer() {
   const salesMemberId = localStorage.getItem('sales_member_id');
-  const [dialerKey, setDialerKey] = useState(0);
+  const [dialNumber, setDialNumber] = useState("");
 
   if (!salesMemberId) {
     return <div className="text-center mt-20">Not authenticated</div>;
   }
 
-  const handleNumberPad = (number) => {
-    setDialerKey(prev => prev + 1);
+  const handleDial = (number) => {
+    setDialNumber(number);
   };
 
   return (
-    <div className="max-w-2xl mx-auto pb-20">
-      <Tabs defaultValue="recents" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 sticky top-0 z-40 bg-white border-b">
-          <TabsTrigger value="recents" className="flex items-center gap-1">
+    <div className="h-screen flex flex-col bg-white">
+      <Tabs defaultValue="recents" className="w-full flex flex-col flex-1">
+        <TabsList className="grid w-full grid-cols-3 sticky top-0 z-40 bg-white border-b rounded-none">
+          <TabsTrigger value="recents" className="flex items-center gap-1 rounded-none">
             <Phone className="w-4 h-4" />
-            <span className="hidden sm:inline">Recents</span>
+            <span>Recents</span>
           </TabsTrigger>
-          <TabsTrigger value="keypad" className="flex items-center gap-1">
+          <TabsTrigger value="keypad" className="flex items-center gap-1 rounded-none">
             <Grid3x3 className="w-4 h-4" />
-            <span className="hidden sm:inline">Keypad</span>
+            <span>Keypad</span>
           </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center gap-1">
+          <TabsTrigger value="messages" className="flex items-center gap-1 rounded-none">
             <MessageSquare className="w-4 h-4" />
-            <span className="hidden sm:inline">Messages</span>
+            <span>Messages</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="recents" className="mt-4">
-          <CallRecents salesMemberId={salesMemberId} onCallSelect={handleNumberPad} />
+        <TabsContent value="recents" className="flex-1 p-4 overflow-y-auto">
+          <CallRecents salesMemberId={salesMemberId} onCallClick={handleDial} />
         </TabsContent>
 
-        <TabsContent value="keypad" className="mt-4">
-          <div className="space-y-4">
-            <DialerKeypad onNumberPad={handleNumberPad} />
-            <TwilioDialer key={dialerKey} salesMemberId={salesMemberId} />
-          </div>
+        <TabsContent value="keypad" className="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
+          <DialerKeypad onDial={handleDial} />
+          {dialNumber && <TwilioDialer key={dialNumber} salesMemberId={salesMemberId} initialNumber={dialNumber} />}
         </TabsContent>
 
-        <TabsContent value="messages" className="mt-4">
+        <TabsContent value="messages" className="flex-1 p-4 overflow-y-auto">
           <SmsInbox salesMemberId={salesMemberId} />
         </TabsContent>
       </Tabs>
