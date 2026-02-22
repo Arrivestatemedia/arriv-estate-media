@@ -45,17 +45,33 @@ export default function TwilioDialer({ salesMemberId }) {
     };
   }, [salesMemberId]);
 
+  const loadTwilioSdk = () => new Promise((resolve, reject) => {
+    if (window.Twilio?.Device) { resolve(); return; }
+    const existing = document.getElementById('twilio-sdk-script');
+    if (existing) {
+      // Already loading, wait for it
+      existing.addEventListener('load', resolve);
+      existing.addEventListener('error', reject);
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'twilio-sdk-script';
+    script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
+    script.onload = resolve;
+    script.onerror = () => {
+      // Try alternate URL
+      const s2 = document.createElement('script');
+      s2.src = 'https://media.twiliocdn.com/sdk/js/voice/releases/2.10.0/twilio.min.js';
+      s2.onload = resolve;
+      s2.onerror = () => reject(new Error('Unable to load Twilio SDK. This may be blocked by a browser extension or firewall. Try disabling ad blockers or use a different network.'));
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(script);
+  });
+
   const initDevice = async () => {
     try {
-      // Wait for Twilio SDK to be available (loaded globally via layout)
-      let attempts = 0;
-      while (!window.Twilio?.Device && attempts < 20) {
-        await new Promise(r => setTimeout(r, 300));
-        attempts++;
-      }
-      if (!window.Twilio?.Device) {
-        throw new Error('Twilio SDK failed to load. Please refresh the page and try again.');
-      }
+      await loadTwilioSdk();
 
       const res = await base44.functions.invoke('generateTwilioToken', { salesMemberId });
       const { token } = res.data;
