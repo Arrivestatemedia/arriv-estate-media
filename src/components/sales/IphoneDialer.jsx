@@ -188,26 +188,36 @@ export default function IphoneDialer({ salesMemberId }) {
     setCallState(CALL_STATES.CONNECTING);
 
     try {
+      console.log('Initiating call to:', formattedPhone);
       const call = await device.connect({ params: { To: formattedPhone } });
       callRef.current = call;
       setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false });
 
-      call.on('ringing', () => setCallState(CALL_STATES.RINGING));
+      call.on('ringing', () => {
+        console.log('Call ringing');
+        setCallState(CALL_STATES.RINGING);
+      });
       call.on('accept', () => {
+        console.log('Call accepted');
         setCallState(CALL_STATES.IN_CALL);
         callStartRef.current = Date.now();
         timerRef.current = setInterval(() => {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
         }, 1000);
       });
-      call.on('disconnect', handleCallEnded);
+      call.on('disconnect', () => {
+        console.log('Call disconnected');
+        handleCallEnded();
+      });
       call.on('error', (err) => {
+        console.error('Call error:', err);
         setError(err.message);
         setCallState(CALL_STATES.IDLE);
       });
 
       if (phoneNumber) setKeypadInput('');
     } catch (err) {
+      console.error('Call initiation failed:', err);
       setError('Call failed: ' + err.message);
       setCallState(CALL_STATES.IDLE);
     }
@@ -215,6 +225,7 @@ export default function IphoneDialer({ salesMemberId }) {
 
   const acceptCall = () => {
     if (incomingCall) {
+      console.log('Accepting incoming call from:', incomingFrom);
       incomingCall.accept();
       callRef.current = incomingCall;
       setCurrentCall({ number: incomingFrom, startTime: Date.now(), incoming: true });
@@ -229,6 +240,7 @@ export default function IphoneDialer({ salesMemberId }) {
 
   const rejectCall = () => {
     if (incomingCall) {
+      console.log('Rejecting incoming call from:', incomingFrom);
       incomingCall.reject();
       setIncomingCall(null);
       setIncomingFrom('');
