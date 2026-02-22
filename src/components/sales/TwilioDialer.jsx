@@ -342,7 +342,7 @@ export default function TwilioDialer({ salesMemberId, initialNumber }) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-h-screen flex flex-col">
       {error && (
         <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
@@ -350,9 +350,9 @@ export default function TwilioDialer({ salesMemberId, initialNumber }) {
       )}
 
       {callState === CALL_STATES.INCOMING && (
-        <div className="p-4 rounded-lg border-2 flex items-center justify-between gap-4 animate-pulse" style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)' }}>
+        <div className="p-4 rounded-lg border-2 flex items-center justify-between gap-4 animate-pulse fixed top-20 left-4 right-4 z-50" style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)' }}>
           <div className="flex items-center gap-3">
-            <Phone className="w-5 h-5 text-green-600" />
+            <Phone className="w-5 h-5 text-green-600 animate-pulse" />
             <div>
               <p className="font-semibold text-green-700">Incoming Call</p>
               <p className="text-sm text-gray-600">{incomingFrom}</p>
