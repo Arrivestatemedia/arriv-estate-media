@@ -320,9 +320,20 @@ export default function PhoneDialer({ salesMemberId }) {
             <div className="space-y-4">
               {/* Display */}
               <div className="text-center">
-                <p className="text-4xl font-mono font-bold" style={{ color: '#1A1A1A' }}>
-                  {toNumber || ''}
-                </p>
+                <input
+                  type="text"
+                  value={toNumber}
+                  onChange={(e) => setToNumber(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const text = e.clipboardData.getData('text');
+                    setToNumber(text.replace(/\D/g, ''));
+                  }}
+                  className="w-full text-4xl font-mono font-bold text-center border-none outline-none"
+                  style={{ color: '#1A1A1A', backgroundColor: 'transparent' }}
+                  placeholder="0"
+                  disabled={!deviceReady}
+                />
                 <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.5)' }}>
                   {deviceReady ? 'Ready to call' : 'Initializing...'}
                 </p>
