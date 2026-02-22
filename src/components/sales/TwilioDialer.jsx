@@ -136,15 +136,6 @@ export default function TwilioDialer({ salesMemberId }) {
     setCallState(CALL_STATES.CONNECTING);
 
     try {
-      // Fetch the sales rep's Twilio phone number
-      let callerId = '';
-      try {
-        const res = await base44.functions.invoke('generateTwilioToken', { salesMemberId });
-        callerId = res.data.callerNumber || '';
-      } catch (err) {
-        console.error('Failed to get caller ID:', err);
-      }
-
       const params = {
         To: phoneToDial
       };
