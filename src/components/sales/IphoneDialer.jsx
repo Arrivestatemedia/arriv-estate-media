@@ -1,0 +1,502 @@
+import React, { useState, useEffect, useRef } from "react";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check } from "lucide-react";
+import { format } from "date-fns";
+
+const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
+const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
+
+export default function IphoneDialer({ salesMemberId }) {
+  const [device, setDevice] = useState(null);
+  const [deviceReady, setDeviceReady] = useState(false);
+  const [activeTab, setActiveTab] = useState(TABS.RECENTS);
+  const [callState, setCallState] = useState(CALL_STATES.IDLE);
+  const [keypadInput, setKeypadInput] = useState("");
+  const [callDuration, setCallDuration] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [incomingFrom, setIncomingFrom] = useState("");
+  const [currentCall, setCurrentCall] = useState(null);
+  const [callLogs, setCallLogs] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [selectedConvo, setSelectedConvo] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [replyText, setReplyText] = useState("");
+  const [error, setError] = useState("");
+
+  const callRef = useRef(null);
+  const timerRef = useRef(null);
+  const callStartRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (!salesMemberId) return;
+    loadCallLogs();
+    loadConversations();
+    initDevice();
+
+    const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs());
+    const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations());
+
+    return () => {
+      if (device) device.destroy();
+      if (timerRef.current) clearInterval(timerRef.current);
+      callLogsUnsub();
+      convoUnsub();
+    };
+  }, [salesMemberId]);
+
+  useEffect(() => {
+    if (selectedConvo?.id) {
+      loadMessages(selectedConvo.id);
+      base44.entities.SmsConversation.update(selectedConvo.id, { unread_count: 0 });
+    }
+  }, [selectedConvo?.id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const loadTwilioSdk = () => new Promise((resolve, reject) => {
+    if (window.Twilio?.Device) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('Unable to load Twilio SDK'));
+    document.head.appendChild(script);
+  });
+
+  const initDevice = async () => {
+    try {
+      await loadTwilioSdk();
+      const res = await base44.functions.invoke('generateTwilioToken', { salesMemberId });
+      const { token } = res.data;
+
+      if (!token) {
+        setError('Failed to get access token');
+        return;
+      }
+
+      const { Device } = window.Twilio;
+      const twilioDevice = new Device(token, { codecPreferences: ['opus', 'pcmu'], enableRingingState: true });
+
+      twilioDevice.on('registered', () => setDeviceReady(true));
+      twilioDevice.on('error', (err) => {
+        setError(err?.message || 'Twilio error');
+        setCallState(CALL_STATES.IDLE);
+      });
+
+      twilioDevice.on('incoming', (call) => {
+        setIncomingCall(call);
+        setIncomingFrom(call.parameters?.From || 'Unknown');
+        setCallState(CALL_STATES.INCOMING);
+        call.on('disconnect', handleCallEnded);
+        call.on('cancel', () => {
+          setIncomingCall(null);
+          setIncomingFrom('');
+          setCallState(CALL_STATES.IDLE);
+        });
+      });
+
+      await twilioDevice.register();
+      setDevice(twilioDevice);
+    } catch (err) {
+      setError('Failed to initialize: ' + err?.message);
+    }
+  };
+
+  const loadCallLogs = async () => {
+    const logs = await base44.entities.ActivityLog.filter({ activity_type: 'call' }, '-activity_date', 50);
+    setCallLogs(logs.filter(l => l.contact_name));
+  };
+
+  const loadConversations = async () => {
+    const data = await base44.entities.SmsConversation.list('-last_message_at');
+    setConversations(data);
+  };
+
+  const loadMessages = async (convoId) => {
+    const data = await base44.entities.SmsMessage.filter({ conversation_id: convoId }, 'created_date');
+    setMessages(data);
+  };
+
+  const handleCallEnded = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const duration = callStartRef.current ? Math.floor((Date.now() - callStartRef.current) / 1000) : 0;
+    setCallDuration(duration);
+    setCallState(CALL_STATES.ENDED);
+    callRef.current = null;
+  };
+
+  const startCall = async (phoneNumber = null) => {
+    const phoneToDial = (phoneNumber || keypadInput).trim();
+    if (!phoneToDial) {
+      setError('Please enter a phone number');
+      return;
+    }
+
+    const formattedPhone = !phoneToDial.startsWith('+') ? '+1' + phoneToDial.replace(/\D/g, '') : phoneToDial;
+    setError('');
+    setCallState(CALL_STATES.CONNECTING);
+
+    try {
+      const call = await device.connect({ params: { To: formattedPhone } });
+      callRef.current = call;
+      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false });
+
+      call.on('ringing', () => setCallState(CALL_STATES.RINGING));
+      call.on('accept', () => {
+        setCallState(CALL_STATES.IN_CALL);
+        callStartRef.current = Date.now();
+        timerRef.current = setInterval(() => {
+          setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+        }, 1000);
+      });
+      call.on('disconnect', handleCallEnded);
+      call.on('error', (err) => {
+        setError(err.message);
+        setCallState(CALL_STATES.IDLE);
+      });
+
+      if (phoneNumber) setKeypadInput('');
+    } catch (err) {
+      setError('Call failed: ' + err.message);
+      setCallState(CALL_STATES.IDLE);
+    }
+  };
+
+  const acceptCall = () => {
+    if (incomingCall) {
+      incomingCall.accept();
+      callRef.current = incomingCall;
+      setCurrentCall({ number: incomingFrom, startTime: Date.now(), incoming: true });
+      setCallState(CALL_STATES.IN_CALL);
+      callStartRef.current = Date.now();
+      timerRef.current = setInterval(() => {
+        setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+      }, 1000);
+      setIncomingCall(null);
+    }
+  };
+
+  const rejectCall = () => {
+    if (incomingCall) {
+      incomingCall.reject();
+      setIncomingCall(null);
+      setIncomingFrom('');
+      setCallState(CALL_STATES.IDLE);
+    }
+  };
+
+  const hangUp = async () => {
+    if (callRef.current) {
+      callRef.current.disconnect();
+    }
+
+    if (currentCall && !currentCall.incoming && callDuration > 0) {
+      try {
+        await base44.functions.invoke('logCallActivity', {
+          salesMemberId,
+          toNumber: currentCall.number,
+          durationSeconds: callDuration,
+          notes: `Outbound call to ${currentCall.number}`
+        });
+        loadCallLogs();
+      } catch (err) {
+        console.error('Failed to log call:', err);
+      }
+    }
+
+    setCurrentCall(null);
+  };
+
+  const toggleMute = () => {
+    if (callRef.current) {
+      callRef.current.mute(!muted);
+      setMuted(!muted);
+    }
+  };
+
+  const addKeypadDigit = (digit) => {
+    setKeypadInput(prev => prev + digit);
+  };
+
+  const backspace = () => {
+    setKeypadInput(prev => prev.slice(0, -1));
+  };
+
+  const sendReply = async () => {
+    if (!replyText.trim() || !selectedConvo) return;
+    try {
+      await base44.functions.invoke('sendSms', {
+        conversationId: selectedConvo.id,
+        toNumber: selectedConvo.from_number,
+        body: replyText.trim(),
+        salesMemberId
+      });
+      setReplyText("");
+      await loadMessages(selectedConvo.id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const formatDuration = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return h > 0 ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}` : `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    return isToday ? d.toLocaleString([], { hour: '2-digit', minute: '2-digit' }) : format(d, 'MMM d');
+  };
+
+  // Incoming call modal
+  if (callState === CALL_STATES.INCOMING) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+          <Phone className="w-12 h-12 mx-auto mb-4 animate-pulse" style={{ color: '#22c55e' }} />
+          <p className="text-lg font-semibold mb-2">Incoming Call</p>
+          <p className="text-2xl font-bold mb-8" style={{ color: '#B8956A' }}>{incomingFrom}</p>
+          <div className="flex gap-3">
+            <Button onClick={rejectCall} variant="destructive" className="flex-1 h-12 text-base">
+              <PhoneOff className="w-5 h-5 mr-2" /> Decline
+            </Button>
+            <Button onClick={acceptCall} className="flex-1 h-12 text-base bg-green-600 hover:bg-green-700">
+              <Phone className="w-5 h-5 mr-2" /> Accept
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // In-call UI
+  if (callState === CALL_STATES.IN_CALL) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center p-4 z-50 text-white">
+        <p className="text-lg opacity-70 mb-2">{currentCall?.incoming ? 'On Call' : 'Calling'}</p>
+        <p className="text-4xl font-bold mb-4">{currentCall?.number}</p>
+        <p className="text-3xl font-mono mb-8">{formatDuration(callDuration)}</p>
+        <div className="flex gap-4 mb-6">
+          <Button onClick={toggleMute} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
+            {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+          </Button>
+          <Button onClick={hangUp} className="bg-red-600 hover:bg-red-700 h-14 w-14 rounded-full">
+            <PhoneOff className="w-6 h-6" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular UI
+  return (
+    <div className="h-full flex flex-col bg-white rounded-lg">
+      {error && (
+        <div className="p-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Tab Navigation */}
+      <div className="flex border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+        {[
+          { tab: TABS.RECENTS, icon: Clock, label: 'Recents' },
+          { tab: TABS.KEYPAD, icon: Phone, label: 'Keypad' },
+          { tab: TABS.MESSAGES, icon: MessageSquare, label: 'Messages' }
+        ].map(({ tab, icon: Icon, label }) => (
+          <button
+            key={tab}
+            onClick={() => {
+              setActiveTab(tab);
+              setSelectedConvo(null);
+            }}
+            className={`flex-1 flex flex-col items-center gap-1 py-3 transition ${
+              activeTab === tab ? 'border-b-2' : ''
+            }`}
+            style={{
+              borderBottomColor: activeTab === tab ? '#B8956A' : 'transparent',
+              color: activeTab === tab ? '#B8956A' : 'rgba(26,26,26,0.5)'
+            }}
+          >
+            <Icon className="w-5 h-5" />
+            <span className="text-xs font-medium">{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === TABS.RECENTS && (
+          <div className="space-y-0">
+            {callLogs.length === 0 ? (
+              <div className="text-center py-10" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                <Phone className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">No recent calls</p>
+              </div>
+            ) : (
+              callLogs.map((log) => (
+                <button
+                  key={log.id}
+                  onClick={() => startCall(log.contact_email?.match(/\d+/)?.[0] || log.contact_name)}
+                  className="w-full text-left p-4 border-b hover:bg-gray-50 transition flex items-center justify-between"
+                  style={{ borderColor: 'rgba(184,149,106,0.1)' }}
+                >
+                  <div className="flex-1">
+                    <p className="font-medium" style={{ color: '#1A1A1A' }}>{log.contact_name}</p>
+                    <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{log.company_name}</p>
+                    {log.duration_minutes > 0 && (
+                      <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.4)' }}>{log.duration_minutes} min</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>{formatTime(log.activity_date)}</p>
+                    <Phone className="w-4 h-4 mt-1" style={{ color: '#B8956A' }} />
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === TABS.KEYPAD && (
+          <div className="p-4 space-y-4">
+            <Input
+              value={keypadInput}
+              placeholder="Enter number"
+              readOnly
+              className="text-center text-2xl font-mono tracking-widest"
+            />
+            <div className="grid grid-cols-3 gap-3">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((digit) => (
+                <Button
+                  key={digit}
+                  onClick={() => addKeypadDigit(digit)}
+                  className="h-14 text-lg font-semibold rounded-full"
+                  style={{ backgroundColor: '#f0f0f0', color: '#1A1A1A' }}
+                >
+                  {digit}
+                </Button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={backspace} variant="outline" className="flex-1">
+                ← Backspace
+              </Button>
+              <Button onClick={() => startCall()} className="flex-1 bg-green-600 hover:bg-green-700 gap-2">
+                <Phone className="w-4 h-4" /> Call
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === TABS.MESSAGES && (
+          <>
+            {!selectedConvo ? (
+              <div className="space-y-0">
+                {conversations.length === 0 ? (
+                  <div className="text-center py-10" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">No messages</p>
+                  </div>
+                ) : (
+                  conversations.map((convo) => (
+                    <button
+                      key={convo.id}
+                      onClick={() => setSelectedConvo(convo)}
+                      className="w-full text-left p-4 border-b hover:bg-gray-50 transition"
+                      style={{ borderColor: 'rgba(184,149,106,0.1)' }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium" style={{ color: '#1A1A1A' }}>
+                              {convo.contact_name || convo.from_number}
+                            </p>
+                            {convo.unread_count > 0 && (
+                              <span className="text-xs font-bold text-white rounded-full px-1.5 py-0.5" style={{ backgroundColor: '#B8956A' }}>
+                                {convo.unread_count}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm truncate mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                            {convo.last_message}
+                          </p>
+                        </div>
+                        <p className="text-xs ml-3 shrink-0" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                          {formatTime(convo.last_message_at)}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col h-full">
+                {/* Header */}
+                <div className="flex items-center gap-3 p-4 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedConvo(null)}>
+                    <Phone className="w-5 h-5" />
+                  </Button>
+                  <div className="flex-1">
+                    <p className="font-semibold">{selectedConvo.contact_name || selectedConvo.from_number}</p>
+                    <p className="text-xs opacity-60">{selectedConvo.from_number}</p>
+                  </div>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                  {messages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className="max-w-[75%] rounded-2xl px-4 py-2 text-sm"
+                        style={
+                          msg.direction === 'outbound'
+                            ? { backgroundColor: '#B8956A', color: '#fff' }
+                            : { backgroundColor: '#f3f4f6', color: '#1A1A1A' }
+                        }
+                      >
+                        <p>{msg.body}</p>
+                        <p className="text-xs mt-1 opacity-60">{formatTime(msg.created_date)}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Reply */}
+                <div className="flex gap-2 p-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                  <Input
+                    placeholder="Message..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendReply()}
+                  />
+                  <Button onClick={sendReply} disabled={!replyText.trim()} size="icon" style={{ backgroundColor: '#B8956A' }}>
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {!deviceReady && (
+        <p className="text-xs text-center p-3 bg-amber-50" style={{ color: 'rgba(26,26,26,0.5)' }}>
+          Setting up calling...
+        </p>
+      )}
+    </div>
+  );
+}
