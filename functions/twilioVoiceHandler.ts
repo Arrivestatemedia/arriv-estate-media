@@ -25,10 +25,9 @@ Deno.serve(async (req) => {
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerId}" timeout="30" record="true">
+  <Dial callerId="${callerId}">
     <Number>${to}</Number>
   </Dial>
-  <Say>The call could not be completed.</Say>
 </Response>`;
 
     return new Response(twiml, {
