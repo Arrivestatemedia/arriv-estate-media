@@ -169,8 +169,13 @@ export default function IphoneDialer({ salesMemberId }) {
   };
 
   const loadConversations = async () => {
-    const data = await base44.entities.SmsConversation.list('-last_message_at');
-    setConversations(data);
+    try {
+      const data = await base44.entities.SmsConversation.list('-last_message_at');
+      setConversations(data);
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+      setConversations([]);
+    }
   };
 
   const loadMessages = async (convoId) => {
