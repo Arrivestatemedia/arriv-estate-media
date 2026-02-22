@@ -24,9 +24,13 @@ export default function AdminSalesSignup() {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
-  const { data: salesMembers = [] } = useQuery({
+  const { data: salesMembers = [], error: fetchError } = useQuery({
     queryKey: ['salesTeam'],
-    queryFn: () => base44.asServiceRole.entities.SalesTeamMember.list('-created_date'),
+    queryFn: async () => {
+      const result = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date');
+      console.log('Sales members fetched:', result);
+      return result;
+    },
     initialData: [],
   });
 
@@ -74,6 +78,13 @@ export default function AdminSalesSignup() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
+        {fetchError && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <p className="text-red-700">Error loading sales team: {fetchError.message}</p>
+            </CardContent>
+          </Card>
+        )}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Sales Team Management</h1>
