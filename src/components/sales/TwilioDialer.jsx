@@ -40,13 +40,17 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
   const callStartRef = useRef(null);
 
   useEffect(() => {
-    if (!salesMemberId) return;
-    initDevice();
+    if (externalDevice) {
+      setDevice(externalDevice);
+      setDeviceReady(true);
+    } else if (salesMemberId) {
+      initDevice();
+    }
     return () => {
-      if (device) device.destroy();
+      if (!externalDevice && device) device.destroy();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [salesMemberId]);
+  }, [salesMemberId, externalDevice]);
 
   useEffect(() => {
     if (!toNumber) return;
