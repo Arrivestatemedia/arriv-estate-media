@@ -123,9 +123,14 @@ export default function TwilioDialer({ salesMemberId }) {
   };
 
   const startCall = async () => {
-    if (!toNumber.trim()) {
+    let phoneToDial = toNumber.trim();
+    if (!phoneToDial) {
       setError('Please enter a phone number');
       return;
+    }
+    // Format to E.164 if needed
+    if (!phoneToDial.startsWith('+')) {
+      phoneToDial = '+1' + phoneToDial.replace(/\D/g, '');
     }
     setError('');
     setCallState(CALL_STATES.CONNECTING);
