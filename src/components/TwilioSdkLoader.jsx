@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 
 export default function TwilioSdkLoader() {
   useEffect(() => {
@@ -7,7 +6,7 @@ export default function TwilioSdkLoader() {
     if (document.getElementById('twilio-voice-sdk')) return;
 
     // Use backend proxy to serve SDK from same domain (avoids CSP issues)
-    const proxyUrl = base44.functions.getUrl('twilioSdkProxy');
+    const proxyUrl = `${window.location.origin}/functions/twilioSdkProxy`;
 
     const script = document.createElement('script');
     script.id = 'twilio-voice-sdk';
