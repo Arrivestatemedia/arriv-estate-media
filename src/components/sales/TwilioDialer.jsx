@@ -403,22 +403,31 @@ export default function TwilioDialer({ salesMemberId }) {
               </span>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Call Notes</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Call Notes (Optional)</label>
               <Textarea
                 placeholder="What was discussed? Next steps?"
                 value={callNotes}
                 onChange={(e) => setCallNotes(e.target.value)}
-                rows={4}
+                rows={3}
               />
             </div>
-            <Button
-              onClick={logCall}
-              className="w-full gap-2"
-              style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-            >
-              <Check className="w-4 h-4" />
-              Log Call & Sync to HubSpot
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={resetForm}
+                variant="outline"
+                className="flex-1"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={logCall}
+                className="flex-1 gap-2"
+                style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+              >
+                <Check className="w-4 h-4" />
+                Save & Log
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
