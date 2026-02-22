@@ -21,10 +21,10 @@ Deno.serve(async (req) => {
       });
     }
     
-    let callerId = Deno.env.get('TWILIO_PHONE_NUMBER');
-    
+    let callerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
+
     if (!callerId) {
-      console.error('TWILIO_PHONE_NUMBER not set in secrets');
+      console.error('TWILIO_CALLING_PHONE_NUMBER not set in secrets');
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>Configuration error. Please contact support.</Say>
