@@ -141,9 +141,13 @@ export default function TwilioDialer({ salesMemberId }) {
       }
 
       const params = {
-        To: toNumber,
-        callerId
+        To: toNumber
       };
+
+      // Add callerId to params if available
+      if (callerId) {
+        params.callerId = callerId;
+      }
 
       const call = await device.connect({ params });
       callRef.current = call;
