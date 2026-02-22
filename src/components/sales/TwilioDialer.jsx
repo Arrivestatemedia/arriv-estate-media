@@ -153,6 +153,28 @@ export default function TwilioDialer({ salesMemberId }) {
     }
   };
 
+  const acceptCall = () => {
+    if (incomingCall) {
+      incomingCall.accept();
+      callRef.current = incomingCall;
+      setCallState(CALL_STATES.IN_CALL);
+      callStartRef.current = Date.now();
+      timerRef.current = setInterval(() => {
+        setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+      }, 1000);
+      setIncomingCall(null);
+    }
+  };
+
+  const rejectCall = () => {
+    if (incomingCall) {
+      incomingCall.reject();
+      setIncomingCall(null);
+      setIncomingFrom('');
+      setCallState(CALL_STATES.IDLE);
+    }
+  };
+
   const toggleMute = () => {
     if (callRef.current) {
       callRef.current.mute(!muted);
