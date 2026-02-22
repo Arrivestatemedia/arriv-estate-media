@@ -318,12 +318,23 @@ export default function PhoneDialer({ salesMemberId }) {
         <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
           <CardContent className="pt-6 pb-6">
             <div className="space-y-4">
-              {/* Display */}
-              <div className="text-center">
-                <p className="text-4xl font-mono font-bold" style={{ color: '#1A1A1A' }}>
-                  {toNumber || ''}
-                </p>
-                <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.5)' }}>
+              {/* Display & Input */}
+              <div className="text-center space-y-2">
+                <input
+                  type="text"
+                  placeholder="Enter number or paste"
+                  value={toNumber}
+                  onChange={(e) => setToNumber(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const text = e.clipboardData?.getData('text') || '';
+                    setToNumber(text.replace(/\D/g, '') || text);
+                  }}
+                  disabled={!deviceReady}
+                  className="w-full text-center text-2xl font-mono font-bold p-2 rounded-lg border"
+                  style={{ borderColor: '#B8956A/20', color: '#1A1A1A' }}
+                />
+                <p className="text-xs" style={{ color: 'rgba(26, 26, 26, 0.5)' }}>
                   {deviceReady ? 'Ready to call' : 'Initializing...'}
                 </p>
               </div>
