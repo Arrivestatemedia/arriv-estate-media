@@ -111,6 +111,7 @@ import PageTransition from "@/components/layout/PageTransition";
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
       {currentPageName !== "SignIn" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && <GoogleMapsLoader />}
+      <TwilioSdkLoader />
       <style>{`
         :root {
           --color-cream: #FFFBF5;
