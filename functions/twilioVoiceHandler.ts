@@ -1,38 +1,12 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-
-// In-memory store for call context (not ideal for production, but works for this POC)
-const callContextMap = new Map();
-
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
     const body = await req.text();
     const params = new URLSearchParams(body);
     
     const to = params.get('To');
-    const callSid = params.get('CallSid');
     
-    // Try to get salesMemberId from the call context
-    let salesMemberId = params.get('salesMemberId');
-    if (!salesMemberId && callSid && callContextMap.has(callSid)) {
-      salesMemberId = callContextMap.get(callSid).salesMemberId;
-      // Clean up after 1 hour
-      setTimeout(() => callContextMap.delete(callSid), 3600000);
-    }
-    
-    let callerId = Deno.env.get('TWILIO_PHONE_NUMBER');
-    
-    // If this is from a sales rep, use their specific phone number
-    if (salesMemberId) {
-      try {
-        const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
-        if (members.length > 0 && members[0].twilio_phone_number) {
-          callerId = members[0].twilio_phone_number;
-        }
-      } catch (err) {
-        console.error('Failed to lookup sales member:', err);
-      }
-    }
+    // Get caller ID from custom param passed via Twilio
+    let callerId = params.get('callerId') || Deno.env.get('TWILIO_PHONE_NUMBER');
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
