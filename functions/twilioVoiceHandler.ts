@@ -60,20 +60,6 @@ Deno.serve(async (req) => {
     console.log('Call routing - isOutboundFromDevice:', isOutboundFromDevice, 'to:', to, 'from:', from, 'fromIdentity:', fromIdentity);
     
     if (isOutboundFromDevice) {
-       // Call from device to external number (outbound)
-       console.log('Outbound call from device to:', to);
-       // Format number as E.164 if not already
-       let formattedNumber = to.trim();
-       if (!formattedNumber.startsWith('+1')) {
-         formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
-       }
-       twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${callerId}" timeout="30">
-    <Number>${formattedNumber}</Number>
-  </Dial>
-</Response>`;
-    } else {
       // Incoming call from external number - route to ALL active sales reps
       let targetDevices = [];
       
@@ -105,11 +91,34 @@ Deno.serve(async (req) => {
       } else {
         console.warn('No active sales members found to route call');
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
-        <Response>
-        <Say>No one is available to take your call. Please try again later.</Say>
-        </Response>`;
-        }
-        }
+<Response>
+  <Say>No one is available to take your call. Please try again later.</Say>
+</Response>`;
+      }
+    } else if (isOutboundFromDevice) {
+       // Call from device to external number (outbound)
+       console.log('Outbound call from device to:', to);
+       // Format number as E.164 if not already
+       let formattedNumber = to.trim();
+       if (!formattedNumber.startsWith('+1')) {
+         formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
+       }
+       twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${callerId}" timeout="30">
+    <Number>${formattedNumber}</Number>
+  </Dial>
+</Response>`;
+    } else {
+      // Default outbound (shouldn't normally happen)
+      console.log('Default outbound call to:', to);
+      twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${callerId}">
+    <Number>${to}</Number>
+  </Dial>
+</Response>`;
+    }
 
     return new Response(twiml, {
       status: 200,
