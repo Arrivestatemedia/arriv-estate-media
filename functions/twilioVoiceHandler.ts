@@ -52,18 +52,28 @@ Deno.serve(async (req) => {
       }
     }
 
-    // For incoming calls to a rep's number, route back to their device
+    // Determine if this is an incoming call to the rep or an outbound call
     let twiml;
-    if (from && from.startsWith('sales_rep_')) {
-      const salesMemberId = from.replace('sales_rep_', '').replace(/_/g, '-');
+    const isIncomingToRep = !from || from.startsWith('+1') || /^\d+$/.test(from);
+    
+    if (isIncomingToRep && to && to.startsWith('sales_rep_')) {
+      // Incoming call to rep's number - route to device
+      twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${from}" timeout="30">
+    <Client>${to}</Client>
+  </Dial>
+</Response>`;
+    } else if (from && from.startsWith('sales_rep_')) {
+      // Call from device to external number
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" timeout="30">
-    <Client>${from}</Client>
+    <Number>${to}</Number>
   </Dial>
 </Response>`;
     } else {
-      // Outbound call - dial the number
+      // Default outbound
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}">

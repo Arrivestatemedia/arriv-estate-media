@@ -380,7 +380,7 @@ export default function IphoneDialer({ salesMemberId }) {
                     style={{ borderColor: 'rgba(184,149,106,0.1)' }}
                   >
                     <div className="flex-1">
-                      <p className="font-medium" style={{ color: '#1A1A1A' }}>{log.contact_name || 'Unknown'}</p>
+                      <p className="font-medium" style={{ color: '#1A1A1A' }}>{log.contact_name || phoneNumber || 'Unknown'}</p>
                       {log.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{log.company_name}</p>}
                       {log.duration_minutes > 0 && (
                         <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.4)' }}>{log.duration_minutes} min</p>
