@@ -101,7 +101,7 @@ export default function TwilioDialer({ salesMemberId }) {
         salesMemberId
       };
 
-      const call = await device.connect(params);
+      const call = await device.connect({ params });
       callRef.current = call;
 
       call.on('ringing', () => setCallState(CALL_STATES.RINGING));
