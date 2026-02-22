@@ -7,19 +7,13 @@ Deno.serve(async (req) => {
     
     const to = params.get('To');
     const from = params.get('From');
-    const callSid = params.get('CallSid');
     
-    console.log('TwiML Handler received:', { to, from, callSid, isIncoming: !to && from });
+    console.log('TwiML Handler received:', { to, from, bodyKeys: Array.from(params.keys()) }); // Token identity like "sales_rep_xxx"
     
-    // Incoming call: to is the app's phone number, from is the caller
-    if (!to || (to && !to.startsWith('+'))) {
-      const incomingCallerPhone = from;
-      console.log('Incoming call from:', incomingCallerPhone);
-      
-      // Just accept the call - Twilio will route it to the registered device
+    if (!to) {
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Accept />
+  <Say>No phone number provided.</Say>
 </Response>`;
       return new Response(twiml, {
         status: 200,
@@ -27,7 +21,6 @@ Deno.serve(async (req) => {
       });
     }
     
-    // Outgoing call: to is the destination number
     let callerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
 
     if (!callerId) {

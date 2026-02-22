@@ -80,15 +80,14 @@ import OrientationOnboardingFee from './pages/OrientationOnboardingFee';
 import OrientationSizes from './pages/OrientationSizes';
 import OrientationVideo from './pages/OrientationVideo';
 import PasswordSetup from './pages/PasswordSetup';
-import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicAccountSettings from './pages/PublicAccountSettings';
-import SalesDialer from './pages/SalesDialer';
 import SalesLogin from './pages/SalesLogin';
 import SignIn from './pages/SignIn';
 import SupraAccess from './pages/SupraAccess';
-import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
 import __Layout from './Layout.jsx';
 
 
@@ -126,15 +125,14 @@ export const PAGES = {
     "OrientationSizes": OrientationSizes,
     "OrientationVideo": OrientationVideo,
     "PasswordSetup": PasswordSetup,
-    "PrivacyPolicy": PrivacyPolicy,
     "PublicAccountSettings": PublicAccountSettings,
-    "SalesDialer": SalesDialer,
     "SalesLogin": SalesLogin,
     "SignIn": SignIn,
     "SupraAccess": SupraAccess,
-    "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
+    "PrivacyPolicy": PrivacyPolicy,
+    "Terms": Terms,
 }
 
 export const pagesConfig = {

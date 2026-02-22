@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, PhoneOff, Loader2, Check, MicOff, Mic, Send } from "lucide-react";
+import { Phone, PhoneOff, Loader2, Check, MicOff, Mic } from "lucide-react";
 
 const CALL_STATES = {
   IDLE: "idle",
@@ -16,11 +16,11 @@ const CALL_STATES = {
   LOGGING: "logging"
 };
 
-export default function TwilioDialer({ salesMemberId, initialNumber, onClose, device: externalDevice }) {
+export default function TwilioDialer({ salesMemberId }) {
   const [device, setDevice] = useState(null);
   const [deviceReady, setDeviceReady] = useState(false);
   const [callState, setCallState] = useState(CALL_STATES.IDLE);
-  const [toNumber, setToNumber] = useState(initialNumber || "");
+  const [toNumber, setToNumber] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -31,49 +31,19 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
   const [logged, setLogged] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [incomingFrom, setIncomingFrom] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [messageInput, setMessageInput] = useState("");
-  const [sendingMessage, setSendingMessage] = useState(false);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
   const callStartRef = useRef(null);
 
   useEffect(() => {
-    if (externalDevice) {
-      setDevice(externalDevice);
-      setDeviceReady(true);
-    } else if (salesMemberId) {
-      initDevice();
-    }
+    if (!salesMemberId) return;
+    initDevice();
     return () => {
-      if (!externalDevice && device) device.destroy();
+      if (device) device.destroy();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [salesMemberId, externalDevice]);
-
-  useEffect(() => {
-    if (!toNumber) return;
-    loadMessages();
-  }, [toNumber]);
-
-  const loadMessages = async () => {
-    try {
-      const conversations = await base44.entities.SmsConversation.filter(
-        { from_number: toNumber },
-        "-last_message_at"
-      );
-      if (conversations.length > 0) {
-        const msgs = await base44.entities.SmsMessage.filter(
-          { conversation_id: conversations[0].id },
-          "created_date"
-        );
-        setMessages(msgs);
-      }
-    } catch (err) {
-      console.error("Failed to load messages:", err);
-    }
-  };
+  }, [salesMemberId]);
 
   const loadTwilioSdk = () => new Promise((resolve, reject) => {
     if (window.Twilio?.Device) { resolve(); return; }
@@ -100,7 +70,6 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
   });
 
   const initDevice = async () => {
-    if (!salesMemberId) return;
     try {
       await loadTwilioSdk();
 
@@ -143,46 +112,12 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
     }
   };
 
-  const handleCallEnded = async () => {
+  const handleCallEnded = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     const duration = callStartRef.current
       ? Math.floor((Date.now() - callStartRef.current) / 1000)
       : 0;
     setCallDuration(duration);
-
-    // For incoming calls, auto-log with the caller's number
-    if (incomingFrom) {
-      try {
-        await base44.functions.invoke('logCallActivity', {
-          salesMemberId,
-          toNumber: incomingFrom,
-          contactName: 'Incoming Call',
-          contactEmail: '',
-          companyName: '',
-          durationSeconds: duration,
-          notes: `Inbound call from ${incomingFrom}`
-        });
-      } catch (err) {
-        console.error('Auto-log incoming call failed:', err);
-      }
-    }
-    // For outgoing calls, auto-log if contact info exists
-    else if (toNumber && (contactName || contactEmail)) {
-      try {
-        await base44.functions.invoke('logCallActivity', {
-          salesMemberId,
-          toNumber,
-          contactName: contactName || 'Unknown',
-          contactEmail: contactEmail || '',
-          companyName: companyName || '',
-          durationSeconds: duration,
-          notes: callNotes || `Outbound call to ${toNumber}`
-        });
-      } catch (err) {
-        console.error('Auto-log failed:', err);
-      }
-    }
-
     setCallState(CALL_STATES.ENDED);
     callRef.current = null;
   };
@@ -291,56 +226,6 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
     }
   };
 
-  const resetForm = () => {
-    setToNumber('');
-    setContactName('');
-    setContactEmail('');
-    setCompanyName('');
-    setCallNotes('');
-    setCallDuration(0);
-    setCallState(CALL_STATES.IDLE);
-    setMessages([]);
-    if (onClose) onClose();
-  };
-
-  const sendMessage = async () => {
-    if (!messageInput.trim() || !toNumber) return;
-    
-    setSendingMessage(true);
-    try {
-      // Get or create conversation
-      let conversations = await base44.entities.SmsConversation.filter({
-        from_number: toNumber
-      });
-      
-      let conversationId = conversations[0]?.id;
-      if (!conversationId) {
-        const conv = await base44.entities.SmsConversation.create({
-          from_number: toNumber,
-          last_message: messageInput,
-          last_message_at: new Date().toISOString(),
-          unread_count: 0
-        });
-        conversationId = conv.id;
-      }
-
-      // Send SMS
-      await base44.functions.invoke('sendSms', {
-        conversationId,
-        recipientNumber: toNumber,
-        messageBody: messageInput,
-        salesMemberId
-      });
-
-      setMessageInput('');
-      await loadMessages();
-    } catch (err) {
-      console.error('Failed to send message:', err);
-    } finally {
-      setSendingMessage(false);
-    }
-  };
-
   const formatDuration = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -348,7 +233,7 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
   };
 
   return (
-    <div className="space-y-5 max-h-screen flex flex-col">
+    <div className="space-y-5">
       {error && (
         <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
@@ -356,9 +241,9 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
       )}
 
       {callState === CALL_STATES.INCOMING && (
-        <div className="p-4 rounded-lg border-2 flex items-center justify-between gap-4 animate-pulse fixed top-20 left-4 right-4 z-50" style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)' }}>
+        <div className="p-4 rounded-lg border-2 flex items-center justify-between gap-4 animate-pulse" style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)' }}>
           <div className="flex items-center gap-3">
-            <Phone className="w-5 h-5 text-green-600 animate-pulse" />
+            <Phone className="w-5 h-5 text-green-600" />
             <div>
               <p className="font-semibold text-green-700">Incoming Call</p>
               <p className="text-sm text-gray-600">{incomingFrom}</p>
@@ -380,53 +265,6 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
           <Check className="w-4 h-4" style={{ color: '#B8956A' }} />
           <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>Call logged & synced to HubSpot!</span>
         </div>
-      )}
-
-      {/* Messages View */}
-      {(callState === CALL_STATES.IN_CALL || callState === CALL_STATES.ENDED || (toNumber && callState === CALL_STATES.IDLE)) && (
-        <Card className="flex flex-col flex-1">
-          <CardContent className="p-4 flex flex-col h-96">
-            <p className="text-sm font-semibold mb-3">Messages with {toNumber}</p>
-            <div className="flex-1 overflow-y-auto space-y-2 mb-3 bg-gray-50 rounded-lg p-3">
-              {messages.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center mt-4">No messages yet</p>
-              ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                        msg.direction === 'outbound'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-300 text-gray-900'
-                      }`}
-                    >
-                      {msg.body}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Type message..."
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                disabled={sendingMessage}
-              />
-              <Button
-                onClick={sendMessage}
-                disabled={sendingMessage || !messageInput.trim()}
-                className="gap-1"
-              >
-                {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* Contact Info */}
@@ -537,31 +375,22 @@ export default function TwilioDialer({ salesMemberId, initialNumber, onClose, de
               </span>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Call Notes (Optional)</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Call Notes</label>
               <Textarea
                 placeholder="What was discussed? Next steps?"
                 value={callNotes}
                 onChange={(e) => setCallNotes(e.target.value)}
-                rows={3}
+                rows={4}
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={resetForm}
-                variant="outline"
-                className="flex-1"
-              >
-                Close
-              </Button>
-              <Button
-                onClick={logCall}
-                className="flex-1 gap-2"
-                style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-              >
-                <Check className="w-4 h-4" />
-                Save & Log
-              </Button>
-            </div>
+            <Button
+              onClick={logCall}
+              className="w-full gap-2"
+              style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+            >
+              <Check className="w-4 h-4" />
+              Log Call & Sync to HubSpot
+            </Button>
           </CardContent>
         </Card>
       )}
