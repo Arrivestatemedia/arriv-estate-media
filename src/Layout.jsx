@@ -17,6 +17,22 @@ import PageTransition from "@/components/layout/PageTransition";
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
+    // Check for sales team member first
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    const salesMemberName = localStorage.getItem('sales_member_name');
+    const salesMemberEmail = localStorage.getItem('sales_member_email');
+
+    if (salesMemberId && salesMemberName) {
+      setUser({
+        id: salesMemberId,
+        email: salesMemberEmail,
+        full_name: salesMemberName,
+        user_type: 'sales',
+        role: 'user'
+      });
+      return;
+    }
+
     const userEmail = localStorage.getItem('user_email');
     const userName = localStorage.getItem('user_name');
     const userType = localStorage.getItem('user_type');
