@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
-import PhoneDialer from "@/components/sales/PhoneDialer";
+import TwilioDialer from "@/components/sales/TwilioDialer";
 import SmsInbox from "@/components/sales/SmsInbox";
 
 export default function HubSpotActivityLog() {
@@ -68,21 +68,6 @@ export default function HubSpotActivityLog() {
     initialData: [],
     enabled: !!user,
   });
-
-  // Real-time subscription to ActivityLog
-  useEffect(() => {
-    if (!user) return;
-    
-    const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
-      if (event.type === 'create') {
-        // Check if activity is by current user (for sales) or show all (for admin)
-        if (user.type === 'sales' && event.data?.created_by !== user.email) return;
-        queryClient.invalidateQueries({ queryKey: ['activities'] });
-      }
-    });
-
-    return () => unsubscribe();
-  }, [user, queryClient]);
 
   // Get upcoming activities (future dates)
   const upcomingActivities = activities
@@ -316,7 +301,7 @@ export default function HubSpotActivityLog() {
               {activeTab === "call" && (
               <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
               <CardContent className="pt-6">
-              <PhoneDialer salesMemberId={user?.id} />
+              <TwilioDialer salesMemberId={user?.id} />
               </CardContent>
               </Card>
               )}
