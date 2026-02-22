@@ -376,6 +376,49 @@ export default function TwilioDialer({ salesMemberId, initialNumber }) {
         </div>
       )}
 
+      {/* Messages View */}
+      {(callState === CALL_STATES.IN_CALL || callState === CALL_STATES.ENDED || (toNumber && callState === CALL_STATES.IDLE)) && messages.length > 0 && (
+        <Card className="flex flex-col flex-1">
+          <CardContent className="p-4 flex flex-col h-96">
+            <p className="text-sm font-semibold mb-3">Messages with {toNumber}</p>
+            <div className="flex-1 overflow-y-auto space-y-2 mb-3 bg-gray-50 rounded-lg p-3">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                      msg.direction === 'outbound'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-300 text-gray-900'
+                    }`}
+                  >
+                    {msg.body}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Type message..."
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                disabled={sendingMessage}
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={sendingMessage || !messageInput.trim()}
+                className="gap-1"
+              >
+                {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Contact Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
