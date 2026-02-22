@@ -149,11 +149,6 @@ export default function TwilioDialer({ salesMemberId }) {
         To: phoneToDial
       };
 
-      // Add callerId to params if available
-      if (callerId) {
-        params.callerId = callerId;
-      }
-
       const call = await device.connect({ params });
       callRef.current = call;
 
