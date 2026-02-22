@@ -16,7 +16,7 @@ const CALL_STATES = {
   LOGGING: "logging"
 };
 
-export default function TwilioDialer({ salesMemberId, initialNumber }) {
+export default function TwilioDialer({ salesMemberId, initialNumber, onClose, device: externalDevice }) {
   const [device, setDevice] = useState(null);
   const [deviceReady, setDeviceReady] = useState(false);
   const [callState, setCallState] = useState(CALL_STATES.IDLE);
