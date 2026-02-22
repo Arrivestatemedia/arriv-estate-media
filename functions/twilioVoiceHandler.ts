@@ -5,6 +5,18 @@ Deno.serve(async (req) => {
     
     const to = params.get('To');
     
+    // Validate phone number format
+    if (!to || !to.match(/^\+?[1-9]\d{1,14}$/)) {
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>Invalid phone number. Please try again.</Say>
+</Response>`;
+      return new Response(twiml, {
+        status: 200,
+        headers: { 'Content-Type': 'application/xml; charset=utf-8' }
+      });
+    }
+    
     // Get caller ID from custom param passed via Twilio
     let callerId = params.get('callerId') || Deno.env.get('TWILIO_PHONE_NUMBER');
 
@@ -16,15 +28,18 @@ Deno.serve(async (req) => {
 </Response>`;
 
     return new Response(twiml, {
-      headers: { 'Content-Type': 'text/xml' }
+      status: 200,
+      headers: { 'Content-Type': 'application/xml; charset=utf-8' }
     });
   } catch (error) {
+    console.error('Error in twilioVoiceHandler:', error);
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>An error occurred. Please try again.</Say>
 </Response>`;
     return new Response(twiml, {
-      headers: { 'Content-Type': 'text/xml' }
+      status: 200,
+      headers: { 'Content-Type': 'application/xml; charset=utf-8' }
     });
   }
 });
