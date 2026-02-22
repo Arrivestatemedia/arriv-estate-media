@@ -140,12 +140,28 @@ export default function TwilioDialer({ salesMemberId }) {
       callRef.current = call;
 
       call.on('ringing', () => setCallState(CALL_STATES.RINGING));
-      call.on('accept', () => {
+      call.on('accept', async () => {
         setCallState(CALL_STATES.IN_CALL);
         callStartRef.current = Date.now();
         timerRef.current = setInterval(() => {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
         }, 1000);
+        
+        // Auto-log call to HubSpot immediately on connect
+        try {
+          await base44.functions.invoke('logCallActivity', {
+            salesMemberId,
+            toNumber,
+            contactName,
+            contactEmail,
+            companyName,
+            durationSeconds: 0,
+            notes: `Outbound call to ${toNumber}`,
+            autoLogged: true
+          });
+        } catch (err) {
+          console.error('Failed to auto-log call:', err);
+        }
       });
       call.on('disconnect', handleCallEnded);
       call.on('error', (err) => {
