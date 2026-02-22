@@ -377,27 +377,31 @@ export default function TwilioDialer({ salesMemberId, initialNumber }) {
       )}
 
       {/* Messages View */}
-      {(callState === CALL_STATES.IN_CALL || callState === CALL_STATES.ENDED || (toNumber && callState === CALL_STATES.IDLE)) && messages.length > 0 && (
+      {(callState === CALL_STATES.IN_CALL || callState === CALL_STATES.ENDED || (toNumber && callState === CALL_STATES.IDLE)) && (
         <Card className="flex flex-col flex-1">
           <CardContent className="p-4 flex flex-col h-96">
             <p className="text-sm font-semibold mb-3">Messages with {toNumber}</p>
             <div className="flex-1 overflow-y-auto space-y-2 mb-3 bg-gray-50 rounded-lg p-3">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                >
+              {messages.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center mt-4">No messages yet</p>
+              ) : (
+                messages.map((msg) => (
                   <div
-                    className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                      msg.direction === 'outbound'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-300 text-gray-900'
-                    }`}
+                    key={msg.id}
+                    className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {msg.body}
+                    <div
+                      className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                        msg.direction === 'outbound'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-300 text-gray-900'
+                      }`}
+                    >
+                      {msg.body}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <div className="flex gap-2">
               <Input
