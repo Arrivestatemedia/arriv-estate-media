@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, Trash2 } from "lucide-react";
+import { Phone, Trash2, PhoneOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function CallRecents({ salesMemberId, onCallSelect }) {
+export default function CallRecents({ salesMemberId, onCallClick }) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,22 +34,6 @@ export default function CallRecents({ salesMemberId, onCallSelect }) {
     }
   };
 
-  const missedCalls = activities.filter((call) => {
-    const callTime = new Date(call.activity_date);
-    const now = new Date();
-    return (now - callTime) / 1000 < 60; // Simple heuristic
-  });
-
-  const handleDialNumber = (phone) => {
-    // This would populate the dialer
-    const dialerInput = document.querySelector('input[placeholder="+1 (555) 000-0000"]');
-    if (dialerInput) {
-      dialerInput.value = phone;
-      dialerInput.focus();
-    }
-    onCallSelect(phone);
-  };
-
   const handleDelete = async (id) => {
     try {
       await base44.entities.ActivityLog.delete(id);
@@ -74,40 +58,40 @@ export default function CallRecents({ salesMemberId, onCallSelect }) {
     return date.toLocaleDateString();
   };
 
+  const missedCalls = activities.filter(a => a.notes?.includes('Inbound') && a.duration_minutes === 0);
+
   if (loading) {
-    return <div className="text-center py-8">Loading...</div>;
+    return <div className="text-center py-8 text-gray-500">Loading...</div>;
   }
 
   return (
     <Tabs defaultValue="all" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="all">All</TabsTrigger>
+        <TabsTrigger value="all">All ({activities.length})</TabsTrigger>
         <TabsTrigger value="missed">Missed ({missedCalls.length})</TabsTrigger>
       </TabsList>
 
       <TabsContent value="all" className="mt-4 space-y-2">
         {activities.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">No calls yet</div>
+          <div className="text-center py-12 text-gray-500">No call history</div>
         ) : (
           activities.map((call) => (
             <Card key={call.id} className="border-0 shadow-sm">
               <CardContent className="p-3 flex items-center justify-between">
                 <div
                   className="flex-1 cursor-pointer"
-                  onClick={() => handleDialNumber(call.contact_name || call.contact_email)}
+                  onClick={() => onCallClick(call.contact_name || call.contact_email)}
                 >
-                  <p className="font-semibold">{call.contact_name || call.contact_email}</p>
+                  <p className="font-semibold text-sm">{call.contact_name || call.contact_email}</p>
                   <p className="text-xs text-gray-500">
-                    {call.company_name && `${call.company_name} • `}
-                    {formatTime(call.activity_date)} •{" "}
-                    {call.duration_minutes ? `${call.duration_minutes}m` : "No duration"}
+                    {formatTime(call.activity_date)} • {call.duration_minutes || 0}m
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDialNumber(call.contact_name || call.contact_email)}
+                    onClick={() => onCallClick(call.contact_name || call.contact_email)}
                     className="h-8 w-8"
                   >
                     <Phone className="w-4 h-4" />
@@ -136,19 +120,16 @@ export default function CallRecents({ salesMemberId, onCallSelect }) {
               <CardContent className="p-3 flex items-center justify-between">
                 <div
                   className="flex-1 cursor-pointer"
-                  onClick={() => handleDialNumber(call.contact_name || call.contact_email)}
+                  onClick={() => onCallClick(call.contact_name || call.contact_email)}
                 >
-                  <p className="font-semibold text-red-600">{call.contact_name || call.contact_email}</p>
-                  <p className="text-xs text-gray-500">
-                    {call.company_name && `${call.company_name} • `}
-                    {formatTime(call.activity_date)}
-                  </p>
+                  <p className="font-semibold text-sm text-red-600">{call.contact_name || call.contact_email}</p>
+                  <p className="text-xs text-gray-500">Missed • {formatTime(call.activity_date)}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDialNumber(call.contact_name || call.contact_email)}
+                    onClick={() => onCallClick(call.contact_name || call.contact_email)}
                     className="h-8 w-8"
                   >
                     <Phone className="w-4 h-4" />
