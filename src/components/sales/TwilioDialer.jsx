@@ -51,7 +51,7 @@ export default function TwilioDialer({ salesMemberId }) {
       if (!window.Twilio?.Device) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = 'https://media.twiliocdn.com/sdk/js/voice/releases/2.10.0/twilio.min.js';
+          script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
           script.onload = resolve;
           script.onerror = (e) => reject(new Error('Failed to load Twilio SDK. Please check your internet connection and try again.'));
           document.head.appendChild(script);
