@@ -83,14 +83,36 @@ Deno.serve(async (req) => {
   </Dial>
 </Response>`;
     } else {
-      // Default outbound call
-      console.log('Default outbound call to:', to);
-      twiml = `<?xml version="1.0" encoding="UTF-8"?>
+      // Incoming call - route to all active sales reps
+      console.log('Incoming call routing to all active sales reps');
+      try {
+        const base44 = createClientFromRequest(req);
+        const activeMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
+        
+        if (activeMembers.length === 0) {
+          twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerId}">
-    <Number>${to}</Number>
-  </Dial>
+  <Say>No sales representatives available. Please try again later.</Say>
 </Response>`;
+        } else {
+          let dialXml = '<Dial timeout="30">';
+          for (const member of activeMembers) {
+            dialXml += `<Client>${member.id}</Client>`;
+          }
+          dialXml += '</Dial>';
+          
+          twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${dialXml}
+</Response>`;
+        }
+      } catch (err) {
+        console.error('Failed to route incoming call:', err);
+        twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>An error occurred routing your call. Please try again.</Say>
+</Response>`;
+      }
     }
 
     return new Response(twiml, {
