@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap } from "lucide-react";
+import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
 import TwilioDialer from "@/components/sales/TwilioDialer";
+import SmsInbox from "@/components/sales/SmsInbox";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
