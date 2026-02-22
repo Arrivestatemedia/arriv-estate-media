@@ -306,6 +306,14 @@ export default function HubSpotActivityLog() {
               </Card>
               )}
 
+              {activeTab === "sms" && (
+              <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
+              <CardContent className="pt-6">
+              <SmsInbox salesMemberId={user?.id} />
+              </CardContent>
+              </Card>
+              )}
+
               {activeTab === "activity" && (
               <>
               {upcomingActivities.length > 0 && (
