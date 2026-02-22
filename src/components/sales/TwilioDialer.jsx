@@ -31,6 +31,9 @@ export default function TwilioDialer({ salesMemberId, initialNumber }) {
   const [logged, setLogged] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [incomingFrom, setIncomingFrom] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
