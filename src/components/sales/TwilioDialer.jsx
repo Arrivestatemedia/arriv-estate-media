@@ -294,6 +294,45 @@ export default function TwilioDialer({ salesMemberId, initialNumber }) {
     setCallNotes('');
     setCallDuration(0);
     setCallState(CALL_STATES.IDLE);
+    setMessages([]);
+  };
+
+  const sendMessage = async () => {
+    if (!messageInput.trim() || !toNumber) return;
+    
+    setSendingMessage(true);
+    try {
+      // Get or create conversation
+      let conversations = await base44.entities.SmsConversation.filter({
+        from_number: toNumber
+      });
+      
+      let conversationId = conversations[0]?.id;
+      if (!conversationId) {
+        const conv = await base44.entities.SmsConversation.create({
+          from_number: toNumber,
+          last_message: messageInput,
+          last_message_at: new Date().toISOString(),
+          unread_count: 0
+        });
+        conversationId = conv.id;
+      }
+
+      // Send SMS
+      await base44.functions.invoke('sendSms', {
+        conversationId,
+        recipientNumber: toNumber,
+        messageBody: messageInput,
+        salesMemberId
+      });
+
+      setMessageInput('');
+      await loadMessages();
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   const formatDuration = (secs) => {
