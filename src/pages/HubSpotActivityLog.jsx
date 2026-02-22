@@ -278,6 +278,16 @@ export default function HubSpotActivityLog() {
               >
               <span className="flex items-center gap-1"><Phone className="w-4 h-4" />Make a Call</span>
               </button>
+              <button
+              onClick={() => setActiveTab("sms")}
+              className="px-4 py-3 font-medium border-b-2 transition"
+              style={{
+              color: activeTab === "sms" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "sms" ? '#B8956A' : 'transparent'
+              }}
+              >
+              <span className="flex items-center gap-1"><MessageSquare className="w-4 h-4" />Messages</span>
+              </button>
               </div>
 
               {activeTab === "email" && (
