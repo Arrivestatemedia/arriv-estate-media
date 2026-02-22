@@ -10,6 +10,7 @@ const CALL_STATES = {
   IDLE: "idle",
   CONNECTING: "connecting",
   RINGING: "ringing",
+  INCOMING: "incoming",
   IN_CALL: "in_call",
   ENDED: "ended",
   LOGGING: "logging"
