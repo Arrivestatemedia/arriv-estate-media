@@ -27,7 +27,7 @@ export default function AdminSalesSignup() {
   const { data: salesMembers = [], error: fetchError } = useQuery({
     queryKey: ['salesTeam'],
     queryFn: async () => {
-      const result = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date');
+      const result = await base44.entities.SalesTeamMember.list('-created_date');
       console.log('Sales members fetched:', result);
       return result;
     },
@@ -46,7 +46,7 @@ export default function AdminSalesSignup() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.asServiceRole.entities.SalesTeamMember.delete(id),
+    mutationFn: (id) => base44.entities.SalesTeamMember.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salesTeam'] });
     }
