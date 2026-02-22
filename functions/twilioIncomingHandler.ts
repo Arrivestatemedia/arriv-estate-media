@@ -8,10 +8,7 @@ Deno.serve(async (req) => {
     
     const from = params.get('From');
     const to = params.get('To');
-    const callSid = params.get('CallSid');
-    
-    // Check if this is an outbound call from the dialer (CallSid present, coming from our app)
-    const isOutbound = params.has('CallSid') && !from?.startsWith('+');
+    const isOutbound = params.get('isOutbound') === 'true';
     
     if (isOutbound) {
       // Outbound call from dialer - dial the number directly

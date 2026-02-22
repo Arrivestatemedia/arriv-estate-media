@@ -147,7 +147,8 @@ export default function PhoneDialer({ salesMemberId }) {
     try {
       const params = {
         To: toNumber,
-        salesMemberId
+        salesMemberId,
+        isOutbound: 'true'
       };
 
       const call = await device.connect({ params });
