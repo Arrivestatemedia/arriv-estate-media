@@ -87,6 +87,7 @@ import SupraAccess from './pages/SupraAccess';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
 import __Layout from './Layout.jsx';
 
 
@@ -131,6 +132,7 @@ export const PAGES = {
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
     "PrivacyPolicy": PrivacyPolicy,
+    "Terms": Terms,
 }
 
 export const pagesConfig = {
