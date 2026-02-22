@@ -17,7 +17,8 @@ Deno.serve(async (req) => {
       from = params.get('From');
     }
     
-    console.log('TwiML Handler received:', { to, from, bodyKeys: Array.from(params.keys()) });
+    console.log('TwiML Handler received - RAW BODY:', body);
+    console.log('TwiML Handler received:', { to, from });
     
     if (!to) {
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
