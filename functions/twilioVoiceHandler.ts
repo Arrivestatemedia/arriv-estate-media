@@ -98,7 +98,10 @@ Deno.serve(async (req) => {
       // Call from device to external number
       console.log('Outbound call from device to:', to);
       // Format number as E.164 if not already
-      const formattedNumber = to.startsWith('+') ? to : '+1' + to.replace(/\D/g, '');
+      let formattedNumber = to.trim();
+      if (!formattedNumber.startsWith('+1')) {
+        formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
+      }
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" timeout="30">
