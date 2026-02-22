@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
-import TwilioDialer from "@/components/sales/TwilioDialer";
-import SmsInbox from "@/components/sales/SmsInbox";
+import IphoneDialer from "@/components/sales/IphoneDialer";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
@@ -276,17 +275,7 @@ export default function HubSpotActivityLog() {
               borderBottomColor: activeTab === "call" ? '#B8956A' : 'transparent'
               }}
               >
-              <span className="flex items-center gap-1"><Phone className="w-4 h-4" />Make a Call</span>
-              </button>
-              <button
-              onClick={() => setActiveTab("sms")}
-              className="px-4 py-3 font-medium border-b-2 transition"
-              style={{
-              color: activeTab === "sms" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
-              borderBottomColor: activeTab === "sms" ? '#B8956A' : 'transparent'
-              }}
-              >
-              <span className="flex items-center gap-1"><MessageSquare className="w-4 h-4" />Messages</span>
+              <span className="flex items-center gap-1"><Phone className="w-4 h-4" />Dialer</span>
               </button>
               </div>
 
@@ -298,18 +287,10 @@ export default function HubSpotActivityLog() {
               </Card>
               )}
 
-              {activeTab === "call" && (
-              <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
-              <CardContent className="pt-6">
-              <TwilioDialer salesMemberId={user?.id} />
-              </CardContent>
-              </Card>
-              )}
-
-              {activeTab === "sms" && (
-              <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
-              <CardContent className="pt-6">
-              <SmsInbox salesMemberId={user?.id} />
+              {(activeTab === "call" || activeTab === "sms") && (
+              <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20', height: '600px' }}>
+              <CardContent className="pt-0 h-full">
+              <IphoneDialer salesMemberId={user?.id} />
               </CardContent>
               </Card>
               )}
