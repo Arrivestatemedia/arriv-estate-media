@@ -146,7 +146,7 @@ export default function TwilioDialer({ salesMemberId }) {
       }
 
       const params = {
-        To: toNumber
+        To: phoneToDial
       };
 
       // Add callerId to params if available
