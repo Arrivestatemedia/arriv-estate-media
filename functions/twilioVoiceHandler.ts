@@ -1,11 +1,13 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+
 Deno.serve(async (req) => {
   try {
     const body = await req.text();
     const params = new URLSearchParams(body);
     
     const to = params.get('To');
+    const from = params.get('From'); // Token identity like "sales_rep_xxx"
     
-    // Validate phone number format (allow E.164 or 10-digit US)
     if (!to) {
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -17,8 +19,24 @@ Deno.serve(async (req) => {
       });
     }
     
-    // Get caller ID from custom param passed via Twilio
-    let callerId = params.get('callerId') || Deno.env.get('TWILIO_PHONE_NUMBER');
+    let callerId = Deno.env.get('TWILIO_PHONE_NUMBER');
+    
+    // Extract salesMemberId from token identity (format: sales_rep_xxx)
+    if (from && from.startsWith('sales_rep_')) {
+      const salesMemberId = from.replace('sales_rep_', '').replace(/_/g, '-');
+      
+      try {
+        const base44 = createClientFromRequest(req);
+        const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+        const member = members[0];
+        if (member && member.twilio_phone_number) {
+          callerId = member.twilio_phone_number;
+        }
+      } catch (err) {
+        console.error('Failed to look up sales member:', err);
+        // Fall through to default callerId
+      }
+    }
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
