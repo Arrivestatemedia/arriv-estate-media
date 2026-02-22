@@ -16,11 +16,11 @@ const CALL_STATES = {
   LOGGING: "logging"
 };
 
-export default function TwilioDialer({ salesMemberId }) {
+export default function TwilioDialer({ salesMemberId, initialNumber }) {
   const [device, setDevice] = useState(null);
   const [deviceReady, setDeviceReady] = useState(false);
   const [callState, setCallState] = useState(CALL_STATES.IDLE);
-  const [toNumber, setToNumber] = useState("");
+  const [toNumber, setToNumber] = useState(initialNumber || "");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
