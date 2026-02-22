@@ -179,8 +179,13 @@ export default function IphoneDialer({ salesMemberId }) {
   };
 
   const loadMessages = async (convoId) => {
-    const data = await base44.entities.SmsMessage.filter({ conversation_id: convoId }, 'created_date');
-    setMessages(data);
+    try {
+      const data = await base44.entities.SmsMessage.filter({ conversation_id: convoId }, 'created_date');
+      setMessages(data);
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+      setMessages([]);
+    }
   };
 
   const handleCallEnded = () => {
