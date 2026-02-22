@@ -35,9 +35,10 @@ Deno.serve(async (req) => {
       });
     }
     
-    // Extract salesMemberId from token identity (format: sales_rep_xxx)
-    if (from && from.startsWith('sales_rep_')) {
-      const salesMemberId = from.replace('sales_rep_', '').replace(/_/g, '-');
+    // Extract salesMemberId from token identity (format: client:sales_rep_xxx or sales_rep_xxx)
+    const fromIdentity = from?.includes(':') ? from.split(':')[1] : from;
+    if (fromIdentity && fromIdentity.startsWith('sales_rep_')) {
+      const salesMemberId = fromIdentity.replace('sales_rep_', '').replace(/_/g, '-');
       
       try {
         const base44 = createClientFromRequest(req);
