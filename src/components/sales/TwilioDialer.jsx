@@ -47,19 +47,15 @@ export default function TwilioDialer({ salesMemberId }) {
 
   const initDevice = async () => {
     try {
-      // Load Twilio Voice SDK v2
-      if (!window.Twilio?.Device) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.min.js';
-          script.onload = resolve;
-          script.onerror = (e) => reject(new Error('Failed to load Twilio SDK. Please check your internet connection and try again.'));
-          document.head.appendChild(script);
-        });
+      // Wait for Twilio SDK to be available (loaded globally via layout)
+      let attempts = 0;
+      while (!window.Twilio?.Device && attempts < 20) {
+        await new Promise(r => setTimeout(r, 300));
+        attempts++;
       }
-
-      // Small delay to ensure SDK is fully initialized
-      await new Promise(r => setTimeout(r, 200));
+      if (!window.Twilio?.Device) {
+        throw new Error('Twilio SDK failed to load. Please refresh the page and try again.');
+      }
 
       const res = await base44.functions.invoke('generateTwilioToken', { salesMemberId });
       const { token } = res.data;
