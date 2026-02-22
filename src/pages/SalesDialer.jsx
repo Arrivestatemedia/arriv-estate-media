@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Phone, MessageSquare, Grid3x3 } from "lucide-react";
-import TwilioDialer from "@/components/sales/TwilioDialer";
-import CallRecents from "@/components/sales/CallRecents";
-import DialerKeypad from "@/components/sales/DialerKeypad";
-import SmsInbox from "@/components/sales/SmsInbox";
+import TwilioDialer from "@/components/sales/TwilioDialer.jsx";
+import CallRecents from "@/components/sales/CallRecents.jsx";
+import DialerKeypad from "@/components/sales/DialerKeypad.jsx";
+import SmsInbox from "@/components/sales/SmsInbox.jsx";
 
 export default function SalesDialer() {
   const salesMemberId = localStorage.getItem('sales_member_id');
