@@ -48,6 +48,29 @@ export default function TwilioDialer({ salesMemberId, initialNumber }) {
     };
   }, [salesMemberId]);
 
+  useEffect(() => {
+    if (!toNumber) return;
+    loadMessages();
+  }, [toNumber]);
+
+  const loadMessages = async () => {
+    try {
+      const conversations = await base44.entities.SmsConversation.filter(
+        { from_number: toNumber },
+        "-last_message_at"
+      );
+      if (conversations.length > 0) {
+        const msgs = await base44.entities.SmsMessage.filter(
+          { conversation_id: conversations[0].id },
+          "created_date"
+        );
+        setMessages(msgs);
+      }
+    } catch (err) {
+      console.error("Failed to load messages:", err);
+    }
+  };
+
   const loadTwilioSdk = () => new Promise((resolve, reject) => {
     if (window.Twilio?.Device) { resolve(); return; }
     const existing = document.getElementById('twilio-sdk-script');
