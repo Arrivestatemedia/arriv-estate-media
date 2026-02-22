@@ -55,11 +55,11 @@ Deno.serve(async (req) => {
 
     // Determine if this is an incoming call to the rep or an outbound call
     let twiml;
-    const isIncomingToRep = !from || from.startsWith('+1') || /^\d+$/.test(from);
+    const isOutboundFromDevice = fromIdentity && fromIdentity.startsWith('sales_rep_');
     
-    console.log('Call routing - isIncomingToRep:', isIncomingToRep, 'to:', to, 'from:', from);
+    console.log('Call routing - isOutboundFromDevice:', isOutboundFromDevice, 'to:', to, 'from:', from, 'fromIdentity:', fromIdentity);
     
-    if (isIncomingToRep && to) {
+    if (isOutboundFromDevice) {
       // Incoming call from external number - route to ALL active sales reps
       let targetDevices = [];
       
