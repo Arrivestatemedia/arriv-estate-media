@@ -5,11 +5,11 @@ Deno.serve(async (req) => {
     
     const to = params.get('To');
     
-    // Validate phone number format
-    if (!to || !to.match(/^\+?[1-9]\d{1,14}$/)) {
+    // Validate phone number format (allow E.164 or 10-digit US)
+    if (!to) {
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say>Invalid phone number. Please try again.</Say>
+  <Say>No phone number provided.</Say>
 </Response>`;
       return new Response(twiml, {
         status: 200,
