@@ -109,8 +109,12 @@ export default function IphoneDialer({ salesMemberId }) {
   };
 
   const loadCallLogs = async () => {
-    const logs = await base44.entities.ActivityLog.filter({ activity_type: 'call' }, '-activity_date', 50);
-    setCallLogs(logs.filter(l => l.contact_name));
+    try {
+      const logs = await base44.entities.ActivityLog.filter({ activity_type: 'call' }, '-activity_date', 100);
+      setCallLogs(logs);
+    } catch (err) {
+      console.error('Failed to load call logs:', err);
+    }
   };
 
   const loadConversations = async () => {
@@ -204,7 +208,7 @@ export default function IphoneDialer({ salesMemberId }) {
           durationSeconds: callDuration,
           notes: `Outbound call to ${currentCall.number}`
         });
-        loadCallLogs();
+        setTimeout(() => loadCallLogs(), 500);
       } catch (err) {
         console.error('Failed to log call:', err);
       }
