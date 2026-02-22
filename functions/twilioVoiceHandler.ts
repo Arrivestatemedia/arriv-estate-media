@@ -105,19 +105,11 @@ Deno.serve(async (req) => {
       } else {
         console.warn('No active sales members found to route call');
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>No one is available to take your call. Please try again later.</Say>
-</Response>`;
-    } else {
-      // Default outbound (shouldn't normally happen)
-      console.log('Default outbound call to:', to);
-      twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${callerId}">
-    <Number>${to}</Number>
-  </Dial>
-</Response>`;
-    }
+        <Response>
+        <Say>No one is available to take your call. Please try again later.</Say>
+        </Response>`;
+        }
+        }
 
     return new Response(twiml, {
       status: 200,
