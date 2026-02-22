@@ -44,36 +44,45 @@ export default function TwilioDialer({ salesMemberId }) {
 
   const initDevice = async () => {
     try {
-      // Dynamically load Twilio Voice SDK v2
+      // Load Twilio Voice SDK v2
       if (!window.Twilio?.Device) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = 'https://sdk.twilio.com/js/voice/2.x/twilio.min.js';
+          script.src = 'https://sdk.twilio.com/js/voice/releases/2.10.0/twilio.js';
           script.onload = resolve;
           script.onerror = reject;
           document.head.appendChild(script);
         });
       }
 
+      // Small delay to ensure SDK is fully initialized
+      await new Promise(r => setTimeout(r, 200));
+
       const res = await base44.functions.invoke('generateTwilioToken', { salesMemberId });
       const { token } = res.data;
 
-      const twilioDevice = new window.Twilio.Device(token, {
+      if (!token) {
+        setError('Failed to get access token');
+        return;
+      }
+
+      const { Device } = window.Twilio;
+      const twilioDevice = new Device(token, {
         codecPreferences: ['opus', 'pcmu'],
         enableRingingState: true,
         logLevel: 1
       });
 
       twilioDevice.on('registered', () => setDeviceReady(true));
-      twilioDevice.on('error', (err) => {
-        setError(err.message || JSON.stringify(err));
+      twilioDevice.on('error', (twilioError) => {
+        setError(twilioError?.message || twilioError?.description || 'Twilio error');
         setCallState(CALL_STATES.IDLE);
       });
 
       await twilioDevice.register();
       setDevice(twilioDevice);
     } catch (err) {
-      setError('Failed to initialize calling: ' + err.message);
+      setError('Failed to initialize calling: ' + (err?.message || err));
     }
   };
 
