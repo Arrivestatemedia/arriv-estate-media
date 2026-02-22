@@ -224,6 +224,26 @@ export default function TwilioDialer({ salesMemberId }) {
         </div>
       )}
 
+      {callState === CALL_STATES.INCOMING && (
+        <div className="p-4 rounded-lg border-2 flex items-center justify-between gap-4 animate-pulse" style={{ borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)' }}>
+          <div className="flex items-center gap-3">
+            <Phone className="w-5 h-5 text-green-600" />
+            <div>
+              <p className="font-semibold text-green-700">Incoming Call</p>
+              <p className="text-sm text-gray-600">{incomingFrom}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={acceptCall} className="gap-1 bg-green-600 hover:bg-green-700 text-white">
+              <Phone className="w-4 h-4" /> Accept
+            </Button>
+            <Button onClick={rejectCall} variant="destructive" className="gap-1">
+              <PhoneOff className="w-4 h-4" /> Decline
+            </Button>
+          </div>
+        </div>
+      )}
+
       {logged && (
         <div className="p-3 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)', borderLeft: '3px solid #B8956A' }}>
           <Check className="w-4 h-4" style={{ color: '#B8956A' }} />
