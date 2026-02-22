@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
-import TwilioDialer from "@/components/sales/TwilioDialer";
+import PhoneDialer from "@/components/sales/PhoneDialer";
 import SmsInbox from "@/components/sales/SmsInbox";
 
 export default function HubSpotActivityLog() {
