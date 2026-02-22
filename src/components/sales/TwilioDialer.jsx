@@ -96,7 +96,7 @@ export default function TwilioDialer({ salesMemberId }) {
       await twilioDevice.register();
       setDevice(twilioDevice);
     } catch (err) {
-      setError('Failed to initialize calling: ' + (err?.message || err));
+      setError('Failed to initialize calling: ' + (err?.message || String(err)));
     }
   };
 
