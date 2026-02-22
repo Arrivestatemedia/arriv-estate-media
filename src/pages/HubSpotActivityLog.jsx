@@ -287,6 +287,14 @@ export default function HubSpotActivityLog() {
               </Card>
               )}
 
+              {activeTab === "call" && (
+              <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
+              <CardContent className="pt-6">
+              <TwilioDialer salesMemberId={user?.id} />
+              </CardContent>
+              </Card>
+              )}
+
               {activeTab === "activity" && (
               <>
               {upcomingActivities.length > 0 && (
