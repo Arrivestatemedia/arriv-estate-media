@@ -52,6 +52,8 @@ import AdminBookings from './pages/AdminBookings';
 import AdminClientTerms from './pages/AdminClientTerms';
 import AdminInvite from './pages/AdminInvite';
 import AdminPaymentStatements from './pages/AdminPaymentStatements';
+import AdminSalesRepActivity from './pages/AdminSalesRepActivity';
+import AdminSalesSignup from './pages/AdminSalesSignup';
 import AdminSignedTerms from './pages/AdminSignedTerms';
 import AdminUsers from './pages/AdminUsers';
 import BookingPage from './pages/BookingPage';
@@ -65,6 +67,7 @@ import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import ForgotEmail from './pages/ForgotEmail';
 import ForgotPassword from './pages/ForgotPassword';
+import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import JobApplication from './pages/JobApplication';
 import JobBoard from './pages/JobBoard';
 import ManualClosingInvoice from './pages/ManualClosingInvoice';
@@ -78,14 +81,11 @@ import OrientationSizes from './pages/OrientationSizes';
 import OrientationVideo from './pages/OrientationVideo';
 import PasswordSetup from './pages/PasswordSetup';
 import PublicAccountSettings from './pages/PublicAccountSettings';
+import SalesLogin from './pages/SalesLogin';
 import SignIn from './pages/SignIn';
 import SupraAccess from './pages/SupraAccess';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import HubSpotActivityLog from './pages/HubSpotActivityLog';
-import AdminSalesSignup from './pages/AdminSalesSignup';
-import SalesLogin from './pages/SalesLogin';
-import AdminSalesRepActivity from './pages/AdminSalesRepActivity';
 import __Layout from './Layout.jsx';
 
 
@@ -95,6 +95,8 @@ export const PAGES = {
     "AdminClientTerms": AdminClientTerms,
     "AdminInvite": AdminInvite,
     "AdminPaymentStatements": AdminPaymentStatements,
+    "AdminSalesRepActivity": AdminSalesRepActivity,
+    "AdminSalesSignup": AdminSalesSignup,
     "AdminSignedTerms": AdminSignedTerms,
     "AdminUsers": AdminUsers,
     "BookingPage": BookingPage,
@@ -108,6 +110,7 @@ export const PAGES = {
     "DeleteAccountRequest": DeleteAccountRequest,
     "ForgotEmail": ForgotEmail,
     "ForgotPassword": ForgotPassword,
+    "HubSpotActivityLog": HubSpotActivityLog,
     "JobApplication": JobApplication,
     "JobBoard": JobBoard,
     "ManualClosingInvoice": ManualClosingInvoice,
@@ -121,14 +124,11 @@ export const PAGES = {
     "OrientationVideo": OrientationVideo,
     "PasswordSetup": PasswordSetup,
     "PublicAccountSettings": PublicAccountSettings,
+    "SalesLogin": SalesLogin,
     "SignIn": SignIn,
     "SupraAccess": SupraAccess,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "HubSpotActivityLog": HubSpotActivityLog,
-    "AdminSalesSignup": AdminSalesSignup,
-    "SalesLogin": SalesLogin,
-    "AdminSalesRepActivity": AdminSalesRepActivity,
 }
 
 export const pagesConfig = {
