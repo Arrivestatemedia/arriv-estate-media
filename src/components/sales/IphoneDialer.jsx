@@ -100,10 +100,10 @@ export default function IphoneDialer({ salesMemberId }) {
   const initDevice = async () => {
     try {
       await loadTwilioSdk();
-      const user = await base44.auth.me();
+      const salesMemberEmail = localStorage.getItem('sales_member_email');
       const res = await base44.functions.invoke('generateTwilioToken', { 
         salesMemberId,
-        salesMemberEmail: user?.email 
+        salesMemberEmail
       });
       const { token, identity } = res.data;
 
