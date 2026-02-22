@@ -38,7 +38,14 @@ export default function IphoneDialer({ salesMemberId }) {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (!salesMemberId) return;
+    if (!salesMemberId) {
+      const storedId = localStorage.getItem('sales_member_id');
+      if (storedId) {
+        // Component should receive this as prop, but fallback to stored value
+        initDevice();
+      }
+      return;
+    }
     
     // Initialize device first, then load data
     initDevice();
