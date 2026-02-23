@@ -3,96 +3,84 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const body = await req.text();
-    
-    let to, from;
-    
-    // Try parsing as JSON first, then fall back to URLSearchParams
-    try {
-      const json = JSON.parse(body);
-      to = json.To;
-      from = json.From;
-    } catch {
-      const params = new URLSearchParams(body);
-      to = params.get('To');
-      from = params.get('From');
-    }
-    
-    console.log('TwiML Handler received - RAW BODY:', body);
-    console.log('TwiML Handler received:', { to, from });
-    
+    const params = new URLSearchParams(body);
+
+    // When a sales rep makes an outbound call via device.connect({ params: { To: number } }),
+    // Twilio posts: To=<TwiML App SID>, From=client:<identity>, and the custom param as "To" only in params
+    // The custom params are posted with their exact key names
+    const to = params.get('To');
+    const from = params.get('From');
+
+    // Log everything for debugging
+    const allParams = {};
+    for (const [k, v] of params.entries()) allParams[k] = v;
+    console.log('TwiML Handler params:', JSON.stringify(allParams));
+
     if (!to) {
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>No phone number provided.</Say>
-</Response>`;
-      return new Response(twiml, {
+      return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>No destination provided.</Say></Response>`, {
         status: 200,
         headers: { 'Content-Type': 'application/xml; charset=utf-8' }
       });
     }
-    
+
     let callerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
 
     if (!callerId) {
-      console.error('TWILIO_CALLING_PHONE_NUMBER not set in secrets');
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>Configuration error. Please contact support.</Say>
-</Response>`;
-      return new Response(twiml, {
+      return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Configuration error.</Say></Response>`, {
         status: 200,
         headers: { 'Content-Type': 'application/xml; charset=utf-8' }
       });
     }
-    
-    // Extract salesMemberId from token identity (format: client:sales_rep_xxx or sales_rep_xxx)
-    const fromIdentity = from?.includes(':') ? from.split(':')[1] : from;
-    if (fromIdentity && fromIdentity.startsWith('sales_rep_')) {
+
+    // Extract identity from "client:sales_rep_xxx" format
+    const fromIdentity = from?.startsWith('client:') ? from.slice(7) : from;
+    const isOutboundFromDevice = fromIdentity?.startsWith('sales_rep_');
+
+    console.log('isOutboundFromDevice:', isOutboundFromDevice, 'to:', to, 'fromIdentity:', fromIdentity);
+
+    let twiml;
+
+    if (isOutboundFromDevice) {
+      // Outbound call: look up caller ID for this sales rep
       const salesMemberId = fromIdentity.replace('sales_rep_', '').replace(/_/g, '-');
-      
       try {
         const base44 = createClientFromRequest(req);
         const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
         const member = members[0];
-        if (member && member.twilio_phone_number) {
+        if (member?.twilio_phone_number) {
           callerId = member.twilio_phone_number;
         }
       } catch (err) {
         console.error('Failed to look up sales member:', err);
       }
-    }
 
-    // Determine if this is an outbound call from a sales rep device
-    const isOutboundFromDevice = fromIdentity && fromIdentity.startsWith('sales_rep_');
-    
-    console.log('Call routing - isOutboundFromDevice:', isOutboundFromDevice, 'to:', to, 'from:', from);
-    
-    let twiml;
-    
-    if (isOutboundFromDevice) {
-      // Call from device to external number (outbound)
-      console.log('Outbound call from device to:', to);
+      // Format the destination number
       let formattedNumber = to.trim();
-      if (!formattedNumber.startsWith('+')) {
+      // If "To" is the TwiML App SID (starts with "AP"), the real number wasn't passed — shouldn't happen
+      // but guard anyway
+      if (!formattedNumber.startsWith('+') && !formattedNumber.startsWith('AP')) {
         formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
       }
+
+      console.log('Outbound call from', callerId, 'to', formattedNumber);
+
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerId}" timeout="30">
+  <Dial callerId="${callerId}" answerOnBridge="true" timeout="30">
     <Number>${formattedNumber}</Number>
   </Dial>
 </Response>`;
     } else {
-      // Incoming call - route to all active sales reps
-      console.log('Incoming call routing to all active sales reps');
+      // Inbound call from external number — ring all active sales reps
+      console.log('Inbound call from', from, 'routing to active reps');
       try {
         const base44 = createClientFromRequest(req);
         const activeMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
-        
+
         if (activeMembers.length === 0) {
           twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say>No sales representatives available. Please try again later.</Say>
+  <Say>No sales representatives are available. Please try again later.</Say>
 </Response>`;
         } else {
           let dialXml = '<Dial timeout="30">';
@@ -100,17 +88,16 @@ Deno.serve(async (req) => {
             dialXml += `<Client>${member.id}</Client>`;
           }
           dialXml += '</Dial>';
-          
           twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   ${dialXml}
 </Response>`;
         }
       } catch (err) {
-        console.error('Failed to route incoming call:', err);
+        console.error('Failed to route inbound call:', err);
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say>An error occurred routing your call. Please try again.</Say>
+  <Say>An error occurred routing your call.</Say>
 </Response>`;
       }
     }
@@ -121,11 +108,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in twilioVoiceHandler:', error);
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>An error occurred. Please try again.</Say>
-</Response>`;
-    return new Response(twiml, {
+    return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>An error occurred.</Say></Response>`, {
       status: 200,
       headers: { 'Content-Type': 'application/xml; charset=utf-8' }
     });
