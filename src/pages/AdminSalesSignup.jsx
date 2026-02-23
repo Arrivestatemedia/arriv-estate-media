@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff } from "lucide-react";
 
 export default function AdminSalesSignup() {
   const [user, setUser] = useState(null);
@@ -312,34 +312,7 @@ export default function AdminSalesSignup() {
         </DialogContent>
         </Dialog>
 
-        {/* Gmail Authorization Dialog */}
-        <Dialog open={!!showGmailAuthorizeDialog} onOpenChange={(open) => !open && setShowGmailAuthorizeDialog(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Authorize Gmail</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              {showGmailAuthorizeDialog?.full_name} will authorize Gmail to send emails from{' '}
-              <strong>{showGmailAuthorizeDialog?.company_email}</strong>
-            </p>
-            <Button
-              onClick={() => {
-                window.open(base44.connectors.getAuthorizationURL('gmail', {
-                  scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly']
-                }), '_blank');
-                setShowGmailAuthorizeDialog(null);
-              }}
-              className="w-full"
-            >
-              Open Gmail Authorization
-            </Button>
-            <Button variant="outline" onClick={() => setShowGmailAuthorizeDialog(null)} className="w-full">
-              Cancel
-            </Button>
-          </div>
-        </DialogContent>
-        </Dialog>
+
         </div>
         );
         }
