@@ -37,7 +37,7 @@ const FIELDS = [
 
 const NEW_CONTACT_DEFAULTS = { firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "" };
 
-export default function ContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm, prefilledData }) {
+export default function ContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm, prefilledData, onFormClosed }) {
    const [query, setQuery] = useState("");
    const [results, setResults] = useState([]);
    const [loading, setLoading] = useState(false);
@@ -169,7 +169,11 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
       });
       setCreatedSuccess(true);
       setNewContact(NEW_CONTACT_DEFAULTS);
-      setTimeout(() => { setCreatedSuccess(false); setShowNewForm(false); }, 2500);
+      setTimeout(() => { 
+        setCreatedSuccess(false); 
+        setShowNewForm(false); 
+        if (onFormClosed) onFormClosed();
+      }, 2500);
     } catch (e) {
       setError("Failed to create contact: " + e.message);
     } finally {
