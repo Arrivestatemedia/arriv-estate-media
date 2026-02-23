@@ -88,8 +88,8 @@ export default function HubSpotContactSearch({ salesMemberId }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold mb-1" style={{ color: '#1A1A1A' }}>Search HubSpot Contacts</h2>
-        <p className="text-sm mb-4" style={{ color: 'rgba(26,26,26,0.6)' }}>Find a contact by name, email, or phone and update their info directly in HubSpot.</p>
+        <h2 className="text-lg font-semibold mb-1" style={{ color: '#1A1A1A' }}>Search Contacts</h2>
+        <p className="text-sm mb-4" style={{ color: 'rgba(26,26,26,0.6)' }}>Find a contact by name, email, or phone and update their info directly in HubSpot. Or create a new contact below.</p>
       </div>
 
       <div className="flex gap-2">

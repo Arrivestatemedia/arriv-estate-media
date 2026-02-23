@@ -293,7 +293,7 @@ export default function HubSpotActivityLog() {
               borderBottomColor: activeTab === "hubspot" ? '#B8956A' : 'transparent'
             }}
           >
-            HubSpot
+            Search Contacts
           </button>
         </div>
 
