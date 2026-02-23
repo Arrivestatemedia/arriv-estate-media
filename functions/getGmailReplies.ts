@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       .map(e => `from:${e}`)
       .join(' OR ');
     
-    const query = toEmail ? `(${fromQuery}) to:${toEmail}` : fromQuery;
+    const query = toEmail ? `(${fromQuery}) deliveredto:${toEmail}` : fromQuery;
 
     const searchRes = await fetch(
       `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=30`,
