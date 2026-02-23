@@ -21,6 +21,9 @@ export default function HubSpotActivityLog() {
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [hubspotContact, setHubspotContact] = useState(null);
+  const [contactNotes, setContactNotes] = useState("");
   const [passwordData, setPasswordData] = useState({ current: "", newPw: "", confirm: "" });
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -161,6 +164,26 @@ export default function HubSpotActivityLog() {
       sales_member_email: user?.email,
       sales_member_id: user?.id
     });
+  };
+
+  const handleActivityClick = async (activity) => {
+    setSelectedActivity(activity);
+    setContactNotes("");
+    setHubspotContact(null);
+    
+    // Search for HubSpot contact by email or name
+    if (activity.contact_email || activity.contact_name) {
+      try {
+        const res = await base44.functions.invoke('searchHubSpotContacts', {
+          query: activity.contact_email || activity.contact_name
+        });
+        if (res.data?.contacts?.length > 0) {
+          setHubspotContact(res.data.contacts[0]);
+        }
+      } catch (error) {
+        console.error('Error searching HubSpot:', error);
+      }
+    }
   };
 
   if (!user) {
@@ -486,7 +509,11 @@ export default function HubSpotActivityLog() {
                   </Card>
                 ) : (
                   pastActivities.map((activity) => (
-                    <Card key={activity.id}>
+                    <Card 
+                      key={activity.id}
+                      className="cursor-pointer hover:shadow-md transition"
+                      onClick={() => handleActivityClick(activity)}
+                    >
                       <CardContent className="pt-6">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start gap-3 flex-1">
@@ -518,8 +545,88 @@ export default function HubSpotActivityLog() {
             </div>
           </>
         )}
-      </div>
-      <PoweredByFooter />
-    </div>
-  );
-}
+        </div>
+
+        {/* Activity Detail Modal */}
+        <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) setSelectedActivity(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Activity Details</DialogTitle>
+          </DialogHeader>
+          {selectedActivity && (
+            <div className="space-y-6">
+              {/* Activity Info */}
+              <div>
+                <h3 className="font-semibold mb-3">Activity</h3>
+                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                  <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
+                  <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
+                  <p><span className="font-medium">Notes:</span> {selectedActivity.notes}</p>
+                  {selectedActivity.duration_minutes > 0 && (
+                    <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
+                  )}
+                </div>
+              </div>
+
+              {/* HubSpot Contact Info */}
+              <div>
+                <h3 className="font-semibold mb-3">Contact Information</h3>
+                {hubspotContact ? (
+                  <div className="bg-blue-50 p-4 rounded-lg space-y-2 border border-blue-200">
+                    <p className="text-sm text-blue-700 mb-3">✓ Found in HubSpot</p>
+                    <p><span className="font-medium">Name:</span> {hubspotContact.properties?.firstname || hubspotContact.properties?.lastname ? `${hubspotContact.properties?.firstname} ${hubspotContact.properties?.lastname}` : hubspotContact.id}</p>
+                    {hubspotContact.properties?.email && <p><span className="font-medium">Email:</span> {hubspotContact.properties.email}</p>}
+                    {hubspotContact.properties?.phone && <p><span className="font-medium">Phone:</span> {hubspotContact.properties.phone}</p>}
+                    {hubspotContact.properties?.company && <p><span className="font-medium">Company:</span> {hubspotContact.properties.company}</p>}
+                  </div>
+                ) : (
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <p className="text-sm text-amber-700">Not found in HubSpot</p>
+                    <p className="text-xs text-amber-600 mt-1">Contact: {selectedActivity.contact_name || selectedActivity.company_name}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div>
+                <h3 className="font-semibold mb-3">Actions</h3>
+                <div className="flex gap-2 flex-wrap">
+                  {selectedActivity.contact_phone && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => {
+                        setActiveTab("call");
+                        setSelectedActivity(null);
+                      }}
+                    >
+                      <Phone className="w-4 h-4" />
+                      Call
+                    </Button>
+                  )}
+                  {selectedActivity.contact_email && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => {
+                        setActiveTab("email");
+                        setSelectedActivity(null);
+                      }}
+                    >
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+        </Dialog>
+
+        <PoweredByFooter />
+        </div>
+        );
+        }
