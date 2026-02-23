@@ -44,7 +44,15 @@ Deno.serve(async (req) => {
       body
     ];
     const emailContent = emailLines.join('\r\n');
-    const encodedEmail = btoa(unescape(encodeURIComponent(emailContent))).replace(/\+/g, '-').replace(/\//g, '_');
+    
+    // Use Deno's base64 encoding instead of btoa
+    const encoder = new TextEncoder();
+    const data = encoder.encode(emailContent);
+    const encodedEmail = await crypto.subtle.digest('SHA-256', data);
+    
+    // Base64 encode the raw email properly for Gmail API
+    const uint8Array = new Uint8Array(emailContent.split('').map(c => c.charCodeAt(0)));
+    const base64String = btoa(String.fromCharCode.apply(null, uint8Array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
     const gmailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
