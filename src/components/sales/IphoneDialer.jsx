@@ -165,6 +165,7 @@ export default function IphoneDialer({ salesMemberId }) {
 
       console.log('Registering Twilio Device...');
       await twilioDevice.register();
+      deviceRef.current = twilioDevice;
       setDevice(twilioDevice);
     } catch (err) {
       console.error('Device init error:', err);
