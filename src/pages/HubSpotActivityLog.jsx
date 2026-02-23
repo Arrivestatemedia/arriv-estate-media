@@ -179,8 +179,8 @@ export default function HubSpotActivityLog() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>Sales Tools</h1>
-            <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log activities and send emails</p>
+            <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>Arriv One</h1>
+            <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>All sales activities in one Hub</p>
           </div>
           <div className="flex gap-2 items-center">
             {user?.type === 'sales' && (
