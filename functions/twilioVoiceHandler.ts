@@ -1,58 +1,51 @@
+import twilio from 'npm:twilio@5.3.3';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+const xmlResponse = (twiml) => new Response(twiml, {
+  status: 200,
+  headers: { 'Content-Type': 'text/xml; charset=utf-8' }
+});
+
 Deno.serve(async (req) => {
-  const xmlResponse = (twiml) => new Response(twiml, {
-    status: 200,
-    headers: { 'Content-Type': 'text/xml; charset=utf-8' }
-  });
-
   try {
-    const contentType = req.headers.get('content-type') || '';
     const body = await req.text();
-    console.log('Content-Type:', contentType);
-    console.log('RAW BODY:', body);
+    const contentType = req.headers.get('content-type') || '';
+    console.log('Content-Type:', contentType, 'Body:', body.substring(0, 300));
 
+    // Parse body — Twilio sends application/x-www-form-urlencoded
     let to, from;
-    if (body.trim().startsWith('{')) {
-      try {
+    try {
+      if (body.trim().startsWith('{')) {
         const json = JSON.parse(body);
         to = json.To;
         from = json.From;
-      } catch (_) {}
-    }
-    if (!to) {
+      } else {
+        const params = new URLSearchParams(body);
+        to = params.get('To');
+        from = params.get('From');
+      }
+    } catch (_) {
       const params = new URLSearchParams(body);
       to = params.get('To');
       from = params.get('From');
-      const all = {};
-      for (const [k, v] of params.entries()) all[k] = v;
-      console.log('Form params:', JSON.stringify(all));
     }
 
     console.log('to:', to, 'from:', from);
 
     if (!to) {
-      console.error('No To param');
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>No destination provided.</Say></Response>`);
     }
 
-    const callerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
-    if (!callerId) {
-      console.error('TWILIO_CALLING_PHONE_NUMBER not set');
-      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Configuration error.</Say></Response>`);
-    }
+    const callerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER') || Deno.env.get('TWILIO_PHONE_NUMBER');
+    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
 
-    // Detect outbound: From = "client:sales_rep_xxx"
-    const fromIdentity = from?.startsWith('client:') ? from.slice(7) : from;
-    const isOutbound = !!fromIdentity?.startsWith('sales_rep_');
-    console.log('isOutbound:', isOutbound, 'fromIdentity:', fromIdentity, 'callerId:', callerId);
+    // Detect outbound call: From is a Twilio client identity like "client:sales_rep_xxx"
+    const isOutbound = from?.startsWith('client:');
 
     if (isOutbound) {
-      let dest = to.trim();
-      if (!dest.startsWith('+')) {
-        dest = '+1' + dest.replace(/\D/g, '');
-      }
-      console.log('Outbound → dialing:', dest, 'with callerId:', callerId);
+      const dest = to.trim().startsWith('+') ? to.trim() : '+1' + to.replace(/\D/g, '');
+      console.log('Outbound → dialing:', dest, 'callerId:', callerId);
 
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -62,14 +55,17 @@ Deno.serve(async (req) => {
 </Response>`);
 
     } else {
-      // Inbound — route to active sales reps
-      console.log('Inbound from:', from);
+      // Inbound call — route to all active sales reps via Twilio Client
+      console.log('Inbound from:', from, 'to:', to);
 
-      // Use asServiceRole — works even without a user token for webhooks
       const base44 = createClientFromRequest(req);
-      const activeMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
-
-      console.log('Active members:', activeMembers.length);
+      let activeMembers = [];
+      try {
+        activeMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
+        console.log('Active members found:', activeMembers.length);
+      } catch (e) {
+        console.error('Failed to fetch members:', e.message);
+      }
 
       if (activeMembers.length === 0) {
         return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
@@ -78,17 +74,18 @@ Deno.serve(async (req) => {
 </Response>`);
       }
 
-      let dialXml = '<Dial timeout="30">';
+      let clientTags = '';
       for (const member of activeMembers) {
         const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
-        console.log('Routing to:', identity);
-        dialXml += `<Client>${identity}</Client>`;
+        console.log('Adding client:', identity);
+        clientTags += `<Client>${identity}</Client>`;
       }
-      dialXml += '</Dial>';
 
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  ${dialXml}
+  <Dial callerId="${callerId}" timeout="30">
+    ${clientTags}
+  </Dial>
 </Response>`);
     }
 
