@@ -48,17 +48,11 @@ export default function ClientSignup() {
     setError("");
 
     // Validate terms acceptance
-    if (!termsAccepted) {
-      setError("You must accept the Terms & Conditions to continue");
-      setLoading(false);
-      return;
-    }
-
-    if (!smsConsented) {
-      setError("You must consent to SMS communications to continue");
-      setLoading(false);
-      return;
-    }
+     if (!termsAccepted) {
+       setError("You must accept the Terms & Conditions to continue");
+       setLoading(false);
+       return;
+     }
 
     // Validate passwords match
     if (formData.password !== formData.password_confirmation) {
@@ -225,10 +219,10 @@ export default function ClientSignup() {
             </div>
 
             <Button
-              type="submit"
-              disabled={loading || !termsAccepted || !smsConsented}
-              className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white disabled:bg-[#1A1A1A]/50 disabled:cursor-not-allowed"
-            >
+               type="submit"
+               disabled={loading || !termsAccepted}
+               className="w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white disabled:bg-[#1A1A1A]/50 disabled:cursor-not-allowed"
+             >
               {loading ? "Creating Account..." : "Sign Up"}
             </Button>
             <p className="text-center text-sm text-[#1A1A1A]/60">
