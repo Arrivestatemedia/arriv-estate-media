@@ -257,7 +257,7 @@ export default function AdminSalesSignup() {
               <Input value={editData.phone_number || ""} onChange={(e) => setEditData({...editData, phone_number: e.target.value})} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Email (Send As)</label>
+              <label className="block text-sm font-medium mb-1">Company Email (Send As)</label>
               <Input type="email" placeholder="john@arriv.com" value={editData.company_email || ""} onChange={(e) => setEditData({...editData, company_email: e.target.value})} />
             </div>
             <div>
