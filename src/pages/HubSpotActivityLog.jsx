@@ -18,13 +18,14 @@ import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("activity");
-  const [showForm, setShowForm] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState(null);
-  const [hubspotContact, setHubspotContact] = useState(null);
-  const [contactNotes, setContactNotes] = useState("");
-  const [openNewContactForm, setOpenNewContactForm] = useState(false);
+   const [activeTab, setActiveTab] = useState("activity");
+   const [showForm, setShowForm] = useState(false);
+   const [showPasswordModal, setShowPasswordModal] = useState(false);
+   const [selectedActivity, setSelectedActivity] = useState(null);
+   const [hubspotContact, setHubspotContact] = useState(null);
+   const [contactNotes, setContactNotes] = useState("");
+   const [openNewContactForm, setOpenNewContactForm] = useState(false);
+   const [prefilledContactData, setPrefilledContactData] = useState(null);
   const [passwordData, setPasswordData] = useState({ current: "", newPw: "", confirm: "" });
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -454,13 +455,8 @@ export default function HubSpotActivityLog() {
                  salesMemberId={user?.id} 
                  openNewContactForm={openNewContactForm}
                  setOpenNewContactForm={setOpenNewContactForm}
-                 prefilledData={selectedActivity ? {
-                   firstName: selectedActivity.contact_name?.split(' ')[0] || '',
-                   lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
-                   email: selectedActivity.contact_email || '',
-                   phone: selectedActivity.contact_phone || '',
-                   company: selectedActivity.company_name || ''
-                 } : null}
+                 prefilledData={prefilledContactData}
+                 onFormClosed={() => setPrefilledContactData(null)}
                />
              </CardContent>
            </Card>
@@ -636,6 +632,13 @@ export default function HubSpotActivityLog() {
                    size="sm"
                    className="gap-2"
                    onClick={() => {
+                     setPrefilledContactData({
+                       firstName: selectedActivity.contact_name?.split(' ')[0] || '',
+                       lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
+                       email: selectedActivity.contact_email || '',
+                       phone: selectedActivity.contact_phone || '',
+                       company: selectedActivity.company_name || ''
+                     });
                      setOpenNewContactForm(true);
                      setActiveTab("contacts");
                      setSelectedActivity(null);
