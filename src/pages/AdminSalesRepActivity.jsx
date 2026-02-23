@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Mail, Calendar, X } from "lucide-react";
+import { Phone, Mail, Calendar, Users } from "lucide-react";
 import { format } from "date-fns";
 
 export default function AdminSalesRepActivity() {
