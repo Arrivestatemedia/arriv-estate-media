@@ -288,36 +288,127 @@ export default function EmailComposer({ salesMemberId }) {
               <p>No replies from contacts yet</p>
             </div>
           ) : (
-            replies.map(reply => {
-              const isExpanded = expandedReply === reply.id;
-              return (
-                <button
-                  key={reply.id}
-                  onClick={() => setExpandedReply(isExpanded ? null : reply.id)}
-                  className="w-full text-left p-4 rounded-lg border transition"
-                  style={{ borderColor: isExpanded ? '#B8956A' : 'rgba(184,149,106,0.2)', backgroundColor: isExpanded ? 'rgba(184,149,106,0.05)' : '#fff' }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{reply.from}</p>
-                      <p className="text-sm truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{reply.subject || '(no subject)'}</p>
-                      {!isExpanded && <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26,26,26,0.5)' }}>{reply.snippet}</p>}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                        {reply.date ? format(new Date(reply.date), "MMM d") : ''}
-                      </span>
-                      {isExpanded ? <ChevronUp className="w-4 h-4 opacity-40" /> : <ChevronDown className="w-4 h-4 opacity-40" />}
-                    </div>
-                  </div>
-                  {isExpanded && (
-                    <div className="mt-3 pt-3 text-sm border-t" style={{ borderColor: 'rgba(184,149,106,0.2)', color: '#1A1A1A' }}>
-                      {reply.snippet}
-                    </div>
-                  )}
-                </button>
-              );
-            })
+           replies.map(reply => {
+             const isExpanded = expandedReply === reply.id;
+             const isReplyingToThis = replyingTo?.id === reply.id;
+             return (
+               <div
+                 key={reply.id}
+                 className="rounded-lg border overflow-hidden"
+                 style={{ borderColor: isExpanded ? '#B8956A' : 'rgba(184,149,106,0.2)', backgroundColor: isExpanded ? 'rgba(184,149,106,0.05)' : '#fff' }}
+               >
+                 <button
+                   onClick={() => setExpandedReply(isExpanded ? null : reply.id)}
+                   className="w-full text-left p-4 hover:opacity-80 transition"
+                 >
+                   <div className="flex items-start justify-between gap-2">
+                     <div className="flex-1 min-w-0">
+                       <p className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{reply.from}</p>
+                       <p className="text-sm truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{reply.subject || '(no subject)'}</p>
+                       {!isExpanded && <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26,26,26,0.5)' }}>{reply.snippet}</p>}
+                     </div>
+                     <div className="flex items-center gap-2 shrink-0">
+                       <span className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                         {reply.date ? format(new Date(reply.date), "MMM d") : ''}
+                       </span>
+                       {isExpanded ? <ChevronUp className="w-4 h-4 opacity-40" /> : <ChevronDown className="w-4 h-4 opacity-40" />}
+                     </div>
+                   </div>
+                   {isExpanded && (
+                     <div className="mt-3 pt-3 text-sm border-t" style={{ borderColor: 'rgba(184,149,106,0.2)', color: '#1A1A1A' }}>
+                       {reply.snippet}
+                     </div>
+                   )}
+                 </button>
+
+                 {isExpanded && !isReplyingToThis && (
+                   <div className="border-t px-4 py-3 flex gap-2" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                     <Button
+                       size="sm"
+                       variant="outline"
+                       onClick={() => handleReply(reply, false)}
+                       style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                     >
+                       Reply
+                     </Button>
+                     <Button
+                       size="sm"
+                       variant="outline"
+                       onClick={() => handleReply(reply, true)}
+                       style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                     >
+                       Reply All
+                     </Button>
+                   </div>
+                 )}
+
+                 {isReplyingToThis && (
+                   <div className="border-t p-4 space-y-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                     <div>
+                       <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>To</label>
+                       <Input
+                         type="email"
+                         value={replyFormData.to}
+                         onChange={e => setReplyFormData(f => ({ ...f, to: e.target.value }))}
+                         className="text-sm"
+                       />
+                     </div>
+                     {replyMode === "replyAll" && (
+                       <div>
+                         <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>CC</label>
+                         <Input
+                           type="email"
+                           placeholder="Optional"
+                           value={replyFormData.cc}
+                           onChange={e => setReplyFormData(f => ({ ...f, cc: e.target.value }))}
+                           className="text-sm"
+                         />
+                       </div>
+                     )}
+                     <div>
+                       <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Subject</label>
+                       <Input
+                         value={replyFormData.subject}
+                         onChange={e => setReplyFormData(f => ({ ...f, subject: e.target.value }))}
+                         className="text-sm"
+                       />
+                     </div>
+                     <div>
+                       <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Message</label>
+                       <Textarea
+                         value={replyFormData.body}
+                         onChange={e => setReplyFormData(f => ({ ...f, body: e.target.value }))}
+                         rows={6}
+                         className="text-sm"
+                       />
+                     </div>
+                     <div className="flex gap-2">
+                       <Button
+                         onClick={handleSendReply}
+                         disabled={sending}
+                         className="flex-1"
+                         style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+                       >
+                         {sending ? "Sending..." : "Send Reply"}
+                       </Button>
+                       <Button
+                         onClick={() => {
+                           setReplyingTo(null);
+                           setReplyMode(null);
+                           setReplyFormData({ to: "", cc: "", subject: "", body: "" });
+                         }}
+                         variant="outline"
+                         className="flex-1"
+                         style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                       >
+                         Cancel
+                       </Button>
+                     </div>
+                   </div>
+                 )}
+               </div>
+             );
+           })
           )}
         </div>
       )}
