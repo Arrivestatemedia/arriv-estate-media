@@ -65,7 +65,8 @@ export default function AdminSalesSignup() {
   });
 
   const handleEditSave = () => {
-    updateMutation.mutate({ id: editingMember.id, data: editData });
+    const { password, ...dataWithoutPassword } = editData;
+    updateMutation.mutate({ id: editingMember.id, data: dataWithoutPassword });
   };
 
   const changePasswordMutation = useMutation({
