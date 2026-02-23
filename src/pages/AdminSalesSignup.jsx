@@ -224,6 +224,18 @@ export default function AdminSalesSignup() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => {
+                          const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${import.meta.env.VITE_SLACK_CLIENT_ID}&scope=chat:write,channels:read,users:read,users:read.email&state=${member.id}`;
+                          window.open(slackAuthUrl, '_blank');
+                        }}
+                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                        title="Authorize personal Slack account"
+                      >
+                        <Slack className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => { setEditingMember(member); setEditData({ full_name: member.full_name, email: member.email, phone_number: member.phone_number || "", company_email: member.company_email || "", twilio_phone_number: member.twilio_phone_number || "", is_active: member.is_active }); }}
                         className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                       >
