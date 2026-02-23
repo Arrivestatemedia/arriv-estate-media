@@ -83,9 +83,11 @@ Deno.serve(async (req) => {
   <Say>No sales representatives are available. Please try again later.</Say>
 </Response>`;
         } else {
+          // Identity must match what generateTwilioToken sets: sales_rep_{id_with_hyphens_replaced_by_underscores}
           let dialXml = '<Dial timeout="30">';
           for (const member of activeMembers) {
-            dialXml += `<Client>${member.id}</Client>`;
+            const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
+            dialXml += `<Client>${identity}</Client>`;
           }
           dialXml += '</Dial>';
           twiml = `<?xml version="1.0" encoding="UTF-8"?>
