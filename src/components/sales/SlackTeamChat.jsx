@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Loader2 } from 'lucide-react';
+import SlackAuth from './SlackAuth';
 
 export default function SlackTeamChat() {
     const [salesMemberId, setSalesMemberId] = useState('');
@@ -14,6 +15,7 @@ export default function SlackTeamChat() {
     const [sending, setSending] = useState(false);
     const [error, setError] = useState('');
     const [sentMessages, setSentMessages] = useState([]);
+    const [isAuthed, setIsAuthed] = useState(false);
 
     useEffect(() => {
         const getSalesMembers = async () => {
