@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { contactEmails } = await req.json();
+    const { contactEmails, toEmail } = await req.json();
 
     if (!contactEmails || contactEmails.length === 0) {
       return Response.json({ threads: [] });
@@ -11,14 +11,16 @@ Deno.serve(async (req) => {
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-    // Build a Gmail search query: emails FROM any of the contact addresses
+    // Build a Gmail search query: emails FROM any of the contact addresses TO the sales rep's email
     const fromQuery = contactEmails
       .filter(Boolean)
       .map(e => `from:${e}`)
       .join(' OR ');
+    
+    const query = toEmail ? `(${fromQuery}) to:${toEmail}` : fromQuery;
 
     const searchRes = await fetch(
-      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(fromQuery)}&maxResults=30`,
+      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=30`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
