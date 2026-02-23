@@ -99,6 +99,23 @@ Deno.serve(async (req) => {
       body: JSON.stringify(engagementBody)
     });
 
+    // Log to ActivityLog entity so it shows up in the Activity Log
+    if (salesMemberId) {
+      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+      const member = members[0];
+      await base44.asServiceRole.entities.ActivityLog.create({
+        activity_type: 'email',
+        contact_email: contactEmail || to,
+        contact_name: contactName || null,
+        company_name: companyName || null,
+        activity_date: new Date().toISOString(),
+        notes: `Subject: ${subject}\n\n${body}`,
+        hubspot_synced: true,
+        sales_member_id: salesMemberId,
+        sales_member_email: member?.email || null,
+      });
+    }
+
     return Response.json({ success: true, message: 'Email sent successfully' });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
