@@ -332,6 +332,10 @@ export default function HubSpotActivityLog() {
           </Card>
         )}
 
+        {activeTab === "mycontacts" && (
+          <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
+        )}
+
         {activeTab === "activity" && (
           <>
             {upcomingActivities.length > 0 && (
