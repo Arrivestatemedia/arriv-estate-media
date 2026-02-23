@@ -188,20 +188,36 @@ export default function AdminSalesSignup() {
                         {member.phone_number && (
                           <p className="text-sm text-gray-600">{member.phone_number}</p>
                         )}
+                        {member.company_email && (
+                          <p className="text-sm text-gray-500">From: {member.company_email}</p>
+                        )}
+                        {member.twilio_phone_number && (
+                          <p className="text-sm text-gray-500">Twilio: {member.twilio_phone_number}</p>
+                        )}
                         <Badge className={`mt-2 ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {member.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(member.id)}
-                      disabled={deleteMutation.isPending}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setEditingMember(member); setEditData({ full_name: member.full_name, email: member.email, phone_number: member.phone_number || "", company_email: member.company_email || "", twilio_phone_number: member.twilio_phone_number || "", is_active: member.is_active }); }}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteMutation.mutate(member.id)}
+                        disabled={deleteMutation.isPending}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
