@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
 import HubSpotContactSearch from "@/components/sales/HubSpotContactSearch";
+import MyContacts from "@/components/sales/MyContacts";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
