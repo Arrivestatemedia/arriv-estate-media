@@ -72,6 +72,32 @@ export default function AdminSalesRepActivity() {
     };
   };
 
+  // Derive contacts per rep from activities
+  const getContactsByRep = (repEmail) => {
+    const repActivities = getActivitiesByRep(repEmail);
+    const map = {};
+    repActivities.forEach(a => {
+      const key = a.contact_email || a.contact_name;
+      if (!key) return;
+      if (!map[key]) {
+        map[key] = {
+          email: a.contact_email,
+          name: a.contact_name,
+          company: a.company_name,
+          activities: []
+        };
+      }
+      map[key].activities.push(a);
+    });
+    return Object.values(map).sort((a, b) => {
+      const aDate = a.activities[0]?.activity_date;
+      const bDate = b.activities[0]?.activity_date;
+      return new Date(bDate) - new Date(aDate);
+    });
+  };
+
+  const [detailTab, setDetailTab] = useState("activity"); // "activity" | "contacts"
+
   if (!user) {
     return <div className="p-4">Loading...</div>;
   }
@@ -92,7 +118,7 @@ export default function AdminSalesRepActivity() {
                 return (
                   <button
                     key={rep.id}
-                    onClick={() => setSelectedRep(rep)}
+                    onClick={() => { setSelectedRep(rep); setDetailTab("activity"); }}
                     className="w-full text-left p-4 rounded-lg border-2 transition"
                     style={{
                       backgroundColor: isSelected ? 'rgba(184, 149, 106, 0.1)' : '#FFFFFF',
@@ -115,16 +141,17 @@ export default function AdminSalesRepActivity() {
           <div className="lg:col-span-2">
             {selectedRep ? (
               <div>
-                <div className="mb-6">
-                  <h2 className="text-lg font-semibold mb-2" style={{ color: '#1A1A1A' }}>{selectedRep.full_name}</h2>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold mb-3" style={{ color: '#1A1A1A' }}>{selectedRep.full_name}</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                     {(() => {
                       const stats = getRepStats(selectedRep.email);
+                      const contacts = getContactsByRep(selectedRep.email);
                       return [
                         { label: 'Total Activities', value: stats.total },
-                        { label: 'Calls', value: stats.calls },
+                        { label: 'Contacts', value: contacts.length },
                         { label: 'Emails', value: stats.emails },
-                        { label: 'Meetings', value: stats.meetings }
+                        { label: 'Calls', value: stats.calls }
                       ].map((stat) => (
                         <Card key={stat.label}>
                           <CardContent className="pt-6">
@@ -135,39 +162,103 @@ export default function AdminSalesRepActivity() {
                       ));
                     })()}
                   </div>
+
+                  {/* Sub-tabs */}
+                  <div className="flex gap-1 border-b mb-4" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                    {[
+                      { id: "activity", label: "Recent Activity", icon: <Calendar className="w-4 h-4" /> },
+                      { id: "contacts", label: "Contacts", icon: <Users className="w-4 h-4" /> }
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setDetailTab(t.id)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition"
+                        style={{ color: detailTab === t.id ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: detailTab === t.id ? '#B8956A' : 'transparent' }}
+                      >
+                        {t.icon} {t.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <h3 className="text-lg font-semibold mb-4" style={{ color: '#1A1A1A' }}>Recent Activity</h3>
-                <div className="space-y-3">
-                  {getActivitiesByRep(selectedRep.email).slice(0, 10).map((activity) => (
-                    <button
-                      key={activity.id}
-                      onClick={() => setSelectedActivity(activity)}
-                      className="w-full text-left hover:shadow-md transition"
-                    >
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start gap-3">
-                            <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
-                              {activityIcons[activity.activity_type]}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
-                                <span className="text-xs" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                                  {format(new Date(activity.activity_date), "MMM d, h:mm a")}
-                                </span>
+                {/* Activity tab */}
+                {detailTab === "activity" && (
+                  <div className="space-y-3">
+                    {getActivitiesByRep(selectedRep.email).slice(0, 20).map((activity) => (
+                      <button
+                        key={activity.id}
+                        onClick={() => setSelectedActivity(activity)}
+                        className="w-full text-left hover:shadow-md transition"
+                      >
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex items-start gap-3">
+                              <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
+                                {activityIcons[activity.activity_type]}
                               </div>
-                              <p className="font-medium" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                              {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                              <p className="text-sm mt-2 line-clamp-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+                                  <span className="text-xs" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                                    {format(new Date(activity.activity_date), "MMM d, h:mm a")}
+                                  </span>
+                                </div>
+                                <p className="font-medium" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                                {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                                <p className="text-sm mt-2 line-clamp-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </button>
+                    ))}
+                    {getActivitiesByRep(selectedRep.email).length === 0 && (
+                      <Card><CardContent className="pt-6 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>No activities yet</CardContent></Card>
+                    )}
+                  </div>
+                )}
+
+                {/* Contacts tab */}
+                {detailTab === "contacts" && (
+                  <div className="space-y-3">
+                    {getContactsByRep(selectedRep.email).map((contact, i) => (
+                      <Card key={i}>
+                        <CardContent className="pt-4 pb-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-medium" style={{ color: '#1A1A1A' }}>{contact.name || "(No name)"}</p>
+                              {contact.email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{contact.email}</p>}
+                              {contact.company && <p className="text-xs mt-0.5" style={{ color: 'rgba(26,26,26,0.5)' }}>{contact.company}</p>}
+                            </div>
+                            <div className="flex gap-1 flex-wrap justify-end">
+                              {contact.activities.filter(a => a.activity_type === 'call').length > 0 && (
+                                <Badge variant="outline" className="gap-1 text-xs">
+                                  <Phone className="w-3 h-3" /> {contact.activities.filter(a => a.activity_type === 'call').length}
+                                </Badge>
+                              )}
+                              {contact.activities.filter(a => a.activity_type === 'email').length > 0 && (
+                                <Badge variant="outline" className="gap-1 text-xs">
+                                  <Mail className="w-3 h-3" /> {contact.activities.filter(a => a.activity_type === 'email').length}
+                                </Badge>
+                              )}
+                              {contact.activities.filter(a => a.activity_type === 'meeting').length > 0 && (
+                                <Badge variant="outline" className="gap-1 text-xs">
+                                  <Calendar className="w-3 h-3" /> {contact.activities.filter(a => a.activity_type === 'meeting').length}
+                                </Badge>
+                              )}
                             </div>
                           </div>
+                          <p className="text-xs mt-2" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                            Last activity: {contact.activities[0]?.activity_date ? format(new Date(contact.activities[0].activity_date), "MMM d, yyyy") : "—"}
+                          </p>
                         </CardContent>
                       </Card>
-                    </button>
-                  ))}
-                </div>
+                    ))}
+                    {getContactsByRep(selectedRep.email).length === 0 && (
+                      <Card><CardContent className="pt-6 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>No contacts yet</CardContent></Card>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <Card>
