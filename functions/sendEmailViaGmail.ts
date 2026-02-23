@@ -9,13 +9,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { to, subject, body, contactEmail, fromEmail, fromName } = await req.json();
+    const { to, subject, body, contactEmail, fromEmail, fromName, salesMemberId, contactName, companyName } = await req.json();
     
     if (!to || !subject || !body) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Send email via Gmail
+    // Send email via Gmail (uses the authorized Gmail account; fromEmail must be a verified Send As alias)
     const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
     const fromHeader = fromEmail
