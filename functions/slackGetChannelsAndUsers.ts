@@ -15,21 +15,13 @@ Deno.serve(async (req) => {
             }, { status: 401 });
         }
 
-        const [channelsRes, usersRes] = await Promise.all([
-            fetch('https://slack.com/api/conversations.list?exclude_archived=true&limit=50', {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                },
-            }),
-            fetch('https://slack.com/api/users.list?limit=200', {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                },
-            }),
-        ]);
+        const channelsRes = await fetch('https://slack.com/api/conversations.list?exclude_archived=true&limit=50', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
 
         const channelsData = await channelsRes.json();
-        const usersData = await usersRes.json();
 
         if (!channelsData.ok) {
             return Response.json({ 
@@ -40,7 +32,6 @@ Deno.serve(async (req) => {
         return Response.json({
             success: true,
             channels: channelsData.channels || [],
-            users: usersData.ok ? (usersData.members || []) : [],
         });
     } catch (error) {
         console.error('Function error:', error);
