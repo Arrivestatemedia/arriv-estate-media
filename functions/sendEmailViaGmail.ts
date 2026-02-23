@@ -15,32 +15,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Get sales member's Gmail token if available
-    let gmailAccessToken;
+    // Get Gmail access token from app connector
+    const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+    
     let sendFromEmail = fromEmail;
-
-    if (salesMemberId) {
-      const member = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
-      if (member.length > 0 && member[0].gmail_access_token) {
-        gmailAccessToken = member[0].gmail_access_token;
-        // Use their company email or actual email
-        sendFromEmail = member[0].company_email || member[0].email;
-      }
-    }
-
-    // Fallback to app-level Gmail token if member doesn't have one
-    if (!gmailAccessToken) {
-      gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-      
-      if (!sendFromEmail) {
-        const profileResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/profile', {
-          headers: {
-            'Authorization': `Bearer ${gmailAccessToken}`
-          }
-        });
-        const profile = await profileResponse.json();
-        sendFromEmail = profile.emailAddress;
-      }
+    if (!sendFromEmail) {
+      const profileResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/profile', {
+        headers: {
+          'Authorization': `Bearer ${gmailAccessToken}`
+        }
+      });
+      const profile = await profileResponse.json();
+      sendFromEmail = profile.emailAddress;
     }
 
     const fromHeader = fromName
