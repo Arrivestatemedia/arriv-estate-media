@@ -37,28 +37,38 @@ const FIELDS = [
 
 const NEW_CONTACT_DEFAULTS = { firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "" };
 
-export default function ContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [expandedId, setExpandedId] = useState(null);
-  const [editFields, setEditFields] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [savedId, setSavedId] = useState(null);
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newContact, setNewContact] = useState(NEW_CONTACT_DEFAULTS);
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [createdSuccess, setCreatedSuccess] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [deleting, setDeleting] = useState(false);
+export default function ContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm, prefilledData }) {
+   const [query, setQuery] = useState("");
+   const [results, setResults] = useState([]);
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState("");
+   const [expandedId, setExpandedId] = useState(null);
+   const [editFields, setEditFields] = useState({});
+   const [saving, setSaving] = useState(false);
+   const [savedId, setSavedId] = useState(null);
+   const [showNewForm, setShowNewForm] = useState(false);
+   const [newContact, setNewContact] = useState(NEW_CONTACT_DEFAULTS);
+   const [creatingNew, setCreatingNew] = useState(false);
+   const [createdSuccess, setCreatedSuccess] = useState(false);
+   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+   const [deleting, setDeleting] = useState(false);
 
-  React.useEffect(() => {
-    if (openNewContactForm) {
-      setShowNewForm(true);
-      setOpenNewContactForm(false);
-    }
-  }, [openNewContactForm, setOpenNewContactForm]);
+   React.useEffect(() => {
+     if (openNewContactForm) {
+       setShowNewForm(true);
+       setOpenNewContactForm(false);
+       if (prefilledData) {
+         setNewContact(prev => ({
+           ...prev,
+           firstname: prefilledData.firstName || '',
+           lastname: prefilledData.lastName || '',
+           email: prefilledData.email || '',
+           phone: prefilledData.phone || '',
+           company: prefilledData.company || ''
+         }));
+       }
+     }
+   }, [openNewContactForm, setOpenNewContactForm, prefilledData]);
 
   const handleDelete = async (contactId) => {
     setDeleting(true);
