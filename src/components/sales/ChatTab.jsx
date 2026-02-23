@@ -1,0 +1,36 @@
+import React, { useState } from "react";
+import ChatSidebar from "./ChatSidebar";
+import ChatWindow from "./ChatWindow";
+
+export default function ChatTab({ currentUserId, currentUserName }) {
+  const [selectedChat, setSelectedChat] = useState(null);
+
+  const handleSelectChat = (type, id, name) => {
+    setSelectedChat({ type, id, name });
+  };
+
+  return (
+    <div className="flex h-full bg-gray-50">
+      <ChatSidebar
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
+        onSelectChat={handleSelectChat}
+      />
+      <div className="flex-1">
+        {selectedChat ? (
+          <ChatWindow
+            chatType={selectedChat.type}
+            chatId={selectedChat.id}
+            chatName={selectedChat.name}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Select a channel or conversation to start
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
