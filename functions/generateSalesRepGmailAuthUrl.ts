@@ -10,16 +10,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const clientId = Deno.env.get('VITE_GOOGLE_CLIENT_ID');
-    const appDomain = Deno.env.get('BASE44_APP_DOMAIN');
-    const redirectUri = `${appDomain}/SalesRepGmailAuthCallback`;
+    // Get Gmail access token using the app connector
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
     
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly');
-    const state = btoa(JSON.stringify({ memberId, timestamp: Date.now() }));
+    // Get Gmail profile to get email address
+    const profileResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/profile', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
     
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&state=${state}`;
+    const profile = await profileResponse.json();
     
-    return Response.json({ authUrl, memberId });
+    // Store the email on the sales rep
+    await base44.asServiceRole.entities.SalesTeamMember.update(memberId, {
+      company_email: profile.emailAddress
+    });
+    
+    return Response.json({ success: true, email: profile.emailAddress });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

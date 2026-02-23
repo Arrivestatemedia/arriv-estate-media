@@ -88,7 +88,6 @@ import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import SalesRepGmailAuthCallback from './pages/SalesRepGmailAuthCallback';
 import __Layout from './Layout.jsx';
 
 
@@ -134,7 +133,6 @@ export const PAGES = {
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "SalesRepGmailAuthCallback": SalesRepGmailAuthCallback,
 }
 
 export const pagesConfig = {

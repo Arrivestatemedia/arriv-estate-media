@@ -80,7 +80,8 @@ export default function AdminSalesSignup() {
   const authorizeGmailMutation = useMutation({
     mutationFn: (memberId) => base44.functions.invoke('generateSalesRepGmailAuthUrl', { memberId }),
     onSuccess: (response) => {
-      window.open(response.data.authUrl, '_blank');
+      queryClient.invalidateQueries({ queryKey: ['salesTeam'] });
+      alert(`Gmail connected: ${response.data.email}`);
     },
     onError: (error) => {
       alert(`Failed: ${error.response?.data?.error || error.message}`);
