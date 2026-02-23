@@ -4,7 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check, Plus, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check, Plus, X, Trash2 } from "lucide-react";
 
 const FIELDS = [
   { key: "firstname", label: "First Name" },
@@ -31,6 +40,8 @@ export default function HubSpotContactSearch({ salesMemberId, openNewContactForm
   const [newContact, setNewContact] = useState(NEW_CONTACT_DEFAULTS);
   const [creatingNew, setCreatingNew] = useState(false);
   const [createdSuccess, setCreatedSuccess] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   React.useEffect(() => {
     if (openNewContactForm) {
@@ -38,6 +49,22 @@ export default function HubSpotContactSearch({ salesMemberId, openNewContactForm
       setOpenNewContactForm(false);
     }
   }, [openNewContactForm, setOpenNewContactForm]);
+
+  const handleDelete = async (contactId) => {
+    setDeleting(true);
+    try {
+      await base44.functions.invoke("deleteHubSpotContact", {
+        contactId,
+        salesMemberId,
+      });
+      setResults(results.filter(c => c.id !== contactId));
+      setDeleteConfirmId(null);
+    } catch (e) {
+      setError("Delete failed: " + e.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleSearch = async () => {
     if (query.trim().length < 2) return;
@@ -237,15 +264,26 @@ export default function HubSpotContactSearch({ salesMemberId, openNewContactForm
                         </div>
                       ))}
                     </div>
-                    <Button
-                      onClick={() => handleSave(contact.id)}
-                      disabled={saving}
-                      className="gap-2"
-                      style={{ backgroundColor: isSaved ? '#22c55e' : '#B8956A', color: '#fff' }}
-                    >
-                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                      {isSaved ? 'Saved!' : 'Save Changes'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleSave(contact.id)}
+                        disabled={saving}
+                        className="gap-2 flex-1"
+                        style={{ backgroundColor: isSaved ? '#22c55e' : '#B8956A', color: '#fff' }}
+                      >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                        {isSaved ? 'Saved!' : 'Save Changes'}
+                      </Button>
+                      <Button
+                        onClick={() => setDeleteConfirmId(contact.id)}
+                        variant="outline"
+                        className="gap-2"
+                        style={{ borderColor: '#dc2626', color: '#dc2626' }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -253,6 +291,28 @@ export default function HubSpotContactSearch({ salesMemberId, openNewContactForm
           );
         })}
       </div>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this contact from HubSpot? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-2 justify-end">
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete(deleteConfirmId)}
+              disabled={deleting}
+              style={{ backgroundColor: '#dc2626' }}
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
