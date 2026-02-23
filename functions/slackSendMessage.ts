@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
         }
 
         // Format message with sender attribution
-        const formattedText = `*From: ${user.email}*\n${text}`;
+        const formattedText = `*From: ${user.full_name}*\n${text}`;
 
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('slack');
 
