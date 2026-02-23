@@ -14,6 +14,7 @@ import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
 import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
+import SlackTeamChat from "@/components/sales/SlackTeamChat";
 import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function HubSpotActivityLog() {
