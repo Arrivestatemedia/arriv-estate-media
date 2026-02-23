@@ -18,14 +18,24 @@ Deno.serve(async (req) => {
     // Send email via Gmail (uses the authorized Gmail account; fromEmail must be a verified Send As alias)
     const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-    const fromHeader = fromEmail
-      ? (fromName ? `${fromName} <${fromEmail}>` : fromEmail)
-      : undefined;
+    // Get Gmail profile to use verified sending address
+    const profileResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/profile', {
+      headers: {
+        'Authorization': `Bearer ${gmailAccessToken}`
+      }
+    });
+    const profile = await profileResponse.json();
+    const verifiedEmail = profile.emailAddress;
+
+    // Use the verified email from Gmail account (ignoring fromEmail parameter for now)
+    const fromHeader = fromName
+      ? `${fromName} <${verifiedEmail}>`
+      : verifiedEmail;
 
     const emailLines = [
       `To: ${to}`,
       `Subject: ${subject}`,
-      ...(fromHeader ? [`From: ${fromHeader}`] : []),
+      `From: ${fromHeader}`,
       `Content-Type: text/plain; charset=utf-8`,
       '',
       body
