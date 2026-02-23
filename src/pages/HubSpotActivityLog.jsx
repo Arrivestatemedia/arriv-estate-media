@@ -180,7 +180,7 @@ export default function HubSpotActivityLog() {
             <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log activities and send emails</p>
           </div>
           <div className="flex gap-2 items-center">
-          {user?.type === 'sales' && (
+            {user?.type === 'sales' && (
             <Button variant="outline" size="sm" onClick={() => { setShowPasswordModal(true); setPasswordMsg(null); }}>
               Change Password
             </Button>
