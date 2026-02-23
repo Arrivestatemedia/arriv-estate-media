@@ -205,7 +205,12 @@ export default function AdminSalesSignup() {
                         {member.twilio_phone_number && (
                           <p className="text-sm text-gray-500">Twilio: {member.twilio_phone_number}</p>
                         )}
-                        <Badge className={`mt-2 ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {member.gmail_access_token ? (
+                          <Badge className="mt-2 bg-blue-100 text-blue-800">Gmail Authorized</Badge>
+                        ) : (
+                          <Badge className="mt-2 bg-yellow-100 text-yellow-800">Gmail Not Set</Badge>
+                        )}
+                        <Badge className={`mt-2 ml-2 ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {member.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
@@ -214,7 +219,7 @@ export default function AdminSalesSignup() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => { setEditingMember(member); setEditData({ full_name: member.full_name, email: member.email, phone_number: member.phone_number || "", company_email: member.company_email || "", twilio_phone_number: member.twilio_phone_number || "", is_active: member.is_active }); }}
+                        onClick={() => { setEditingMember(member); setEditData({ full_name: member.full_name, email: member.email, phone_number: member.phone_number || "", company_email: member.company_email || "", gmail_access_token: member.gmail_access_token || "", twilio_phone_number: member.twilio_phone_number || "", is_active: member.is_active }); }}
                         className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                       >
                         <Pencil className="w-4 h-4" />
@@ -259,6 +264,11 @@ export default function AdminSalesSignup() {
             <div>
               <label className="block text-sm font-medium mb-1">Company Email (Send As)</label>
               <Input type="email" placeholder="john@arriv.com" value={editData.company_email || ""} onChange={(e) => setEditData({...editData, company_email: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Gmail Access Token</label>
+              <Input type="password" placeholder="Paste OAuth access token here" value={editData.gmail_access_token || ""} onChange={(e) => setEditData({...editData, gmail_access_token: e.target.value})} />
+              <p className="text-xs text-gray-500 mt-1">Optional: sales member's Gmail OAuth token for sending from their account</p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Twilio Phone Number</label>
