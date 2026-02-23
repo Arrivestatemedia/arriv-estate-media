@@ -67,7 +67,26 @@ export default function HubSpotActivityLog() {
     queryKey: ['activities', user?.email],
     queryFn: async () => {
       const allActivities = await base44.entities.ActivityLog.list('-activity_date', 200);
-      return allActivities.filter(a => a.sales_member_email === user?.email);
+      const userActivities = allActivities.filter(a => a.sales_member_email === user?.email);
+      
+      // Fetch call logs associated with the sales rep's Twilio number
+      const smsConversations = await base44.entities.SmsConversation.list('-last_message_at', 200);
+      const userConversations = smsConversations.filter(c => c.sales_member_id === user?.id);
+      
+      // Convert conversations to activity format
+      const callActivities = userConversations.map(conv => ({
+        id: `call_${conv.id}`,
+        activity_type: 'call',
+        contact_name: conv.contact_name || conv.from_number,
+        contact_phone: conv.from_number,
+        activity_date: conv.last_message_at,
+        notes: `Call with ${conv.contact_name || conv.from_number}`,
+        sales_member_email: user?.email,
+        sales_member_id: user?.id,
+        duration_minutes: 0
+      }));
+      
+      return [...userActivities, ...callActivities];
     },
     initialData: [],
     enabled: !!user,
