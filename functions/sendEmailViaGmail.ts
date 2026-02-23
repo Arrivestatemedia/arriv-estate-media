@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { to, subject, body, contactEmail } = await req.json();
+    const { to, subject, body, contactEmail, fromEmail, fromName } = await req.json();
     
     if (!to || !subject || !body) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -17,9 +17,21 @@ Deno.serve(async (req) => {
 
     // Send email via Gmail
     const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-    
-    const emailContent = `Subject: ${subject}\r\nTo: ${to}\r\n\r\n${body}`;
-    const encodedEmail = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_');
+
+    const fromHeader = fromEmail
+      ? (fromName ? `${fromName} <${fromEmail}>` : fromEmail)
+      : undefined;
+
+    const emailLines = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      ...(fromHeader ? [`From: ${fromHeader}`] : []),
+      `Content-Type: text/plain; charset=utf-8`,
+      '',
+      body
+    ];
+    const emailContent = emailLines.join('\r\n');
+    const encodedEmail = btoa(unescape(encodeURIComponent(emailContent))).replace(/\+/g, '-').replace(/\//g, '_');
 
     const gmailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
