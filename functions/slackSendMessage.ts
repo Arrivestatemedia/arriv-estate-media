@@ -15,6 +15,9 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Missing channelId or text' }, { status: 400 });
         }
 
+        // Format message with sender attribution
+        const formattedText = `*From: ${user.email}*\n${text}`;
+
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('slack');
 
         const response = await fetch('https://slack.com/api/chat.postMessage', {
@@ -25,7 +28,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
                 channel: channelId,
-                text: text,
+                text: formattedText,
             }),
         });
 
