@@ -499,63 +499,15 @@ export default function IphoneDialer({ salesMemberId }) {
         )}
 
         {callState === CALL_STATES.ENDED && (
-          <div className="p-4 space-y-4 bg-white">
-            <div className="flex items-center gap-2 mb-4">
-              <PhoneOff className="w-4 h-4" style={{ color: '#B8956A' }} />
-              <span className="font-medium" style={{ color: '#1A1A1A' }}>
-                Call ended — {formatDuration(callDuration)}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Contact Name *</label>
-                <Input
-                  placeholder="Jane Smith"
-                  value={contactName}
-                  onChange={(e) => setContactName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Company</label>
-                <Input
-                  placeholder="Acme Realty"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Notes</label>
-              <Textarea
-                placeholder="What was discussed?"
-                value={callNotes}
-                onChange={(e) => setCallNotes(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setCallState(CALL_STATES.IDLE)}
-                variant="outline"
-                className="flex-1"
-              >
-                Skip
-              </Button>
-              <Button
-                onClick={logCall}
-                disabled={!contactName.trim()}
-                className="flex-1 gap-2"
-                style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-              >
-                <Check className="w-4 h-4" />
-                Log Call
-              </Button>
-            </div>
-          </div>
-        )}
+           <div className="p-4 text-center">
+             <Check className="w-8 h-8 mx-auto mb-2" style={{ color: '#22c55e' }} />
+             <p className="font-medium" style={{ color: '#1A1A1A' }}>Call logged successfully</p>
+             <p className="text-sm mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{formatDuration(callDuration)}</p>
+             <Button onClick={() => setCallState(CALL_STATES.IDLE)} className="w-full mt-4">
+               Done
+             </Button>
+           </div>
+         )}
 
         {activeTab === TABS.KEYPAD && (
           <div className="p-4 space-y-4">
