@@ -499,6 +499,22 @@ export default function IphoneDialer({ salesMemberId }) {
 
                     {isExpanded && (
                       <div className="p-4 bg-gray-50 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs font-medium" style={{ color: 'rgba(26,26,26,0.6)' }}>Date & Time</p>
+                            <p style={{ color: '#1A1A1A' }}>{format(new Date(log.activity_date), 'MMM d, yyyy h:mm a')}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium" style={{ color: 'rgba(26,26,26,0.6)' }}>Duration</p>
+                            <p style={{ color: '#1A1A1A' }}>{log.duration_minutes || 0} min</p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-medium" style={{ color: 'rgba(26,26,26,0.6)' }}>Direction</p>
+                          <p style={{ color: '#1A1A1A' }}>Outgoing</p>
+                        </div>
+
                         {log.contact_email && (
                           <div>
                             <p className="text-xs font-medium" style={{ color: 'rgba(26,26,26,0.6)' }}>Email</p>
