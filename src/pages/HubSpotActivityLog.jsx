@@ -24,6 +24,7 @@ export default function HubSpotActivityLog() {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [hubspotContact, setHubspotContact] = useState(null);
   const [contactNotes, setContactNotes] = useState("");
+  const [openNewContactForm, setOpenNewContactForm] = useState(false);
   const [passwordData, setPasswordData] = useState({ current: "", newPw: "", confirm: "" });
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -449,7 +450,11 @@ export default function HubSpotActivityLog() {
         {activeTab === "hubspot" && (
           <Card style={{ backgroundColor: '#FFFFFF' }}>
             <CardContent className="pt-6">
-              <HubSpotContactSearch salesMemberId={user?.id} />
+              <HubSpotContactSearch 
+                salesMemberId={user?.id} 
+                openNewContactForm={openNewContactForm}
+                setOpenNewContactForm={setOpenNewContactForm}
+              />
             </CardContent>
           </Card>
         )}
@@ -624,7 +629,8 @@ export default function HubSpotActivityLog() {
                     size="sm"
                     className="gap-2"
                     onClick={() => {
-                      setActiveTab("mycontacts");
+                      setActiveTab("hubspot");
+                      setOpenNewContactForm(true);
                       setSelectedActivity(null);
                     }}
                   >
