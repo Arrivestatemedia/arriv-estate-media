@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     authUrl.searchParams.append('response_type', 'code');
     authUrl.searchParams.append('scope', 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly');
     authUrl.searchParams.append('access_type', 'offline');
-    authUrl.searchParams.append('prompt', 'consent');
+    authUrl.searchParams.append('prompt', 'select_account consent');
 
     return Response.json({ authUrl: authUrl.toString() });
   } catch (error) {
