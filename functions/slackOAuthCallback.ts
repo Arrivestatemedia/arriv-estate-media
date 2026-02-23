@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     });
 
     // Redirect back to admin page
-    return Response.redirect(`${Deno.env.get('BASE44_APP_DOMAIN')}/AdminSalesSignup?slack_connected=true`, 302);
+    return Response.redirect('https://app.arrivestatemedia.com/AdminSalesSignup?slack_connected=true', 302);
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
