@@ -225,6 +225,47 @@ export default function AdminSalesSignup() {
           )}
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Sales Member</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Full Name</label>
+              <Input value={editData.full_name || ""} onChange={(e) => setEditData({...editData, full_name: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Login Email</label>
+              <Input type="email" value={editData.email || ""} onChange={(e) => setEditData({...editData, email: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Phone Number</label>
+              <Input value={editData.phone_number || ""} onChange={(e) => setEditData({...editData, phone_number: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Company Email (Send As)</label>
+              <Input type="email" placeholder="john@arriv.com" value={editData.company_email || ""} onChange={(e) => setEditData({...editData, company_email: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Twilio Phone Number</label>
+              <Input placeholder="+15551234567" value={editData.twilio_phone_number || ""} onChange={(e) => setEditData({...editData, twilio_phone_number: e.target.value})} />
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="is_active" checked={!!editData.is_active} onChange={(e) => setEditData({...editData, is_active: e.target.checked})} />
+              <label htmlFor="is_active" className="text-sm font-medium">Active</label>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleEditSave} disabled={updateMutation.isPending} className="flex-1">
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button variant="outline" onClick={() => setEditingMember(null)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
