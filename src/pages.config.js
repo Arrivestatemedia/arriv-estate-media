@@ -83,12 +83,12 @@ import PasswordSetup from './pages/PasswordSetup';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicAccountSettings from './pages/PublicAccountSettings';
 import SalesLogin from './pages/SalesLogin';
+import SalesRepGmailAuthCallback from './pages/SalesRepGmailAuthCallback';
 import SignIn from './pages/SignIn';
 import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import SalesRepGmailAuthCallback from './pages/SalesRepGmailAuthCallback';
 import __Layout from './Layout.jsx';
 
 
@@ -129,12 +129,12 @@ export const PAGES = {
     "PrivacyPolicy": PrivacyPolicy,
     "PublicAccountSettings": PublicAccountSettings,
     "SalesLogin": SalesLogin,
+    "SalesRepGmailAuthCallback": SalesRepGmailAuthCallback,
     "SignIn": SignIn,
     "SupraAccess": SupraAccess,
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "SalesRepGmailAuthCallback": SalesRepGmailAuthCallback,
 }
 
 export const pagesConfig = {

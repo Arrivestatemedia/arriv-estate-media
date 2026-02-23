@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function SalesLogin() {
   const navigate = useNavigate();
@@ -68,8 +69,9 @@ export default function SalesLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <div className="flex-1 flex items-center justify-center w-full">
+        <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Sales Team Login</CardTitle>
           <CardDescription>Sign in to access the activity log</CardDescription>
@@ -165,6 +167,8 @@ export default function SalesLogin() {
           </form>
         </CardContent>
       </Card>
+      </div>
+      <PoweredByFooter />
     </div>
   );
 }
