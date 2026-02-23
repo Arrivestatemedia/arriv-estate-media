@@ -77,15 +77,7 @@ export default function AdminSalesSignup() {
     }
   });
 
-  const authorizeGmailMutation = useMutation({
-    mutationFn: (memberId) => base44.functions.invoke('generateSalesRepGmailAuthUrl', { memberId }),
-    onSuccess: (response) => {
-      window.open(response.data.authUrl, '_blank');
-    },
-    onError: (error) => {
-      alert(`Failed: ${error.response?.data?.error || error.message}`);
-    }
-  });
+
 
 
 
@@ -228,16 +220,6 @@ export default function AdminSalesSignup() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => authorizeGmailMutation.mutate(member.id)}
-                        disabled={authorizeGmailMutation.isPending}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                        title="Authorize Gmail"
-                      >
-                        <Mail className="w-4 h-4" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
