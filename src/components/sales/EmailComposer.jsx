@@ -25,6 +25,9 @@ export default function EmailComposer({ salesMemberId }) {
   const [replies, setReplies] = useState([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [expandedReply, setExpandedReply] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyMode, setReplyMode] = useState(null); // "reply" | "replyAll"
+  const [replyFormData, setReplyFormData] = useState({ to: "", cc: "", subject: "", body: "" });
 
   // Load sales member info to get company_email
   useEffect(() => {
