@@ -179,6 +179,12 @@ export default function HubSpotActivityLog() {
             <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>Sales Tools</h1>
             <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Log activities and send emails</p>
           </div>
+          <div className="flex gap-2 items-center">
+          {user?.type === 'sales' && (
+            <Button variant="outline" size="sm" onClick={() => { setShowPasswordModal(true); setPasswordMsg(null); }}>
+              Change Password
+            </Button>
+          )}
           {activeTab === "activity" && (
             <Dialog open={showForm} onOpenChange={setShowForm}>
               <DialogTrigger asChild>
