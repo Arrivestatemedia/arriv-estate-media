@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
 
     const client = twilio(accountSid, authToken);
     const cleanDomain = appDomain.replace(/^https?:\/\//, '');
-    const voiceUrl = `https://${cleanDomain}/api/functions/invoke/twilioVoiceHandler`;
+    const voiceUrl = `https://${cleanDomain}/api/functions/twilioVoiceHandler`;
 
     const app = await client.api.accounts(accountSid).applications(twimlAppSid).update({
       voiceUrl: voiceUrl,
