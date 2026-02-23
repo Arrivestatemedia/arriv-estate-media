@@ -185,7 +185,7 @@ export default function HubSpotActivityLog() {
               Change Password
             </Button>
           )}
-          {activeTab === "activity" && (
+            {activeTab === "activity" && (
             <Dialog open={showForm} onOpenChange={setShowForm}>
               <DialogTrigger asChild>
                 <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
