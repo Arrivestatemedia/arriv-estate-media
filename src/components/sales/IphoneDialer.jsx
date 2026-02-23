@@ -121,12 +121,24 @@ export default function IphoneDialer({ salesMemberId }) {
         return;
       }
 
+      // Request audio permissions
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        console.warn('Audio permission denied or unavailable:', err);
+      }
+
       const { Device } = window.Twilio;
       const twilioDevice = new Device(token, { 
         codecPreferences: ['opus', 'pcmu'], 
         enableRingingState: true,
         closeProtection: false,
-        allowIncomingWhileBusy: false
+        allowIncomingWhileBusy: false,
+        sounds: {
+          incoming: true,
+          outgoing: true,
+          disconnect: true
+        }
       });
 
       twilioDevice.on('registered', () => {
