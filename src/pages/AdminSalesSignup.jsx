@@ -15,6 +15,7 @@ export default function AdminSalesSignup() {
   const [editData, setEditData] = useState({});
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showGmailAuthorizeDialog, setShowGmailAuthorizeDialog] = useState(null);
   const [formData, setFormData] = useState({
     email: "",
     full_name: "",
@@ -79,8 +80,12 @@ export default function AdminSalesSignup() {
 
   const authorizeGmailMutation = useMutation({
     mutationFn: async (memberId) => {
-      const response = await base44.functions.invoke('getSalesGmailAuthUrl', { memberId });
-      window.open(response.data.authUrl, '_blank');
+      const member = salesMembers.find(m => m.id === memberId);
+      if (!member?.company_email) {
+        alert("Please set a company email for this member first");
+        return;
+      }
+      setShowGmailAuthorizeDialog(member);
     },
     onError: () => {
       alert("Failed to initiate Gmail authorization");
@@ -215,10 +220,10 @@ export default function AdminSalesSignup() {
                         {member.twilio_phone_number && (
                           <p className="text-sm text-gray-500">Twilio: {member.twilio_phone_number}</p>
                         )}
-                        {member.gmail_access_token ? (
-                          <Badge className="mt-2 bg-blue-100 text-blue-800">Gmail Authorized</Badge>
+                        {member.company_email ? (
+                          <Badge className="mt-2 bg-blue-100 text-blue-800">Gmail Ready</Badge>
                         ) : (
-                          <Badge className="mt-2 bg-yellow-100 text-yellow-800">Gmail Not Set</Badge>
+                          <Badge className="mt-2 bg-yellow-100 text-yellow-800">Add Email</Badge>
                         )}
                         <Badge className={`mt-2 ml-2 ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {member.is_active ? 'Active' : 'Inactive'}
@@ -226,7 +231,7 @@ export default function AdminSalesSignup() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {!member.gmail_access_token && (
+                      {member.company_email && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -287,11 +292,7 @@ export default function AdminSalesSignup() {
               <label className="block text-sm font-medium mb-1">Company Email (Send As)</label>
               <Input type="email" placeholder="john@arriv.com" value={editData.company_email || ""} onChange={(e) => setEditData({...editData, company_email: e.target.value})} />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Gmail Access Token</label>
-              <Input type="password" placeholder="Paste OAuth access token here" value={editData.gmail_access_token || ""} onChange={(e) => setEditData({...editData, gmail_access_token: e.target.value})} />
-              <p className="text-xs text-gray-500 mt-1">Optional: sales member's Gmail OAuth token for sending from their account</p>
-            </div>
+
             <div>
               <label className="block text-sm font-medium mb-1">Twilio Phone Number</label>
               <Input placeholder="+15551234567" value={editData.twilio_phone_number || ""} onChange={(e) => setEditData({...editData, twilio_phone_number: e.target.value})} />
@@ -334,7 +335,36 @@ export default function AdminSalesSignup() {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+        </Dialog>
+
+        {/* Gmail Authorization Dialog */}
+        <Dialog open={!!showGmailAuthorizeDialog} onOpenChange={(open) => !open && setShowGmailAuthorizeDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Authorize Gmail</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              {showGmailAuthorizeDialog?.full_name} will authorize Gmail to send emails from{' '}
+              <strong>{showGmailAuthorizeDialog?.company_email}</strong>
+            </p>
+            <Button
+              onClick={() => {
+                window.open(base44.connectors.getAuthorizationURL('gmail', {
+                  scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly']
+                }), '_blank');
+                setShowGmailAuthorizeDialog(null);
+              }}
+              className="w-full"
+            >
+              Open Gmail Authorization
+            </Button>
+            <Button variant="outline" onClick={() => setShowGmailAuthorizeDialog(null)} className="w-full">
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+        </Dialog>
+        </div>
+        );
+        }
