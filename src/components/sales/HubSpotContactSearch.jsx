@@ -75,7 +75,7 @@ export default function HubSpotContactSearch({ salesMemberId, openNewContactForm
     try {
       const res = await base44.functions.invoke("searchHubSpotContacts", { query });
       setResults(res.data.contacts || []);
-      if ((res.data.contacts || []).length === 0) setError("No contacts found in HubSpot.");
+      if ((res.data.contacts || []).length === 0) setError("No contacts found.");
     } catch (e) {
       setError("Search failed: " + e.message);
     } finally {

@@ -172,7 +172,7 @@ export default function HubSpotActivityLog() {
     setContactNotes("");
     setHubspotContact(null);
     
-    // Search for HubSpot contact by email or name
+    // Search for contact by email or name
     if (activity.contact_email || activity.contact_name) {
       try {
         const res = await base44.functions.invoke('searchHubSpotContacts', {
@@ -182,7 +182,7 @@ export default function HubSpotActivityLog() {
           setHubspotContact(res.data.contacts[0]);
         }
       } catch (error) {
-        console.error('Error searching HubSpot:', error);
+        console.error('Error searching contact:', error);
       }
     }
   };
