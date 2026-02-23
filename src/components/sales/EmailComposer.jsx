@@ -119,8 +119,7 @@ export default function EmailComposer({ salesMemberId }) {
 
   // From options
   const fromOptions = [];
-  if (salesMember?.company_email) fromOptions.push({ label: `Company — ${salesMember.company_email}`, value: salesMember.company_email });
-  if (salesMember?.email) fromOptions.push({ label: `Login — ${salesMember.email}`, value: salesMember.email });
+  if (salesMember?.company_email) fromOptions.push({ label: salesMember.company_email, value: salesMember.company_email });
 
   return (
     <div className="space-y-4">
