@@ -224,15 +224,20 @@ export default function AdminSalesSignup() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          const clientId = import.meta.env.VITE_SLACK_CLIENT_ID;
-                          if (!clientId) {
-                            alert('Slack Client ID not configured');
-                            return;
+                        onClick={async () => {
+                          try {
+                            const response = await base44.functions.invoke('getSlackClientId', {});
+                            const clientId = response.data.clientId;
+                            if (!clientId) {
+                              alert('Slack Client ID not configured');
+                              return;
+                            }
+                            const redirectUri = `${window.location.origin}/api/slackOAuthCallback`;
+                            const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&scope=chat:write,channels:read,users:read,users:read.email&redirect_uri=${encodeURIComponent(redirectUri)}&state=${member.id}`;
+                            window.open(slackAuthUrl, '_blank');
+                          } catch (err) {
+                            alert('Failed to get Slack Client ID');
                           }
-                          const redirectUri = `${window.location.origin}/api/slackOAuthCallback`;
-                          const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&scope=chat:write,channels:read,users:read,users:read.email&redirect_uri=${encodeURIComponent(redirectUri)}&state=${member.id}`;
-                          window.open(slackAuthUrl, '_blank');
                         }}
                         className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                         title="Authorize personal Slack account"
