@@ -297,7 +297,7 @@ export default function HubSpotContactSearch({ salesMemberId, openNewContactForm
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Contact</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this contact from HubSpot? This action cannot be undone.
+              Are you sure you want to delete this contact? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-2 justify-end">
