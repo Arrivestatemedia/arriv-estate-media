@@ -54,6 +54,18 @@ export default function AdminSalesSignup() {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.SalesTeamMember.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['salesTeam'] });
+      setEditingMember(null);
+    }
+  });
+
+  const handleEditSave = () => {
+    updateMutation.mutate({ id: editingMember.id, data: editData });
+  };
+
   const handleSubmit = () => {
     if (!formData.email || !formData.full_name || !formData.password) {
       alert("Please fill in all required fields");
