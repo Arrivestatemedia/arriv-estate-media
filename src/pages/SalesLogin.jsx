@@ -123,6 +123,45 @@ export default function SalesLogin() {
             >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
+
+            <Dialog open={showForgotModal} onOpenChange={(open) => { setShowForgotModal(open); if (!open) setForgotMsg(null); }}>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                >
+                  Forgot Password?
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Reset Password</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">Enter your email and we'll send you a new password.</p>
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    disabled={forgotLoading}
+                  />
+                  {forgotMsg && (
+                    <p className={`text-sm ${forgotMsg.type === 'error' ? 'text-red-600' : 'text-green-600'}`}>
+                      {forgotMsg.text}
+                    </p>
+                  )}
+                  <Button
+                    onClick={handleForgotPassword}
+                    disabled={forgotLoading}
+                    className="w-full"
+                  >
+                    {forgotLoading ? "Sending..." : "Send Reset Email"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </form>
         </CardContent>
       </Card>
