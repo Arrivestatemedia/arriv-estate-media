@@ -11,6 +11,7 @@ export default function AdminSalesRepActivity() {
   const [user, setUser] = useState(null);
   const [selectedRep, setSelectedRep] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     base44.auth.me().then((authUser) => {
@@ -22,6 +23,14 @@ export default function AdminSalesRepActivity() {
     });
   }, []);
 
+  // Real-time subscription to ActivityLog changes
+  useEffect(() => {
+    const unsubscribe = base44.entities.ActivityLog.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['allActivities'] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
+
   const { data: salesMembers = [] } = useQuery({
     queryKey: ['salesMembers'],
     queryFn: () => base44.entities.SalesTeamMember.list(),
@@ -31,7 +40,8 @@ export default function AdminSalesRepActivity() {
   const { data: activities = [] } = useQuery({
     queryKey: ['allActivities'],
     queryFn: () => base44.entities.ActivityLog.list('-activity_date', 500),
-    enabled: !!user
+    enabled: !!user,
+    refetchInterval: 15000, // also poll every 15s as a fallback
   });
 
   const activityIcons = {
