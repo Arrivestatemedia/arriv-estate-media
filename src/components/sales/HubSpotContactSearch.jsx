@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check } from "lucide-react";
+import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check, Plus, X } from "lucide-react";
 
 const FIELDS = [
   { key: "firstname", label: "First Name" },
