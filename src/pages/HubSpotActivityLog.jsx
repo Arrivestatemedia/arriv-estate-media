@@ -477,6 +477,14 @@ export default function HubSpotActivityLog() {
           <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
         )}
 
+        {activeTab === "slack" && (
+          <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
+            <CardContent className="pt-6">
+              <SlackTeamChat />
+            </CardContent>
+          </Card>
+        )}
+
         {activeTab === "activity" && (
           <>
             {upcomingActivities.length > 0 && (
