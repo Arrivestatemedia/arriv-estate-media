@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
         client_id: Deno.env.get('SLACK_CLIENT_ID'),
         client_secret: Deno.env.get('SLACK_CLIENT_SECRET'),
         code: code,
-        redirect_uri: `${Deno.env.get('BASE44_APP_DOMAIN')}/api/slackOAuthCallback`
+        redirect_uri: 'https://app.arrivestatemedia.com/slackOAuthCallback'
       }).toString()
     });
 
