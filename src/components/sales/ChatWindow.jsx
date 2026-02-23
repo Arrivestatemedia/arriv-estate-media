@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, Search } from "lucide-react";
+import { Send, Search, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
@@ -9,7 +9,23 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window) {
+      if (Notification.permission === "granted") {
+        setNotificationsEnabled(true);
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            setNotificationsEnabled(true);
+          }
+        });
+      }
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,6 +72,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           if (event.data?.channel_id === chatId) {
             if (event.type === "create") {
               setMessages(prev => [...prev, event.data]);
+              // Send notification if from another user
+              if (event.data?.sender_id !== currentUserId && notificationsEnabled) {
+                new Notification(`New message in #${chatName}`, {
+                  body: event.data?.content,
+                  icon: "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png"
+                });
+              }
             }
           }
         })
@@ -64,6 +87,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               (event.data?.sender_id === chatId || event.data?.recipient_id === chatId)) {
             if (event.type === "create") {
               setMessages(prev => [...prev, event.data]);
+              // Send notification if from the other user
+              if (event.data?.sender_id !== currentUserId && notificationsEnabled) {
+                new Notification(`New message from ${event.data?.sender_name}`, {
+                  body: event.data?.content,
+                  icon: "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png"
+                });
+              }
             }
           }
         });
@@ -111,8 +141,14 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="border-b border-gray-200 p-4">
+      <div className="border-b border-gray-200 p-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">{chatType === "channel" ? "#" : ""}{chatName}</h2>
+        {notificationsEnabled && (
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Bell className="w-4 h-4" />
+            Notifications on
+          </div>
+        )}
       </div>
 
       {/* Messages */}
