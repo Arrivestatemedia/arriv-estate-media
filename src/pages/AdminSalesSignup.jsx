@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail } from "lucide-react";
 
 export default function AdminSalesSignup() {
   const [user, setUser] = useState(null);
@@ -74,6 +74,16 @@ export default function AdminSalesSignup() {
     onSuccess: () => {
       setNewPassword("");
       alert("Password updated successfully");
+    }
+  });
+
+  const authorizeGmailMutation = useMutation({
+    mutationFn: async (memberId) => {
+      const response = await base44.functions.invoke('getSalesGmailAuthUrl', { memberId });
+      window.location.href = response.data.authUrl;
+    },
+    onError: () => {
+      alert("Failed to initiate Gmail authorization");
     }
   });
 
@@ -216,6 +226,18 @@ export default function AdminSalesSignup() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      {!member.gmail_access_token && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => authorizeGmailMutation.mutate(member.id)}
+                          disabled={authorizeGmailMutation.isPending}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          title="Authorize Gmail account for sending emails"
+                        >
+                          <Mail className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
