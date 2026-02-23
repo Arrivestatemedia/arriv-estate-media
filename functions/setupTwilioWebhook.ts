@@ -20,7 +20,8 @@ Deno.serve(async (req) => {
     }
 
     // Build the webhook URL for voice calls
-    const voiceUrl = `https://${appDomain}/api/functions/twilioVoiceHandler`;
+    const cleanDomain = appDomain.replace(/^https?:\/\//, '');
+    const voiceUrl = `https://${cleanDomain}/api/functions/invoke/twilioVoiceHandler`;
     
     console.log('Configuring Twilio App:', {
       twimlAppSid,
