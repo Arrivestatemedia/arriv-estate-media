@@ -12,7 +12,7 @@ import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap, MessageSqu
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
-import HubSpotContactSearch from "@/components/sales/HubSpotContactSearch";
+import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
 import PoweredByFooter from "@/components/PoweredByFooter";
 
@@ -410,11 +410,11 @@ export default function HubSpotActivityLog() {
             <span className="flex items-center gap-1"><Phone className="w-4 h-4" />Dialer</span>
           </button>
           <button
-            onClick={() => setActiveTab("hubspot")}
+            onClick={() => setActiveTab("contacts")}
             className="px-4 py-3 font-medium border-b-2 transition"
             style={{
-              color: activeTab === "hubspot" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
-              borderBottomColor: activeTab === "hubspot" ? '#B8956A' : 'transparent'
+              color: activeTab === "contacts" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "contacts" ? '#B8956A' : 'transparent'
             }}
           >
             Contacts
@@ -447,17 +447,17 @@ export default function HubSpotActivityLog() {
           </Card>
         )}
 
-        {activeTab === "hubspot" && (
-          <Card style={{ backgroundColor: '#FFFFFF' }}>
-            <CardContent className="pt-6">
-              <HubSpotContactSearch 
-                salesMemberId={user?.id} 
-                openNewContactForm={openNewContactForm}
-                setOpenNewContactForm={setOpenNewContactForm}
-              />
-            </CardContent>
-          </Card>
-        )}
+        {activeTab === "contacts" && (
+           <Card style={{ backgroundColor: '#FFFFFF' }}>
+             <CardContent className="pt-6">
+               <ContactSearch 
+                 salesMemberId={user?.id} 
+                 openNewContactForm={openNewContactForm}
+                 setOpenNewContactForm={setOpenNewContactForm}
+               />
+             </CardContent>
+           </Card>
+         )}
 
         {activeTab === "mycontacts" && (
           <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
@@ -625,17 +625,17 @@ export default function HubSpotActivityLog() {
                     </Button>
                   )}
                   <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => {
-                      setActiveTab("hubspot");
-                      setOpenNewContactForm(true);
-                      setSelectedActivity(null);
-                    }}
+                   variant="outline" 
+                   size="sm"
+                   className="gap-2"
+                   onClick={() => {
+                     setActiveTab("contacts");
+                     setOpenNewContactForm(true);
+                     setSelectedActivity(null);
+                   }}
                   >
-                    <Plus className="w-4 h-4" />
-                    Add Contact Info
+                   <Plus className="w-4 h-4" />
+                   Add Contact Info
                   </Button>
                 </div>
               </div>

@@ -27,7 +27,7 @@ const FIELDS = [
 
 const NEW_CONTACT_DEFAULTS = { firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "" };
 
-export default function HubSpotContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm }) {
+export default function ContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
