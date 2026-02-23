@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail, Slack } from "lucide-react";
 import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function AdminSalesSignup() {
