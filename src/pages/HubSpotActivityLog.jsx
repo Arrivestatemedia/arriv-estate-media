@@ -296,6 +296,16 @@ export default function HubSpotActivityLog() {
           >
             Search Contacts
           </button>
+          <button
+            onClick={() => setActiveTab("mycontacts")}
+            className="px-4 py-3 font-medium border-b-2 transition"
+            style={{
+              color: activeTab === "mycontacts" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "mycontacts" ? '#B8956A' : 'transparent'
+            }}
+          >
+            My Contacts
+          </button>
         </div>
 
         {activeTab === "email" && (
