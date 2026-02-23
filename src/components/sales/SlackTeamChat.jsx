@@ -88,6 +88,15 @@ export default function SlackTeamChat() {
         );
     }
 
+    if (!isAuthed && salesMemberId) {
+        return (
+            <SlackAuth salesMemberId={salesMemberId} onAuthSuccess={() => {
+                setIsAuthed(true);
+                loadChannelsAndUsers(salesMemberId);
+            }} />
+        );
+    }
+
     return (
         <div className="space-y-4 max-w-2xl">
             <div className="space-y-2">
