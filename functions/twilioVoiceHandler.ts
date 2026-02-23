@@ -1,138 +1,122 @@
-import twilio from 'npm:twilio@5.3.3';
-
 Deno.serve(async (req) => {
-  const errorTwiml = (msg) => new Response(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${msg}</Say></Response>`,
-    { status: 200, headers: { 'Content-Type': 'text/xml' } }
-  );
+  const xmlResponse = (twiml) => new Response(twiml, {
+    status: 200,
+    headers: { 'Content-Type': 'text/xml; charset=utf-8' }
+  });
 
   try {
+    const contentType = req.headers.get('content-type') || '';
     const body = await req.text();
+    console.log('Content-Type:', contentType);
     console.log('RAW BODY:', body);
-    console.log('Content-Type:', req.headers.get('content-type'));
 
-    const params = new URLSearchParams(body);
-    const allParams = {};
-    for (const [k, v] of params.entries()) allParams[k] = v;
-    console.log('Parsed params:', JSON.stringify(allParams));
-
-    const to = params.get('To');
-    const from = params.get('From');
+    // Parse params — Twilio sends form-encoded, but test tool sends JSON
+    let to, from;
+    if (contentType.includes('application/json') || body.trim().startsWith('{')) {
+      try {
+        const json = JSON.parse(body);
+        to = json.To;
+        from = json.From;
+      } catch (_) {}
+    } else {
+      const params = new URLSearchParams(body);
+      to = params.get('To');
+      from = params.get('From');
+      // Log all params for debugging
+      const all = {};
+      for (const [k, v] of params.entries()) all[k] = v;
+      console.log('Form params:', JSON.stringify(all));
+    }
 
     console.log('to:', to, 'from:', from);
 
     if (!to) {
-      console.error('No To param found');
-      return errorTwiml('No destination provided.');
+      console.error('No To param');
+      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>No destination provided.</Say></Response>`);
     }
 
-    let callerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
+    const callerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
     if (!callerId) {
       console.error('TWILIO_CALLING_PHONE_NUMBER not set');
-      return errorTwiml('Configuration error.');
+      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Configuration error.</Say></Response>`);
     }
 
-    // "client:sales_rep_xxx" means this is an outbound call from the browser dialer
+    // Detect outbound: From = "client:sales_rep_xxx"
     const fromIdentity = from?.startsWith('client:') ? from.slice(7) : from;
-    const isOutboundFromDevice = !!fromIdentity?.startsWith('sales_rep_');
+    const isOutbound = !!fromIdentity?.startsWith('sales_rep_');
+    console.log('isOutbound:', isOutbound, 'fromIdentity:', fromIdentity, 'callerId:', callerId);
 
-    console.log('isOutboundFromDevice:', isOutboundFromDevice, 'fromIdentity:', fromIdentity);
-
-    let twiml;
-
-    if (isOutboundFromDevice) {
-      // Outbound: dial the number in To param
-      let formattedNumber = to.trim();
-      if (!formattedNumber.startsWith('+')) {
-        formattedNumber = '+1' + formattedNumber.replace(/\D/g, '');
+    if (isOutbound) {
+      // Format the destination E.164
+      let dest = to.trim();
+      if (!dest.startsWith('+')) {
+        dest = '+1' + dest.replace(/\D/g, '');
       }
-      console.log('Outbound call, callerId:', callerId, 'to:', formattedNumber);
+      console.log('Outbound → dialing:', dest, 'with callerId:', callerId);
 
-      // Try to get per-rep caller ID
-      try {
-        const salesMemberId = fromIdentity.replace('sales_rep_', '').replace(/_/g, '-');
-        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-        const client = twilio(accountSid, authToken);
-        // We can't easily query base44 without auth, so just use default callerId
-        // unless per-rep number is needed — keep using env default for now
-        console.log('Using callerId:', callerId, 'for salesMemberId:', salesMemberId);
-      } catch (err) {
-        console.error('Error in caller ID lookup:', err.message);
-      }
-
-      twiml = `<?xml version="1.0" encoding="UTF-8"?>
+      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" answerOnBridge="true" timeout="30">
-    <Number>${formattedNumber}</Number>
+    <Number>${dest}</Number>
   </Dial>
-</Response>`;
+</Response>`);
 
     } else {
-      // Inbound: ring all active reps via Client
-      console.log('Inbound call from:', from);
+      // Inbound — route to active sales reps via their Client identity
+      console.log('Inbound from:', from);
 
-      try {
-        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-        const client = twilio(accountSid, authToken);
+      const appId = Deno.env.get('BASE44_APP_ID');
+      const serviceToken = Deno.env.get('BASE44_SERVICE_TOKEN');
 
-        // Use Twilio REST API to list workers — but we don't have that.
-        // Instead use Base44 service token directly via fetch
-        const appId = Deno.env.get('BASE44_APP_ID');
-        const serviceToken = Deno.env.get('BASE44_SERVICE_TOKEN');
+      if (!appId || !serviceToken) {
+        console.error('Missing BASE44_APP_ID or BASE44_SERVICE_TOKEN');
+        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Configuration error.</Say></Response>`);
+      }
 
-        const membersRes = await fetch(`https://api.base44.com/api/apps/${appId}/entities/SalesTeamMember/query`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': serviceToken
-          },
-          body: JSON.stringify({ filter: { is_active: true } })
-        });
+      const membersRes = await fetch(`https://api.base44.com/api/apps/${appId}/entities/SalesTeamMember/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': serviceToken
+        },
+        body: JSON.stringify({ filter: { is_active: true } })
+      });
 
-        if (!membersRes.ok) {
-          throw new Error(`Base44 query failed: ${membersRes.status} ${await membersRes.text()}`);
-        }
+      if (!membersRes.ok) {
+        const errText = await membersRes.text();
+        console.error('Base44 query failed:', membersRes.status, errText);
+        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Unable to connect your call.</Say></Response>`);
+      }
 
-        const activeMembers = await membersRes.json();
-        console.log('Active members count:', activeMembers.length);
+      const activeMembers = await membersRes.json();
+      console.log('Active members:', activeMembers.length);
 
-        if (activeMembers.length === 0) {
-          twiml = `<?xml version="1.0" encoding="UTF-8"?>
+      if (activeMembers.length === 0) {
+        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>No sales representatives are available. Please try again later.</Say>
-</Response>`;
-        } else {
-          let dialXml = '<Dial timeout="30">';
-          for (const member of activeMembers) {
-            const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
-            console.log('Routing inbound to identity:', identity);
-            dialXml += `<Client>${identity}</Client>`;
-          }
-          dialXml += '</Dial>';
-          twiml = `<?xml version="1.0" encoding="UTF-8"?>
+</Response>`);
+      }
+
+      let dialXml = '<Dial timeout="30">';
+      for (const member of activeMembers) {
+        const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
+        console.log('Routing to:', identity);
+        dialXml += `<Client>${identity}</Client>`;
+      }
+      dialXml += '</Dial>';
+
+      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   ${dialXml}
-</Response>`;
-        }
-      } catch (err) {
-        console.error('Inbound routing error:', err.message);
-        twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>We are unable to connect your call at this time. Please try again.</Say>
-</Response>`;
-      }
+</Response>`);
     }
 
-    console.log('Returning TwiML:', twiml);
-    return new Response(twiml, {
-      status: 200,
-      headers: { 'Content-Type': 'text/xml' }
-    });
-
   } catch (error) {
-    console.error('FATAL error in twilioVoiceHandler:', error.message, error.stack);
-    return errorTwiml('A system error occurred. Please try again.');
+    console.error('FATAL:', error.message, error.stack);
+    return new Response(
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Say>A system error occurred.</Say></Response>`,
+      { status: 200, headers: { 'Content-Type': 'text/xml; charset=utf-8' } }
+    );
   }
 });
