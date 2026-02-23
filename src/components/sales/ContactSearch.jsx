@@ -104,9 +104,17 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
   const handleSave = async (contactId) => {
     setSaving(true);
     try {
+      // HubSpot expects properties in a flattened format (not wrapped in value objects)
+      const propertiesToSend = {};
+      Object.keys(editFields).forEach(key => {
+        if (editFields[key] || editFields[key] === '') {
+          propertiesToSend[key] = editFields[key];
+        }
+      });
+      
       await base44.functions.invoke("updateHubSpotContact", {
         contactId,
-        properties: editFields,
+        properties: propertiesToSend,
         salesMemberId,
       });
       setSavedId(contactId);
