@@ -454,6 +454,13 @@ export default function HubSpotActivityLog() {
                  salesMemberId={user?.id} 
                  openNewContactForm={openNewContactForm}
                  setOpenNewContactForm={setOpenNewContactForm}
+                 prefilledData={selectedActivity ? {
+                   firstName: selectedActivity.contact_name?.split(' ')[0] || '',
+                   lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
+                   email: selectedActivity.contact_email || '',
+                   phone: selectedActivity.contact_phone || '',
+                   company: selectedActivity.company_name || ''
+                 } : null}
                />
              </CardContent>
            </Card>
@@ -629,9 +636,8 @@ export default function HubSpotActivityLog() {
                    size="sm"
                    className="gap-2"
                    onClick={() => {
-                     setActiveTab("contacts");
                      setOpenNewContactForm(true);
-                     setSelectedActivity(null);
+                     setActiveTab("contacts");
                    }}
                   >
                    <Plus className="w-4 h-4" />
