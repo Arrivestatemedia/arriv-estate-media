@@ -4,18 +4,23 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
+    const { memberId } = await req.json();
     
-    if (!user) {
+    if (!user || user.role !== 'admin') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is a sales team member
+    if (!memberId) {
+      return Response.json({ error: 'memberId required' }, { status: 400 });
+    }
+
+    // Get the sales member
     const salesMember = await base44.asServiceRole.entities.SalesTeamMember.filter(
-      { email: user.email }
+      { id: memberId }
     );
     
     if (salesMember.length === 0) {
-      return Response.json({ error: 'Not a sales team member' }, { status: 403 });
+      return Response.json({ error: 'Sales member not found' }, { status: 404 });
     }
 
     // Get Gmail access token from connector
@@ -32,10 +37,9 @@ Deno.serve(async (req) => {
 
     const profile = await profileResponse.json();
 
-    // Store the Gmail email and access token for this sales rep
-    await base44.asServiceRole.entities.SalesTeamMember.update(salesMember[0].id, {
-      company_email: profile.emailAddress,
-      gmail_authorized: true
+    // Store the Gmail email for this sales rep
+    await base44.asServiceRole.entities.SalesTeamMember.update(memberId, {
+      company_email: profile.emailAddress
     });
 
     return Response.json({ 
