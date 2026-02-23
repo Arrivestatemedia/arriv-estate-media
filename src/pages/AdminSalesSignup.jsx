@@ -225,7 +225,13 @@ export default function AdminSalesSignup() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${import.meta.env.VITE_SLACK_CLIENT_ID}&scope=chat:write,channels:read,users:read,users:read.email&state=${member.id}`;
+                          const clientId = import.meta.env.VITE_SLACK_CLIENT_ID;
+                          if (!clientId) {
+                            alert('Slack Client ID not configured');
+                            return;
+                          }
+                          const redirectUri = `${window.location.origin}/api/slackOAuthCallback`;
+                          const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&scope=chat:write,channels:read,users:read,users:read.email&redirect_uri=${encodeURIComponent(redirectUri)}&state=${member.id}`;
                           window.open(slackAuthUrl, '_blank');
                         }}
                         className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"

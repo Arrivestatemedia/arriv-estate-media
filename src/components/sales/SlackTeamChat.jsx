@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Send, Loader2 } from 'lucide-react';
 
 export default function SlackTeamChat() {
+    const [salesMemberId, setSalesMemberId] = useState('');
     const [channels, setChannels] = useState([]);
     const [selectedChannel, setSelectedChannel] = useState('');
     const [message, setMessage] = useState('');
@@ -15,14 +16,25 @@ export default function SlackTeamChat() {
     const [sentMessages, setSentMessages] = useState([]);
 
     useEffect(() => {
-        loadChannelsAndUsers();
+        const getSalesMembers = async () => {
+            const user = await base44.auth.me();
+            const members = await base44.entities.SalesTeamMember.filter({ email: user.email });
+            if (members.length > 0) {
+                setSalesMemberId(members[0].id);
+                loadChannelsAndUsers(members[0].id);
+            } else {
+                setError('Sales member not found');
+                setLoading(false);
+            }
+        };
+        getSalesMembers();
     }, []);
 
-    const loadChannelsAndUsers = async () => {
+    const loadChannelsAndUsers = async (memberId) => {
         try {
             setLoading(true);
             setError('');
-            const response = await base44.functions.invoke('slackGetChannelsAndUsers', {});
+            const response = await base44.functions.invoke('slackGetChannelsAndUsersPersonal', { salesMemberId: memberId });
             
             if (response.data.channels) {
                 setChannels(response.data.channels);
@@ -31,7 +43,7 @@ export default function SlackTeamChat() {
                 }
             }
         } catch (err) {
-            setError('Failed to load channels. Make sure your Slack workspace is connected.');
+            setError('Slack not authorized. Please authorize your account from the Sales Team page.');
         } finally {
             setLoading(false);
         }
@@ -39,13 +51,14 @@ export default function SlackTeamChat() {
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!message.trim() || !selectedChannel) return;
+        if (!message.trim() || !selectedChannel || !salesMemberId) return;
 
         try {
             setSending(true);
             setError('');
             
-            await base44.functions.invoke('slackSendMessage', {
+            await base44.functions.invoke('slackSendMessagePersonal', {
+                salesMemberId: salesMemberId,
                 channelId: selectedChannel,
                 text: message,
             });
