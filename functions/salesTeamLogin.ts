@@ -2,7 +2,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
     const { email, password } = await req.json();
 
     if (!email || !password) {
@@ -16,6 +15,9 @@ Deno.serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
+    // Create base44 client with service role
+    const base44 = createClientFromRequest(req);
+
     // Find sales team member by email
     const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ email });
 
@@ -26,7 +28,7 @@ Deno.serve(async (req) => {
     const member = members[0];
 
     // Check if member is active
-    if (!member.is_active) {
+    if (member.is_active === false) {
       return Response.json({ error: 'This account is inactive' }, { status: 403 });
     }
 
@@ -44,6 +46,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Sales team login error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: error.message || 'Login failed' }, { status: 500 });
   }
 });
