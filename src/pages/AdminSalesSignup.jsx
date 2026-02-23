@@ -272,7 +272,17 @@ export default function AdminSalesSignup() {
             <div>
               <label className="block text-sm font-medium mb-1">Change Password</label>
               <div className="flex gap-2">
-                <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                <div className="relative flex-1">
+                  <Input
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="New password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowNewPassword(!showNewPassword)}>
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <Button
                   variant="outline"
                   onClick={() => newPassword && changePasswordMutation.mutate({ memberId: editingMember.id, newPassword })}
