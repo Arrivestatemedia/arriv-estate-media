@@ -21,6 +21,13 @@ Deno.serve(async (req) => {
 
     const durationMinutes = Math.ceil((durationSeconds || 0) / 60);
 
+    // Look up the sales member to get their email
+    let salesMemberEmail = '';
+    if (salesMemberId) {
+      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+      if (members[0]) salesMemberEmail = members[0].email;
+    }
+
     // Create ActivityLog record
     const activity = await base44.asServiceRole.entities.ActivityLog.create({
       activity_type: 'call',
@@ -30,7 +37,9 @@ Deno.serve(async (req) => {
       activity_date: new Date().toISOString(),
       notes: notes || `Call to ${toNumber || 'unknown'}${callSid ? ` (SID: ${callSid})` : ''}`,
       duration_minutes: durationMinutes,
-      hubspot_synced: false
+      hubspot_synced: false,
+      sales_member_id: salesMemberId || '',
+      sales_member_email: salesMemberEmail
     });
 
     // Sync to HubSpot
