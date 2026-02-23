@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail, Slack } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail } from "lucide-react";
 import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function AdminSalesSignup() {
@@ -221,29 +221,6 @@ export default function AdminSalesSignup() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            const response = await base44.functions.invoke('getSlackClientId', {});
-                            const clientId = response.data.clientId;
-                            if (!clientId) {
-                              alert('Slack Client ID not configured');
-                              return;
-                            }
-                            const redirectUri = `${window.location.origin}/api/slackOAuthCallback`;
-                            const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&scope=chat:write,channels:read,users:read,users:read.email&redirect_uri=${encodeURIComponent(redirectUri)}&state=${member.id}`;
-                            window.open(slackAuthUrl, '_blank');
-                          } catch (err) {
-                            alert('Failed to get Slack Client ID');
-                          }
-                        }}
-                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                        title="Authorize personal Slack account"
-                      >
-                        <Slack className="w-4 h-4" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"

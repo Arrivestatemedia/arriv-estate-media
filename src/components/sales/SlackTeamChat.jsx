@@ -4,10 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Loader2 } from 'lucide-react';
-import SlackAuth from './SlackAuth';
 
 export default function SlackTeamChat() {
-    const [salesMemberId, setSalesMemberId] = useState('');
     const [channels, setChannels] = useState([]);
     const [selectedChannel, setSelectedChannel] = useState('');
     const [message, setMessage] = useState('');
@@ -15,34 +13,16 @@ export default function SlackTeamChat() {
     const [sending, setSending] = useState(false);
     const [error, setError] = useState('');
     const [sentMessages, setSentMessages] = useState([]);
-    const [isAuthed, setIsAuthed] = useState(false);
 
     useEffect(() => {
-        const getSalesMembers = async () => {
-            const user = await base44.auth.me();
-            const members = await base44.entities.SalesTeamMember.filter({ email: user.email });
-            if (members.length > 0) {
-                setSalesMemberId(members[0].id);
-                if (members[0].slack_token) {
-                    setIsAuthed(true);
-                    loadChannelsAndUsers(members[0].id);
-                } else {
-                    setIsAuthed(false);
-                    setLoading(false);
-                }
-            } else {
-                setError('Sales member not found');
-                setLoading(false);
-            }
-        };
-        getSalesMembers();
+        loadChannelsAndUsers();
     }, []);
 
-    const loadChannelsAndUsers = async (memberId) => {
+    const loadChannelsAndUsers = async () => {
         try {
             setLoading(true);
             setError('');
-            const response = await base44.functions.invoke('slackGetChannelsAndUsersPersonal', { salesMemberId: memberId });
+            const response = await base44.functions.invoke('slackGetChannelsAndUsers', {});
             
             if (response.data.channels) {
                 setChannels(response.data.channels);
@@ -51,7 +31,7 @@ export default function SlackTeamChat() {
                 }
             }
         } catch (err) {
-            setError('Slack not authorized. Please authorize your account from the Sales Team page.');
+            setError('Failed to load channels. Make sure your Slack workspace is connected.');
         } finally {
             setLoading(false);
         }
@@ -59,14 +39,13 @@ export default function SlackTeamChat() {
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!message.trim() || !selectedChannel || !salesMemberId) return;
+        if (!message.trim() || !selectedChannel) return;
 
         try {
             setSending(true);
             setError('');
             
-            await base44.functions.invoke('slackSendMessagePersonal', {
-                salesMemberId: salesMemberId,
+            await base44.functions.invoke('slackSendMessage', {
                 channelId: selectedChannel,
                 text: message,
             });
@@ -85,15 +64,6 @@ export default function SlackTeamChat() {
             <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
             </div>
-        );
-    }
-
-    if (!isAuthed && salesMemberId) {
-        return (
-            <SlackAuth salesMemberId={salesMemberId} onAuthSuccess={() => {
-                setIsAuthed(true);
-                loadChannelsAndUsers(salesMemberId);
-            }} />
         );
     }
 
