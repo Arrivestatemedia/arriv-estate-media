@@ -89,7 +89,6 @@ import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import SlackAuthCallback from './pages/SlackAuthCallback';
 import __Layout from './Layout.jsx';
 
 
@@ -136,7 +135,6 @@ export const PAGES = {
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "SlackAuthCallback": SlackAuthCallback,
 }
 
 export const pagesConfig = {
