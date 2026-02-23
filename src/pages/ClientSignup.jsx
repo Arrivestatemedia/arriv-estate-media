@@ -213,8 +213,8 @@ export default function ClientSignup() {
                   className="mt-0.5 shrink-0"
                 />
                 <span>
-                  <strong>Optional SMS Notifications</strong><br />
-                  By opting in, you agree to receive text messages from Arriv Estate Media LLC regarding the status of your bookings, including but not limited to booking confirmations, scheduling updates, media partner arrival notifications, job completion notices, invoice delivery, and payment reminders. Message and data rates may apply. You may opt out of SMS communications at any time by replying STOP.
+                  I would like to receive optional SMS updates from Arriv Estate Media LLC about my bookings (e.g., confirmations, scheduling updates, arrival notifications, job completion notices, invoices, and payment reminders).<br />
+                  Message & data rates may apply. Reply STOP to opt out at any time.
                 </span>
               </label>
             </div>
