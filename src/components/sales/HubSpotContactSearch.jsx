@@ -120,7 +120,7 @@ export default function HubSpotContactSearch({ salesMemberId }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold mb-1" style={{ color: '#1A1A1A' }}>Search Contacts</h2>
-          <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Find a contact by name, email, or phone and update their info directly in HubSpot.</p>
+          <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Find a contact by name, email, or phone and update their info.</p>
         </div>
         <Button
           onClick={() => { setShowNewForm(v => !v); setError(""); }}
@@ -137,7 +137,7 @@ export default function HubSpotContactSearch({ salesMemberId }) {
       {showNewForm && (
         <Card style={{ borderColor: '#B8956A' }}>
           <CardContent className="pt-4 pb-4 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Create New HubSpot Contact</p>
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Create New Contact</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {FIELDS.map(({ key, label }) => (
                 <div key={key}>
@@ -158,7 +158,7 @@ export default function HubSpotContactSearch({ salesMemberId }) {
               style={{ backgroundColor: createdSuccess ? '#22c55e' : '#B8956A', color: '#fff' }}
             >
               {creatingNew ? <Loader2 className="w-4 h-4 animate-spin" /> : createdSuccess ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              {createdSuccess ? 'Contact Created!' : 'Create in HubSpot'}
+              {createdSuccess ? 'Contact Created!' : 'Create Contact'}
             </Button>
           </CardContent>
         </Card>
@@ -217,7 +217,7 @@ export default function HubSpotContactSearch({ salesMemberId }) {
 
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t space-y-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact Info</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {FIELDS.map(({ key, label }) => (
                         <div key={key}>
@@ -237,7 +237,7 @@ export default function HubSpotContactSearch({ salesMemberId }) {
                       style={{ backgroundColor: isSaved ? '#22c55e' : '#B8956A', color: '#fff' }}
                     >
                       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                      {isSaved ? 'Saved!' : 'Save to HubSpot'}
+                      {isSaved ? 'Saved!' : 'Save Changes'}
                     </Button>
                   </div>
                 )}
