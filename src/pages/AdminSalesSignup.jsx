@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail } from "lucide-react";
 
 export default function AdminSalesSignup() {
   const [user, setUser] = useState(null);
@@ -15,6 +15,7 @@ export default function AdminSalesSignup() {
   const [editData, setEditData] = useState({});
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [authorizingMemberId, setAuthorizingMemberId] = useState(null);
   const [formData, setFormData] = useState({
     email: "",
     full_name: "",
@@ -74,6 +75,17 @@ export default function AdminSalesSignup() {
     onSuccess: () => {
       setNewPassword("");
       alert("Password updated successfully");
+    }
+  });
+
+  const authorizeGmailMutation = useMutation({
+    mutationFn: async (memberId) => {
+      const response = await base44.functions.invoke('getSalesRepGmailAuthUrl', { memberId });
+      window.open(response.data.authUrl, '_blank');
+      setAuthorizingMemberId(null);
+    },
+    onError: () => {
+      alert("Failed to initiate Gmail authorization");
     }
   });
 
@@ -207,10 +219,10 @@ export default function AdminSalesSignup() {
                         {member.twilio_phone_number && (
                           <p className="text-sm text-gray-500">Twilio: {member.twilio_phone_number}</p>
                         )}
-                        {member.company_email ? (
-                         <Badge className="mt-2 bg-blue-100 text-blue-800">{member.company_email}</Badge>
+                        {member.gmail_access_token ? (
+                         <Badge className="mt-2 bg-green-100 text-green-800">Gmail Authorized</Badge>
                         ) : (
-                         <Badge className="mt-2 bg-yellow-100 text-yellow-800">No email set</Badge>
+                         <Badge className="mt-2 bg-yellow-100 text-yellow-800">Gmail Not Authorized</Badge>
                         )}
                         <Badge className={`mt-2 ml-2 ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {member.is_active ? 'Active' : 'Inactive'}
@@ -218,6 +230,16 @@ export default function AdminSalesSignup() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => authorizeGmailMutation.mutate(member.id)}
+                        disabled={authorizeGmailMutation.isPending}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Authorize Gmail account"
+                      >
+                        <Mail className="w-4 h-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
