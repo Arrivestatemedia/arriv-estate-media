@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check, Plus, X, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const FIELDS = [
   { key: "firstname", label: "First Name" },
@@ -22,7 +23,16 @@ const FIELDS = [
   { key: "phone", label: "Phone" },
   { key: "company", label: "Company" },
   { key: "jobtitle", label: "Job Title" },
-  { key: "hs_lead_status", label: "Lead Status" },
+  { key: "hs_lead_status", label: "Lead Status", type: "select", options: [
+    { value: "NEW", label: "New" },
+    { value: "OPEN", label: "Open" },
+    { value: "IN_PROGRESS", label: "In Progress" },
+    { value: "OPEN_DEAL", label: "Open Deal" },
+    { value: "UNQUALIFIED", label: "Unqualified" },
+    { value: "ATTEMPTED_TO_CONTACT", label: "Attempted to Contact" },
+    { value: "CONNECTED", label: "Connected" },
+    { value: "BAD_TIMING", label: "Bad Timing" },
+  ]},
 ];
 
 const NEW_CONTACT_DEFAULTS = { firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "" };
@@ -181,14 +191,30 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
           <CardContent className="pt-4 pb-4 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Create New Contact</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {FIELDS.map(({ key, label }) => (
+              {FIELDS.map(({ key, label, type, options }) => (
                 <div key={key}>
                   <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>{label}</label>
-                  <Input
-                    value={newContact[key] || ''}
-                    onChange={(e) => setNewContact(prev => ({ ...prev, [key]: e.target.value }))}
-                    placeholder={label}
-                  />
+                  {type === "select" ? (
+                    <Select
+                      value={newContact[key] || ''}
+                      onValueChange={(value) => setNewContact(prev => ({ ...prev, [key]: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={label} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {options.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={newContact[key] || ''}
+                      onChange={(e) => setNewContact(prev => ({ ...prev, [key]: e.target.value }))}
+                      placeholder={label}
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -261,14 +287,30 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                   <div className="mt-4 pt-4 border-t space-y-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
                     <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {FIELDS.map(({ key, label }) => (
+                      {FIELDS.map(({ key, label, type, options }) => (
                         <div key={key}>
                           <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>{label}</label>
-                          <Input
-                            value={editFields[key] || ''}
-                            onChange={(e) => setEditFields(prev => ({ ...prev, [key]: e.target.value }))}
-                            placeholder={label}
-                          />
+                          {type === "select" ? (
+                            <Select
+                              value={editFields[key] || ''}
+                              onValueChange={(value) => setEditFields(prev => ({ ...prev, [key]: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={label} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {options.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              value={editFields[key] || ''}
+                              onChange={(e) => setEditFields(prev => ({ ...prev, [key]: e.target.value }))}
+                              placeholder={label}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
