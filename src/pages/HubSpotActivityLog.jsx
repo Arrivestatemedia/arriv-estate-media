@@ -313,6 +313,14 @@ export default function HubSpotActivityLog() {
           </Card>
         )}
 
+        {activeTab === "hubspot" && (
+          <Card style={{ backgroundColor: '#FFFFFF' }}>
+            <CardContent className="pt-6">
+              <HubSpotContactSearch salesMemberId={user?.id} />
+            </CardContent>
+          </Card>
+        )}
+
         {activeTab === "activity" && (
           <>
             {upcomingActivities.length > 0 && (
