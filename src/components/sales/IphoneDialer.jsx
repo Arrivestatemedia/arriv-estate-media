@@ -202,13 +202,31 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
-  const handleCallEnded = () => {
+  const handleCallEnded = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
     const duration = callStartRef.current ? Math.floor((Date.now() - callStartRef.current) / 1000) : 0;
     setCallDuration(duration);
     setMuted(false);
-    setCallState(CALL_STATES.ENDED);
+    setCallState(CALL_STATES.IDLE);
     callRef.current = null;
+
+    // Auto-log the call
+    if (currentCall?.number) {
+      try {
+        await base44.functions.invoke('logCallActivity', {
+          salesMemberId,
+          toNumber: currentCall.number,
+          contactName: currentCall.number,
+          contactEmail: '',
+          companyName: '',
+          durationSeconds: duration,
+          notes: `Call to ${currentCall.number} - ${formatDuration(duration)}`
+        });
+        setTimeout(() => loadCallLogs(), 300);
+      } catch (err) {
+        console.error('Failed to auto-log call:', err);
+      }
+    }
   };
 
   const startCall = async (phoneNumber = null) => {
