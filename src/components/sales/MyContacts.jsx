@@ -218,7 +218,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                                     {format(new Date(a.activity_date), "MMM d 'at' h:mm a")}
                                   </span>
                                 </div>
-                                <p className="text-sm mt-1" style={{ color: '#1A1A1A' }}>{a.notes}</p>
+                                <p className="text-sm mt-1" style={{ color: '#1A1A1A' }}>{a.notes.replace(/Deleted HubSpot contact/g, 'Deleted contact')}</p>
                               </div>
                             </div>
                           ))}
@@ -242,7 +242,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                                 <span>{format(new Date(a.activity_date), "MMM d, yyyy")}</span>
                                 {a.duration_minutes > 0 && <span>· {a.duration_minutes}m</span>}
                               </div>
-                              <p className="text-sm mt-0.5" style={{ color: '#1A1A1A' }}>{a.notes}</p>
+                              <p className="text-sm mt-0.5" style={{ color: '#1A1A1A' }}>{a.notes.replace(/Deleted HubSpot contact/g, 'Deleted contact')}</p>
                             </div>
                           </div>
                         ))}
