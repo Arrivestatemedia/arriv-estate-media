@@ -285,6 +285,16 @@ export default function HubSpotActivityLog() {
           >
             <span className="flex items-center gap-1"><Phone className="w-4 h-4" />Dialer</span>
           </button>
+          <button
+            onClick={() => setActiveTab("hubspot")}
+            className="px-4 py-3 font-medium border-b-2 transition"
+            style={{
+              color: activeTab === "hubspot" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "hubspot" ? '#B8956A' : 'transparent'
+            }}
+          >
+            HubSpot
+          </button>
         </div>
 
         {activeTab === "email" && (
