@@ -47,7 +47,9 @@ export default function AdminSalesRepActivity() {
   };
 
   const getActivitiesByRep = (repEmail) => {
-    return activities.filter(a => a.created_by === repEmail).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+    return activities.filter(a =>
+      a.sales_member_email === repEmail || a.created_by === repEmail
+    ).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
   };
 
   const getRepStats = (repEmail) => {
