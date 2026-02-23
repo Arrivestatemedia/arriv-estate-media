@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     const threads = await Promise.all(
       messages.slice(0, 20).map(async (msg) => {
         const msgRes = await fetch(
-          `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+          `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&metadataHeaders=Message-ID&metadataHeaders=References`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         if (!msgRes.ok) return null;
@@ -49,6 +49,8 @@ Deno.serve(async (req) => {
           subject: get('Subject'),
           date: get('Date'),
           snippet: msgData.snippet || '',
+          messageId: get('Message-ID'),
+          references: get('References'),
         };
       })
     );
