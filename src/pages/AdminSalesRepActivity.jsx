@@ -241,17 +241,7 @@ export default function AdminSalesRepActivity() {
                   </p>
                 </div>
 
-                {selectedActivity.hubspot_synced && (
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
-                    <p className="text-sm font-medium" style={{ color: '#22c55e' }}>✓ Synced to HubSpot</p>
-                  </div>
-                )}
-                {selectedActivity.sync_error && (
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
-                    <p className="text-sm font-medium" style={{ color: '#ef4444' }}>⚠ Sync Error</p>
-                    <p className="text-sm mt-1" style={{ color: 'rgba(239, 68, 68, 0.8)' }}>{selectedActivity.sync_error}</p>
-                  </div>
-                )}
+
               </div>
             )}
           </DialogContent>
