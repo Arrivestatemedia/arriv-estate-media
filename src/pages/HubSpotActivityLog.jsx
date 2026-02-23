@@ -156,7 +156,11 @@ export default function HubSpotActivityLog() {
       alert("Please add notes about the activity");
       return;
     }
-    createActivityMutation.mutate(formData);
+    createActivityMutation.mutate({
+      ...formData,
+      sales_member_email: user?.email,
+      sales_member_id: user?.id
+    });
   };
 
   if (!user) {
