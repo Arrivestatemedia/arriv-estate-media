@@ -14,6 +14,7 @@ import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
 import HubSpotContactSearch from "@/components/sales/HubSpotContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
+import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
@@ -510,6 +511,7 @@ export default function HubSpotActivityLog() {
           </>
         )}
       </div>
+      <PoweredByFooter />
     </div>
   );
 }
