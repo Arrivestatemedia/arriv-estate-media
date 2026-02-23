@@ -43,6 +43,30 @@ export default function SalesLogin() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) {
+      setForgotMsg({ type: "error", text: "Please enter your email" });
+      return;
+    }
+    setForgotLoading(true);
+    setForgotMsg(null);
+
+    try {
+      const result = await base44.functions.invoke('salesRepForgotPassword', { email: forgotEmail });
+      if (result.data?.success) {
+        setForgotMsg({ type: "success", text: "Password reset email sent! Check your inbox." });
+        setForgotEmail("");
+        setTimeout(() => setShowForgotModal(false), 2000);
+      } else {
+        setForgotMsg({ type: "error", text: result.data?.error || "Failed to send reset email" });
+      }
+    } catch (err) {
+      setForgotMsg({ type: "error", text: "An error occurred" });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md">
