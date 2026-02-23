@@ -9,7 +9,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { memberId } = await req.json();
+    let memberId;
+    try {
+      const body = await req.json();
+      memberId = body.memberId;
+    } catch {
+      return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     
     if (!memberId) {
       return Response.json({ error: 'Missing memberId' }, { status: 400 });
