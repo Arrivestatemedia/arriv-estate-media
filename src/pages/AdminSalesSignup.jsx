@@ -15,7 +15,6 @@ export default function AdminSalesSignup() {
   const [editData, setEditData] = useState({});
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showGmailAuthorizeDialog, setShowGmailAuthorizeDialog] = useState(null);
   const [formData, setFormData] = useState({
     email: "",
     full_name: "",
@@ -78,19 +77,7 @@ export default function AdminSalesSignup() {
     }
   });
 
-  const authorizeGmailMutation = useMutation({
-    mutationFn: async (memberId) => {
-      const member = salesMembers.find(m => m.id === memberId);
-      if (!member?.company_email) {
-        alert("Please set a company email for this member first");
-        return;
-      }
-      setShowGmailAuthorizeDialog(member);
-    },
-    onError: () => {
-      alert("Failed to initiate Gmail authorization");
-    }
-  });
+
 
   const handleSubmit = () => {
     if (!formData.email || !formData.full_name || !formData.password) {
@@ -221,9 +208,9 @@ export default function AdminSalesSignup() {
                           <p className="text-sm text-gray-500">Twilio: {member.twilio_phone_number}</p>
                         )}
                         {member.company_email ? (
-                          <Badge className="mt-2 bg-blue-100 text-blue-800">Gmail Ready</Badge>
+                         <Badge className="mt-2 bg-blue-100 text-blue-800">{member.company_email}</Badge>
                         ) : (
-                          <Badge className="mt-2 bg-yellow-100 text-yellow-800">Add Email</Badge>
+                         <Badge className="mt-2 bg-yellow-100 text-yellow-800">No email set</Badge>
                         )}
                         <Badge className={`mt-2 ml-2 ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {member.is_active ? 'Active' : 'Inactive'}
@@ -231,18 +218,6 @@ export default function AdminSalesSignup() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {member.company_email && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => authorizeGmailMutation.mutate(member.id)}
-                          disabled={authorizeGmailMutation.isPending}
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                          title="Authorize Gmail account for sending emails"
-                        >
-                          <Mail className="w-4 h-4" />
-                        </Button>
-                      )}
                       <Button
                         variant="ghost"
                         size="sm"
