@@ -59,8 +59,10 @@ Deno.serve(async (req) => {
 
     if (!gmailResponse.ok) {
       const gmailError = await gmailResponse.json();
-      console.error('Gmail API error:', gmailError);
-      return Response.json({ error: 'Failed to send email', details: gmailError }, { status: 500 });
+      console.error('Gmail API error:', JSON.stringify(gmailError, null, 2));
+      console.error('Attempted to send from:', sendFromEmail);
+      console.error('Error likely means the From address is not verified or not a valid Send As alias in Gmail');
+      return Response.json({ error: 'Failed to send email - check that the From address is verified in Gmail settings', details: gmailError }, { status: 500 });
     }
 
     // Log to HubSpot as email engagement
