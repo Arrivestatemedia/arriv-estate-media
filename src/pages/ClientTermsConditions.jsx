@@ -136,13 +136,15 @@ export default function ClientTermsConditions() {
               </div>
 
               <div>
-                <h4 className="text-lg font-bold mb-2">10. Communications & Messaging Consent</h4>
+                <h4 className="text-lg font-bold mb-2">10. Communications & Messaging</h4>
                 <p className="text-[#1A1A1A]/80">
-                  By creating an account and booking services with ARRIV Estate Media LLC, Clients consent to
-                  receiving communications via email and SMS/text message regarding the status of their bookings,
-                  including but not limited to booking confirmations, scheduling updates, media partner arrival
-                  notifications, job completion notices, invoice delivery, and payment reminders. Message and data
-                  rates may apply. You may opt out of SMS communications at any time by replying STOP.
+                  ARRIV Estate Media LLC may send clients email communications related to their account and bookings.
+                </p>
+                <p className="text-[#1A1A1A]/80 mt-3">
+                  SMS/text message notifications are optional and are sent only if a client explicitly opts in. SMS messages may include booking confirmations, scheduling updates, media partner arrival notifications, job completion notices, invoice delivery, and payment reminders. Message and data rates may apply.
+                </p>
+                <p className="text-[#1A1A1A]/80 mt-3">
+                  Clients may opt out of SMS communications at any time by replying STOP. Opting out of SMS does not affect the ability to create an account, request services, or receive services.
                 </p>
               </div>
 
