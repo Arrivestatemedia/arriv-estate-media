@@ -266,6 +266,22 @@ export default function AdminSalesSignup() {
               <input type="checkbox" id="is_active" checked={!!editData.is_active} onChange={(e) => setEditData({...editData, is_active: e.target.checked})} />
               <label htmlFor="is_active" className="text-sm font-medium">Active</label>
             </div>
+
+            <hr />
+            <div>
+              <label className="block text-sm font-medium mb-1">Change Password</label>
+              <div className="flex gap-2">
+                <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                <Button
+                  variant="outline"
+                  onClick={() => newPassword && changePasswordMutation.mutate({ memberId: editingMember.id, newPassword })}
+                  disabled={!newPassword || changePasswordMutation.isPending}
+                >
+                  {changePasswordMutation.isPending ? "Saving..." : "Set"}
+                </Button>
+              </div>
+            </div>
+
             <div className="flex gap-2">
               <Button onClick={handleEditSave} disabled={updateMutation.isPending} className="flex-1">
                 {updateMutation.isPending ? "Saving..." : "Save Changes"}
