@@ -19,6 +19,11 @@ export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({ current: "", newPw: "", confirm: "" });
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState(null);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
