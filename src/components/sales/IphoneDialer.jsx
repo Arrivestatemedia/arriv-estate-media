@@ -36,21 +36,20 @@ export default function IphoneDialer({ salesMemberId }) {
   const timerRef = useRef(null);
   const callStartRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const deviceRef = useRef(null);
+  const activeTabRef = useRef(activeTab);
+  const callStateRef = useRef(callState);
 
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+  useEffect(() => { callStateRef.current = callState; }, [callState]);
+
+  // Device init — only runs once when salesMemberId is available
   useEffect(() => {
-    if (!salesMemberId) {
-      const storedId = localStorage.getItem('sales_member_id');
-      if (storedId) {
-        // Component should receive this as prop, but fallback to stored value
-        initDevice();
-      }
-      return;
-    }
-    
-    // Initialize device first, then load data
+    const id = salesMemberId || localStorage.getItem('sales_member_id');
+    if (!id) return;
+
     initDevice();
-    
-    // Delay data loading slightly to allow device to initialize
+
     setTimeout(() => {
       loadCallLogs().catch(() => {});
       loadConversations().catch(() => {});
@@ -59,9 +58,18 @@ export default function IphoneDialer({ salesMemberId }) {
     const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
     const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
 
-    // Keyboard support for dialing
+    return () => {
+      if (deviceRef.current) { deviceRef.current.destroy(); deviceRef.current = null; }
+      if (timerRef.current) clearInterval(timerRef.current);
+      callLogsUnsub();
+      convoUnsub();
+    };
+  }, [salesMemberId]);
+
+  // Keyboard handler — separate effect so it never re-initializes device
+  useEffect(() => {
     const handleKeydown = (e) => {
-      if (activeTab !== TABS.KEYPAD || callState !== CALL_STATES.IDLE) return;
+      if (activeTabRef.current !== TABS.KEYPAD || callStateRef.current !== CALL_STATES.IDLE) return;
       if (/^[0-9*#]$/.test(e.key)) {
         e.preventDefault();
         addKeypadDigit(e.key);
@@ -74,15 +82,8 @@ export default function IphoneDialer({ salesMemberId }) {
       }
     };
     window.addEventListener('keydown', handleKeydown);
-
-    return () => {
-      if (device) device.destroy();
-      if (timerRef.current) clearInterval(timerRef.current);
-      callLogsUnsub();
-      convoUnsub();
-      window.removeEventListener('keydown', handleKeydown);
-    };
-  }, [salesMemberId, activeTab, callState]);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, []);
 
   useEffect(() => {
     if (selectedConvo?.id) {
