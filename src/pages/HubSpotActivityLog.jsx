@@ -289,7 +289,60 @@ export default function HubSpotActivityLog() {
               </DialogContent>
             </Dialog>
           )}
+          </div>
         </div>
+
+        {/* Change Password Modal */}
+        <Dialog open={showPasswordModal} onOpenChange={(open) => { setShowPasswordModal(open); if (!open) setPasswordMsg(null); }}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Change Password</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Current Password</label>
+                <div className="relative">
+                  <Input
+                    type={showCurrent ? "text" : "password"}
+                    placeholder="Current password"
+                    value={passwordData.current}
+                    onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
+                  />
+                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowCurrent(!showCurrent)}>
+                    {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">New Password</label>
+                <div className="relative">
+                  <Input
+                    type={showNew ? "text" : "password"}
+                    placeholder="New password"
+                    value={passwordData.newPw}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPw: e.target.value })}
+                  />
+                  <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowNew(!showNew)}>
+                    {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+                <Input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={passwordData.confirm}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
+                />
+              </div>
+              {passwordMsg && (
+                <p className={`text-sm ${passwordMsg.type === 'error' ? 'text-red-600' : 'text-green-600'}`}>{passwordMsg.text}</p>
+              )}
+              <Button className="w-full" onClick={handleChangePassword}>Update Password</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20">
