@@ -153,6 +153,8 @@ export default function EmailComposer({ salesMemberId }) {
         fromEmail: fromEmail || undefined,
         fromName: salesMember?.full_name || undefined,
         salesMemberId: salesMemberId || undefined,
+        inReplyTo: replyingTo?.messageId,
+        references: replyingTo?.references ? `${replyingTo.references} ${replyingTo.messageId}` : replyingTo?.messageId,
       });
       setSent(true);
       setReplyingTo(null);
