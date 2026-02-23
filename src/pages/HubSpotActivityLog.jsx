@@ -288,7 +288,7 @@ export default function HubSpotActivityLog() {
                 </div>
               </DialogContent>
             </Dialog>
-          )}
+            )}
           </div>
         </div>
 
