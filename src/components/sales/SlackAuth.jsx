@@ -1,57 +1,55 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react";
 
 export default function SlackAuth({ salesMemberId, onAuthSuccess }) {
-  const [slackClientId, setSlackClientId] = useState(null);
+  const [token, setToken] = useState("");
   const [isAuthed, setIsAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [showToken, setShowToken] = useState(false);
 
   useEffect(() => {
-    const fetchClientId = async () => {
+    const checkAuthStatus = async () => {
       try {
-        const res = await base44.functions.invoke('getSlackClientId', {});
-        setSlackClientId(res.data?.clientId);
+        const members = await base44.entities.SalesTeamMember.filter({ id: salesMemberId });
+        if (members.length > 0 && members[0].slack_token) {
+          setIsAuthed(true);
+        }
       } catch (err) {
-        console.error('Error fetching Slack client ID:', err);
-        setError('Failed to load Slack integration');
+        console.error('Error checking auth status:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    const checkAuthStatus = async () => {
-      try {
-        const member = await base44.entities.SalesTeamMember.filter({}, 0, 1);
-        const me = member.find(m => m.id === salesMemberId);
-        if (me?.slack_token) {
-          setIsAuthed(true);
-        }
-      } catch (err) {
-        console.error('Error checking auth status:', err);
-      }
-    };
-
-    fetchClientId();
     checkAuthStatus();
   }, [salesMemberId]);
 
-  const handleSlackConnect = () => {
-    if (!slackClientId) {
-      setError('Slack client ID not available');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!token.trim()) {
+      setError('Please enter your Slack token');
       return;
     }
 
-    const redirectUri = 'https://app.arrivestatemedia.com/slackOAuthCallback';
-    const scope = 'chat:write channels:read users:read users:read.email';
-    const state = salesMemberId;
-
-    const authUrl = `https://slack.com/oauth/v2/authorize?client_id=${slackClientId}&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
-    
-    window.location.href = authUrl;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await base44.entities.SalesTeamMember.update(salesMemberId, { slack_token: token });
+      setIsAuthed(true);
+      setToken("");
+      if (onAuthSuccess) onAuthSuccess();
+    } catch (err) {
+      console.error('Error saving token:', err);
+      setError('Failed to save token. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -85,7 +83,7 @@ export default function SlackAuth({ salesMemberId, onAuthSuccess }) {
     <Card>
       <CardHeader>
         <CardTitle>Connect Your Slack Account</CardTitle>
-        <CardDescription>Sign in with your personal Slack workspace to send messages</CardDescription>
+        <CardDescription>Enter your Slack token to send messages to your workspace</CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
@@ -94,13 +92,31 @@ export default function SlackAuth({ salesMemberId, onAuthSuccess }) {
             <p className="text-sm text-red-800">{error}</p>
           </div>
         )}
-        <Button
-          onClick={handleSlackConnect}
-          className="w-full bg-[#4A90E2] hover:bg-[#3A80D2] text-white"
-        >
-          Connect Slack Account
-        </Button>
-        <p className="text-xs text-gray-500 mt-3">We'll only access your messaging permissions</p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Slack Token</label>
+            <div className="relative">
+              <Input
+                type={showToken ? "text" : "password"}
+                placeholder="xoxb-your-token-here"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                disabled={submitting}
+              />
+              <button
+                type="button"
+                onClick={() => setShowToken(!showToken)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              >
+                {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Get your token from slack.com/apps</p>
+          </div>
+          <Button type="submit" disabled={submitting} className="w-full">
+            {submitting ? "Connecting..." : "Connect"}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );
