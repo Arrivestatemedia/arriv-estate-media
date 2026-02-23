@@ -45,7 +45,9 @@ Deno.serve(async (req) => {
     });
 
     if (!gmailResponse.ok) {
-      return Response.json({ error: 'Failed to send email' }, { status: 500 });
+      const gmailError = await gmailResponse.json();
+      console.error('Gmail API error:', gmailError);
+      return Response.json({ error: 'Failed to send email', details: gmailError }, { status: 500 });
     }
 
     // Log to HubSpot as email engagement
