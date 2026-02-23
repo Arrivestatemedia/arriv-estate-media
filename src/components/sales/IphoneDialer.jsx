@@ -123,7 +123,9 @@ export default function IphoneDialer({ salesMemberId }) {
       const { Device } = window.Twilio;
       const twilioDevice = new Device(token, { 
         codecPreferences: ['opus', 'pcmu'], 
-        enableRingingState: true
+        enableRingingState: true,
+        closeProtection: false,
+        allowIncomingWhileBusy: false
       });
 
       twilioDevice.on('registered', () => {
