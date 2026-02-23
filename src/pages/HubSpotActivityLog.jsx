@@ -125,11 +125,13 @@ export default function HubSpotActivityLog() {
       if (res.data?.success) {
         setPasswordMsg({ type: "success", text: "Password updated successfully!" });
         setPasswordData({ current: "", newPw: "", confirm: "" });
+        setTimeout(() => setShowPasswordModal(false), 1500);
       } else {
         setPasswordMsg({ type: "error", text: res.data?.error || "Failed to update password" });
       }
-    } catch {
-      setPasswordMsg({ type: "error", text: "Failed to update password" });
+    } catch (error) {
+      console.error('Password change error:', error);
+      setPasswordMsg({ type: "error", text: error.response?.data?.error || "Failed to update password" });
     }
   };
 
