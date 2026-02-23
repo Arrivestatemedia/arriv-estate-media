@@ -18,7 +18,7 @@ const FIELDS = [
 
 const NEW_CONTACT_DEFAULTS = { firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "" };
 
-export default function HubSpotContactSearch({ salesMemberId }) {
+export default function HubSpotContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,6 +31,13 @@ export default function HubSpotContactSearch({ salesMemberId }) {
   const [newContact, setNewContact] = useState(NEW_CONTACT_DEFAULTS);
   const [creatingNew, setCreatingNew] = useState(false);
   const [createdSuccess, setCreatedSuccess] = useState(false);
+
+  React.useEffect(() => {
+    if (openNewContactForm) {
+      setShowNewForm(true);
+      setOpenNewContactForm(false);
+    }
+  }, [openNewContactForm, setOpenNewContactForm]);
 
   const handleSearch = async () => {
     if (query.trim().length < 2) return;
