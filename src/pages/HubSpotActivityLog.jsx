@@ -106,6 +106,32 @@ export default function HubSpotActivityLog() {
     }
   });
 
+  const handleChangePassword = async () => {
+    if (!passwordData.newPw || !passwordData.current) {
+      setPasswordMsg({ type: "error", text: "Please fill in all fields" });
+      return;
+    }
+    if (passwordData.newPw !== passwordData.confirm) {
+      setPasswordMsg({ type: "error", text: "New passwords do not match" });
+      return;
+    }
+    try {
+      const res = await base44.functions.invoke('changeSalesRepPassword', {
+        salesMemberId: user.id,
+        currentPassword: passwordData.current,
+        newPassword: passwordData.newPw
+      });
+      if (res.data?.success) {
+        setPasswordMsg({ type: "success", text: "Password updated successfully!" });
+        setPasswordData({ current: "", newPw: "", confirm: "" });
+      } else {
+        setPasswordMsg({ type: "error", text: res.data?.error || "Failed to update password" });
+      }
+    } catch {
+      setPasswordMsg({ type: "error", text: "Failed to update password" });
+    }
+  };
+
   const activityIcons = {
     call: <Phone className="w-4 h-4" />,
     email: <Mail className="w-4 h-4" />,
