@@ -60,7 +60,10 @@ export default function EmailComposer({ salesMemberId }) {
         return;
       }
 
-      const res = await base44.functions.invoke('getGmailReplies', { contactEmails });
+      const res = await base44.functions.invoke('getGmailReplies', { 
+        contactEmails, 
+        toEmail: fromEmail || salesMember?.company_email 
+      });
       setReplies(res.data?.threads || []);
     } catch (e) {
       console.error(e);
