@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
         activity_type: 'email',
         contact_email: '',
         activity_date: new Date().toISOString(),
-        notes: `Deleted HubSpot contact ${contactId}`,
+        notes: `Deleted contact ${contactId}`,
         hubspot_synced: true,
         sales_member_id: salesMemberId,
         sales_member_email: salesMemberEmail
