@@ -26,7 +26,7 @@ export default function SlackTeamChat() {
             
             console.log('Slack response:', response);
             
-            if (response.data && response.data.success && response.data.channels) {
+            if (response.data && response.data.channels && Array.isArray(response.data.channels)) {
                 setChannels(response.data.channels);
                 if (response.data.channels.length > 0) {
                     setSelectedChannel(response.data.channels[0].id);
