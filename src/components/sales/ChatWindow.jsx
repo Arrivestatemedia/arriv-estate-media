@@ -12,8 +12,15 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Request notification permission on mount
+  // Register service worker and request notification permission
   useEffect(() => {
+    // Register service worker for push notifications
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js").catch(err => {
+        console.log("Service worker registration failed:", err);
+      });
+    }
+
     if ("Notification" in window) {
       if (Notification.permission === "granted") {
         setNotificationsEnabled(true);
@@ -72,12 +79,14 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           if (event.data?.channel_id === chatId) {
             if (event.type === "create") {
               setMessages(prev => [...prev, event.data]);
-              // Send notification if from another user
-              if (event.data?.sender_id !== currentUserId && notificationsEnabled) {
-                new Notification(`New message in #${chatName}`, {
+              // Send push notification if from another user
+              if (event.data?.sender_id !== currentUserId) {
+                base44.functions.invoke('sendPushNotification', {
+                  recipientId: currentUserId,
+                  title: `New message in #${chatName}`,
                   body: event.data?.content,
-                  icon: "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png"
-                });
+                  tag: `channel-${chatId}`
+                }).catch(err => console.error('Push notification error:', err));
               }
             }
           }
@@ -87,12 +96,14 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               (event.data?.sender_id === chatId || event.data?.recipient_id === chatId)) {
             if (event.type === "create") {
               setMessages(prev => [...prev, event.data]);
-              // Send notification if from the other user
-              if (event.data?.sender_id !== currentUserId && notificationsEnabled) {
-                new Notification(`New message from ${event.data?.sender_name}`, {
+              // Send push notification if from the other user
+              if (event.data?.sender_id !== currentUserId) {
+                base44.functions.invoke('sendPushNotification', {
+                  recipientId: currentUserId,
+                  title: `New message from ${event.data?.sender_name}`,
                   body: event.data?.content,
-                  icon: "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png"
-                });
+                  tag: `dm-${event.data?.sender_id}`
+                }).catch(err => console.error('Push notification error:', err));
               }
             }
           }
