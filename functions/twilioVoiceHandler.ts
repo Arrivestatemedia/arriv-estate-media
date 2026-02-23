@@ -1,3 +1,5 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+
 Deno.serve(async (req) => {
   const xmlResponse = (twiml) => new Response(twiml, {
     status: 200,
@@ -10,19 +12,18 @@ Deno.serve(async (req) => {
     console.log('Content-Type:', contentType);
     console.log('RAW BODY:', body);
 
-    // Parse params — Twilio sends form-encoded, but test tool sends JSON
     let to, from;
-    if (contentType.includes('application/json') || body.trim().startsWith('{')) {
+    if (body.trim().startsWith('{')) {
       try {
         const json = JSON.parse(body);
         to = json.To;
         from = json.From;
       } catch (_) {}
-    } else {
+    }
+    if (!to) {
       const params = new URLSearchParams(body);
       to = params.get('To');
       from = params.get('From');
-      // Log all params for debugging
       const all = {};
       for (const [k, v] of params.entries()) all[k] = v;
       console.log('Form params:', JSON.stringify(all));
@@ -47,7 +48,6 @@ Deno.serve(async (req) => {
     console.log('isOutbound:', isOutbound, 'fromIdentity:', fromIdentity, 'callerId:', callerId);
 
     if (isOutbound) {
-      // Format the destination E.164
       let dest = to.trim();
       if (!dest.startsWith('+')) {
         dest = '+1' + dest.replace(/\D/g, '');
@@ -62,33 +62,13 @@ Deno.serve(async (req) => {
 </Response>`);
 
     } else {
-      // Inbound — route to active sales reps via their Client identity
+      // Inbound — route to active sales reps
       console.log('Inbound from:', from);
 
-      const appId = Deno.env.get('BASE44_APP_ID');
-      const serviceToken = Deno.env.get('BASE44_SERVICE_TOKEN');
+      // Use asServiceRole — works even without a user token for webhooks
+      const base44 = createClientFromRequest(req);
+      const activeMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
 
-      if (!appId || !serviceToken) {
-        console.error('Missing BASE44_APP_ID or BASE44_SERVICE_TOKEN');
-        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Configuration error.</Say></Response>`);
-      }
-
-      const membersRes = await fetch(`https://api.base44.com/api/apps/${appId}/entities/SalesTeamMember/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': serviceToken
-        },
-        body: JSON.stringify({ filter: { is_active: true } })
-      });
-
-      if (!membersRes.ok) {
-        const errText = await membersRes.text();
-        console.error('Base44 query failed:', membersRes.status, errText);
-        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Unable to connect your call.</Say></Response>`);
-      }
-
-      const activeMembers = await membersRes.json();
       console.log('Active members:', activeMembers.length);
 
       if (activeMembers.length === 0) {
@@ -114,9 +94,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('FATAL:', error.message, error.stack);
-    return new Response(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Say>A system error occurred.</Say></Response>`,
-      { status: 200, headers: { 'Content-Type': 'text/xml; charset=utf-8' } }
-    );
+    return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>A system error occurred.</Say></Response>`);
   }
 });
