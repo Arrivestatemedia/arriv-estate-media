@@ -210,12 +210,12 @@ export default function IphoneDialer({ salesMemberId }) {
     setMuted(false);
     setCallState(CALL_STATES.IDLE);
     callRef.current = null;
-    setCurrentCall(null);
 
     // Auto-log the call
     if (phoneNumber) {
       try {
         const id = salesMemberId || localStorage.getItem('sales_member_id');
+        const isIncoming = currentCall?.incoming || false;
         await base44.functions.invoke('logCallActivity', {
           salesMemberId: id,
           toNumber: phoneNumber,
@@ -223,13 +223,15 @@ export default function IphoneDialer({ salesMemberId }) {
           contactEmail: '',
           companyName: '',
           durationSeconds: duration,
-          notes: `Call to ${phoneNumber}`
+          notes: `${isIncoming ? 'Incoming' : 'Outgoing'} call with ${phoneNumber}`,
+          direction: isIncoming ? 'incoming' : 'outgoing'
         });
         setTimeout(() => loadCallLogs(), 300);
       } catch (err) {
         console.error('Failed to auto-log call:', err);
       }
     }
+    setCurrentCall(null);
   };
 
   const startCall = async (phoneNumber = null) => {
@@ -512,7 +514,7 @@ export default function IphoneDialer({ salesMemberId }) {
 
                         <div>
                           <p className="text-xs font-medium" style={{ color: 'rgba(26,26,26,0.6)' }}>Direction</p>
-                          <p style={{ color: '#1A1A1A' }}>Outgoing</p>
+                          <p style={{ color: '#1A1A1A' }}>{log.direction ? log.direction.charAt(0).toUpperCase() + log.direction.slice(1) : 'Outgoing'}</p>
                         </div>
 
                         {log.contact_email && (
