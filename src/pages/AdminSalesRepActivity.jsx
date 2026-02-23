@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Phone, Mail, Calendar, Users } from "lucide-react";
 import { format } from "date-fns";
+import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function AdminSalesRepActivity() {
   const [user, setUser] = useState(null);
@@ -336,8 +337,10 @@ export default function AdminSalesRepActivity() {
               </div>
             )}
           </DialogContent>
-        </Dialog>
-      </div>
-    </div>
-  );
-}
+          </Dialog>
+
+          <PoweredByFooter />
+          </div>
+          </div>
+          );
+          }
