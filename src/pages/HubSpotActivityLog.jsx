@@ -532,7 +532,7 @@ export default function HubSpotActivityLog() {
                               <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
                               {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
                               {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
-                              <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes.replace(/Deleted HubSpot contact/g, 'Deleted contact')}</p>
+                              <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
                               {activity.duration_minutes > 0 && (
                                 <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
                               )}
@@ -566,7 +566,7 @@ export default function HubSpotActivityLog() {
                 <div className="bg-slate-50 p-4 rounded-lg space-y-2">
                   <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
                   <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                  <p><span className="font-medium">Notes:</span> {selectedActivity.notes.replace(/Deleted HubSpot contact/g, 'Deleted contact')}</p>
+                  <p><span className="font-medium">Notes:</span> {selectedActivity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
                   {selectedActivity.duration_minutes > 0 && (
                     <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
                   )}
