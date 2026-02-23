@@ -91,12 +91,78 @@ export default function HubSpotContactSearch({ salesMemberId }) {
     }
   };
 
+  const handleCreateNew = async () => {
+    if (!newContact.firstname && !newContact.lastname && !newContact.email) {
+      setError("Please provide at least a name or email.");
+      return;
+    }
+    setCreatingNew(true);
+    setError("");
+    try {
+      await base44.functions.invoke("updateHubSpotContact", {
+        contactId: null,
+        properties: newContact,
+        salesMemberId,
+        createIfNotFound: true,
+      });
+      setCreatedSuccess(true);
+      setNewContact(NEW_CONTACT_DEFAULTS);
+      setTimeout(() => { setCreatedSuccess(false); setShowNewForm(false); }, 2500);
+    } catch (e) {
+      setError("Failed to create contact: " + e.message);
+    } finally {
+      setCreatingNew(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold mb-1" style={{ color: '#1A1A1A' }}>Search Contacts</h2>
-        <p className="text-sm mb-4" style={{ color: 'rgba(26,26,26,0.6)' }}>Find a contact by name, email, or phone and update their info directly in HubSpot. Or create a new contact below.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold mb-1" style={{ color: '#1A1A1A' }}>Search Contacts</h2>
+          <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Find a contact by name, email, or phone and update their info directly in HubSpot.</p>
+        </div>
+        <Button
+          onClick={() => { setShowNewForm(v => !v); setError(""); }}
+          variant="outline"
+          className="gap-2 shrink-0"
+          style={{ borderColor: '#B8956A', color: '#B8956A' }}
+        >
+          {showNewForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          {showNewForm ? "Cancel" : "New Contact"}
+        </Button>
       </div>
+
+      {/* New Contact Form */}
+      {showNewForm && (
+        <Card style={{ borderColor: '#B8956A' }}>
+          <CardContent className="pt-4 pb-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Create New HubSpot Contact</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {FIELDS.map(({ key, label }) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>{label}</label>
+                  <Input
+                    value={newContact[key] || ''}
+                    onChange={(e) => setNewContact(prev => ({ ...prev, [key]: e.target.value }))}
+                    placeholder={label}
+                  />
+                </div>
+              ))}
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <Button
+              onClick={handleCreateNew}
+              disabled={creatingNew}
+              className="gap-2"
+              style={{ backgroundColor: createdSuccess ? '#22c55e' : '#B8956A', color: '#fff' }}
+            >
+              {creatingNew ? <Loader2 className="w-4 h-4 animate-spin" /> : createdSuccess ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {createdSuccess ? 'Contact Created!' : 'Create in HubSpot'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-2">
         <Input
@@ -115,7 +181,7 @@ export default function HubSpotContactSearch({ salesMemberId }) {
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {!showNewForm && error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="space-y-3">
         {results.map((contact) => {
