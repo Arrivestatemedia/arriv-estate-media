@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       result = await createRes.json();
     } else {
       // Update existing contact
-      const updateRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
+      let updateRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -39,6 +39,19 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ properties })
       });
+
+      // If update fails with 400 and email is in properties, retry without email (it likely exists elsewhere)
+      if (!updateRes.ok && updateRes.status === 400 && properties.email) {
+        const { email, ...propertiesWithoutEmail } = properties;
+        updateRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ properties: propertiesWithoutEmail })
+        });
+      }
 
       if (!updateRes.ok) {
         const errData = await updateRes.json();
