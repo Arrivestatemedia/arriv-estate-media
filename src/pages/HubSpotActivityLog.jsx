@@ -619,6 +619,18 @@ export default function HubSpotActivityLog() {
                       Email
                     </Button>
                   )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      setActiveTab("mycontacts");
+                      setSelectedActivity(null);
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Contact Info
+                  </Button>
                 </div>
               </div>
             </div>
