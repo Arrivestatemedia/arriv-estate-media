@@ -80,7 +80,7 @@ export default function AdminSalesSignup() {
   const authorizeGmailMutation = useMutation({
     mutationFn: async (memberId) => {
       const response = await base44.functions.invoke('getSalesGmailAuthUrl', { memberId });
-      window.location.href = response.data.authUrl;
+      window.open(response.data.authUrl, '_blank');
     },
     onError: () => {
       alert("Failed to initiate Gmail authorization");
