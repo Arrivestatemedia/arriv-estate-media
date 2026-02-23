@@ -146,9 +146,9 @@ export default function IphoneDialer({ salesMemberId }) {
         setCallState(CALL_STATES.INCOMING);
         
         call.on('disconnect', () => {
-          console.log('Incoming call disconnected');
-          handleCallEnded();
-        });
+           console.log('Incoming call disconnected');
+           handleCallEnded(incomingFrom);
+         });
         call.on('cancel', () => {
           console.log('Incoming call cancelled');
           setIncomingCall(null);
@@ -202,25 +202,27 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
-  const handleCallEnded = async () => {
+  const handleCallEnded = async (phoneNumber) => {
     if (timerRef.current) clearInterval(timerRef.current);
     const duration = callStartRef.current ? Math.floor((Date.now() - callStartRef.current) / 1000) : 0;
     setCallDuration(duration);
     setMuted(false);
     setCallState(CALL_STATES.IDLE);
     callRef.current = null;
+    setCurrentCall(null);
 
     // Auto-log the call
-    if (currentCall?.number) {
+    if (phoneNumber) {
       try {
+        const id = salesMemberId || localStorage.getItem('sales_member_id');
         await base44.functions.invoke('logCallActivity', {
-          salesMemberId,
-          toNumber: currentCall.number,
-          contactName: currentCall.number,
+          salesMemberId: id,
+          toNumber: phoneNumber,
+          contactName: phoneNumber,
           contactEmail: '',
           companyName: '',
           durationSeconds: duration,
-          notes: `Call to ${currentCall.number} - ${formatDuration(duration)}`
+          notes: `Call to ${phoneNumber}`
         });
         setTimeout(() => loadCallLogs(), 300);
       } catch (err) {
@@ -260,7 +262,7 @@ export default function IphoneDialer({ salesMemberId }) {
       });
       call.on('disconnect', () => {
         console.log('Call disconnected');
-        handleCallEnded();
+        handleCallEnded(formattedPhone);
       });
       call.on('error', (err) => {
         console.error('Call error:', err);
