@@ -83,11 +83,9 @@ Deno.serve(async (req) => {
   <Say>No sales representatives are available. Please try again later.</Say>
 </Response>`;
         } else {
-          let dialXml = '<Dial timeout="30" answerOnBridge="true">';
+          let dialXml = '<Dial timeout="30">';
           for (const member of activeMembers) {
-            // Identity must match what's in the token: sales_rep_ + id with dashes replaced by underscores
-            const clientIdentity = `sales_rep_${member.id.replace(/-/g, '_')}`;
-            dialXml += `<Client>${clientIdentity}</Client>`;
+            dialXml += `<Client>${member.id}</Client>`;
           }
           dialXml += '</Dial>';
           twiml = `<?xml version="1.0" encoding="UTF-8"?>
