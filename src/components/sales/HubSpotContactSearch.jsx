@@ -16,6 +16,8 @@ const FIELDS = [
   { key: "hs_lead_status", label: "Lead Status" },
 ];
 
+const NEW_CONTACT_DEFAULTS = { firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "" };
+
 export default function HubSpotContactSearch({ salesMemberId }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -25,6 +27,10 @@ export default function HubSpotContactSearch({ salesMemberId }) {
   const [editFields, setEditFields] = useState({});
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState(null);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newContact, setNewContact] = useState(NEW_CONTACT_DEFAULTS);
+  const [creatingNew, setCreatingNew] = useState(false);
+  const [createdSuccess, setCreatedSuccess] = useState(false);
 
   const handleSearch = async () => {
     if (query.trim().length < 2) return;
