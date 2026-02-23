@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail } from "lucide-react";
+import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function AdminSalesSignup() {
   const [user, setUser] = useState(null);
@@ -314,7 +315,7 @@ export default function AdminSalesSignup() {
         </DialogContent>
         </Dialog>
 
-
+        <PoweredByFooter />
         </div>
         );
         }
