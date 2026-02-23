@@ -103,6 +103,8 @@ export default function EmailComposer({ salesMemberId }) {
         contactEmail: selectedContact?.email,
         fromEmail: fromEmail || undefined,
         fromName: salesMember?.full_name || undefined,
+        salesMemberId: salesMemberId || undefined,
+        contactName: selectedContact ? `${selectedContact.firstname || ''} ${selectedContact.lastname || ''}`.trim() : undefined,
       });
       setSent(true);
       setFormData({ to: "", subject: "", body: "" });
