@@ -4,15 +4,20 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
+        // Try service role first, fall back to user if that fails
         let accessToken;
         try {
             accessToken = await base44.asServiceRole.connectors.getAccessToken('slack');
-        } catch (tokenError) {
-            console.error('Token error:', tokenError);
-            return Response.json({ 
-                error: 'Slack not connected. Please authorize Slack in settings first.',
-                details: tokenError.message
-            }, { status: 401 });
+        } catch (serviceError) {
+            console.error('Service role error, trying user auth:', serviceError);
+            try {
+                accessToken = await base44.connectors.getAccessToken('slack');
+            } catch (userError) {
+                console.error('User auth error:', userError);
+                return Response.json({ 
+                    error: 'Slack not connected. Please authorize Slack in settings first.'
+                }, { status: 401 });
+            }
         }
 
         const channelsRes = await fetch('https://slack.com/api/conversations.list?exclude_archived=true&limit=50', {
