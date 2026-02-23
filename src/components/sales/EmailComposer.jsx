@@ -123,6 +123,49 @@ export default function EmailComposer({ salesMemberId }) {
     }
   };
 
+  const handleReply = (reply, isReplyAll = false) => {
+    const subject = reply.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply.subject || '(no subject)'}`;
+    const fromEmail_clean = reply.from.match(/<(.+?)>/)?.[1] || reply.from;
+    
+    setReplyingTo(reply);
+    setReplyMode(isReplyAll ? "replyAll" : "reply");
+    setReplyFormData({
+      to: fromEmail_clean,
+      cc: isReplyAll ? "" : "",
+      subject: subject,
+      body: ""
+    });
+    setExpandedReply(reply.id);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyFormData.to || !replyFormData.subject || !replyFormData.body) {
+      alert("Please fill in all fields");
+      return;
+    }
+    setSending(true);
+    try {
+      await base44.functions.invoke('sendEmailViaGmail', {
+        to: replyFormData.to,
+        cc: replyFormData.cc || undefined,
+        subject: replyFormData.subject,
+        body: replyFormData.body,
+        fromEmail: fromEmail || undefined,
+        fromName: salesMember?.full_name || undefined,
+        salesMemberId: salesMemberId || undefined,
+      });
+      setSent(true);
+      setReplyingTo(null);
+      setReplyMode(null);
+      setReplyFormData({ to: "", cc: "", subject: "", body: "" });
+      setTimeout(() => setSent(false), 3000);
+    } catch (error) {
+      alert("Failed to send reply: " + error.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
   // From options
   const fromOptions = [];
   if (salesMember?.company_email) fromOptions.push({ label: salesMember.company_email, value: salesMember.company_email });
