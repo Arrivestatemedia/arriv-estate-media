@@ -32,9 +32,18 @@ Deno.serve(async (req) => {
       `Subject: ${subject}`,
       `From: ${fromHeader}`,
       `Content-Type: text/plain; charset=utf-8`,
-      '',
-      body
     ];
+    
+    if (inReplyTo) {
+      emailLines.push(`In-Reply-To: ${inReplyTo}`);
+    }
+    
+    if (references) {
+      emailLines.push(`References: ${references}`);
+    }
+    
+    emailLines.push('');
+    emailLines.push(body);
     const emailContent = emailLines.join('\r\n');
     
     // Proper base64 URL-safe encoding for Gmail API
