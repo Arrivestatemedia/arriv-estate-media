@@ -12,6 +12,7 @@ import { Plus, Phone, Mail, Calendar, Check, AlertCircle, Clock, Zap, MessageSqu
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
+import HubSpotContactSearch from "@/components/sales/HubSpotContactSearch";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
