@@ -14,7 +14,6 @@ import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
 import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
-import SlackTeamChat from "@/components/sales/SlackTeamChat";
 import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function HubSpotActivityLog() {
@@ -431,17 +430,7 @@ export default function HubSpotActivityLog() {
           >
             My Contacts
           </button>
-          <button
-            onClick={() => setActiveTab("slack")}
-            className="px-4 py-3 font-medium border-b-2 transition"
-            style={{
-              color: activeTab === "slack" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
-              borderBottomColor: activeTab === "slack" ? '#B8956A' : 'transparent'
-            }}
-          >
-            Slack
-          </button>
-          </div>
+        </div>
 
         {activeTab === "email" && (
           <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
@@ -475,14 +464,6 @@ export default function HubSpotActivityLog() {
 
         {activeTab === "mycontacts" && (
           <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
-        )}
-
-        {activeTab === "slack" && (
-          <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
-            <CardContent className="pt-6">
-              <SlackTeamChat />
-            </CardContent>
-          </Card>
         )}
 
         {activeTab === "activity" && (
