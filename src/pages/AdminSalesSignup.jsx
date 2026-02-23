@@ -67,6 +67,14 @@ export default function AdminSalesSignup() {
     updateMutation.mutate({ id: editingMember.id, data: editData });
   };
 
+  const changePasswordMutation = useMutation({
+    mutationFn: ({ memberId, newPassword }) => base44.functions.invoke('updateSalesTeamMemberPassword', { memberId, newPassword }),
+    onSuccess: () => {
+      setNewPassword("");
+      alert("Password updated successfully");
+    }
+  });
+
   const handleSubmit = () => {
     if (!formData.email || !formData.full_name || !formData.password) {
       alert("Please fill in all required fields");
