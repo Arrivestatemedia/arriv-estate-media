@@ -78,10 +78,9 @@ export default function AdminSalesSignup() {
   });
 
   const authorizeGmailMutation = useMutation({
-    mutationFn: (memberId) => base44.functions.invoke('initiateSalesRepGmailAuth', { memberId }),
+    mutationFn: (memberId) => base44.functions.invoke('generateSalesRepGmailAuthUrl', { memberId }),
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['salesTeam'] });
-      alert(`Gmail authorized: ${response.data.email}`);
+      window.open(response.data.authUrl, '_blank');
     },
     onError: (error) => {
       alert(`Failed: ${error.response?.data?.error || error.message}`);
