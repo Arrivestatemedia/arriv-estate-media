@@ -27,10 +27,11 @@ export default function IphoneDialer({ salesMemberId }) {
   const [messages, setMessages] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [error, setError] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [callNotes, setCallNotes] = useState("");
+   const [contactName, setContactName] = useState("");
+   const [contactEmail, setContactEmail] = useState("");
+   const [companyName, setCompanyName] = useState("");
+   const [callNotes, setCallNotes] = useState("");
+   const [expandedCallId, setExpandedCallId] = useState(null);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -475,25 +476,54 @@ export default function IphoneDialer({ salesMemberId }) {
               callLogs.map((log) => {
                 const phoneMatch = log.notes?.match(/\+?1?\d{10}/);
                 const phoneNumber = phoneMatch?.[0];
+                const isExpanded = expandedCallId === log.id;
+
                 return (
-                  <button
-                    key={log.id}
-                    onClick={() => phoneNumber && startCall(phoneNumber)}
-                    className="w-full text-left p-4 border-b hover:bg-gray-50 transition flex items-center justify-between"
-                    style={{ borderColor: 'rgba(184,149,106,0.1)' }}
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium" style={{ color: '#1A1A1A' }}>{log.contact_name || phoneNumber || 'Unknown'}</p>
-                      {log.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{log.company_name}</p>}
-                      {log.duration_minutes > 0 && (
-                        <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.4)' }}>{log.duration_minutes} min</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>{formatTime(log.activity_date)}</p>
-                      <Phone className="w-4 h-4 mt-1" style={{ color: '#B8956A' }} />
-                    </div>
-                  </button>
+                  <div key={log.id} style={{ borderBottom: '1px solid rgba(184,149,106,0.1)' }}>
+                    <button
+                      onClick={() => setExpandedCallId(isExpanded ? null : log.id)}
+                      className="w-full text-left p-4 hover:bg-gray-50 transition flex items-center justify-between"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium" style={{ color: '#1A1A1A' }}>{log.contact_name || phoneNumber || 'Unknown'}</p>
+                        {log.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{log.company_name}</p>}
+                        {log.duration_minutes > 0 && (
+                          <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.4)' }}>{log.duration_minutes} min</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>{formatTime(log.activity_date)}</p>
+                        <Phone className="w-4 h-4 mt-1" style={{ color: '#B8956A' }} />
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="p-4 bg-gray-50 space-y-3">
+                        {log.contact_email && (
+                          <div>
+                            <p className="text-xs font-medium" style={{ color: 'rgba(26,26,26,0.6)' }}>Email</p>
+                            <p style={{ color: '#1A1A1A' }}>{log.contact_email}</p>
+                          </div>
+                        )}
+                        {log.notes && (
+                          <div>
+                            <p className="text-xs font-medium" style={{ color: 'rgba(26,26,26,0.6)' }}>Notes</p>
+                            <p className="text-sm" style={{ color: '#1A1A1A' }}>{log.notes}</p>
+                          </div>
+                        )}
+                        {phoneNumber && (
+                          <Button 
+                            onClick={() => startCall(phoneNumber)}
+                            className="w-full gap-2 mt-3"
+                            style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+                          >
+                            <Phone className="w-4 h-4" />
+                            Call Now
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })
             )}
