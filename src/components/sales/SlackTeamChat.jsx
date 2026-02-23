@@ -23,7 +23,13 @@ export default function SlackTeamChat() {
             const members = await base44.entities.SalesTeamMember.filter({ email: user.email });
             if (members.length > 0) {
                 setSalesMemberId(members[0].id);
-                loadChannelsAndUsers(members[0].id);
+                if (members[0].slack_token) {
+                    setIsAuthed(true);
+                    loadChannelsAndUsers(members[0].id);
+                } else {
+                    setIsAuthed(false);
+                    setLoading(false);
+                }
             } else {
                 setError('Sales member not found');
                 setLoading(false);
