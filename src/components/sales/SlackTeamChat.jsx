@@ -24,16 +24,17 @@ export default function SlackTeamChat() {
             setError('');
             const response = await base44.functions.invoke('slackGetChannelsAndUsers', {});
             
-            if (response.data.success && response.data.channels) {
+            if (response.data && response.data.channels && response.data.channels.length > 0) {
                 setChannels(response.data.channels);
-                if (response.data.channels.length > 0) {
-                    setSelectedChannel(response.data.channels[0].id);
-                }
-            } else if (response.data.error) {
+                setSelectedChannel(response.data.channels[0].id);
+            } else if (response.data && response.data.error) {
                 setError(response.data.error);
+            } else {
+                setError('No channels available');
             }
         } catch (err) {
-            setError('Failed to load channels. Make sure your Slack workspace is connected.');
+            console.error('Load channels error:', err);
+            setError(err.response?.data?.error || 'Failed to load channels. Make sure your Slack workspace is connected.');
         } finally {
             setLoading(false);
         }
