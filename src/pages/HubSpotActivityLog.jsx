@@ -638,6 +638,7 @@ export default function HubSpotActivityLog() {
                    onClick={() => {
                      setOpenNewContactForm(true);
                      setActiveTab("contacts");
+                     setSelectedActivity(null);
                    }}
                   >
                    <Plus className="w-4 h-4" />
