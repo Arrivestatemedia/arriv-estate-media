@@ -51,6 +51,9 @@ Deno.serve(async (req) => {
     const base64 = btoa(String.fromCharCode(...emailBytes));
     const encodedEmail = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
+    console.log('Sending email from:', sendFromEmail);
+    console.log('Email to:', to);
+    
     const gmailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: {
