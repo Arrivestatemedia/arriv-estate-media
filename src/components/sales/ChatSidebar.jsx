@@ -110,6 +110,9 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       if (event.type === "update") {
         if (event.data?.chat_status) {
           setDmStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+          if (event.id === currentUserId) {
+            setMyStatus(event.data.chat_status);
+          }
         }
       }
     });
