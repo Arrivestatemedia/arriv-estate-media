@@ -261,8 +261,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
           <p className="text-xs font-semibold text-gray-500 uppercase">Direct Messages</p>
           <div className="mt-3 space-y-1">
             {directMessages.map((dm) => {
-              const member = teamMembers.find(m => m.id === dm.id);
-              const status = memberStatuses[dm.id] || "offline";
+              const status = dmStatuses[dm.id] || memberStatuses[dm.id] || "offline";
               return (
                 <button
                   key={dm.id}
