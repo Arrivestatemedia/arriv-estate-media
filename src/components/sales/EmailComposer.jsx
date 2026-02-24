@@ -510,13 +510,12 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
                  >
                    Cancel
                  </Button>
-               </div>
-               </div>
-               </div>
-               </div>
-               )}
-               </div>
-               )}
+                 </div>
+                 </div>
+                 </div>
+                 )}
+                 </div>
+                 )}
 
       {/* ── SCHEDULED ── */}
       {tab === "scheduled" && (
