@@ -90,6 +90,7 @@ import SalesLogin from './pages/SalesLogin';
 import AdminSalesRepActivity from './pages/AdminSalesRepActivity';
 import AdminSalesSignup from './pages/AdminSalesSignup';
 import AdminLogin from './pages/AdminLogin';
+import AdminHub from './pages/AdminHub';
 import __Layout from './Layout.jsx';
 
 
@@ -137,6 +138,7 @@ export const PAGES = {
     "AdminSalesRepActivity": AdminSalesRepActivity,
     "AdminSalesSignup": AdminSalesSignup,
     "AdminLogin": AdminLogin,
+    "AdminHub": AdminHub,
 }
 
 export const pagesConfig = {
