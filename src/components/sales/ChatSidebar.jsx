@@ -81,26 +81,10 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
           setMyStatus(members[0].chat_status || "online");
           setMyProfilePicture(members[0].profile_picture_url);
         } else {
-          // Fallback to User/Admin entity if not a SalesTeamMember
-          base44.auth.me().then(async (user) => {
+          // Fallback to User entity if not a SalesTeamMember
+          base44.auth.me().then(user => {
             if (user) {
               setMyStatus(user.chat_status || "online");
-              // If admin, sync to ChatAdmin
-              if (user.role === 'admin') {
-                const existing = await base44.entities.ChatAdmin.filter({ email: user.email }).catch(() => []);
-                if (existing?.length > 0) {
-                  await base44.entities.ChatAdmin.update(existing[0].id, {
-                    chat_status: user.chat_status || "online",
-                    full_name: user.full_name
-                  });
-                } else {
-                  await base44.entities.ChatAdmin.create({
-                    email: user.email,
-                    full_name: user.full_name,
-                    chat_status: user.chat_status || "online"
-                  });
-                }
-              }
             }
           }).catch(() => {});
         }
@@ -121,22 +105,22 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       }
     });
     
-    // Subscribe to ChatAdmin entity updates
-    const adminUnsub = base44.entities.ChatAdmin.subscribe((event) => {
+    // Subscribe to User entity updates for admins
+    const userUnsub = base44.entities.User.subscribe((event) => {
       if (event.type === "update") {
         setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
         if (event.data?.chat_status) {
           setDmStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
-        }
-        if (event.id === currentUserId) {
-          if (event.data?.chat_status) setMyStatus(event.data.chat_status);
+          if (event.id === currentUserId) {
+            setMyStatus(event.data.chat_status);
+          }
         }
       }
     });
     
     return () => {
       unsub();
-      adminUnsub?.();
+      userUnsub?.();
     };
   }, [currentUserId]);
 
@@ -148,8 +132,8 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
        await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
      } catch (error) {
        try {
-         // Try updating as ChatAdmin
-         await base44.entities.ChatAdmin.update(currentUserId, { chat_status: val });
+         // Fallback to updating User entity
+         await base44.auth.updateMe({ chat_status: val });
        } catch (fallbackError) {
          console.error('Failed to update status:', fallbackError);
          setMyStatus(STATUSES[0].value); // revert on error
@@ -184,9 +168,14 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     const members = await base44.entities.SalesTeamMember.list().catch(() => []);
     const salesMembers = members?.filter(m => m.id !== currentUserId && m.is_active !== false) || [];
 
-    // Load ChatAdmins
-    const admins = await base44.entities.ChatAdmin.list().catch(() => []);
-    const adminMembers = admins?.filter(a => a.id !== currentUserId) || [];
+    // Load Users (admins) and convert to team member format
+    const users = await base44.entities.User.list().catch(() => []);
+    const adminMembers = users?.filter(u => u.id !== currentUserId && u.role === 'admin').map(u => ({
+      id: u.id,
+      full_name: u.full_name,
+      chat_status: u.chat_status || "offline",
+      is_user: true
+    })) || [];
 
     setTeamMembers([...salesMembers, ...adminMembers]);
   };
