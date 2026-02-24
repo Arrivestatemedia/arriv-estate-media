@@ -14,6 +14,9 @@ export default function EmailComposer({ salesMemberId }) {
   const [loadingScheduled, setLoadingScheduled] = useState(false);
   const [scheduleMode, setScheduleMode] = useState(false);
   const [scheduledFor, setScheduledFor] = useState("");
+  const [scheduleMeetingMode, setScheduleMeetingMode] = useState(false);
+  const [meetingData, setMeetingData] = useState({ title: "", startTime: "", endTime: "", description: "" });
+  const [invitingClients, setInvitingClients] = useState(false);
 
   // Compose state
   const [searchQuery, setSearchQuery] = useState("");
