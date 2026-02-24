@@ -14,7 +14,8 @@ Deno.serve(async (req) => {
       description, 
       startTime, 
       endTime, 
-      clientEmails 
+      clientEmails,
+      salesRepCompanyEmail
     } = await req.json();
     
     if (!title || !startTime || !endTime) {
@@ -24,7 +25,20 @@ Deno.serve(async (req) => {
     // Get Google Calendar access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
     
-    // Create calendar event
+    // Build attendees list: clients + info@arrivestatemedia.com
+    const attendees = (clientEmails || []).map(email => ({
+      email: email,
+      responseStatus: 'needsAction'
+    }));
+    
+    // Add info@arrivestatemedia.com as CC
+    attendees.push({
+      email: 'info@arrivestatemedia.com',
+      responseStatus: 'accepted',
+      optional: true
+    });
+    
+    // Create calendar event from sales rep's email
     const event = {
       summary: title,
       description: description || '',
@@ -36,10 +50,8 @@ Deno.serve(async (req) => {
         dateTime: endTime,
         timeZone: 'UTC'
       },
-      attendees: (clientEmails || []).map(email => ({
-        email: email,
-        responseStatus: 'needsAction'
-      })),
+      organizer: salesRepCompanyEmail ? { email: salesRepCompanyEmail } : undefined,
+      attendees: attendees,
       conferenceData: {
         conferenceSolution: {
           key: { conferenceSolutionKey: 'hangoutsMeet' }
