@@ -65,6 +65,8 @@ export default function HubSpotActivityLog() {
           setProfilePicUrl(members[0].profile_picture_url);
         }
       }).catch(() => {});
+      // Request notification + audio permissions right after login
+      setTimeout(() => setShowPermissionBanner(true), 500);
     } else {
       // Check for admin via base44
       base44.auth.me().then((adminUser) => {
