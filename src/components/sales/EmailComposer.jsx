@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar } from "lucide-react";
 import { format } from "date-fns";
 
-export default function EmailComposer({ salesMemberId }) {
+export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   const [tab, setTab] = useState("compose"); // "compose" | "replies" | "scheduled"
   const [salesMember, setSalesMember] = useState(null);
   const [scheduledEmails, setScheduledEmails] = useState([]);
