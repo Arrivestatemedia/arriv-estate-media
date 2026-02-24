@@ -49,6 +49,13 @@ export default function IphoneDialer({ salesMemberId }) {
     const id = salesMemberId || localStorage.getItem('sales_member_id');
     if (!id) return;
 
+    // Only allow dialing for Sample@arrivestatemedia.com
+    const email = localStorage.getItem('sales_member_email');
+    if (email !== 'Sample@arrivestatemedia.com') {
+      setError('Dialing is not available for your account');
+      return;
+    }
+
     initDevice();
 
     setTimeout(() => {
