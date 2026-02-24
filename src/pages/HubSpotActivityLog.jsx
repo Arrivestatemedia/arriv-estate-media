@@ -54,6 +54,12 @@ export default function HubSpotActivityLog() {
     // Check if sales member is logged in via localStorage
     const salesMemberId = localStorage.getItem('sales_member_id');
     if (salesMemberId) {
+      const role = localStorage.getItem('sales_member_role');
+      // Route admins to Admin Hub instead
+      if (role === 'admin') {
+        window.location.href = createPageUrl('AdminHub');
+        return;
+      }
       const u = {
         id: salesMemberId,
         full_name: localStorage.getItem('sales_member_name'),

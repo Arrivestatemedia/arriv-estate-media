@@ -113,7 +113,7 @@ export default function AdminSalesRepActivity() {
           <div>
             <h2 className="text-lg font-semibold mb-4" style={{ color: '#1A1A1A' }}>Sales Team</h2>
             <div className="space-y-2">
-              {salesMembers.filter(rep => rep.is_active).map((rep) => {
+              {salesMembers.filter(rep => rep.is_active && rep.role !== 'admin').map((rep) => {
                 const stats = getRepStats(rep.email);
                 const isSelected = selectedRep?.email === rep.email;
                 return (
