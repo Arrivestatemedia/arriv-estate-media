@@ -29,18 +29,18 @@ function StatusDot({ value, size = 10 }) {
   return <span style={{ width: size, height: size, borderRadius: '50%', backgroundColor: s.color, display: 'inline-block', flexShrink: 0 }} />;
 }
 
-export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat, memberStatuses = {}, onStatusChange }) {
+export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat }) {
   const [channels, setChannels] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [newChannelName, setNewChannelName] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [myStatus, setMyStatus] = useState(memberStatuses[currentUserId] || "online");
+  const [myStatus, setMyStatus] = useState("online");
   const [myProfilePicture, setMyProfilePicture] = useState(null);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusRef = useRef(null);
-  const [hoveredMemberId, setHoveredMemberId] = useState(null);
+  const [teamMemberStatuses, setTeamMemberStatuses] = useState({});
 
   // Close picker on outside click
   useEffect(() => {
