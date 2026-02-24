@@ -4,9 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, MessageSquare, ArrowLeft } from "lucide-react";
 
+let _smsAudioCtx = null;
+const getSmsAudioCtx = () => {
+  if (!_smsAudioCtx) {
+    _smsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_smsAudioCtx.state === 'suspended') {
+    _smsAudioCtx.resume();
+  }
+  return _smsAudioCtx;
+};
+
+if (typeof window !== 'undefined') {
+  const unlock = () => {
+    getSmsAudioCtx();
+    window.removeEventListener('click', unlock);
+    window.removeEventListener('keydown', unlock);
+    window.removeEventListener('touchstart', unlock);
+  };
+  window.addEventListener('click', unlock);
+  window.addEventListener('keydown', unlock);
+  window.addEventListener('touchstart', unlock);
+}
+
 const playIphoneTextSound = () => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getSmsAudioCtx();
 
     const playTone = (freq, startTime, duration, gainVal) => {
       const osc = ctx.createOscillator();
@@ -22,7 +45,6 @@ const playIphoneTextSound = () => {
       osc.stop(startTime + duration);
     };
 
-    // Two-tone iPhone "tri-tone" style
     playTone(1318, ctx.currentTime, 0.12, 0.3);
     playTone(1174, ctx.currentTime + 0.13, 0.12, 0.3);
     playTone(987, ctx.currentTime + 0.26, 0.18, 0.3);
