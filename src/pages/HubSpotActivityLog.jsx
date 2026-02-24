@@ -220,7 +220,6 @@ export default function HubSpotActivityLog() {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             {user?.type === 'sales' && (
-            {user?.type === 'sales' && (
               <ProfilePictureUpload
                 salesMemberId={user.id}
                 currentUrl={profilePicUrl}
