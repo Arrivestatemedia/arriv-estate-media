@@ -35,25 +35,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Register service worker and request notification permission
+  // Check notification permission status
   useEffect(() => {
-    // Register service worker for push notifications
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/service-worker.js").catch(err => {
-        console.log("Service worker registration failed:", err);
-      });
-    }
-
-    if ("Notification" in window) {
-      if (Notification.permission === "granted") {
-        setNotificationsEnabled(true);
-      } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then((permission) => {
-          if (permission === "granted") {
-            setNotificationsEnabled(true);
-          }
-        });
-      }
+    if ("Notification" in window && Notification.permission === "granted") {
+      setNotificationsEnabled(true);
     }
   }, []);
 
