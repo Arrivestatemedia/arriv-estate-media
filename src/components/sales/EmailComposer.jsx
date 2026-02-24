@@ -212,6 +212,38 @@ export default function EmailComposer({ salesMemberId }) {
     }
   };
 
+  const handleScheduleMeeting = async () => {
+    if (!meetingData.title || !meetingData.startTime || !meetingData.endTime) {
+      alert("Please fill in title, start, and end times");
+      return;
+    }
+
+    const clientEmails = selectedContact ? [selectedContact.email] : [];
+    if (!clientEmails.length) {
+      alert("Please select a contact to invite");
+      return;
+    }
+
+    setInvitingClients(true);
+    try {
+      const result = await base44.functions.invoke('scheduleGoogleCalendarInvite', {
+        title: meetingData.title,
+        description: meetingData.description || '',
+        startTime: new Date(meetingData.startTime).toISOString(),
+        endTime: new Date(meetingData.endTime).toISOString(),
+        clientEmails: clientEmails
+      });
+      alert(`Meeting scheduled! Invite sent to ${selectedContact?.firstname}`);
+      setMeetingData({ title: "", startTime: "", endTime: "", description: "" });
+      setSelectedContact(null);
+      setScheduleMeetingMode(false);
+    } catch (error) {
+      alert("Failed to schedule meeting: " + error.message);
+    } finally {
+      setInvitingClients(false);
+    }
+  };
+
   const handleReply = (reply, isReplyAll = false) => {
     const subject = reply.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply.subject || '(no subject)'}`;
     const fromEmail_clean = reply.from.match(/<(.+?)>/)?.[1] || reply.from;
