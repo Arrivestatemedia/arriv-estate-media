@@ -81,8 +81,13 @@ export default function HubSpotActivityLog() {
 
       // Subscribe to new unread messages
       const dmSub = base44.entities.DirectMessage.subscribe((event) => {
-        if (event.type === "create" && event.data?.recipient_id === salesMemberId && !event.data?.read) {
-          setUnreadSmsCount(prev => prev + 1);
+        if (event.type === "create") {
+          if (event.data?.recipient_id === salesMemberId && !event.data?.read) {
+            setUnreadSmsCount(prev => prev + 1);
+          } else if (event.data?.sender_id === salesMemberId) {
+            // When current user sends a message, they're starting a conversation
+            setUnreadSmsCount(prev => prev);
+          }
         } else if (event.type === "update" && event.data?.recipient_id === salesMemberId && event.data?.read) {
           setUnreadSmsCount(prev => Math.max(0, prev - 1));
         }
