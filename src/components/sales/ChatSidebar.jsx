@@ -155,9 +155,13 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center gap-2 mb-2">
           <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-              <span className="w-6 h-6 rounded-full bg-gray-600" />
-            </div>
+            {myProfilePicture ? (
+              <img src={myProfilePicture} alt={currentUserName} className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-white">
+                {currentUserName?.charAt(0)?.toUpperCase()}
+              </div>
+            )}
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-[#1A1A1A]"
               style={{ backgroundColor: statusFor(myStatus).color }} />
           </div>
