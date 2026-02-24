@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     // Look up admin in SalesTeamMember database
-    const admins = await base44.asServiceRole.entities.SalesTeamMember.filter({
+    const admins = await base44.entities.SalesTeamMember.filter({
       email: email,
       role: 'admin'
     });
