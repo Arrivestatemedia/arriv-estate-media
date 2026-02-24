@@ -70,7 +70,9 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const handleSetStatus = async (val) => {
     setMyStatus(val);
     setShowStatusPicker(false);
-    await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
+    if (currentUserId) {
+      await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
+    }
   };
 
   const loadChannels = async () => {
