@@ -71,21 +71,9 @@ export default function EmailComposer({ salesMemberId }) {
   const loadReplies = async () => {
     setLoadingReplies(true);
     try {
-      // Get all contacts this rep has emailed (from activity log)
-      const activities = await base44.entities.ActivityLog.list('-activity_date', 200);
-      const mine = activities.filter(a =>
-        a.sales_member_id === salesMemberId || a.sales_member_email === salesMember?.email
-      );
-      const contactEmails = [...new Set(mine.map(a => a.contact_email).filter(Boolean))];
-
-      if (contactEmails.length === 0) {
-        setReplies([]);
-        setLoadingReplies(false);
-        return;
-      }
-
+      // Pull entire Gmail inbox for this rep - no contact filtering needed
       const res = await base44.functions.invoke('getGmailReplies', { 
-        contactEmails, 
+        contactEmails: [], // empty = all inbox
         toEmail: fromEmail || salesMember?.company_email 
       });
       setReplies(res.data?.threads || []);
