@@ -15,6 +15,8 @@ Deno.serve(async (req) => {
 
     const adminEmail = Deno.env.get('ADMIN_EMAIL');
 
+    let emailsSent = 0;
+
     // --- Check Direct Messages ---
     // Find DMs older than 2.5 min that have not been replied to
     const allDMs = await base44.asServiceRole.entities.DirectMessage.filter({ read: false });
@@ -30,37 +32,25 @@ Deno.serve(async (req) => {
       dmByRecipient[dm.recipient_id].push(dm);
     }
 
-    let emailsSent = 0;
-
     for (const [recipientId, dms] of Object.entries(dmByRecipient)) {
       const recipient = memberMap[recipientId];
       if (!recipient) continue;
 
-      const repEmail = recipient.email;
       const count = dms.length;
       const senderNames = [...new Set(dms.map(d => d.sender_name).filter(Boolean))].join(', ');
 
-      // Email the rep
+      // Only email the rep (or admin if the admin is the recipient)
+      const isAdmin = recipient.email === adminEmail;
+
       await base44.asServiceRole.integrations.Core.SendEmail({
-        to: repEmail,
+        to: recipient.email,
         subject: `⚠️ You have ${count} unanswered chat message${count > 1 ? 's' : ''}`,
         body: `Hi ${recipient.full_name},\n\nYou have ${count} unread message${count > 1 ? 's' : ''} from ${senderNames} that ${count > 1 ? 'have' : 'has'} been waiting over 2.5 minutes for a reply.\n\nPlease log in and respond.\n\n– Arriv Team`
       });
       emailsSent++;
-
-      // Also email the admin
-      if (adminEmail) {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: adminEmail,
-          subject: `⚠️ ${recipient.full_name} hasn't responded to ${count} chat message${count > 1 ? 's' : ''}`,
-          body: `Hi Admin,\n\n${recipient.full_name} (${repEmail}) has ${count} unread message${count > 1 ? 's' : ''} from ${senderNames} that ${count > 1 ? 'have' : 'has'} been waiting over 2.5 minutes with no response.\n\n– Arriv System`
-        });
-        emailsSent++;
-      }
     }
 
     // --- Check Channel Messages (no reply from anyone in 2.5 min) ---
-    // Find channel messages older than 2.5 min
     const channels = await base44.asServiceRole.entities.ChatChannel.list();
     for (const channel of channels) {
       const recentMsgs = await base44.asServiceRole.entities.ChatMessage.filter({ channel_id: channel.id }, '-timestamp', 5);
@@ -74,7 +64,7 @@ Deno.serve(async (req) => {
       const hasReply = recentMsgs.some(m => m.sender_id !== lastMsg.sender_id && (m.timestamp || m.created_date) > ts);
       if (hasReply) continue;
 
-      // No reply — email the sender
+      // No reply — only email the sender
       const sender = memberMap[lastMsg.sender_id];
       if (!sender) continue;
 
@@ -84,15 +74,6 @@ Deno.serve(async (req) => {
         body: `Hi ${sender.full_name},\n\nYour message in #${channel.name} hasn't received a reply in over 2.5 minutes.\n\nMessage: "${lastMsg.content}"\n\nYou may want to follow up.\n\n– Arriv Team`
       });
       emailsSent++;
-
-      if (adminEmail) {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: adminEmail,
-          subject: `⚠️ No response in #${channel.name} for 2.5+ minutes`,
-          body: `Hi Admin,\n\n${sender.full_name}'s message in #${channel.name} has not received a reply in over 2.5 minutes.\n\nMessage: "${lastMsg.content}"\n\n– Arriv System`
-        });
-        emailsSent++;
-      }
     }
 
     return Response.json({ success: true, emailsSent });
