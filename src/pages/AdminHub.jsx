@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, BarChart3 } from "lucide-react";
 import AdminSalesSignup from "./AdminSalesSignup";
 import AdminSalesRepActivity from "./AdminSalesRepActivity";
 import AdminActivityPage from "./AdminActivityPage";
