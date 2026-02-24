@@ -41,11 +41,11 @@ export default function ChatTab({ currentUserId, currentUserName }) {
       }
     });
 
-    // Also subscribe to User entity updates for admins
+    // Subscribe to User entity updates for admins/non-sales-reps
     const userUnsub = base44.entities.User?.subscribe?.((event) => {
-      if (event.type === "update" && event.id === currentUserId) {
+      if (event.type === "update") {
         if (event.data?.chat_status) {
-          setMemberStatuses(prev => ({ ...prev, [currentUserId]: event.data.chat_status }));
+          setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
         }
       }
     });
