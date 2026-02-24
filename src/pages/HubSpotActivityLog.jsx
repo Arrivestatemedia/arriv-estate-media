@@ -218,18 +218,24 @@ export default function HubSpotActivityLog() {
   }
 
   const handleEnablePermissions = async () => {
-    // Unlock audio context
+    // Create and PLAY a real audible tone to unlock audio (must be inside user gesture)
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      // Play a silent buffer to unlock
-      const buffer = ctx.createBuffer(1, 1, 22050);
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(ctx.destination);
-      source.start();
-      // Store context globally so ChatWindow and SmsInbox can reuse it
+      await ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
       window._unlockedAudioCtx = ctx;
-    } catch (e) {}
+    } catch (e) {
+      console.error("Audio unlock failed:", e);
+    }
 
     // Request notification permission
     if ("Notification" in window && Notification.permission !== "granted") {
