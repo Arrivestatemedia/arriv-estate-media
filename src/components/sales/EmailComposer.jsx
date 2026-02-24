@@ -67,10 +67,27 @@ export default function EmailComposer({ salesMemberId }) {
         const threads = res.data?.threads || [];
         if (lastInboxCountRef.current !== null && threads.length > lastInboxCountRef.current) {
           const newCount = threads.length - lastInboxCountRef.current;
+          // Play ding via shared unlocked audio context
+          try {
+            const ctx = window._unlockedAudioCtx;
+            if (ctx && ctx.state !== 'suspended') {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(660, ctx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+              gain.gain.setValueAtTime(0.3, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.4);
+            }
+          } catch (e) {}
           if (Notification.permission === "granted") {
             new Notification(`📧 ${newCount} new email${newCount > 1 ? 's' : ''} in your inbox`, {
               body: threads[0]?.snippet || "",
-              icon: "/favicon.ico"
+              tag: "email-inbox"
             });
           }
         }
