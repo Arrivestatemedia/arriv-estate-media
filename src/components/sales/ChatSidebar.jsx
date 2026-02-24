@@ -76,11 +76,17 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     setMyStatus(val);
     setShowStatusPicker(false);
     try {
-      if (currentUserId) {
-        await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
+      if (!currentUserId) {
+        console.error('No currentUserId available');
+        setMyStatus(STATUSES[0].value); // revert
+        return;
       }
+      console.log('Updating status for ID:', currentUserId, 'to:', val);
+      const result = await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
+      console.log('Status update result:', result);
     } catch (error) {
       console.error('Failed to update status:', error);
+      setMyStatus(STATUSES[0].value); // revert on error
     }
   };
 
