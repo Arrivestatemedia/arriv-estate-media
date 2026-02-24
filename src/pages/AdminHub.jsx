@@ -61,14 +61,18 @@ export default function AdminHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="team" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Sales Team
             </TabsTrigger>
+            <TabsTrigger value="sales_activity" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Sales Activity
+            </TabsTrigger>
             <TabsTrigger value="activity" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Activity
+              My Activity
             </TabsTrigger>
           </TabsList>
 
@@ -76,8 +80,12 @@ export default function AdminHub() {
             <AdminSalesSignup isAdmin={true} />
           </TabsContent>
 
-          <TabsContent value="activity" className="mt-6">
+          <TabsContent value="sales_activity" className="mt-6">
             <AdminSalesRepActivity />
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-6">
+            <AdminActivityPage user={user} />
           </TabsContent>
         </Tabs>
 
