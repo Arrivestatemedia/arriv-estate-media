@@ -202,47 +202,66 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   };
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
-    const text = newMessage.trim();
-    if (!text) return;
+   e.preventDefault();
+   const text = newMessage.trim();
+   if (!text) return;
 
-    // Optimistic update
-    const optimisticMsg = {
-      id: `temp-${Date.now()}`,
-      sender_id: currentUserId,
-      sender_name: currentUserName,
-      content: text,
-      timestamp: new Date().toISOString(),
-      ...(chatType === "channel" ? { channel_id: chatId } : { recipient_id: chatId, recipient_name: chatName }),
-    };
-    setMessages(prev => [...prev, optimisticMsg]);
-    setNewMessage("");
+   // Optimistic update
+   const optimisticMsg = {
+     id: `temp-${Date.now()}`,
+     sender_id: currentUserId,
+     sender_name: currentUserName,
+     content: text,
+     timestamp: new Date().toISOString(),
+     ...(chatType === "channel" ? { channel_id: chatId } : { recipient_id: chatId, recipient_name: chatName }),
+   };
+   setMessages(prev => [...prev, optimisticMsg]);
+   setNewMessage("");
 
-    try {
-      if (chatType === "channel") {
-        await base44.entities.ChatMessage.create({
-          channel_id: chatId,
-          sender_id: currentUserId,
-          sender_name: currentUserName,
-          content: text,
-          timestamp: new Date().toISOString()
-        });
-      } else if (chatType === "dm") {
-        await base44.entities.DirectMessage.create({
-          sender_id: currentUserId,
-          sender_name: currentUserName,
-          recipient_id: chatId,
-          recipient_name: chatName,
-          content: text,
-          timestamp: new Date().toISOString()
-        });
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      // Remove optimistic message on failure
-      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
-      setNewMessage(text);
-    }
+   try {
+     if (chatType === "channel") {
+       await base44.entities.ChatMessage.create({
+         channel_id: chatId,
+         sender_id: currentUserId,
+         sender_name: currentUserName,
+         content: text,
+         timestamp: new Date().toISOString()
+       });
+     } else if (chatType === "dm") {
+       await base44.entities.DirectMessage.create({
+         sender_id: currentUserId,
+         sender_name: currentUserName,
+         recipient_id: chatId,
+         recipient_name: chatName,
+         content: text,
+         timestamp: new Date().toISOString()
+       });
+
+       // Send auto-response if recipient is in a meeting
+       if (memberStatuses[chatId] === 'in_meeting') {
+         setTimeout(async () => {
+           try {
+             await base44.entities.DirectMessage.create({
+               sender_id: chatId,
+               sender_name: chatName,
+               recipient_id: currentUserId,
+               recipient_name: currentUserName,
+               content: "This person is in a meeting and will respond as soon as they're available.",
+               timestamp: new Date().toISOString(),
+               auto_response: true
+             });
+           } catch (e) {
+             console.error("Error sending auto-response:", e);
+           }
+         }, 500);
+       }
+     }
+   } catch (error) {
+     console.error("Error sending message:", error);
+     // Remove optimistic message on failure
+     setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+     setNewMessage(text);
+   }
   };
 
   if (!chatId) {
