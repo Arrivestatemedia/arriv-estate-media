@@ -49,14 +49,21 @@ export default function IphoneDialer({ salesMemberId }) {
     const id = salesMemberId || localStorage.getItem('sales_member_id');
     if (!id) return;
 
-    // Only allow dialing for Sample@arrivestatemedia.com
-    const email = localStorage.getItem('sales_member_email');
-    if (email !== 'Sample@arrivestatemedia.com') {
-      setError('Dialing is not available for your account');
-      return;
-    }
-
-    initDevice();
+    // Check if this user has a twilio phone number assigned
+    base44.entities.SalesTeamMember.filter({ id }).then(members => {
+      if (!members?.[0]?.twilio_phone_number) {
+        setError('A phone number has not been assigned to your account yet. Contact your administrator.');
+        return;
+      }
+      initDevice();
+    }).catch(() => {
+      setError('Unable to verify phone number assignment');
+    });
+    
+    setTimeout(() => {
+      loadCallLogs().catch(() => {});
+      loadConversations().catch(() => {});
+    }, 500);
 
     setTimeout(() => {
       loadCallLogs().catch(() => {});
