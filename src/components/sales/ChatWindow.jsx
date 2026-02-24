@@ -268,15 +268,35 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 p-4">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
+      <div className="border-t border-gray-200 p-3 relative">
+        {showEmojis && (
+          <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex flex-wrap gap-1 w-64 z-10">
+            {EMOJIS.map(emoji => (
+              <button key={emoji} type="button" className="text-xl hover:bg-gray-100 rounded p-1"
+                onClick={() => { setNewMessage(prev => prev + emoji); setShowEmojis(false); }}>
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+        <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv" />
+        <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+            className="text-gray-400 hover:text-[#B8956A] transition-colors p-1 flex-shrink-0">
+            <Paperclip className="w-5 h-5" />
+          </button>
+          <button type="button" onClick={() => setShowEmojis(v => !v)}
+            className="text-gray-400 hover:text-[#B8956A] transition-colors p-1 flex-shrink-0">
+            <Smile className="w-5 h-5" />
+          </button>
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={uploading ? "Uploading..." : "Type a message..."}
             className="flex-1"
+            disabled={uploading}
           />
-          <Button type="submit" size="sm" className="bg-[#B8956A] hover:bg-[#A68559]">
+          <Button type="submit" size="sm" className="bg-[#B8956A] hover:bg-[#A68559]" disabled={uploading}>
             <Send className="w-4 h-4" />
           </Button>
         </form>
