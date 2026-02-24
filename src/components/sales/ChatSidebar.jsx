@@ -160,8 +160,20 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   };
 
   const loadTeamMembers = async () => {
-    const members = await base44.entities.SalesTeamMember.list();
-    setTeamMembers(members?.filter(m => m.id !== currentUserId && m.is_active !== false) || []);
+    // Load SalesTeamMembers
+    const members = await base44.entities.SalesTeamMember.list().catch(() => []);
+    const salesMembers = members?.filter(m => m.id !== currentUserId && m.is_active !== false) || [];
+    
+    // Load Users (admins) and convert to team member format
+    const users = await base44.entities.User.list().catch(() => []);
+    const adminMembers = users?.filter(u => u.id !== currentUserId && u.role === 'admin').map(u => ({
+      id: u.id,
+      full_name: u.full_name,
+      chat_status: u.chat_status || "offline",
+      is_user: true
+    })) || [];
+    
+    setTeamMembers([...salesMembers, ...adminMembers]);
   };
 
   const handleCreateChannel = async () => {
