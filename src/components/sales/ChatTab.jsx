@@ -5,61 +5,6 @@ import ChatWindow from "./ChatWindow";
 
 export default function ChatTab({ currentUserId, currentUserName }) {
   const [selectedChat, setSelectedChat] = useState(null);
-  const [memberProfiles, setMemberProfiles] = useState({});
-  const [memberStatuses, setMemberStatuses] = useState({});
-
-  useEffect(() => {
-    const loadData = async () => {
-      const profiles = {};
-      const statuses = {};
-      
-      // Load SalesTeamMembers
-      const members = await base44.entities.SalesTeamMember.list().catch(() => []);
-      members?.forEach(m => {
-        if (m.profile_picture_url) profiles[m.id] = m.profile_picture_url;
-        statuses[m.id] = m.chat_status || "offline";
-      });
-      
-      // Load admin statuses via backend function
-      try {
-        const response = await base44.functions.invoke('getAdminUsers');
-        response?.data?.admins?.forEach(u => {
-          statuses[u.id] = u.chat_status || "offline";
-        });
-      } catch (error) {
-        console.error('Failed to load admin users:', error);
-      }
-      
-      setMemberProfiles(profiles);
-      setMemberStatuses(statuses);
-    };
-    
-    loadData();
-
-    // Subscribe to real-time status updates for SalesTeamMembers
-    const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
-      if (event.type === "update") {
-        if (event.data?.chat_status) {
-          setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
-        }
-        if (event.data?.profile_picture_url) {
-          setMemberProfiles(prev => ({ ...prev, [event.id]: event.data.profile_picture_url }));
-        }
-      }
-    });
-
-    // Subscribe to User entity updates for admins
-    const userUnsub = base44.entities.User.subscribe((event) => {
-      if (event.type === "update" && event.data?.chat_status) {
-        setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
-      }
-    });
-
-    return () => {
-      unsub();
-      userUnsub?.();
-    };
-  }, [currentUserId]);
 
   const handleSelectChat = (type, id, name) => {
     setSelectedChat({ type, id, name });
