@@ -37,6 +37,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const [selectedChat, setSelectedChat] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [myStatus, setMyStatus] = useState("online");
+  const [myProfilePicture, setMyProfilePicture] = useState(null);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusRef = useRef(null);
 
@@ -51,12 +52,13 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     loadChannels();
     loadDirectMessages();
     loadTeamMembers();
-    // Load current user's status
-    if (currentUserId && memberStatuses[currentUserId]) {
-      setMyStatus(memberStatuses[currentUserId]);
-    } else if (currentUserId) {
+    // Load current user's full profile
+    if (currentUserId) {
       base44.entities.SalesTeamMember.filter({ id: currentUserId }).then(members => {
-        if (members?.[0]?.chat_status) setMyStatus(members[0].chat_status);
+        if (members?.[0]) {
+          setMyStatus(members[0].chat_status || "online");
+          setMyProfilePicture(members[0].profile_picture_url);
+        }
       }).catch(() => {});
     }
 
@@ -64,8 +66,9 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
       if (event.type === "update") {
         setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
-        if (event.id === currentUserId && event.data?.chat_status) {
-          setMyStatus(event.data.chat_status);
+        if (event.id === currentUserId) {
+          if (event.data?.chat_status) setMyStatus(event.data.chat_status);
+          if (event.data?.profile_picture_url) setMyProfilePicture(event.data.profile_picture_url);
         }
       }
     });
