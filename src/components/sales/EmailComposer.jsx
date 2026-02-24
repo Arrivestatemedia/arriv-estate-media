@@ -123,6 +123,33 @@ export default function EmailComposer({ salesMemberId }) {
       alert("Please fill in all fields");
       return;
     }
+
+    // Schedule instead of send
+    if (scheduleMode && scheduledFor) {
+      try {
+        await base44.entities.ScheduledEmail.create({
+          sales_member_id: salesMemberId,
+          sales_member_email: salesMember?.email,
+          to: formData.to,
+          subject: formData.subject,
+          body: formData.body,
+          from_email: fromEmail || undefined,
+          from_name: salesMember?.full_name || undefined,
+          scheduled_for: new Date(scheduledFor).toISOString(),
+          status: "pending"
+        });
+        setSent(true);
+        setFormData({ to: "", subject: "", body: "" });
+        setSelectedContact(null);
+        setScheduleMode(false);
+        setScheduledFor("");
+        setTimeout(() => setSent(false), 3000);
+      } catch (err) {
+        alert("Failed to schedule: " + err.message);
+      }
+      return;
+    }
+
     setSending(true);
     try {
       await base44.functions.invoke('sendEmailViaGmail', {
