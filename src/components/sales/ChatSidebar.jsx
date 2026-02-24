@@ -75,19 +75,11 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       }).catch(() => {});
     }
 
-    return () => {};
   }, [currentUserId]);
-
-  useEffect(() => {
-    setMyStatus(memberStatuses[currentUserId] || "online");
-  }, [memberStatuses[currentUserId]]);
 
   const handleSetStatus = async (val) => {
      setMyStatus(val);
      setShowStatusPicker(false);
-     if (onStatusChange) {
-       onStatusChange(val);
-     }
      try {
        await base44.auth.updateMe({ chat_status: val });
      } catch (error) {
