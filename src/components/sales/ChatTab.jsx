@@ -65,6 +65,10 @@ export default function ChatTab({ currentUserId, currentUserName }) {
     setSelectedChat({ type, id, name });
   };
 
+  const handleStatusChange = (newStatus) => {
+    setMemberStatuses(prev => ({ ...prev, [currentUserId]: newStatus }));
+  };
+
   return (
     <div className="flex h-full bg-gray-50">
       <ChatSidebar
@@ -72,6 +76,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
         currentUserName={currentUserName}
         onSelectChat={handleSelectChat}
         memberStatuses={memberStatuses}
+        onStatusChange={handleStatusChange}
       />
       <div className="flex-1">
         {selectedChat ? (
