@@ -83,6 +83,7 @@ export default function IphoneDialer({ salesMemberId }) {
       if (timerRef.current) clearInterval(timerRef.current);
       callLogsUnsub();
       convoUnsub();
+      statusUnsub();
     };
   }, [salesMemberId]);
 
