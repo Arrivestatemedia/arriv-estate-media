@@ -72,7 +72,11 @@ export default function AdminSalesSignup() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const result = await base44.functions.invoke('createSalesTeamMember', data);
+      const salesMemberId = localStorage.getItem('sales_member_id');
+      const result = await base44.functions.invoke('createSalesTeamMember', {
+        ...data,
+        sales_member_id: salesMemberId
+      });
       return result;
     },
     onSuccess: () => {
