@@ -50,18 +50,55 @@ export default function AdminHub() {
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold" style={{ color: '#1A1A1A' }}>
-            <span style={{ fontStyle: 'italic' }}>Arriv</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>One</span> Admin Hub
-          </h1>
-          <p className="mt-2 text-sm font-medium" style={{ color: '#B8956A' }}>
-            Hi {user.full_name?.split(' ')[0]}, Good {(() => {
-              const h = new Date().getHours();
-              if (h < 12) return 'Morning';
-              if (h < 17) return 'Afternoon';
-              return 'Evening';
-            })()}!
-          </p>
+        <div className="flex items-start gap-6 mb-8">
+          <div className="flex-shrink-0">
+            <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden border-2 border-gray-300">
+              {profilePicUrl ? (
+                <img src={profilePicUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Photo</div>
+              )}
+            </div>
+            <label className="mt-2 block text-xs text-blue-600 cursor-pointer hover:text-blue-700">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = async () => {
+                      try {
+                        const result = await base44.integrations.Core.UploadFile({ file: reader.result });
+                        setProfilePicUrl(result.file_url);
+                        if (user?.id) {
+                          await base44.entities.SalesTeamMember.update(user.id, { profile_picture_url: result.file_url });
+                        }
+                      } catch (err) {
+                        alert('Error uploading photo');
+                      }
+                    };
+                    reader.readAsArrayBuffer(file);
+                  }
+                }}
+              />
+              Change Photo
+            </label>
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold" style={{ color: '#1A1A1A' }}>
+              <span style={{ fontStyle: 'italic' }}>Arriv</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>One</span> Admin Hub
+            </h1>
+            <p className="mt-2 text-sm font-medium" style={{ color: '#B8956A' }}>
+              Hi {user.full_name?.split(' ')[0]}, Good {(() => {
+                const h = new Date().getHours();
+                if (h < 12) return 'Morning';
+                if (h < 17) return 'Afternoon';
+                return 'Evening';
+              })()}!
+            </p>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
