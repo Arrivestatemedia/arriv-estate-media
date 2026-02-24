@@ -93,9 +93,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               // Ding for incoming messages
               if (event.data?.sender_id !== currentUserId) {
                 playDing();
-                if (Notification.permission === 'granted') {
-                  new Notification(`💬 #${chatName}`, { body: `${event.data?.sender_name}: ${event.data?.content}`, tag: `channel-${chatId}` });
-                }
               }
             }
           }
