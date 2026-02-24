@@ -51,12 +51,19 @@ export default function HubSpotActivityLog() {
     // Check if sales member is logged in via localStorage
     const salesMemberId = localStorage.getItem('sales_member_id');
     if (salesMemberId) {
-      setUser({
+      const u = {
         id: salesMemberId,
         full_name: localStorage.getItem('sales_member_name'),
         email: localStorage.getItem('sales_member_email'),
         type: 'sales'
-      });
+      };
+      setUser(u);
+      // Load profile pic
+      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+        if (members?.[0]?.profile_picture_url) {
+          setProfilePicUrl(members[0].profile_picture_url);
+        }
+      }).catch(() => {});
     } else {
       // Check for admin via base44
       base44.auth.me().then((adminUser) => {
