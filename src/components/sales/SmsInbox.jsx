@@ -41,8 +41,16 @@ export default function SmsInbox({ salesMemberId }) {
   useEffect(() => {
     loadConversations();
     const unsub = base44.entities.SmsConversation.subscribe((event) => {
-      if (event.type === 'create' || (event.type === 'update' && event.data?.last_message_direction === 'inbound')) {
+      const isInbound = event.type === 'create' || 
+        (event.type === 'update' && event.data?.last_message_direction === 'inbound');
+      if (isInbound) {
         playIphoneTextSound();
+        // Browser notification
+        if (Notification.permission === 'granted') {
+          const name = event.data?.contact_name || event.data?.from_number || 'Unknown';
+          const body = event.data?.last_message || 'New text message';
+          new Notification(`📱 Text from ${name}`, { body, tag: `sms-${event.id}` });
+        }
       }
       loadConversations();
     });
