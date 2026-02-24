@@ -254,7 +254,12 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="border-b border-gray-200 p-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">{chatType === "channel" ? "#" : ""}{chatName}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900">{chatType === "channel" ? "#" : ""}{chatName}</h2>
+          {chatType === "dm" && memberStatuses[chatId] && (
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[memberStatuses[chatId]] || "#6b7280" }} />
+          )}
+        </div>
         {notificationsEnabled && (
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <Bell className="w-4 h-4" />
