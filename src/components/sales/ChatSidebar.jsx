@@ -90,17 +90,16 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     setMyStatus(val);
     setShowStatusPicker(false);
     try {
-      if (!currentUserId) {
-        console.error('No currentUserId available');
-        setMyStatus(STATUSES[0].value); // revert
-        return;
-      }
-      console.log('Updating status for ID:', currentUserId, 'to:', val);
-      const result = await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
-      console.log('Status update result:', result);
+      // Try updating as SalesTeamMember first
+      await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
     } catch (error) {
-      console.error('Failed to update status:', error);
-      setMyStatus(STATUSES[0].value); // revert on error
+      try {
+        // Fallback to updating User entity
+        await base44.auth.updateMe({ chat_status: val });
+      } catch (fallbackError) {
+        console.error('Failed to update status:', fallbackError);
+        setMyStatus(STATUSES[0].value); // revert on error
+      }
     }
   };
 
