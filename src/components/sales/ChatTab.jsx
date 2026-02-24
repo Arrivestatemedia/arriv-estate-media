@@ -20,6 +20,13 @@ export default function ChatTab({ currentUserId, currentUserName }) {
       setMemberStatuses(statuses);
     }).catch(() => {});
 
+    // Load current user's status from User entity if they're not a SalesTeamMember
+    base44.auth.me().then(user => {
+      if (user?.chat_status) {
+        setMemberStatuses(prev => ({ ...prev, [currentUserId]: user.chat_status }));
+      }
+    }).catch(() => {});
+
     // Subscribe to real-time status updates for ALL team members (including current user)
     const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
       if (event.type === "update") {
@@ -31,8 +38,21 @@ export default function ChatTab({ currentUserId, currentUserName }) {
         }
       }
     });
-    return unsub;
-  }, []);
+
+    // Also subscribe to User entity updates for admins
+    const userUnsub = base44.entities.User?.subscribe?.((event) => {
+      if (event.type === "update" && event.id === currentUserId) {
+        if (event.data?.chat_status) {
+          setMemberStatuses(prev => ({ ...prev, [currentUserId]: event.data.chat_status }));
+        }
+      }
+    });
+
+    return () => {
+      unsub();
+      userUnsub?.();
+    };
+  }, [currentUserId]);
 
   const handleSelectChat = (type, id, name) => {
     setSelectedChat({ type, id, name });
