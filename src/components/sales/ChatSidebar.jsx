@@ -215,20 +215,29 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
         <div className="px-4 py-3 border-t border-gray-700">
           <p className="text-xs font-semibold text-gray-500 uppercase">Direct Messages</p>
           <div className="mt-3 space-y-1">
-            {directMessages.map((dm) => (
-              <button
-                key={dm.id}
-                onClick={() => handleSelectChat("dm", dm.id, dm.name)}
-                className={`w-full text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${
-                  selectedChat?.id === dm.id
-                    ? "bg-[#B8956A]/20 text-[#B8956A]"
-                    : "text-gray-300 hover:bg-gray-800"
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                {dm.name}
-              </button>
-            ))}
+            {directMessages.map((dm) => {
+              const member = teamMembers.find(m => m.id === dm.id);
+              return (
+                <button
+                  key={dm.id}
+                  onClick={() => handleSelectChat("dm", dm.id, dm.name)}
+                  className={`w-full text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${
+                    selectedChat?.id === dm.id
+                      ? "bg-[#B8956A]/20 text-[#B8956A]"
+                      : "text-gray-300 hover:bg-gray-800"
+                  }`}
+                >
+                  <div className="relative flex-shrink-0">
+                    <MessageSquare className="w-4 h-4" />
+                    {member?.chat_status && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#1A1A1A]"
+                        style={{ backgroundColor: statusFor(member.chat_status).color }} />
+                    )}
+                  </div>
+                  {dm.name}
+                </button>
+              );
+            })}
           </div>
 
           {/* Start New DM */}
