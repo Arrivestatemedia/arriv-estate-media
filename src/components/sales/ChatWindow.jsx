@@ -35,10 +35,15 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Check notification permission status
+  // Request / check notification permission
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "granted") {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
       setNotificationsEnabled(true);
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(p => {
+        if (p === "granted") setNotificationsEnabled(true);
+      });
     }
   }, []);
 
