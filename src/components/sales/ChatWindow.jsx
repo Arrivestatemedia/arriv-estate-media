@@ -117,9 +117,15 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
                 return [...withoutOptimistic, event.data];
               });
-              // Ding for incoming DMs
               if (event.data?.sender_id !== currentUserId) {
                 playDing();
+                if (Notification.permission === "granted") {
+                  new Notification(event.data?.sender_name, {
+                    body: event.data?.content,
+                    icon: "/favicon.ico",
+                    tag: `dm-${event.data?.sender_id}`
+                  });
+                }
               }
             }
           }
