@@ -48,7 +48,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     const loadMessages = async () => {
       setLoading(true);
       if (chatType === "channel") {
-        const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId }, "-timestamp", 50);
+        const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId }, "timestamp", 50);
         setMessages(msgs);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
@@ -56,7 +56,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             { sender_id: currentUserId, recipient_id: chatId },
             { sender_id: chatId, recipient_id: currentUserId }
           ] },
-          "-timestamp",
+          "timestamp",
           50
         );
         setMessages(msgs);
