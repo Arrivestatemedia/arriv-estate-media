@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Send, Search, Bell, BellOff } from "lucide-react";
+import { Send, Bell, Paperclip, Smile, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
+
+const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
+
 
 export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {} }) {
   const [messages, setMessages] = useState([]);
