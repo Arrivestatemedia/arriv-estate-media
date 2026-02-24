@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2 } from "lucide-react";
+import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar } from "lucide-react";
 import { format } from "date-fns";
 
 export default function EmailComposer({ salesMemberId }) {
