@@ -562,7 +562,7 @@ export default function HubSpotActivityLog() {
         {activeTab === "email" && (
           <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20' }}>
             <CardContent className="pt-6">
-              <EmailComposer salesMemberId={user?.id} />
+              <EmailComposer salesMemberId={user?.id} isAdmin={user?.role === 'admin'} />
             </CardContent>
           </Card>
         )}
