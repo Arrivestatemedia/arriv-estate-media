@@ -513,6 +513,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
                </div>
                </div>
                </div>
+               </div>
                )}
                </div>
                )}
