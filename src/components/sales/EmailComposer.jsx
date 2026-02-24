@@ -413,17 +413,91 @@ export default function EmailComposer({ salesMemberId }) {
             </div>
           )}
 
-          <Button
-            onClick={handleSendEmail}
-            disabled={sending || sent || (scheduleMode && !scheduledFor)}
-            className="w-full gap-2"
-            style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}
-          >
-            {scheduleMode ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-            {sending ? "Sending..." : sent ? (scheduleMode ? "Scheduled!" : "Sent!") : scheduleMode ? "Schedule Email" : "Send Email"}
-          </Button>
-        </div>
-      )}
+          <div className="flex gap-2">
+           <Button
+             onClick={handleSendEmail}
+             disabled={sending || sent || (scheduleMode && !scheduledFor)}
+             className="flex-1 gap-2"
+             style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}
+           >
+             {scheduleMode ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+             {sending ? "Sending..." : sent ? (scheduleMode ? "Scheduled!" : "Sent!") : scheduleMode ? "Schedule Email" : "Send Email"}
+           </Button>
+           <Button
+             onClick={() => setScheduleMeetingMode(!scheduleMeetingMode)}
+             variant="outline"
+             className="gap-2"
+             style={{ borderColor: '#B8956A', color: '#B8956A' }}
+           >
+             <Calendar className="w-4 h-4" />
+             Schedule Meeting
+           </Button>
+          </div>
+
+          {scheduleMeetingMode && selectedContact && (
+           <div className="p-4 rounded-lg border" style={{ borderColor: 'rgba(184,149,106,0.2)', backgroundColor: 'rgba(184,149,106,0.05)' }}>
+             <p className="text-sm font-medium mb-3" style={{ color: '#1A1A1A' }}>Schedule Meeting with {selectedContact.firstname}</p>
+             <div className="space-y-3">
+               <div>
+                 <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Meeting Title</label>
+                 <Input
+                   placeholder="e.g., Project Consultation"
+                   value={meetingData.title}
+                   onChange={e => setMeetingData(prev => ({ ...prev, title: e.target.value }))}
+                   className="text-sm"
+                 />
+               </div>
+               <div>
+                 <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Start Time</label>
+                 <Input
+                   type="datetime-local"
+                   value={meetingData.startTime}
+                   onChange={e => setMeetingData(prev => ({ ...prev, startTime: e.target.value }))}
+                   className="text-sm"
+                 />
+               </div>
+               <div>
+                 <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>End Time</label>
+                 <Input
+                   type="datetime-local"
+                   value={meetingData.endTime}
+                   onChange={e => setMeetingData(prev => ({ ...prev, endTime: e.target.value }))}
+                   className="text-sm"
+                 />
+               </div>
+               <div>
+                 <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Description (optional)</label>
+                 <Textarea
+                   placeholder="Meeting details..."
+                   value={meetingData.description}
+                   onChange={e => setMeetingData(prev => ({ ...prev, description: e.target.value }))}
+                   rows={3}
+                   className="text-sm"
+                 />
+               </div>
+               <div className="flex gap-2">
+                 <Button
+                   onClick={handleScheduleMeeting}
+                   disabled={invitingClients}
+                   className="flex-1"
+                   style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+                 >
+                   {invitingClients ? "Sending..." : "Send Invite"}
+                 </Button>
+                 <Button
+                   onClick={() => setScheduleMeetingMode(false)}
+                   variant="outline"
+                   className="flex-1"
+                   style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                 >
+                   Cancel
+                 </Button>
+               </div>
+             </div>
+           </div>
+          )}
+          </div>
+          )}
 
       {/* ── REPLIES ── */}
       {tab === "scheduled" && (
