@@ -44,6 +44,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
         currentUserId={currentUserId}
         currentUserName={currentUserName}
         onSelectChat={handleSelectChat}
+        memberStatuses={memberStatuses}
       />
       <div className="flex-1">
         {selectedChat ? (
