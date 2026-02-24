@@ -33,6 +33,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const [channels, setChannels] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [dmStatuses, setDmStatuses] = useState({});
   const [newChannelName, setNewChannelName] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -66,6 +67,9 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
       if (event.type === "update") {
         setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
+        if (event.data?.chat_status) {
+          setDmStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+        }
         if (event.id === currentUserId) {
           if (event.data?.chat_status) setMyStatus(event.data.chat_status);
           if (event.data?.profile_picture_url) setMyProfilePicture(event.data.profile_picture_url);
@@ -73,7 +77,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       }
     });
     return unsub;
-  }, [currentUserId, memberStatuses]);
+  }, [currentUserId]);
 
   const handleSetStatus = async (val) => {
     setMyStatus(val);
