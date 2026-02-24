@@ -258,6 +258,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
           <div className="mt-3 space-y-1">
             {directMessages.map((dm) => {
               const member = teamMembers.find(m => m.id === dm.id);
+              const status = memberStatuses[dm.id] || "offline";
               return (
                 <button
                   key={dm.id}
@@ -270,10 +271,8 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
                 >
                   <div className="relative flex-shrink-0">
                     <MessageSquare className="w-4 h-4" />
-                    {member?.chat_status && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#1A1A1A]"
-                        style={{ backgroundColor: statusFor(member.chat_status).color }} />
-                    )}
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#1A1A1A]"
+                      style={{ backgroundColor: statusFor(status).color }} />
                   </div>
                   {dm.name}
                 </button>
