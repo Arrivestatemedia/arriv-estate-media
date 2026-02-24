@@ -71,10 +71,23 @@ export default function HubSpotActivityLog() {
       setTimeout(() => setShowPermissionBanner(true), 500);
 
       // Load unread SMS and missed calls
-      base44.entities.SmsMessage.filter({ recipient_id: salesMemberId }).then(messages => {
-        const unreadCount = messages?.filter(m => !m.read)?.length || 0;
+      base44.entities.DirectMessage.filter({ 
+        recipient_id: salesMemberId, 
+        read: false 
+      }).then(messages => {
+        const unreadCount = messages?.length || 0;
         setUnreadSmsCount(unreadCount);
       }).catch(() => {});
+
+      // Subscribe to new unread messages
+      const dmSub = base44.entities.DirectMessage.subscribe((event) => {
+        if (event.type === "create" && event.data?.recipient_id === salesMemberId && !event.data?.read) {
+          setUnreadSmsCount(prev => prev + 1);
+        } else if (event.type === "update" && event.data?.recipient_id === salesMemberId && event.data?.read) {
+          setUnreadSmsCount(prev => Math.max(0, prev - 1));
+        }
+      });
+      return dmSub;
     } else {
       // Check for admin via base44
       base44.auth.me().then((adminUser) => {
