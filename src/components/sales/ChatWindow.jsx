@@ -7,16 +7,10 @@ import { formatDistanceToNow } from "date-fns";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
-const getAudioCtx = () => {
-  if (window._unlockedAudioCtx) return window._unlockedAudioCtx;
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
-};
-
 const playDing = () => {
   try {
-    const ctx = getAudioCtx();
+    const ctx = window._unlockedAudioCtx;
+    if (!ctx || ctx.state === 'suspended') return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
