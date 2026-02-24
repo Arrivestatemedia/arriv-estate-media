@@ -69,12 +69,12 @@ export default function HubSpotActivityLog() {
           type: 'sales'
         };
         setUser(u);
-      // Load profile pic from result already fetched above
-      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+        // Load profile pic
         if (members?.[0]?.profile_picture_url) {
           setProfilePicUrl(members[0].profile_picture_url);
         }
       }).catch(() => {});
+      
       // Request notification + audio permissions right after login
       setTimeout(() => setShowPermissionBanner(true), 500);
 
