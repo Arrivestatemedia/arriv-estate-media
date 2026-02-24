@@ -61,6 +61,26 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     }
   }, []);
 
+  // Auto-sync chat status with Google Calendar every 3 minutes
+  useEffect(() => {
+    if (!salesMemberId) return;
+
+    const syncStatus = async () => {
+      try {
+        await base44.functions.invoke('syncChatStatusWithCalendar', { salesMemberId });
+      } catch (err) {
+        console.error('Error syncing calendar:', err);
+      }
+    };
+
+    syncStatus();
+    syncIntervalRef.current = setInterval(syncStatus, 3 * 60 * 1000); // Every 3 minutes
+
+    return () => {
+      if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
+    };
+  }, [salesMemberId]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
