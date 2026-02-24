@@ -12,8 +12,8 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
 
-    // Look up admin in SalesTeamMember database
-    const admins = await base44.entities.SalesTeamMember.filter({
+    // Look up admin in SalesTeamMember database using service role (no auth required)
+    const admins = await base44.asServiceRole.entities.SalesTeamMember.filter({
       email: email,
       role: 'admin'
     });
