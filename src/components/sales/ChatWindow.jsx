@@ -13,7 +13,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Register service worker and request notification permission
   useEffect(() => {
