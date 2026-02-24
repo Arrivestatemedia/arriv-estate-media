@@ -157,36 +157,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return unsubscribe;
   }, [chatId, chatType, currentUserId]);
 
-  // Subscribe to status updates for the person in this DM
-  useEffect(() => {
-    if (chatType !== "dm" || !chatId) return;
 
-    const subs = [];
-
-    // Try to subscribe to SalesTeamMember updates (may not exist, but that's OK)
-    try {
-      const salesUnsub = base44.entities.SalesTeamMember.subscribe((event) => {
-        if (event.id === chatId && event.type === "update" && event.data?.chat_status) {
-          // Status changed - will trigger parent re-render
-        }
-      });
-      subs.push(salesUnsub);
-    } catch (e) {}
-
-    // Try to subscribe to User updates (may not exist, but that's OK)
-    try {
-      const userUnsub = base44.entities.User.subscribe((event) => {
-        if (event.id === chatId && event.type === "update" && event.data?.chat_status) {
-          // Status changed - will trigger parent re-render
-        }
-      });
-      subs.push(userUnsub);
-    } catch (e) {}
-
-    return () => {
-      subs.forEach(unsub => unsub?.());
-    };
-  }, [chatId, chatType]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
