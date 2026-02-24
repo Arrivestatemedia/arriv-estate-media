@@ -107,12 +107,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               });
               if (event.data?.sender_id !== currentUserId) {
                 playDing();
+                toast.message(`#${chatName}`, {
+                  description: `${event.data?.sender_name}: ${event.data?.content}`,
+                });
                 if (Notification.permission === "granted") {
-                  new Notification(`#${chatName}`, {
-                    body: `${event.data?.sender_name}: ${event.data?.content}`,
-                    icon: "/favicon.ico",
-                    tag: `channel-${chatId}`
-                  });
+                  try {
+                    new Notification(`#${chatName}`, {
+                      body: `${event.data?.sender_name}: ${event.data?.content}`,
+                      icon: "/favicon.ico",
+                      tag: `channel-${chatId}`
+                    });
+                  } catch (e) {}
                 }
               }
             }
