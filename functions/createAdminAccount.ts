@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const passwordHash = crypto.createHash('sha256').update(randomPassword).digest('hex');
 
     // Check if admin account already exists
-    const existingAdmin = await base44.asServiceRole.entities.SalesTeamMember.filter({
+    const existingAdmin = await base44.entities.SalesTeamMember.filter({
       email: user.email,
       role: 'admin'
     });
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     }
 
     // Create admin account in SalesTeamMember database
-    const adminAccount = await base44.asServiceRole.entities.SalesTeamMember.create({
+    const adminAccount = await base44.entities.SalesTeamMember.create({
       email: user.email,
       full_name: user.full_name,
       password_hash: passwordHash,
