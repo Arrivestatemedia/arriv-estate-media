@@ -78,7 +78,7 @@ export default function HubSpotActivityLog() {
       // Request notification + audio permissions right after login
       setTimeout(() => setShowPermissionBanner(true), 500);
 
-      // Load unread SMS and missed calls
+      // Load unread SMS and missed calls for this user
       base44.entities.DirectMessage.filter({ 
         recipient_id: salesMemberId, 
         read: false 
@@ -87,7 +87,7 @@ export default function HubSpotActivityLog() {
         setUnreadSmsCount(unreadCount);
       }).catch(() => {});
 
-      // Subscribe to new unread messages
+      // Subscribe to new unread messages for this user
       const dmSub = base44.entities.DirectMessage.subscribe((event) => {
         if (event.type === "create" && event.data?.recipient_id === salesMemberId && !event.data?.read) {
           setUnreadSmsCount(prev => prev + 1);
