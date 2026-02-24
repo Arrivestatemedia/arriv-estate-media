@@ -24,7 +24,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
       const users = await base44.entities.User.list().catch(() => []);
       users?.forEach(u => {
         if (u.chat_status) {
-          statuses[u.id] = u.chat_status;
+          statuses[u.email] = u.chat_status;
         }
       });
       
