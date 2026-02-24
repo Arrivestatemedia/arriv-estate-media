@@ -105,40 +105,41 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       }
     });
     
-    // Subscribe to User entity updates for admins
-    const userUnsub = base44.entities.User.subscribe((event) => {
+    // Subscribe to ChatAdmin entity updates
+    const adminUnsub = base44.entities.ChatAdmin.subscribe((event) => {
       if (event.type === "update") {
+        setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
         if (event.data?.chat_status) {
           setDmStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
-          if (event.id === currentUserId) {
-            setMyStatus(event.data.chat_status);
-          }
+        }
+        if (event.id === currentUserId) {
+          if (event.data?.chat_status) setMyStatus(event.data.chat_status);
         }
       }
     });
     
     return () => {
       unsub();
-      userUnsub?.();
+      adminUnsub?.();
     };
   }, [currentUserId]);
 
   const handleSetStatus = async (val) => {
-    setMyStatus(val);
-    setShowStatusPicker(false);
-    try {
-      // Try updating as SalesTeamMember first
-      await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
-    } catch (error) {
-      try {
-        // Fallback to updating User entity
-        await base44.auth.updateMe({ chat_status: val });
-      } catch (fallbackError) {
-        console.error('Failed to update status:', fallbackError);
-        setMyStatus(STATUSES[0].value); // revert on error
-      }
-    }
-  };
+     setMyStatus(val);
+     setShowStatusPicker(false);
+     try {
+       // Try updating as SalesTeamMember first
+       await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
+     } catch (error) {
+       try {
+         // Try updating as ChatAdmin
+         await base44.entities.ChatAdmin.update(currentUserId, { chat_status: val });
+       } catch (fallbackError) {
+         console.error('Failed to update status:', fallbackError);
+         setMyStatus(STATUSES[0].value); // revert on error
+       }
+     }
+   };
 
   const loadChannels = async () => {
     const allChannels = await base44.entities.ChatChannel.list();
@@ -166,16 +167,11 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     // Load SalesTeamMembers
     const members = await base44.entities.SalesTeamMember.list().catch(() => []);
     const salesMembers = members?.filter(m => m.id !== currentUserId && m.is_active !== false) || [];
-    
-    // Load Users (admins) and convert to team member format
-    const users = await base44.entities.User.list().catch(() => []);
-    const adminMembers = users?.filter(u => u.id !== currentUserId && u.role === 'admin').map(u => ({
-      id: u.id,
-      full_name: u.full_name,
-      chat_status: u.chat_status || "offline",
-      is_user: true
-    })) || [];
-    
+
+    // Load ChatAdmins
+    const admins = await base44.entities.ChatAdmin.list().catch(() => []);
+    const adminMembers = admins?.filter(a => a.id !== currentUserId) || [];
+
     setTeamMembers([...salesMembers, ...adminMembers]);
   };
 
