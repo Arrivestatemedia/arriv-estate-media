@@ -36,6 +36,16 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const [newChannelName, setNewChannelName] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [myStatus, setMyStatus] = useState("online");
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const statusRef = useRef(null);
+
+  // Close picker on outside click
+  useEffect(() => {
+    const handler = (e) => { if (statusRef.current && !statusRef.current.contains(e.target)) setShowStatusPicker(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     loadChannels();
