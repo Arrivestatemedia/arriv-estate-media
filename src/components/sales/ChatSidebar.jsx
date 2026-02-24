@@ -52,7 +52,9 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     loadDirectMessages();
     loadTeamMembers();
     // Load current user's status
-    if (currentUserId) {
+    if (currentUserId && memberStatuses[currentUserId]) {
+      setMyStatus(memberStatuses[currentUserId]);
+    } else if (currentUserId) {
       base44.entities.SalesTeamMember.filter({ id: currentUserId }).then(members => {
         if (members?.[0]?.chat_status) setMyStatus(members[0].chat_status);
       }).catch(() => {});
@@ -62,10 +64,13 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
       if (event.type === "update") {
         setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
+        if (event.id === currentUserId && event.data?.chat_status) {
+          setMyStatus(event.data.chat_status);
+        }
       }
     });
     return unsub;
-  }, [currentUserId]);
+  }, [currentUserId, memberStatuses]);
 
   const handleSetStatus = async (val) => {
     setMyStatus(val);
