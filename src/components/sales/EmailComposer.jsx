@@ -315,14 +315,39 @@ export default function EmailComposer({ salesMemberId }) {
             <Textarea placeholder="Your message..." value={formData.body} onChange={e => setFormData(f => ({ ...f, body: e.target.value }))} rows={8} />
           </div>
 
+          {/* Schedule toggle */}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={scheduleMode}
+                onChange={e => setScheduleMode(e.target.checked)}
+                className="accent-[#B8956A] w-4 h-4"
+              />
+              <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>Schedule for later</span>
+            </label>
+          </div>
+
+          {scheduleMode && (
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#1A1A1A' }}>Send At</label>
+              <Input
+                type="datetime-local"
+                value={scheduledFor}
+                onChange={e => setScheduledFor(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+              />
+            </div>
+          )}
+
           <Button
             onClick={handleSendEmail}
-            disabled={sending || sent}
+            disabled={sending || sent || (scheduleMode && !scheduledFor)}
             className="w-full gap-2"
             style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}
           >
-            <Send className="w-4 h-4" />
-            {sending ? "Sending..." : sent ? "Sent!" : "Send Email"}
+            {scheduleMode ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+            {sending ? "Sending..." : sent ? (scheduleMode ? "Scheduled!" : "Sent!") : scheduleMode ? "Schedule Email" : "Send Email"}
           </Button>
         </div>
       )}
