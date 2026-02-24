@@ -195,11 +195,7 @@ export default function AdminSalesSignup() {
           </div>
         </div>
         <div className="flex justify-end mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Sales Team Management</h1>
-            <p className="text-gray-600 mt-1">Add and manage sales team members</p>
-          </div>
-          <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setFormData({ email: "", full_name: "", phone_number: "", password: "" }); }}>
+           <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setFormData({ email: "", full_name: "", phone_number: "", password: "" }); }}>
             <DialogTrigger asChild>
               <Button className="gap-2" onClick={() => setShowForm(true)}>
                 <Plus className="w-4 h-4" />
