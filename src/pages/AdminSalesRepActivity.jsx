@@ -15,13 +15,35 @@ export default function AdminSalesRepActivity() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    base44.auth.me().then((authUser) => {
-      if (authUser?.role === 'admin') {
-        setUser(authUser);
-      } else {
-        window.location.href = '/';
-      }
-    });
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    const salesMemberEmail = localStorage.getItem('sales_member_email');
+    
+    if (salesMemberId && salesMemberEmail) {
+      // Check if this sales member is an admin
+      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+        if (members?.[0]?.role === 'admin') {
+          setUser({
+            id: salesMemberId,
+            email: salesMemberEmail,
+            full_name: localStorage.getItem('sales_member_name'),
+            role: 'admin'
+          });
+        } else {
+          window.location.href = '/HubSpotActivityLog';
+        }
+      }).catch(() => {
+        window.location.href = '/HubSpotActivityLog';
+      });
+    } else {
+      // Check Base44 admin
+      base44.auth.me().then((authUser) => {
+        if (authUser?.role === 'admin') {
+          setUser(authUser);
+        } else {
+          window.location.href = '/';
+        }
+      });
+    }
   }, []);
 
   // Real-time subscription to ActivityLog changes
