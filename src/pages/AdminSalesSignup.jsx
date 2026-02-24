@@ -282,6 +282,10 @@ export default function AdminSalesSignup() {
               <input type="checkbox" id="is_active" checked={!!editData.is_active} onChange={(e) => setEditData({...editData, is_active: e.target.checked})} />
               <label htmlFor="is_active" className="text-sm font-medium">Active</label>
             </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="is_admin" checked={editData.role === 'admin'} onChange={(e) => setEditData({...editData, role: e.target.checked ? 'admin' : 'user'})} />
+              <label htmlFor="is_admin" className="text-sm font-medium">Admin</label>
+            </div>
 
             <hr />
             <div>
