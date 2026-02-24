@@ -227,7 +227,7 @@ export default function AdminSalesSignup() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => { setEditingMember(member); setEditData({ full_name: member.full_name, email: member.email, phone_number: member.phone_number || "", company_email: member.company_email || "", twilio_phone_number: member.twilio_phone_number || "", is_active: member.is_active }); }}
+                        onClick={() => { setEditingMember(member); setEditData({ full_name: member.full_name, email: member.email, phone_number: member.phone_number || "", company_email: member.company_email || "", twilio_phone_number: member.twilio_phone_number || "", is_active: member.is_active, role: member.role }); }}
                         className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                       >
                         <Pencil className="w-4 h-4" />
