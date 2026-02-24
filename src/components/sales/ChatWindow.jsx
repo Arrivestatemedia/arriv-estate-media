@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
 
-export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName }) {
+export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {} }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -169,19 +169,28 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         ) : messages.length === 0 ? (
           <div className="text-center text-gray-500 text-sm">No messages yet. Start the conversation!</div>
         ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="flex gap-3">
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-semibold text-gray-900">{msg.sender_name}</span>
-                  <span className="text-xs text-gray-500">
-                    {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
-                  </span>
+          messages.map((msg) => {
+            const profileUrl = memberProfiles[msg.sender_id];
+            const initials = (msg.sender_name || "?")[0].toUpperCase();
+            return (
+              <div key={msg.id} className="flex gap-3">
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-[#B8956A]/20 flex items-center justify-center text-[#B8956A] font-bold text-sm">
+                  {profileUrl ? (
+                    <img src={profileUrl} alt={msg.sender_name} className="w-full h-full object-cover" />
+                  ) : initials}
                 </div>
-                <p className="text-gray-700 text-sm mt-1 break-words">{msg.content}</p>
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold text-gray-900">{msg.sender_name}</span>
+                    <span className="text-xs text-gray-500">
+                      {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 text-sm mt-1 break-words">{msg.content}</p>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
