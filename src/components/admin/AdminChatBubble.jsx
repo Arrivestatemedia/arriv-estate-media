@@ -1,79 +1,77 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import AdminChatWindow from "./AdminChatWindow";
+import ChatTab from "@/components/sales/ChatTab";
 
 export default function AdminChatBubble({ currentUserId, currentUserName }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    // Load unread direct messages for this admin
-    base44.entities.DirectMessage.filter({ 
-      recipient_id: currentUserId, 
-      read: false 
-    }).then(messages => {
-      setUnreadCount(messages?.length || 0);
-    }).catch(() => {});
+    if (!currentUserId) return;
 
-    // Subscribe to new unread messages
-    const dmSub = base44.entities.DirectMessage.subscribe((event) => {
-      if (event.type === "create" && event.data?.recipient_id === currentUserId && !event.data?.read) {
+    const loadUnread = async () => {
+      const msgs = await base44.entities.DirectMessage.filter({
+        recipient_id: currentUserId,
+        read: false
+      });
+      setUnreadCount(msgs?.length || 0);
+    };
+
+    loadUnread();
+
+    // Subscribe to new DMs
+    const unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
+      if (event.type === "create" && event.data?.recipient_id === currentUserId) {
         setUnreadCount(prev => prev + 1);
-      } else if (event.type === "update" && event.data?.recipient_id === currentUserId && event.data?.read) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      if (event.type === "update" && event.data?.recipient_id === currentUserId && event.data?.read) {
+        loadUnread();
       }
     });
-    return dmSub;
+
+    return unsubscribe;
   }, [currentUserId]);
+
+  // When opened, don't show badge
+  const displayCount = open ? 0 : unreadCount;
 
   return (
     <>
-      {/* Floating chat bubble */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center z-40"
-          style={{ backgroundColor: '#B8956A', color: '#FFFBF5' }}
+      {/* Floating Chat Panel */}
+      {open && (
+        <div
+          className="fixed bottom-20 right-4 z-50 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
+          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)' }}
         >
-          <div className="relative">
-            <MessageSquare className="w-6 h-6" />
-            {unreadCount > 0 && (
-              <span
-                className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center"
-                style={{ backgroundColor: '#1A1A1A', color: '#FFFBF5' }}
-              >
-                {unreadCount}
-              </span>
-            )}
+          <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
+            <span className="text-sm font-semibold text-white">Team Chat</span>
+            <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
           </div>
-        </button>
-      )}
-
-      {/* Chat window - expands from bubble */}
-      {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-xl shadow-2xl flex flex-col z-50 border border-gray-200">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b" style={{ backgroundColor: '#B8956A' }}>
-            <div>
-              <h3 className="font-semibold text-white">Admin Chat</h3>
-              <p className="text-xs text-gray-100">Chat with your team</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20"
-            >
-              <X className="w-5 h-5" />
-            </Button>
+          <div style={{ height: 'calc(100% - 40px)' }}>
+            <ChatTab currentUserId={currentUserId} currentUserName={currentUserName} />
           </div>
-
-          {/* Chat content */}
-          <AdminChatWindow currentUserId={currentUserId} currentUserName={currentUserName} />
         </div>
       )}
+
+      {/* Bubble Button */}
+      <button
+        onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
+        className="fixed bottom-4 right-4 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
+        style={{ backgroundColor: '#B8956A' }}
+      >
+        <MessageSquare className="w-6 h-6 text-white" />
+        {displayCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+            style={{ backgroundColor: '#ef4444', minWidth: '1.25rem' }}
+          >
+            {displayCount > 9 ? '9+' : displayCount}
+          </span>
+        )}
+      </button>
     </>
   );
 }
