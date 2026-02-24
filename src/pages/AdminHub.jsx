@@ -17,26 +17,27 @@ export default function AdminHub() {
     const salesMemberId = localStorage.getItem('sales_member_id');
     const salesMemberEmail = localStorage.getItem('sales_member_email');
     
-    if (salesMemberId && salesMemberEmail) {
-      // Verify this user is an admin
-      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-        if (members?.[0]?.role === 'admin') {
-          setUser({
-            id: salesMemberId,
-            email: salesMemberEmail,
-            full_name: localStorage.getItem('sales_member_name'),
-            role: 'admin'
-          });
-        } else {
-          // Not an admin, redirect to activity log
-          window.location.href = '/HubSpotActivityLog';
-        }
-      }).catch(() => {
-        window.location.href = '/SalesLogin';
-      });
-    } else {
+    if (!salesMemberId || !salesMemberEmail) {
       window.location.href = '/SalesLogin';
+      return;
     }
+
+    // Verify this user is an admin
+    base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+      if (members?.[0]?.role === 'admin') {
+        setUser({
+          id: salesMemberId,
+          email: salesMemberEmail,
+          full_name: localStorage.getItem('sales_member_name'),
+          role: 'admin'
+        });
+      } else {
+        // Not an admin, redirect to activity log
+        window.location.href = '/HubSpotActivityLog';
+      }
+    }).catch(() => {
+      window.location.href = '/SalesLogin';
+    });
   }, []);
 
   if (!user) {
