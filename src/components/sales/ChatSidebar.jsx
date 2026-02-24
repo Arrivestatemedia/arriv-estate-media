@@ -108,6 +108,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
 
   const loadTeamMembers = async () => {
     const members = await base44.entities.SalesTeamMember.list();
+    // Filter out current user, inactive users, and admins
     setTeamMembers(members?.filter(m => m.id !== currentUserId && m.is_active !== false && m.role !== 'admin') || []);
   };
 
