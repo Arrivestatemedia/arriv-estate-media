@@ -57,11 +57,7 @@ export default function IphoneDialer({ salesMemberId }) {
     }, 500);
 
     const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
-    const convoUnsub = base44.entities.SmsConversation.subscribe((event) => {
-      if (event.type === "create" || event.type === "update") {
-        loadConversations().catch(() => {});
-      }
-    });
+    const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
 
     return () => {
       if (deviceRef.current) { deviceRef.current.destroy(); deviceRef.current = null; }

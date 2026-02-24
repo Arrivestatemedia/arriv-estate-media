@@ -70,22 +70,24 @@ export default function HubSpotActivityLog() {
       // Request notification + audio permissions right after login
       setTimeout(() => setShowPermissionBanner(true), 500);
 
-      // Load unread SMS from conversations
-      base44.entities.SmsConversation.list().then(conversations => {
-        const unreadCount = conversations?.reduce((sum, convo) => sum + (convo.unread_count || 0), 0) || 0;
+      // Load unread SMS and missed calls
+      base44.entities.DirectMessage.filter({ 
+        recipient_id: salesMemberId, 
+        read: false 
+      }).then(messages => {
+        const unreadCount = messages?.length || 0;
         setUnreadSmsCount(unreadCount);
       }).catch(() => {});
 
-      // Subscribe to SMS conversation changes
-      const smsSub = base44.entities.SmsConversation.subscribe((event) => {
-        if (event.type === "create" || event.type === "update") {
-          base44.entities.SmsConversation.list().then(conversations => {
-            const unreadCount = conversations?.reduce((sum, convo) => sum + (convo.unread_count || 0), 0) || 0;
-            setUnreadSmsCount(unreadCount);
-          }).catch(() => {});
+      // Subscribe to new unread messages
+      const dmSub = base44.entities.DirectMessage.subscribe((event) => {
+        if (event.type === "create" && event.data?.recipient_id === salesMemberId && !event.data?.read) {
+          setUnreadSmsCount(prev => prev + 1);
+        } else if (event.type === "update" && event.data?.recipient_id === salesMemberId && event.data?.read) {
+          setUnreadSmsCount(prev => Math.max(0, prev - 1));
         }
       });
-      return smsSub;
+      return dmSub;
     } else {
       // Check for admin via base44
       base44.auth.me().then((adminUser) => {

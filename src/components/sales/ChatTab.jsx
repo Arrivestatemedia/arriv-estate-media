@@ -5,6 +5,34 @@ import ChatWindow from "./ChatWindow";
 
 export default function ChatTab({ currentUserId, currentUserName }) {
   const [selectedChat, setSelectedChat] = useState(null);
+  const [memberProfiles, setMemberProfiles] = useState({});
+  const [memberStatuses, setMemberStatuses] = useState({});
+
+  useEffect(() => {
+    base44.entities.SalesTeamMember.list().then(members => {
+      const profiles = {};
+      const statuses = {};
+      members?.forEach(m => {
+        if (m.profile_picture_url) profiles[m.id] = m.profile_picture_url;
+        statuses[m.id] = m.chat_status || "offline";
+      });
+      setMemberProfiles(profiles);
+      setMemberStatuses(statuses);
+    });
+
+    // Subscribe to real-time status updates
+    const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
+      if (event.type === "update") {
+        if (event.data?.chat_status) {
+          setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+        }
+        if (event.data?.profile_picture_url) {
+          setMemberProfiles(prev => ({ ...prev, [event.id]: event.data.profile_picture_url }));
+        }
+      }
+    });
+    return unsub;
+  }, []);
 
   const handleSelectChat = (type, id, name) => {
     setSelectedChat({ type, id, name });
@@ -16,6 +44,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
         currentUserId={currentUserId}
         currentUserName={currentUserName}
         onSelectChat={handleSelectChat}
+        memberStatuses={memberStatuses}
       />
       <div className="flex-1">
         {selectedChat ? (
@@ -25,6 +54,8 @@ export default function ChatTab({ currentUserId, currentUserName }) {
             chatName={selectedChat.name}
             currentUserId={currentUserId}
             currentUserName={currentUserName}
+            memberProfiles={memberProfiles}
+            memberStatuses={memberStatuses}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">

@@ -157,8 +157,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return unsubscribe;
   }, [chatId, chatType, currentUserId]);
 
-
-
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -291,10 +289,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       <img src={profileUrl} alt={msg.sender_name} className="w-full h-full object-cover" />
                     ) : initials}
                   </div>
-                  {memberStatuses[msg.sender_id] ? (
+                  {memberStatuses[msg.sender_id] && (
                     <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
-                      style={{ backgroundColor: STATUS_COLORS[memberStatuses[msg.sender_id]] }} />
-                  ) : null}
+                      style={{ backgroundColor: STATUS_COLORS[memberStatuses[msg.sender_id]] || "#6b7280" }} />
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-baseline gap-2">

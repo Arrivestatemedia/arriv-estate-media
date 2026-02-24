@@ -29,7 +29,7 @@ function StatusDot({ value, size = 10 }) {
   return <span style={{ width: size, height: size, borderRadius: '50%', backgroundColor: s.color, display: 'inline-block', flexShrink: 0 }} />;
 }
 
-export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat }) {
+export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat, memberStatuses = {} }) {
   const [channels, setChannels] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -37,10 +37,8 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const [selectedChat, setSelectedChat] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [myStatus, setMyStatus] = useState("online");
-  const [myProfilePicture, setMyProfilePicture] = useState(null);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusRef = useRef(null);
-  const [teamMemberStatuses, setTeamMemberStatuses] = useState({});
 
   // Close picker on outside click
   useEffect(() => {
@@ -50,50 +48,41 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   }, []);
 
   useEffect(() => {
-    const loadData = async () => {
-      loadChannels();
-      loadDirectMessages();
-      loadTeamMembers();
-    };
-    
-    loadData();
-    
-    // Load current user's full profile
-    if (currentUserId) {
+    loadChannels();
+    loadDirectMessages();
+    loadTeamMembers();
+    // Load current user's status
+    if (currentUserId && memberStatuses[currentUserId]) {
+      setMyStatus(memberStatuses[currentUserId]);
+    } else if (currentUserId) {
       base44.entities.SalesTeamMember.filter({ id: currentUserId }).then(members => {
-        if (members?.[0]) {
-          setMyStatus(members[0].chat_status || "online");
-          setMyProfilePicture(members[0].profile_picture_url);
-        } else {
-          // Fallback to User entity if not a SalesTeamMember
-          base44.auth.me().then(user => {
-            if (user) {
-              setMyStatus(user.chat_status || "online");
-            }
-          }).catch(() => {});
-        }
+        if (members?.[0]?.chat_status) setMyStatus(members[0].chat_status);
       }).catch(() => {});
     }
 
-    // Subscribe to User updates for real-time status changes
-    const unsubscribe = base44.entities.User.subscribe((event) => {
-      if (event.type === 'update' && event.data?.role === 'admin') {
-        setTeamMembers(prev => prev.map(m => m.is_user && m.id === event.id ? { ...m, chat_status: event.data.chat_status } : m));
+    // Subscribe to real-time status changes
+    const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
+      if (event.type === "update") {
+        setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
+        if (event.id === currentUserId && event.data?.chat_status) {
+          setMyStatus(event.data.chat_status);
+        }
       }
     });
-
-    return () => unsubscribe?.();
-  }, [currentUserId]);
+    return unsub;
+  }, [currentUserId, memberStatuses]);
 
   const handleSetStatus = async (val) => {
-     setMyStatus(val);
-     setShowStatusPicker(false);
-     try {
-       await base44.auth.updateMe({ chat_status: val });
-     } catch (error) {
-       console.error('Failed to update status:', error);
-     }
-   };
+    setMyStatus(val);
+    setShowStatusPicker(false);
+    if (currentUserId) {
+      try {
+        await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
+      } catch (error) {
+        console.error('Failed to update status:', error);
+      }
+    }
+  };
 
   const loadChannels = async () => {
     const allChannels = await base44.entities.ChatChannel.list();
@@ -118,25 +107,8 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   };
 
   const loadTeamMembers = async () => {
-    // Load SalesTeamMembers
-    const members = await base44.entities.SalesTeamMember.list().catch(() => []);
-    const salesMembers = members?.filter(m => m.id !== currentUserId && m.is_active !== false) || [];
-
-    // Load Users (admins) via backend function to bypass permissions
-    let adminMembers = [];
-    try {
-      const response = await base44.functions.invoke('getAdminUsers');
-      adminMembers = response?.data?.admins?.filter(u => u.id !== currentUserId).map(u => ({
-        id: u.id,
-        full_name: u.full_name,
-        chat_status: u.chat_status || "offline",
-        is_user: true
-      })) || [];
-    } catch (error) {
-      console.error('Failed to load admin members:', error);
-    }
-
-    setTeamMembers([...salesMembers, ...adminMembers]);
+    const members = await base44.entities.SalesTeamMember.list();
+    setTeamMembers(members?.filter(m => m.id !== currentUserId && m.is_active !== false) || []);
   };
 
   const handleCreateChannel = async () => {
@@ -172,20 +144,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     <div className="w-64 bg-[#1A1A1A] text-white flex flex-col border-r border-gray-700">
       {/* Header */}
       <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="relative">
-            {myProfilePicture ? (
-              <img src={myProfilePicture} alt={currentUserName} className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-white">
-                {currentUserName?.charAt(0)?.toUpperCase()}
-              </div>
-            )}
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-[#1A1A1A]"
-              style={{ backgroundColor: statusFor(myStatus).color }} />
-          </div>
-          <h3 className="font-bold text-lg">{currentUserName}</h3>
-        </div>
+        <h3 className="font-bold text-lg">{currentUserName}</h3>
         {/* Status picker */}
         <div className="relative mt-2" ref={statusRef}>
           <button
@@ -276,8 +235,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
           <p className="text-xs font-semibold text-gray-500 uppercase">Direct Messages</p>
           <div className="mt-3 space-y-1">
             {directMessages.map((dm) => {
-              const dmMember = teamMembers.find(m => m.id === dm.id);
-              const status = dmMember?.chat_status || "offline";
+              const member = teamMembers.find(m => m.id === dm.id);
               return (
                 <button
                   key={dm.id}
@@ -290,8 +248,10 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
                 >
                   <div className="relative flex-shrink-0">
                     <MessageSquare className="w-4 h-4" />
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#1A1A1A]"
-                      style={{ backgroundColor: statusFor(status).color }} />
+                    {member?.chat_status && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#1A1A1A]"
+                        style={{ backgroundColor: statusFor(member.chat_status).color }} />
+                    )}
                   </div>
                   {dm.name}
                 </button>
@@ -304,22 +264,21 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
             <div className="mt-4 pt-4 border-t border-gray-700">
               <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Team Members</p>
               <div className="space-y-1">
-                  {teamMembers.map((member) => {
-                    const hasConversation = directMessages.some(dm => dm.id === member.id);
-                    if (hasConversation) return null;
-                    const status = member.chat_status || 'offline';
-                    return (
-                      <button
-                        key={member.id}
-                        onClick={() => handleStartDM(member.id, member.full_name)}
-                        className="w-full text-left px-3 py-2 rounded text-sm text-gray-400 hover:bg-gray-800 flex items-center gap-2"
-                      >
-                        <StatusDot value={status} size={8} />
-                        {member.full_name}
-                      </button>
-                    );
-                  })}
-                </div>
+                {teamMembers.map((member) => {
+                  const hasConversation = directMessages.some(dm => dm.id === member.id);
+                  if (hasConversation) return null;
+                  return (
+                    <button
+                      key={member.id}
+                      onClick={() => handleStartDM(member.id, member.full_name)}
+                      className="w-full text-left px-3 py-2 rounded text-sm text-gray-400 hover:bg-gray-800 flex items-center gap-2"
+                    >
+                      <StatusDot value={member.chat_status || 'offline'} size={8} />
+                      {member.full_name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
