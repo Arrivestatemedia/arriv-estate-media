@@ -216,6 +216,8 @@ export default function EmailComposer({ salesMemberId }) {
     }
   };
 
+  const statusColor = { pending: '#B8956A', sent: '#22c55e', failed: '#ef4444' };
+
   // From options
   const fromOptions = [];
   if (salesMember?.company_email) fromOptions.push({ label: salesMember.company_email, value: salesMember.company_email });
