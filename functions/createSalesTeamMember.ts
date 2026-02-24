@@ -3,9 +3,19 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    
+    // Check if admin via Base44 auth OR sales team member with admin role
     const user = await base44.auth.me();
+    const salesMemberId = req.headers.get('x-sales-member-id');
+    
+    let isAdmin = user?.role === 'admin';
+    
+    if (!isAdmin && salesMemberId) {
+      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+      isAdmin = members?.[0]?.role === 'admin';
+    }
 
-    if (!user || user.role !== 'admin') {
+    if (!isAdmin) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
