@@ -63,11 +63,15 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
         statuses[m.id] = m.chat_status || "offline";
       });
       
-      // Load all Users to get admin statuses
-      const users = await base44.entities.User.list().catch(() => []);
-      users?.forEach(u => {
-        statuses[u.id] = u.chat_status || "offline";
-      });
+      // Load all Users (admins) via backend function to bypass permissions
+      try {
+        const response = await base44.functions.invoke('getAdminUsers');
+        response?.data?.admins?.forEach(u => {
+          statuses[u.id] = u.chat_status || "offline";
+        });
+      } catch (error) {
+        console.error('Failed to load admin users:', error);
+      }
       
       setDmStatuses(statuses);
     };
