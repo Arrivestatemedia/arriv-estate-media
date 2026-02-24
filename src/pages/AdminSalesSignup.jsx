@@ -150,51 +150,8 @@ export default function AdminSalesSignup() {
             </CardContent>
           </Card>
         )}
-        <div className="flex items-center gap-6 mb-8">
-          <div className="flex-shrink-0">
-            <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden">
-              {profilePicUrl ? (
-                <img src={profilePicUrl} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">No Photo</div>
-              )}
-            </div>
-            <label className="mt-2 block text-xs text-blue-600 cursor-pointer hover:text-blue-700">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = async () => {
-                      try {
-                        const result = await base44.integrations.Core.UploadFile({ file: reader.result });
-                        setProfilePicUrl(result.file_url);
-                        // Update profile
-                        const salesMemberId = localStorage.getItem('sales_member_id');
-                        if (salesMemberId) {
-                          await base44.entities.SalesTeamMember.update(salesMemberId, { profile_picture_url: result.file_url });
-                        }
-                      } catch (err) {
-                        alert('Error uploading photo');
-                      }
-                    };
-                    reader.readAsArrayBuffer(file);
-                  }
-                }}
-              />
-              Change Photo
-            </label>
-          </div>
-          <div className="flex-1">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Sales Team Management</h1>
-              <p className="text-gray-600 mt-1">Add and manage sales team members</p>
-            </div>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Team Management</h1>
+        <p className="text-gray-600 mb-8">Add and manage sales team members</p>
         <div className="flex justify-end mb-8">
            <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setFormData({ email: "", full_name: "", phone_number: "", password: "" }); }}>
             <DialogTrigger asChild>
