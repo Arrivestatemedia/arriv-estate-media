@@ -78,7 +78,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       ? base44.entities.ChatMessage.subscribe((event) => {
           if (event.data?.channel_id === chatId) {
             if (event.type === "create") {
-              setMessages(prev => [...prev, event.data]);
+              setMessages(prev => {
+                const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
+                return [...withoutOptimistic, event.data];
+              });
               // Send push notification if from another user
               if (event.data?.sender_id !== currentUserId) {
                 base44.functions.invoke('sendPushNotification', {
