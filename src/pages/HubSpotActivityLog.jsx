@@ -217,9 +217,50 @@ export default function HubSpotActivityLog() {
     );
   }
 
+  const handleEnablePermissions = async () => {
+    // Unlock audio context
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Play a silent buffer to unlock
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start();
+      // Store context globally so ChatWindow and SmsInbox can reuse it
+      window._unlockedAudioCtx = ctx;
+    } catch (e) {}
+
+    // Request notification permission
+    if ("Notification" in window && Notification.permission !== "granted") {
+      await Notification.requestPermission();
+    }
+
+    setShowPermissionBanner(false);
+  };
+
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
+
+      {/* Permission banner */}
+      {showPermissionBanner && (
+        <div className="mb-4 p-4 rounded-xl border flex items-center justify-between gap-4"
+          style={{ backgroundColor: 'rgba(184,149,106,0.1)', borderColor: 'rgba(184,149,106,0.4)' }}>
+          <div>
+            <p className="font-semibold text-sm" style={{ color: '#1A1A1A' }}>Enable Sounds & Notifications</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(26,26,26,0.6)' }}>
+              Get notified with sounds when you receive new chats or texts.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowPermissionBanner(false)}>Skip</Button>
+            <Button size="sm" onClick={handleEnablePermissions} style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
+              Enable
+            </Button>
+          </div>
+        </div>
+      )}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             {user?.type === 'sales' && (
