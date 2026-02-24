@@ -69,7 +69,7 @@ export default function HubSpotActivityLog() {
           type: 'sales'
         };
         setUser(u);
-      // Load profile pic
+      // Load profile pic from result already fetched above
       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
         if (members?.[0]?.profile_picture_url) {
           setProfilePicUrl(members[0].profile_picture_url);
