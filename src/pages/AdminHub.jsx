@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { base44 } from "@/api/base44Client";
-import AdminSalesSignup from "./AdminSalesSignup";
-import AdminSalesRepActivity from "./AdminSalesRepActivity";
-import AdminActivityPage from "./AdminActivityPage";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, BarChart3 } from "lucide-react";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import PoweredByFooter from "@/components/PoweredByFooter";
+
+const AdminSalesSignup = lazy(() => import("./AdminSalesSignup"));
+const AdminSalesRepActivity = lazy(() => import("./AdminSalesRepActivity"));
+const AdminActivityPage = lazy(() => import("./AdminActivityPage"));
 
 export default function AdminHub() {
   const [user, setUser] = useState(null);
