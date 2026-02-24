@@ -226,7 +226,7 @@ export default function EmailComposer({ salesMemberId }) {
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition"
           style={{ color: tab === "replies" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "replies" ? '#B8956A' : 'transparent' }}
         >
-          <Inbox className="w-4 h-4" /> Contact Replies
+          <Inbox className="w-4 h-4" /> Inbox
         </button>
         <button
           onClick={() => setTab("scheduled")}
@@ -388,7 +388,7 @@ export default function EmailComposer({ salesMemberId }) {
       {tab === "replies" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Emails received from contacts you've worked with</p>
+            <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>All emails received in your inbox</p>
             <Button size="sm" variant="outline" onClick={loadReplies} disabled={loadingReplies} style={{ borderColor: '#B8956A', color: '#B8956A' }}>
               {loadingReplies ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Refresh'}
             </Button>
@@ -401,7 +401,7 @@ export default function EmailComposer({ salesMemberId }) {
           ) : replies.length === 0 ? (
             <div className="text-center py-12" style={{ color: 'rgba(26,26,26,0.4)' }}>
               <Inbox className="w-8 h-8 mx-auto mb-3 opacity-40" />
-              <p>No replies from contacts yet</p>
+              <p>No emails in your inbox yet</p>
             </div>
           ) : (
            replies.map(reply => {
