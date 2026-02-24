@@ -41,7 +41,8 @@ Deno.serve(async (req) => {
       success: true,
       memberId: member.id,
       name: member.full_name,
-      email: member.email
+      email: member.email,
+      role: member.role
     });
 
   } catch (error) {

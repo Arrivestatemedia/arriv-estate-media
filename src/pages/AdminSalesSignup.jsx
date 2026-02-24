@@ -67,6 +67,13 @@ export default function AdminSalesSignup() {
 
   const handleEditSave = () => {
     const { password, ...dataWithoutPassword } = editData;
+
+    // Check if trying to change phone number to locked number
+    if (dataWithoutPassword.twilio_phone_number === "+16789408294" && editingMember.twilio_phone_number !== "+16789408294") {
+      alert("This phone number is already assigned to John Smith and cannot be changed.");
+      return;
+    }
+
     updateMutation.mutate({ id: editingMember.id, data: dataWithoutPassword });
   };
 
@@ -87,6 +94,16 @@ export default function AdminSalesSignup() {
       alert("Please fill in all required fields");
       return;
     }
+
+    // Check if phone number is locked to another account
+    if (formData.phone_number === "+16789408294") {
+      const johnSmith = salesMembers.find(m => m.email === "Sample@arrivestatemedia.com");
+      if (johnSmith) {
+        alert("This phone number is already assigned to John Smith and cannot be changed.");
+        return;
+      }
+    }
+
     createMutation.mutate(formData);
   };
 

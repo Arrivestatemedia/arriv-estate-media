@@ -9,8 +9,9 @@ import TwilioSdkLoader from "@/components/TwilioSdkLoader";
 import NewJobsBadge from "@/components/layout/NewJobsBadge";
 import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
-      import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
-      import TrackLink from "@/pages/TrackLink";
+import AdminChatBubble from "@/components/sales/AdminChatBubble";
+import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
+import TrackLink from "@/pages/TrackLink";
 
       export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -22,6 +23,7 @@ import PageTransition from "@/components/layout/PageTransition";
     const salesMemberId = localStorage.getItem('sales_member_id');
     const salesMemberName = localStorage.getItem('sales_member_name');
     const salesMemberEmail = localStorage.getItem('sales_member_email');
+    const salesMemberRole = localStorage.getItem('sales_member_role');
 
     if (salesMemberId && salesMemberName) {
       setUser({
@@ -29,7 +31,7 @@ import PageTransition from "@/components/layout/PageTransition";
         email: salesMemberEmail,
         full_name: salesMemberName,
         user_type: 'sales',
-        role: 'user'
+        role: salesMemberRole || 'user'
       });
       return;
     }
@@ -344,6 +346,14 @@ import PageTransition from "@/components/layout/PageTransition";
           </MediaPartnerGate>
         )}
       </main>
+
+      {/* Admin Chat Bubble */}
+      {isSalesTeam && user?.role === 'admin' && (
+        <AdminChatBubble 
+          currentUserId={user.id} 
+          currentUserName={user.full_name}
+        />
+      )}
 
       {/* Mobile Bottom Tabs */}
       <MobileBottomTabs user={user} />
