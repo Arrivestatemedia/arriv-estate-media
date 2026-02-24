@@ -16,7 +16,6 @@ export default function AdminSalesSignup() {
   const [editData, setEditData] = useState({});
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [profilePicUrl, setProfilePicUrl] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     full_name: "",
