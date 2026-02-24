@@ -134,12 +134,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               });
               if (event.data?.sender_id !== currentUserId) {
                 playDing();
+                toast.message(event.data?.sender_name, {
+                  description: event.data?.content,
+                });
                 if (Notification.permission === "granted") {
-                  new Notification(event.data?.sender_name, {
-                    body: event.data?.content,
-                    icon: "/favicon.ico",
-                    tag: `dm-${event.data?.sender_id}`
-                  });
+                  try {
+                    new Notification(event.data?.sender_name, {
+                      body: event.data?.content,
+                      icon: "/favicon.ico",
+                      tag: `dm-${event.data?.sender_id}`
+                    });
+                  } catch (e) {}
                 }
               }
             }
