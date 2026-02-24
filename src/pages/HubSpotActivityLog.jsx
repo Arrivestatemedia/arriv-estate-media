@@ -22,6 +22,7 @@ import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
   const [profilePicUrl, setProfilePicUrl] = useState(null);
+  const [showPermissionBanner, setShowPermissionBanner] = useState(false);
    const [activeTab, setActiveTab] = useState("activity");
    const [showForm, setShowForm] = useState(false);
    const [showPasswordModal, setShowPasswordModal] = useState(false);
