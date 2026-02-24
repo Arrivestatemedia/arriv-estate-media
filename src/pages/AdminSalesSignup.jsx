@@ -72,12 +72,18 @@ export default function AdminSalesSignup() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.functions.invoke('createSalesTeamMember', data);
+      const salesMemberId = localStorage.getItem('sales_member_id');
+      const result = await base44.functions.invoke('createSalesTeamMember', data);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salesTeam'] });
       setShowForm(false);
       setFormData({ email: "", full_name: "", phone_number: "", password: "" });
+    },
+    onError: (error) => {
+      console.error('Create mutation error:', error);
+      alert('Error creating sales member: ' + (error?.response?.data?.error || error.message));
     }
   });
 
