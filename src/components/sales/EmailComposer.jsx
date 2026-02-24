@@ -518,50 +518,6 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           )}
 
       {/* ── REPLIES ── */}
-      {tab === "scheduled" && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Emails scheduled to send automatically</p>
-            <Button size="sm" variant="outline" onClick={loadScheduledEmails} disabled={loadingScheduled} style={{ borderColor: '#B8956A', color: '#B8956A' }}>
-              {loadingScheduled ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Refresh'}
-            </Button>
-          </div>
-          {loadingScheduled ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#B8956A' }} />
-            </div>
-          ) : scheduledEmails.length === 0 ? (
-            <div className="text-center py-12" style={{ color: 'rgba(26,26,26,0.4)' }}>
-              <Clock className="w-8 h-8 mx-auto mb-3 opacity-40" />
-              <p>No scheduled emails yet</p>
-            </div>
-          ) : (
-            scheduledEmails.map(email => (
-              <div key={email.id} className="rounded-lg border p-4 flex items-start justify-between gap-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: statusColor[email.status] || '#888' }}>
-                      {email.status}
-                    </span>
-                    <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
-                      {email.scheduled_for ? format(new Date(email.scheduled_for), "MMM d, yyyy h:mm a") : ''}
-                    </span>
-                  </div>
-                  <p className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>To: {email.to}</p>
-                  <p className="text-sm truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{email.subject}</p>
-                  {email.error_message && <p className="text-xs text-red-500 mt-1">{email.error_message}</p>}
-                </div>
-                {email.status === "pending" && (
-                  <button onClick={() => handleDeleteScheduled(email.id)} className="text-gray-400 hover:text-red-500 transition shrink-0">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
       {tab === "replies" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
