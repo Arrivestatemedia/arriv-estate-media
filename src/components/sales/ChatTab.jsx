@@ -9,27 +9,32 @@ export default function ChatTab({ currentUserId, currentUserName }) {
   const [memberStatuses, setMemberStatuses] = useState({});
 
   useEffect(() => {
-    base44.entities.SalesTeamMember.list().then(members => {
+    const loadData = async () => {
       const profiles = {};
       const statuses = {};
+      
+      // Load SalesTeamMembers
+      const members = await base44.entities.SalesTeamMember.list().catch(() => []);
       members?.forEach(m => {
         if (m.profile_picture_url) profiles[m.id] = m.profile_picture_url;
         statuses[m.id] = m.chat_status || "offline";
       });
+      
+      // Also load all Users to get admin statuses
+      const users = await base44.entities.User.list().catch(() => []);
+      users?.forEach(u => {
+        if (u.chat_status) {
+          statuses[u.id] = u.chat_status;
+        }
+      });
+      
       setMemberProfiles(profiles);
       setMemberStatuses(statuses);
-      
-      // If current user is not in SalesTeamMember, load from User entity
-      if (!members?.find(m => m.id === currentUserId)) {
-        base44.auth.me().then(user => {
-          if (user) {
-            setMemberStatuses(prev => ({ ...prev, [currentUserId]: user.chat_status || "offline" }));
-          }
-        }).catch(() => {});
-      }
-    }).catch(() => {});
+    };
+    
+    loadData();
 
-    // Subscribe to real-time status updates for ALL team members (including current user)
+    // Subscribe to real-time status updates for ALL team members
     const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
       if (event.type === "update") {
         if (event.data?.chat_status) {
@@ -41,7 +46,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
       }
     });
 
-    // Subscribe to User entity updates for admins/non-sales-reps
+    // Subscribe to User entity updates for admins
     const userUnsub = base44.entities.User?.subscribe?.((event) => {
       if (event.type === "update") {
         if (event.data?.chat_status) {
