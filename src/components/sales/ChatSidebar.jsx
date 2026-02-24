@@ -135,6 +135,8 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
 
   const handleSetStatus = async (val) => {
      setMyStatus(val);
+     setDmStatuses(prev => ({ ...prev, [currentUserId]: val }));
+     setTeamMembers(prev => prev.map(m => m.id === currentUserId ? { ...m, chat_status: val } : m));
      setShowStatusPicker(false);
      try {
        // Try updating as SalesTeamMember first
