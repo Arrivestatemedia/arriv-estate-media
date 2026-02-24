@@ -190,7 +190,8 @@ export default function IphoneDialer({ salesMemberId }) {
 
   const loadCallLogs = async () => {
     try {
-      const logs = await base44.entities.ActivityLog.filter({ activity_type: 'call' }, '-activity_date', 100);
+      const id = salesMemberId || localStorage.getItem('sales_member_id');
+      const logs = await base44.entities.ActivityLog.filter({ activity_type: 'call', sales_member_id: id }, '-activity_date', 100);
       setCallLogs(logs);
     } catch (err) {
       console.error('Failed to load call logs:', err);
@@ -199,7 +200,8 @@ export default function IphoneDialer({ salesMemberId }) {
 
   const loadConversations = async () => {
     try {
-      const data = await base44.entities.SmsConversation.list('-last_message_at');
+      const id = salesMemberId || localStorage.getItem('sales_member_id');
+      const data = await base44.entities.SmsConversation.filter({ sales_member_id: id }, '-last_message_at');
       setConversations(data);
     } catch (err) {
       console.error('Failed to load conversations:', err);
