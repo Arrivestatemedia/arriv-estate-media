@@ -44,6 +44,21 @@ export default function AdminHub() {
     });
   }, []);
 
+  // Sync chat status with calendar every 3 minutes
+  useEffect(() => {
+    const syncStatus = async () => {
+      try {
+        await base44.functions.invoke('syncAdminChatStatusWithCalendar', {});
+      } catch (error) {
+        console.error('Chat status sync error:', error);
+      }
+    };
+
+    syncStatus();
+    const interval = setInterval(syncStatus, 3 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!user) {
     return <div className="p-4">Loading...</div>;
   }
