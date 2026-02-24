@@ -109,9 +109,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               // Ding for incoming DMs
               if (event.data?.sender_id !== currentUserId) {
                 playDing();
-                if (Notification.permission === 'granted') {
-                  new Notification(`💬 ${event.data?.sender_name}`, { body: event.data?.content, tag: `dm-${event.data?.sender_id}` });
-                }
               }
             }
           }
