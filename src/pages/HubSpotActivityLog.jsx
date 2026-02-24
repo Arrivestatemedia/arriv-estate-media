@@ -221,32 +221,19 @@ export default function HubSpotActivityLog() {
   };
 
   if (!user) {
-     return (
-       <div className="min-h-screen flex items-center justify-center p-4">
-         <Card className="w-full max-w-md">
-           <CardHeader>
-             <CardTitle className="text-red-600">Access Restricted</CardTitle>
-           </CardHeader>
-           <CardContent>
-             <p>Only sales team members and admins can access the activity log.</p>
-           </CardContent>
-         </Card>
-       </div>
-     );
-   }
-
-   // If admin, show admin hub instead
-   if (isAdmin) {
-     return (
-       <div style={{ minHeight: '100vh' }}>
-         <iframe 
-           src="/AdminHub" 
-           style={{ width: '100%', height: '100vh', border: 'none' }}
-           title="Admin Hub"
-         />
-       </div>
-     );
-   }
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-600">Access Restricted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Only sales team members and admins can access the activity log.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const handleEnablePermissions = async () => {
     // Create and PLAY a real audible tone to unlock audio (must be inside user gesture)
