@@ -70,15 +70,15 @@ export default function IphoneDialer({ salesMemberId }) {
       loadConversations().catch(() => {});
     }, 500);
 
-    const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
-    const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
+      const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
+      const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
 
-    return () => {
-      if (deviceRef.current) { deviceRef.current.destroy(); deviceRef.current = null; }
-      if (timerRef.current) clearInterval(timerRef.current);
-      callLogsUnsub();
-      convoUnsub();
-    };
+      return () => {
+        if (deviceRef.current) { deviceRef.current.destroy(); deviceRef.current = null; }
+        if (timerRef.current) clearInterval(timerRef.current);
+        callLogsUnsub();
+        convoUnsub();
+      };
   }, [salesMemberId]);
 
   // Keyboard handler — separate effect so it never re-initializes device
