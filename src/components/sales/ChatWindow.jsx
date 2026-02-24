@@ -95,7 +95,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           if ((event.data?.sender_id === currentUserId || event.data?.recipient_id === currentUserId) &&
               (event.data?.sender_id === chatId || event.data?.recipient_id === chatId)) {
             if (event.type === "create") {
-              setMessages(prev => [...prev, event.data]);
+              // Replace optimistic message if from self, otherwise append
+              setMessages(prev => {
+                const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
+                return [...withoutOptimistic, event.data];
+              });
               // Send push notification if from the other user
               if (event.data?.sender_id !== currentUserId) {
                 base44.functions.invoke('sendPushNotification', {
