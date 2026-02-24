@@ -129,6 +129,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
                 return [...withoutOptimistic, event.data];
               });
+              // Ding for incoming DMs
+              if (event.data?.sender_id !== currentUserId) {
+                playDing();
+              }
               // Send push notification if from the other user
               if (event.data?.sender_id !== currentUserId) {
                 base44.functions.invoke('sendPushNotification', {
