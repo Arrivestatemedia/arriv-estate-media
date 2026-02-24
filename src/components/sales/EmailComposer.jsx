@@ -51,6 +51,39 @@ export default function EmailComposer({ salesMemberId }) {
     if (tab === "scheduled") loadScheduledEmails();
   }, [tab]);
 
+  // Poll inbox every 60s for new emails and show browser notification
+  const lastInboxCountRef = React.useRef(null);
+  useEffect(() => {
+    if (!salesMemberId) return;
+
+    // Request notification permission upfront
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    const checkInbox = async () => {
+      try {
+        const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: fromEmail || salesMember?.company_email });
+        const threads = res.data?.threads || [];
+        if (lastInboxCountRef.current !== null && threads.length > lastInboxCountRef.current) {
+          const newCount = threads.length - lastInboxCountRef.current;
+          if (Notification.permission === "granted") {
+            new Notification(`📧 ${newCount} new email${newCount > 1 ? 's' : ''} in your inbox`, {
+              body: threads[0]?.snippet || "",
+              icon: "/favicon.ico"
+            });
+          }
+        }
+        lastInboxCountRef.current = threads.length;
+      } catch (e) {
+        // silent
+      }
+    };
+
+    const interval = setInterval(checkInbox, 60000);
+    return () => clearInterval(interval);
+  }, [salesMemberId, fromEmail, salesMember]);
+
   const loadScheduledEmails = async () => {
     setLoadingScheduled(true);
     try {
