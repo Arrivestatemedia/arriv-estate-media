@@ -20,10 +20,9 @@ import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 
 export default function HubSpotActivityLog() {
-   const [user, setUser] = useState(null);
-   const [isAdmin, setIsAdmin] = useState(false);
-   const [profilePicUrl, setProfilePicUrl] = useState(null);
-   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
+  const [user, setUser] = useState(null);
+  const [profilePicUrl, setProfilePicUrl] = useState(null);
+  const [showPermissionBanner, setShowPermissionBanner] = useState(false);
    const [activeTab, setActiveTab] = useState("activity");
    const [showForm, setShowForm] = useState(false);
    const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -52,27 +51,22 @@ export default function HubSpotActivityLog() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-     // Check if sales member is logged in via localStorage
-     const salesMemberId = localStorage.getItem('sales_member_id');
-     if (salesMemberId) {
-       const u = {
-         id: salesMemberId,
-         full_name: localStorage.getItem('sales_member_name'),
-         email: localStorage.getItem('sales_member_email'),
-         type: 'sales'
-       };
-       setUser(u);
-       // Load profile pic and check if admin
-       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-         if (members?.[0]) {
-           if (members[0].profile_picture_url) {
-             setProfilePicUrl(members[0].profile_picture_url);
-           }
-           if (members[0].role === 'admin') {
-             setIsAdmin(true);
-           }
-         }
-       }).catch(() => {});
+    // Check if sales member is logged in via localStorage
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    if (salesMemberId) {
+      const u = {
+        id: salesMemberId,
+        full_name: localStorage.getItem('sales_member_name'),
+        email: localStorage.getItem('sales_member_email'),
+        type: 'sales'
+      };
+      setUser(u);
+      // Load profile pic
+      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+        if (members?.[0]?.profile_picture_url) {
+          setProfilePicUrl(members[0].profile_picture_url);
+        }
+      }).catch(() => {});
       // Request notification + audio permissions right after login
       setTimeout(() => setShowPermissionBanner(true), 500);
 
@@ -94,10 +88,19 @@ export default function HubSpotActivityLog() {
         }
       });
       return dmSub;
-      } else {
-      // No sales member logged in, redirect to sales login
-      window.location.href = '/SalesLogin';
-      }
+    } else {
+      // Check for admin via base44
+      base44.auth.me().then((adminUser) => {
+        if (adminUser && adminUser.role === 'admin') {
+          setUser(adminUser);
+        } else {
+          // Redirect to sales login if not authenticated as sales or admin
+          window.location.href = '/SalesLogin';
+        }
+      }).catch(() => {
+        window.location.href = '/SalesLogin';
+      });
+    }
   }, []);
 
   const { data: activities = [] } = useQuery({
@@ -221,32 +224,19 @@ export default function HubSpotActivityLog() {
   };
 
   if (!user) {
-     return (
-       <div className="min-h-screen flex items-center justify-center p-4">
-         <Card className="w-full max-w-md">
-           <CardHeader>
-             <CardTitle className="text-red-600">Access Restricted</CardTitle>
-           </CardHeader>
-           <CardContent>
-             <p>Only sales team members and admins can access the activity log.</p>
-           </CardContent>
-         </Card>
-       </div>
-     );
-   }
-
-   // If admin, show admin hub instead
-   if (isAdmin) {
-     return (
-       <div style={{ minHeight: '100vh' }}>
-         <iframe 
-           src="/AdminHub" 
-           style={{ width: '100%', height: '100vh', border: 'none' }}
-           title="Admin Hub"
-         />
-       </div>
-     );
-   }
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-600">Access Restricted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Only sales team members and admins can access the activity log.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const handleEnablePermissions = async () => {
     // Create and PLAY a real audible tone to unlock audio (must be inside user gesture)
@@ -570,12 +560,12 @@ export default function HubSpotActivityLog() {
         )}
 
         {activeTab === "call" && (
-           <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20', height: '600px' }}>
-             <CardContent className="pt-0 h-full">
-               <IphoneDialer salesMemberId={user?.id} isAdmin={isAdmin} />
-             </CardContent>
-           </Card>
-         )}
+          <Card style={{ backgroundColor: '#FFFFFF', borderColor: '#B8956A/20', height: '600px' }}>
+            <CardContent className="pt-0 h-full">
+              <IphoneDialer salesMemberId={user?.id} />
+            </CardContent>
+          </Card>
+        )}
 
         {activeTab === "contacts" && (
            <Card style={{ backgroundColor: '#FFFFFF' }}>

@@ -51,7 +51,10 @@ import AccountSettings from './pages/AccountSettings';
 import AdminBookings from './pages/AdminBookings';
 import AdminClientTerms from './pages/AdminClientTerms';
 import AdminInvite from './pages/AdminInvite';
+import AdminLogin from './pages/AdminLogin';
 import AdminPaymentStatements from './pages/AdminPaymentStatements';
+import AdminSalesRepActivity from './pages/AdminSalesRepActivity';
+import AdminSalesSignup from './pages/AdminSalesSignup';
 import AdminSignedTerms from './pages/AdminSignedTerms';
 import AdminUsers from './pages/AdminUsers';
 import BookingPage from './pages/BookingPage';
@@ -80,17 +83,13 @@ import OrientationVideo from './pages/OrientationVideo';
 import PasswordSetup from './pages/PasswordSetup';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicAccountSettings from './pages/PublicAccountSettings';
+import SalesLogin from './pages/SalesLogin';
 import SalesRepGmailAuthCallback from './pages/SalesRepGmailAuthCallback';
 import SignIn from './pages/SignIn';
 import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import SalesLogin from './pages/SalesLogin';
-import AdminSalesRepActivity from './pages/AdminSalesRepActivity';
-import AdminSalesSignup from './pages/AdminSalesSignup';
-import AdminLogin from './pages/AdminLogin';
-import AdminHub from './pages/AdminHub';
 import __Layout from './Layout.jsx';
 
 
@@ -99,7 +98,10 @@ export const PAGES = {
     "AdminBookings": AdminBookings,
     "AdminClientTerms": AdminClientTerms,
     "AdminInvite": AdminInvite,
+    "AdminLogin": AdminLogin,
     "AdminPaymentStatements": AdminPaymentStatements,
+    "AdminSalesRepActivity": AdminSalesRepActivity,
+    "AdminSalesSignup": AdminSalesSignup,
     "AdminSignedTerms": AdminSignedTerms,
     "AdminUsers": AdminUsers,
     "BookingPage": BookingPage,
@@ -128,17 +130,13 @@ export const PAGES = {
     "PasswordSetup": PasswordSetup,
     "PrivacyPolicy": PrivacyPolicy,
     "PublicAccountSettings": PublicAccountSettings,
+    "SalesLogin": SalesLogin,
     "SalesRepGmailAuthCallback": SalesRepGmailAuthCallback,
     "SignIn": SignIn,
     "SupraAccess": SupraAccess,
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "SalesLogin": SalesLogin,
-    "AdminSalesRepActivity": AdminSalesRepActivity,
-    "AdminSalesSignup": AdminSalesSignup,
-    "AdminLogin": AdminLogin,
-    "AdminHub": AdminHub,
 }
 
 export const pagesConfig = {

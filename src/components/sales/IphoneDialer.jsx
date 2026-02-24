@@ -10,10 +10,9 @@ import { format } from "date-fns";
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
 
-export default function IphoneDialer({ salesMemberId, isAdmin = false }) {
-   const [userPhoneNumber, setUserPhoneNumber] = useState(null);
-   const [device, setDevice] = useState(null);
-   const [deviceReady, setDeviceReady] = useState(false);
+export default function IphoneDialer({ salesMemberId }) {
+  const [device, setDevice] = useState(null);
+  const [deviceReady, setDeviceReady] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS.RECENTS);
   const [callState, setCallState] = useState(CALL_STATES.IDLE);
   const [keypadInput, setKeypadInput] = useState("");
@@ -50,23 +49,12 @@ export default function IphoneDialer({ salesMemberId, isAdmin = false }) {
     const id = salesMemberId || localStorage.getItem('sales_member_id');
     if (!id) return;
 
-    // Fetch user's Twilio phone number
-    const fetchPhoneNumber = async () => {
-      try {
-        const members = await base44.entities.SalesTeamMember.filter({ id });
-        if (members && members[0]?.twilio_phone_number) {
-          setUserPhoneNumber(members[0].twilio_phone_number);
-        }
-      } catch (err) {
-        console.error('Failed to fetch phone number:', err);
-      }
-    };
-    fetchPhoneNumber();
+    initDevice();
 
-    // Only init device if phone number is assigned or not an admin
-    if (!isAdmin) {
-      initDevice();
-    }
+    setTimeout(() => {
+      loadCallLogs().catch(() => {});
+      loadConversations().catch(() => {});
+    }, 500);
 
     const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
     const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
@@ -77,9 +65,7 @@ export default function IphoneDialer({ salesMemberId, isAdmin = false }) {
       callLogsUnsub();
       convoUnsub();
     };
-  }, [salesMemberId, isAdmin]);
-
-
+  }, [salesMemberId]);
 
   // Keyboard handler — separate effect so it never re-initializes device
   useEffect(() => {
@@ -439,28 +425,6 @@ export default function IphoneDialer({ salesMemberId, isAdmin = false }) {
             <PhoneOff className="w-6 h-6" />
           </Button>
         </div>
-      </div>
-    );
-  }
-
-  // Show message if no phone number assigned and is admin
-  if (isAdmin && !userPhoneNumber) {
-    return (
-      <div className="h-full flex flex-col bg-white rounded-lg items-center justify-center p-4 text-center">
-        <Phone className="w-12 h-12 text-gray-300 mb-3" />
-        <p className="text-gray-600 font-medium">No Phone Number Assigned</p>
-        <p className="text-sm text-gray-500 mt-1">Contact admin to assign a phone number</p>
-      </div>
-    );
-  }
-
-  // Show message if no phone number and not admin (shouldn't happen but safety check)
-  if (!userPhoneNumber && !isAdmin) {
-    return (
-      <div className="h-full flex flex-col bg-white rounded-lg items-center justify-center p-4 text-center">
-        <Phone className="w-12 h-12 text-gray-300 mb-3" />
-        <p className="text-gray-600 font-medium">Phone Dialer Not Available</p>
-        <p className="text-sm text-gray-500 mt-1">Your phone number is not configured</p>
       </div>
     );
   }
