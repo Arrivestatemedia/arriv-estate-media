@@ -121,6 +121,23 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     setScheduledEmails(prev => prev.filter(e => e.id !== id));
   };
 
+  useEffect(() => {
+    if (isAdmin) {
+      // For admin, use their base44 user info
+      base44.auth.me().then(adminUser => {
+        setSalesMember(adminUser);
+      }).catch(err => console.error('Error loading admin user:', err));
+    } else if (salesMemberId) {
+      // For sales rep, fetch their SalesTeamMember record
+      base44.entities.SalesTeamMember.read(salesMemberId).then(member => {
+        setSalesMember(member);
+        if (member?.company_email) {
+          setFromEmail(member.company_email);
+        }
+      }).catch(err => console.error('Error loading sales member:', err));
+    }
+  }, [salesMemberId, isAdmin]);
+
   const loadReplies = async () => {
     setLoadingReplies(true);
     try {
