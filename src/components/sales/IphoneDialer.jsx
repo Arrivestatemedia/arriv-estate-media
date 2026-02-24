@@ -57,10 +57,24 @@ export default function IphoneDialer({ salesMemberId }) {
       loadConversations().catch(() => {});
     }, 500);
 
+    // Load team member statuses
+    base44.entities.SalesTeamMember.list().then(members => {
+      const statuses = {};
+      members?.forEach(m => {
+        statuses[m.id] = m.chat_status || "offline";
+      });
+      setTeamMemberStatuses(statuses);
+    }).catch(() => {});
+
     const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
     const convoUnsub = base44.entities.SmsConversation.subscribe((event) => {
       if (event.type === "create" || event.type === "update") {
         loadConversations().catch(() => {});
+      }
+    });
+    const statusUnsub = base44.entities.SalesTeamMember.subscribe((event) => {
+      if (event.type === "update" && event.data?.chat_status) {
+        setTeamMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
       }
     });
 
