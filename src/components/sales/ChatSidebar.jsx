@@ -54,26 +54,6 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       loadChannels();
       loadDirectMessages();
       loadTeamMembers();
-      
-      const statuses = {};
-      
-      // Load all SalesTeamMembers first
-      const members = await base44.entities.SalesTeamMember.list().catch(() => []);
-      members?.forEach(m => {
-        statuses[m.id] = m.chat_status || "offline";
-      });
-      
-      // Load all Users (admins) via backend function to bypass permissions
-      try {
-        const response = await base44.functions.invoke('getAdminUsers');
-        response?.data?.admins?.forEach(u => {
-          statuses[u.id] = u.chat_status || "offline";
-        });
-      } catch (error) {
-        console.error('Failed to load admin users:', error);
-      }
-      
-      setDmStatuses(statuses);
     };
     
     loadData();
