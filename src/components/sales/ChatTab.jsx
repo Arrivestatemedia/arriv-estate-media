@@ -24,7 +24,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
       const users = await base44.entities.User.list().catch(() => []);
       users?.forEach(u => {
         if (u.chat_status) {
-          statuses[u.email] = u.chat_status;
+          statuses[u.id] = u.chat_status;
         }
       });
       
@@ -50,7 +50,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
     const userUnsub = base44.entities.User?.subscribe?.((event) => {
       if (event.type === "update") {
         if (event.data?.chat_status) {
-          setMemberStatuses(prev => ({ ...prev, [event.data.email]: event.data.chat_status }));
+          setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
         }
       }
     });
