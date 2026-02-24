@@ -27,6 +27,7 @@ export default function IphoneDialer({ salesMemberId }) {
   const [messages, setMessages] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [error, setError] = useState("");
+  const [teamMemberStatuses, setTeamMemberStatuses] = useState({});
    const [contactName, setContactName] = useState("");
    const [contactEmail, setContactEmail] = useState("");
    const [companyName, setCompanyName] = useState("");
