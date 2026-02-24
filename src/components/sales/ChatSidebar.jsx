@@ -276,12 +276,14 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
           <p className="text-xs font-semibold text-gray-500 uppercase">Direct Messages</p>
           <div className="mt-3 space-y-1">
             {directMessages.map((dm) => {
-              const status = dmStatuses[dm.id] || memberStatuses[dm.id] || "offline";
+              const status = memberStatuses[dm.id] || "offline";
               return (
                 <button
                   key={dm.id}
                   onClick={() => handleSelectChat("dm", dm.id, dm.name)}
-                  className={`w-full text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${
+                  onMouseEnter={() => setHoveredMemberId(dm.id)}
+                  onMouseLeave={() => setHoveredMemberId(null)}
+                  className={`w-full text-left px-3 py-2 rounded text-sm flex items-center gap-2 relative ${
                     selectedChat?.id === dm.id
                       ? "bg-[#B8956A]/20 text-[#B8956A]"
                       : "text-gray-300 hover:bg-gray-800"
@@ -293,6 +295,11 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
                       style={{ backgroundColor: statusFor(status).color }} />
                   </div>
                   {dm.name}
+                  {hoveredMemberId === dm.id && (
+                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded whitespace-nowrap z-50">
+                      {statusFor(status).label}
+                    </div>
+                  )}
                 </button>
               );
             })}
