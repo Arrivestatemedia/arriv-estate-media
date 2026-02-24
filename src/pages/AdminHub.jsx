@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Users, BarChart3 } from "lucide-react";
 import AdminSalesSignup from "./AdminSalesSignup";
 import AdminSalesRepActivity from "./AdminSalesRepActivity";
+import AdminActivityPage from "./AdminActivityPage";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import PoweredByFooter from "@/components/PoweredByFooter";
 
@@ -46,8 +47,17 @@ export default function AdminHub() {
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold" style={{ color: '#1A1A1A' }}>Admin Hub</h1>
-          <p className="mt-2" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Manage sales team and monitor activity</p>
+          <h1 className="text-4xl font-bold" style={{ color: '#1A1A1A' }}>
+            <span style={{ fontStyle: 'italic' }}>Arriv</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>One</span> Admin Hub
+          </h1>
+          <p className="mt-2 text-sm font-medium" style={{ color: '#B8956A' }}>
+            Hi {user.full_name?.split(' ')[0]}, Good {(() => {
+              const h = new Date().getHours();
+              if (h < 12) return 'Morning';
+              if (h < 17) return 'Afternoon';
+              return 'Evening';
+            })()}!
+          </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
