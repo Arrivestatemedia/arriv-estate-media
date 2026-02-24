@@ -12,6 +12,7 @@ const AdminActivityPage = lazy(() => import("./AdminActivityPage"));
 export default function AdminHub() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("team");
+  const [profilePicUrl, setProfilePicUrl] = useState("");
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
