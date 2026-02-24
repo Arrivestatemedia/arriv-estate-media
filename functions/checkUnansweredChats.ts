@@ -39,14 +39,24 @@ Deno.serve(async (req) => {
       const count = dms.length;
       const senderNames = [...new Set(dms.map(d => d.sender_name).filter(Boolean))].join(', ');
 
-      // Only email the rep (or admin if the admin is the recipient)
-      const isAdmin = recipient.email === adminEmail;
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+      
+      const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      };
 
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: recipient.email,
-        subject: `⚠️ You have ${count} unanswered chat message${count > 1 ? 's' : ''}`,
-        body: `Hi ${recipient.full_name},\n\nYou have ${count} unread message${count > 1 ? 's' : ''} from ${senderNames} that ${count > 1 ? 'have' : 'has'} been waiting over 2.5 minutes for a reply.\n\nPlease log in and respond.\n\n– Arriv Team`
+      const emailBody = `Hi ${recipient.full_name},\n\nYou have ${count} unread message${count > 1 ? 's' : ''} from ${senderNames} that ${count > 1 ? 'have' : 'has'} been waiting over 2.5 minutes for a reply.\n\nPlease log in and respond.\n\n– Arriv Team`;
+      
+      const message = `To: ${recipient.email}\nSubject: ⚠️ You have ${count} unanswered chat message${count > 1 ? 's' : ''}\n\n${emailBody}`;
+      const encodedMessage = btoa(message).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ raw: encodedMessage })
       });
+      
       emailsSent++;
     }
 
