@@ -50,7 +50,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
     const userUnsub = base44.entities.User?.subscribe?.((event) => {
       if (event.type === "update") {
         if (event.data?.chat_status) {
-          setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+          setMemberStatuses(prev => ({ ...prev, [event.data.email]: event.data.chat_status }));
         }
       }
     });
