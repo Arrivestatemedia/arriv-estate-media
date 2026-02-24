@@ -75,6 +75,14 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       }).catch(() => {});
     }
 
+    // Subscribe to User updates for real-time status changes
+    const unsubscribe = base44.entities.User.subscribe((event) => {
+      if (event.type === 'update' && event.data?.role === 'admin') {
+        setTeamMembers(prev => prev.map(m => m.is_user && m.id === event.id ? { ...m, chat_status: event.data.chat_status } : m));
+      }
+    });
+
+    return () => unsubscribe?.();
   }, [currentUserId]);
 
   const handleSetStatus = async (val) => {
