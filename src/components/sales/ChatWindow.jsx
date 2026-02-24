@@ -38,7 +38,7 @@ const playDing = () => {
 };
 
 
-export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {} }) {
+export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {}, salesMemberId }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -47,6 +47,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const syncIntervalRef = useRef(null);
 
   // Request / check notification permission
   useEffect(() => {
