@@ -5,19 +5,15 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { contactEmails, toEmail } = await req.json();
 
-    if (!contactEmails || contactEmails.length === 0) {
-      return Response.json({ threads: [] });
-    }
-
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-    // Build a Gmail search query: emails FROM any of the contact addresses TO the sales rep's email
-    const fromQuery = contactEmails
-      .filter(Boolean)
-      .map(e => `from:${e}`)
-      .join(' OR ');
-    
-    const query = toEmail ? `(${fromQuery}) deliveredto:${toEmail}` : fromQuery;
+    // Pull the full inbox - all received emails
+    // If contactEmails provided, filter to those; otherwise show entire inbox
+    let query = 'in:inbox';
+    if (contactEmails && contactEmails.length > 0) {
+      const fromQuery = contactEmails.filter(Boolean).map(e => `from:${e}`).join(' OR ');
+      query = `in:inbox (${fromQuery})`;
+    }
 
     const searchRes = await fetch(
       `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=30`,
