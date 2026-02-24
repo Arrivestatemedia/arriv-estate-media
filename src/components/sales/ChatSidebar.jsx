@@ -50,9 +50,24 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   }, []);
 
   useEffect(() => {
-    loadChannels();
-    loadDirectMessages();
-    loadTeamMembers();
+    const loadData = async () => {
+      loadChannels();
+      loadDirectMessages();
+      loadTeamMembers();
+      
+      // Load all Users to get admin statuses
+      const users = await base44.entities.User.list().catch(() => []);
+      const statuses = {};
+      users?.forEach(u => {
+        if (u.chat_status) {
+          statuses[u.id] = u.chat_status;
+        }
+      });
+      setDmStatuses(statuses);
+    };
+    
+    loadData();
+    
     // Load current user's full profile
     if (currentUserId) {
       base44.entities.SalesTeamMember.filter({ id: currentUserId }).then(members => {
@@ -83,7 +98,20 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
         }
       }
     });
-    return unsub;
+    
+    // Subscribe to User entity updates for admins
+    const userUnsub = base44.entities.User?.subscribe?.((event) => {
+      if (event.type === "update") {
+        if (event.data?.chat_status) {
+          setDmStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+        }
+      }
+    });
+    
+    return () => {
+      unsub();
+      userUnsub?.();
+    };
   }, [currentUserId]);
 
   const handleSetStatus = async (val) => {
