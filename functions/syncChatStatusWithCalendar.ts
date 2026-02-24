@@ -11,6 +11,12 @@ Deno.serve(async (req) => {
 
     const { salesMemberId } = await req.json();
     
+    // Get sales rep's company email
+    const salesMember = await base44.asServiceRole.entities.SalesTeamMember.read(salesMemberId);
+    if (!salesMember || !salesMember.company_email) {
+      return Response.json({ error: 'Sales member not found or missing company email' }, { status: 400 });
+    }
+    
     // Get Google Calendar access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
     
@@ -27,7 +33,16 @@ Deno.serve(async (req) => {
     );
     
     const calData = await calResponse.json();
-    const hasActiveEvent = calData.items && calData.items.length > 0;
+    
+    // Only count events that include this sales rep's email
+    const relevantEvents = (calData.items || []).filter(event => {
+      const organizerEmail = event.organizer?.email || '';
+      const attendeeEmails = (event.attendees || []).map(a => a.email);
+      
+      return organizerEmail === salesMember.company_email || attendeeEmails.includes(salesMember.company_email);
+    });
+    
+    const hasActiveEvent = relevantEvents.length > 0;
     
     // Update chat status
     const newStatus = hasActiveEvent ? 'in_meeting' : 'available';
