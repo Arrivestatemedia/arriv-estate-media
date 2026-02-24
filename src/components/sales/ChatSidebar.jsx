@@ -59,6 +59,13 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
         if (members?.[0]) {
           setMyStatus(members[0].chat_status || "online");
           setMyProfilePicture(members[0].profile_picture_url);
+        } else {
+          // Fallback to User entity if not a SalesTeamMember
+          base44.auth.me().then(user => {
+            if (user) {
+              setMyStatus(user.chat_status || "online");
+            }
+          }).catch(() => {});
         }
       }).catch(() => {});
     }
