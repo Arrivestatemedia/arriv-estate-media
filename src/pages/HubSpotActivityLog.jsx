@@ -220,13 +220,20 @@ export default function HubSpotActivityLog() {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             {user?.type === 'sales' && (
-              <div className="flex flex-col items-center gap-1">
-                <ProfilePictureUpload
-                  salesMemberId={user.id}
-                  currentUrl={profilePicUrl}
-                  onUploaded={(url) => setProfilePicUrl(url)}
-                />
-                <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>
+            {user?.type === 'sales' && (
+              <ProfilePictureUpload
+                salesMemberId={user.id}
+                currentUrl={profilePicUrl}
+                onUploaded={(url) => setProfilePicUrl(url)}
+              />
+            )}
+            <div>
+              <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>
+                <span style={{ fontStyle: 'italic' }}>Arriv</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>One</span>
+              </h1>
+              <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>All sales activities in one place</p>
+              {user?.type === 'sales' && (
+                <p className="text-sm font-medium mt-1" style={{ color: '#B8956A' }}>
                   Hi {user.full_name?.split(' ')[0]}, Good {(() => {
                     const h = new Date().getHours();
                     if (h < 12) return 'Morning';
@@ -234,13 +241,7 @@ export default function HubSpotActivityLog() {
                     return 'Evening';
                   })()}!
                 </p>
-              </div>
-            )}
-            <div>
-              <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>
-                <span style={{ fontStyle: 'italic' }}>Arriv</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>One</span>
-              </h1>
-              <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>All sales activities in one place</p>
+              )}
             </div>
           </div>
           <div className="flex gap-2 items-center">
