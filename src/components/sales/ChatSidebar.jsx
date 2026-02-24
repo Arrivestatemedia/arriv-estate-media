@@ -126,7 +126,32 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       {/* Header */}
       <div className="p-4 border-b border-gray-700">
         <h3 className="font-bold text-lg">{currentUserName}</h3>
-        <p className="text-xs text-gray-400">Sales Team Chat</p>
+        {/* Status picker */}
+        <div className="relative mt-2" ref={statusRef}>
+          <button
+            onClick={() => setShowStatusPicker(v => !v)}
+            className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-white transition-colors"
+          >
+            <StatusDot value={myStatus} />
+            <span>{statusFor(myStatus).label}</span>
+            <ChevronDown className="w-3 h-3 opacity-60" />
+          </button>
+          {showStatusPicker && (
+            <div className="absolute left-0 top-full mt-1 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-xl z-50 py-1 w-44">
+              {STATUSES.map(s => (
+                <button
+                  key={s.value}
+                  onClick={() => handleSetStatus(s.value)}
+                  className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-700 transition-colors ${myStatus === s.value ? 'text-white' : 'text-gray-300'}`}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color, display: 'inline-block', flexShrink: 0 }} />
+                  {s.label}
+                  {myStatus === s.value && <span className="ml-auto text-[#B8956A]">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* New Channel */}
