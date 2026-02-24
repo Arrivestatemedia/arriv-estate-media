@@ -261,10 +261,16 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             const initials = (msg.sender_name || "?")[0].toUpperCase();
             return (
               <div key={msg.id} className="flex gap-3">
-                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-[#B8956A]/20 flex items-center justify-center text-[#B8956A] font-bold text-sm">
-                  {profileUrl ? (
-                    <img src={profileUrl} alt={msg.sender_name} className="w-full h-full object-cover" />
-                  ) : initials}
+                <div className="relative flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[#B8956A]/20 flex items-center justify-center text-[#B8956A] font-bold text-sm">
+                    {profileUrl ? (
+                      <img src={profileUrl} alt={msg.sender_name} className="w-full h-full object-cover" />
+                    ) : initials}
+                  </div>
+                  {memberStatuses[msg.sender_id] && (
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white"
+                      style={{ backgroundColor: STATUS_COLORS[memberStatuses[msg.sender_id]] || "#6b7280" }} />
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-baseline gap-2">
