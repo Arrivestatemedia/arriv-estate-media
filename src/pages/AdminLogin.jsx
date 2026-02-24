@@ -80,10 +80,22 @@ export default function AdminLogin() {
           <CardDescription>Sign in to your admin account</CardDescription>
         </CardHeader>
         <CardContent>
+          {initializing ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#B8956A]"></div>
+              <p className="text-gray-600 mt-4">Setting up admin account...</p>
+            </div>
+          ) : (
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
                 {error}
+              </div>
+            )}
+            {tempPassword && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded text-sm">
+                <p className="font-semibold mb-2">Temporary password created:</p>
+                <code className="block bg-blue-100 p-2 rounded text-xs break-all">{tempPassword}</code>
               </div>
             )}
             
