@@ -78,22 +78,20 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     return () => {};
   }, [currentUserId]);
 
+  useEffect(() => {
+    setMyStatus(memberStatuses[currentUserId] || "online");
+  }, [memberStatuses[currentUserId]]);
+
   const handleSetStatus = async (val) => {
      setMyStatus(val);
-     setDmStatuses(prev => ({ ...prev, [currentUserId]: val }));
-     setTeamMembers(prev => prev.map(m => m.id === currentUserId ? { ...m, chat_status: val } : m));
      setShowStatusPicker(false);
+     if (onStatusChange) {
+       onStatusChange(val);
+     }
      try {
-       // Try updating as SalesTeamMember first
-       await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
+       await base44.auth.updateMe({ chat_status: val });
      } catch (error) {
-       try {
-         // Fallback to updating User entity
-         await base44.auth.updateMe({ chat_status: val });
-       } catch (fallbackError) {
-         console.error('Failed to update status:', fallbackError);
-         setMyStatus(STATUSES[0].value); // revert on error
-       }
+       console.error('Failed to update status:', error);
      }
    };
 
