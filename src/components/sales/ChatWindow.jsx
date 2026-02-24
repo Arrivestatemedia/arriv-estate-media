@@ -114,7 +114,20 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    const text = newMessage.trim();
+    if (!text) return;
+
+    // Optimistic update
+    const optimisticMsg = {
+      id: `temp-${Date.now()}`,
+      sender_id: currentUserId,
+      sender_name: currentUserName,
+      content: text,
+      timestamp: new Date().toISOString(),
+      ...(chatType === "channel" ? { channel_id: chatId } : { recipient_id: chatId, recipient_name: chatName }),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    setNewMessage("");
 
     try {
       if (chatType === "channel") {
@@ -122,7 +135,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           channel_id: chatId,
           sender_id: currentUserId,
           sender_name: currentUserName,
-          content: newMessage,
+          content: text,
           timestamp: new Date().toISOString()
         });
       } else if (chatType === "dm") {
@@ -131,13 +144,15 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           sender_name: currentUserName,
           recipient_id: chatId,
           recipient_name: chatName,
-          content: newMessage,
+          content: text,
           timestamp: new Date().toISOString()
         });
       }
-      setNewMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
+      // Remove optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+      setNewMessage(text);
     }
   };
 
