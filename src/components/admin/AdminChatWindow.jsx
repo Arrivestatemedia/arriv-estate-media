@@ -34,6 +34,39 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     enabled: !!selectedRepId
   });
 
+  // Fetch status of selected rep
+  const { data: selectedRepStatus } = useQuery({
+    queryKey: ['repStatus', selectedRepId],
+    queryFn: async () => {
+      if (!selectedRepId) return null;
+      const rep = await base44.entities.SalesTeamMember.get(selectedRepId);
+      return rep?.chat_status;
+    },
+    enabled: !!selectedRepId,
+    refetchInterval: 5000
+  });
+
+  // Sound effect function
+  const playDing = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      if (ctx.state === 'suspended') ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+      console.log('Audio error:', e);
+    }
+  };
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content) => {
@@ -50,8 +83,44 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminMessages'] });
       setMessageText("");
+      
+      // Send auto-response if rep is in a meeting
+      if (selectedRepStatus === 'in_meeting') {
+        setTimeout(async () => {
+          try {
+            await base44.entities.DirectMessage.create({
+              sender_id: selectedRepId,
+              sender_name: selectedRepName,
+              recipient_id: currentUserId,
+              recipient_name: currentUserName,
+              content: "This person is in a meeting and will respond as soon as they're available.",
+              timestamp: new Date().toISOString(),
+              read: false,
+              auto_response: true
+            });
+          } catch (e) {
+            console.error("Error sending auto-response:", e);
+          }
+        }, 500);
+      }
     }
   });
+
+  // Subscribe to incoming messages and play sound
+  useEffect(() => {
+    if (!selectedRepId) return;
+    
+    const unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
+      if ((event.data?.sender_id === selectedRepId && event.data?.recipient_id === currentUserId) ||
+          (event.data?.sender_id === currentUserId && event.data?.recipient_id === selectedRepId)) {
+        if (event.type === "create" && event.data?.sender_id === selectedRepId) {
+          playDing();
+        }
+      }
+    });
+    
+    return unsubscribe;
+  }, [selectedRepId, currentUserId]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
