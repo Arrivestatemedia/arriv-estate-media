@@ -18,12 +18,14 @@ export default function ChatTab({ currentUserId, currentUserName }) {
       });
       setMemberProfiles(profiles);
       setMemberStatuses(statuses);
-    }).catch(() => {});
-
-    // Load current user's status from User entity if they're not a SalesTeamMember
-    base44.auth.me().then(user => {
-      if (user?.chat_status) {
-        setMemberStatuses(prev => ({ ...prev, [currentUserId]: user.chat_status }));
+      
+      // If current user is not in SalesTeamMember, load from User entity
+      if (!members?.find(m => m.id === currentUserId)) {
+        base44.auth.me().then(user => {
+          if (user) {
+            setMemberStatuses(prev => ({ ...prev, [currentUserId]: user.chat_status || "offline" }));
+          }
+        }).catch(() => {});
       }
     }).catch(() => {});
 
