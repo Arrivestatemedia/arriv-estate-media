@@ -47,9 +47,26 @@ export default function EmailComposer({ salesMemberId }) {
 
   // Load replies when switching to replies tab
   useEffect(() => {
-    if (tab !== "replies") return;
-    loadReplies();
+    if (tab === "replies") loadReplies();
+    if (tab === "scheduled") loadScheduledEmails();
   }, [tab]);
+
+  const loadScheduledEmails = async () => {
+    setLoadingScheduled(true);
+    try {
+      const emails = await base44.entities.ScheduledEmail.filter({ sales_member_id: salesMemberId });
+      setScheduledEmails(emails.sort((a, b) => new Date(a.scheduled_for) - new Date(b.scheduled_for)));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingScheduled(false);
+    }
+  };
+
+  const handleDeleteScheduled = async (id) => {
+    await base44.entities.ScheduledEmail.delete(id);
+    setScheduledEmails(prev => prev.filter(e => e.id !== id));
+  };
 
   const loadReplies = async () => {
     setLoadingReplies(true);
