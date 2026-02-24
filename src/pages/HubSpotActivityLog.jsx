@@ -51,22 +51,46 @@ export default function HubSpotActivityLog() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Check if sales member is logged in via localStorage
-    const salesMemberId = localStorage.getItem('sales_member_id');
-    if (salesMemberId) {
-      const role = localStorage.getItem('sales_member_role');
-      // Route admins to Admin Hub instead
-      if (role === 'admin') {
-        window.location.href = createPageUrl('AdminHub');
-        return;
-      }
-      const u = {
-        id: salesMemberId,
-        full_name: localStorage.getItem('sales_member_name'),
-        email: localStorage.getItem('sales_member_email'),
-        type: 'sales'
-      };
-      setUser(u);
+    // Check for Base44 auth first
+    base44.auth.isAuthenticated().then(isAuth => {
+      if (isAuth) {
+        base44.auth.me().then((authUser) => {
+          if (authUser && authUser.role === 'admin') {
+            setUser(authUser);
+          } else {
+            // Not a Base44 admin, check if sales member is logged in via localStorage
+            const salesMemberId = localStorage.getItem('sales_member_id');
+            if (salesMemberId) {
+              const u = {
+                id: salesMemberId,
+                full_name: localStorage.getItem('sales_member_name'),
+                email: localStorage.getItem('sales_member_email'),
+                type: 'sales'
+              };
+              setUser(u);
+            } else {
+              window.location.href = '/SalesLogin';
+            }
+          }
+        }).catch(() => {
+          window.location.href = '/SalesLogin';
+        });
+      } else {
+        // Not authenticated with Base44, check sales team login
+        const salesMemberId = localStorage.getItem('sales_member_id');
+        if (salesMemberId) {
+          const role = localStorage.getItem('sales_member_role');
+          if (role === 'admin') {
+            window.location.href = createPageUrl('AdminHub');
+            return;
+          }
+          const u = {
+            id: salesMemberId,
+            full_name: localStorage.getItem('sales_member_name'),
+            email: localStorage.getItem('sales_member_email'),
+            type: 'sales'
+          };
+          setUser(u);
       // Load profile pic
       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
         if (members?.[0]?.profile_picture_url) {
