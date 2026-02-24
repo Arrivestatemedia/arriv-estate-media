@@ -47,7 +47,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
     });
 
     // Subscribe to User entity updates for admins
-    const userUnsub = base44.entities.User?.subscribe?.((event) => {
+    const userUnsub = base44.entities.User.subscribe((event) => {
       if (event.type === "update") {
         if (event.data?.chat_status) {
           setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
