@@ -19,6 +19,9 @@ const playDing = () => {
     if (!window.AudioContext && !window.webkitAudioContext) return;
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = new AudioContext();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
