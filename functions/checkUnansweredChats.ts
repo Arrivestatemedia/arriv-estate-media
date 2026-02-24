@@ -78,11 +78,24 @@ Deno.serve(async (req) => {
       const sender = memberMap[lastMsg.sender_id];
       if (!sender) continue;
 
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: sender.email,
-        subject: `⚠️ No response yet in #${channel.name}`,
-        body: `Hi ${sender.full_name},\n\nYour message in #${channel.name} hasn't received a reply in over 2.5 minutes.\n\nMessage: "${lastMsg.content}"\n\nYou may want to follow up.\n\n– Arriv Team`
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+
+      const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      };
+
+      const emailBody = `Hi ${sender.full_name},\n\nYour message in #${channel.name} hasn't received a reply in over 2.5 minutes.\n\nMessage: "${lastMsg.content}"\n\nYou may want to follow up.\n\n– Arriv Team`;
+
+      const message = `To: ${sender.email}\nSubject: ⚠️ No response yet in #${channel.name}\n\n${emailBody}`;
+      const encodedMessage = btoa(message).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ raw: encodedMessage })
       });
+
       emailsSent++;
     }
 
