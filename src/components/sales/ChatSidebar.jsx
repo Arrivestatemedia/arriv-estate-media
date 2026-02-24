@@ -111,13 +111,18 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     
     // Subscribe to User entity updates for admins
     const userUnsub = base44.entities.User.subscribe((event) => {
-      if (event.type === "update") {
+      if (event.type === "update" && event.data) {
+        // Update team members list
         setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
+        
+        // Update status cache
         if (event.data?.chat_status) {
           setDmStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
-          if (event.id === currentUserId) {
-            setMyStatus(event.data.chat_status);
-          }
+        }
+        
+        // Update own status if this is current user
+        if (event.id === currentUserId && event.data?.chat_status) {
+          setMyStatus(event.data.chat_status);
         }
       }
     });
