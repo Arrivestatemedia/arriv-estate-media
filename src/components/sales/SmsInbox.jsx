@@ -4,28 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, MessageSquare, ArrowLeft } from "lucide-react";
 
-let _smsAudioCtx = null;
 const getSmsAudioCtx = () => {
-  if (!_smsAudioCtx) {
-    _smsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (_smsAudioCtx.state === 'suspended') {
-    _smsAudioCtx.resume();
-  }
-  return _smsAudioCtx;
+  if (window._unlockedAudioCtx) return window._unlockedAudioCtx;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
 };
-
-if (typeof window !== 'undefined') {
-  const unlock = () => {
-    getSmsAudioCtx();
-    window.removeEventListener('click', unlock);
-    window.removeEventListener('keydown', unlock);
-    window.removeEventListener('touchstart', unlock);
-  };
-  window.addEventListener('click', unlock);
-  window.addEventListener('keydown', unlock);
-  window.addEventListener('touchstart', unlock);
-}
 
 const playIphoneTextSound = () => {
   try {
