@@ -129,10 +129,10 @@ export default function AdminLogin() {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
 
-            <p className="text-center text-sm text-gray-600">
-              Admin Portal - Full Access
-            </p>
-          </form>
+              <p className="text-center text-sm text-gray-600">
+                Admin Portal - Full Access
+              </p>
+            </form>
           )}
         </CardContent>
       </Card>
