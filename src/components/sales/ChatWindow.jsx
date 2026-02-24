@@ -31,7 +31,7 @@ const playDing = () => {
 };
 
 
-export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {} }) {
+export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {} }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
