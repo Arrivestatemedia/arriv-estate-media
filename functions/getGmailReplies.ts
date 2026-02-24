@@ -7,12 +7,14 @@ Deno.serve(async (req) => {
 
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-    // Pull the full inbox - all received emails
-    // If contactEmails provided, filter to those; otherwise show entire inbox
+    // Only fetch emails delivered to this rep's specific email address
     let query = 'in:inbox';
+    if (toEmail) {
+      query = `in:inbox to:${toEmail}`;
+    }
     if (contactEmails && contactEmails.length > 0) {
       const fromQuery = contactEmails.filter(Boolean).map(e => `from:${e}`).join(' OR ');
-      query = `in:inbox (${fromQuery})`;
+      query += ` (${fromQuery})`;
     }
 
     const searchRes = await fetch(
