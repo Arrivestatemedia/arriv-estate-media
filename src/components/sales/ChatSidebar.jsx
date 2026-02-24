@@ -55,14 +55,20 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       loadDirectMessages();
       loadTeamMembers();
       
+      const statuses = {};
+      
+      // Load all SalesTeamMembers first
+      const members = await base44.entities.SalesTeamMember.list().catch(() => []);
+      members?.forEach(m => {
+        statuses[m.id] = m.chat_status || "offline";
+      });
+      
       // Load all Users to get admin statuses
       const users = await base44.entities.User.list().catch(() => []);
-      const statuses = {};
       users?.forEach(u => {
-        if (u.chat_status) {
-          statuses[u.id] = u.chat_status;
-        }
+        statuses[u.id] = u.chat_status || "offline";
       });
+      
       setDmStatuses(statuses);
     };
     
