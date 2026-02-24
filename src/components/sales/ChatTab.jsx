@@ -6,15 +6,27 @@ import ChatWindow from "./ChatWindow";
 export default function ChatTab({ currentUserId, currentUserName }) {
   const [selectedChat, setSelectedChat] = useState(null);
   const [memberProfiles, setMemberProfiles] = useState({});
+  const [memberStatuses, setMemberStatuses] = useState({});
 
   useEffect(() => {
     base44.entities.SalesTeamMember.list().then(members => {
       const profiles = {};
+      const statuses = {};
       members?.forEach(m => {
         if (m.profile_picture_url) profiles[m.id] = m.profile_picture_url;
+        statuses[m.id] = m.chat_status || "offline";
       });
       setMemberProfiles(profiles);
+      setMemberStatuses(statuses);
     });
+
+    // Subscribe to real-time status updates
+    const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
+      if (event.type === "update" && event.data?.chat_status) {
+        setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+      }
+    });
+    return unsub;
   }, []);
 
   const handleSelectChat = (type, id, name) => {
