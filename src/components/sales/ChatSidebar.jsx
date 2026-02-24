@@ -252,9 +252,10 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
                     <button
                       key={member.id}
                       onClick={() => handleStartDM(member.id, member.full_name)}
-                      className="w-full text-left px-3 py-2 rounded text-sm text-gray-400 hover:bg-gray-800"
+                      className="w-full text-left px-3 py-2 rounded text-sm text-gray-400 hover:bg-gray-800 flex items-center gap-2"
                     >
-                      + {member.full_name}
+                      <StatusDot value={member.chat_status || 'offline'} size={8} />
+                      {member.full_name}
                     </button>
                   );
                 })}
