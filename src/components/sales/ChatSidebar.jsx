@@ -57,6 +57,14 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
         if (members?.[0]?.chat_status) setMyStatus(members[0].chat_status);
       }).catch(() => {});
     }
+
+    // Subscribe to real-time status changes
+    const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
+      if (event.type === "update") {
+        setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
+      }
+    });
+    return unsub;
   }, [currentUserId]);
 
   const handleSetStatus = async (val) => {
