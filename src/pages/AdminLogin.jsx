@@ -15,6 +15,32 @@ export default function AdminLogin() {
   const [tempPassword, setTempPassword] = useState('');
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Auto-create admin account on page load
+    const initAdminAccount = async () => {
+      try {
+        const isAuth = await base44.auth.isAuthenticated();
+        if (isAuth) {
+          const user = await base44.auth.me();
+          if (user) {
+            const response = await base44.functions.invoke('createAdminAccount', {});
+            if (response.data.success) {
+              setEmail(user.email);
+              setTempPassword(response.data.temporary_password);
+              setPassword(response.data.temporary_password);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error initializing admin account:', err);
+      } finally {
+        setInitializing(false);
+      }
+    };
+
+    initAdminAccount();
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
