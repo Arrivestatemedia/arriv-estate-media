@@ -258,7 +258,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
                     </span>
                   </div>
-                  <p className="text-gray-700 text-sm mt-1 break-words">{msg.content}</p>
+                  {renderMessageContent(msg.content)}
                 </div>
               </div>
             );
