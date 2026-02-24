@@ -8,7 +8,7 @@ import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, T
 import { format } from "date-fns";
 
 export default function EmailComposer({ salesMemberId, isAdmin = false }) {
-  const [tab, setTab] = useState("compose"); // "compose" | "replies" | "scheduled"
+  const [tab, useState] = React.useState("compose"); // "compose" | "replies" | "scheduled"
   const [salesMember, setSalesMember] = useState(null);
   const [scheduledEmails, setScheduledEmails] = useState([]);
   const [loadingScheduled, setLoadingScheduled] = useState(false);
