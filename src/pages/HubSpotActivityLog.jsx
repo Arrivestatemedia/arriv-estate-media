@@ -94,19 +94,10 @@ export default function HubSpotActivityLog() {
         }
       });
       return dmSub;
-    } else {
-      // Check for admin via base44
-      base44.auth.me().then((adminUser) => {
-        if (adminUser && adminUser.role === 'admin') {
-          setUser(adminUser);
-        } else {
-          // Redirect to sales login if not authenticated as sales or admin
-          window.location.href = '/SalesLogin';
-        }
-      }).catch(() => {
-        window.location.href = '/SalesLogin';
-      });
-    }
+      } else {
+      // No sales member logged in, redirect to sales login
+      window.location.href = '/SalesLogin';
+      }
   }, []);
 
   const { data: activities = [] } = useQuery({
