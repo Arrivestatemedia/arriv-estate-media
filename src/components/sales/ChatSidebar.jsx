@@ -81,10 +81,26 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
           setMyStatus(members[0].chat_status || "online");
           setMyProfilePicture(members[0].profile_picture_url);
         } else {
-          // Fallback to User entity if not a SalesTeamMember
-          base44.auth.me().then(user => {
+          // Fallback to User/Admin entity if not a SalesTeamMember
+          base44.auth.me().then(async (user) => {
             if (user) {
               setMyStatus(user.chat_status || "online");
+              // If admin, sync to ChatAdmin
+              if (user.role === 'admin') {
+                const existing = await base44.entities.ChatAdmin.filter({ email: user.email }).catch(() => []);
+                if (existing?.length > 0) {
+                  await base44.entities.ChatAdmin.update(existing[0].id, {
+                    chat_status: user.chat_status || "online",
+                    full_name: user.full_name
+                  });
+                } else {
+                  await base44.entities.ChatAdmin.create({
+                    email: user.email,
+                    full_name: user.full_name,
+                    chat_status: user.chat_status || "online"
+                  });
+                }
+              }
             }
           }).catch(() => {});
         }
