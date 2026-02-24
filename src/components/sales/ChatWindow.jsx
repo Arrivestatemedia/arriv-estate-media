@@ -268,7 +268,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                     ) : initials}
                   </div>
                   {memberStatuses[msg.sender_id] && (
-                    <span className="absolute bottom-1 right-1 w-3 h-3 rounded-full border-2 border-white"
+                    <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
                       style={{ backgroundColor: STATUS_COLORS[memberStatuses[msg.sender_id]] || "#6b7280" }} />
                   )}
                 </div>
