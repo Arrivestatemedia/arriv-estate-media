@@ -51,7 +51,19 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     loadChannels();
     loadDirectMessages();
     loadTeamMembers();
+    // Load current user's status
+    if (currentUserId) {
+      base44.entities.SalesTeamMember.filter({ id: currentUserId }).then(members => {
+        if (members?.[0]?.chat_status) setMyStatus(members[0].chat_status);
+      }).catch(() => {});
+    }
   }, [currentUserId]);
+
+  const handleSetStatus = async (val) => {
+    setMyStatus(val);
+    setShowStatusPicker(false);
+    await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
+  };
 
   const loadChannels = async () => {
     const allChannels = await base44.entities.ChatChannel.list();
