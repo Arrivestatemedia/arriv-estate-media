@@ -54,13 +54,21 @@ export default function HubSpotActivityLog() {
     // Check if sales member is logged in via localStorage
     const salesMemberId = localStorage.getItem('sales_member_id');
     if (salesMemberId) {
-      const u = {
-        id: salesMemberId,
-        full_name: localStorage.getItem('sales_member_name'),
-        email: localStorage.getItem('sales_member_email'),
-        type: 'sales'
-      };
-      setUser(u);
+      // Check if this user is an admin from SalesTeamMember table
+      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+        if (members?.[0]?.role === 'admin') {
+          // Redirect admins to AdminHub
+          window.location.href = '/AdminHub';
+          return;
+        }
+        // Not an admin, proceed with normal sales rep setup
+        const u = {
+          id: salesMemberId,
+          full_name: localStorage.getItem('sales_member_name'),
+          email: localStorage.getItem('sales_member_email'),
+          type: 'sales'
+        };
+        setUser(u);
       // Load profile pic
       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
         if (members?.[0]?.profile_picture_url) {
