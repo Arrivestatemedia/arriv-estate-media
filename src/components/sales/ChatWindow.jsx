@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Send, Bell, Paperclip, Smile, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
@@ -15,19 +16,22 @@ const STATUS_COLORS = {
 
 const playDing = () => {
   try {
-    const ctx = window._unlockedAudioCtx;
-    if (!ctx || ctx.state === 'suspended') return;
+    if (!window.AudioContext && !window.webkitAudioContext) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.frequency.setValueAtTime(880, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
     osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.4);
-  } catch (e) {}
+    osc.stop(ctx.currentTime + 0.3);
+  } catch (e) {
+    console.log('Audio error:', e);
+  }
 };
 
 
