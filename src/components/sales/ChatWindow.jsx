@@ -7,9 +7,33 @@ import { formatDistanceToNow } from "date-fns";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
+let _audioCtx = null;
+const getAudioCtx = () => {
+  if (!_audioCtx) {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_audioCtx.state === 'suspended') {
+    _audioCtx.resume();
+  }
+  return _audioCtx;
+};
+
+// Unlock audio context on first user interaction
+if (typeof window !== 'undefined') {
+  const unlock = () => {
+    getAudioCtx();
+    window.removeEventListener('click', unlock);
+    window.removeEventListener('keydown', unlock);
+    window.removeEventListener('touchstart', unlock);
+  };
+  window.addEventListener('click', unlock);
+  window.addEventListener('keydown', unlock);
+  window.addEventListener('touchstart', unlock);
+}
+
 const playDing = () => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
