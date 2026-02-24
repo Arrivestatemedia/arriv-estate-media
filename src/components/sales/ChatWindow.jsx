@@ -7,6 +7,12 @@ import { formatDistanceToNow } from "date-fns";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
+const STATUS_COLORS = {
+  online: "#22c55e", available: "#22c55e", busy: "#ef4444",
+  in_meeting: "#f97316", away: "#eab308", lunch: "#a855f7",
+  break: "#3b82f6", offline: "#6b7280"
+};
+
 const playDing = () => {
   try {
     const ctx = window._unlockedAudioCtx;
