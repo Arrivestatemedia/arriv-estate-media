@@ -35,6 +35,8 @@ export default function HubSpotActivityLog() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState(null);
+  const [unreadSmsCount, setUnreadSmsCount] = useState(0);
+  const [missedCallsCount, setMissedCallsCount] = useState(0);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
