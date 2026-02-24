@@ -695,5 +695,7 @@ export default function HubSpotActivityLog() {
         {activeTab !== "chat" && (
           <FloatingChatBubble currentUserId={user?.id} currentUserName={user?.full_name} />
         )}
-        );
+      </div>
+    );
+}
         }
