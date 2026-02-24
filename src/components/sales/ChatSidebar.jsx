@@ -29,7 +29,7 @@ function StatusDot({ value, size = 10 }) {
   return <span style={{ width: size, height: size, borderRadius: '50%', backgroundColor: s.color, display: 'inline-block', flexShrink: 0 }} />;
 }
 
-export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat }) {
+export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat, memberStatuses = {} }) {
   const [channels, setChannels] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
