@@ -4,6 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, MessageSquare, ArrowLeft } from "lucide-react";
 
+const playIphoneTextSound = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const playTone = (freq, startTime, duration, gainVal) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainVal, startTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    };
+
+    // Two-tone iPhone "tri-tone" style
+    playTone(1318, ctx.currentTime, 0.12, 0.3);
+    playTone(1174, ctx.currentTime + 0.13, 0.12, 0.3);
+    playTone(987, ctx.currentTime + 0.26, 0.18, 0.3);
+  } catch (e) {}
+};
+
 export default function SmsInbox({ salesMemberId }) {
   const [conversations, setConversations] = useState([]);
   const [selectedConvo, setSelectedConvo] = useState(null);
