@@ -114,8 +114,8 @@ export default function HubSpotActivityLog() {
   const { data: activities = [] } = useQuery({
     queryKey: ['activities', user?.email],
     queryFn: async () => {
-      const allActivities = await base44.entities.ActivityLog.list('-activity_date', 200);
-      return allActivities.filter(a => a.sales_member_email === user?.email);
+      const allActivities = await base44.entities.ActivityLog.filter({ sales_member_id: user?.id }, '-activity_date', 200);
+      return allActivities;
     },
     initialData: [],
     enabled: !!user,
