@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function EmailComposer({ salesMemberId }) {
-  const [tab, setTab] = useState("compose"); // "compose" | "replies"
+  const [tab, setTab] = useState("compose"); // "compose" | "replies" | "scheduled"
   const [salesMember, setSalesMember] = useState(null);
+  const [scheduledEmails, setScheduledEmails] = useState([]);
+  const [loadingScheduled, setLoadingScheduled] = useState(false);
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState("");
 
   // Compose state
   const [searchQuery, setSearchQuery] = useState("");
