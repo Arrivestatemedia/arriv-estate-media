@@ -16,6 +16,8 @@ import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
 import PoweredByFooter from "@/components/PoweredByFooter";
+import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
