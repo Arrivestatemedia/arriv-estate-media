@@ -231,7 +231,8 @@ export default function EmailComposer({ salesMemberId }) {
         description: meetingData.description || '',
         startTime: new Date(meetingData.startTime).toISOString(),
         endTime: new Date(meetingData.endTime).toISOString(),
-        clientEmails: clientEmails
+        clientEmails: clientEmails,
+        salesRepCompanyEmail: salesMember?.company_email
       });
       alert(`Meeting scheduled! Invite sent to ${selectedContact?.firstname}`);
       setMeetingData({ title: "", startTime: "", endTime: "", description: "" });
