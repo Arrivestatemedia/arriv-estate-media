@@ -4,16 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, MessageSquare, ArrowLeft } from "lucide-react";
 
-const getSmsAudioCtx = () => {
-  if (window._unlockedAudioCtx) return window._unlockedAudioCtx;
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
-};
-
 const playIphoneTextSound = () => {
   try {
-    const ctx = getSmsAudioCtx();
+    const ctx = window._unlockedAudioCtx;
+    if (!ctx || ctx.state === 'suspended') return;
 
     const playTone = (freq, startTime, duration, gainVal) => {
       const osc = ctx.createOscillator();
