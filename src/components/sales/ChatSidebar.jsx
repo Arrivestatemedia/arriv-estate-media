@@ -76,13 +76,8 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     setMyStatus(val);
     setShowStatusPicker(false);
     try {
-      const email = localStorage.getItem('sales_member_email');
-      if (email) {
-        const members = await base44.entities.SalesTeamMember.list();
-        const member = members.find(m => m.email === email);
-        if (member) {
-          await base44.entities.SalesTeamMember.update(member.id, { chat_status: val });
-        }
+      if (currentUserId) {
+        await base44.entities.SalesTeamMember.update(currentUserId, { chat_status: val });
       }
     } catch (error) {
       console.error('Failed to update status:', error);
