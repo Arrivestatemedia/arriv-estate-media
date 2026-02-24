@@ -69,6 +69,12 @@ export default function HubSpotActivityLog() {
       }).catch(() => {});
       // Request notification + audio permissions right after login
       setTimeout(() => setShowPermissionBanner(true), 500);
+
+      // Load unread SMS and missed calls
+      base44.entities.SmsMessage.filter({ recipient_id: salesMemberId }).then(messages => {
+        const unreadCount = messages?.filter(m => !m.read)?.length || 0;
+        setUnreadSmsCount(unreadCount);
+      }).catch(() => {});
     } else {
       // Check for admin via base44
       base44.auth.me().then((adminUser) => {
