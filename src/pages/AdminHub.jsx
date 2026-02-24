@@ -77,15 +77,21 @@ export default function AdminHub() {
           </TabsList>
 
           <TabsContent value="team" className="mt-6">
-            <AdminSalesSignup isAdmin={true} />
+            <Suspense fallback={<div className="p-4">Loading...</div>}>
+              <AdminSalesSignup isAdmin={true} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="sales_activity" className="mt-6">
-            <AdminSalesRepActivity />
+            <Suspense fallback={<div className="p-4">Loading...</div>}>
+              <AdminSalesRepActivity />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="activity" className="mt-6">
-            <AdminActivityPage user={user} />
+            <Suspense fallback={<div className="p-4">Loading...</div>}>
+              <AdminActivityPage user={user} />
+            </Suspense>
           </TabsContent>
         </Tabs>
 
