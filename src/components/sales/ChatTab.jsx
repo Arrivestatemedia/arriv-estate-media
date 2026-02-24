@@ -22,8 +22,13 @@ export default function ChatTab({ currentUserId, currentUserName }) {
 
     // Subscribe to real-time status updates
     const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
-      if (event.type === "update" && event.data?.chat_status) {
-        setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+      if (event.type === "update") {
+        if (event.data?.chat_status) {
+          setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+        }
+        if (event.data?.profile_picture_url) {
+          setMemberProfiles(prev => ({ ...prev, [event.id]: event.data.profile_picture_url }));
+        }
       }
     });
     return unsub;
