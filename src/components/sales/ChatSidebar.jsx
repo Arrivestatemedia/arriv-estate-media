@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Hash, MessageSquare } from "lucide-react";
+import { Plus, Hash, MessageSquare, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +10,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
+const STATUSES = [
+  { value: "online",     label: "Online",      color: "#22c55e" },
+  { value: "available",  label: "Available",   color: "#22c55e" },
+  { value: "busy",       label: "Busy",        color: "#ef4444" },
+  { value: "in_meeting", label: "In a Meeting",color: "#f97316" },
+  { value: "away",       label: "Away",        color: "#eab308" },
+  { value: "lunch",      label: "Lunch",       color: "#a855f7" },
+  { value: "break",      label: "Break",       color: "#3b82f6" },
+  { value: "offline",    label: "Offline",     color: "#6b7280" },
+];
+
+const statusFor = (val) => STATUSES.find(s => s.value === val) || STATUSES[0];
+
+function StatusDot({ value, size = 10 }) {
+  const s = statusFor(value);
+  return <span style={{ width: size, height: size, borderRadius: '50%', backgroundColor: s.color, display: 'inline-block', flexShrink: 0 }} />;
+}
 
 export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat }) {
   const [channels, setChannels] = useState([]);
