@@ -299,22 +299,15 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
                   {teamMembers.map((member) => {
                     const hasConversation = directMessages.some(dm => dm.id === member.id);
                     if (hasConversation) return null;
-                    const status = memberStatuses[member.id] || 'offline';
+                    const status = member.chat_status || 'offline';
                     return (
                       <button
                         key={member.id}
                         onClick={() => handleStartDM(member.id, member.full_name)}
-                        onMouseEnter={() => setHoveredMemberId(member.id)}
-                        onMouseLeave={() => setHoveredMemberId(null)}
-                        className="w-full text-left px-3 py-2 rounded text-sm text-gray-400 hover:bg-gray-800 flex items-center gap-2 relative"
+                        className="w-full text-left px-3 py-2 rounded text-sm text-gray-400 hover:bg-gray-800 flex items-center gap-2"
                       >
                         <StatusDot value={status} size={8} />
                         {member.full_name}
-                        {hoveredMemberId === member.id && (
-                          <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-900 text-xs text-white px-2 py-1 rounded whitespace-nowrap z-50">
-                            {statusFor(status).label}
-                          </div>
-                        )}
                       </button>
                     );
                   })}
