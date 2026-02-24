@@ -125,6 +125,50 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return unsubscribe;
   }, [chatId, chatType, currentUserId]);
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const isImage = file.type.startsWith("image/");
+      const content = isImage ? `[image]${file_url}` : `[file|${file.name}]${file_url}`;
+      const optimisticMsg = {
+        id: `temp-${Date.now()}`,
+        sender_id: currentUserId,
+        sender_name: currentUserName,
+        content,
+        timestamp: new Date().toISOString(),
+        ...(chatType === "channel" ? { channel_id: chatId } : { recipient_id: chatId, recipient_name: chatName }),
+      };
+      setMessages(prev => [...prev, optimisticMsg]);
+      if (chatType === "channel") {
+        await base44.entities.ChatMessage.create({ channel_id: chatId, sender_id: currentUserId, sender_name: currentUserName, content, timestamp: new Date().toISOString() });
+      } else {
+        await base44.entities.DirectMessage.create({ sender_id: currentUserId, sender_name: currentUserName, recipient_id: chatId, recipient_name: chatName, content, timestamp: new Date().toISOString() });
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+    }
+    setUploading(false);
+    e.target.value = "";
+  };
+
+  const renderMessageContent = (content) => {
+    if (!content) return null;
+    if (content.startsWith("[image]")) {
+      const url = content.slice(7);
+      return <img src={url} alt="shared" className="max-w-[240px] max-h-[200px] rounded-lg mt-1 cursor-pointer" onClick={() => window.open(url, '_blank')} />;
+    }
+    if (content.startsWith("[file|")) {
+      const match = content.match(/^\[file\|(.+?)\](.+)$/);
+      if (match) {
+        return <a href={match[2]} target="_blank" rel="noopener noreferrer" className="text-[#B8956A] underline text-sm mt-1 block">📎 {match[1]}</a>;
+      }
+    }
+    return <p className="text-gray-700 text-sm mt-1 break-words">{content}</p>;
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     const text = newMessage.trim();
