@@ -4,18 +4,20 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Check if admin via Base44 auth OR sales team member with admin role
+    // Check if admin - sales team members calling this will have their ID in localStorage
     const user = await base44.auth.me();
-    const salesMemberId = req.headers.get('x-sales-member-id');
+    const isBaseAdmin = user?.role === 'admin';
     
-    let isAdmin = user?.role === 'admin';
-    
-    if (!isAdmin && salesMemberId) {
-      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
-      isAdmin = members?.[0]?.role === 'admin';
+    // If not a Base44 admin, check if they're a sales admin by verifying in service role
+    let isSalesAdmin = isBaseAdmin;
+    if (!isSalesAdmin) {
+      // Get all sales team members and check if current user (via auth.me) is a sales admin
+      const allMembers = await base44.asServiceRole.entities.SalesTeamMember.list();
+      const currentMember = allMembers.find(m => m.email === user?.email);
+      isSalesAdmin = currentMember?.role === 'admin';
     }
 
-    if (!isAdmin) {
+    if (!isSalesAdmin) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
