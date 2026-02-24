@@ -75,42 +75,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       }).catch(() => {});
     }
 
-    // Subscribe to real-time status changes
-    const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
-      if (event.type === "update") {
-        setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
-        if (event.data?.chat_status) {
-          setDmStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
-        }
-        if (event.id === currentUserId) {
-          if (event.data?.chat_status) setMyStatus(event.data.chat_status);
-          if (event.data?.profile_picture_url) setMyProfilePicture(event.data.profile_picture_url);
-        }
-      }
-    });
-    
-    // Subscribe to User entity updates for admins
-    const userUnsub = base44.entities.User.subscribe((event) => {
-      if (event.type === "update" && event.data) {
-        // Update team members list
-        setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
-        
-        // Update status cache
-        if (event.data?.chat_status) {
-          setDmStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
-        }
-        
-        // Update own status if this is current user
-        if (event.id === currentUserId && event.data?.chat_status) {
-          setMyStatus(event.data.chat_status);
-        }
-      }
-    });
-    
-    return () => {
-      unsub();
-      userUnsub?.();
-    };
+    return () => {};
   }, [currentUserId]);
 
   const handleSetStatus = async (val) => {
