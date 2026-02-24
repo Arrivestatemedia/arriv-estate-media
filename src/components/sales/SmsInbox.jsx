@@ -41,6 +41,9 @@ export default function SmsInbox({ salesMemberId }) {
   useEffect(() => {
     loadConversations();
     const unsub = base44.entities.SmsConversation.subscribe((event) => {
+      if (event.type === 'create' || (event.type === 'update' && event.data?.last_message_direction === 'inbound')) {
+        playIphoneTextSound();
+      }
       loadConversations();
     });
     return unsub;
