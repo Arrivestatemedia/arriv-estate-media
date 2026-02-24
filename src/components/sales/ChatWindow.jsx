@@ -127,15 +127,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               // Ding for incoming DMs
               if (event.data?.sender_id !== currentUserId) {
                 playDing();
-              }
-              // Send push notification if from the other user
-              if (event.data?.sender_id !== currentUserId) {
-                base44.functions.invoke('sendPushNotification', {
-                  recipientId: currentUserId,
-                  title: `New message from ${event.data?.sender_name}`,
-                  body: event.data?.content,
-                  tag: `dm-${event.data?.sender_id}`
-                }).catch(err => console.error('Push notification error:', err));
+                if (Notification.permission === 'granted') {
+                  new Notification(`💬 ${event.data?.sender_name}`, { body: event.data?.content, tag: `dm-${event.data?.sender_id}` });
+                }
               }
             }
           }
