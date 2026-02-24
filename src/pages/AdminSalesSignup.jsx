@@ -215,6 +215,9 @@ export default function AdminSalesSignup() {
                         ) : (
                          <Badge className="mt-2 bg-yellow-100 text-yellow-800">No email set</Badge>
                         )}
+                        {member.role === 'admin' && (
+                         <Badge className="mt-2 ml-2 bg-purple-100 text-purple-800">Admin</Badge>
+                        )}
                         <Badge className={`mt-2 ml-2 ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {member.is_active ? 'Active' : 'Inactive'}
                         </Badge>

@@ -51,6 +51,7 @@ import AccountSettings from './pages/AccountSettings';
 import AdminBookings from './pages/AdminBookings';
 import AdminClientTerms from './pages/AdminClientTerms';
 import AdminInvite from './pages/AdminInvite';
+import AdminLogin from './pages/AdminLogin';
 import AdminPaymentStatements from './pages/AdminPaymentStatements';
 import AdminSalesRepActivity from './pages/AdminSalesRepActivity';
 import AdminSalesSignup from './pages/AdminSalesSignup';
@@ -67,6 +68,7 @@ import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import ForgotEmail from './pages/ForgotEmail';
 import ForgotPassword from './pages/ForgotPassword';
+import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import JobApplication from './pages/JobApplication';
 import JobBoard from './pages/JobBoard';
 import ManualClosingInvoice from './pages/ManualClosingInvoice';
@@ -88,8 +90,6 @@ import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import HubSpotActivityLog from './pages/HubSpotActivityLog';
-import AdminLogin from './pages/AdminLogin';
 import __Layout from './Layout.jsx';
 
 
@@ -98,6 +98,7 @@ export const PAGES = {
     "AdminBookings": AdminBookings,
     "AdminClientTerms": AdminClientTerms,
     "AdminInvite": AdminInvite,
+    "AdminLogin": AdminLogin,
     "AdminPaymentStatements": AdminPaymentStatements,
     "AdminSalesRepActivity": AdminSalesRepActivity,
     "AdminSalesSignup": AdminSalesSignup,
@@ -114,6 +115,7 @@ export const PAGES = {
     "DeleteAccountRequest": DeleteAccountRequest,
     "ForgotEmail": ForgotEmail,
     "ForgotPassword": ForgotPassword,
+    "HubSpotActivityLog": HubSpotActivityLog,
     "JobApplication": JobApplication,
     "JobBoard": JobBoard,
     "ManualClosingInvoice": ManualClosingInvoice,
@@ -135,8 +137,6 @@ export const PAGES = {
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "HubSpotActivityLog": HubSpotActivityLog,
-    "AdminLogin": AdminLogin,
 }
 
 export const pagesConfig = {
