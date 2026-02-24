@@ -49,6 +49,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
             currentUserId={currentUserId}
             currentUserName={currentUserName}
             memberProfiles={memberProfiles}
+            memberStatuses={memberStatuses}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
