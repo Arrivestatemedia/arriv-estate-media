@@ -26,7 +26,38 @@ export default function AdminSalesSignup() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    const salesMemberEmail = localStorage.getItem('sales_member_email');
+    
+    if (salesMemberId && salesMemberEmail) {
+      // Verify this user is an admin in SalesTeamMember
+      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+        if (members?.[0]?.role === 'admin') {
+          setUser({
+            id: salesMemberId,
+            email: salesMemberEmail,
+            full_name: localStorage.getItem('sales_member_name'),
+            role: 'admin'
+          });
+        } else {
+          // Not an admin
+          setUser({ role: 'user' });
+        }
+      }).catch(() => {
+        setUser({ role: 'user' });
+      });
+    } else {
+      // Check Base44 admin
+      base44.auth.me().then(baseUser => {
+        if (baseUser?.role === 'admin') {
+          setUser(baseUser);
+        } else {
+          setUser({ role: 'user' });
+        }
+      }).catch(() => {
+        setUser({ role: 'user' });
+      });
+    }
   }, []);
 
   const { data: salesMembers = [], error: fetchError } = useQuery({
@@ -77,9 +108,6 @@ export default function AdminSalesSignup() {
       alert("Password updated successfully");
     }
   });
-
-
-
 
 
   const handleSubmit = () => {
