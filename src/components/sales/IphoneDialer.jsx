@@ -620,35 +620,42 @@ export default function IphoneDialer({ salesMemberId }) {
                     <p className="text-sm">No messages</p>
                   </div>
                 ) : (
-                  conversations.map((convo) => (
-                    <button
-                      key={convo.id}
-                      onClick={() => setSelectedConvo(convo)}
-                      className="w-full text-left p-4 border-b hover:bg-gray-50 transition"
-                      style={{ borderColor: 'rgba(184,149,106,0.1)' }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium" style={{ color: '#1A1A1A' }}>
-                              {convo.contact_name || convo.from_number}
+                  conversations.map((convo) => {
+                    const statusColor = teamMemberStatuses[convo.from_number] === 'offline' ? '#6b7280' : '#22c55e';
+                    return (
+                      <button
+                        key={convo.id}
+                        onClick={() => setSelectedConvo(convo)}
+                        className="w-full text-left p-4 border-b hover:bg-gray-50 transition"
+                        style={{ borderColor: 'rgba(184,149,106,0.1)' }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="relative">
+                                <p className="font-medium" style={{ color: '#1A1A1A' }}>
+                                  {convo.contact_name || convo.from_number}
+                                </p>
+                                <span className="absolute -bottom-0.5 -right-2 w-2.5 h-2.5 rounded-full border border-white"
+                                  style={{ backgroundColor: statusColor }} />
+                              </div>
+                              {convo.unread_count > 0 && (
+                                <span className="text-xs font-bold text-white rounded-full px-1.5 py-0.5" style={{ backgroundColor: '#B8956A' }}>
+                                  {convo.unread_count}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm truncate mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                              {convo.last_message}
                             </p>
-                            {convo.unread_count > 0 && (
-                              <span className="text-xs font-bold text-white rounded-full px-1.5 py-0.5" style={{ backgroundColor: '#B8956A' }}>
-                                {convo.unread_count}
-                              </span>
-                            )}
                           </div>
-                          <p className="text-sm truncate mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
-                            {convo.last_message}
+                          <p className="text-xs ml-3 shrink-0" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                            {formatTime(convo.last_message_at)}
                           </p>
                         </div>
-                        <p className="text-xs ml-3 shrink-0" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                          {formatTime(convo.last_message_at)}
-                        </p>
-                      </div>
-                    </button>
-                  ))
+                      </button>
+                    );
+                  })
                 )}
               </div>
             ) : (
