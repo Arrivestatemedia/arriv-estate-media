@@ -20,13 +20,15 @@ export default function ChatTab({ currentUserId, currentUserName }) {
         statuses[m.id] = m.chat_status || "offline";
       });
       
-      // Also load all Users to get admin statuses
-      const users = await base44.entities.User.list().catch(() => []);
-      users?.forEach(u => {
-        if (u.chat_status) {
-          statuses[u.id] = u.chat_status;
-        }
-      });
+      // Load admin statuses via backend function
+      try {
+        const response = await base44.functions.invoke('getAdminUsers');
+        response?.data?.admins?.forEach(u => {
+          statuses[u.id] = u.chat_status || "offline";
+        });
+      } catch (error) {
+        console.error('Failed to load admin users:', error);
+      }
       
       setMemberProfiles(profiles);
       setMemberStatuses(statuses);
@@ -34,7 +36,7 @@ export default function ChatTab({ currentUserId, currentUserName }) {
     
     loadData();
 
-    // Subscribe to real-time status updates for ALL team members
+    // Subscribe to real-time status updates for SalesTeamMembers
     const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
       if (event.type === "update") {
         if (event.data?.chat_status) {
@@ -48,10 +50,8 @@ export default function ChatTab({ currentUserId, currentUserName }) {
 
     // Subscribe to User entity updates for admins
     const userUnsub = base44.entities.User.subscribe((event) => {
-      if (event.type === "update") {
-        if (event.data?.chat_status) {
-          setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
-        }
+      if (event.type === "update" && event.data?.chat_status) {
+        setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
       }
     });
 
