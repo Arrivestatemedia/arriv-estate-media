@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
 
       const lastMsg = recentMsgs[0];
       const ts = lastMsg.timestamp || lastMsg.created_date;
-      if (!ts || new Date(ts).toISOString() >= cutoff) continue;
+      if (!ts || new Date(ts).toISOString() >= cutoff || lastMsg.unanswered_reminder_sent_at) continue;
 
       // Check if there's a reply from someone else after the last message
       const hasReply = recentMsgs.some(m => m.sender_id !== lastMsg.sender_id && (m.timestamp || m.created_date) > ts);
@@ -108,6 +108,9 @@ Deno.serve(async (req) => {
 
         emailsSent++;
       }
+
+      // Mark that reminder was sent for this message
+      await base44.asServiceRole.entities.ChatMessage.update(lastMsg.id, { unanswered_reminder_sent_at: new Date().toISOString() });
     }
 
     return Response.json({ success: true, emailsSent });
