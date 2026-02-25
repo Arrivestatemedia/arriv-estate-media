@@ -78,55 +78,13 @@ export default function HubSpotActivityLog() {
       setActiveTab('email');
     };
 
-    // Handle AdminHub contact card events
-    const handleContactCardReady = () => {
-      const contactData = localStorage.getItem('newContactData');
-      if (contactData) {
-        const contact = JSON.parse(contactData);
-        setPrefilledContactData({
-          firstName: contact.name?.split(' ')[0] || '',
-          lastName: contact.name?.split(' ').slice(1).join(' ') || '',
-          email: contact.email || '',
-          phone: contact.phone || '',
-          company: contact.company || ''
-        });
-        setOpenNewContactForm(true);
-        setActiveTab('contacts');
-        localStorage.removeItem('newContactData');
-      }
-    };
-
-    const handleDialerCardReady = () => {
-      const phone = localStorage.getItem('dialerPhone');
-      if (phone) {
-        localStorage.setItem('_dialerPhone', phone);
-        setActiveTab('call');
-        localStorage.removeItem('dialerPhone');
-      }
-    };
-
-    const handleEmailCardReady = () => {
-      const email = localStorage.getItem('emailTo');
-      if (email) {
-        window._openEmailComposerWithEmail = email;
-        setActiveTab('email');
-        localStorage.removeItem('emailTo');
-      }
-    };
-
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openDialer', handleOpenDialer);
     window.addEventListener('openEmailComposer', handleOpenEmailComposer);
-    window.addEventListener('contactCardReady', handleContactCardReady);
-    window.addEventListener('dialerCardReady', handleDialerCardReady);
-    window.addEventListener('emailCardReady', handleEmailCardReady);
     return () => {
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
       window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
-      window.removeEventListener('contactCardReady', handleContactCardReady);
-      window.removeEventListener('dialerCardReady', handleDialerCardReady);
-      window.removeEventListener('emailCardReady', handleEmailCardReady);
     };
   }, []);
 
