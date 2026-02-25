@@ -54,8 +54,13 @@ export default function AdminHub() {
     const handleOpenContact = (e) => {
       setActiveTab('activity');
       const contact = e.detail;
+      // Split name into firstName and lastName
+      const nameParts = (contact.name || '').trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      const enrichedContact = { ...contact, firstName, lastName };
       setTimeout(() => {
-        localStorage.setItem('newContactData', JSON.stringify(contact));
+        localStorage.setItem('newContactData', JSON.stringify(enrichedContact));
         window.dispatchEvent(new Event('contactCardReady'));
       }, 0);
     };
