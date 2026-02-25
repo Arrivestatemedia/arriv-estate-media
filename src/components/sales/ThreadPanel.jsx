@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import MessageReactions from "./MessageReactions";
+import ContactCardDisplay from "./ContactCardDisplay";
 
 export default function ThreadPanel({ parentMessage, channelId, currentUserId, currentUserName, onClose, memberProfiles = {}, chatType = "channel", recipientId }) {
    const [replies, setReplies] = useState([]);
