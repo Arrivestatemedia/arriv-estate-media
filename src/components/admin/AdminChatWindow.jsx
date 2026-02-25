@@ -21,6 +21,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   // Handle contact card interactions
   useEffect(() => {
     const handleOpenContact = (e) => {
+      console.log('openContact event received:', e.detail);
       setContactToEdit(e.detail);
       setShowContactSearch(true);
     };
