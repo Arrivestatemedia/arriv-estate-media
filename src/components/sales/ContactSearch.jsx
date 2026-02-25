@@ -154,7 +154,7 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
     }
   };
 
-  const toggleExpand = (contact) => {
+  const toggleExpand = async (contact) => {
     if (expandedId === contact.id) {
       setExpandedId(null);
       setEditFields({});
@@ -169,6 +169,10 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
         jobtitle: contact.jobtitle,
         hs_lead_status: contact.lead_status,
       });
+      // Fetch activities when expanding
+      if (!activities[contact.id]) {
+        await fetchActivitiesForContact(contact);
+      }
     }
   };
 
