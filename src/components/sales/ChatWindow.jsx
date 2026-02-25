@@ -254,7 +254,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const renderMessageContent = (content) => {
     if (!content) return null;
     if (content.startsWith("[contact]")) {
-      return <ContactCardDisplay content={content} />;
+      return <ContactCardDisplay content={content} onOpenContact={(contact) => {
+        // Pass contact data to parent to open search contacts
+        window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
+      }} />;
     }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
@@ -408,6 +411,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                   <MessageReactions 
                     message={msg}
                     currentUserId={currentUserId}
+                    messageType={chatType}
                     onReactionUpdate={() => {
                       // Reload messages to show updated reactions
                       setMessages(prev => [...prev]);
