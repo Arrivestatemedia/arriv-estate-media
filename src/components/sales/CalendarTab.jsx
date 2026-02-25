@@ -19,7 +19,7 @@ export default function CalendarTab({ salesMemberId }) {
   }, [salesMemberId]);
 
   useEffect(() => {
-    if (salesMember) loadEvents();
+    if (salesMember) loadEvents(salesMember);
   }, [salesMember]);
 
   const loadEvents = async (memberOverride) => {
