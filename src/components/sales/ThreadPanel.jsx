@@ -6,11 +6,11 @@ import { X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import MessageReactions from "./MessageReactions";
 
-export default function ThreadPanel({ parentMessage, channelId, currentUserId, currentUserName, onClose, memberProfiles = {} }) {
-  const [replies, setReplies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [replyText, setReplyText] = useState("");
-  const [sending, setSending] = useState(false);
+export default function ThreadPanel({ parentMessage, channelId, currentUserId, currentUserName, onClose, memberProfiles = {}, chatType = "channel", recipientId }) {
+   const [replies, setReplies] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [replyText, setReplyText] = useState("");
+   const [sending, setSending] = useState(false);
 
   const STATUS_COLORS = {
     online: "#22c55e", available: "#22c55e", busy: "#ef4444",
@@ -22,7 +22,8 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
     loadReplies();
 
     // Subscribe to new replies in real-time
-    const unsubscribe = base44.entities.ChatMessage.subscribe((event) => {
+    const entity = chatType === "channel" ? base44.entities.ChatMessage : base44.entities.DirectMessage;
+    const unsubscribe = entity.subscribe((event) => {
       if (event.data?.parent_message_id === parentMessage.id) {
         if (event.type === "create") {
           setReplies(prev => [...prev, event.data]);
@@ -33,17 +34,26 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
     });
 
     return unsubscribe;
-  }, [parentMessage?.id]);
+  }, [parentMessage?.id, chatType]);
 
   const loadReplies = async () => {
     setLoading(true);
     try {
-      const msgs = await base44.entities.ChatMessage.filter(
-        { parent_message_id: parentMessage.id },
-        "timestamp",
-        100
-      );
-      setReplies(msgs);
+      if (chatType === "channel") {
+        const msgs = await base44.entities.ChatMessage.filter(
+          { parent_message_id: parentMessage.id },
+          "timestamp",
+          100
+        );
+        setReplies(msgs);
+      } else if (chatType === "dm") {
+        const msgs = await base44.entities.DirectMessage.filter(
+          { parent_message_id: parentMessage.id },
+          "timestamp",
+          100
+        );
+        setReplies(msgs);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -57,15 +67,27 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
     if (!text) return;
     setSending(true);
     try {
-      await base44.entities.ChatMessage.create({
-        channel_id: channelId,
-        parent_message_id: parentMessage.id,
-        sender_id: currentUserId,
-        sender_name: currentUserName,
-        content: text,
-        timestamp: new Date().toISOString(),
-        reactions: {}
-      });
+      if (chatType === "channel") {
+        await base44.entities.ChatMessage.create({
+          channel_id: channelId,
+          parent_message_id: parentMessage.id,
+          sender_id: currentUserId,
+          sender_name: currentUserName,
+          content: text,
+          timestamp: new Date().toISOString(),
+          reactions: {}
+        });
+      } else if (chatType === "dm") {
+        await base44.entities.DirectMessage.create({
+          sender_id: currentUserId,
+          sender_name: currentUserName,
+          recipient_id: recipientId,
+          recipient_name: parentMessage.sender_name,
+          parent_message_id: parentMessage.id,
+          content: text,
+          timestamp: new Date().toISOString()
+        });
+      }
       setReplyText("");
       await loadReplies();
     } catch (e) {

@@ -105,14 +105,14 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
           { $or: [
-            { sender_id: currentUserId, recipient_id: chatId },
-            { sender_id: chatId, recipient_id: currentUserId }
+            { sender_id: currentUserId, recipient_id: chatId, parent_message_id: null },
+            { sender_id: chatId, recipient_id: currentUserId, parent_message_id: null }
           ] },
           "timestamp",
           50
         );
         setMessages(msgs);
-        
+
         // Mark messages as read
         msgs.forEach(msg => {
           if (msg.recipient_id === currentUserId && !msg.read) {
@@ -176,25 +176,44 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           if ((event.data?.sender_id === currentUserId || event.data?.recipient_id === currentUserId) &&
               (event.data?.sender_id === chatId || event.data?.recipient_id === chatId)) {
             if (event.type === "create") {
-              // Replace optimistic message if from self, otherwise append
-              setMessages(prev => {
-                const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
-                return [...withoutOptimistic, event.data];
-              });
-              if (event.data?.sender_id !== currentUserId) {
-                playDing();
-                toast.message(event.data?.sender_name, {
-                  description: event.data?.content,
+              // Only show main messages (filter out thread replies)
+              if (!event.data?.parent_message_id) {
+                setMessages(prev => {
+                  const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
+                  return [...withoutOptimistic, event.data];
                 });
-                if (Notification.permission === "granted") {
-                  try {
-                    new Notification(event.data?.sender_name, {
-                      body: event.data?.content,
-                      icon: "/favicon.ico",
-                      tag: `dm-${event.data?.sender_id}`
-                    });
-                  } catch (e) {}
+                if (event.data?.sender_id !== currentUserId) {
+                  playDing();
+                  toast.message(event.data?.sender_name, {
+                    description: event.data?.content,
+                  });
+                  if (Notification.permission === "granted") {
+                    try {
+                      new Notification(event.data?.sender_name, {
+                        body: event.data?.content,
+                        icon: "/favicon.ico",
+                        tag: `dm-${event.data?.sender_id}`
+                      });
+                    } catch (e) {}
+                  }
                 }
+              } else if (event.data?.parent_message_id) {
+                // Update thread reply count on parent message
+                setMessages(prev => prev.map(m => {
+                  if (m.id === event.data.parent_message_id) {
+                    return {
+                      ...m,
+                      thread_reply_count: (m.thread_reply_count || 0) + 1
+                    };
+                  }
+                  return m;
+                }));
+              }
+            } else if (event.type === "update") {
+              // Update reactions on messages
+              setMessages(prev => prev.map(m => m.id === event.data.id ? event.data : m));
+              if (selectedThread?.id === event.data.id) {
+                setSelectedThread(event.data);
               }
             }
           }
