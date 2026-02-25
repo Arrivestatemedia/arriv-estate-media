@@ -136,9 +136,10 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
       if (selectedRepStatus === 'in_meeting') {
         setTimeout(async () => {
           try {
+            const rep = await base44.entities.SalesTeamMember.get(selectedRepId);
             await base44.entities.DirectMessage.create({
               sender_id: selectedRepId,
-              sender_name: selectedRepName,
+              sender_name: rep?.full_name || selectedRepName,
               recipient_id: currentUserId,
               recipient_name: currentUserName,
               content: "This person is in a meeting and will respond as soon as they're available.",
