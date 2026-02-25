@@ -33,6 +33,9 @@ Deno.serve(async (req) => {
       `From: ${fromHeader}`,
       `Content-Type: text/plain; charset=utf-8`,
     ];
+
+    if (cc) emailLines.push(`Cc: ${cc}`);
+    if (bcc) emailLines.push(`Bcc: ${bcc}`);
     
     if (inReplyTo) {
       emailLines.push(`In-Reply-To: ${inReplyTo}`);
