@@ -412,6 +412,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         )}
         <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv" />
         <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+          <ChatContactCard
+            channelId={chatId}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            onContactAdded={() => {}}
+            chatType={chatType}
+          />
           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
             className="text-gray-400 hover:text-[#B8956A] transition-colors p-1 flex-shrink-0">
             <Paperclip className="w-5 h-5" />
