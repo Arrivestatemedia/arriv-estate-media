@@ -117,11 +117,12 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content) => {
+      const rep = await base44.entities.SalesTeamMember.get(selectedRepId);
       return base44.entities.DirectMessage.create({
         sender_id: currentUserId,
         sender_name: currentUserName,
         recipient_id: selectedRepId,
-        recipient_name: selectedRepName,
+        recipient_name: rep?.full_name || selectedRepName,
         content,
         timestamp: new Date().toISOString(),
         read: false
