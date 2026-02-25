@@ -57,19 +57,69 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
    const [matchedHubSpotContact, setMatchedHubSpotContact] = useState(null);
 
    React.useEffect(() => {
-     if (openNewContactForm && prefilledData) {
-       setShowNewForm(true);
-       setOpenNewContactForm(false);
-       setNewContact(prev => ({
-         ...prev,
-         firstname: prefilledData.firstName || prefilledData.first_name || '',
-         lastname: prefilledData.lastName || prefilledData.last_name || '',
-         email: prefilledData.email || '',
-         phone: prefilledData.phone || '',
-         company: prefilledData.company || ''
-       }));
+      if (openNewContactForm && prefilledData) {
+        setShowNewForm(true);
+        setOpenNewContactForm(false);
+        const firstName = prefilledData.firstName || prefilledData.first_name || '';
+        const lastName = prefilledData.lastName || prefilledData.last_name || '';
+        setNewContact(prev => ({
+          ...prev,
+          firstname: firstName,
+          lastname: lastName,
+          email: prefilledData.email || '',
+          phone: prefilledData.phone || '',
+          company: prefilledData.company || ''
+        }));
+        // Auto-search HubSpot for the prefilled contact
+        const searchQuery = `${firstName} ${lastName}`.trim() || prefilledData.email;
+        if (searchQuery) {
+          autoSearchAndSelectContact(searchQuery);
+        }
+      }
+    }, [openNewContactForm, setOpenNewContactForm, prefilledData]);
+
+   const autoSearchAndSelectContact = async (searchQuery) => {
+     try {
+       const res = await base44.functions.invoke("searchHubSpotContacts", { query: searchQuery });
+       const hubspotContacts = res.data.contacts || [];
+       if (hubspotContacts.length > 0) {
+         // Auto-select the first match
+         setMatchedHubSpotContact(hubspotContacts[0]);
+         setExpandedId(hubspotContacts[0].id);
+         setEditFields({
+           firstname: hubspotContacts[0].firstname,
+           lastname: hubspotContacts[0].lastname,
+           email: hubspotContacts[0].email,
+           phone: hubspotContacts[0].phone,
+           company: hubspotContacts[0].company,
+           jobtitle: hubspotContacts[0].jobtitle,
+           hs_lead_status: hubspotContacts[0].lead_status,
+         });
+         // Fetch activities for this contact
+         await fetchActivitiesForContact(hubspotContacts[0]);
+       }
+     } catch (e) {
+       console.error("Auto-search failed:", e);
      }
-   }, [openNewContactForm, setOpenNewContactForm, prefilledData]);
+   };
+
+   const fetchActivitiesForContact = async (contact) => {
+     setLoadingActivities(prev => ({ ...prev, [contact.id]: true }));
+     try {
+       const allActivities = await base44.entities.ActivityLog.list('-activity_date', 500);
+       const contactActivities = allActivities.filter(a => 
+         a.contact_email === contact.email || 
+         (a.contact_name && a.contact_name.toLowerCase().includes((contact.firstname || '') + ' ' + (contact.lastname || '')) || 
+         a.contact_name === contact.firstname || 
+         a.contact_name === contact.lastname)
+       ).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+       setActivities(prev => ({ ...prev, [contact.id]: contactActivities }));
+     } catch (e) {
+       console.error("Failed to fetch activities:", e);
+     } finally {
+       setLoadingActivities(prev => ({ ...prev, [contact.id]: false }));
+     }
+   };
 
   const handleDelete = async (contactId) => {
     setDeleting(true);
