@@ -353,8 +353,60 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                 </button>
 
                 {isExpanded && (
-                  <div className="mt-4 pt-4 border-t space-y-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact</p>
+                   <div className="mt-4 pt-4 border-t space-y-4" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                     {/* Activity History Section */}
+                     {activities[contact.id] && activities[contact.id].length > 0 && (
+                       <div>
+                         <div className="flex items-center gap-2 mb-3">
+                           <Activity className="w-4 h-4" style={{ color: '#B8956A' }} />
+                           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Activity History ({activities[contact.id].length})</p>
+                         </div>
+                         <div className="space-y-2 max-h-64 overflow-y-auto bg-slate-50 rounded-lg p-3">
+                           {activities[contact.id].map((activity, idx) => (
+                             <div key={idx} className="text-xs border-b border-slate-200 pb-2 last:border-b-0" style={{ color: '#1A1A1A' }}>
+                               <div className="flex items-start justify-between gap-2 mb-1">
+                                 <div className="flex items-center gap-1 font-medium">
+                                   <Badge variant="outline" className="text-xs capitalize">{activity.activity_type}</Badge>
+                                 </div>
+                                 <span style={{ color: 'rgba(26,26,26,0.6)' }} className="flex items-center gap-1">
+                                   <Clock className="w-3 h-3" />
+                                   {new Date(activity.activity_date).toLocaleDateString()} {new Date(activity.activity_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                 </span>
+                               </div>
+                               {activity.notes && (
+                                 <div className="mb-1 text-xs" style={{ color: 'rgba(26,26,26,0.7)' }}>
+                                   {activity.notes}
+                                 </div>
+                               )}
+                               <div className="text-xs" style={{ color: 'rgba(26,26,26,0.6)' }} className="space-y-0.5">
+                                 {activity.sales_member_email && (
+                                   <p><span className="font-medium">Rep:</span> {activity.sales_member_email}</p>
+                                 )}
+                                 {activity.duration_minutes > 0 && (
+                                   <p><span className="font-medium">Duration:</span> {activity.duration_minutes} min</p>
+                                 )}
+                                 {activity.contact_phone && (
+                                   <p><span className="font-medium">Phone:</span> {activity.contact_phone}</p>
+                                 )}
+                                 {activity.company_name && (
+                                   <p><span className="font-medium">Company:</span> {activity.company_name}</p>
+                                 )}
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
+                     {loadingActivities[contact.id] && (
+                       <div className="flex items-center justify-center py-2">
+                         <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#B8956A' }} />
+                       </div>
+                     )}
+                     {activities[contact.id] && activities[contact.id].length === 0 && !loadingActivities[contact.id] && (
+                       <p className="text-xs text-center" style={{ color: 'rgba(26,26,26,0.6)' }}>No activities found for this contact</p>
+                     )}
+
+                     <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {FIELDS.map(({ key, label, type, options }) => (
                         <div key={key}>
