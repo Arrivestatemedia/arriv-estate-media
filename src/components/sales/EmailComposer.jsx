@@ -3,12 +3,11 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar } from "lucide-react";
 import { format } from "date-fns";
 
 export default function EmailComposer({ salesMemberId, isAdmin = false }) {
-  const [tab, setTab] = useState("compose"); // "compose" | "replies" | "scheduled"
+  const [tab, setTab] = useState("compose");
   const [salesMember, setSalesMember] = useState(null);
   const [scheduledEmails, setScheduledEmails] = useState([]);
   const [loadingScheduled, setLoadingScheduled] = useState(false);
@@ -18,88 +17,74 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   const [meetingData, setMeetingData] = useState({ title: "", startTime: "", endTime: "", description: "" });
   const [invitingClients, setInvitingClients] = useState(false);
 
-  // Compose state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [fromEmail, setFromEmail] = useState(""); // which address to send from
+  const [fromEmail, setFromEmail] = useState("");
   const [formData, setFormData] = useState({ to: "", subject: "", body: "" });
 
-  // Replies state
   const [replies, setReplies] = useState([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [expandedReply, setExpandedReply] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
-  const [replyMode, setReplyMode] = useState(null); // "reply" | "replyAll"
+  const [replyMode, setReplyMode] = useState(null);
   const [replyFormData, setReplyFormData] = useState({ to: "", cc: "", subject: "", body: "" });
 
-  // Load sales member info to get company_email
-  useEffect(() => {
-    if (!salesMemberId) return;
-    base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-      if (members[0]) {
-        setSalesMember(members[0]);
-        // Default from = company_email if set, else login email
-        setFromEmail(members[0].company_email || members[0].email || "");
-      }
-    }).catch(() => {});
-  }, [salesMemberId]);
+  const lastInboxCountRef = React.useRef(null);
 
-  // Load replies when switching to replies tab
+  useEffect(() => {
+    if (isAdmin) {
+      base44.auth.me().then(adminUser => {
+        setSalesMember(adminUser);
+      }).catch(() => {});
+    } else if (salesMemberId) {
+      base44.entities.SalesTeamMember.read(salesMemberId).then(member => {
+        setSalesMember(member);
+        if (member?.company_email) setFromEmail(member.company_email);
+      }).catch(() => {});
+    }
+  }, [salesMemberId, isAdmin]);
+
   useEffect(() => {
     if (tab === "replies") loadReplies();
     if (tab === "scheduled") loadScheduledEmails();
   }, [tab]);
 
-  // Poll inbox every 60s for new emails and show browser notification
-  const lastInboxCountRef = React.useRef(null);
   useEffect(() => {
     if (!salesMemberId) return;
-
-    // Request notification permission upfront
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-
     const checkInbox = async () => {
       try {
         const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: fromEmail || salesMember?.company_email });
         const threads = res.data?.threads || [];
         if (lastInboxCountRef.current !== null && threads.length > lastInboxCountRef.current) {
           const newCount = threads.length - lastInboxCountRef.current;
-          // Play ding via shared unlocked audio context
           try {
             const ctx = window._unlockedAudioCtx;
             if (ctx && ctx.state !== 'suspended') {
               const osc = ctx.createOscillator();
               const gain = ctx.createGain();
-              osc.connect(gain);
-              gain.connect(ctx.destination);
+              osc.connect(gain); gain.connect(ctx.destination);
               osc.type = 'sine';
               osc.frequency.setValueAtTime(660, ctx.currentTime);
               osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
               gain.gain.setValueAtTime(0.3, ctx.currentTime);
               gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-              osc.start(ctx.currentTime);
-              osc.stop(ctx.currentTime + 0.4);
+              osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
             }
           } catch (e) {}
           if (Notification.permission === "granted") {
-            new Notification(`📧 ${newCount} new email${newCount > 1 ? 's' : ''} in your inbox`, {
-              body: threads[0]?.snippet || "",
-              tag: "email-inbox"
-            });
+            new Notification(`📧 ${newCount} new email${newCount > 1 ? 's' : ''} in your inbox`, { body: threads[0]?.snippet || "", tag: "email-inbox" });
           }
         }
         lastInboxCountRef.current = threads.length;
-      } catch (e) {
-        // silent
-      }
+      } catch (e) {}
     };
-
     const interval = setInterval(checkInbox, 60000);
     return () => clearInterval(interval);
   }, [salesMemberId, fromEmail, salesMember]);
@@ -121,31 +106,10 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     setScheduledEmails(prev => prev.filter(e => e.id !== id));
   };
 
-  useEffect(() => {
-    if (isAdmin) {
-      // For admin, use their base44 user info
-      base44.auth.me().then(adminUser => {
-        setSalesMember(adminUser);
-      }).catch(err => console.error('Error loading admin user:', err));
-    } else if (salesMemberId) {
-      // For sales rep, fetch their SalesTeamMember record
-      base44.entities.SalesTeamMember.read(salesMemberId).then(member => {
-        setSalesMember(member);
-        if (member?.company_email) {
-          setFromEmail(member.company_email);
-        }
-      }).catch(err => console.error('Error loading sales member:', err));
-    }
-  }, [salesMemberId, isAdmin]);
-
   const loadReplies = async () => {
     setLoadingReplies(true);
     try {
-      // Pull entire Gmail inbox for this rep - no contact filtering needed
-      const res = await base44.functions.invoke('getGmailReplies', { 
-        contactEmails: [], // empty = all inbox
-        toEmail: fromEmail || salesMember?.company_email 
-      });
+      const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: fromEmail || salesMember?.company_email });
       setReplies(res.data?.threads || []);
     } catch (e) {
       console.error(e);
@@ -181,8 +145,6 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
       alert("Please fill in all fields");
       return;
     }
-
-    // Schedule instead of send
     if (scheduleMode && scheduledFor) {
       try {
         await base44.entities.ScheduledEmail.create({
@@ -207,7 +169,6 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
       }
       return;
     }
-
     setSending(true);
     try {
       await base44.functions.invoke('sendEmailViaGmail', {
@@ -234,21 +195,18 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
       alert("Please fill in title, start, and end times");
       return;
     }
-
-    const clientEmails = selectedContact ? [selectedContact.email] : [];
-    if (!clientEmails.length) {
+    if (!selectedContact) {
       alert("Please select a contact to invite");
       return;
     }
-
     setInvitingClients(true);
     try {
-      const result = await base44.functions.invoke('scheduleGoogleCalendarInvite', {
+      await base44.functions.invoke('scheduleGoogleCalendarInvite', {
         title: meetingData.title,
         description: meetingData.description || '',
         startTime: new Date(meetingData.startTime).toISOString(),
         endTime: new Date(meetingData.endTime).toISOString(),
-        clientEmails: clientEmails,
+        clientEmails: [selectedContact.email],
         salesRepCompanyEmail: salesMember?.company_email
       });
       alert(`Meeting scheduled! Invite sent to ${selectedContact?.firstname}`);
@@ -265,15 +223,9 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   const handleReply = (reply, isReplyAll = false) => {
     const subject = reply.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply.subject || '(no subject)'}`;
     const fromEmail_clean = reply.from.match(/<(.+?)>/)?.[1] || reply.from;
-    
     setReplyingTo(reply);
     setReplyMode(isReplyAll ? "replyAll" : "reply");
-    setReplyFormData({
-      to: fromEmail_clean,
-      cc: isReplyAll ? "" : "",
-      subject: subject,
-      body: ""
-    });
+    setReplyFormData({ to: fromEmail_clean, cc: "", subject, body: "" });
     setExpandedReply(reply.id);
   };
 
@@ -308,56 +260,33 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   };
 
   const statusColor = { pending: '#B8956A', sent: '#22c55e', failed: '#ef4444' };
-
-  // From options
-  const fromOptions = [];
-  if (salesMember?.company_email) fromOptions.push({ label: salesMember.company_email, value: salesMember.company_email });
+  const fromOptions = salesMember?.company_email ? [{ label: salesMember.company_email, value: salesMember.company_email }] : [];
 
   return (
     <div className="space-y-4">
       {/* Tab switcher */}
       <div className="flex gap-1 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-        <button
-          onClick={() => setTab("compose")}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition"
-          style={{ color: tab === "compose" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "compose" ? '#B8956A' : 'transparent' }}
-        >
+        <button onClick={() => setTab("compose")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "compose" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "compose" ? '#B8956A' : 'transparent' }}>
           <PenLine className="w-4 h-4" /> Compose
         </button>
-        <button
-          onClick={() => setTab("replies")}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition"
-          style={{ color: tab === "replies" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "replies" ? '#B8956A' : 'transparent' }}
-        >
+        <button onClick={() => setTab("replies")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "replies" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "replies" ? '#B8956A' : 'transparent' }}>
           <Inbox className="w-4 h-4" /> Inbox
         </button>
-        <button
-          onClick={() => setTab("scheduled")}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition"
-          style={{ color: tab === "scheduled" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "scheduled" ? '#B8956A' : 'transparent' }}
-        >
+        <button onClick={() => setTab("scheduled")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "scheduled" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "scheduled" ? '#B8956A' : 'transparent' }}>
           <Clock className="w-4 h-4" /> Scheduled
         </button>
       </div>
 
-      {/* ── COMPOSE ── */}
+      {/* COMPOSE */}
       {tab === "compose" && (
         <div className="space-y-4">
-          {/* From selector */}
           {fromOptions.length > 0 && (
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: '#1A1A1A' }}>From</label>
               <div className="flex flex-col gap-2">
                 {fromOptions.map(opt => (
                   <label key={opt.value} className="flex items-center gap-3 cursor-pointer p-2 rounded-lg border transition" style={{ borderColor: fromEmail === opt.value ? '#B8956A' : 'rgba(184,149,106,0.2)', backgroundColor: fromEmail === opt.value ? 'rgba(184,149,106,0.08)' : 'transparent' }}>
-                    <input
-                      type="radio"
-                      name="from"
-                      value={opt.value}
-                      checked={fromEmail === opt.value}
-                      onChange={() => setFromEmail(opt.value)}
-                      className="accent-[#B8956A]"
-                    />
+                    <input type="radio" name="from" value={opt.value} checked={fromEmail === opt.value} onChange={() => setFromEmail(opt.value)} className="accent-[#B8956A]" />
                     <span className="text-sm" style={{ color: '#1A1A1A' }}>{opt.label}</span>
                   </label>
                 ))}
@@ -365,7 +294,6 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
             </div>
           )}
 
-          {/* Contact search */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: '#1A1A1A' }}>Search Contacts</label>
             <div className="relative">
@@ -406,15 +334,9 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
             <Textarea placeholder="Your message..." value={formData.body} onChange={e => setFormData(f => ({ ...f, body: e.target.value }))} rows={8} />
           </div>
 
-          {/* Schedule toggle */}
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={scheduleMode}
-                onChange={e => setScheduleMode(e.target.checked)}
-                className="accent-[#B8956A] w-4 h-4"
-              />
+              <input type="checkbox" checked={scheduleMode} onChange={e => setScheduleMode(e.target.checked)} className="accent-[#B8956A] w-4 h-4" />
               <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>Schedule for later</span>
             </label>
           </div>
@@ -422,31 +344,16 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           {scheduleMode && (
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: '#1A1A1A' }}>Send At</label>
-              <Input
-                type="datetime-local"
-                value={scheduledFor}
-                onChange={e => setScheduledFor(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-              />
+              <Input type="datetime-local" value={scheduledFor} onChange={e => setScheduledFor(e.target.value)} min={new Date().toISOString().slice(0, 16)} />
             </div>
           )}
 
           <div className="flex gap-2">
-            <Button
-              onClick={handleSendEmail}
-              disabled={sending || sent || (scheduleMode && !scheduledFor)}
-              className="flex-1 gap-2"
-              style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}
-            >
+            <Button onClick={handleSendEmail} disabled={sending || sent || (scheduleMode && !scheduledFor)} className="flex-1 gap-2" style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}>
               {scheduleMode ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
               {sending ? "Sending..." : sent ? (scheduleMode ? "Scheduled!" : "Sent!") : scheduleMode ? "Schedule Email" : "Send Email"}
             </Button>
-            <Button
-              onClick={() => setScheduleMeetingMode(!scheduleMeetingMode)}
-              variant="outline"
-              className="gap-2"
-              style={{ borderColor: '#B8956A', color: '#B8956A' }}
-            >
+            <Button onClick={() => setScheduleMeetingMode(!scheduleMeetingMode)} variant="outline" className="gap-2" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
               <Calendar className="w-4 h-4" />
               Schedule Meeting
             </Button>
@@ -458,67 +365,36 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Meeting Title</label>
-                  <Input
-                    placeholder="e.g., Project Consultation"
-                    value={meetingData.title}
-                    onChange={e => setMeetingData(prev => ({ ...prev, title: e.target.value }))}
-                    className="text-sm"
-                  />
+                  <Input placeholder="e.g., Project Consultation" value={meetingData.title} onChange={e => setMeetingData(prev => ({ ...prev, title: e.target.value }))} className="text-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Start Time</label>
-                  <Input
-                    type="datetime-local"
-                    value={meetingData.startTime}
-                    onChange={e => setMeetingData(prev => ({ ...prev, startTime: e.target.value }))}
-                    className="text-sm"
-                  />
+                  <Input type="datetime-local" value={meetingData.startTime} onChange={e => setMeetingData(prev => ({ ...prev, startTime: e.target.value }))} className="text-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>End Time</label>
-                  <Input
-                    type="datetime-local"
-                    value={meetingData.endTime}
-                    onChange={e => setMeetingData(prev => ({ ...prev, endTime: e.target.value }))}
-                    className="text-sm"
-                  />
+                  <Input type="datetime-local" value={meetingData.endTime} onChange={e => setMeetingData(prev => ({ ...prev, endTime: e.target.value }))} className="text-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Description (optional)</label>
-                  <Textarea
-                    placeholder="Meeting details..."
-                    value={meetingData.description}
-                    onChange={e => setMeetingData(prev => ({ ...prev, description: e.target.value }))}
-                    rows={3}
-                    className="text-sm"
-                  />
+                  <Textarea placeholder="Meeting details..." value={meetingData.description} onChange={e => setMeetingData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="text-sm" />
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    onClick={handleScheduleMeeting}
-                    disabled={invitingClients}
-                    className="flex-1"
-                    style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-                  >
+                  <Button onClick={handleScheduleMeeting} disabled={invitingClients} className="flex-1" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
                     {invitingClients ? "Sending..." : "Send Invite"}
                   </Button>
-                  <Button
-                    onClick={() => setScheduleMeetingMode(false)}
-                    variant="outline"
-                    className="flex-1"
-                    style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                  >
+                  <Button onClick={() => setScheduleMeetingMode(false)} variant="outline" className="flex-1" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
                     Cancel
                   </Button>
                 </div>
               </div>
             </div>
           )}
-          </div>
-          )}
+        </div>
+      )}
 
-          {/* ── SCHEDULED ── */}
-          {tab === "scheduled" && (
+      {/* SCHEDULED */}
+      {tab === "scheduled" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Emails scheduled to send automatically</p>
@@ -562,7 +438,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
         </div>
       )}
 
-      {/* ── INBOX ── */}
+      {/* INBOX */}
       {tab === "replies" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -582,127 +458,70 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
               <p>No emails in your inbox yet</p>
             </div>
           ) : (
-           replies.map(reply => {
-             const isExpanded = expandedReply === reply.id;
-             const isReplyingToThis = replyingTo?.id === reply.id;
-             return (
-               <div
-                 key={reply.id}
-                 className="rounded-lg border overflow-hidden"
-                 style={{ borderColor: isExpanded ? '#B8956A' : 'rgba(184,149,106,0.2)', backgroundColor: isExpanded ? 'rgba(184,149,106,0.05)' : '#fff' }}
-               >
-                 <button
-                   onClick={() => setExpandedReply(isExpanded ? null : reply.id)}
-                   className="w-full text-left p-4 hover:opacity-80 transition"
-                 >
-                   <div className="flex items-start justify-between gap-2">
-                     <div className="flex-1 min-w-0">
-                       <p className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{reply.from}</p>
-                       <p className="text-sm truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{reply.subject || '(no subject)'}</p>
-                       {!isExpanded && <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26,26,26,0.5)' }}>{reply.snippet}</p>}
-                     </div>
-                     <div className="flex items-center gap-2 shrink-0">
-                       <span className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                         {reply.date ? format(new Date(reply.date), "MMM d") : ''}
-                       </span>
-                       {isExpanded ? <ChevronUp className="w-4 h-4 opacity-40" /> : <ChevronDown className="w-4 h-4 opacity-40" />}
-                     </div>
-                   </div>
-                   {isExpanded && (
-                     <div className="mt-3 pt-3 text-sm border-t" style={{ borderColor: 'rgba(184,149,106,0.2)', color: '#1A1A1A' }}>
-                       {reply.snippet}
-                     </div>
-                   )}
-                 </button>
+            replies.map(reply => {
+              const isExpanded = expandedReply === reply.id;
+              const isReplyingToThis = replyingTo?.id === reply.id;
+              return (
+                <div key={reply.id} className="rounded-lg border overflow-hidden" style={{ borderColor: isExpanded ? '#B8956A' : 'rgba(184,149,106,0.2)', backgroundColor: isExpanded ? 'rgba(184,149,106,0.05)' : '#fff' }}>
+                  <button onClick={() => setExpandedReply(isExpanded ? null : reply.id)} className="w-full text-left p-4 hover:opacity-80 transition">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{reply.from}</p>
+                        <p className="text-sm truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{reply.subject || '(no subject)'}</p>
+                        {!isExpanded && <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26,26,26,0.5)' }}>{reply.snippet}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>{reply.date ? format(new Date(reply.date), "MMM d") : ''}</span>
+                        {isExpanded ? <ChevronUp className="w-4 h-4 opacity-40" /> : <ChevronDown className="w-4 h-4 opacity-40" />}
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 text-sm border-t" style={{ borderColor: 'rgba(184,149,106,0.2)', color: '#1A1A1A' }}>
+                        {reply.snippet}
+                      </div>
+                    )}
+                  </button>
 
-                 {isExpanded && !isReplyingToThis && (
-                   <div className="border-t px-4 py-3 flex gap-2" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-                     <Button
-                       size="sm"
-                       variant="outline"
-                       onClick={() => handleReply(reply, false)}
-                       style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                     >
-                       Reply
-                     </Button>
-                     <Button
-                       size="sm"
-                       variant="outline"
-                       onClick={() => handleReply(reply, true)}
-                       style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                     >
-                       Reply All
-                     </Button>
-                   </div>
-                 )}
+                  {isExpanded && !isReplyingToThis && (
+                    <div className="border-t px-4 py-3 flex gap-2" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                      <Button size="sm" variant="outline" onClick={() => handleReply(reply, false)} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Reply</Button>
+                      <Button size="sm" variant="outline" onClick={() => handleReply(reply, true)} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Reply All</Button>
+                    </div>
+                  )}
 
-                 {isReplyingToThis && (
-                   <div className="border-t p-4 space-y-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-                     <div>
-                       <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>To</label>
-                       <Input
-                         type="email"
-                         value={replyFormData.to}
-                         onChange={e => setReplyFormData(f => ({ ...f, to: e.target.value }))}
-                         className="text-sm"
-                       />
-                     </div>
-                     {replyMode === "replyAll" && (
-                       <div>
-                         <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>CC</label>
-                         <Input
-                           type="email"
-                           placeholder="Optional"
-                           value={replyFormData.cc}
-                           onChange={e => setReplyFormData(f => ({ ...f, cc: e.target.value }))}
-                           className="text-sm"
-                         />
-                       </div>
-                     )}
-                     <div>
-                       <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Subject</label>
-                       <Input
-                         value={replyFormData.subject}
-                         onChange={e => setReplyFormData(f => ({ ...f, subject: e.target.value }))}
-                         className="text-sm"
-                       />
-                     </div>
-                     <div>
-                       <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Message</label>
-                       <Textarea
-                         value={replyFormData.body}
-                         onChange={e => setReplyFormData(f => ({ ...f, body: e.target.value }))}
-                         rows={6}
-                         className="text-sm"
-                       />
-                     </div>
-                     <div className="flex gap-2">
-                       <Button
-                         onClick={handleSendReply}
-                         disabled={sending}
-                         className="flex-1"
-                         style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-                       >
-                         {sending ? "Sending..." : "Send Reply"}
-                       </Button>
-                       <Button
-                         onClick={() => {
-                           setReplyingTo(null);
-                           setReplyMode(null);
-                           setReplyFormData({ to: "", cc: "", subject: "", body: "" });
-                         }}
-                         variant="outline"
-                         className="flex-1"
-                         style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                       >
-                         Cancel
-                       </Button>
-                     </div>
-                   </div>
-                 )}
-               </div>
-             );
-           })
+                  {isReplyingToThis && (
+                    <div className="border-t p-4 space-y-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>To</label>
+                        <Input type="email" value={replyFormData.to} onChange={e => setReplyFormData(f => ({ ...f, to: e.target.value }))} className="text-sm" />
+                      </div>
+                      {replyMode === "replyAll" && (
+                        <div>
+                          <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>CC</label>
+                          <Input type="email" placeholder="Optional" value={replyFormData.cc} onChange={e => setReplyFormData(f => ({ ...f, cc: e.target.value }))} className="text-sm" />
+                        </div>
+                      )}
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Subject</label>
+                        <Input value={replyFormData.subject} onChange={e => setReplyFormData(f => ({ ...f, subject: e.target.value }))} className="text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Message</label>
+                        <Textarea value={replyFormData.body} onChange={e => setReplyFormData(f => ({ ...f, body: e.target.value }))} rows={6} className="text-sm" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSendReply} disabled={sending} className="flex-1" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
+                          {sending ? "Sending..." : "Send Reply"}
+                        </Button>
+                        <Button onClick={() => { setReplyingTo(null); setReplyMode(null); setReplyFormData({ to: "", cc: "", subject: "", body: "" }); }} variant="outline" className="flex-1" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       )}
