@@ -216,16 +216,19 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     }
     setInvitingClients(true);
     try {
+      const allEmails = [selectedContact.email, ...meetingAttendees];
       await base44.functions.invoke('scheduleGoogleCalendarInvite', {
         title: meetingData.title,
         description: meetingData.description || '',
         startTime: new Date(meetingData.startTime).toISOString(),
         endTime: new Date(meetingData.endTime).toISOString(),
-        clientEmails: [selectedContact.email],
+        clientEmails: allEmails,
         salesRepCompanyEmail: salesMember?.company_email
       });
-      alert(`Meeting scheduled! Invite sent to ${selectedContact?.firstname}`);
+      alert(`Meeting scheduled! Invite sent to ${allEmails.length} attendee${allEmails.length > 1 ? 's' : ''}`);
       setMeetingData({ title: "", startTime: "", endTime: "", description: "" });
+      setMeetingAttendees([]);
+      setExtraAttendeeEmail("");
       setSelectedContact(null);
       setScheduleMeetingMode(false);
     } catch (error) {
