@@ -19,8 +19,11 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
     }
     setLoading(true);
     try {
-      const results = await base44.functions.invoke("searchHubSpotContacts", { query });
-      setContacts(results.data?.contacts || results.contacts || results.data || []);
+      const { data } = await base44.functions.invoke("searchHubSpotContacts", { query });
+      // The function returns { contacts: [...] }
+      const contactList = data?.contacts || [];
+      setContacts(contactList);
+      console.log("Contacts fetched:", contactList.length);
     } catch (err) {
       console.error("Error searching contacts:", err);
       toast.error("Failed to search contacts");
