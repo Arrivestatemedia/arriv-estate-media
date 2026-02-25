@@ -13,6 +13,7 @@ export default function CalendarTab({ salesMemberId }) {
     if (salesMemberId) {
       base44.entities.SalesTeamMember.get(salesMemberId).then(member => {
         setSalesMember(member);
+        console.log('[CalendarTab] salesMember loaded:', member?.email, member?.company_email);
       }).catch(() => {});
     }
   }, [salesMemberId]);
