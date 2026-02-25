@@ -31,47 +31,46 @@ export default function MessageReactions({ message, currentUserId, onReactionUpd
   const currentReactions = message.reactions || {};
 
   return (
-    <div className="mt-2">
-      <div className="flex flex-wrap gap-1 items-center">
-        {Object.entries(currentReactions).map(([emoji, users]) => {
-          const hasReacted = users.includes(currentUserId);
-          return (
-            <button
-              key={emoji}
-              onClick={() => handleReaction(emoji)}
-              className={`text-sm px-2 py-1 rounded-full transition-colors whitespace-nowrap ${
-                hasReacted
-                  ? "bg-[#B8956A]/20 text-gray-900 border border-[#B8956A]"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-              title={users.join(", ")}
-            >
-              {emoji} <span className="text-xs">{users.length}</span>
-            </button>
-          );
-        })}
-        <div className="relative">
+    <div className="mt-2 flex flex-wrap gap-2 items-center max-w-full">
+      {Object.entries(currentReactions).map(([emoji, users]) => {
+        const hasReacted = users.includes(currentUserId);
+        return (
           <button
-            onClick={() => setShowPicker(!showPicker)}
-            className="text-sm px-2 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-            title="Add reaction"
+            key={emoji}
+            onClick={() => handleReaction(emoji)}
+            className={`px-2.5 py-1.5 rounded-full transition-colors whitespace-nowrap text-sm flex items-center gap-1 flex-shrink-0 ${
+              hasReacted
+                ? "bg-[#B8956A]/20 text-gray-900 border border-[#B8956A]"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+            title={users.join(", ")}
           >
-            <SmilePlus className="w-4 h-4" />
+            <span className="text-base">{emoji}</span>
+            <span className="text-xs font-medium">{users.length}</span>
           </button>
-          {showPicker && (
-            <div className="absolute bottom-full mb-2 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex flex-wrap gap-1 w-48 z-20">
-              {EXTENDED_EMOJIS.map(emoji => (
-                <button
-                  key={emoji}
-                  onClick={() => handleReaction(emoji)}
-                  className="text-xl hover:bg-gray-100 rounded p-1 transition-colors"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        );
+      })}
+      <div className="relative flex-shrink-0">
+        <button
+          onClick={() => setShowPicker(!showPicker)}
+          className="px-2.5 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors text-sm"
+          title="Add reaction"
+        >
+          <SmilePlus className="w-4 h-4" />
+        </button>
+        {showPicker && (
+          <div className="absolute bottom-full mb-2 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex flex-wrap gap-1 w-56 z-20">
+            {EXTENDED_EMOJIS.map(emoji => (
+              <button
+                key={emoji}
+                onClick={() => handleReaction(emoji)}
+                className="text-2xl hover:bg-gray-100 rounded p-1.5 transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
