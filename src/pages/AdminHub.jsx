@@ -47,45 +47,7 @@ export default function AdminHub() {
     });
   }, []);
 
-  // Handle contact card interactions
-  useEffect(() => {
-    const handleOpenDialer = (e) => {
-      setActiveTab('call');
-      const { phone } = e.detail;
-      setTimeout(() => {
-        localStorage.setItem('dialerPhone', phone);
-        window.dispatchEvent(new Event('dialerReady'));
-      }, 0);
-    };
 
-    const handleOpenEmailComposer = (e) => {
-      setActiveTab('email');
-      const { email } = e.detail;
-      setTimeout(() => {
-        localStorage.setItem('emailTo', email);
-        window.dispatchEvent(new Event('emailComposerReady'));
-      }, 0);
-    };
-
-    const handleOpenContact = (e) => {
-      setActiveTab('contacts');
-      const contact = e.detail;
-      setTimeout(() => {
-        localStorage.setItem('newContactData', JSON.stringify(contact));
-        window.dispatchEvent(new Event('contactSearchReady'));
-      }, 0);
-    };
-
-    window.addEventListener('openDialer', handleOpenDialer);
-    window.addEventListener('openEmailComposer', handleOpenEmailComposer);
-    window.addEventListener('openContact', handleOpenContact);
-
-    return () => {
-      window.removeEventListener('openDialer', handleOpenDialer);
-      window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
-      window.removeEventListener('openContact', handleOpenContact);
-    };
-  }, []);
 
   // Sync chat status with calendar every 3 minutes
   useEffect(() => {
