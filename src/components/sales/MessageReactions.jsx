@@ -5,30 +5,31 @@ import { toast } from "sonner";
 
 const EXTENDED_EMOJIS = ["👍", "👀", "✅", "❌", "😂", "🔥", "😕", "🚀"];
 
-export default function MessageReactions({ message, currentUserId, onReactionUpdate }) {
-  const [showPicker, setShowPicker] = useState(false);
+export default function MessageReactions({ message, currentUserId, onReactionUpdate, messageType = "channel" }) {
+   const [showPicker, setShowPicker] = useState(false);
 
-  const handleReaction = async (emoji) => {
-     try {
-       const reactions = { ...message.reactions } || {};
-       if (!reactions[emoji]) reactions[emoji] = [];
+   const handleReaction = async (emoji) => {
+      try {
+        const reactions = { ...message.reactions } || {};
+        if (!reactions[emoji]) reactions[emoji] = [];
 
-       const hasReacted = reactions[emoji].includes(currentUserId);
-       if (hasReacted) {
-         reactions[emoji] = reactions[emoji].filter(id => id !== currentUserId);
-         if (reactions[emoji].length === 0) delete reactions[emoji];
-       } else {
-         reactions[emoji].push(currentUserId);
-       }
+        const hasReacted = reactions[emoji].includes(currentUserId);
+        if (hasReacted) {
+          reactions[emoji] = reactions[emoji].filter(id => id !== currentUserId);
+          if (reactions[emoji].length === 0) delete reactions[emoji];
+        } else {
+          reactions[emoji].push(currentUserId);
+        }
 
-       await base44.entities.ChatMessage.update(message.id, { reactions });
-       onReactionUpdate?.();
-       setShowPicker(false);
-     } catch (e) {
-       console.error("Reaction error:", e);
-       toast.error("Failed to add reaction");
-     }
-   };
+        const entity = messageType === "channel" ? base44.entities.ChatMessage : base44.entities.DirectMessage;
+        await entity.update(message.id, { reactions });
+        onReactionUpdate?.();
+        setShowPicker(false);
+      } catch (e) {
+        console.error("Reaction error:", e);
+        toast.error("Failed to add reaction");
+      }
+    };
 
   const currentReactions = message.reactions || {};
 
