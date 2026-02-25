@@ -57,15 +57,20 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
       setActiveTab('email');
     };
 
-    window.addEventListener('openContact', handleOpenContact);
-    window.addEventListener('openDialer', handleOpenDialer);
-    window.addEventListener('openEmailComposer', handleOpenEmailComposer);
-
-    return () => {
+    const cleanup = () => {
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
       window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
     };
+
+    // Remove any existing listeners first to avoid duplicates
+    cleanup();
+    
+    window.addEventListener('openContact', handleOpenContact);
+    window.addEventListener('openDialer', handleOpenDialer);
+    window.addEventListener('openEmailComposer', handleOpenEmailComposer);
+
+    return cleanup;
   }, []);
 
   // Load messages for selected rep
