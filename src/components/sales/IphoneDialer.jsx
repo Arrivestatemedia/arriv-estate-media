@@ -108,6 +108,13 @@ export default function IphoneDialer({ salesMemberId }) {
   }, [selectedConvo?.id]);
 
   useEffect(() => {
+    if (window._openDialerWithPhone) {
+      setKeypadInput(window._openDialerWithPhone);
+      window._openDialerWithPhone = null;
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
