@@ -18,6 +18,28 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
+  // Handle contact card interactions
+  useEffect(() => {
+    const handleOpenContact = (e) => {
+      setContactToEdit(e.detail);
+      setShowContactSearch(true);
+    };
+    const handleOpenDialer = (e) => {
+      window.dispatchEvent(new CustomEvent('openDialer', { detail: e.detail }));
+    };
+    const handleOpenEmail = (e) => {
+      window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: e.detail }));
+    };
+    window.addEventListener('openContactSearch', handleOpenContact);
+    window.addEventListener('openDialer', handleOpenDialer);
+    window.addEventListener('openEmailComposer', handleOpenEmail);
+    return () => {
+      window.removeEventListener('openContactSearch', handleOpenContact);
+      window.removeEventListener('openDialer', handleOpenDialer);
+      window.removeEventListener('openEmailComposer', handleOpenEmail);
+    };
+  }, []);
+
   // Load sales reps (non-admin, active users)
   useEffect(() => {
     base44.entities.SalesTeamMember.list().then(members => {
