@@ -321,6 +321,16 @@ export default function AdminActivityPage({ user }) {
           >
             <span className="flex items-center gap-1"><MessageSquare className="w-4 h-4" />Chat</span>
           </button>
+          <button
+            onClick={() => setActiveTab("calendar")}
+            className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap"
+            style={{
+              color: activeTab === "calendar" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "calendar" ? '#B8956A' : 'transparent'
+            }}
+          >
+            <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />Calendar</span>
+          </button>
         </div>
 
         {activeTab === "email" && (
