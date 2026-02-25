@@ -98,12 +98,29 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     const conversations = {};
     dms?.forEach(dm => {
       const otherId = dm.sender_id === currentUserId ? dm.recipient_id : dm.sender_id;
-      const otherName = dm.sender_id === currentUserId ? dm.recipient_name : dm.sender_name;
       if (!conversations[otherId] || new Date(dm.timestamp) > new Date(conversations[otherId].timestamp)) {
-        conversations[otherId] = { id: otherId, name: otherName, timestamp: dm.timestamp };
+        conversations[otherId] = { id: otherId, timestamp: dm.timestamp };
       }
     });
-    setDirectMessages(Object.values(conversations).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+
+    // Get current names from SalesTeamMember to ensure they're up-to-date
+    const conversationIds = Object.keys(conversations);
+    if (conversationIds.length > 0) {
+      const members = await base44.entities.SalesTeamMember.filter({
+        id: { $in: conversationIds }
+      });
+      const memberMap = {};
+      members?.forEach(m => { memberMap[m.id] = m.full_name; });
+      
+      const finalConversations = Object.entries(conversations).map(([id, conv]) => ({
+        id,
+        name: memberMap[id] || id,
+        timestamp: conv.timestamp
+      }));
+      setDirectMessages(finalConversations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    } else {
+      setDirectMessages([]);
+    }
   };
 
   const loadTeamMembers = async () => {
