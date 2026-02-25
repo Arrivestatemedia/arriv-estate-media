@@ -53,8 +53,15 @@ export default function HubSpotActivityLog() {
 
   useEffect(() => {
     const handleOpenContact = (event) => {
-      const { name } = event.detail || {};
-      window._openContactWithName = name;
+      const contact = event.detail;
+      setPrefilledContactData({
+        firstName: contact.name?.split(' ')[0] || '',
+        lastName: contact.name?.split(' ').slice(1).join(' ') || '',
+        email: contact.email || '',
+        phone: contact.phone || '',
+        company: contact.company || ''
+      });
+      setOpenNewContactForm(true);
       setActiveTab('contacts');
     };
 
