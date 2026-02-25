@@ -372,6 +372,11 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
             </Button>
           </div>
 
+          {scheduleMeetingMode && !selectedContact && (
+            <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,200,100,0.15)', borderLeft: '3px solid #B8956A', color: '#1A1A1A' }}>
+              Please search and select a contact above before scheduling a meeting.
+            </div>
+          )}
           {scheduleMeetingMode && selectedContact && (
             <div className="p-4 rounded-lg border" style={{ borderColor: 'rgba(184,149,106,0.2)', backgroundColor: 'rgba(184,149,106,0.05)' }}>
               <p className="text-sm font-medium mb-3" style={{ color: '#1A1A1A' }}>Schedule Meeting with {selectedContact.firstname}</p>
