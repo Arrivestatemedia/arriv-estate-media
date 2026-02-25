@@ -1,22 +1,20 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export default function ContactCardDisplay({ content, onOpenContact, isInThread = false }) {
+export default function ContactCardDisplay({ content, onOpenContact }) {
    const [expanded, setExpanded] = useState(false);
 
    try {
-      if (!content.startsWith("[contact]")) return null;
+     if (!content.startsWith("[contact]")) return null;
 
-      const contactJson = content.slice(9);
-      const contact = JSON.parse(contactJson);
+     const contactJson = content.slice(9);
+     const contact = JSON.parse(contactJson);
 
-      const handleNameClick = (e) => {
-        e.stopPropagation();
-        // Don't dispatch event if we're in a thread to avoid showing contact search overlay
-        if (!isInThread) {
-          window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
-        }
-      };
+     const handleNameClick = (e) => {
+       e.stopPropagation();
+       // Dispatch event to ContactSearch to open this contact
+       window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
+     };
 
      const handlePhoneClick = (e) => {
        e.stopPropagation();
