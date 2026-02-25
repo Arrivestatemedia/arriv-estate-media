@@ -342,6 +342,52 @@ export default function CalendarTab({ salesMemberId }) {
                 <label className="block text-sm font-medium mb-1">Description</label>
                 <Textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={3} />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Attendees</label>
+                <div className="space-y-2 mb-3">
+                  {editForm.attendees && editForm.attendees.map((a, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded border" style={{ borderColor: 'rgba(184,149,106,0.2)', backgroundColor: 'rgba(184,149,106,0.05)' }}>
+                      <span className="text-sm">{a.displayName || a.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditForm({
+                          ...editForm,
+                          attendees: editForm.attendees.filter((_, idx) => idx !== i)
+                        })}
+                        className="text-red-500 hover:text-red-700 text-sm font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="Add attendee email"
+                    value={editForm.newAttendeeEmail}
+                    onChange={e => setEditForm({ ...editForm, newAttendeeEmail: e.target.value })}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const email = editForm.newAttendeeEmail.trim();
+                      if (email && !editForm.attendees.some(a => a.email.toLowerCase() === email.toLowerCase())) {
+                        setEditForm({
+                          ...editForm,
+                          attendees: [...editForm.attendees, { email, displayName: '' }],
+                          newAttendeeEmail: ''
+                        });
+                      }
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setEditing(false)} disabled={saving}>Cancel</Button>
                 <Button className="flex-1" onClick={handleSaveEdit} disabled={saving} style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
