@@ -45,6 +45,7 @@ export default function AdminActivityPage({ user }) {
         const contact = JSON.parse(contactData);
         setPrefilledContactData(contact);
         setOpenNewContactForm(true);
+        setActiveTab('contacts');
         localStorage.removeItem('newContactData');
       }
     };
@@ -52,6 +53,8 @@ export default function AdminActivityPage({ user }) {
     const handleDialerCardReady = () => {
       const phone = localStorage.getItem('dialerPhone');
       if (phone) {
+        localStorage.setItem('_dialerPhone', phone);
+        localStorage.setItem('_dialerTab', 'keypad');
         setActiveTab('call');
         localStorage.removeItem('dialerPhone');
       }
@@ -60,8 +63,8 @@ export default function AdminActivityPage({ user }) {
     const handleEmailCardReady = () => {
       const email = localStorage.getItem('emailTo');
       if (email) {
+        localStorage.setItem('_emailTo', email);
         setActiveTab('email');
-        setFormData(prev => ({ ...prev, contact_email: email }));
         localStorage.removeItem('emailTo');
       }
     };
