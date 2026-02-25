@@ -20,6 +20,19 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
 
   useEffect(() => {
     loadReplies();
+
+    // Subscribe to new replies in real-time
+    const unsubscribe = base44.entities.ChatMessage.subscribe((event) => {
+      if (event.data?.parent_message_id === parentMessage.id) {
+        if (event.type === "create") {
+          setReplies(prev => [...prev, event.data]);
+        } else if (event.type === "update") {
+          setReplies(prev => prev.map(m => m.id === event.data.id ? event.data : m));
+        }
+      }
+    });
+
+    return unsubscribe;
   }, [parentMessage?.id]);
 
   const loadReplies = async () => {
