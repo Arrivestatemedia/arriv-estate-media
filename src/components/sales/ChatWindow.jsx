@@ -368,13 +368,30 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                     </span>
                   </div>
                   {renderMessageContent(msg.content)}
-                </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+                  <MessageReactions 
+                    message={msg}
+                    currentUserId={currentUserId}
+                    onReactionUpdate={() => {
+                      // Reload messages to show updated reactions
+                      setMessages(prev => [...prev]);
+                    }}
+                  />
+                  {msg.thread_reply_count > 0 && (
+                    <button
+                      onClick={() => setSelectedThread(msg)}
+                      className="text-xs text-[#B8956A] hover:underline mt-1.5 flex items-center gap-1"
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      {msg.thread_reply_count} {msg.thread_reply_count === 1 ? 'reply' : 'replies'}
+                    </button>
+                  )}
+                  </div>
+                  </div>
+                  );
+                  })
+                  )}
+                  <div ref={messagesEndRef} />
+                  </div>
 
       {/* Input */}
       <div className="border-t border-gray-200 p-3 relative">
