@@ -52,6 +52,15 @@ export default function HubSpotActivityLog() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    const handleOpenContact = () => {
+      setActiveTab('contacts');
+    };
+
+    window.addEventListener('openContact', handleOpenContact);
+    return () => window.removeEventListener('openContact', handleOpenContact);
+  }, []);
+
+  useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
     if (salesMemberId) {
       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
