@@ -517,7 +517,8 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           </div>
           )}
 
-      {/* ── SCHEDULED ── */}
+          {/* ── SCHEDULED ── */}
+
       {tab === "scheduled" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
