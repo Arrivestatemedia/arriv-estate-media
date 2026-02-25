@@ -1,43 +1,41 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export default function ContactCardDisplay({ content, onOpenContact, onContactClick, onPhoneClick, onEmailClick }) {
+export default function ContactCardDisplay({ content, onOpenContact }) {
    const [expanded, setExpanded] = useState(false);
 
    try {
-      if (!content.startsWith("[contact]")) return null;
+     if (!content.startsWith("[contact]")) return null;
 
-      const contactJson = content.slice(9);
-      const contact = JSON.parse(contactJson);
+     const contactJson = content.slice(9);
+     const contact = JSON.parse(contactJson);
 
-      const handleNameClick = () => {
-        // Dispatch event to open contact details in Contacts tab
-        window.dispatchEvent(new CustomEvent('openContactDetails', { detail: contact }));
-      };
+     const handleNameClick = (e) => {
+       e.stopPropagation();
+       // Dispatch event to ContactSearch to open this contact
+       window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
+     };
 
-      const handlePhoneClick = () => {
-        // Use callback if provided, otherwise dispatch global event
-        if (onPhoneClick) {
-          onPhoneClick(contact.phone);
-        } else {
-          window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
-        }
-      };
+     const handlePhoneClick = (e) => {
+       e.stopPropagation();
+       e.preventDefault();
+       // Dispatch event to navigate to dialer with phone prefilled
+       window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
+     };
 
-      const handleEmailClick = () => {
-        // Use callback if provided, otherwise dispatch global event
-        if (onEmailClick) {
-          onEmailClick(contact.email);
-        } else {
-          window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
-        }
-      };
+     const handleEmailClick = (e) => {
+       e.stopPropagation();
+       e.preventDefault();
+       // Dispatch event to navigate to email with recipient prefilled
+       window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
+     };
 
      return (
-       <div className="mt-2 bg-gradient-to-br from-[#B8956A]/10 to-[#B8956A]/5 border border-[#B8956A]/20 rounded-lg p-3 cursor-pointer hover:border-[#B8956A]/40 transition-all">
-         <div className="flex items-start justify-between" onClick={() => setExpanded(!expanded)}>
+       <div className="mt-2 bg-gradient-to-br from-[#B8956A]/10 to-[#B8956A]/5 border border-[#B8956A]/20 rounded-lg p-3 cursor-pointer hover:border-[#B8956A]/40 transition-all"
+         onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}>
+         <div className="flex items-start justify-between">
            <div className="flex-1">
-             <h4 className="font-semibold text-gray-900 text-sm hover:text-[#B8956A] transition-colors cursor-pointer" onClick={handleNameClick}>{contact.name}</h4>
+             <h4 className="font-semibold text-gray-900 text-sm hover:text-[#B8956A] transition-colors" onClick={handleNameClick}>{contact.name}</h4>
             {contact.company && (
               <p className="text-xs text-gray-600 mt-0.5">{contact.company}</p>
             )}

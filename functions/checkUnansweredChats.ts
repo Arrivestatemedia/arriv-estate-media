@@ -18,11 +18,11 @@ Deno.serve(async (req) => {
     let emailsSent = 0;
 
     // --- Check Direct Messages ---
-    // Find DMs older than 2.5 min that have not been replied to and haven't been notified yet
+    // Find DMs older than 2.5 min that have not been replied to
     const allDMs = await base44.asServiceRole.entities.DirectMessage.filter({ read: false });
     const unreadOldDMs = allDMs.filter(dm => {
       const ts = dm.timestamp || dm.created_date;
-      return ts && new Date(ts).toISOString() < cutoff && !dm.unanswered_reminder_sent_at;
+      return ts && new Date(ts).toISOString() < cutoff;
     });
 
     // Group by recipient
@@ -58,11 +58,6 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ raw: encodedMessage })
       });
       
-      // Mark that reminder was sent for these DMs
-      for (const dm of dms) {
-        await base44.asServiceRole.entities.DirectMessage.update(dm.id, { unanswered_reminder_sent_at: new Date().toISOString() });
-      }
-      
       emailsSent++;
     }
 
@@ -74,43 +69,36 @@ Deno.serve(async (req) => {
 
       const lastMsg = recentMsgs[0];
       const ts = lastMsg.timestamp || lastMsg.created_date;
-      if (!ts || new Date(ts).toISOString() >= cutoff || lastMsg.unanswered_reminder_sent_at) continue;
+      if (!ts || new Date(ts).toISOString() >= cutoff) continue;
 
       // Check if there's a reply from someone else after the last message
       const hasReply = recentMsgs.some(m => m.sender_id !== lastMsg.sender_id && (m.timestamp || m.created_date) > ts);
       if (hasReply) continue;
 
-      // No reply — notify other channel members (not the sender)
+      // No reply — only email the sender
+      const sender = memberMap[lastMsg.sender_id];
+      if (!sender) continue;
+
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-      for (const memberId of channel.members || []) {
-        if (memberId === lastMsg.sender_id) continue; // Skip the sender
-        
-        const member = memberMap[memberId];
-        if (!member) continue;
+      const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      };
 
-        const headers = {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        };
+      const emailBody = `Hi ${sender.full_name},\n\nYour message in #${channel.name} hasn't received a reply in over 2.5 minutes.\n\nMessage: "${lastMsg.content}"\n\nYou may want to follow up.\n\n– Arriv Team`;
 
-        const emailBody = `Hi ${member.full_name},\n\n${lastMsg.sender_name} sent a message in #${channel.name} over 2.5 minutes ago that hasn't been addressed.\n\nMessage: "${lastMsg.content}"\n\nPlease review and respond if needed.\n\n– Arriv Team`;
+      const message = `To: ${sender.email}\nSubject: No response yet in #${channel.name}\n\n${emailBody}`;
+      const utf8Bytes = new TextEncoder().encode(message);
+      const encodedMessage = btoa(String.fromCharCode(...utf8Bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-        const message = `To: ${member.email}\nSubject: Unanswered message in #${channel.name} from ${lastMsg.sender_name}\n\n${emailBody}`;
-        const utf8Bytes = new TextEncoder().encode(message);
-        const encodedMessage = btoa(String.fromCharCode(...utf8Bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ raw: encodedMessage })
+      });
 
-        await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ raw: encodedMessage })
-        });
-
-        emailsSent++;
-      }
-
-      // Mark that reminder was sent for this message
-      await base44.asServiceRole.entities.ChatMessage.update(lastMsg.id, { unanswered_reminder_sent_at: new Date().toISOString() });
+      emailsSent++;
     }
 
     return Response.json({ success: true, emailsSent });
