@@ -22,12 +22,12 @@ export default function CalendarTab({ salesMemberId }) {
     if (salesMember) loadEvents();
   }, [salesMember]);
 
-  const loadEvents = async () => {
+  const loadEvents = async (memberOverride) => {
+    const member = memberOverride || salesMember;
+    const userEmail = member?.company_email || member?.email;
     setLoading(true);
     try {
-      const res = await base44.functions.invoke('getCalendarEvents', {
-        userEmail: salesMember?.company_email || salesMember?.email
-      });
+      const res = await base44.functions.invoke('getCalendarEvents', { userEmail });
       setEvents(res.data?.events || []);
     } catch (e) {
       console.error(e);
