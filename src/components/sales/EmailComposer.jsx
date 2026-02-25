@@ -54,7 +54,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   }, [tab]);
 
   useEffect(() => {
-    if (!salesMemberId) return;
+    if (!salesMemberId || !salesMember?.company_email) return;
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
@@ -83,11 +83,13 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           }
         }
         lastInboxCountRef.current = threads.length;
-      } catch (e) {}
+      } catch (e) {
+        // Silently ignore polling errors - don't crash the component
+      }
     };
     const interval = setInterval(checkInbox, 60000);
     return () => clearInterval(interval);
-  }, [salesMemberId, fromEmail, salesMember]);
+  }, [salesMemberId, fromEmail, salesMember?.company_email]);
 
   const loadScheduledEmails = async () => {
     setLoadingScheduled(true);
