@@ -20,42 +20,50 @@ Deno.serve(async (req) => {
     // Get Google Calendar access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
     
-    // Build attendees list: clients + info@arrivestatemedia.com
+    // Build attendees list: clients + sales rep + info@arrivestatemedia.com
     const attendees = (clientEmails || []).map(email => ({
       email: email,
       responseStatus: 'needsAction'
     }));
+
+    // Add the sales rep as an attendee so they appear on the invite
+    if (salesRepCompanyEmail) {
+      attendees.push({
+        email: salesRepCompanyEmail,
+        responseStatus: 'accepted'
+      });
+    }
     
-    // Add info@arrivestatemedia.com as CC
+    // Add info@arrivestatemedia.com as optional
     attendees.push({
       email: 'info@arrivestatemedia.com',
       responseStatus: 'accepted',
       optional: true
     });
     
-    // Create calendar event from sales rep's email
     const event = {
       summary: title,
       description: description || '',
       start: {
         dateTime: startTime,
-        timeZone: 'UTC'
+        timeZone: 'America/New_York'
       },
       end: {
         dateTime: endTime,
-        timeZone: 'UTC'
+        timeZone: 'America/New_York'
       },
-      organizer: salesRepCompanyEmail ? { email: salesRepCompanyEmail } : undefined,
       attendees: attendees,
+      guestsCanInviteOthers: false,
       conferenceData: {
-        conferenceSolution: {
-          key: { conferenceSolutionKey: 'hangoutsMeet' }
+        createRequest: {
+          requestId: `meet-${Date.now()}`,
+          conferenceSolutionKey: { type: 'hangoutsMeet' }
         }
       }
     };
 
     const calResponse = await fetch(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1',
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all',
       {
         method: 'POST',
         headers: {
