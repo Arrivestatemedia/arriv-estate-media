@@ -16,6 +16,7 @@ import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+import CalendarTab from "@/components/sales/CalendarTab";
 
 export default function AdminActivityPage({ user }) {
   const [activeTab, setActiveTab] = useState("activity");
