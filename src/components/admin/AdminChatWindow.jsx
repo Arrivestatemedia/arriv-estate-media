@@ -189,6 +189,76 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     sendMessageMutation.mutate(messageText);
   };
 
+  if (activeTab === 'contacts') {
+    return (
+      <div className="flex-1 flex flex-col">
+        <div className="border-b p-3 flex items-center gap-2">
+          <button
+            onClick={() => {
+              setActiveTab(null);
+              setOpenNewContactForm(false);
+              setPrefilledContactData(null);
+            }}
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <p className="text-sm font-medium ml-2" style={{ color: '#1A1A1A' }}>Contacts</p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <ContactSearch
+            salesMemberId={currentUserId}
+            openNewContactForm={openNewContactForm}
+            setOpenNewContactForm={setOpenNewContactForm}
+            prefilledData={prefilledContactData}
+            onFormClosed={() => {
+              setPrefilledContactData(null);
+              setActiveTab(null);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTab === 'email') {
+    return (
+      <div className="flex-1 flex flex-col">
+        <div className="border-b p-3 flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab(null)}
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <p className="text-sm font-medium ml-2" style={{ color: '#1A1A1A' }}>Send Email</p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <EmailComposer salesMemberId={currentUserId} isAdmin={true} />
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTab === 'dialer') {
+    return (
+      <div className="flex-1 flex flex-col">
+        <div className="border-b p-3 flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab(null)}
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <p className="text-sm font-medium ml-2" style={{ color: '#1A1A1A' }}>Dialer</p>
+        </div>
+        <div className="flex-1 overflow-y-auto" style={{ height: '500px' }}>
+          <IphoneDialer salesMemberId={currentUserId} />
+        </div>
+      </div>
+    );
+  }
+
   if (!selectedRepId) {
     return (
       <div className="flex-1 overflow-y-auto p-4">
