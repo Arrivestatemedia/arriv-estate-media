@@ -186,8 +186,8 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
       </div>
 
       {/* Reply Input */}
-      <div className="border-t border-gray-200 p-3 bg-white">
-        <form onSubmit={handleSendReply} className="flex gap-2 items-center">
+      <div className="border-t border-gray-200 p-3 bg-white" onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSendReply} className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
           <Input
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
