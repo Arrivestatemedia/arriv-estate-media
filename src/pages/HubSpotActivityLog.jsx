@@ -58,20 +58,14 @@ export default function HubSpotActivityLog() {
 
     const handleOpenDialer = (event) => {
       const { phone } = event.detail;
+      window._openDialerWithPhone = phone;
       setActiveTab('call');
-      // Delay to ensure tab switches before setting keypad
-      setTimeout(() => {
-        window._openDialerWithPhone = phone;
-      }, 100);
     };
 
     const handleOpenEmailComposer = (event) => {
       const { email } = event.detail;
+      window._openEmailComposerWithEmail = email;
       setActiveTab('email');
-      // Delay to ensure tab switches before setting email
-      setTimeout(() => {
-        window._openEmailComposerWithEmail = email;
-      }, 100);
     };
 
     window.addEventListener('openContact', handleOpenContact);
