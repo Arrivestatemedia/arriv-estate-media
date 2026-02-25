@@ -102,8 +102,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       setContactToEdit(e.detail);
       setShowContactSearch(true);
     };
-    window.addEventListener('openContact', handleOpenContact);
-    return () => window.removeEventListener('openContact', handleOpenContact);
+    window.addEventListener('openContactSearch', handleOpenContact);
+    return () => window.removeEventListener('openContactSearch', handleOpenContact);
   }, []);
 
   useEffect(() => {
