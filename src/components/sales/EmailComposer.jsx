@@ -346,6 +346,45 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: '#1A1A1A' }}>To</label>
             <Input type="email" placeholder="recipient@example.com" value={formData.to} onChange={e => setFormData(f => ({ ...f, to: e.target.value }))} />
+            <div className="flex gap-2 mt-2">
+              <Input
+                type="email"
+                placeholder="Add another recipient..."
+                value={extraRecipientInput}
+                onChange={e => setExtraRecipientInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && extraRecipientInput.trim()) {
+                    setExtraRecipients(prev => [...prev, extraRecipientInput.trim()]);
+                    setExtraRecipientInput("");
+                  }
+                }}
+                className="text-sm flex-1"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (extraRecipientInput.trim()) {
+                    setExtraRecipients(prev => [...prev, extraRecipientInput.trim()]);
+                    setExtraRecipientInput("");
+                  }
+                }}
+                style={{ borderColor: '#B8956A', color: '#B8956A' }}
+              >
+                Add
+              </Button>
+            </div>
+            {extraRecipients.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {extraRecipients.map((email, idx) => (
+                  <span key={idx} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#1A1A1A' }}>
+                    {email}
+                    <button onClick={() => setExtraRecipients(prev => prev.filter((_, i) => i !== idx))} className="ml-1 hover:text-red-500">×</button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
