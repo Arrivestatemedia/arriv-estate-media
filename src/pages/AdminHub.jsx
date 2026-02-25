@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
