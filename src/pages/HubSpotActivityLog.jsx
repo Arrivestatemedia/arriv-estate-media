@@ -457,6 +457,14 @@ export default function HubSpotActivityLog() {
           <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
         )}
 
+        {activeTab === "calendar" && (
+          <Card style={{ backgroundColor: '#FFFFFF' }}>
+            <CardContent className="pt-6">
+              <CalendarTab salesMemberId={user?.id} />
+            </CardContent>
+          </Card>
+        )}
+
         {activeTab === "chat" && (
           <ChatTab currentUserId={user?.id} currentUserName={user?.full_name} />
         )}
