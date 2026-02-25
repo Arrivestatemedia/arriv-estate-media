@@ -260,15 +260,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
                       color: msg.sender_id === currentUserId ? '#FFFBF5' : '#1A1A1A'
                     }}
                  >
-                   {msg.content.startsWith("[contact]") ? (
-                     <ContactCardDisplay 
-                       content={msg.content} 
-                       onContactClick={(contact) => {
-                         setContactToEdit(contact);
-                         setShowContactSearch(true);
-                       }}
-                     />
-                   ) : renderMessageContent(msg.content)}
+                   {renderMessageContent(msg.content)}
                  </div>
                 <p className="text-xs text-gray-400 mt-1">
                   {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
