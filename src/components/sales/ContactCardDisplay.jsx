@@ -4,31 +4,32 @@ import { ChevronDown } from "lucide-react";
 export default function ContactCardDisplay({ content, onOpenContact }) {
    const [expanded, setExpanded] = useState(false);
 
+   if (!content.startsWith("[contact]")) return null;
+
+   const contactJson = content.slice(9);
+   let contact;
    try {
-     if (!content.startsWith("[contact]")) return null;
+     contact = JSON.parse(contactJson);
+   } catch (e) {
+     return null;
+   }
 
-     const contactJson = content.slice(9);
-     const contact = JSON.parse(contactJson);
+   const handleNameClick = (e) => {
+     e.stopPropagation();
+     window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
+   };
 
-     const handleNameClick = (e) => {
-       e.stopPropagation();
-       // Dispatch event to ContactSearch to open this contact
-       window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
-     };
+   const handlePhoneClick = (e) => {
+     e.stopPropagation();
+     e.preventDefault();
+     window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
+   };
 
-     const handlePhoneClick = (e) => {
-       e.stopPropagation();
-       e.preventDefault();
-       // Dispatch event to navigate to dialer with phone prefilled
-       window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
-     };
-
-     const handleEmailClick = (e) => {
-       e.stopPropagation();
-       e.preventDefault();
-       // Dispatch event to navigate to email with recipient prefilled
-       window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
-     };
+   const handleEmailClick = (e) => {
+     e.stopPropagation();
+     e.preventDefault();
+     window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
+   };
 
      return (
        <div className="mt-2 bg-gradient-to-br from-[#B8956A]/10 to-[#B8956A]/5 border border-[#B8956A]/20 rounded-lg p-3 cursor-pointer hover:border-[#B8956A]/40 transition-all"
