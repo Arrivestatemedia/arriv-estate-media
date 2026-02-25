@@ -77,6 +77,8 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
           timestamp: new Date().toISOString(),
           reactions: {}
         });
+        // Update parent message reply count immediately
+        await base44.entities.ChatMessage.update(parentMessage.id, { thread_reply_count: (parentMessage.thread_reply_count || 0) + 1 });
       } else if (chatType === "dm") {
         await base44.entities.DirectMessage.create({
           sender_id: currentUserId,
@@ -88,14 +90,11 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
           timestamp: new Date().toISOString(),
           reactions: {}
         });
+        // Update parent message reply count immediately
+        await base44.entities.DirectMessage.update(parentMessage.id, { thread_reply_count: (parentMessage.thread_reply_count || 0) + 1 });
       }
       setReplyText("");
       await loadReplies();
-      if (chatType === "channel") {
-        await base44.entities.ChatMessage.update(parentMessage.id, { thread_reply_count: (parentMessage.thread_reply_count || 0) + 1 });
-      } else if (chatType === "dm") {
-        await base44.entities.DirectMessage.update(parentMessage.id, { thread_reply_count: (parentMessage.thread_reply_count || 0) + 1 });
-      }
     } catch (e) {
       console.error(e);
     } finally {
