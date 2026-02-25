@@ -9,8 +9,8 @@ import TwilioSdkLoader from "@/components/TwilioSdkLoader";
 import NewJobsBadge from "@/components/layout/NewJobsBadge";
 import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
-      import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
-      import TrackLink from "@/pages/TrackLink";
+import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
+import TrackLink from "@/pages/TrackLink";
 
       export default function Layout({ children, currentPageName }) {
   const location = useLocation();
