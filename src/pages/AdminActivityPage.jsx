@@ -37,45 +37,7 @@ export default function AdminActivityPage({ user }) {
   const [openNewContactForm, setOpenNewContactForm] = useState(false);
   const [prefilledContactData, setPrefilledContactData] = useState(null);
 
-  // Handle contact card interactions from AdminHub
-  useEffect(() => {
-    const handleContactCardReady = () => {
-      const contactData = localStorage.getItem('newContactData');
-      if (contactData) {
-        const contact = JSON.parse(contactData);
-        setPrefilledContactData(contact);
-        setOpenNewContactForm(true);
-        localStorage.removeItem('newContactData');
-      }
-    };
 
-    const handleDialerCardReady = () => {
-      const phone = localStorage.getItem('dialerPhone');
-      if (phone) {
-        setActiveTab('call');
-        localStorage.removeItem('dialerPhone');
-      }
-    };
-
-    const handleEmailCardReady = () => {
-      const email = localStorage.getItem('emailTo');
-      if (email) {
-        setActiveTab('email');
-        setFormData(prev => ({ ...prev, contact_email: email }));
-        localStorage.removeItem('emailTo');
-      }
-    };
-
-    window.addEventListener('contactCardReady', handleContactCardReady);
-    window.addEventListener('dialerCardReady', handleDialerCardReady);
-    window.addEventListener('emailCardReady', handleEmailCardReady);
-
-    return () => {
-      window.removeEventListener('contactCardReady', handleContactCardReady);
-      window.removeEventListener('dialerCardReady', handleDialerCardReady);
-      window.removeEventListener('emailCardReady', handleEmailCardReady);
-    };
-  }, []);
 
   const queryClient = useQueryClient();
 
