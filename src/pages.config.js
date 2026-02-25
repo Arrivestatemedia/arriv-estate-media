@@ -70,6 +70,7 @@ import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import ForgotEmail from './pages/ForgotEmail';
 import ForgotPassword from './pages/ForgotPassword';
+import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import JobApplication from './pages/JobApplication';
 import JobBoard from './pages/JobBoard';
 import ManualClosingInvoice from './pages/ManualClosingInvoice';
@@ -91,7 +92,6 @@ import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import __Layout from './Layout.jsx';
 
 
@@ -119,6 +119,7 @@ export const PAGES = {
     "DeleteAccountRequest": DeleteAccountRequest,
     "ForgotEmail": ForgotEmail,
     "ForgotPassword": ForgotPassword,
+    "HubSpotActivityLog": HubSpotActivityLog,
     "JobApplication": JobApplication,
     "JobBoard": JobBoard,
     "ManualClosingInvoice": ManualClosingInvoice,
@@ -140,7 +141,6 @@ export const PAGES = {
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "HubSpotActivityLog": HubSpotActivityLog,
 }
 
 export const pagesConfig = {
