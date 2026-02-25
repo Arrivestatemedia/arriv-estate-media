@@ -128,24 +128,33 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       ? base44.entities.ChatMessage.subscribe((event) => {
           if (event.data?.channel_id === chatId) {
             if (event.type === "create") {
-              setMessages(prev => {
-                const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
-                return [...withoutOptimistic, event.data];
-              });
-              if (event.data?.sender_id !== currentUserId) {
-                playDing();
-                toast.message(`#${chatName}`, {
-                  description: `${event.data?.sender_name}: ${event.data?.content}`,
+              // Only show main messages in channel (filter out thread replies)
+              if (!event.data?.parent_message_id) {
+                setMessages(prev => {
+                  const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
+                  return [...withoutOptimistic, event.data];
                 });
-                if (Notification.permission === "granted") {
-                  try {
-                    new Notification(`#${chatName}`, {
-                      body: `${event.data?.sender_name}: ${event.data?.content}`,
-                      icon: "/favicon.ico",
-                      tag: `channel-${chatId}`
-                    });
-                  } catch (e) {}
+                if (event.data?.sender_id !== currentUserId) {
+                  playDing();
+                  toast.message(`#${chatName}`, {
+                    description: `${event.data?.sender_name}: ${event.data?.content}`,
+                  });
+                  if (Notification.permission === "granted") {
+                    try {
+                      new Notification(`#${chatName}`, {
+                        body: `${event.data?.sender_name}: ${event.data?.content}`,
+                        icon: "/favicon.ico",
+                        tag: `channel-${chatId}`
+                      });
+                    } catch (e) {}
+                  }
                 }
+              }
+            } else if (event.type === "update") {
+              // Update reactions on messages
+              setMessages(prev => prev.map(m => m.id === event.data.id ? event.data : m));
+              if (selectedThread?.id === event.data.id) {
+                setSelectedThread(event.data);
               }
             }
           }
