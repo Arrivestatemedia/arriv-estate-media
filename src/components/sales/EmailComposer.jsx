@@ -402,11 +402,53 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
                   <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Description (optional)</label>
                   <Textarea placeholder="Meeting details..." value={meetingData.description} onChange={e => setMeetingData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="text-sm" />
                 </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Add More Attendees</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="attendee@email.com"
+                      value={extraAttendeeEmail}
+                      onChange={e => setExtraAttendeeEmail(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && extraAttendeeEmail.trim()) {
+                          setMeetingAttendees(prev => [...prev, extraAttendeeEmail.trim()]);
+                          setExtraAttendeeEmail("");
+                        }
+                      }}
+                      className="text-sm flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (extraAttendeeEmail.trim()) {
+                          setMeetingAttendees(prev => [...prev, extraAttendeeEmail.trim()]);
+                          setExtraAttendeeEmail("");
+                        }
+                      }}
+                      style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {meetingAttendees.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {meetingAttendees.map((email, idx) => (
+                        <span key={idx} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#1A1A1A' }}>
+                          {email}
+                          <button onClick={() => setMeetingAttendees(prev => prev.filter((_, i) => i !== idx))} className="ml-1 hover:text-red-500">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-2">
                   <Button onClick={handleScheduleMeeting} disabled={invitingClients} className="flex-1" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
                     {invitingClients ? "Sending..." : "Send Invite"}
                   </Button>
-                  <Button onClick={() => setScheduleMeetingMode(false)} variant="outline" className="flex-1" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+                  <Button onClick={() => { setScheduleMeetingMode(false); setMeetingAttendees([]); setExtraAttendeeEmail(""); }} variant="outline" className="flex-1" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
                     Cancel
                   </Button>
                 </div>
