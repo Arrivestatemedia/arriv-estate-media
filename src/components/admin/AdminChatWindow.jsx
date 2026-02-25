@@ -150,22 +150,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     sendMessageMutation.mutate(messageText);
   };
 
-  // Handle contact card interactions
-  useEffect(() => {
-    const handleOpenContact = (e) => {
-      console.log('openContact event received:', e.detail);
-      setContactToEdit(e.detail);
-      setShowContactSearch(true);
-    };
-    window.addEventListener('openContact', handleOpenContact);
-    return () => window.removeEventListener('openContact', handleOpenContact);
-  }, []);
 
-  const handleContactClick = (contact) => {
-    console.log('Contact clicked:', contact);
-    setContactToEdit(contact);
-    setShowContactSearch(true);
-  };
 
   const renderMessageContent = (content) => {
     if (!content) return null;
