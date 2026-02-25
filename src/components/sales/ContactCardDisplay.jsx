@@ -11,12 +11,8 @@ export default function ContactCardDisplay({ content, onOpenContact, onContactCl
       const contact = JSON.parse(contactJson);
 
       const handleNameClick = () => {
-        // Use callback if provided, otherwise dispatch global event
-        if (onContactClick) {
-          onContactClick(contact);
-        } else {
-          window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
-        }
+        // Dispatch event to open contact details in Contacts tab
+        window.dispatchEvent(new CustomEvent('openContactDetails', { detail: contact }));
       };
 
       const handlePhoneClick = () => {
