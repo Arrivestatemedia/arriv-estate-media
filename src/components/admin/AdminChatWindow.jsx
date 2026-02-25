@@ -314,14 +314,18 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
                   <p className="text-xs text-gray-500 mb-1">{msg.sender_name}</p>
                 )}
                 <div
-                  className={`max-w-xs px-4 py-2 rounded-lg text-sm ${msg.auto_response ? 'italic opacity-75' : ''}`}
-                  style={{
-                    backgroundColor: msg.sender_id === currentUserId ? '#B8956A' : '#E5E7EB',
-                    color: msg.sender_id === currentUserId ? '#FFFBF5' : '#1A1A1A'
-                  }}
-                >
-                  {msg.content}
-                </div>
+                   className={`max-w-xs px-4 py-2 rounded-lg text-sm ${msg.auto_response ? 'italic opacity-75' : ''}`}
+                   style={{
+                     backgroundColor: msg.sender_id === currentUserId ? '#B8956A' : '#E5E7EB',
+                     color: msg.sender_id === currentUserId ? '#FFFBF5' : '#1A1A1A'
+                   }}
+                 >
+                   {msg.content?.startsWith('[contact]') ? (
+                     <ContactCardDisplay content={msg.content} />
+                   ) : (
+                     msg.content
+                   )}
+                 </div>
                 <p className="text-xs text-gray-400 mt-1">
                   {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
                 </p>
