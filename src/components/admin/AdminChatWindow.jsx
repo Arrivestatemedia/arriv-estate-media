@@ -255,11 +255,19 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
                 <div
                    className={`max-w-xs px-4 py-2 rounded-lg text-sm ${msg.auto_response ? 'italic opacity-75' : ''}`}
                    style={{
-                     backgroundColor: msg.sender_id === currentUserId ? '#B8956A' : '#E5E7EB',
-                     color: msg.sender_id === currentUserId ? '#FFFBF5' : '#1A1A1A'
-                   }}
+                      backgroundColor: msg.sender_id === currentUserId ? '#B8956A' : '#E5E7EB',
+                      color: msg.sender_id === currentUserId ? '#FFFBF5' : '#1A1A1A'
+                    }}
                  >
-                   {renderMessageContent(msg.content)}
+                   {msg.content.startsWith("[contact]") ? (
+                     <ContactCardDisplay 
+                       content={msg.content} 
+                       onContactClick={(contact) => {
+                         setContactToEdit(contact);
+                         setShowContactSearch(true);
+                       }}
+                     />
+                   ) : renderMessageContent(msg.content)}
                  </div>
                 <p className="text-xs text-gray-400 mt-1">
                   {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
