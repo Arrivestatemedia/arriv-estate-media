@@ -42,14 +42,14 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
       if (chatType === "channel") {
         const msgs = await base44.entities.ChatMessage.filter(
           { parent_message_id: parentMessage.id },
-          "timestamp",
+          "-timestamp",
           100
         );
         setReplies(msgs);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
           { parent_message_id: parentMessage.id },
-          "timestamp",
+          "-timestamp",
           100
         );
         setReplies(msgs);
