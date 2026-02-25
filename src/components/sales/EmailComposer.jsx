@@ -71,7 +71,12 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   }, [tab, salesMember]);
 
   useEffect(() => {
-    if (window._openEmailComposerWithEmail) {
+    const emailTo = localStorage.getItem('_emailTo');
+    if (emailTo) {
+      setFormData(f => ({ ...f, to: emailTo }));
+      setTab("compose");
+      localStorage.removeItem('_emailTo');
+    } else if (window._openEmailComposerWithEmail) {
       setFormData(f => ({ ...f, to: window._openEmailComposerWithEmail }));
       setTab("compose");
       window._openEmailComposerWithEmail = null;
