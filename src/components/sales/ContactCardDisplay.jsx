@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export default function ContactCardDisplay({ content, onOpenContact, onContactClick }) {
+export default function ContactCardDisplay({ content, onOpenContact, onContactClick, onPhoneClick, onEmailClick }) {
    const [expanded, setExpanded] = useState(false);
 
    try {
@@ -20,19 +20,27 @@ export default function ContactCardDisplay({ content, onOpenContact, onContactCl
         }
       };
 
-     const handlePhoneClick = (e) => {
-       e.stopPropagation();
-       e.preventDefault();
-       // Dispatch event to navigate to dialer with phone prefilled
-       window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
-     };
+      const handlePhoneClick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        // Use callback if provided, otherwise dispatch global event
+        if (onPhoneClick) {
+          onPhoneClick(contact.phone);
+        } else {
+          window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
+        }
+      };
 
-     const handleEmailClick = (e) => {
-       e.stopPropagation();
-       e.preventDefault();
-       // Dispatch event to navigate to email with recipient prefilled
-       window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
-     };
+      const handleEmailClick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        // Use callback if provided, otherwise dispatch global event
+        if (onEmailClick) {
+          onEmailClick(contact.email);
+        } else {
+          window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
+        }
+      };
 
      return (
        <div className="mt-2 bg-gradient-to-br from-[#B8956A]/10 to-[#B8956A]/5 border border-[#B8956A]/20 rounded-lg p-3 cursor-pointer hover:border-[#B8956A]/40 transition-all"
