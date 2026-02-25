@@ -107,12 +107,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return () => window.removeEventListener('openContact', handleOpenContact);
   }, []);
 
-  const handleContactClick = (contact) => {
-    console.log('Contact clicked in ChatWindow:', contact);
-    setContactToEdit(contact);
-    setShowContactSearch(true);
-  };
-
   useEffect(() => {
     if (!chatId) return;
 
