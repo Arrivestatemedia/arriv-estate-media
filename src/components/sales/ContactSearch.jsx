@@ -85,22 +85,32 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
          lead_status: ''
        }]);
        setShowNewForm(false);
-       setTimeout(() => {
-         setExpandedId(contact.id);
-         setEditFields({
-           firstname: contact.name?.split(' ')[0] || '',
-           lastname: contact.name?.split(' ').slice(1).join(' ') || '',
-           email: contact.email || '',
-           phone: contact.phone || '',
-           company: contact.company || '',
-           jobtitle: '',
-           hs_lead_status: ''
-         });
-       }, 0);
+       setExpandedId(contact.id);
+       setEditFields({
+         firstname: contact.name?.split(' ')[0] || '',
+         lastname: contact.name?.split(' ').slice(1).join(' ') || '',
+         email: contact.email || '',
+         phone: contact.phone || '',
+         company: contact.company || '',
+         jobtitle: '',
+         hs_lead_status: ''
+       });
      };
 
      window.addEventListener('openContact', handleOpenContact);
      return () => window.removeEventListener('openContact', handleOpenContact);
+   }, []);
+
+   React.useEffect(() => {
+     if (window._openContactWithName) {
+       setShowNewForm(true);
+       setNewContact(prev => ({
+         ...prev,
+         firstname: window._openContactWithName?.split(' ')[0] || '',
+         lastname: window._openContactWithName?.split(' ').slice(1).join(' ') || ''
+       }));
+       window._openContactWithName = null;
+     }
    }, []);
 
   const handleDelete = async (contactId) => {
