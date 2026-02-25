@@ -24,20 +24,8 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
       setContactToEdit(e.detail);
       setShowContactSearch(true);
     };
-    const handleOpenDialer = (e) => {
-      window.dispatchEvent(new CustomEvent('openDialer', { detail: e.detail }));
-    };
-    const handleOpenEmail = (e) => {
-      window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: e.detail }));
-    };
-    window.addEventListener('openContact', handleOpenContact);
-    window.addEventListener('openDialer', handleOpenDialer);
-    window.addEventListener('openEmailComposer', handleOpenEmail);
-    return () => {
-      window.removeEventListener('openContact', handleOpenContact);
-      window.removeEventListener('openDialer', handleOpenDialer);
-      window.removeEventListener('openEmailComposer', handleOpenEmail);
-    };
+    window.addEventListener('openContactSearch', handleOpenContact);
+    return () => window.removeEventListener('openContactSearch', handleOpenContact);
   }, []);
 
   // Load sales reps (non-admin, active users)
