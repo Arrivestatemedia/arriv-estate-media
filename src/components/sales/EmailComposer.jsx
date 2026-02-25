@@ -71,6 +71,14 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   }, [tab, salesMember]);
 
   useEffect(() => {
+    if (window._openEmailComposerWithEmail) {
+      setFormData(f => ({ ...f, to: window._openEmailComposerWithEmail }));
+      setTab("compose");
+      window._openEmailComposerWithEmail = null;
+    }
+  }, []);
+
+  useEffect(() => {
     if (!salesMemberId || !salesMember?.company_email) return;
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
