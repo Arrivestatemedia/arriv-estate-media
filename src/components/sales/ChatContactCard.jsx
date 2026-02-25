@@ -124,16 +124,18 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
             <div className="p-4">
               <div className="mb-3 pb-3 border-b">
                 <h3 className="font-semibold text-gray-900">
-                  {selectedContact.properties?.firstname ? `${selectedContact.properties.firstname} ${selectedContact.properties.lastname || ''}`.trim() : selectedContact.properties?.email}
+                  {selectedContact.firstname || selectedContact.lastname 
+                    ? `${selectedContact.firstname || ''} ${selectedContact.lastname || ''}`.trim()
+                    : selectedContact.email}
                 </h3>
-                {selectedContact.properties?.email && (
-                  <p className="text-sm text-gray-600">{selectedContact.properties.email}</p>
+                {selectedContact.email && (
+                  <p className="text-sm text-gray-600">{selectedContact.email}</p>
                 )}
-                {selectedContact.properties?.company && (
-                  <p className="text-xs text-gray-500">{selectedContact.properties.company}</p>
+                {selectedContact.company && (
+                  <p className="text-xs text-gray-500">{selectedContact.company}</p>
                 )}
-                {selectedContact.properties?.phone && (
-                  <p className="text-xs text-gray-500">{selectedContact.properties.phone}</p>
+                {selectedContact.phone && (
+                  <p className="text-xs text-gray-500">{selectedContact.phone}</p>
                 )}
               </div>
               <div className="flex gap-2">
