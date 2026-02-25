@@ -41,7 +41,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
         setSalesMember(adminUser);
       }).catch(() => {});
     } else if (salesMemberId) {
-      base44.entities.SalesTeamMember.read(salesMemberId).then(member => {
+      base44.entities.SalesTeamMember.get(salesMemberId).then(member => {
         setSalesMember(member);
         if (member?.company_email) setFromEmail(member.company_email);
       }).catch(() => {});
