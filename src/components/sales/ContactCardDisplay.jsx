@@ -12,7 +12,8 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
 
      const handleNameClick = (e) => {
        e.stopPropagation();
-       onOpenContact?.(contact);
+       // Navigate to Contacts tab instead
+       window.location.href = `${window.location.origin}${window.location.pathname}#contacts`;
      };
 
      return (
