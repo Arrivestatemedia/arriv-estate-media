@@ -41,17 +41,6 @@ export default function ContactCardDisplay({ content }) {
                 </a>
               </div>
             )}
-            {contact.hubspot_url && (
-              <a
-                href={contact.hubspot_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-[#B8956A] hover:underline mt-2"
-              >
-                View in HubSpot
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
           </div>
         )}
       </div>
