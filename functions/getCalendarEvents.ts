@@ -24,14 +24,19 @@ Deno.serve(async (req) => {
     const data = await res.json();
     let events = data.items || [];
 
+    console.log(`[getCalendarEvents] Total events: ${events.length}, filtering for userEmail: ${userEmail}`);
+
     // Filter to events where the user email is an attendee or organizer
     if (userEmail) {
+      const emailLower = userEmail.toLowerCase();
       events = events.filter(event => {
-        const isOrganizer = event.organizer?.email === userEmail;
-        const isAttendee = event.attendees?.some(a => a.email === userEmail);
+        const isOrganizer = event.organizer?.email?.toLowerCase() === emailLower;
+        const isAttendee = event.attendees?.some(a => a.email?.toLowerCase() === emailLower);
         return isOrganizer || isAttendee;
       });
     }
+
+    console.log(`[getCalendarEvents] Filtered events: ${events.length}`);
 
     return Response.json({ events });
   } catch (error) {
