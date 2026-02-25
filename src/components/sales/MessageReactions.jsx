@@ -22,6 +22,12 @@ export default function MessageReactions({ message, currentUserId, onReactionUpd
         }
 
         const entity = messageType === "channel" ? base44.entities.ChatMessage : base44.entities.DirectMessage;
+        if (messageType === "dm") {
+          const existing = await entity.get(message.id);
+          if (!existing.reactions) {
+            await entity.update(message.id, { reactions: {} });
+          }
+        }
         await entity.update(message.id, { reactions });
         onReactionUpdate?.();
         setShowPicker(false);

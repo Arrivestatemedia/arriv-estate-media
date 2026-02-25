@@ -9,6 +9,7 @@ import MessageReactions from "./MessageReactions";
 import ThreadPanel from "./ThreadPanel";
 import ChatContactCard from "./ChatContactCard";
 import ContactCardDisplay from "./ContactCardDisplay";
+import ContactSearch from "./ContactSearch";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
@@ -50,6 +51,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [showEmojis, setShowEmojis] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedThread, setSelectedThread] = useState(null);
+  const [showContactSearch, setShowContactSearch] = useState(false);
+  const [contactToEdit, setContactToEdit] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const syncIntervalRef = useRef(null);
@@ -100,7 +103,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     const loadMessages = async () => {
       setLoading(true);
       if (chatType === "channel") {
-        const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId, parent_message_id: null }, "timestamp", 50);
+        const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId, parent_message_id: null }, "-timestamp", 50);
         setMessages(msgs);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
@@ -108,7 +111,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             { sender_id: currentUserId, recipient_id: chatId, parent_message_id: null },
             { sender_id: chatId, recipient_id: currentUserId, parent_message_id: null }
           ] },
-          "timestamp",
+          "-timestamp",
           50
         );
         setMessages(msgs);
@@ -255,8 +258,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     if (!content) return null;
     if (content.startsWith("[contact]")) {
       return <ContactCardDisplay content={content} onOpenContact={(contact) => {
-        // Pass contact data to parent to open search contacts
-        window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
+        setShowContactSearch(true);
+        setContactToEdit(contact);
       }} />;
     }
     if (content.startsWith("[image]")) {
@@ -306,7 +309,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
          recipient_id: chatId,
          recipient_name: chatName,
          content: text,
-         timestamp: new Date().toISOString()
+         timestamp: new Date().toISOString(),
+         reactions: {}
        });
 
        // Send auto-response if recipient is in a meeting
@@ -335,6 +339,28 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
      setNewMessage(text);
    }
   };
+
+  if (showContactSearch) {
+    return (
+      <div className="flex flex-col h-full bg-white">
+        <div className="border-b border-gray-200 p-4 flex items-center">
+          <Button variant="ghost" size="sm" onClick={() => setShowContactSearch(false)} className="mr-2">
+            <X className="w-5 h-5" />
+          </Button>
+          <h2 className="text-lg font-semibold text-gray-900">Contact Details</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <ContactSearch
+            salesMemberId={currentUserId}
+            openNewContactForm={true}
+            setOpenNewContactForm={() => {}}
+            prefilledData={contactToEdit}
+            onFormClosed={() => setShowContactSearch(false)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (!chatId) {
     return (

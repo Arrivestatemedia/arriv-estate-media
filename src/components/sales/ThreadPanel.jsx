@@ -42,14 +42,14 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
       if (chatType === "channel") {
         const msgs = await base44.entities.ChatMessage.filter(
           { parent_message_id: parentMessage.id },
-          "timestamp",
+          "-timestamp",
           100
         );
         setReplies(msgs);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
           { parent_message_id: parentMessage.id },
-          "timestamp",
+          "-timestamp",
           100
         );
         setReplies(msgs);
@@ -85,11 +85,17 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
           recipient_name: parentMessage.sender_name,
           parent_message_id: parentMessage.id,
           content: text,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          reactions: {}
         });
       }
       setReplyText("");
       await loadReplies();
+      if (chatType === "channel") {
+        await base44.entities.ChatMessage.update(parentMessage.id, { thread_reply_count: (parentMessage.thread_reply_count || 0) + 1 });
+      } else if (chatType === "dm") {
+        await base44.entities.DirectMessage.update(parentMessage.id, { thread_reply_count: (parentMessage.thread_reply_count || 0) + 1 });
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -170,7 +176,8 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
                 {renderMessageContent(reply.content)}
                 <MessageReactions 
                   message={reply} 
-                  currentUserId={currentUserId} 
+                  currentUserId={currentUserId}
+                  messageType={chatType}
                   onReactionUpdate={loadReplies}
                 />
               </div>
