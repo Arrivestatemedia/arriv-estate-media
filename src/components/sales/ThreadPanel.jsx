@@ -115,6 +115,9 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
         return <a href={match[2]} target="_blank" rel="noopener noreferrer" className="text-[#B8956A] underline text-sm mt-1 block">📎 {match[1]}</a>;
       }
     }
+    if (content.startsWith("[contact]")) {
+      return <ContactCardDisplay content={content} />;
+    }
     return <p className="text-gray-700 text-sm mt-1 break-words">{content}</p>;
   };
 
