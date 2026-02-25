@@ -75,30 +75,34 @@ Deno.serve(async (req) => {
       const hasReply = recentMsgs.some(m => m.sender_id !== lastMsg.sender_id && (m.timestamp || m.created_date) > ts);
       if (hasReply) continue;
 
-      // No reply — only email the sender
-      const sender = memberMap[lastMsg.sender_id];
-      if (!sender) continue;
-
+      // No reply — notify other channel members (not the sender)
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-      const headers = {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      };
+      for (const memberId of channel.members || []) {
+        if (memberId === lastMsg.sender_id) continue; // Skip the sender
+        
+        const member = memberMap[memberId];
+        if (!member) continue;
 
-      const emailBody = `Hi ${sender.full_name},\n\nYour message in #${channel.name} hasn't received a reply in over 2.5 minutes.\n\nMessage: "${lastMsg.content}"\n\nYou may want to follow up.\n\n– Arriv Team`;
+        const headers = {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        };
 
-      const message = `To: ${sender.email}\nSubject: No response yet in #${channel.name}\n\n${emailBody}`;
-      const utf8Bytes = new TextEncoder().encode(message);
-      const encodedMessage = btoa(String.fromCharCode(...utf8Bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        const emailBody = `Hi ${member.full_name},\n\n${lastMsg.sender_name} sent a message in #${channel.name} over 2.5 minutes ago that hasn't been addressed.\n\nMessage: "${lastMsg.content}"\n\nPlease review and respond if needed.\n\n– Arriv Team`;
 
-      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ raw: encodedMessage })
-      });
+        const message = `To: ${member.email}\nSubject: Unanswered message in #${channel.name} from ${lastMsg.sender_name}\n\n${emailBody}`;
+        const utf8Bytes = new TextEncoder().encode(message);
+        const encodedMessage = btoa(String.fromCharCode(...utf8Bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-      emailsSent++;
+        await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ raw: encodedMessage })
+        });
+
+        emailsSent++;
+      }
     }
 
     return Response.json({ success: true, emailsSent });
