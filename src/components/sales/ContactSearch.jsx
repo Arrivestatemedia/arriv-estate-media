@@ -54,35 +54,19 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
    const [deleting, setDeleting] = useState(false);
 
    React.useEffect(() => {
-     if (openNewContactForm) {
-       setShowNewForm(true);
-       setOpenNewContactForm(false);
-       if (prefilledData) {
-         setNewContact(prev => ({
-           ...prev,
-           firstname: prefilledData.firstName || '',
-           lastname: prefilledData.lastName || '',
-           email: prefilledData.email || '',
-           phone: prefilledData.phone || '',
-           company: prefilledData.company || ''
-         }));
-       }
-     }
-   }, [openNewContactForm, setOpenNewContactForm, prefilledData]);
-
-   React.useEffect(() => {
      if (openNewContactForm && prefilledData) {
        setShowNewForm(true);
+       setOpenNewContactForm(false);
        setNewContact(prev => ({
          ...prev,
-         firstname: prefilledData.firstName || '',
-         lastname: prefilledData.lastName || '',
+         firstname: prefilledData.firstName || prefilledData.first_name || '',
+         lastname: prefilledData.lastName || prefilledData.last_name || '',
          email: prefilledData.email || '',
          phone: prefilledData.phone || '',
          company: prefilledData.company || ''
        }));
      }
-   }, [openNewContactForm, prefilledData]);
+   }, [openNewContactForm, setOpenNewContactForm, prefilledData]);
 
   const handleDelete = async (contactId) => {
     setDeleting(true);
