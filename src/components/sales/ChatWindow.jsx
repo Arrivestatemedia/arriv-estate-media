@@ -258,7 +258,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
          sender_id: currentUserId,
          sender_name: currentUserName,
          content: text,
-         timestamp: new Date().toISOString()
+         timestamp: new Date().toISOString(),
+         reactions: {}
        });
      } else if (chatType === "dm") {
        await base44.entities.DirectMessage.create({
