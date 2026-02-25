@@ -12,7 +12,12 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
 
      const handleNameClick = (e) => {
        e.stopPropagation();
-       onOpenContact?.(contact);
+       if (onOpenContact) {
+         onOpenContact(contact);
+       } else {
+         // Dispatch event to ChatWindow to open ContactSearch
+         window.dispatchEvent(new CustomEvent('openContactSearch', { detail: contact }));
+       }
      };
 
      return (

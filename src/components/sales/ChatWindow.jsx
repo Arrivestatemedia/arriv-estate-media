@@ -98,20 +98,29 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   }, [messages]);
 
   useEffect(() => {
+    const handleOpenContact = (e) => {
+      setContactToEdit(e.detail);
+      setShowContactSearch(true);
+    };
+    window.addEventListener('openContactSearch', handleOpenContact);
+    return () => window.removeEventListener('openContactSearch', handleOpenContact);
+  }, []);
+
+  useEffect(() => {
     if (!chatId) return;
 
     const loadMessages = async () => {
       setLoading(true);
       if (chatType === "channel") {
-        const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId, parent_message_id: null }, "-timestamp", 50);
-        setMessages(msgs);
+          const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId, parent_message_id: null }, "timestamp", 50);
+          setMessages(msgs);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
           { $or: [
             { sender_id: currentUserId, recipient_id: chatId, parent_message_id: null },
             { sender_id: chatId, recipient_id: currentUserId, parent_message_id: null }
           ] },
-          "-timestamp",
+          "timestamp",
           50
         );
         setMessages(msgs);
