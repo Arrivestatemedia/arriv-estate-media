@@ -122,7 +122,7 @@ export default function ThreadPanel({ parentMessage, channelId, currentUserId, c
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 border-l border-gray-200">
+    <div className="flex flex-col h-full bg-gray-50 border-l border-gray-200" onClick={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-white">
         <h3 className="font-semibold text-gray-900">Thread</h3>
