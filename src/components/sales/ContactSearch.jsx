@@ -52,6 +52,9 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
    const [createdSuccess, setCreatedSuccess] = useState(false);
    const [deleteConfirmId, setDeleteConfirmId] = useState(null);
    const [deleting, setDeleting] = useState(false);
+   const [activities, setActivities] = useState({});
+   const [loadingActivities, setLoadingActivities] = useState({});
+   const [matchedHubSpotContact, setMatchedHubSpotContact] = useState(null);
 
    React.useEffect(() => {
      if (openNewContactForm && prefilledData) {
