@@ -786,11 +786,12 @@ export default function HubSpotActivityLog() {
         </Dialog>
 
         <PoweredByFooter />
+      </div>
 
-        {/* Floating chat bubble - shown when NOT on chat tab */}
-        {activeTab !== "chat" && (
-          <FloatingChatBubble currentUserId={user?.id} currentUserName={user?.full_name} />
-        )}
-        </div>
-    );
+      {/* Floating chat bubble - shown when NOT on chat tab */}
+      {activeTab !== "chat" && (
+        <FloatingChatBubble currentUserId={user?.id} currentUserName={user?.full_name} />
+      )}
+    </div>
+  );
 }
