@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export default function ContactCardDisplay({ content, onOpenContact }) {
+export default function ContactCardDisplay({ content, onOpenContact, onOpenDialer, onOpenEmailComposer }) {
    const [expanded, setExpanded] = useState(false);
 
    if (!content.startsWith("[contact]")) return null;
@@ -16,19 +16,19 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
 
    const handleNameClick = (e) => {
      e.stopPropagation();
-     window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
+     onOpenContact?.(contact);
    };
 
    const handlePhoneClick = (e) => {
      e.stopPropagation();
      e.preventDefault();
-     window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
+     onOpenDialer?.(contact.phone);
    };
 
    const handleEmailClick = (e) => {
       e.stopPropagation();
       e.preventDefault();
-      window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
+      onOpenEmailComposer?.(contact.email);
     };
 
    return (

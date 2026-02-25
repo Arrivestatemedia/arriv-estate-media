@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -29,48 +29,28 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     }).catch(() => {});
   }, []);
 
-  // Handle contact card event listeners
-  useEffect(() => {
-    const handleOpenContact = (event) => {
-      const contact = event.detail;
-      setPrefilledContactData({
-        firstName: contact.name?.split(' ')[0] || '',
-        lastName: contact.name?.split(' ').slice(1).join(' ') || '',
-        email: contact.email || '',
-        phone: contact.phone || '',
-        company: contact.company || ''
-      });
-      setOpenNewContactForm(true);
-      setActiveTab('contacts');
-    };
+  const handleOpenContact = useCallback((contact) => {
+    setPrefilledContactData({
+      firstName: contact.name?.split(' ')[0] || '',
+      lastName: contact.name?.split(' ').slice(1).join(' ') || '',
+      email: contact.email || '',
+      phone: contact.phone || '',
+      company: contact.company || ''
+    });
+    setOpenNewContactForm(true);
+    setActiveTab('contacts');
+  }, []);
 
-    const handleOpenDialer = (event) => {
-      if (event.detail?.phone) {
-        localStorage.setItem('_dialerPhone', event.detail.phone);
-      }
-      setActiveTab('dialer');
-    };
+  const handleOpenDialer = useCallback((phone) => {
+    if (phone) {
+      localStorage.setItem('_dialerPhone', phone);
+    }
+    setActiveTab('dialer');
+  }, []);
 
-    const handleOpenEmailComposer = (event) => {
-      const { email } = event.detail;
-      window._openEmailComposerWithEmail = email;
-      setActiveTab('email');
-    };
-
-    const cleanup = () => {
-      window.removeEventListener('openContact', handleOpenContact);
-      window.removeEventListener('openDialer', handleOpenDialer);
-      window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
-    };
-
-    // Remove any existing listeners first to avoid duplicates
-    cleanup();
-    
-    window.addEventListener('openContact', handleOpenContact);
-    window.addEventListener('openDialer', handleOpenDialer);
-    window.addEventListener('openEmailComposer', handleOpenEmailComposer);
-
-    return cleanup;
+  const handleOpenEmailComposer = useCallback((email) => {
+    window._openEmailComposerWithEmail = email;
+    setActiveTab('email');
   }, []);
 
   // Load messages for selected rep
@@ -328,8 +308,13 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
                    }}
                  >
                    {msg.content?.startsWith('[contact]') ? (
-                     <ContactCardDisplay content={msg.content} />
-                   ) : (
+                      <ContactCardDisplay 
+                        content={msg.content}
+                        onOpenContact={handleOpenContact}
+                        onOpenDialer={handleOpenDialer}
+                        onOpenEmailComposer={handleOpenEmailComposer}
+                      />
+                    ) : (
                      msg.content
                    )}
                  </div>
