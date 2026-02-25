@@ -12,8 +12,8 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
 
      const handleNameClick = (e) => {
        e.stopPropagation();
-       // Dispatch event to navigate to Contacts tab and open this contact
-       window.dispatchEvent(new CustomEvent('navigateToContact', { detail: contact }));
+       // Dispatch event to ContactSearch to open this contact
+       window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
      };
 
      return (
