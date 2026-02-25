@@ -151,6 +151,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                     } catch (e) {}
                   }
                 }
+              } else if (event.data?.parent_message_id) {
+                // Update thread reply count on parent message
+                setMessages(prev => prev.map(m => {
+                  if (m.id === event.data.parent_message_id) {
+                    return {
+                      ...m,
+                      thread_reply_count: (m.thread_reply_count || 0) + 1
+                    };
+                  }
+                  return m;
+                }));
               }
             } else if (event.type === "update") {
               // Update reactions on messages
