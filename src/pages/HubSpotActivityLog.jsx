@@ -66,8 +66,6 @@ export default function HubSpotActivityLog() {
     };
 
     const handleOpenDialer = (event) => {
-      const { phone } = event.detail;
-      window._openDialerWithPhone = phone;
       setActiveTab('call');
     };
 
