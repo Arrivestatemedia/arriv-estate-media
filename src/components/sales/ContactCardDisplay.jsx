@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export default function ContactCardDisplay({ content, onOpenContact }) {
+export default function ContactCardDisplay({ content, onOpenContact, salesMemberId }) {
    const [expanded, setExpanded] = useState(false);
 
    try {
@@ -12,12 +12,10 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
 
      const handleNameClick = (e) => {
        e.stopPropagation();
-       if (onOpenContact) {
-         onOpenContact(contact);
-       } else {
-         // Dispatch event to ChatWindow to open ContactSearch
-         window.dispatchEvent(new CustomEvent('openContactSearch', { detail: contact }));
-       }
+       // Navigate to Search Contacts and open the contact
+       const params = new URLSearchParams();
+       params.set('openContact', JSON.stringify(contact));
+       window.location.href = `/sales?tab=contacts&${params.toString()}`;
      };
 
      return (
