@@ -273,7 +273,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const renderMessageContent = (content) => {
     if (!content) return null;
     if (content.startsWith("[contact]")) {
-      return <ContactCardDisplay content={content} />;
+      return <ContactCardDisplay content={content} onContactClick={handleContactClick} />;
     }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
