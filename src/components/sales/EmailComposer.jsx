@@ -38,7 +38,18 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   useEffect(() => {
     if (isAdmin) {
       base44.auth.me().then(adminUser => {
-        setSalesMember(adminUser);
+        if (adminUser?.email) {
+          base44.entities.SalesTeamMember.filter({ email: adminUser.email }).then(members => {
+            if (members?.[0]) {
+              setSalesMember(members[0]);
+              if (members[0].company_email) setFromEmail(members[0].company_email);
+            } else {
+              setSalesMember(adminUser);
+            }
+          }).catch(() => setSalesMember(adminUser));
+        } else {
+          setSalesMember(adminUser);
+        }
       }).catch(() => {});
     } else if (salesMemberId) {
       base44.entities.SalesTeamMember.get(salesMemberId).then(member => {
