@@ -20,7 +20,7 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
     setLoading(true);
     try {
       const results = await base44.functions.invoke("searchHubSpotContacts", { query });
-      setContacts(results.contacts || []);
+      setContacts(results.data?.contacts || results.contacts || results.data || []);
     } catch (err) {
       console.error("Error searching contacts:", err);
       toast.error("Failed to search contacts");
