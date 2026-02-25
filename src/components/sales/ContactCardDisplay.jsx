@@ -36,7 +36,7 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}>
          <div className="flex items-start justify-between">
            <div className="flex-1">
-             <h4 className="font-semibold text-gray-900 text-sm hover:text-[#B8956A] transition-colors" onClick={handleNameClick}>{contact.name}</h4>
+             <h4 className="font-semibold text-gray-900 text-sm hover:text-[#B8956A] transition-colors cursor-pointer" onClick={handleNameClick}>{contact.name}</h4>
             {contact.company && (
               <p className="text-xs text-gray-600 mt-0.5">{contact.company}</p>
             )}
@@ -65,8 +65,5 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
           </div>
         )}
       </div>
-    );
-  } catch (e) {
-    return null;
-  }
+     );
 }
