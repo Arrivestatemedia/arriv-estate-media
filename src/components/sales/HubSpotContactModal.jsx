@@ -41,7 +41,7 @@ export default function HubSpotContactModal({ email, open, onOpenChange }) {
           <DialogHeader>
             <DialogTitle>Contact Information</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-500">No HubSpot contact found for {email}</p>
+          <p className="text-sm text-gray-500">No contact information found for {email}</p>
         </DialogContent>
       </Dialog>
     );
