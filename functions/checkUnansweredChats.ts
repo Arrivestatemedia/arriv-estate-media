@@ -88,8 +88,9 @@ Deno.serve(async (req) => {
 
       const emailBody = `Hi ${sender.full_name},\n\nYour message in #${channel.name} hasn't received a reply in over 2.5 minutes.\n\nMessage: "${lastMsg.content}"\n\nYou may want to follow up.\n\n– Arriv Team`;
 
-      const message = `To: ${sender.email}\nSubject: ⚠️ No response yet in #${channel.name}\n\n${emailBody}`;
-      const encodedMessage = btoa(message).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      const message = `To: ${sender.email}\nSubject: No response yet in #${channel.name}\n\n${emailBody}`;
+      const utf8Bytes = new TextEncoder().encode(message);
+      const encodedMessage = btoa(String.fromCharCode(...utf8Bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
       await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
         method: 'POST',
