@@ -257,10 +257,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const renderMessageContent = (content) => {
     if (!content) return null;
     if (content.startsWith("[contact]")) {
-      return <ContactCardDisplay content={content} onOpenContact={(contact) => {
-        setShowContactSearch(true);
-        setContactToEdit(contact);
-      }} />;
+      return <ContactCardDisplay content={content} />;
     }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
@@ -276,6 +273,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   };
 
   const handleSendMessage = async (e) => {
+   if (e.key && e.key !== "Enter") return;
+   if (e.key === "Enter" && (e.shiftKey || e.ctrlKey || e.metaKey)) return;
    e.preventDefault();
    const text = newMessage.trim();
    if (!text) return;
@@ -493,6 +492,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={handleSendMessage}
             placeholder={uploading ? "Uploading..." : "Type a message..."}
             className="flex-1"
             disabled={uploading}
