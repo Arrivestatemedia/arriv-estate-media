@@ -48,8 +48,9 @@ Deno.serve(async (req) => {
 
       const emailBody = `Hi ${recipient.full_name},\n\nYou have ${count} unread message${count > 1 ? 's' : ''} from ${senderNames} that ${count > 1 ? 'have' : 'has'} been waiting over 2.5 minutes for a reply.\n\nPlease log in and respond.\n\n– Arriv Team`;
       
-      const message = `To: ${recipient.email}\nSubject: ⚠️ You have ${count} unanswered chat message${count > 1 ? 's' : ''}\n\n${emailBody}`;
-      const encodedMessage = btoa(message).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      const message = `To: ${recipient.email}\nSubject: You have ${count} unanswered chat message${count > 1 ? 's' : ''}\n\n${emailBody}`;
+      const utf8Bytes = new TextEncoder().encode(message);
+      const encodedMessage = btoa(String.fromCharCode(...utf8Bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
       await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
         method: 'POST',
