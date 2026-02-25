@@ -70,6 +70,39 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
      }
    }, [openNewContactForm, setOpenNewContactForm, prefilledData]);
 
+   React.useEffect(() => {
+     const handleOpenContact = (event) => {
+       const contact = event.detail;
+       setQuery(`${contact.name || ''}`);
+       setResults([{
+         id: contact.id,
+         firstname: contact.name?.split(' ')[0] || '',
+         lastname: contact.name?.split(' ').slice(1).join(' ') || '',
+         email: contact.email || '',
+         phone: contact.phone || '',
+         company: contact.company || '',
+         jobtitle: '',
+         lead_status: ''
+       }]);
+       setShowNewForm(false);
+       setTimeout(() => {
+         setExpandedId(contact.id);
+         setEditFields({
+           firstname: contact.name?.split(' ')[0] || '',
+           lastname: contact.name?.split(' ').slice(1).join(' ') || '',
+           email: contact.email || '',
+           phone: contact.phone || '',
+           company: contact.company || '',
+           jobtitle: '',
+           hs_lead_status: ''
+         });
+       }, 0);
+     };
+
+     window.addEventListener('openContact', handleOpenContact);
+     return () => window.removeEventListener('openContact', handleOpenContact);
+   }, []);
+
   const handleDelete = async (contactId) => {
     setDeleting(true);
     try {
