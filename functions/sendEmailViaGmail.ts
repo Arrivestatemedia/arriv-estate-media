@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { to, subject, body, contactEmail, fromEmail, fromName, salesMemberId, contactName, companyName, inReplyTo, references } = await req.json();
+    const { to, cc, bcc, subject, body, contactEmail, fromEmail, fromName, salesMemberId, contactName, companyName, inReplyTo, references } = await req.json();
     
     if (!to || !subject || !body) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
