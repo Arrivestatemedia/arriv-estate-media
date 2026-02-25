@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import MessageReactions from "./MessageReactions";
 import ThreadPanel from "./ThreadPanel";
+import ChatContactCard from "./ChatContactCard";
+import ContactCardDisplay from "./ContactCardDisplay";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
