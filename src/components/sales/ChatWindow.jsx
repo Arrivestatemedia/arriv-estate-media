@@ -324,6 +324,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   return (
     <div className="flex flex-col h-full bg-white">
+      <HubSpotContactModal 
+        email={selectedContactEmail}
+        open={hubSpotModalOpen}
+        onOpenChange={setHubSpotModalOpen}
+      />
       {/* Header */}
       <div className="border-b border-gray-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
