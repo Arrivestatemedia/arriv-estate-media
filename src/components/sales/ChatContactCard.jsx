@@ -175,13 +175,15 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
                   className="w-full text-left p-2 hover:bg-gray-100 rounded transition-colors"
                 >
                   <p className="text-sm font-medium text-gray-900">
-                    {contact.properties?.firstname ? `${contact.properties.firstname} ${contact.properties.lastname || ''}`.trim() : contact.properties?.email}
+                    {contact.firstname || contact.lastname 
+                      ? `${contact.firstname || ''} ${contact.lastname || ''}`.trim()
+                      : contact.email}
                   </p>
-                  {contact.properties?.email && (
-                    <p className="text-xs text-gray-600">{contact.properties.email}</p>
+                  {contact.email && (
+                    <p className="text-xs text-gray-600">{contact.email}</p>
                   )}
-                  {contact.properties?.company && (
-                    <p className="text-xs text-gray-500">{contact.properties.company}</p>
+                  {contact.company && (
+                    <p className="text-xs text-gray-500">{contact.company}</p>
                   )}
                 </button>
               ))}
