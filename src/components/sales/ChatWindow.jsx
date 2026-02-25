@@ -342,17 +342,19 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   }
 
   if (selectedThread) {
-    return (
-      <ThreadPanel
-        parentMessage={selectedThread}
-        channelId={chatId}
-        currentUserId={currentUserId}
-        currentUserName={currentUserName}
-        onClose={() => setSelectedThread(null)}
-        memberProfiles={memberProfiles}
-      />
-    );
-  }
+     return (
+       <ThreadPanel
+         parentMessage={selectedThread}
+         channelId={chatId}
+         currentUserId={currentUserId}
+         currentUserName={currentUserName}
+         onClose={() => setSelectedThread(null)}
+         memberProfiles={memberProfiles}
+         chatType={chatType}
+         recipientId={chatId}
+       />
+     );
+   }
 
   return (
     <div className="flex flex-col h-full bg-white">
