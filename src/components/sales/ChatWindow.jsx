@@ -103,7 +103,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     const loadMessages = async () => {
       setLoading(true);
       if (chatType === "channel") {
-        const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId, parent_message_id: null }, "-timestamp", 50);
+        const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId, parent_message_id: null }, "timestamp", 50);
         setMessages(msgs);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
@@ -111,7 +111,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             { sender_id: currentUserId, recipient_id: chatId, parent_message_id: null },
             { sender_id: chatId, recipient_id: currentUserId, parent_message_id: null }
           ] },
-          "-timestamp",
+          "timestamp",
           50
         );
         setMessages(msgs);
@@ -257,7 +257,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const renderMessageContent = (content) => {
     if (!content) return null;
     if (content.startsWith("[contact]")) {
-      return <ContactCardDisplay content={content} />;
+      return <ContactCardDisplay content={content} onOpenContact={(contact) => {
+        setShowContactSearch(true);
+        setContactToEdit(contact);
+      }} />;
     }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
