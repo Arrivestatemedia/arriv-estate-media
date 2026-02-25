@@ -52,17 +52,19 @@ export default function AdminHub() {
   // Handle contact card interactions
   useEffect(() => {
     const handleOpenContact = (e) => {
-      setActiveTab('activity');
       const contact = e.detail;
       // Split name into firstName and lastName
       const nameParts = (contact.name || '').trim().split(/\s+/);
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       const enrichedContact = { ...contact, firstName, lastName };
+      
+      localStorage.setItem('newContactData', JSON.stringify(enrichedContact));
+      setActiveTab('activity');
+      // Wait for tab switch, then fire event
       setTimeout(() => {
-        localStorage.setItem('newContactData', JSON.stringify(enrichedContact));
         window.dispatchEvent(new Event('contactCardReady'));
-      }, 0);
+      }, 100);
     };
 
     const handleOpenDialer = (e) => {
