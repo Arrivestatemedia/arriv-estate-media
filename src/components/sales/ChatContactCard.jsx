@@ -141,7 +141,7 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
                 </Button>
                 <Button
                   size="sm"
-                  className="flex-1 bg-[#B8956A] hover:bg-[#A68559] gap-1"
+                  className="flex-1 bg-[#B8956A] hover:bg-[#A68559]"
                   onClick={handleSendContact}
                 >
                   <Send className="w-3 h-3" />
