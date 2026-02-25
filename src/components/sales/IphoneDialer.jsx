@@ -110,6 +110,7 @@ export default function IphoneDialer({ salesMemberId }) {
   useEffect(() => {
     if (window._openDialerWithPhone) {
       setKeypadInput(window._openDialerWithPhone);
+      setTab('keypad');
       window._openDialerWithPhone = null;
     }
   }, [activeTab]);
