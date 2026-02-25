@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import MessageReactions from "./MessageReactions";
 import ThreadPanel from "./ThreadPanel";
-import HubSpotContactModal from "./HubSpotContactModal";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
@@ -49,8 +48,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [showEmojis, setShowEmojis] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedThread, setSelectedThread] = useState(null);
-  const [hubSpotModalOpen, setHubSpotModalOpen] = useState(false);
-  const [selectedContactEmail, setSelectedContactEmail] = useState("");
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const syncIntervalRef = useRef(null);
@@ -324,11 +321,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <HubSpotContactModal 
-        email={selectedContactEmail}
-        open={hubSpotModalOpen}
-        onOpenChange={setHubSpotModalOpen}
-      />
       {/* Header */}
       <div className="border-b border-gray-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -370,23 +362,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 </div>
                 <div className="flex-1">
                   <div className="flex items-baseline gap-2">
-                     <button
-                       onClick={() => {
-                         // Try to extract email from message or use sender name as fallback
-                         const emailMatch = msg.content.match(/[\w.-]+@[\w.-]+\.\w+/);
-                         if (emailMatch) {
-                           setSelectedContactEmail(emailMatch[0]);
-                           setHubSpotModalOpen(true);
-                         }
-                       }}
-                       className="font-semibold text-gray-900 hover:text-[#B8956A] hover:underline cursor-pointer transition-colors"
-                     >
-                       {msg.sender_name}
-                     </button>
-                     <span className="text-xs text-gray-500">
-                       {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
-                     </span>
-                   </div>
+                    <span className="font-semibold text-gray-900">{msg.sender_name}</span>
+                    <span className="text-xs text-gray-500">
+                      {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
+                    </span>
+                  </div>
                   {renderMessageContent(msg.content)}
                   <MessageReactions 
                     message={msg}
