@@ -161,9 +161,6 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
 
   const renderMessageContent = (content) => {
     if (!content) return null;
-    if (content.startsWith("[contact]")) {
-      return <ContactCardDisplay content={content} />;
-    }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
       return <img src={url} alt="shared" className="max-w-[240px] max-h-[200px] rounded-lg mt-1 cursor-pointer" onClick={() => window.open(url, '_blank')} />;
