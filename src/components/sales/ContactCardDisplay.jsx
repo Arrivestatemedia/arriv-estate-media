@@ -26,12 +26,12 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
    };
 
    const handleEmailClick = (e) => {
-     e.stopPropagation();
-     e.preventDefault();
-     window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
-   };
+      e.stopPropagation();
+      e.preventDefault();
+      window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
+    };
 
-     return (
+   return (
        <div className="mt-2 bg-gradient-to-br from-[#B8956A]/10 to-[#B8956A]/5 border border-[#B8956A]/20 rounded-lg p-3 cursor-pointer hover:border-[#B8956A]/40 transition-all"
          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}>
          <div className="flex items-start justify-between">
