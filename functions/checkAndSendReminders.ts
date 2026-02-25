@@ -14,6 +14,15 @@ Deno.serve(async (req) => {
     for (const invoice of unpaidInvoices) {
       if (!invoice.email_sent_at) continue;
       
+      // If job_id exists, verify the job still exists
+      if (invoice.job_id) {
+        const job = await base44.asServiceRole.entities.Job.read(invoice.job_id);
+        if (!job) {
+          // Job was deleted, skip this invoice reminder
+          continue;
+        }
+      }
+      
       const emailSentAt = new Date(invoice.email_sent_at);
       const hoursSinceEmail = (now - emailSentAt) / (1000 * 60 * 60);
       
