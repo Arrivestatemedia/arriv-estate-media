@@ -22,7 +22,16 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json();
-    const events = data.items || [];
+    let events = data.items || [];
+
+    // Filter to events where the user email is an attendee or organizer
+    if (userEmail) {
+      events = events.filter(event => {
+        const isOrganizer = event.organizer?.email === userEmail;
+        const isAttendee = event.attendees?.some(a => a.email === userEmail);
+        return isOrganizer || isAttendee;
+      });
+    }
 
     return Response.json({ events });
   } catch (error) {
