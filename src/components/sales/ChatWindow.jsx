@@ -102,30 +102,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       setContactToEdit(e.detail);
       setShowContactSearch(true);
     };
-    
-    const handleOpenDialer = (event) => {
-      if (event.detail?.phone) {
-        localStorage.setItem('_dialerPhone', event.detail.phone);
-      }
-      // Dispatch to parent or handle dialer opening
-      window.dispatchEvent(new CustomEvent('openDialerFromChat', { detail: event.detail }));
-    };
-
-    const handleOpenEmailComposer = (event) => {
-      const { email } = event.detail;
-      window._openEmailComposerWithEmail = email;
-      window.dispatchEvent(new CustomEvent('openEmailComposerFromChat', { detail: event.detail }));
-    };
-    
     window.addEventListener('openContactSearch', handleOpenContact);
-    window.addEventListener('openDialer', handleOpenDialer);
-    window.addEventListener('openEmailComposer', handleOpenEmailComposer);
-    
-    return () => {
-      window.removeEventListener('openContactSearch', handleOpenContact);
-      window.removeEventListener('openDialer', handleOpenDialer);
-      window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
-    };
+    return () => window.removeEventListener('openContactSearch', handleOpenContact);
   }, []);
 
   useEffect(() => {
