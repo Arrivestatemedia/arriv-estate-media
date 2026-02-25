@@ -18,11 +18,11 @@ Deno.serve(async (req) => {
     let emailsSent = 0;
 
     // --- Check Direct Messages ---
-    // Find DMs older than 2.5 min that have not been replied to
+    // Find DMs older than 2.5 min that have not been replied to and haven't been notified yet
     const allDMs = await base44.asServiceRole.entities.DirectMessage.filter({ read: false });
     const unreadOldDMs = allDMs.filter(dm => {
       const ts = dm.timestamp || dm.created_date;
-      return ts && new Date(ts).toISOString() < cutoff;
+      return ts && new Date(ts).toISOString() < cutoff && !dm.unanswered_reminder_sent_at;
     });
 
     // Group by recipient
@@ -57,6 +57,11 @@ Deno.serve(async (req) => {
         headers,
         body: JSON.stringify({ raw: encodedMessage })
       });
+      
+      // Mark that reminder was sent for these DMs
+      for (const dm of dms) {
+        await base44.asServiceRole.entities.DirectMessage.update(dm.id, { unanswered_reminder_sent_at: new Date().toISOString() });
+      }
       
       emailsSent++;
     }
