@@ -50,13 +50,16 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
     if (!selectedContact) return;
 
     try {
+      const name = selectedContact.firstname || selectedContact.lastname 
+        ? `${selectedContact.firstname || ''} ${selectedContact.lastname || ''}`.trim()
+        : selectedContact.email;
+      
       const contactCard = `[contact]${JSON.stringify({
         id: selectedContact.id,
-        name: selectedContact.properties?.firstname ? `${selectedContact.properties.firstname} ${selectedContact.properties.lastname || ''}`.trim() : selectedContact.properties?.email,
-        email: selectedContact.properties?.email,
-        phone: selectedContact.properties?.phone,
-        company: selectedContact.properties?.company,
-        hubspot_url: `https://app.hubspot.com/contacts/20827947/contact/${selectedContact.id}`
+        name,
+        email: selectedContact.email,
+        phone: selectedContact.phone,
+        company: selectedContact.company
       })}`;
 
       if (chatType === "channel") {
