@@ -16,19 +16,31 @@ export default function ContactCardDisplay({ content, onOpenContact, onOpenDiale
 
    const handleNameClick = (e) => {
      e.stopPropagation();
-     onOpenContact?.(contact);
+     if (onOpenContact) {
+       onOpenContact(contact);
+     } else {
+       window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
+     }
    };
 
    const handlePhoneClick = (e) => {
      e.stopPropagation();
      e.preventDefault();
-     onOpenDialer?.(contact.phone);
+     if (onOpenDialer) {
+       onOpenDialer(contact.phone);
+     } else {
+       window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
+     }
    };
 
    const handleEmailClick = (e) => {
       e.stopPropagation();
       e.preventDefault();
-      onOpenEmailComposer?.(contact.email);
+      if (onOpenEmailComposer) {
+        onOpenEmailComposer(contact.email);
+      } else {
+        window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
+      }
     };
 
    return (
