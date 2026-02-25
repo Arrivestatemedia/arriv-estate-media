@@ -103,51 +103,6 @@ export default function HubSpotActivityLog() {
     }
   }, []);
 
-  // Handle contact card interactions from chat
-  useEffect(() => {
-    const handleContactCardReady = () => {
-      const contactData = localStorage.getItem('newContactData');
-      if (contactData) {
-        const contact = JSON.parse(contactData);
-        setPrefilledContactData(contact);
-        setActiveTab('contacts');
-        setTimeout(() => {
-          setOpenNewContactForm(true);
-        }, 50);
-        localStorage.removeItem('newContactData');
-      }
-    };
-
-    const handleDialerCardReady = () => {
-      const phone = localStorage.getItem('dialerPhone');
-      if (phone) {
-        localStorage.setItem('_dialerPhone', phone);
-        localStorage.setItem('_dialerTab', 'keypad');
-        setActiveTab('call');
-        localStorage.removeItem('dialerPhone');
-      }
-    };
-
-    const handleEmailCardReady = () => {
-      const email = localStorage.getItem('emailTo');
-      if (email) {
-        localStorage.setItem('_emailTo', email);
-        setActiveTab('email');
-        localStorage.removeItem('emailTo');
-      }
-    };
-
-    window.addEventListener('contactCardReady', handleContactCardReady);
-    window.addEventListener('dialerCardReady', handleDialerCardReady);
-    window.addEventListener('emailCardReady', handleEmailCardReady);
-
-    return () => {
-      window.removeEventListener('contactCardReady', handleContactCardReady);
-      window.removeEventListener('dialerCardReady', handleDialerCardReady);
-      window.removeEventListener('emailCardReady', handleEmailCardReady);
-    };
-  }, []);
-
   const { data: activities = [] } = useQuery({
     queryKey: ['activities', user?.email],
     queryFn: async () => {
