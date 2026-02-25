@@ -50,27 +50,25 @@ export default function AdminHub() {
   // Handle contact card interactions
   useEffect(() => {
     const handleOpenDialer = (e) => {
-      setActiveTab('activity');
+      setActiveTab('call');
       const { phone } = e.detail;
       setTimeout(() => {
         localStorage.setItem('dialerPhone', phone);
-        localStorage.setItem('dialerTab', 'keypad');
         window.dispatchEvent(new Event('dialerReady'));
       }, 0);
     };
 
     const handleOpenEmailComposer = (e) => {
-      setActiveTab('activity');
+      setActiveTab('email');
       const { email } = e.detail;
       setTimeout(() => {
         localStorage.setItem('emailTo', email);
-        localStorage.setItem('emailComposerTab', 'compose');
         window.dispatchEvent(new Event('emailComposerReady'));
       }, 0);
     };
 
     const handleOpenContact = (e) => {
-      setActiveTab('activity');
+      setActiveTab('contacts');
       const contact = e.detail;
       setTimeout(() => {
         localStorage.setItem('newContactData', JSON.stringify(contact));
