@@ -153,6 +153,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   // Handle contact card interactions
   useEffect(() => {
     const handleOpenContact = (e) => {
+      console.log('openContact event received:', e.detail);
       setContactToEdit(e.detail);
       setShowContactSearch(true);
     };
@@ -160,10 +161,16 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     return () => window.removeEventListener('openContact', handleOpenContact);
   }, []);
 
+  const handleContactClick = (contact) => {
+    console.log('Contact clicked:', contact);
+    setContactToEdit(contact);
+    setShowContactSearch(true);
+  };
+
   const renderMessageContent = (content) => {
     if (!content) return null;
     if (content.startsWith("[contact]")) {
-      return <ContactCardDisplay content={content} />;
+      return <ContactCardDisplay content={content} onContactClick={handleContactClick} />;
     }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
