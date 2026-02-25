@@ -39,6 +39,43 @@ export default function AdminActivityPage({ user }) {
 
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    const handleOpenContact = (event) => {
+      const contact = event.detail;
+      setPrefilledContactData({
+        firstName: contact.name?.split(' ')[0] || '',
+        lastName: contact.name?.split(' ').slice(1).join(' ') || '',
+        email: contact.email || '',
+        phone: contact.phone || '',
+        company: contact.company || ''
+      });
+      setOpenNewContactForm(true);
+      setActiveTab('contacts');
+    };
+
+    const handleOpenDialer = (event) => {
+      if (event.detail?.phone) {
+        localStorage.setItem('_dialerPhone', event.detail.phone);
+      }
+      setActiveTab('call');
+    };
+
+    const handleOpenEmailComposer = (event) => {
+      const { email } = event.detail;
+      window._openEmailComposerWithEmail = email;
+      setActiveTab('email');
+    };
+
+    window.addEventListener('openContact', handleOpenContact);
+    window.addEventListener('openDialer', handleOpenDialer);
+    window.addEventListener('openEmailComposer', handleOpenEmailComposer);
+    return () => {
+      window.removeEventListener('openContact', handleOpenContact);
+      window.removeEventListener('openDialer', handleOpenDialer);
+      window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
+    };
+  }, []);
+
   const { data: activities = [] } = useQuery({
     queryKey: ['adminActivities', user?.email],
     queryFn: async () => {
