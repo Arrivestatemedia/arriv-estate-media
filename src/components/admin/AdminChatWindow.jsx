@@ -30,11 +30,11 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     const handleOpenEmail = (e) => {
       window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: e.detail }));
     };
-    window.addEventListener('openContactSearch', handleOpenContact);
+    window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openDialer', handleOpenDialer);
     window.addEventListener('openEmailComposer', handleOpenEmail);
     return () => {
-      window.removeEventListener('openContactSearch', handleOpenContact);
+      window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
       window.removeEventListener('openEmailComposer', handleOpenEmail);
     };
