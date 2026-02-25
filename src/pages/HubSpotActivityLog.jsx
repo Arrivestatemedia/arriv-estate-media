@@ -521,7 +521,17 @@ export default function HubSpotActivityLog() {
                               <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
                               <span className="text-sm font-medium" style={{ color: '#B8956A' }}>{format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}</span>
                             </div>
-                            <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                            <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={() => {
+                              setPrefilledContactData({
+                                firstName: activity.contact_name?.split(' ')[0] || '',
+                                lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '',
+                                email: activity.contact_email || '',
+                                phone: activity.contact_phone || '',
+                                company: activity.company_name || ''
+                              });
+                              setOpenNewContactForm(true);
+                              setActiveTab("contacts");
+                            }}>{activity.contact_name || activity.company_name}</p>
                             {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
                             {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.company_name}</p>}
                             <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
