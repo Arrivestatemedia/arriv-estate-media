@@ -68,6 +68,8 @@ export default function CalendarTab({ salesMemberId }) {
       location: event.location || '',
       startDateTime: event.start?.dateTime ? event.start.dateTime.slice(0, 16) : '',
       endDateTime: event.end?.dateTime ? event.end.dateTime.slice(0, 16) : '',
+      attendees: (event.attendees || []).map(a => ({ email: a.email, displayName: a.displayName })),
+      newAttendeeEmail: '',
     });
   };
 
