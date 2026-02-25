@@ -3,8 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import ContactCardDisplay from "@/components/sales/ContactCardDisplay";
+import ContactSearch from "@/components/sales/ContactSearch";
 
 export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [selectedRepId, setSelectedRepId] = useState(null);
