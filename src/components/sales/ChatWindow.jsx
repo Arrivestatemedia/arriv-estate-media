@@ -49,6 +49,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [showEmojis, setShowEmojis] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedThread, setSelectedThread] = useState(null);
+  const [hubSpotModalOpen, setHubSpotModalOpen] = useState(false);
+  const [selectedContactEmail, setSelectedContactEmail] = useState("");
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const syncIntervalRef = useRef(null);
