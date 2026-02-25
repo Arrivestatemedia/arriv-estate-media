@@ -518,8 +518,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           )}
 
           {/* ── SCHEDULED ── */}
-
-      {tab === "scheduled" && (
+          {tab === "scheduled" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Emails scheduled to send automatically</p>
