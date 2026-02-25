@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-export default function ChatContactCard({ channelId, currentUserId, currentUserName, onContactAdded, chatType = "channel" }) {
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [contacts, setContacts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedContact, setSelectedContact] = useState(null);
+export default function ChatContactCard({ channelId, currentUserId, currentUserName, onContactAdded, chatType = "channel", chatId }) {
+   const [searchOpen, setSearchOpen] = useState(false);
+   const [searchQuery, setSearchQuery] = useState("");
+   const [contacts, setContacts] = useState([]);
+   const [loading, setLoading] = useState(false);
+   const [selectedContact, setSelectedContact] = useState(null);
 
   const searchContacts = async (query) => {
     if (!query.trim()) {
@@ -47,40 +47,51 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
   };
 
   const handleSendContact = async () => {
-    if (!selectedContact) return;
+     if (!selectedContact) return;
 
-    try {
-      const name = selectedContact.firstname || selectedContact.lastname 
-        ? `${selectedContact.firstname || ''} ${selectedContact.lastname || ''}`.trim()
-        : selectedContact.email;
-      
-      const contactCard = `[contact]${JSON.stringify({
-        id: selectedContact.id,
-        name,
-        email: selectedContact.email,
-        phone: selectedContact.phone,
-        company: selectedContact.company
-      })}`;
+     try {
+       const name = selectedContact.firstname || selectedContact.lastname 
+         ? `${selectedContact.firstname || ''} ${selectedContact.lastname || ''}`.trim()
+         : selectedContact.email;
 
-      await base44.entities.ChatMessage.create({
-        channel_id: channelId,
-        sender_id: currentUserId,
-        sender_name: currentUserName,
-        content: contactCard,
-        timestamp: new Date().toISOString(),
-        reactions: {}
-      });
+       const contactCard = `[contact]${JSON.stringify({
+         id: selectedContact.id,
+         name,
+         email: selectedContact.email,
+         phone: selectedContact.phone,
+         company: selectedContact.company
+       })}`;
 
-      toast.success("Contact shared!");
-      setSelectedContact(null);
-      setSearchQuery("");
-      setContacts([]);
-      setSearchOpen(false);
-      onContactAdded?.();
-    } catch (err) {
-      console.error("Error sending contact:", err);
-      toast.error("Failed to share contact");
-    }
+       if (chatType === "channel") {
+         await base44.entities.ChatMessage.create({
+           channel_id: channelId,
+           sender_id: currentUserId,
+           sender_name: currentUserName,
+           content: contactCard,
+           timestamp: new Date().toISOString(),
+           reactions: {}
+         });
+       } else if (chatType === "dm") {
+         await base44.entities.DirectMessage.create({
+           sender_id: currentUserId,
+           sender_name: currentUserName,
+           recipient_id: chatId,
+           recipient_name: selectedContact.firstname || selectedContact.lastname || selectedContact.email,
+           content: contactCard,
+           timestamp: new Date().toISOString()
+         });
+       }
+
+       toast.success("Contact shared!");
+       setSelectedContact(null);
+       setSearchQuery("");
+       setContacts([]);
+       setSearchOpen(false);
+       onContactAdded?.();
+     } catch (err) {
+       console.error("Error sending contact:", err);
+       toast.error("Failed to share contact");
+     }
   };
 
   return (
