@@ -52,7 +52,9 @@ export default function HubSpotActivityLog() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const handleOpenContact = () => {
+    const handleOpenContact = (event) => {
+      const { name } = event.detail || {};
+      window._openContactWithName = name;
       setActiveTab('contacts');
     };
 
