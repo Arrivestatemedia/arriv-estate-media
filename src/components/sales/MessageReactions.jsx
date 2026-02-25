@@ -59,7 +59,7 @@ export default function MessageReactions({ message, currentUserId, onReactionUpd
           <SmilePlus className="w-4 h-4" />
         </button>
         {showPicker && (
-          <div className="absolute bottom-full mb-2 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex flex-wrap gap-1 w-56 z-20">
+          <div className="absolute bottom-full mb-2 left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex flex-wrap gap-1 w-56 z-20">
             {EXTENDED_EMOJIS.map(emoji => (
               <button
                 key={emoji}
