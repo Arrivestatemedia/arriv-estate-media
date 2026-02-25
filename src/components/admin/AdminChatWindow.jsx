@@ -254,6 +254,14 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
                          setContactToEdit(contact);
                          setShowContactSearch(true);
                        }}
+                       onPhoneClick={(phone) => {
+                         // Could open dialer or just copy phone
+                         navigator.clipboard.writeText(phone);
+                       }}
+                       onEmailClick={(email) => {
+                         // Could open email composer or just copy email
+                         navigator.clipboard.writeText(email);
+                       }}
                      />
                    ) : renderMessageContent(msg.content)}
                  </div>
