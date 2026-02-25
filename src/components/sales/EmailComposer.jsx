@@ -49,9 +49,9 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   }, [salesMemberId, isAdmin]);
 
   useEffect(() => {
-    if (tab === "replies") loadReplies();
+    if (tab === "replies" && salesMember) loadReplies();
     if (tab === "scheduled") loadScheduledEmails();
-  }, [tab]);
+  }, [tab, salesMember]);
 
   useEffect(() => {
     if (!salesMemberId || !salesMember?.company_email) return;
