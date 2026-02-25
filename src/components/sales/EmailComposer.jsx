@@ -188,8 +188,10 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     }
     setSending(true);
     try {
+      const allTo = [formData.to, ...extraRecipients].filter(Boolean).join(", ");
       await base44.functions.invoke('sendEmailViaGmail', {
         ...formData,
+        to: allTo,
         contactEmail: selectedContact?.email,
         fromEmail: fromEmail || undefined,
         fromName: salesMember?.full_name || undefined,
@@ -199,6 +201,8 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
       setSent(true);
       setFormData({ to: "", subject: "", body: "" });
       setSelectedContact(null);
+      setExtraRecipients([]);
+      setExtraRecipientInput("");
       setTimeout(() => setSent(false), 3000);
     } catch (error) {
       alert("Failed to send email: " + error.message);
