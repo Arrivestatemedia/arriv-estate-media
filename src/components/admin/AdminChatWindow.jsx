@@ -13,6 +13,8 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [selectedRepName, setSelectedRepName] = useState(null);
   const [messageText, setMessageText] = useState("");
   const [salesReps, setSalesReps] = useState([]);
+  const [showContactSearch, setShowContactSearch] = useState(false);
+  const [contactToEdit, setContactToEdit] = useState(null);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
