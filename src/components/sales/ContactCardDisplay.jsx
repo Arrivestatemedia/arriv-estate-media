@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ExternalLink, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 export default function ContactCardDisplay({ content }) {
   const [expanded, setExpanded] = useState(false);
