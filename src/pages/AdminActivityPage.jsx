@@ -37,49 +37,41 @@ export default function AdminActivityPage({ user }) {
   const [openNewContactForm, setOpenNewContactForm] = useState(false);
   const [prefilledContactData, setPrefilledContactData] = useState(null);
 
-  // Handle contact card interactions from AdminHub
+  // Handle contact card interactions from chat
   useEffect(() => {
-    const handleContactCardReady = () => {
-      const contactData = localStorage.getItem('newContactData');
-      if (contactData) {
-        const contact = JSON.parse(contactData);
-        setPrefilledContactData(contact);
-        setActiveTab('contacts');
-        // Delay form opening to allow tab to switch first
-        setTimeout(() => {
-          setOpenNewContactForm(true);
-        }, 50);
-        localStorage.removeItem('newContactData');
-      }
+    const handleOpenContact = (e) => {
+      const contact = e.detail;
+      setPrefilledContactData(contact);
+      setActiveTab('contacts');
+      setTimeout(() => {
+        setOpenNewContactForm(true);
+      }, 50);
     };
 
-    const handleDialerCardReady = () => {
-      const phone = localStorage.getItem('dialerPhone');
+    const handleOpenDialer = (e) => {
+      const phone = e.detail.phone;
       if (phone) {
         localStorage.setItem('_dialerPhone', phone);
-        localStorage.setItem('_dialerTab', 'keypad');
         setActiveTab('call');
-        localStorage.removeItem('dialerPhone');
       }
     };
 
-    const handleEmailCardReady = () => {
-      const email = localStorage.getItem('emailTo');
+    const handleOpenEmailComposer = (e) => {
+      const email = e.detail.email;
       if (email) {
         localStorage.setItem('_emailTo', email);
         setActiveTab('email');
-        localStorage.removeItem('emailTo');
       }
     };
 
-    window.addEventListener('contactCardReady', handleContactCardReady);
-    window.addEventListener('dialerCardReady', handleDialerCardReady);
-    window.addEventListener('emailCardReady', handleEmailCardReady);
+    window.addEventListener('openContact', handleOpenContact);
+    window.addEventListener('openDialer', handleOpenDialer);
+    window.addEventListener('openEmailComposer', handleOpenEmailComposer);
 
     return () => {
-      window.removeEventListener('contactCardReady', handleContactCardReady);
-      window.removeEventListener('dialerCardReady', handleDialerCardReady);
-      window.removeEventListener('emailCardReady', handleEmailCardReady);
+      window.removeEventListener('openContact', handleOpenContact);
+      window.removeEventListener('openDialer', handleOpenDialer);
+      window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
     };
   }, []);
 
