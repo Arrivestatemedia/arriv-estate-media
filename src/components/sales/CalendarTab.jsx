@@ -110,6 +110,7 @@ export default function CalendarTab({ salesMemberId }) {
         summary: editForm.summary,
         description: editForm.description,
         location: editForm.location,
+        attendees: editForm.attendees.map(a => ({ email: a.email, displayName: a.displayName }))
       };
       if (editForm.startDateTime) updates.start = { dateTime: new Date(editForm.startDateTime).toISOString(), timeZone: 'America/New_York' };
       if (editForm.endDateTime) updates.end = { dateTime: new Date(editForm.endDateTime).toISOString(), timeZone: 'America/New_York' };
