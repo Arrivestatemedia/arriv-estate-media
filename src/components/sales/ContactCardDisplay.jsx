@@ -43,11 +43,10 @@ export default function ContactCardDisplay({ content, onOpenContact, onContactCl
       };
 
      return (
-       <div className="mt-2 bg-gradient-to-br from-[#B8956A]/10 to-[#B8956A]/5 border border-[#B8956A]/20 rounded-lg p-3 cursor-pointer hover:border-[#B8956A]/40 transition-all"
-         onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}>
-         <div className="flex items-start justify-between">
+       <div className="mt-2 bg-gradient-to-br from-[#B8956A]/10 to-[#B8956A]/5 border border-[#B8956A]/20 rounded-lg p-3 cursor-pointer hover:border-[#B8956A]/40 transition-all">
+         <div className="flex items-start justify-between" onClick={() => setExpanded(!expanded)}>
            <div className="flex-1">
-             <h4 className="font-semibold text-gray-900 text-sm hover:text-[#B8956A] transition-colors" onClick={handleNameClick}>{contact.name}</h4>
+             <h4 className="font-semibold text-gray-900 text-sm hover:text-[#B8956A] transition-colors cursor-pointer" onClick={handleNameClick}>{contact.name}</h4>
             {contact.company && (
               <p className="text-xs text-gray-600 mt-0.5">{contact.company}</p>
             )}
