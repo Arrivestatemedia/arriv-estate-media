@@ -684,105 +684,74 @@ export default function HubSpotActivityLog() {
             </div>
           </>
         )}
-        </div>
 
-        {/* Activity Detail Modal */}
         <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) setSelectedActivity(null); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Activity Details</DialogTitle>
-          </DialogHeader>
-          {selectedActivity && (
-            <div className="space-y-6">
-              {/* Activity Info */}
-              <div>
-                <h3 className="font-semibold mb-3">Activity</h3>
-                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                  <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
-                  <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                  <p><span className="font-medium">Notes:</span> {selectedActivity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
-                  {selectedActivity.duration_minutes > 0 && (
-                    <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Activity Details</DialogTitle>
+            </DialogHeader>
+            {selectedActivity && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold mb-3">Activity</h3>
+                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                    <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
+                    <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
+                    <p><span className="font-medium">Notes:</span> {selectedActivity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
+                    {selectedActivity.duration_minutes > 0 && (
+                      <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-3">Contact Information</h3>
+                  {hubspotContact ? (
+                    <div className="bg-blue-50 p-4 rounded-lg space-y-2 border border-blue-200">
+                      <p className="text-sm text-blue-700 mb-3">✓ Contact found</p>
+                      <p><span className="font-medium">Name:</span> {hubspotContact.properties?.firstname || hubspotContact.properties?.lastname ? `${hubspotContact.properties?.firstname} ${hubspotContact.properties?.lastname}` : hubspotContact.id}</p>
+                      {hubspotContact.properties?.email && <p><span className="font-medium">Email:</span> {hubspotContact.properties.email}</p>}
+                      {hubspotContact.properties?.phone && <p><span className="font-medium">Phone:</span> {hubspotContact.properties.phone}</p>}
+                      {hubspotContact.properties?.company && <p><span className="font-medium">Company:</span> {hubspotContact.properties.company}</p>}
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                      <p className="text-sm text-amber-700">Contact not found</p>
+                      <p className="text-xs text-amber-600 mt-1">Contact: {selectedActivity.contact_name || selectedActivity.company_name}</p>
+                    </div>
                   )}
                 </div>
-              </div>
-
-              {/* Contact Info */}
-              <div>
-                <h3 className="font-semibold mb-3">Contact Information</h3>
-                {hubspotContact ? (
-                  <div className="bg-blue-50 p-4 rounded-lg space-y-2 border border-blue-200">
-                    <p className="text-sm text-blue-700 mb-3">✓ Contact found</p>
-                    <p><span className="font-medium">Name:</span> {hubspotContact.properties?.firstname || hubspotContact.properties?.lastname ? `${hubspotContact.properties?.firstname} ${hubspotContact.properties?.lastname}` : hubspotContact.id}</p>
-                    {hubspotContact.properties?.email && <p><span className="font-medium">Email:</span> {hubspotContact.properties.email}</p>}
-                    {hubspotContact.properties?.phone && <p><span className="font-medium">Phone:</span> {hubspotContact.properties.phone}</p>}
-                    {hubspotContact.properties?.company && <p><span className="font-medium">Company:</span> {hubspotContact.properties.company}</p>}
-                  </div>
-                ) : (
-                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                    <p className="text-sm text-amber-700">Contact not found</p>
-                    <p className="text-xs text-amber-600 mt-1">Contact: {selectedActivity.contact_name || selectedActivity.company_name}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Actions */}
-              <div>
-                <h3 className="font-semibold mb-3">Actions</h3>
-                <div className="flex gap-2 flex-wrap">
-                  {(selectedActivity.contact_phone || selectedActivity.contact_name) && (
-                    <Button 
-                      size="sm"
-                      className="gap-2"
-                      style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-                      onClick={() => {
-                        setActiveTab("call");
-                        setSelectedActivity(null);
-                      }}
-                    >
-                      <Phone className="w-4 h-4" />
-                      Call
+                <div>
+                  <h3 className="font-semibold mb-3">Actions</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {(selectedActivity.contact_phone || selectedActivity.contact_name) && (
+                      <Button size="sm" className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }} onClick={() => { setActiveTab("call"); setSelectedActivity(null); }}>
+                        <Phone className="w-4 h-4" /> Call
+                      </Button>
+                    )}
+                    {selectedActivity.contact_email && (
+                      <Button variant="outline" size="sm" className="gap-2" onClick={() => { setActiveTab("email"); setSelectedActivity(null); }}>
+                        <Mail className="w-4 h-4" /> Email
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                      setPrefilledContactData({
+                        firstName: selectedActivity.contact_name?.split(' ')[0] || '',
+                        lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
+                        email: selectedActivity.contact_email || '',
+                        phone: selectedActivity.contact_phone || '',
+                        company: selectedActivity.company_name || ''
+                      });
+                      setOpenNewContactForm(true);
+                      setActiveTab("contacts");
+                      setSelectedActivity(null);
+                    }}>
+                      <Plus className="w-4 h-4" /> Add Contact Info
                     </Button>
-                  )}
-                  {selectedActivity.contact_email && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => {
-                        setActiveTab("email");
-                        setSelectedActivity(null);
-                      }}
-                    >
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </Button>
-                  )}
-                  <Button 
-                   variant="outline" 
-                   size="sm"
-                   className="gap-2"
-                   onClick={() => {
-                     setPrefilledContactData({
-                       firstName: selectedActivity.contact_name?.split(' ')[0] || '',
-                       lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
-                       email: selectedActivity.contact_email || '',
-                       phone: selectedActivity.contact_phone || '',
-                       company: selectedActivity.company_name || ''
-                     });
-                     setOpenNewContactForm(true);
-                     setActiveTab("contacts");
-                     setSelectedActivity(null);
-                   }}
-                  >
-                   <Plus className="w-4 h-4" />
-                   Add Contact Info
-                  </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
+            )}
+          </DialogContent>
         </Dialog>
 
         <PoweredByFooter />
