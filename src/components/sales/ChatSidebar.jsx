@@ -92,18 +92,15 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const loadDirectMessages = async () => {
     const dms = await base44.entities.DirectMessage.filter({
       $or: [{ sender_id: currentUserId }, { recipient_id: currentUserId }]
-    }, "-updated_date");
-
-    // Get unique conversations, keeping latest message timestamp
+    });
+    
+    // Get unique conversations
     const conversations = {};
     dms?.forEach(dm => {
       const otherId = dm.sender_id === currentUserId ? dm.recipient_id : dm.sender_id;
       const otherName = dm.sender_id === currentUserId ? dm.recipient_name : dm.sender_name;
       if (!conversations[otherId]) {
-        conversations[otherId] = { id: otherId, name: otherName, timestamp: dm.timestamp };
-      } else {
-        // Keep track of most recent message
-        conversations[otherId].timestamp = dm.timestamp;
+        conversations[otherId] = { id: otherId, name: otherName };
       }
     });
     setDirectMessages(Object.values(conversations));
