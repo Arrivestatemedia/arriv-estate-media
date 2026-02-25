@@ -44,8 +44,11 @@ export default function AdminActivityPage({ user }) {
       if (contactData) {
         const contact = JSON.parse(contactData);
         setPrefilledContactData(contact);
-        setOpenNewContactForm(true);
         setActiveTab('contacts');
+        // Delay form opening to allow tab to switch first
+        setTimeout(() => {
+          setOpenNewContactForm(true);
+        }, 50);
         localStorage.removeItem('newContactData');
       }
     };
