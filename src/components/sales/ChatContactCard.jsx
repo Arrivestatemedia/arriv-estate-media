@@ -62,16 +62,14 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
         company: selectedContact.company
       })}`;
 
-      if (chatType === "channel") {
-        await base44.entities.ChatMessage.create({
-          channel_id: channelId,
-          sender_id: currentUserId,
-          sender_name: currentUserName,
-          content: contactCard,
-          timestamp: new Date().toISOString(),
-          reactions: {}
-        });
-      }
+      await base44.entities.ChatMessage.create({
+        channel_id: channelId,
+        sender_id: currentUserId,
+        sender_name: currentUserName,
+        content: contactCard,
+        timestamp: new Date().toISOString(),
+        reactions: {}
+      });
 
       toast.success("Contact shared!");
       setSelectedContact(null);
