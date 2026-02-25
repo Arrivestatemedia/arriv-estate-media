@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-export default function ContactCardDisplay({ content, onOpenContact, onOpenDialer, onOpenEmailComposer }) {
+export default function ContactCardDisplay({ content, onOpenContact }) {
    const [expanded, setExpanded] = useState(false);
 
    try {
@@ -12,25 +12,22 @@ export default function ContactCardDisplay({ content, onOpenContact, onOpenDiale
 
      const handleNameClick = (e) => {
        e.stopPropagation();
-       if (onOpenContact) {
-         onOpenContact(contact);
-       }
+       // Dispatch event to ContactSearch to open this contact
+       window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
      };
 
      const handlePhoneClick = (e) => {
        e.stopPropagation();
        e.preventDefault();
-       if (onOpenDialer) {
-         onOpenDialer(contact.phone);
-       }
+       // Dispatch event to navigate to dialer with phone prefilled
+       window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
      };
 
      const handleEmailClick = (e) => {
        e.stopPropagation();
        e.preventDefault();
-       if (onOpenEmailComposer) {
-         onOpenEmailComposer(contact.email);
-       }
+       // Dispatch event to navigate to email with recipient prefilled
+       window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
      };
 
      return (
@@ -68,7 +65,7 @@ export default function ContactCardDisplay({ content, onOpenContact, onOpenDiale
         )}
       </div>
     );
-   } catch (e) {
-     return null;
-   }
+  } catch (e) {
+    return null;
+  }
 }
