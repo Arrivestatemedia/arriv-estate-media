@@ -18,8 +18,10 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   const [invitingClients, setInvitingClients] = useState(false);
   const [meetingAttendees, setMeetingAttendees] = useState([]);
   const [extraAttendeeEmail, setExtraAttendeeEmail] = useState("");
-  const [extraRecipients, setExtraRecipients] = useState([]);
-  const [extraRecipientInput, setExtraRecipientInput] = useState("");
+  const [ccRecipients, setCcRecipients] = useState([]);
+  const [ccInput, setCcInput] = useState("");
+  const [bccRecipients, setBccRecipients] = useState([]);
+  const [bccInput, setBccInput] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
