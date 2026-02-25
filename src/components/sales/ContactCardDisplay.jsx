@@ -10,8 +10,7 @@ export default function ContactCardDisplay({ content, onOpenContact, onContactCl
       const contactJson = content.slice(9);
       const contact = JSON.parse(contactJson);
 
-      const handleNameClick = (e) => {
-        e.stopPropagation();
+      const handleNameClick = () => {
         // Use callback if provided, otherwise dispatch global event
         if (onContactClick) {
           onContactClick(contact);
@@ -20,9 +19,7 @@ export default function ContactCardDisplay({ content, onOpenContact, onContactCl
         }
       };
 
-      const handlePhoneClick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
+      const handlePhoneClick = () => {
         // Use callback if provided, otherwise dispatch global event
         if (onPhoneClick) {
           onPhoneClick(contact.phone);
@@ -31,9 +28,7 @@ export default function ContactCardDisplay({ content, onOpenContact, onContactCl
         }
       };
 
-      const handleEmailClick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
+      const handleEmailClick = () => {
         // Use callback if provided, otherwise dispatch global event
         if (onEmailClick) {
           onEmailClick(contact.email);
