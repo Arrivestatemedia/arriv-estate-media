@@ -150,8 +150,21 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     sendMessageMutation.mutate(messageText);
   };
 
+  // Handle contact card interactions
+  useEffect(() => {
+    const handleOpenContact = (e) => {
+      setContactToEdit(e.detail);
+      setShowContactSearch(true);
+    };
+    window.addEventListener('openContact', handleOpenContact);
+    return () => window.removeEventListener('openContact', handleOpenContact);
+  }, []);
+
   const renderMessageContent = (content) => {
     if (!content) return null;
+    if (content.startsWith("[contact]")) {
+      return <ContactCardDisplay content={content} />;
+    }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
       return <img src={url} alt="shared" className="max-w-[240px] max-h-[200px] rounded-lg mt-1 cursor-pointer" onClick={() => window.open(url, '_blank')} />;
