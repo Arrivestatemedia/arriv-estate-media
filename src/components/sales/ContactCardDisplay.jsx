@@ -12,19 +12,22 @@ export default function ContactCardDisplay({ content, onOpenContact }) {
 
      const handleNameClick = (e) => {
        e.stopPropagation();
-       window.dispatchEvent(new CustomEvent('salesRepContactCardReady', { detail: contact }));
+       // Dispatch event to ContactSearch to open this contact
+       window.dispatchEvent(new CustomEvent('openContact', { detail: contact }));
      };
 
      const handlePhoneClick = (e) => {
        e.stopPropagation();
        e.preventDefault();
-       window.dispatchEvent(new CustomEvent('salesRepDialerCardReady', { detail: { phone: contact.phone, contact } }));
+       // Dispatch event to navigate to dialer with phone prefilled
+       window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone, contact } }));
      };
 
      const handleEmailClick = (e) => {
        e.stopPropagation();
        e.preventDefault();
-       window.dispatchEvent(new CustomEvent('salesRepEmailCardReady', { detail: { email: contact.email, contact } }));
+       // Dispatch event to navigate to email with recipient prefilled
+       window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: contact.email, contact } }));
      };
 
      return (
