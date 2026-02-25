@@ -15,6 +15,7 @@ import IphoneDialer from "@/components/sales/IphoneDialer";
 import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
+import CalendarTab from "@/components/sales/CalendarTab";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
