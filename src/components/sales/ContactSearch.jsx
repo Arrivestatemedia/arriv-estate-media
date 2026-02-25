@@ -71,47 +71,18 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
    }, [openNewContactForm, setOpenNewContactForm, prefilledData]);
 
    React.useEffect(() => {
-     const handleOpenContact = (event) => {
-       const contact = event.detail;
-       setQuery(`${contact.name || ''}`);
-       setResults([{
-         id: contact.id,
-         firstname: contact.name?.split(' ')[0] || '',
-         lastname: contact.name?.split(' ').slice(1).join(' ') || '',
-         email: contact.email || '',
-         phone: contact.phone || '',
-         company: contact.company || '',
-         jobtitle: '',
-         lead_status: ''
-       }]);
-       setShowNewForm(false);
-       setExpandedId(contact.id);
-       setEditFields({
-         firstname: contact.name?.split(' ')[0] || '',
-         lastname: contact.name?.split(' ').slice(1).join(' ') || '',
-         email: contact.email || '',
-         phone: contact.phone || '',
-         company: contact.company || '',
-         jobtitle: '',
-         hs_lead_status: ''
-       });
-     };
-
-     window.addEventListener('openContact', handleOpenContact);
-     return () => window.removeEventListener('openContact', handleOpenContact);
-   }, []);
-
-   React.useEffect(() => {
-     if (window._openContactWithName) {
+     if (openNewContactForm && prefilledData) {
        setShowNewForm(true);
        setNewContact(prev => ({
          ...prev,
-         firstname: window._openContactWithName?.split(' ')[0] || '',
-         lastname: window._openContactWithName?.split(' ').slice(1).join(' ') || ''
+         firstname: prefilledData.firstName || '',
+         lastname: prefilledData.lastName || '',
+         email: prefilledData.email || '',
+         phone: prefilledData.phone || '',
+         company: prefilledData.company || ''
        }));
-       window._openContactWithName = null;
      }
-   }, []);
+   }, [openNewContactForm, prefilledData]);
 
   const handleDelete = async (contactId) => {
     setDeleting(true);
