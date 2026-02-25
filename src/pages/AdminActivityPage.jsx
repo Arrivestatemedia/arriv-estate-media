@@ -37,6 +37,46 @@ export default function AdminActivityPage({ user }) {
   const [openNewContactForm, setOpenNewContactForm] = useState(false);
   const [prefilledContactData, setPrefilledContactData] = useState(null);
 
+  // Handle contact card interactions
+  useEffect(() => {
+    const handleDialerReady = () => {
+      const phone = localStorage.getItem('dialerPhone');
+      if (phone) {
+        localStorage.removeItem('dialerPhone');
+        localStorage.removeItem('dialerTab');
+      }
+    };
+
+    const handleEmailComposerReady = () => {
+      const email = localStorage.getItem('emailTo');
+      if (email) {
+        setFormData(prev => ({ ...prev, contact_email: email }));
+        localStorage.removeItem('emailTo');
+        localStorage.removeItem('emailComposerTab');
+      }
+    };
+
+    const handleContactSearchReady = () => {
+      const contactData = localStorage.getItem('newContactData');
+      if (contactData) {
+        const contact = JSON.parse(contactData);
+        setPrefilledContactData(contact);
+        setOpenNewContactForm(true);
+        localStorage.removeItem('newContactData');
+      }
+    };
+
+    window.addEventListener('dialerReady', handleDialerReady);
+    window.addEventListener('emailComposerReady', handleEmailComposerReady);
+    window.addEventListener('contactSearchReady', handleContactSearchReady);
+
+    return () => {
+      window.removeEventListener('dialerReady', handleDialerReady);
+      window.removeEventListener('emailComposerReady', handleEmailComposerReady);
+      window.removeEventListener('contactSearchReady', handleContactSearchReady);
+    };
+  }, []);
+
   const queryClient = useQueryClient();
 
   const { data: activities = [] } = useQuery({
