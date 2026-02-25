@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import ContactSearch from "@/components/sales/ContactSearch";
 import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
+import ContactCardDisplay from "@/components/sales/ContactCardDisplay";
 
 export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [selectedRepId, setSelectedRepId] = useState(null);
