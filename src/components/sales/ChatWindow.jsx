@@ -98,13 +98,12 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   }, [messages]);
 
   useEffect(() => {
-    const handleOpenContact = (e) => {
-      console.log('openContact event received:', e.detail);
+    const handleOpenContactDetails = (e) => {
       setContactToEdit(e.detail);
       setShowContactSearch(true);
     };
-    window.addEventListener('openContact', handleOpenContact);
-    return () => window.removeEventListener('openContact', handleOpenContact);
+    window.addEventListener('openContactDetails', handleOpenContactDetails);
+    return () => window.removeEventListener('openContactDetails', handleOpenContactDetails);
   }, []);
 
   useEffect(() => {
