@@ -24,8 +24,8 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
       setContactToEdit(e.detail);
       setShowContactSearch(true);
     };
-    window.addEventListener('openContactSearch', handleOpenContact);
-    return () => window.removeEventListener('openContactSearch', handleOpenContact);
+    window.addEventListener('openContact', handleOpenContact);
+    return () => window.removeEventListener('openContact', handleOpenContact);
   }, []);
 
   // Load sales reps (non-admin, active users)
