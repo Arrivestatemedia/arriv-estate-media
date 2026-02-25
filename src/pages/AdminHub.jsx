@@ -36,6 +36,7 @@ export default function AdminHub() {
           profile_picture_url: members[0].profile_picture_url
         });
         setProfilePicUrl(members[0].profile_picture_url || "");
+        setTimeout(() => setShowPermissionBanner(true), 500);
       } else {
         // Not an admin, redirect to activity log
         window.location.href = '/HubSpotActivityLog';
