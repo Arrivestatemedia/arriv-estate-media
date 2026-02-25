@@ -99,7 +99,7 @@ export default function ChatContactCard({ channelId, currentUserId, currentUserN
             <div className="flex items-center gap-2">
               <Input
                 type="text"
-                placeholder="Search contacts..."
+                placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={handleSearch}
                 className="flex-1"
