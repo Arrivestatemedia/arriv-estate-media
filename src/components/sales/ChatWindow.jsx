@@ -278,15 +278,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const renderMessageContent = (content) => {
     if (!content) return null;
     if (content.startsWith("[contact]")) {
-      return (
-        <ContactCardDisplay 
-          content={content}
-          onOpenContact={(contact) => {
-            setContactToEdit(contact);
-            setShowContactSearch(true);
-          }}
-        />
-      );
+      return <ContactCardDisplay content={content} />;
     }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
