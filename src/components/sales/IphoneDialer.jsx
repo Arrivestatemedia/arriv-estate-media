@@ -108,15 +108,13 @@ export default function IphoneDialer({ salesMemberId }) {
   }, [selectedConvo?.id]);
 
   useEffect(() => {
-    const handleOpenDialer = (event) => {
-      if (event.detail?.phone) {
-        setKeypadInput(event.detail.phone);
-        setActiveTab(TABS.KEYPAD);
-      }
-    };
-    window.addEventListener('openDialer', handleOpenDialer);
-    return () => window.removeEventListener('openDialer', handleOpenDialer);
-  }, [TABS.KEYPAD]);
+    const phone = localStorage.getItem('_dialerPhone');
+    if (phone) {
+      setKeypadInput(phone);
+      setActiveTab(TABS.KEYPAD);
+      localStorage.removeItem('_dialerPhone');
+    }
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
