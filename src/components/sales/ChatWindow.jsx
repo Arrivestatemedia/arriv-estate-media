@@ -425,6 +425,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
           <ChatContactCard
             channelId={chatId}
+            chatId={chatId}
             currentUserId={currentUserId}
             currentUserName={currentUserName}
             onContactAdded={() => {}}
