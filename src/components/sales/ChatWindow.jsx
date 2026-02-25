@@ -370,11 +370,23 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 </div>
                 <div className="flex-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-semibold text-gray-900">{msg.sender_name}</span>
-                    <span className="text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
-                    </span>
-                  </div>
+                     <button
+                       onClick={() => {
+                         // Try to extract email from message or use sender name as fallback
+                         const emailMatch = msg.content.match(/[\w.-]+@[\w.-]+\.\w+/);
+                         if (emailMatch) {
+                           setSelectedContactEmail(emailMatch[0]);
+                           setHubSpotModalOpen(true);
+                         }
+                       }}
+                       className="font-semibold text-gray-900 hover:text-[#B8956A] hover:underline cursor-pointer transition-colors"
+                     >
+                       {msg.sender_name}
+                     </button>
+                     <span className="text-xs text-gray-500">
+                       {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
+                     </span>
+                   </div>
                   {renderMessageContent(msg.content)}
                   <MessageReactions 
                     message={msg}
