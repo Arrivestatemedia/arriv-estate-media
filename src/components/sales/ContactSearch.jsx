@@ -448,7 +448,7 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t space-y-4" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
                     {/* Activity History */}
-                    <ActivityList activities={activities[contact.id]} loading={loadingActivities[contact.id]} />
+                    <ActivityList activities={activities[contact.id]} loading={loadingActivities[contact.id]} onSelect={setSelectedActivity} />
 
                     <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
