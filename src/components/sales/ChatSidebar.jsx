@@ -203,14 +203,13 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
           )}
             </div>
           </div>
-          </div>
           {isAdmin && (
-          <button
-           onClick={() => onSelectProfile && onSelectProfile(currentUserId, currentUserName, myStatus)}
-           className="text-xs text-gray-400 hover:text-[#B8956A] mt-1 transition-colors"
-          >
-           View Profile
-          </button>
+            <button
+              onClick={() => onSelectProfile && onSelectProfile(currentUserId, currentUserName, myStatus)}
+              className="text-xs text-gray-400 hover:text-[#B8956A] mt-1 transition-colors"
+            >
+              View Profile
+            </button>
           )}
           </div>
 
