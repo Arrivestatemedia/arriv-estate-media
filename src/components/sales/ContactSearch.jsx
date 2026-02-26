@@ -49,7 +49,7 @@ async function loadActivitiesForContact(contact) {
   }).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
 }
 
-function ActivityList({ activities, loading }) {
+function ActivityList({ activities, loading, onSelect }) {
   if (loading) return (
     <div className="flex items-center justify-center py-3">
       <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#B8956A' }} />
@@ -57,6 +57,12 @@ function ActivityList({ activities, loading }) {
     </div>
   );
   if (!activities) return null;
+
+  // Separate past vs future for follow-up detection
+  const now = new Date();
+  const past = activities.filter(a => new Date(a.activity_date) <= now);
+  const upcoming = activities.filter(a => new Date(a.activity_date) > now);
+
   return (
     <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
       <div className="flex items-center gap-2 mb-2">
@@ -64,26 +70,31 @@ function ActivityList({ activities, loading }) {
         <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>
           Activity History {activities.length > 0 ? `(${activities.length})` : ''}
         </p>
+        {activities.length > 0 && <span className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>· Click any row for details</span>}
       </div>
       {activities.length === 0 ? (
         <p className="text-xs text-center py-2" style={{ color: 'rgba(26,26,26,0.6)' }}>No activities logged for this contact yet.</p>
       ) : (
-        <div className="space-y-2 max-h-64 overflow-y-auto bg-slate-50 rounded-lg p-3">
+        <div className="space-y-1.5 max-h-64 overflow-y-auto bg-slate-50 rounded-lg p-2">
           {activities.map((activity, idx) => (
-            <div key={idx} className="text-xs border-b border-slate-200 pb-2 last:border-b-0">
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <Badge variant="outline" className="text-xs capitalize">{activity.activity_type}</Badge>
-                <span className="flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                  <Clock className="w-3 h-3" />
-                  {new Date(activity.activity_date).toLocaleDateString()} {new Date(activity.activity_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+            <button
+              key={idx}
+              onClick={() => onSelect({ ...activity, _followUps: upcoming })}
+              className="w-full text-left text-xs border-b border-slate-200 pb-2 last:border-b-0 hover:bg-white rounded px-2 py-1.5 transition-colors flex items-start justify-between gap-2 group"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Badge variant="outline" className="text-xs capitalize">{activity.activity_type}</Badge>
+                  <span className="flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                    <Clock className="w-3 h-3" />
+                    {new Date(activity.activity_date).toLocaleDateString()} {new Date(activity.activity_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                {activity.notes && <p className="truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{activity.notes}</p>}
+                {activity.sales_member_email && <p style={{ color: 'rgba(26,26,26,0.5)' }}>Rep: {activity.sales_member_email}</p>}
               </div>
-              {activity.notes && <p className="mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>{activity.notes}</p>}
-              <div className="space-y-0.5" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                {activity.sales_member_email && <p><span className="font-medium">Rep:</span> {activity.sales_member_email}</p>}
-                {activity.duration_minutes > 0 && <p><span className="font-medium">Duration:</span> {activity.duration_minutes} min</p>}
-              </div>
-            </div>
+              <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: '#B8956A' }} />
+            </button>
           ))}
         </div>
       )}
