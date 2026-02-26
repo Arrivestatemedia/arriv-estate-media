@@ -212,32 +212,11 @@ export default function IphoneDialer({ salesMemberId }) {
   const loadConversations = async () => {
     try {
       const id = salesMemberId || localStorage.getItem('sales_member_id');
-      // Collect phone numbers from activity history
-      const activities = await base44.entities.ActivityLog.filter({ sales_member_id: id });
-      const contactPhones = new Set(activities
-        .map(a => a.contact_phone)
-        .filter(phone => phone && phone.trim()));
-
-      // Also add phone numbers from the call log (recents)
-       callLogs.forEach(log => {
-         if (log.contact_phone && log.contact_phone.trim()) {
-           contactPhones.add(log.contact_phone);
-         }
-       });
-
-      if (contactPhones.size === 0) {
-        setConversations([]);
-        return;
-      }
 
       // Load all SMS conversations and filter to only those assigned to this rep
       const allConversations = await base44.entities.SmsConversation.list();
-      const filtered = allConversations.filter(conv => {
-        // Must be assigned to this rep AND contain a contact from their activity history or call log
-        const isAssignedToThisRep = conv.sales_member_id === id;
-        const hasKnownContact = contactPhones.has(conv.from_number);
-        return isAssignedToThisRep && hasKnownContact;
-      });
+      const filtered = allConversations.filter(conv => conv.sales_member_id === id);
+
       // Sort by last message time, newest first
       filtered.sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at));
       setConversations(filtered);
