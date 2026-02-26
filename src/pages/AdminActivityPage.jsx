@@ -94,30 +94,7 @@ export default function AdminActivityPage({ user }) {
 
   const queryClient = useQueryClient();
 
-  // Auto-sync chat status with Google Calendar every 1 minute
-  useEffect(() => {
-    if (!user?.id) return;
 
-    const syncStatus = async () => {
-      try {
-        const isAdmin = user?.role === 'admin';
-        if (isAdmin) {
-          await base44.functions.invoke('syncAdminChatStatusWithCalendar', {});
-        } else {
-          await base44.functions.invoke('syncChatStatusWithCalendar', { salesMemberId: user.id });
-        }
-      } catch (err) {
-        console.error('Calendar sync error:', err);
-      }
-    };
-
-    syncStatus();
-    const syncIntervalRef = setInterval(syncStatus, 1 * 60 * 1000);
-
-    return () => {
-      if (syncIntervalRef) clearInterval(syncIntervalRef);
-    };
-  }, [user?.id, user?.role]);
 
   // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
   useEffect(() => {
