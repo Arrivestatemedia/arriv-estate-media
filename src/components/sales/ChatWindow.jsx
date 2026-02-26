@@ -464,25 +464,37 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                     </span>
                   </div>
                   {renderMessageContent(msg.content)}
-                  <MessageReactions 
-                    message={msg}
-                    currentUserId={currentUserId}
-                    messageType={chatType}
-                    onReactionUpdate={() => {
-                      // Reload messages to show updated reactions
-                      setMessages(prev => [...prev]);
-                    }}
-                  />
-                  {msg.sender_id === currentUserId && messageKeywords[msg.content] && (
-                    <TransferCallButton message={msg} currentUserId={currentUserId} />
-                  )}
-                  <button
-                    onClick={() => setSelectedThread(msg)}
-                    className="text-xs text-[#B8956A] hover:underline mt-1.5 flex items-center gap-1"
-                  >
-                    <MessageCircle className="w-3 h-3" />
-                    {msg.thread_reply_count > 0 ? `${msg.thread_reply_count} ${msg.thread_reply_count === 1 ? 'reply' : 'replies'}` : 'Reply in thread'}
-                  </button>
+                  <div className="flex flex-wrap gap-2 items-center mt-1.5">
+                    <MessageReactions 
+                      message={msg}
+                      currentUserId={currentUserId}
+                      messageType={chatType}
+                      onReactionUpdate={() => {
+                        // Reload messages to show updated reactions
+                        setMessages(prev => [...prev]);
+                      }}
+                    />
+                    {msg.sender_id === currentUserId && messageKeywords[msg.content] && (
+                      <TransferCallButton message={msg} currentUserId={currentUserId} />
+                    )}
+                    {msg.sender_id === currentUserId && (
+                      <button
+                        onClick={() => handleDeleteMessage(msg.id, chatType)}
+                        className="text-xs text-red-500 hover:text-red-700 hover:underline flex items-center gap-1"
+                        title="Delete message"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Undo
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setSelectedThread(msg)}
+                      className="text-xs text-[#B8956A] hover:underline flex items-center gap-1"
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      {msg.thread_reply_count > 0 ? `${msg.thread_reply_count} ${msg.thread_reply_count === 1 ? 'reply' : 'replies'}` : 'Reply in thread'}
+                    </button>
+                  </div>
                   </div>
                   </div>
                   );
