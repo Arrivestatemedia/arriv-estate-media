@@ -90,7 +90,7 @@ function ActivityList({ activities, loading, onSelect }) {
                     {new Date(activity.activity_date).toLocaleDateString()} {new Date(activity.activity_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
-                {activity.notes && <p className="truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{activity.notes}</p>}
+                {activity.notes && <p className="truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>}
                 {activity.sales_member_email && <p style={{ color: 'rgba(26,26,26,0.5)' }}>Rep: {activity.sales_member_email}</p>}
               </div>
               <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: '#B8956A' }} />

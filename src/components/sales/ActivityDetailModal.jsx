@@ -72,7 +72,7 @@ export default function ActivityDetailModal({ activity, onClose }) {
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Notes / Content</p>
               </div>
               <div className="bg-white border rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed" style={{ borderColor: 'rgba(184,149,106,0.3)' }}>
-                {activity.notes}
+                {activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}
               </div>
             </div>
           )}
