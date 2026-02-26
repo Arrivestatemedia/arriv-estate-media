@@ -173,9 +173,11 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     <div className="w-64 bg-[#1A1A1A] text-white flex flex-col border-r border-gray-700">
       {/* Header */}
       <div className="p-4 border-b border-gray-700">
-        <h3 className="font-bold text-lg">{currentUserName}</h3>
-        {/* Status picker */}
-        <div className="relative mt-2" ref={statusRef}>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="font-bold text-lg">{currentUserName}</h3>
+            {/* Status picker */}
+            <div className="relative mt-2" ref={statusRef}>
           <button
             onClick={() => setShowStatusPicker(v => !v)}
             className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-white transition-colors"
