@@ -517,6 +517,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         open={!!profileMemberId}
         onClose={() => setProfileMemberId(null)}
       />
+      <ChatMemberProfile
+        member={selectedMemberProfile}
+        open={memberProfileOpen}
+        onClose={() => setMemberProfileOpen(false)}
+      />
     </>
   );
 }
