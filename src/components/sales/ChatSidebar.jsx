@@ -282,6 +282,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
           </DialogContent>
         </Dialog>
       </div>
+      </div>
 
       {/* Channels */}
       <div className="flex-1 overflow-y-auto">
