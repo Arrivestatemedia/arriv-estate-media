@@ -379,7 +379,7 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
             )}
 
             {/* Activity history for matched contact */}
-            <ActivityList activities={inlineActivities} loading={inlineActivitiesLoading} />
+            <ActivityList activities={inlineActivities} loading={inlineActivitiesLoading} onSelect={setSelectedActivity} />
 
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button
