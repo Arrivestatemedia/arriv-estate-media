@@ -12,7 +12,8 @@ Deno.serve(async (req) => {
     const { salesMemberId } = await req.json();
     
     // Get sales rep's company email
-    const salesMember = await base44.asServiceRole.entities.SalesTeamMember.read(salesMemberId);
+    const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+    const salesMember = members?.[0];
     if (!salesMember || !salesMember.company_email) {
       return Response.json({ error: 'Sales member not found or missing company email' }, { status: 400 });
     }
