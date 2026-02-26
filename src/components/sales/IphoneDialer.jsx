@@ -32,6 +32,9 @@ export default function IphoneDialer({ salesMemberId }) {
    const [companyName, setCompanyName] = useState("");
    const [callNotes, setCallNotes] = useState("");
    const [expandedCallId, setExpandedCallId] = useState(null);
+   const [showNewMessage, setShowNewMessage] = useState(false);
+   const [newMsgNumber, setNewMsgNumber] = useState("");
+   const [newMsgText, setNewMsgText] = useState("");
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
