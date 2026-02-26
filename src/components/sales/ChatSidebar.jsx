@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Hash, MessageSquare, ChevronDown } from "lucide-react";
+import { Plus, Hash, MessageSquare, ChevronDown, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,6 +38,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const [openDialog, setOpenDialog] = useState(false);
   const [myStatus, setMyStatus] = useState("online");
   const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const statusRef = useRef(null);
 
   // Close picker on outside click
@@ -125,7 +126,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
 
   const loadTeamMembers = async () => {
     const members = await base44.entities.SalesTeamMember.list();
-    setTeamMembers(members?.filter(m => m.id !== currentUserId && m.is_active !== false && m.role !== 'admin') || []);
+    setTeamMembers(members?.filter(m => m.id !== currentUserId && m.is_active !== false) || []);
   };
 
   const handleCreateChannel = async () => {
@@ -155,7 +156,12 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     if (!existing) {
       setDirectMessages([...directMessages, { id: memberId, name: memberName }]);
     }
+    setSearchQuery("");
   };
+
+  const filteredTeamMembers = teamMembers.filter(m => 
+    m.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="w-64 bg-[#1A1A1A] text-white flex flex-col border-r border-gray-700">
@@ -186,6 +192,27 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
                 </button>
               ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="p-4 border-b border-gray-700">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Search employees..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-gray-800 border-gray-700 text-white pl-9 text-xs"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
           )}
         </div>
       </div>
@@ -276,14 +303,14 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
             })}
           </div>
 
-          {/* Start New DM */}
-          {teamMembers.length > 0 && directMessages.length < teamMembers.length && (
+          {/* Search Results or Team Members */}
+          {(searchQuery || (teamMembers.length > 0 && directMessages.length < teamMembers.length)) && (
             <div className="mt-4 pt-4 border-t border-gray-700">
-              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Team Members</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{searchQuery ? 'Search Results' : 'Team Members'}</p>
               <div className="space-y-1">
-                {teamMembers.map((member) => {
+                {(searchQuery ? filteredTeamMembers : teamMembers).map((member) => {
                   const hasConversation = directMessages.some(dm => dm.id === member.id);
-                  if (hasConversation) return null;
+                  if (!searchQuery && hasConversation) return null;
                   return (
                     <button
                       key={member.id}
