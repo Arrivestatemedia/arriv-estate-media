@@ -164,7 +164,7 @@ export default function AdminHub() {
             currentUrl={profilePicUrl}
             onUploaded={(url) => setProfilePicUrl(url)}
           />
-          <div>
+          <div className="flex-1">
             <h1 className="text-4xl font-bold" style={{ color: '#1A1A1A' }}>
               <span style={{ fontStyle: 'italic' }}>Arriv</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>One</span> Admin Hub
             </h1>
@@ -176,6 +176,13 @@ export default function AdminHub() {
                 return 'Evening';
               })()}!
             </p>
+            <button
+              className="text-xs mt-1 underline"
+              style={{ color: 'rgba(26,26,26,0.5)' }}
+              onClick={() => setShowEditProfile(true)}
+            >
+              Edit Profile
+            </button>
           </div>
         </div>
 
