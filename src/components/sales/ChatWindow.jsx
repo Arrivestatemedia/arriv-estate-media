@@ -263,6 +263,21 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return <p className="text-gray-700 text-sm mt-1 break-words">{content}</p>;
   };
 
+  const handleDeleteMessage = async (messageId, messageType) => {
+    try {
+      if (messageType === "channel") {
+        await base44.entities.ChatMessage.delete(messageId);
+      } else {
+        await base44.entities.DirectMessage.delete(messageId);
+      }
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      toast.success("Message deleted");
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast.error("Failed to delete message");
+    }
+  };
+
   const handleSendMessage = async (e) => {
    if (e.key && e.key !== "Enter") return;
    if (e.key === "Enter" && (e.shiftKey || e.ctrlKey || e.metaKey)) return;
