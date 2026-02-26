@@ -212,19 +212,25 @@ export default function IphoneDialer({ salesMemberId }) {
   const loadConversations = async () => {
     try {
       const id = salesMemberId || localStorage.getItem('sales_member_id');
-      // Load the rep's activity history to get their contacts
+      // Collect phone numbers from activity history
       const activities = await base44.entities.ActivityLog.filter({ sales_member_id: id });
-      // Extract unique contact phone numbers from activities
       const contactPhones = new Set(activities
         .map(a => a.contact_phone)
         .filter(phone => phone && phone.trim()));
+
+      // Also add phone numbers from the call log (recents)
+      callLog.forEach(log => {
+        if (log.number && log.number.trim()) {
+          contactPhones.add(log.number);
+        }
+      });
 
       if (contactPhones.size === 0) {
         setConversations([]);
         return;
       }
 
-      // Load all SMS conversations and filter to only those with contacts from activity history
+      // Load all SMS conversations and filter to only those with known contacts
       const allConversations = await base44.entities.SmsConversation.list();
       const filtered = allConversations.filter(conv => contactPhones.has(conv.from_number));
       // Sort by last message time, newest first
