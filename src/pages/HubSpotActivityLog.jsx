@@ -19,6 +19,7 @@ import CalendarTab from "@/components/sales/CalendarTab";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
+import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
