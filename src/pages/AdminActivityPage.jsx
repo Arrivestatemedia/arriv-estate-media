@@ -446,7 +446,7 @@ export default function AdminActivityPage({ user }) {
         )}
 
         {activeTab === "chat" && (
-          <ChatTab currentUserId={user?.id} currentUserName={user?.full_name} />
+          <ChatTab currentUserId={user?.id} currentUserName={user?.full_name} salesMemberId={user?.id} isAdmin={true} />
         )}
 
         {activeTab === "calendar" && (
