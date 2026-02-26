@@ -369,7 +369,7 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
             {/* Matched HubSpot contact info */}
             {inlineContactInfo && (
               <div className="text-xs p-2 rounded-lg bg-amber-50 border border-amber-200">
-                <span className="font-semibold text-amber-700">HubSpot match found: </span>
+                <span className="font-semibold text-amber-700">Contact match found: </span>
                 <span style={{ color: '#1A1A1A' }}>
                   {[inlineContactInfo.firstname, inlineContactInfo.lastname].filter(Boolean).join(' ')}
                   {inlineContactInfo.email ? ` · ${inlineContactInfo.email}` : ''}
