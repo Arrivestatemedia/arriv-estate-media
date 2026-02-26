@@ -44,8 +44,8 @@ Deno.serve(async (req) => {
     const hasActiveEvent = relevantEvents.length > 0;
     const newStatus = hasActiveEvent ? 'in_meeting' : 'available';
     
-    // Update admin's chat status via updateMe
-    await base44.auth.updateMe({ chat_status: newStatus });
+    // Update admin's chat status via service role since automation can't use updateMe
+    await base44.asServiceRole.entities.User.update(adminUser.id, { chat_status: newStatus });
     
     return Response.json({ status: newStatus, hasActiveEvent });
   } catch (error) {
