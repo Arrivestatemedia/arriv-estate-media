@@ -526,5 +526,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         </form>
       </div>
     </div>
+
+      <SalesRepProfileModal
+        memberId={profileMemberId}
+        open={!!profileMemberId}
+        onClose={() => setProfileMemberId(null)}
+      />
   );
 }
