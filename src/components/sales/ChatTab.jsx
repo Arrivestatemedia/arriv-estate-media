@@ -8,6 +8,8 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
   const [selectedChat, setSelectedChat] = useState(null);
   const [memberProfiles, setMemberProfiles] = useState({});
   const [memberStatuses, setMemberStatuses] = useState({});
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const syncIntervalRef = React.useRef(null);
 
   // Auto-sync chat status with Google Calendar every 1 minute
