@@ -14,10 +14,11 @@ Deno.serve(async (req) => {
     // Get Google Calendar access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
     
-    // Check currently ongoing calendar events (started up to 4 hours ago, ends in the future)
+    // Fetch events that started up to 8 hours ago and up to 1 min from now
+    // Then filter client-side for events that are currently ongoing (start <= now <= end)
     const now = new Date();
-    const timeMin = new Date(now.getTime() - 4 * 60 * 60000).toISOString();
-    const timeMax = new Date(now.getTime() + 5 * 60000).toISOString();
+    const timeMin = new Date(now.getTime() - 8 * 60 * 60000).toISOString();
+    const timeMax = new Date(now.getTime() + 60000).toISOString();
     
     const calResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true`,
@@ -28,12 +29,18 @@ Deno.serve(async (req) => {
     
     const calData = await calResponse.json();
     
-    // Only count events that include the admin's specific email
+    // Only count events that are currently ongoing AND include the admin's email
     const relevantEvents = (calData.items || []).filter(event => {
       const organizerEmail = event.organizer?.email || '';
       const attendeeEmails = (event.attendees || []).map(a => a.email);
+      const includesAdmin = organizerEmail === adminEmail || attendeeEmails.includes(adminEmail);
       
-      return organizerEmail === adminEmail || attendeeEmails.includes(adminEmail);
+      // Check if event is currently ongoing
+      const startTime = new Date(event.start?.dateTime || event.start?.date);
+      const endTime = new Date(event.end?.dateTime || event.end?.date);
+      const isOngoing = startTime <= now && endTime > now;
+      
+      return includesAdmin && isOngoing;
     });
     
     const hasActiveEvent = relevantEvents.length > 0;
