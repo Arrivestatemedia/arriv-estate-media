@@ -93,6 +93,23 @@ export default function AdminActivityPage({ user }) {
 
   const queryClient = useQueryClient();
 
+  // Load unread SMS count for dialer badge (not team chat)
+  useEffect(() => {
+    const id = user?.id;
+    if (!id) return;
+
+    const loadSmsCount = () => {
+      base44.entities.SmsConversation.filter({ sales_member_id: id }).then(convos => {
+        const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
+        setUnreadSmsCount(total);
+      }).catch(() => {});
+    };
+
+    loadSmsCount();
+    const smsSub = base44.entities.SmsConversation.subscribe(loadSmsCount);
+    return smsSub;
+  }, [user?.id]);
+
   const { data: activities = [] } = useQuery({
     queryKey: ['adminActivities', user?.email],
     queryFn: async () => {
