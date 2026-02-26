@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
+import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 
 const AdminSalesSignup = lazy(() => import("./AdminSalesSignup"));
 const AdminSalesRepActivity = lazy(() => import("./AdminSalesRepActivity"));
