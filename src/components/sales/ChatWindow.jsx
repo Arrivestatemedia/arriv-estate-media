@@ -11,6 +11,7 @@ import ChatContactCard from "./ChatContactCard";
 import ContactCardDisplay from "./ContactCardDisplay";
 import ContactSearch from "./ContactSearch";
 import SalesRepProfileModal from "./SalesRepProfileModal";
+import ChatMemberProfile from "./ChatMemberProfile";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
