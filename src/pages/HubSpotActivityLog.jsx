@@ -28,6 +28,7 @@ export default function HubSpotActivityLog() {
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [hubspotContact, setHubspotContact] = useState(null);
   const [contactNotes, setContactNotes] = useState("");
