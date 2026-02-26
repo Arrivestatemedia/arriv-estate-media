@@ -2,14 +2,11 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import ChatSidebar from "./ChatSidebar";
 import ChatWindow from "./ChatWindow";
-import ChatMemberProfile from "./ChatMemberProfile";
 
 export default function ChatTab({ currentUserId, currentUserName, salesMemberId, isAdmin }) {
   const [selectedChat, setSelectedChat] = useState(null);
   const [memberProfiles, setMemberProfiles] = useState({});
   const [memberStatuses, setMemberStatuses] = useState({});
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState(null);
   const syncIntervalRef = React.useRef(null);
 
   // Auto-sync chat status with Google Calendar every 1 minute
@@ -66,11 +63,6 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
     setSelectedChat({ type, id, name });
   };
 
-  const handleSelectProfile = (userId, userName, status) => {
-    setSelectedProfile({ name: userName, status });
-    setProfileOpen(true);
-  };
-
   return (
     <div className="flex h-full bg-gray-50">
       <ChatSidebar
@@ -78,13 +70,6 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
         currentUserName={currentUserName}
         onSelectChat={handleSelectChat}
         memberStatuses={memberStatuses}
-        isAdmin={isAdmin}
-        onSelectProfile={handleSelectProfile}
-      />
-      <ChatMemberProfile
-        member={selectedProfile}
-        open={profileOpen}
-        onClose={() => setProfileOpen(false)}
       />
       <div className="flex-1">
         {selectedChat ? (

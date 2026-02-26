@@ -11,7 +11,6 @@ import ChatContactCard from "./ChatContactCard";
 import ContactCardDisplay from "./ContactCardDisplay";
 import ContactSearch from "./ContactSearch";
 import SalesRepProfileModal from "./SalesRepProfileModal";
-import ChatMemberProfile from "./ChatMemberProfile";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
@@ -56,8 +55,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [showContactSearch, setShowContactSearch] = useState(false);
   const [contactToEdit, setContactToEdit] = useState(null);
   const [profileMemberId, setProfileMemberId] = useState(null);
-  const [memberProfileOpen, setMemberProfileOpen] = useState(false);
-  const [selectedMemberProfile, setSelectedMemberProfile] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Request / check notification permission
@@ -405,7 +402,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       </div>
 
       {/* Messages */}
-      <div className={`flex-1 p-4 space-y-4 ${messages.length > 5 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {loading ? (
           <div className="text-center text-gray-500 text-sm">Loading messages...</div>
         ) : messages.length === 0 ? (
@@ -429,15 +426,12 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 </div>
                 <div className="flex-1">
                    <div className="flex items-baseline gap-2">
-                      <button
-                        className="font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
-                        onClick={() => {
-                          setSelectedMemberProfile({ name: msg.sender_name, status: memberStatuses[msg.sender_id] || 'offline' });
-                          setMemberProfileOpen(true);
-                        }}
-                      >
-                        {msg.sender_name}
-                      </button>
+                     <button
+                       className="font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
+                       onClick={() => setProfileMemberId(msg.sender_id)}
+                     >
+                       {msg.sender_name}
+                     </button>
                     <span className="text-xs text-gray-500">
                       {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
                     </span>
@@ -516,11 +510,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         memberId={profileMemberId}
         open={!!profileMemberId}
         onClose={() => setProfileMemberId(null)}
-      />
-      <ChatMemberProfile
-        member={selectedMemberProfile}
-        open={memberProfileOpen}
-        onClose={() => setMemberProfileOpen(false)}
       />
     </>
   );

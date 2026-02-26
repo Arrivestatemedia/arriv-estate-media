@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Hash, MessageSquare, ChevronDown, Search } from "lucide-react";
+import { Plus, Hash, MessageSquare, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,7 +29,7 @@ function StatusDot({ value, size = 10 }) {
   return <span style={{ width: size, height: size, borderRadius: '50%', backgroundColor: s.color, display: 'inline-block', flexShrink: 0 }} />;
 }
 
-export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat, memberStatuses = {}, isAdmin = false, onSelectProfile = null }) {
+export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat, memberStatuses = {} }) {
   const [channels, setChannels] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -38,8 +38,6 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const [openDialog, setOpenDialog] = useState(false);
   const [myStatus, setMyStatus] = useState("online");
   const [showStatusPicker, setShowStatusPicker] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredMembers, setFilteredMembers] = useState([]);
   const statusRef = useRef(null);
 
   // Close picker on outside click
@@ -73,16 +71,6 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     });
     return unsub;
   }, [currentUserId, memberStatuses]);
-
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredMembers([]);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = teamMembers.filter(m => m.full_name.toLowerCase().includes(query));
-      setFilteredMembers(filtered);
-    }
-  }, [searchQuery, teamMembers]);
 
   const handleSetStatus = async (val) => {
     setMyStatus(val);
@@ -173,11 +161,9 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     <div className="w-64 bg-[#1A1A1A] text-white flex flex-col border-r border-gray-700">
       {/* Header */}
       <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="font-bold text-lg">{currentUserName}</h3>
-            {/* Status picker */}
-            <div className="relative mt-2" ref={statusRef}>
+        <h3 className="font-bold text-lg">{currentUserName}</h3>
+        {/* Status picker */}
+        <div className="relative mt-2" ref={statusRef}>
           <button
             onClick={() => setShowStatusPicker(v => !v)}
             className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-white transition-colors"
@@ -201,54 +187,10 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
               ))}
             </div>
           )}
-            </div>
-          </div>
-          {isAdmin && (
-            <button
-              onClick={() => onSelectProfile && onSelectProfile(currentUserId, currentUserName, myStatus)}
-              className="text-xs text-gray-400 hover:text-[#B8956A] mt-1 transition-colors"
-            >
-              View Profile
-            </button>
-          )}
-          </div>
+        </div>
+      </div>
 
-          {/* Search Bar */}
-          <div className="p-3 border-b border-gray-700">
-          <div className="relative">
-          <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-gray-500" />
-          <Input
-           placeholder="Search team members..."
-           value={searchQuery}
-           onChange={(e) => setSearchQuery(e.target.value)}
-           className="pl-8 h-8 text-xs bg-gray-800 border-gray-700"
-          />
-          </div>
-          </div>
-
-          {/* Search Results */}
-          {searchQuery && filteredMembers.length > 0 && (
-          <div className="px-4 py-2 border-b border-gray-700">
-          <p className="text-xs text-gray-500 uppercase mb-2">Search Results</p>
-          <div className="space-y-1">
-           {filteredMembers.map(member => (
-             <button
-               key={member.id}
-               onClick={() => {
-                 handleStartDM(member.id, member.full_name);
-                 setSearchQuery("");
-               }}
-               className="w-full text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-gray-800 flex items-center gap-2"
-             >
-               <StatusDot value={member.chat_status || 'offline'} size={6} />
-               {member.full_name}
-             </button>
-           ))}
-          </div>
-          </div>
-          )}
-
-          {/* New Channel */}
+      {/* New Channel */}
       <div className="p-4 border-b border-gray-700">
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogTrigger asChild>
@@ -281,7 +223,6 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
             </div>
           </DialogContent>
         </Dialog>
-      </div>
       </div>
 
       {/* Channels */}
@@ -358,7 +299,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
             </div>
           )}
         </div>
-        </div>
-        </div>
-        );
-        }
+      </div>
+    </div>
+  );
+}
