@@ -36,6 +36,7 @@ export default function AdminActivityPage({ user }) {
   const [pictureFile, setPictureFile] = useState(null);
   const [openNewContactForm, setOpenNewContactForm] = useState(false);
   const [prefilledContactData, setPrefilledContactData] = useState(null);
+  const [unreadSmsCount, setUnreadSmsCount] = useState(0);
 
   // ============================================================
   // ⚠️  DO NOT MODIFY THIS useEffect BLOCK ⚠️
