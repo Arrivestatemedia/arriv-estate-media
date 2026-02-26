@@ -684,6 +684,12 @@ export default function HubSpotActivityLog() {
           </DialogContent>
         </Dialog>
 
+        <EditMyProfileModal
+          salesMemberId={user?.id}
+          open={showEditProfile}
+          onClose={() => setShowEditProfile(false)}
+        />
+
         <PoweredByFooter />
 
         {activeTab !== "chat" && (
