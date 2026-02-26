@@ -75,21 +75,19 @@ export default function HubSpotActivityLog() {
 
       setTimeout(() => setShowPermissionBanner(true), 500);
 
-      base44.entities.DirectMessage.filter({
-        recipient_id: salesMemberId,
-        read: false
-      }).then(messages => {
-        setUnreadSmsCount(messages?.length || 0);
+      // Count unread SMS conversations (not team chat DMs) for the dialer badge
+      base44.entities.SmsConversation.filter({ sales_member_id: salesMemberId }).then(convos => {
+        const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
+        setUnreadSmsCount(total);
       }).catch(() => {});
 
-      const dmSub = base44.entities.DirectMessage.subscribe((event) => {
-        if (event.type === "create" && event.data?.recipient_id === salesMemberId && !event.data?.read) {
-          setUnreadSmsCount(prev => prev + 1);
-        } else if (event.type === "update" && event.data?.recipient_id === salesMemberId && event.data?.read) {
-          setUnreadSmsCount(prev => Math.max(0, prev - 1));
-        }
+      const smsSub = base44.entities.SmsConversation.subscribe(() => {
+        base44.entities.SmsConversation.filter({ sales_member_id: salesMemberId }).then(convos => {
+          const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
+          setUnreadSmsCount(total);
+        }).catch(() => {});
       });
-      return dmSub;
+      return smsSub;
     } else {
       base44.auth.me().then((adminUser) => {
         if (adminUser && adminUser.role === 'admin') {
