@@ -379,6 +379,28 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
+  const sendNewMessage = async () => {
+    const phone = newMsgNumber.trim();
+    const msg = newMsgText.trim();
+    if (!phone || !msg) return;
+
+    try {
+      const id = salesMemberId || localStorage.getItem('sales_member_id');
+      await base44.functions.invoke('sendSms', {
+        toNumber: phone,
+        body: msg,
+        salesMemberId: id,
+        newConversation: true
+      });
+      setNewMsgNumber("");
+      setNewMsgText("");
+      setShowNewMessage(false);
+      await loadConversations();
+    } catch (err) {
+      setError('Failed to send message: ' + err.message);
+    }
+  };
+
   const formatDuration = (secs) => {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
