@@ -37,6 +37,7 @@ export default function AdminActivityPage({ user }) {
   const [openNewContactForm, setOpenNewContactForm] = useState(false);
   const [prefilledContactData, setPrefilledContactData] = useState(null);
   const [unreadSmsCount, setUnreadSmsCount] = useState(0);
+  const [missedCallsCount, setMissedCallsCount] = useState(0);
 
   // ============================================================
   // ⚠️  DO NOT MODIFY THIS useEffect BLOCK ⚠️
