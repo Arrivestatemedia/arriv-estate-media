@@ -429,12 +429,15 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 </div>
                 <div className="flex-1">
                    <div className="flex items-baseline gap-2">
-                     <button
-                       className="font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
-                       onClick={() => setProfileMemberId(msg.sender_id)}
-                     >
-                       {msg.sender_name}
-                     </button>
+                      <button
+                        className="font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
+                        onClick={() => {
+                          setSelectedMemberProfile({ name: msg.sender_name, status: memberStatuses[msg.sender_id] || 'offline' });
+                          setMemberProfileOpen(true);
+                        }}
+                      >
+                        {msg.sender_name}
+                      </button>
                     <span className="text-xs text-gray-500">
                       {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
                     </span>
