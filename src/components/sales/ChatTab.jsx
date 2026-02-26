@@ -9,7 +9,7 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
   const [memberStatuses, setMemberStatuses] = useState({});
   const syncIntervalRef = React.useRef(null);
 
-  // Auto-sync chat status with Google Calendar every 3 minutes
+  // Auto-sync chat status with Google Calendar every 1 minute
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -26,7 +26,7 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
     };
 
     syncStatus();
-    syncIntervalRef.current = setInterval(syncStatus, 3 * 60 * 1000);
+    syncIntervalRef.current = setInterval(syncStatus, 1 * 60 * 1000);
 
     return () => {
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
