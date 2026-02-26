@@ -651,12 +651,52 @@ export default function IphoneDialer({ salesMemberId }) {
         {activeTab === TABS.MESSAGES && (
           <>
             {!selectedConvo ? (
-              <div className="space-y-0">
-                {conversations.length === 0 ? (
-                  <div className="text-center py-10" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">No messages</p>
+              <div className="flex flex-col h-full">
+                {showNewMessage ? (
+                  <div className="flex-1 flex flex-col p-4 gap-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold">Send Message</p>
+                      <Button variant="ghost" size="icon" onClick={() => setShowNewMessage(false)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Input
+                      placeholder="Phone number"
+                      value={newMsgNumber}
+                      onChange={(e) => setNewMsgNumber(e.target.value)}
+                      className="text-base"
+                    />
+                    <Textarea
+                      placeholder="Message..."
+                      value={newMsgText}
+                      onChange={(e) => setNewMsgText(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={sendNewMessage} 
+                      disabled={!newMsgNumber.trim() || !newMsgText.trim()}
+                      className="w-full"
+                      style={{ backgroundColor: '#B8956A' }}
+                    >
+                      <Send className="w-4 h-4 mr-2" /> Send
+                    </Button>
                   </div>
+                ) : (
+                  <div className="space-y-0 flex-1 overflow-y-auto">
+                    <div className="p-4">
+                      <Button 
+                        onClick={() => setShowNewMessage(true)}
+                        className="w-full gap-2"
+                        style={{ backgroundColor: '#B8956A' }}
+                      >
+                        <Plus className="w-4 h-4" /> New Message
+                      </Button>
+                    </div>
+                    {conversations.length === 0 ? (
+                      <div className="text-center py-10" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                        <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                        <p className="text-sm">No messages</p>
+                      </div>
                 ) : (
                   conversations.map((convo) => (
                     <button
