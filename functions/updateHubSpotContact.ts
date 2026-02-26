@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
         notes: `Contact ${action}: ${Object.keys(properties).filter(k => properties[k]).join(', ')}`,
         hubspot_synced: true,
         hubspot_engagement_id: result.id,
+
         sales_member_id: salesMemberId,
         sales_member_email: salesMemberEmail
       });

@@ -634,20 +634,12 @@ export default function HubSpotActivityLog() {
                 </div>
                 <div>
                   <h3 className="font-semibold mb-3">Contact Information</h3>
-                  {hubspotContact ? (
-                    <div className="bg-blue-50 p-4 rounded-lg space-y-2 border border-blue-200">
-                      <p className="text-sm text-blue-700 mb-3">✓ Contact found</p>
-                      <p><span className="font-medium">Name:</span> {hubspotContact.properties?.firstname || hubspotContact.properties?.lastname ? `${hubspotContact.properties?.firstname} ${hubspotContact.properties?.lastname}` : hubspotContact.id}</p>
-                      {hubspotContact.properties?.email && <p><span className="font-medium">Email:</span> {hubspotContact.properties.email}</p>}
-                      {hubspotContact.properties?.phone && <p><span className="font-medium">Phone:</span> {hubspotContact.properties.phone}</p>}
-                      {hubspotContact.properties?.company && <p><span className="font-medium">Company:</span> {hubspotContact.properties.company}</p>}
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                      <p className="text-sm text-amber-700">Contact not found</p>
-                      <p className="text-xs text-amber-600 mt-1">Contact: {selectedActivity.contact_name || selectedActivity.company_name}</p>
-                    </div>
-                  )}
+                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                    {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
+                    {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
+                    {selectedActivity.contact_phone && <p><span className="font-medium">Phone:</span> {selectedActivity.contact_phone}</p>}
+                    {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
+                  </div>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-3">Actions</h3>
