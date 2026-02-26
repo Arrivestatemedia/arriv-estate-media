@@ -212,16 +212,24 @@ export default function IphoneDialer({ salesMemberId }) {
   const loadConversations = async () => {
     try {
       const id = salesMemberId || localStorage.getItem('sales_member_id');
-      // Get the sales member's Twilio number
-      const members = await base44.entities.SalesTeamMember.filter({ id });
-      const twilioNumber = members?.[0]?.twilio_phone_number;
-      if (!twilioNumber) {
+      // Load the rep's activity history to get their contacts
+      const activities = await base44.entities.ActivityLog.filter({ sales_member_id: id });
+      // Extract unique contact phone numbers from activities
+      const contactPhones = new Set(activities
+        .map(a => a.contact_phone)
+        .filter(phone => phone && phone.trim()));
+
+      if (contactPhones.size === 0) {
         setConversations([]);
         return;
       }
-      // Load conversations for this Twilio number only
-      const data = await base44.entities.SmsConversation.filter({ from_number: twilioNumber }, '-last_message_at');
-      setConversations(data);
+
+      // Load all SMS conversations and filter to only those with contacts from activity history
+      const allConversations = await base44.entities.SmsConversation.list();
+      const filtered = allConversations.filter(conv => contactPhones.has(conv.from_number));
+      // Sort by last message time, newest first
+      filtered.sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at));
+      setConversations(filtered);
     } catch (err) {
       console.error('Failed to load conversations:', err);
       setConversations([]);
