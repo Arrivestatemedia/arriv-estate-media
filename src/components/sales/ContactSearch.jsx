@@ -500,6 +500,8 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
         })}
       </div>
 
+      <ActivityDetailModal activity={selectedActivity} onClose={() => setSelectedActivity(null)} />
+
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
