@@ -81,9 +81,12 @@ Deno.serve(async (req) => {
         clientTags += `<Client>${identity}</Client>`;
       }
 
+      const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
+      const missedCallbackUrl = appDomain ? `${appDomain}/functions/handleMissedCall` : '';
+
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerId}" timeout="30">
+  <Dial callerId="${callerId}" timeout="30" action="${missedCallbackUrl}" method="POST">
     ${clientTags}
   </Dial>
 </Response>`);
