@@ -727,8 +727,10 @@ export default function IphoneDialer({ salesMemberId }) {
                       </div>
                     </button>
                   ))
-                )}
-              </div>
+                    )}
+                    </div>
+                  )}
+                  </div>
             ) : (
               <div className="flex flex-col h-full">
                 {/* Header */}
