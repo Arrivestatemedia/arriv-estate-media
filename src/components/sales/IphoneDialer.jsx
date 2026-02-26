@@ -731,7 +731,7 @@ export default function IphoneDialer({ salesMemberId }) {
                     </div>
                   )}
                   </div>
-            ) : (
+                  ) : (
               <div className="flex flex-col h-full">
                 {/* Header */}
                 <div className="flex items-center gap-3 p-4 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
