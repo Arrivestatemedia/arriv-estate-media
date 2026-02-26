@@ -66,6 +66,11 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
     setSelectedChat({ type, id, name });
   };
 
+  const handleSelectProfile = (userId, userName, status) => {
+    setSelectedProfile({ name: userName, status });
+    setProfileOpen(true);
+  };
+
   return (
     <div className="flex h-full bg-gray-50">
       <ChatSidebar
@@ -73,6 +78,13 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
         currentUserName={currentUserName}
         onSelectChat={handleSelectChat}
         memberStatuses={memberStatuses}
+        isAdmin={isAdmin}
+        onSelectProfile={handleSelectProfile}
+      />
+      <ChatMemberProfile
+        member={selectedProfile}
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
       />
       <div className="flex-1">
         {selectedChat ? (
