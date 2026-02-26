@@ -4,6 +4,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Mail, Phone, Smartphone, Briefcase, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
+const STATUS_LABELS = {
+  online: "Online",
+  available: "Available",
+  busy: "Busy",
+  in_meeting: "In a Meeting",
+  away: "Away",
+  lunch: "Lunch",
+  break: "Break",
+  offline: "Offline"
+};
+
+const STATUS_COLORS = {
+  online: "#22c55e", available: "#22c55e", busy: "#ef4444",
+  in_meeting: "#f97316", away: "#eab308", lunch: "#a855f7",
+  break: "#3b82f6", offline: "#6b7280"
+};
+
 export default function SalesRepProfileModal({ memberId, open, onClose }) {
   const [member, setMember] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -72,8 +89,17 @@ export default function SalesRepProfileModal({ memberId, open, onClose }) {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-gray-900">{member.full_name}</h2>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ backgroundColor: STATUS_COLORS[member.chat_status || 'offline'] || '#6b7280' }}
+                  />
+                  <p className="text-xs text-gray-500">
+                    {STATUS_LABELS[member.chat_status || 'offline']}
+                  </p>
+                </div>
                 {member.title && (
-                  <p className="text-sm text-[#B8956A] flex items-center gap-1">
+                  <p className="text-sm text-[#B8956A] flex items-center gap-1 mt-1">
                     <Briefcase className="w-3.5 h-3.5" />
                     {member.title}
                   </p>
