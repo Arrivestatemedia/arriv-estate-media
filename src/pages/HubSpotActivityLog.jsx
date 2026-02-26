@@ -119,19 +119,13 @@ export default function HubSpotActivityLog() {
 
     const handleOpenDialer = (event) => {
       const { phone } = event.detail;
-      setFormData(prev => ({
-        ...prev,
-        contact_phone: phone || ''
-      }));
+      if (phone) localStorage.setItem('_dialerPhone', phone);
       setActiveTab("call");
     };
 
     const handleOpenEmailComposer = (event) => {
       const { email } = event.detail;
-      setFormData(prev => ({
-        ...prev,
-        contact_email: email || ''
-      }));
+      if (email) localStorage.setItem('_emailTo', email);
       setActiveTab("email");
     };
 
