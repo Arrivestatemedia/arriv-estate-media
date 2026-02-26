@@ -94,6 +94,26 @@ export default function AdminActivityPage({ user }) {
 
   const queryClient = useQueryClient();
 
+  // Auto-sync chat status with Google Calendar every 1 minute
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const syncStatus = async () => {
+      try {
+        await base44.functions.invoke('syncAdminChatStatusWithCalendar', {});
+      } catch (err) {
+        console.error('Calendar sync error:', err);
+      }
+    };
+
+    syncStatus();
+    const syncIntervalRef = setInterval(syncStatus, 1 * 60 * 1000);
+
+    return () => {
+      if (syncIntervalRef) clearInterval(syncIntervalRef);
+    };
+  }, [user?.id]);
+
   // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
   useEffect(() => {
     if (!user?.id) return;
