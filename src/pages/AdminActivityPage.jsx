@@ -37,7 +37,14 @@ export default function AdminActivityPage({ user }) {
   const [openNewContactForm, setOpenNewContactForm] = useState(false);
   const [prefilledContactData, setPrefilledContactData] = useState(null);
 
-  // Handle contact card interactions from AdminHub
+  // ============================================================
+  // ⚠️  DO NOT MODIFY THIS useEffect BLOCK ⚠️
+  // Listens for contact card click events dispatched by AdminHub:
+  //   - 'contactCardReady' → reads 'newContactData' from localStorage → opens Contacts tab pre-filled
+  //   - 'dialerCardReady'  → reads 'dialerPhone' from localStorage   → opens Dialer Keypad pre-filled
+  //   - 'emailCardReady'   → reads 'emailTo' from localStorage       → opens Send Email To field pre-filled
+  // Removing or changing this will break contact card navigation for admin sales reps.
+  // ============================================================
   useEffect(() => {
     const handleContactCardReady = () => {
       const contactData = localStorage.getItem('newContactData');
