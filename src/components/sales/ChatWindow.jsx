@@ -400,7 +400,16 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       {/* Header */}
       <div className="border-b border-gray-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-gray-900">{chatType === "channel" ? "#" : ""}{chatName}</h2>
+          {chatType === "dm" ? (
+            <button
+              className="text-lg font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
+              onClick={() => setProfileMemberId(chatId)}
+            >
+              {chatName}
+            </button>
+          ) : (
+            <h2 className="text-lg font-semibold text-gray-900">#{chatName}</h2>
+          )}
           {chatType === "dm" && memberStatuses[chatId] && (
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[memberStatuses[chatId]] || "#6b7280" }} />
           )}
