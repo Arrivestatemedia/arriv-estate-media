@@ -116,16 +116,28 @@ export default function AdminActivityPage({ user }) {
 
   // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
   useEffect(() => {
-    if (!user?.id) return;
-    const loadDialerBadge = () => {
-      // Load all conversations to show message history regardless of sales_member_id
-      base44.entities.SmsConversation.list().then(convos => {
+    if (!user?.email) return;
+    const loadDialerBadge = async () => {
+      try {
+        // Get admin's Twilio number from environment
+        const adminTwilioNumber = localStorage.getItem('admin_twilio_number') || Deno?.env.get('TWILIO_CALLING_PHONE_NUMBER');
+        if (!adminTwilioNumber) {
+          setUnreadSmsCount(0);
+          return;
+        }
+        const convos = await base44.entities.SmsConversation.filter({ from_number: adminTwilioNumber });
         const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
         setUnreadSmsCount(total);
-      }).catch(() => {});
-      base44.entities.ActivityLog.filter({ activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_id: user.id }).then(logs => {
-        setMissedCallsCount(logs?.length || 0);
-      }).catch(() => {});
+      } catch (err) {
+        console.error('Failed to load SMS count:', err);
+      }
+      try {
+        base44.entities.ActivityLog.filter({ activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_email: user.email }).then(logs => {
+          setMissedCallsCount(logs?.length || 0);
+        }).catch(() => {});
+      } catch (err) {
+        console.error('Failed to load missed calls:', err);
+      }
     };
     loadDialerBadge();
     const smsSub = base44.entities.SmsConversation.subscribe(loadDialerBadge);
@@ -133,7 +145,7 @@ export default function AdminActivityPage({ user }) {
       if (event.data?.activity_type === 'call') loadDialerBadge();
     });
     return () => { smsSub(); callSub(); };
-  }, [user?.id]);
+  }, [user?.email]);
 
   const { data: activities = [] } = useQuery({
     queryKey: ['adminActivities', user?.email],
