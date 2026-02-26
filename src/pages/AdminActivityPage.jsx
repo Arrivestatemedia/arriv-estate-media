@@ -22,7 +22,6 @@ export default function AdminActivityPage({ user }) {
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
-  const [unreadSmsCount, setUnreadSmsCount] = useState(0);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
@@ -92,23 +91,6 @@ export default function AdminActivityPage({ user }) {
   }, []);
 
   const queryClient = useQueryClient();
-
-  // Load unread SMS count for dialer badge (not team chat)
-  useEffect(() => {
-    const id = user?.id;
-    if (!id) return;
-
-    const loadSmsCount = () => {
-      base44.entities.SmsConversation.filter({ sales_member_id: id }).then(convos => {
-        const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
-        setUnreadSmsCount(total);
-      }).catch(() => {});
-    };
-
-    loadSmsCount();
-    const smsSub = base44.entities.SmsConversation.subscribe(loadSmsCount);
-    return smsSub;
-  }, [user?.id]);
 
   const { data: activities = [] } = useQuery({
     queryKey: ['adminActivities', user?.email],
@@ -360,9 +342,6 @@ export default function AdminActivityPage({ user }) {
             <span className="flex items-center gap-1">
               <Phone className="w-4 h-4" />
               Dialer
-              {unreadSmsCount > 0 && (
-                <Badge variant="destructive" className="ml-1 text-xs">{unreadSmsCount}</Badge>
-              )}
             </span>
           </button>
           <button
