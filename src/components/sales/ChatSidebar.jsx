@@ -357,7 +357,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
             </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
+        </div>
+        </div>
+        );
+        }
