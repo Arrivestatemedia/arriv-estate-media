@@ -93,18 +93,24 @@ export default function AdminActivityPage({ user }) {
 
   const queryClient = useQueryClient();
 
-  // Count unread SMS conversations for dialer badge (not team chat DMs)
+  // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
   useEffect(() => {
     if (!user?.id) return;
-    const loadSmsCount = () => {
+    const loadDialerBadge = () => {
       base44.entities.SmsConversation.filter({ sales_member_id: user.id }).then(convos => {
         const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
         setUnreadSmsCount(total);
       }).catch(() => {});
+      base44.entities.ActivityLog.filter({ activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_id: user.id }).then(logs => {
+        setMissedCallsCount(logs?.length || 0);
+      }).catch(() => {});
     };
-    loadSmsCount();
-    const smsSub = base44.entities.SmsConversation.subscribe(loadSmsCount);
-    return smsSub;
+    loadDialerBadge();
+    const smsSub = base44.entities.SmsConversation.subscribe(loadDialerBadge);
+    const callSub = base44.entities.ActivityLog.subscribe((event) => {
+      if (event.data?.activity_type === 'call') loadDialerBadge();
+    });
+    return () => { smsSub(); callSub(); };
   }, [user?.id]);
 
   const { data: activities = [] } = useQuery({
