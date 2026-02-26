@@ -14,14 +14,11 @@ Deno.serve(async (req) => {
     // Get Google Calendar access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
     
-    // Fetch events that started up to 8 hours ago and up to 1 min from now
-    // Then filter client-side for events that are currently ongoing (start <= now <= end)
+    // Fetch all events for the admin's email (no time filter - let Google handle it)
     const now = new Date();
-    const timeMin = new Date(now.getTime() - 8 * 60 * 60000).toISOString();
-    const timeMax = new Date(now.getTime() + 60000).toISOString();
     
     const calResponse = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true`,
       {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
@@ -39,6 +36,8 @@ Deno.serve(async (req) => {
       const startTime = new Date(event.start?.dateTime || event.start?.date);
       const endTime = new Date(event.end?.dateTime || event.end?.date);
       const isOngoing = startTime <= now && endTime > now;
+      
+      console.log(`Event: ${event.summary}, Start: ${startTime.toISOString()}, End: ${endTime.toISOString()}, Now: ${now.toISOString()}, Ongoing: ${isOngoing}, IncludesAdmin: ${includesAdmin}`);
       
       return includesAdmin && isOngoing;
     });
