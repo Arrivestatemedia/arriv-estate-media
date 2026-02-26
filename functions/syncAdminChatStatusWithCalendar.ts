@@ -14,10 +14,10 @@ Deno.serve(async (req) => {
     // Get Google Calendar access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
     
-    // Check current calendar events
+    // Check currently ongoing calendar events (started up to 4 hours ago, ends in the future)
     const now = new Date();
-    const timeMin = now.toISOString();
-    const timeMax = new Date(now.getTime() + 5 * 60000).toISOString(); // Check next 5 minutes
+    const timeMin = new Date(now.getTime() - 4 * 60 * 60000).toISOString();
+    const timeMax = new Date(now.getTime() + 5 * 60000).toISOString();
     
     const calResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true`,
