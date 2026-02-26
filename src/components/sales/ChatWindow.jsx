@@ -11,6 +11,7 @@ import ChatContactCard from "./ChatContactCard";
 import ContactCardDisplay from "./ContactCardDisplay";
 import ContactSearch from "./ContactSearch";
 import SalesRepProfileModal from "./SalesRepProfileModal";
+import TransferCallButton from "./TransferCallButton";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
@@ -55,6 +56,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [showContactSearch, setShowContactSearch] = useState(false);
   const [contactToEdit, setContactToEdit] = useState(null);
   const [profileMemberId, setProfileMemberId] = useState(null);
+  const [messageKeywords, setMessageKeywords] = useState({});
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Request / check notification permission
@@ -266,40 +268,50 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
    if (e.key === "Enter" && (e.shiftKey || e.ctrlKey || e.metaKey)) return;
    e.preventDefault();
    const text = newMessage.trim();
-   if (!text) return;
+    if (!text) return;
 
-   // Optimistic update
-   const optimisticMsg = {
-     id: `temp-${Date.now()}`,
-     sender_id: currentUserId,
-     sender_name: currentUserName,
-     content: text,
-     timestamp: new Date().toISOString(),
-     ...(chatType === "channel" ? { channel_id: chatId } : { recipient_id: chatId, recipient_name: chatName }),
-   };
-   setMessages(prev => [...prev, optimisticMsg]);
-   setNewMessage("");
+    // Check for transfer keywords
+    try {
+      const keywordCheck = await base44.functions.invoke('detectTransferKeywords', { messageContent: text });
+      if (keywordCheck.data?.hasKeywords) {
+        setMessageKeywords(prev => ({ ...prev, [text]: true }));
+      }
+    } catch (e) {
+      console.log('Keyword detection skipped');
+    }
 
-   try {
-     if (chatType === "channel") {
-       await base44.entities.ChatMessage.create({
-         channel_id: chatId,
-         sender_id: currentUserId,
-         sender_name: currentUserName,
-         content: text,
-         timestamp: new Date().toISOString(),
-         reactions: {}
-       });
-     } else if (chatType === "dm") {
-       await base44.entities.DirectMessage.create({
-         sender_id: currentUserId,
-         sender_name: currentUserName,
-         recipient_id: chatId,
-         recipient_name: chatName,
-         content: text,
-         timestamp: new Date().toISOString(),
-         reactions: {}
-       });
+    // Optimistic update
+    const optimisticMsg = {
+      id: `temp-${Date.now()}`,
+      sender_id: currentUserId,
+      sender_name: currentUserName,
+      content: text,
+      timestamp: new Date().toISOString(),
+      ...(chatType === "channel" ? { channel_id: chatId } : { recipient_id: chatId, recipient_name: chatName }),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    setNewMessage("");
+
+    try {
+      if (chatType === "channel") {
+        await base44.entities.ChatMessage.create({
+          channel_id: chatId,
+          sender_id: currentUserId,
+          sender_name: currentUserName,
+          content: text,
+          timestamp: new Date().toISOString(),
+          reactions: {}
+        });
+      } else if (chatType === "dm") {
+        await base44.entities.DirectMessage.create({
+          sender_id: currentUserId,
+          sender_name: currentUserName,
+          recipient_id: chatId,
+          recipient_name: chatName,
+          content: text,
+          timestamp: new Date().toISOString(),
+          reactions: {}
+        });
 
        // Send auto-response if recipient is in a meeting
        if (memberStatuses[chatId] === 'in_meeting') {
@@ -446,6 +458,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       setMessages(prev => [...prev]);
                     }}
                   />
+                  {msg.sender_id === currentUserId && messageKeywords[msg.content] && (
+                    <TransferCallButton message={msg} currentUserId={currentUserId} />
+                  )}
                   <button
                     onClick={() => setSelectedThread(msg)}
                     className="text-xs text-[#B8956A] hover:underline mt-1.5 flex items-center gap-1"
