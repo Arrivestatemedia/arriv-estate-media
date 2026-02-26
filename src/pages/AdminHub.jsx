@@ -17,6 +17,7 @@ export default function AdminHub() {
   const [activeTab, setActiveTab] = useState("team");
   const [profilePicUrl, setProfilePicUrl] = useState("");
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
