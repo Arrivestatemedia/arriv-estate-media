@@ -346,9 +346,14 @@ export default function HubSpotActivityLog() {
           </div>
           <div className="flex gap-2 items-center">
             {user?.type === 'sales' && (
-              <Button variant="outline" size="sm" onClick={() => { setShowPasswordModal(true); setPasswordMsg(null); }}>
-                Change Password
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={() => setShowEditProfile(true)}>
+                  Edit Profile
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setShowPasswordModal(true); setPasswordMsg(null); }}>
+                  Change Password
+                </Button>
+              </>
             )}
             {activeTab === "activity" && (
               <Dialog open={showForm} onOpenChange={setShowForm}>
