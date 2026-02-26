@@ -12,23 +12,33 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
 
+    // Find the sales rep who owns this Twilio number
+    const reps = await base44.asServiceRole.entities.SalesTeamMember.filter({ twilio_phone_number: to });
+    const salesMemberId = reps && reps.length > 0 ? reps[0].id : null;
+
     // Find or create a conversation for this number
     const existing = await base44.asServiceRole.entities.SmsConversation.filter({ from_number: from });
     let conversation;
 
     if (existing && existing.length > 0) {
       conversation = existing[0];
-      await base44.asServiceRole.entities.SmsConversation.update(conversation.id, {
+      // Update conversation with sales member if not already set
+      const updateData = {
         last_message: messageBody,
         last_message_at: new Date().toISOString(),
         unread_count: (conversation.unread_count || 0) + 1
-      });
+      };
+      if (salesMemberId && !conversation.sales_member_id) {
+        updateData.sales_member_id = salesMemberId;
+      }
+      await base44.asServiceRole.entities.SmsConversation.update(conversation.id, updateData);
     } else {
       conversation = await base44.asServiceRole.entities.SmsConversation.create({
         from_number: from,
         last_message: messageBody,
         last_message_at: new Date().toISOString(),
-        unread_count: 1
+        unread_count: 1,
+        sales_member_id: salesMemberId
       });
     }
 
