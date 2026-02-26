@@ -532,5 +532,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         open={!!profileMemberId}
         onClose={() => setProfileMemberId(null)}
       />
+    </>
   );
 }
