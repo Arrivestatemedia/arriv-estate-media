@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { conversationId, toNumber, body, salesMemberId } = await req.json();
+    const { conversationId, toNumber, body, salesMemberId, newConversation } = await req.json();
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
@@ -42,9 +42,28 @@ Deno.serve(async (req) => {
       throw new Error(result.message || 'Failed to send SMS');
     }
 
+    let convoId = conversationId;
+
+    // If new conversation, find or create it
+    if (newConversation) {
+      const existing = await base44.asServiceRole.entities.SmsConversation.filter({ from_number: toNumber });
+      if (existing && existing.length > 0) {
+        convoId = existing[0].id;
+      } else {
+        const newConvo = await base44.asServiceRole.entities.SmsConversation.create({
+          from_number: toNumber,
+          last_message: body,
+          last_message_at: new Date().toISOString(),
+          unread_count: 0,
+          sales_member_id: salesMemberId
+        });
+        convoId = newConvo.id;
+      }
+    }
+
     // Store outbound message
     await base44.asServiceRole.entities.SmsMessage.create({
-      conversation_id: conversationId,
+      conversation_id: convoId,
       from_number: fromNumber,
       to_number: toNumber,
       body: body,
@@ -53,7 +72,7 @@ Deno.serve(async (req) => {
     });
 
     // Update conversation last message
-    await base44.asServiceRole.entities.SmsConversation.update(conversationId, {
+    await base44.asServiceRole.entities.SmsConversation.update(convoId, {
       last_message: body,
       last_message_at: new Date().toISOString()
     });
