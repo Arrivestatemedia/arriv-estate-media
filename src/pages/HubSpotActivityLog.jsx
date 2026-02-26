@@ -75,19 +75,23 @@ export default function HubSpotActivityLog() {
 
       setTimeout(() => setShowPermissionBanner(true), 500);
 
-      // Count unread SMS conversations (not team chat DMs) for the dialer badge
-      base44.entities.SmsConversation.filter({ sales_member_id: salesMemberId }).then(convos => {
-        const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
-        setUnreadSmsCount(total);
-      }).catch(() => {});
-
-      const smsSub = base44.entities.SmsConversation.subscribe(() => {
+      // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
+      const loadDialerBadge = () => {
         base44.entities.SmsConversation.filter({ sales_member_id: salesMemberId }).then(convos => {
           const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
           setUnreadSmsCount(total);
         }).catch(() => {});
+        base44.entities.ActivityLog.filter({ activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_id: salesMemberId }).then(logs => {
+          setMissedCallsCount(logs?.length || 0);
+        }).catch(() => {});
+      };
+      loadDialerBadge();
+
+      const smsSub = base44.entities.SmsConversation.subscribe(loadDialerBadge);
+      const callSub = base44.entities.ActivityLog.subscribe((event) => {
+        if (event.data?.activity_type === 'call') loadDialerBadge();
       });
-      return smsSub;
+      return () => { smsSub(); callSub(); };
     } else {
       base44.auth.me().then((adminUser) => {
         if (adminUser && adminUser.role === 'admin') {
