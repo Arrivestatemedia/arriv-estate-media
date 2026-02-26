@@ -224,6 +224,12 @@ export default function AdminHub() {
         <PoweredByFooter />
       </div>
 
+      <EditMyProfileModal
+        salesMemberId={user.id}
+        open={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+      />
+
       {/* Admin floating chat bubble */}
       <AdminChatBubble currentUserId={user.id} currentUserName={user.full_name} />
     </div>
