@@ -522,7 +522,7 @@ export default function HubSpotActivityLog() {
         )}
 
         {activeTab === "chat" && (
-          <ChatTab currentUserId={user?.id} currentUserName={user?.full_name} />
+          <ChatTab currentUserId={user?.id} currentUserName={user?.full_name} salesMemberId={user?.id} isAdmin={user?.role === 'admin'} />
         )}
 
         {activeTab === "activity" && (
