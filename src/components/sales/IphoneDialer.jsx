@@ -230,9 +230,11 @@ export default function IphoneDialer({ salesMemberId }) {
         return;
       }
 
-      // Load all SMS conversations and filter to only those with known contacts
+      // Load all SMS conversations and filter to only those assigned to this rep
       const allConversations = await base44.entities.SmsConversation.list();
-      const filtered = allConversations.filter(conv => contactPhones.has(conv.from_number));
+      const filtered = allConversations.filter(conv => 
+        conv.sales_member_id === id && contactPhones.has(conv.from_number)
+      );
       // Sort by last message time, newest first
       filtered.sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at));
       setConversations(filtered);
