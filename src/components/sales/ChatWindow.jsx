@@ -10,6 +10,7 @@ import ThreadPanel from "./ThreadPanel";
 import ChatContactCard from "./ChatContactCard";
 import ContactCardDisplay from "./ContactCardDisplay";
 import ContactSearch from "./ContactSearch";
+import SalesRepProfileModal from "./SalesRepProfileModal";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
