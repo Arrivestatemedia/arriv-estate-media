@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check, Plus, X, Trash2, Activity, Clock, FileText } from "lucide-react";
+import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check, Plus, X, Trash2, Activity, Clock } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const FIELDS = [
@@ -37,97 +37,169 @@ const FIELDS = [
 
 const NEW_CONTACT_DEFAULTS = { firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "" };
 
+// Fetches all activities for a contact by email or name
+async function loadActivitiesForContact(contact) {
+  const allActivities = await base44.entities.ActivityLog.list('-activity_date', 500);
+  const fullName = `${contact.firstname || ''} ${contact.lastname || ''}`.trim().toLowerCase();
+  return allActivities.filter(a => {
+    if (contact.email && a.contact_email === contact.email) return true;
+    if (fullName && a.contact_name && a.contact_name.toLowerCase() === fullName) return true;
+    return false;
+  }).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+}
+
+function ActivityList({ activities, loading }) {
+  if (loading) return (
+    <div className="flex items-center justify-center py-3">
+      <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#B8956A' }} />
+      <span className="ml-2 text-xs" style={{ color: 'rgba(26,26,26,0.6)' }}>Loading activities...</span>
+    </div>
+  );
+  if (!activities) return null;
+  return (
+    <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+      <div className="flex items-center gap-2 mb-2">
+        <Activity className="w-4 h-4" style={{ color: '#B8956A' }} />
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>
+          Activity History {activities.length > 0 ? `(${activities.length})` : ''}
+        </p>
+      </div>
+      {activities.length === 0 ? (
+        <p className="text-xs text-center py-2" style={{ color: 'rgba(26,26,26,0.6)' }}>No activities logged for this contact yet.</p>
+      ) : (
+        <div className="space-y-2 max-h-64 overflow-y-auto bg-slate-50 rounded-lg p-3">
+          {activities.map((activity, idx) => (
+            <div key={idx} className="text-xs border-b border-slate-200 pb-2 last:border-b-0">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <Badge variant="outline" className="text-xs capitalize">{activity.activity_type}</Badge>
+                <span className="flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                  <Clock className="w-3 h-3" />
+                  {new Date(activity.activity_date).toLocaleDateString()} {new Date(activity.activity_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              {activity.notes && <p className="mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>{activity.notes}</p>}
+              <div className="space-y-0.5" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                {activity.sales_member_email && <p><span className="font-medium">Rep:</span> {activity.sales_member_email}</p>}
+                {activity.duration_minutes > 0 && <p><span className="font-medium">Duration:</span> {activity.duration_minutes} min</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm, prefilledData, onFormClosed }) {
-   const [query, setQuery] = useState("");
-   const [results, setResults] = useState([]);
-   const [loading, setLoading] = useState(false);
-   const [error, setError] = useState("");
-   const [expandedId, setExpandedId] = useState(null);
-   const [editFields, setEditFields] = useState({});
-   const [saving, setSaving] = useState(false);
-   const [savedId, setSavedId] = useState(null);
-   const [showNewForm, setShowNewForm] = useState(false);
-   const [newContact, setNewContact] = useState(NEW_CONTACT_DEFAULTS);
-   const [creatingNew, setCreatingNew] = useState(false);
-   const [createdSuccess, setCreatedSuccess] = useState(false);
-   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-   const [deleting, setDeleting] = useState(false);
-   const [activities, setActivities] = useState({});
-   const [loadingActivities, setLoadingActivities] = useState({});
-   const [matchedHubSpotContact, setMatchedHubSpotContact] = useState(null);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
+  const [editFields, setEditFields] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [savedId, setSavedId] = useState(null);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newContact, setNewContact] = useState(NEW_CONTACT_DEFAULTS);
+  const [creatingNew, setCreatingNew] = useState(false);
+  const [createdSuccess, setCreatedSuccess] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [activities, setActivities] = useState({});
+  const [loadingActivities, setLoadingActivities] = useState({});
 
-   React.useEffect(() => {
-      if (openNewContactForm && prefilledData) {
-        setShowNewForm(true);
-        setOpenNewContactForm(false);
-        const firstName = prefilledData.firstName || prefilledData.first_name || '';
-        const lastName = prefilledData.lastName || prefilledData.last_name || '';
-        setNewContact(prev => ({
-          ...prev,
-          firstname: firstName,
-          lastname: lastName,
-          email: prefilledData.email || '',
-          phone: prefilledData.phone || '',
-          company: prefilledData.company || ''
-        }));
-        // Auto-search HubSpot for the prefilled contact
-        const searchQuery = `${firstName} ${lastName}`.trim() || prefilledData.email;
-        if (searchQuery) {
-          autoSearchAndSelectContact(searchQuery);
-        }
+  // Activities shown below the search box (for both regular search results and new contact auto-search)
+  const [inlineActivities, setInlineActivities] = useState(null);
+  const [inlineActivitiesLoading, setInlineActivitiesLoading] = useState(false);
+  const [inlineContactInfo, setInlineContactInfo] = useState(null); // the matched contact
+
+  const autoSearchTimer = useRef(null);
+
+  // When prefilled data comes in (from contact card), open new form and auto-search
+  useEffect(() => {
+    if (openNewContactForm && prefilledData) {
+      setShowNewForm(true);
+      setOpenNewContactForm(false);
+      const firstName = prefilledData.firstName || prefilledData.first_name || '';
+      const lastName = prefilledData.lastName || prefilledData.last_name || '';
+      const filled = {
+        ...NEW_CONTACT_DEFAULTS,
+        firstname: firstName,
+        lastname: lastName,
+        email: prefilledData.email || '',
+        phone: prefilledData.phone || '',
+        company: prefilledData.company || ''
+      };
+      setNewContact(filled);
+      // Auto-search for this contact immediately
+      const searchQ = `${firstName} ${lastName}`.trim() || prefilledData.email;
+      if (searchQ) doInlineSearch(searchQ, filled);
+    }
+  }, [openNewContactForm, prefilledData]);
+
+  // Auto-search HubSpot as user types in the New Contact form (debounced)
+  useEffect(() => {
+    if (!showNewForm) return;
+    const searchQ = `${newContact.firstname} ${newContact.lastname}`.trim() || newContact.email;
+    if (!searchQ || searchQ.length < 2) {
+      setInlineActivities(null);
+      setInlineContactInfo(null);
+      return;
+    }
+    if (autoSearchTimer.current) clearTimeout(autoSearchTimer.current);
+    autoSearchTimer.current = setTimeout(() => {
+      doInlineSearch(searchQ, newContact);
+    }, 600);
+    return () => clearTimeout(autoSearchTimer.current);
+  }, [newContact.firstname, newContact.lastname, newContact.email, showNewForm]);
+
+  const doInlineSearch = async (searchQ, contactFields) => {
+    setInlineActivitiesLoading(true);
+    setInlineActivities(null);
+    setInlineContactInfo(null);
+    try {
+      const res = await base44.functions.invoke("searchHubSpotContacts", { query: searchQ });
+      const contacts = res.data?.contacts || [];
+      const match = contacts[0] || null;
+      if (match) {
+        setInlineContactInfo(match);
+        const acts = await loadActivitiesForContact(match);
+        setInlineActivities(acts);
+      } else {
+        // No HubSpot match — still try to pull activities by name/email from local DB
+        const fakeContact = {
+          email: contactFields?.email || '',
+          firstname: contactFields?.firstname || '',
+          lastname: contactFields?.lastname || ''
+        };
+        const acts = await loadActivitiesForContact(fakeContact);
+        setInlineActivities(acts);
       }
-    }, [openNewContactForm, setOpenNewContactForm, prefilledData]);
+    } catch (e) {
+      console.error("Inline search failed:", e);
+      setInlineActivities([]);
+    } finally {
+      setInlineActivitiesLoading(false);
+    }
+  };
 
-   const autoSearchAndSelectContact = async (searchQuery) => {
-     try {
-       const res = await base44.functions.invoke("searchHubSpotContacts", { query: searchQuery });
-       const hubspotContacts = res.data.contacts || [];
-       if (hubspotContacts.length > 0) {
-         // Auto-select the first match
-         setMatchedHubSpotContact(hubspotContacts[0]);
-         setExpandedId(hubspotContacts[0].id);
-         setEditFields({
-           firstname: hubspotContacts[0].firstname,
-           lastname: hubspotContacts[0].lastname,
-           email: hubspotContacts[0].email,
-           phone: hubspotContacts[0].phone,
-           company: hubspotContacts[0].company,
-           jobtitle: hubspotContacts[0].jobtitle,
-           hs_lead_status: hubspotContacts[0].lead_status,
-         });
-         // Fetch activities for this contact
-         await fetchActivitiesForContact(hubspotContacts[0]);
-       }
-     } catch (e) {
-       console.error("Auto-search failed:", e);
-     }
-   };
-
-   const fetchActivitiesForContact = async (contact) => {
-     setLoadingActivities(prev => ({ ...prev, [contact.id]: true }));
-     try {
-       const allActivities = await base44.entities.ActivityLog.list('-activity_date', 500);
-       const contactActivities = allActivities.filter(a => 
-         a.contact_email === contact.email || 
-         (a.contact_name && a.contact_name.toLowerCase().includes((contact.firstname || '') + ' ' + (contact.lastname || '')) || 
-         a.contact_name === contact.firstname || 
-         a.contact_name === contact.lastname)
-       ).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
-       setActivities(prev => ({ ...prev, [contact.id]: contactActivities }));
-     } catch (e) {
-       console.error("Failed to fetch activities:", e);
-     } finally {
-       setLoadingActivities(prev => ({ ...prev, [contact.id]: false }));
-     }
-   };
+  // When a regular search result is expanded, also load and show inline activities
+  const fetchActivitiesForContact = async (contact) => {
+    setLoadingActivities(prev => ({ ...prev, [contact.id]: true }));
+    try {
+      const acts = await loadActivitiesForContact(contact);
+      setActivities(prev => ({ ...prev, [contact.id]: acts }));
+    } catch (e) {
+      console.error("Failed to fetch activities:", e);
+    } finally {
+      setLoadingActivities(prev => ({ ...prev, [contact.id]: false }));
+    }
+  };
 
   const handleDelete = async (contactId) => {
     setDeleting(true);
     try {
-      await base44.functions.invoke("deleteHubSpotContact", {
-        contactId,
-        salesMemberId,
-      });
+      await base44.functions.invoke("deleteHubSpotContact", { contactId, salesMemberId });
       setResults(results.filter(c => c.id !== contactId));
       setDeleteConfirmId(null);
     } catch (e) {
@@ -143,6 +215,8 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
     setError("");
     setResults([]);
     setExpandedId(null);
+    setInlineActivities(null);
+    setInlineContactInfo(null);
     try {
       const res = await base44.functions.invoke("searchHubSpotContacts", { query });
       setResults(res.data.contacts || []);
@@ -169,7 +243,6 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
         jobtitle: contact.jobtitle,
         hs_lead_status: contact.lead_status,
       });
-      // Fetch activities when expanding
       if (!activities[contact.id]) {
         await fetchActivitiesForContact(contact);
       }
@@ -179,28 +252,18 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
   const handleSave = async (contactId) => {
     setSaving(true);
     try {
-      // HubSpot expects properties in a flattened format (not wrapped in value objects)
       const propertiesToSend = {};
       Object.keys(editFields).forEach(key => {
-        if (editFields[key] || editFields[key] === '') {
-          propertiesToSend[key] = editFields[key];
-        }
+        if (editFields[key] || editFields[key] === '') propertiesToSend[key] = editFields[key];
       });
-      
-      await base44.functions.invoke("updateHubSpotContact", {
-        contactId,
-        properties: propertiesToSend,
-        salesMemberId,
-      });
+      await base44.functions.invoke("updateHubSpotContact", { contactId, properties: propertiesToSend, salesMemberId });
       setSavedId(contactId);
       setTimeout(() => setSavedId(null), 3000);
-      // Refresh the result
-      const updated = results.map(c =>
+      setResults(results.map(c =>
         c.id === contactId
           ? { ...c, firstname: editFields.firstname, lastname: editFields.lastname, email: editFields.email, phone: editFields.phone, company: editFields.company, jobtitle: editFields.jobtitle, lead_status: editFields.hs_lead_status }
           : c
-      );
-      setResults(updated);
+      ));
     } catch (e) {
       setError("Save failed: " + e.message);
     } finally {
@@ -224,9 +287,11 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
       });
       setCreatedSuccess(true);
       setNewContact(NEW_CONTACT_DEFAULTS);
-      setTimeout(() => { 
-        setCreatedSuccess(false); 
-        setShowNewForm(false); 
+      setTimeout(() => {
+        setCreatedSuccess(false);
+        setShowNewForm(false);
+        setInlineActivities(null);
+        setInlineContactInfo(null);
         if (onFormClosed) onFormClosed();
       }, 2500);
     } catch (e) {
@@ -244,7 +309,14 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
           <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Find a contact by name, email, or phone and update their info.</p>
         </div>
         <Button
-          onClick={() => { setShowNewForm(v => !v); setError(""); }}
+          onClick={() => {
+            setShowNewForm(v => !v);
+            setError("");
+            if (showNewForm) {
+              setInlineActivities(null);
+              setInlineContactInfo(null);
+            }
+          }}
           variant="outline"
           className="gap-2 shrink-0"
           style={{ borderColor: '#B8956A', color: '#B8956A' }}
@@ -264,17 +336,10 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                 <div key={key}>
                   <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>{label}</label>
                   {type === "select" ? (
-                    <Select
-                      value={newContact[key] || ''}
-                      onValueChange={(value) => setNewContact(prev => ({ ...prev, [key]: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={label} />
-                      </SelectTrigger>
+                    <Select value={newContact[key] || ''} onValueChange={(value) => setNewContact(prev => ({ ...prev, [key]: value }))}>
+                      <SelectTrigger><SelectValue placeholder={label} /></SelectTrigger>
                       <SelectContent>
-                        {options.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                        ))}
+                        {options.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   ) : (
@@ -287,6 +352,22 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                 </div>
               ))}
             </div>
+
+            {/* Matched HubSpot contact info */}
+            {inlineContactInfo && (
+              <div className="text-xs p-2 rounded-lg bg-amber-50 border border-amber-200">
+                <span className="font-semibold text-amber-700">HubSpot match found: </span>
+                <span style={{ color: '#1A1A1A' }}>
+                  {[inlineContactInfo.firstname, inlineContactInfo.lastname].filter(Boolean).join(' ')}
+                  {inlineContactInfo.email ? ` · ${inlineContactInfo.email}` : ''}
+                  {inlineContactInfo.company ? ` · ${inlineContactInfo.company}` : ''}
+                </span>
+              </div>
+            )}
+
+            {/* Activity history for matched contact */}
+            <ActivityList activities={inlineActivities} loading={inlineActivitiesLoading} />
+
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button
               onClick={handleCreateNew}
@@ -301,6 +382,7 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
         </Card>
       )}
 
+      {/* Regular Search */}
       <div className="flex gap-2">
         <Input
           placeholder="Search by name, email, or phone..."
@@ -344,85 +426,27 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                         {contact.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{contact.phone}</span>}
                         {contact.company && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{contact.company}</span>}
                       </div>
-                      {contact.lead_status && (
-                        <Badge className="mt-1 text-xs" variant="outline">{contact.lead_status}</Badge>
-                      )}
+                      {contact.lead_status && <Badge className="mt-1 text-xs" variant="outline">{contact.lead_status}</Badge>}
                     </div>
                   </div>
                   {isExpanded ? <ChevronUp className="w-4 h-4 mt-1 shrink-0" /> : <ChevronDown className="w-4 h-4 mt-1 shrink-0" />}
                 </button>
 
                 {isExpanded && (
-                   <div className="mt-4 pt-4 border-t space-y-4" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-                     {/* Activity History Section */}
-                     {activities[contact.id] && activities[contact.id].length > 0 && (
-                       <div>
-                         <div className="flex items-center gap-2 mb-3">
-                           <Activity className="w-4 h-4" style={{ color: '#B8956A' }} />
-                           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Activity History ({activities[contact.id].length})</p>
-                         </div>
-                         <div className="space-y-2 max-h-64 overflow-y-auto bg-slate-50 rounded-lg p-3">
-                           {activities[contact.id].map((activity, idx) => (
-                             <div key={idx} className="text-xs border-b border-slate-200 pb-2 last:border-b-0" style={{ color: '#1A1A1A' }}>
-                               <div className="flex items-start justify-between gap-2 mb-1">
-                                 <div className="flex items-center gap-1 font-medium">
-                                   <Badge variant="outline" className="text-xs capitalize">{activity.activity_type}</Badge>
-                                 </div>
-                                 <span style={{ color: 'rgba(26,26,26,0.6)' }} className="flex items-center gap-1">
-                                   <Clock className="w-3 h-3" />
-                                   {new Date(activity.activity_date).toLocaleDateString()} {new Date(activity.activity_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                 </span>
-                               </div>
-                               {activity.notes && (
-                                 <div className="mb-1 text-xs" style={{ color: 'rgba(26,26,26,0.7)' }}>
-                                   {activity.notes}
-                                 </div>
-                               )}
-                               <div className="text-xs" style={{ color: 'rgba(26,26,26,0.6)' }} className="space-y-0.5">
-                                 {activity.sales_member_email && (
-                                   <p><span className="font-medium">Rep:</span> {activity.sales_member_email}</p>
-                                 )}
-                                 {activity.duration_minutes > 0 && (
-                                   <p><span className="font-medium">Duration:</span> {activity.duration_minutes} min</p>
-                                 )}
-                                 {activity.contact_phone && (
-                                   <p><span className="font-medium">Phone:</span> {activity.contact_phone}</p>
-                                 )}
-                                 {activity.company_name && (
-                                   <p><span className="font-medium">Company:</span> {activity.company_name}</p>
-                                 )}
-                               </div>
-                             </div>
-                           ))}
-                         </div>
-                       </div>
-                     )}
-                     {loadingActivities[contact.id] && (
-                       <div className="flex items-center justify-center py-2">
-                         <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#B8956A' }} />
-                       </div>
-                     )}
-                     {activities[contact.id] && activities[contact.id].length === 0 && !loadingActivities[contact.id] && (
-                       <p className="text-xs text-center" style={{ color: 'rgba(26,26,26,0.6)' }}>No activities found for this contact</p>
-                     )}
+                  <div className="mt-4 pt-4 border-t space-y-4" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                    {/* Activity History */}
+                    <ActivityList activities={activities[contact.id]} loading={loadingActivities[contact.id]} />
 
-                     <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {FIELDS.map(({ key, label, type, options }) => (
                         <div key={key}>
                           <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>{label}</label>
                           {type === "select" ? (
-                            <Select
-                              value={editFields[key] || ''}
-                              onValueChange={(value) => setEditFields(prev => ({ ...prev, [key]: value }))}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={label} />
-                              </SelectTrigger>
+                            <Select value={editFields[key] || ''} onValueChange={(value) => setEditFields(prev => ({ ...prev, [key]: value }))}>
+                              <SelectTrigger><SelectValue placeholder={label} /></SelectTrigger>
                               <SelectContent>
-                                {options.map(opt => (
-                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                ))}
+                                {options.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           ) : (
