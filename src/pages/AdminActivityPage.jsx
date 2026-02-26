@@ -100,7 +100,12 @@ export default function AdminActivityPage({ user }) {
 
     const syncStatus = async () => {
       try {
-        await base44.functions.invoke('syncAdminChatStatusWithCalendar', {});
+        const isAdmin = user?.role === 'admin';
+        if (isAdmin) {
+          await base44.functions.invoke('syncAdminChatStatusWithCalendar', {});
+        } else {
+          await base44.functions.invoke('syncChatStatusWithCalendar', { salesMemberId: user.id });
+        }
       } catch (err) {
         console.error('Calendar sync error:', err);
       }
@@ -112,7 +117,7 @@ export default function AdminActivityPage({ user }) {
     return () => {
       if (syncIntervalRef) clearInterval(syncIntervalRef);
     };
-  }, [user?.id]);
+  }, [user?.id, user?.role]);
 
   // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
   useEffect(() => {
