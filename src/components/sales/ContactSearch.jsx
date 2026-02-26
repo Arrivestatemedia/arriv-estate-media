@@ -126,6 +126,7 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
   const [inlineContactInfo, setInlineContactInfo] = useState(null); // the matched contact
 
   const autoSearchTimer = useRef(null);
+  const [selectedActivity, setSelectedActivity] = useState(null);
 
   // When prefilled data comes in (from contact card), open new form and auto-search
   useEffect(() => {
