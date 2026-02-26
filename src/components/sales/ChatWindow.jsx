@@ -402,7 +402,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
         {loading ? (
           <div className="text-center text-gray-500 text-sm">Loading messages...</div>
         ) : messages.length === 0 ? (
