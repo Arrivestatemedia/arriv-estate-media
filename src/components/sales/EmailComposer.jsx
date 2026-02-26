@@ -70,6 +70,8 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     if (tab === "scheduled") loadScheduledEmails();
   }, [tab, salesMember]);
 
+  // ⚠️ DO NOT REMOVE — reads '_emailTo' from localStorage set by HubSpotActivityLog
+  // when a contact card email is clicked. Pre-fills the To field on the Compose tab.
   useEffect(() => {
     const emailTo = localStorage.getItem('_emailTo');
     if (emailTo) {

@@ -103,6 +103,14 @@ export default function HubSpotActivityLog() {
     }
   }, []);
 
+  // ============================================================
+  // ⚠️  DO NOT MODIFY THIS useEffect BLOCK ⚠️
+  // Listens for contact card click events dispatched by ContactCardDisplay:
+  //   - 'openContact'       → switches to Contacts tab, pre-fills new contact form
+  //   - 'openDialer'        → sets localStorage '_dialerPhone', switches to Dialer (Keypad tab)
+  //   - 'openEmailComposer' → sets localStorage '_emailTo', switches to Send Email tab
+  // Removing or changing this will break contact card navigation for sales reps.
+  // ============================================================
   useEffect(() => {
     const handleOpenContact = (event) => {
       const contact = event.detail;

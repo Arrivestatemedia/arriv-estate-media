@@ -1,6 +1,16 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
+// ============================================================
+// ⚠️  DO NOT MODIFY THIS COMPONENT ⚠️
+// The click handlers below are critical and intentionally wired:
+//   - NAME click    → dispatches 'openContact'       → opens Contacts tab pre-filled
+//   - PHONE click   → dispatches 'openDialer'        → opens Dialer Keypad pre-filled
+//   - EMAIL click   → dispatches 'openEmailComposer' → opens Send Email To field pre-filled
+// These events are caught by HubSpotActivityLog.
+// Any change here WILL break the contact card navigation for sales reps.
+// ============================================================
+
 export default function ContactCardDisplay({ content, onOpenContact }) {
    const [expanded, setExpanded] = useState(false);
 

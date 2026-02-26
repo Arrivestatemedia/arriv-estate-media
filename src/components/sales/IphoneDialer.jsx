@@ -107,6 +107,8 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   }, [selectedConvo?.id]);
 
+  // ⚠️ DO NOT REMOVE — reads '_dialerPhone' from localStorage set by HubSpotActivityLog
+  // when a contact card phone number is clicked. Switches to Keypad tab and pre-fills number.
   useEffect(() => {
     const phone = localStorage.getItem('_dialerPhone');
     if (phone) {
