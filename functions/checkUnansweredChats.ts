@@ -13,42 +13,43 @@ Deno.serve(async (req) => {
     const memberMap = {};
     salesMembers.forEach(m => { memberMap[m.id] = m; });
 
-    const adminEmail = Deno.env.get('ADMIN_EMAIL');
-
     let emailsSent = 0;
 
-    // --- Check Direct Messages ---
-    // Find DMs older than 2.5 min that have not been replied to
-    const allDMs = await base44.asServiceRole.entities.DirectMessage.filter({ read: false });
-    const unreadOldDMs = allDMs.filter(dm => {
+    // Only handle Direct Messages (no channels)
+    // Find DMs that are:
+    //   1. Unread by the recipient
+    //   2. Older than 2.5 minutes
+    //   3. Reminder has NOT been sent yet
+    const allDMs = await base44.asServiceRole.entities.DirectMessage.filter({ read: false, reminder_sent: false });
+    const unreminedOldDMs = allDMs.filter(dm => {
       const ts = dm.timestamp || dm.created_date;
       return ts && new Date(ts).toISOString() < cutoff;
     });
 
-    // Group by recipient
+    // Group by recipient so we send one email per recipient (even if multiple unread DMs)
     const dmByRecipient = {};
-    for (const dm of unreadOldDMs) {
+    for (const dm of unreminedOldDMs) {
       if (!dmByRecipient[dm.recipient_id]) dmByRecipient[dm.recipient_id] = [];
       dmByRecipient[dm.recipient_id].push(dm);
     }
 
     for (const [recipientId, dms] of Object.entries(dmByRecipient)) {
       const recipient = memberMap[recipientId];
-      if (!recipient) continue;
+      if (!recipient || !recipient.email) continue;
 
       const count = dms.length;
       const senderNames = [...new Set(dms.map(d => d.sender_name).filter(Boolean))].join(', ');
 
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-      
+
       const headers = {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       };
 
-      const emailBody = `Hi ${recipient.full_name},\n\nYou have ${count} unread message${count > 1 ? 's' : ''} from ${senderNames} that ${count > 1 ? 'have' : 'has'} been waiting over 2.5 minutes for a reply.\n\nPlease log in and respond.\n\n– Arriv Team`;
-      
-      const message = `To: ${recipient.email}\nSubject: You have ${count} unanswered chat message${count > 1 ? 's' : ''}\n\n${emailBody}`;
+      const emailBody = `Hi ${recipient.full_name},\n\nYou have ${count} unread direct message${count > 1 ? 's' : ''} from ${senderNames} that ${count > 1 ? 'have' : 'has'} been waiting over 2.5 minutes for a reply.\n\nPlease log in and respond.\n\n– Arriv Team`;
+      const subject = `You have ${count} unanswered direct message${count > 1 ? 's' : ''}`;
+      const message = `To: ${recipient.email}\nSubject: ${subject}\n\n${emailBody}`;
       const utf8Bytes = new TextEncoder().encode(message);
       const encodedMessage = btoa(String.fromCharCode(...utf8Bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
@@ -57,46 +58,11 @@ Deno.serve(async (req) => {
         headers,
         body: JSON.stringify({ raw: encodedMessage })
       });
-      
-      emailsSent++;
-    }
 
-    // --- Check Channel Messages (no reply from anyone in 2.5 min) ---
-    const channels = await base44.asServiceRole.entities.ChatChannel.list();
-    for (const channel of channels) {
-      const recentMsgs = await base44.asServiceRole.entities.ChatMessage.filter({ channel_id: channel.id }, '-timestamp', 5);
-      if (recentMsgs.length === 0) continue;
-
-      const lastMsg = recentMsgs[0];
-      const ts = lastMsg.timestamp || lastMsg.created_date;
-      if (!ts || new Date(ts).toISOString() >= cutoff) continue;
-
-      // Check if there's a reply from someone else after the last message
-      const hasReply = recentMsgs.some(m => m.sender_id !== lastMsg.sender_id && (m.timestamp || m.created_date) > ts);
-      if (hasReply) continue;
-
-      // No reply — only email the sender
-      const sender = memberMap[lastMsg.sender_id];
-      if (!sender) continue;
-
-      const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
-
-      const headers = {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      };
-
-      const emailBody = `Hi ${sender.full_name},\n\nYour message in #${channel.name} hasn't received a reply in over 2.5 minutes.\n\nMessage: "${lastMsg.content}"\n\nYou may want to follow up.\n\n– Arriv Team`;
-
-      const message = `To: ${sender.email}\nSubject: No response yet in #${channel.name}\n\n${emailBody}`;
-      const utf8Bytes = new TextEncoder().encode(message);
-      const encodedMessage = btoa(String.fromCharCode(...utf8Bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-      await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ raw: encodedMessage })
-      });
+      // Mark all these DMs as reminder_sent so we never email again for them
+      for (const dm of dms) {
+        await base44.asServiceRole.entities.DirectMessage.update(dm.id, { reminder_sent: true });
+      }
 
       emailsSent++;
     }
