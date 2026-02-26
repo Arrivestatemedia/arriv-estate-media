@@ -28,9 +28,9 @@ Deno.serve(async (req) => {
     
     // Only count events that are currently ongoing AND include the admin's email
     const relevantEvents = (calData.items || []).filter(event => {
-      const organizerEmail = event.organizer?.email || '';
-      const attendeeEmails = (event.attendees || []).map(a => a.email);
-      const includesAdmin = organizerEmail === adminEmail || attendeeEmails.includes(adminEmail);
+      const organizerEmail = (event.organizer?.email || '').toLowerCase();
+      const attendeeEmails = (event.attendees || []).map(a => (a.email || '').toLowerCase());
+      const includesAdmin = organizerEmail === adminEmail.toLowerCase() || attendeeEmails.includes(adminEmail.toLowerCase());
       
       // Check if event is currently ongoing
       const startTime = new Date(event.start?.dateTime || event.start?.date);

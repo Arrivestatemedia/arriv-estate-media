@@ -35,9 +35,9 @@ Deno.serve(async (req) => {
     
     // Only count events that are currently ongoing AND include this sales rep's email
     const relevantEvents = (calData.items || []).filter(event => {
-      const organizerEmail = event.organizer?.email || '';
-      const attendeeEmails = (event.attendees || []).map(a => a.email);
-      const includesRep = organizerEmail === salesMember.company_email || attendeeEmails.includes(salesMember.company_email);
+      const organizerEmail = (event.organizer?.email || '').toLowerCase();
+      const attendeeEmails = (event.attendees || []).map(a => (a.email || '').toLowerCase());
+      const includesRep = organizerEmail === salesMember.company_email.toLowerCase() || attendeeEmails.includes(salesMember.company_email.toLowerCase());
       
       // Check if event is currently ongoing
       const startTime = new Date(event.start?.dateTime || event.start?.date);
