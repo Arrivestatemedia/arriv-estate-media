@@ -29,7 +29,7 @@ function StatusDot({ value, size = 10 }) {
   return <span style={{ width: size, height: size, borderRadius: '50%', backgroundColor: s.color, display: 'inline-block', flexShrink: 0 }} />;
 }
 
-export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat, memberStatuses = {} }) {
+export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat, memberStatuses = {}, isAdmin = false, onSelectProfile = null }) {
   const [channels, setChannels] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -38,6 +38,8 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   const [openDialog, setOpenDialog] = useState(false);
   const [myStatus, setMyStatus] = useState("online");
   const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredMembers, setFilteredMembers] = useState([]);
   const statusRef = useRef(null);
 
   // Close picker on outside click
