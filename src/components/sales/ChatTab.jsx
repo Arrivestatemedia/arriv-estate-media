@@ -7,6 +7,31 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
   const [selectedChat, setSelectedChat] = useState(null);
   const [memberProfiles, setMemberProfiles] = useState({});
   const [memberStatuses, setMemberStatuses] = useState({});
+  const syncIntervalRef = React.useRef(null);
+
+  // Auto-sync chat status with Google Calendar every 3 minutes
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const syncStatus = async () => {
+      try {
+        if (isAdmin) {
+          await base44.functions.invoke('syncAdminChatStatusWithCalendar', {});
+        } else if (salesMemberId) {
+          await base44.functions.invoke('syncChatStatusWithCalendar', { salesMemberId });
+        }
+      } catch (err) {
+        console.error('Calendar sync error:', err);
+      }
+    };
+
+    syncStatus();
+    syncIntervalRef.current = setInterval(syncStatus, 3 * 60 * 1000);
+
+    return () => {
+      if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
+    };
+  }, [currentUserId, salesMemberId, isAdmin]);
 
   useEffect(() => {
     base44.entities.SalesTeamMember.list().then(members => {
