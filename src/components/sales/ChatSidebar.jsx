@@ -201,10 +201,55 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
               ))}
             </div>
           )}
-        </div>
-      </div>
+            </div>
+          </div>
+          </div>
+          {isAdmin && (
+          <button
+           onClick={() => onSelectProfile && onSelectProfile(currentUserId, currentUserName, myStatus)}
+           className="text-xs text-gray-400 hover:text-[#B8956A] mt-1 transition-colors"
+          >
+           View Profile
+          </button>
+          )}
+          </div>
 
-      {/* New Channel */}
+          {/* Search Bar */}
+          <div className="p-3 border-b border-gray-700">
+          <div className="relative">
+          <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-gray-500" />
+          <Input
+           placeholder="Search team members..."
+           value={searchQuery}
+           onChange={(e) => setSearchQuery(e.target.value)}
+           className="pl-8 h-8 text-xs bg-gray-800 border-gray-700"
+          />
+          </div>
+          </div>
+
+          {/* Search Results */}
+          {searchQuery && filteredMembers.length > 0 && (
+          <div className="px-4 py-2 border-b border-gray-700">
+          <p className="text-xs text-gray-500 uppercase mb-2">Search Results</p>
+          <div className="space-y-1">
+           {filteredMembers.map(member => (
+             <button
+               key={member.id}
+               onClick={() => {
+                 handleStartDM(member.id, member.full_name);
+                 setSearchQuery("");
+               }}
+               className="w-full text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-gray-800 flex items-center gap-2"
+             >
+               <StatusDot value={member.chat_status || 'offline'} size={6} />
+               {member.full_name}
+             </button>
+           ))}
+          </div>
+          </div>
+          )}
+
+          {/* New Channel */}
       <div className="p-4 border-b border-gray-700">
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogTrigger asChild>
