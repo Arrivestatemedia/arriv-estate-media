@@ -219,11 +219,11 @@ export default function IphoneDialer({ salesMemberId }) {
         .filter(phone => phone && phone.trim()));
 
       // Also add phone numbers from the call log (recents)
-      callLog.forEach(log => {
-        if (log.number && log.number.trim()) {
-          contactPhones.add(log.number);
-        }
-      });
+       callLogs.forEach(log => {
+         if (log.contact_phone && log.contact_phone.trim()) {
+           contactPhones.add(log.contact_phone);
+         }
+       });
 
       if (contactPhones.size === 0) {
         setConversations([]);
