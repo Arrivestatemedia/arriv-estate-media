@@ -35,7 +35,8 @@ Deno.serve(async (req) => {
       // Check if event is currently ongoing
       const startTime = new Date(event.start?.dateTime || event.start?.date);
       const endTime = new Date(event.end?.dateTime || event.end?.date);
-      const isOngoing = startTime <= now && endTime > now;
+      // Consider event ended if it's within 30 seconds of end time (handles sync delays)
+      const isOngoing = startTime <= now && endTime > new Date(now.getTime() + 30000);
       
       return includesAdmin && isOngoing;
     });
