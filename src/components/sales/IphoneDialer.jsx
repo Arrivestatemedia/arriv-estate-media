@@ -212,7 +212,8 @@ export default function IphoneDialer({ salesMemberId }) {
   const loadConversations = async () => {
     try {
       const id = salesMemberId || localStorage.getItem('sales_member_id');
-      const data = await base44.entities.SmsConversation.filter({ sales_member_id: id }, '-last_message_at');
+      // Load all conversations regardless of sales_member_id to show message history
+      const data = await base44.entities.SmsConversation.list('-last_message_at');
       setConversations(data);
     } catch (err) {
       console.error('Failed to load conversations:', err);
