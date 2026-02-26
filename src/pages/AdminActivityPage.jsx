@@ -118,7 +118,8 @@ export default function AdminActivityPage({ user }) {
   useEffect(() => {
     if (!user?.id) return;
     const loadDialerBadge = () => {
-      base44.entities.SmsConversation.filter({ sales_member_id: user.id }).then(convos => {
+      // Load all conversations to show message history regardless of sales_member_id
+      base44.entities.SmsConversation.list().then(convos => {
         const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
         setUnreadSmsCount(total);
       }).catch(() => {});
