@@ -22,6 +22,7 @@ export default function AdminActivityPage({ user }) {
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [unreadSmsCount, setUnreadSmsCount] = useState(0);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
