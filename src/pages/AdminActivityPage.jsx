@@ -357,6 +357,9 @@ export default function AdminActivityPage({ user }) {
             <span className="flex items-center gap-1">
               <Phone className="w-4 h-4" />
               Dialer
+              {unreadSmsCount > 0 && (
+                <Badge variant="destructive" className="ml-1 text-xs">{unreadSmsCount}</Badge>
+              )}
             </span>
           </button>
           <button
