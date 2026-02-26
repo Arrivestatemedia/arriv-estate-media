@@ -54,6 +54,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [selectedThread, setSelectedThread] = useState(null);
   const [showContactSearch, setShowContactSearch] = useState(false);
   const [contactToEdit, setContactToEdit] = useState(null);
+  const [profileMemberId, setProfileMemberId] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const syncIntervalRef = useRef(null);
