@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X } from "lucide-react";
+import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
+import TransferCallPanel from "./TransferCallPanel";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
@@ -35,6 +36,7 @@ export default function IphoneDialer({ salesMemberId }) {
    const [showNewMessage, setShowNewMessage] = useState(false);
    const [newMsgNumber, setNewMsgNumber] = useState("");
    const [newMsgText, setNewMsgText] = useState("");
+   const [showTransferPanel, setShowTransferPanel] = useState(false);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -479,10 +481,14 @@ export default function IphoneDialer({ salesMemberId }) {
           <Button onClick={toggleMute} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
             {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
           </Button>
+          <Button onClick={() => setShowTransferPanel(true)} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
+            <ArrowRight className="w-6 h-6" />
+          </Button>
           <Button onClick={hangUp} className="bg-red-600 hover:bg-red-700 h-14 w-14 rounded-full">
             <PhoneOff className="w-6 h-6" />
           </Button>
         </div>
+        {showTransferPanel && <TransferCallPanel onClose={() => setShowTransferPanel(false)} />}
       </div>
     );
   }
