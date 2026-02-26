@@ -396,6 +396,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
    }
 
   return (
+    <>
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="border-b border-gray-200 p-4 flex items-center justify-between">
