@@ -44,8 +44,6 @@ Deno.serve(async (req) => {
       const endTime = new Date(event.end?.dateTime || event.end?.date);
       const isOngoing = startTime <= now && endTime > now;
       
-      console.log(`Event: ${event.summary}, Organizer: ${organizerEmail}, Attendees: ${attendeeEmails.join(',')}, RepEmail: ${salesMember.company_email.toLowerCase()}, IncludesRep: ${includesRep}, Ongoing: ${isOngoing}`);
-      
       return includesRep && isOngoing;
     });
     
