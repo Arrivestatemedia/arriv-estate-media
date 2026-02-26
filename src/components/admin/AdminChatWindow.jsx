@@ -184,7 +184,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className={`flex-1 p-4 space-y-3 ${messages.length > 5 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
         {messages.length === 0 ? (
           <p className="text-center text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>No messages yet</p>
         ) : (
