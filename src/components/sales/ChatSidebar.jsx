@@ -74,6 +74,16 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     return unsub;
   }, [currentUserId, memberStatuses]);
 
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredMembers([]);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = teamMembers.filter(m => m.full_name.toLowerCase().includes(query));
+      setFilteredMembers(filtered);
+    }
+  }, [searchQuery, teamMembers]);
+
   const handleSetStatus = async (val) => {
     setMyStatus(val);
     setShowStatusPicker(false);
