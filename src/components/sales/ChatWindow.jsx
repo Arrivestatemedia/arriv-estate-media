@@ -531,9 +531,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                         setTimeout(() => setVideoCallError(null), 3000);
                         return;
                       }
-                      localStorage.setItem('_dialerPhone', String(ext));
-                      localStorage.setItem('_videoCallMode', 'true');
-                      window.dispatchEvent(new Event('dialerCardReady'));
+                      setVideoCallTarget({ id: chatId, name: chatName, extension: ext });
+                      setShowVideoCall(true);
                     }}
                     className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                     title="Video Call"
