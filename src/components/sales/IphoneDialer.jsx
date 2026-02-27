@@ -323,22 +323,21 @@ export default function IphoneDialer({ salesMemberId }) {
 
     try {
       // Ensure device is registered before connecting (fixes first-call routing to cell issue)
-      const activeDevice = deviceRef.current;
-      if (!activeDevice) {
+      if (!deviceRef.current) {
         setError('Dialer not ready. Please wait a moment and try again.');
         setCallState(CALL_STATES.IDLE);
         return;
       }
-      if (activeDevice.state !== 'registered') {
+      if (deviceRef.current.state !== 'registered') {
         console.log('Device not yet registered, waiting...');
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => reject(new Error('Device registration timed out')), 8000);
-          activeDevice.once('registered', () => { clearTimeout(timeout); resolve(); });
+          deviceRef.current.once('registered', () => { clearTimeout(timeout); resolve(); });
         });
       }
 
       console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)');
-      const call = await activeDevice.connect({ params: { To: formattedPhone } });
+      const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       callRef.current = call;
       setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false });
 
