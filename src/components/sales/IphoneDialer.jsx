@@ -283,6 +283,12 @@ export default function IphoneDialer({ salesMemberId }) {
 
     // Detect extension (exactly 3 digits, 100-999)
     const isExtension = /^\d{3}$/.test(phoneToDial) && parseInt(phoneToDial) >= 100;
+
+    // Block external calls if rep has no Twilio number
+    if (!isExtension && !hasTwilioNumber) {
+      setError('You need an assigned Twilio number to make external calls. Internal extensions only.');
+      return;
+    }
     const formattedPhone = isExtension ? phoneToDial : (!phoneToDial.startsWith('+') ? '+1' + phoneToDial.replace(/\D/g, '') : phoneToDial);
     setError('');
     setCallState(CALL_STATES.CONNECTING);
