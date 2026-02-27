@@ -163,18 +163,22 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const acceptTransfer = async () => {
     if (!pendingTransfer) return;
     try {
+      // Mark transfer as accepted in database
       await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
-      localStorage.setItem('_autoAcceptNextCall', 'true');
-      localStorage.setItem('_autoAcceptCallerName', pendingTransfer.caller_name || pendingTransfer.caller_number || 'Transferred Call');
-      window.dispatchEvent(new CustomEvent('autoAcceptNextCall', {
+      
+      // Signal to admin's dialer (if open) to dial the caller
+      window.dispatchEvent(new CustomEvent('adminDialTransferCall', {
         detail: {
-          callerName: pendingTransfer.caller_name || pendingTransfer.caller_number || 'Transferred Call',
-          callerNumber: pendingTransfer.caller_number || '',
-          fromName: pendingTransfer.from_member_name
+          phoneNumber: pendingTransfer.caller_number,
+          callerName: pendingTransfer.caller_name,
+          fromRep: pendingTransfer.from_member_name
         }
       }));
+      
+      toast.success(`Transfer from ${pendingTransfer.from_member_name} — dialing ${pendingTransfer.caller_name || pendingTransfer.caller_number}...`);
     } catch (e) {
       console.error("Failed to accept transfer:", e);
+      toast.error("Failed to accept transfer");
     }
     setPendingTransfer(null);
   };
