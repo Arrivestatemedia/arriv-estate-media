@@ -790,11 +790,23 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
        )}
 
        {videoCallError && (
-         <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
-           <AlertCircle className="w-4 h-4 text-red-600" />
-           <p className="text-sm text-red-700">{videoCallError}</p>
-         </div>
-       )}
-      </>
-      );
-      }
+          <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600" />
+            <p className="text-sm text-red-700">{videoCallError}</p>
+          </div>
+        )}
+
+        {showVideoCall && videoCallTarget && (
+          <VideoCallPanel
+            recipientName={videoCallTarget.name}
+            recipientExtension={videoCallTarget.extension}
+            currentUserName={currentUserName}
+            onClose={() => {
+              setShowVideoCall(false);
+              setVideoCallTarget(null);
+            }}
+          />
+        )}
+       </>
+       );
+       }
