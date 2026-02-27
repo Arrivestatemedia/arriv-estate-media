@@ -14,6 +14,7 @@ const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing"
 export default function IphoneDialer({ salesMemberId }) {
   const [device, setDevice] = useState(null);
   const [deviceReady, setDeviceReady] = useState(false);
+  const [hasTwilioNumber, setHasTwilioNumber] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS.RECENTS);
   const [callState, setCallState] = useState(CALL_STATES.IDLE);
   const [keypadInput, setKeypadInput] = useState("");
