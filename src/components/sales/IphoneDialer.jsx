@@ -205,6 +205,26 @@ export default function IphoneDialer({ salesMemberId }) {
       twilioDevice.on('incoming', async (call) => {
         const rawFrom = call.parameters?.From || 'Unknown';
         console.log('Incoming call received from:', rawFrom);
+
+        // Auto-accept if recipient previously accepted a transfer
+        if (autoAcceptRef.current) {
+          const meta = autoAcceptRef.current;
+          autoAcceptRef.current = null;
+          console.log('Auto-accepting transferred call from:', meta.callerName);
+          call.accept();
+          setCurrentCall({ number: rawFrom, startTime: Date.now(), incoming: true });
+          setCallState(CALL_STATES.IN_CALL);
+          setIncomingFrom(rawFrom);
+          setIncomingDisplayName(meta.callerName || rawFrom);
+          callStartRef.current = Date.now();
+          timerRef.current = setInterval(() => {
+            setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+          }, 1000);
+          callRef.current = call;
+          call.on('disconnect', () => handleCallEnded(rawFrom));
+          return;
+        }
+
         setIncomingCall(call);
         setIncomingFrom(rawFrom);
         setCallState(CALL_STATES.INCOMING);
