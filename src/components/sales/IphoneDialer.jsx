@@ -183,14 +183,17 @@ export default function IphoneDialer({ salesMemberId }) {
         // If caller is a client identity (internal extension call), look up their name/extension
         if (rawFrom.startsWith('client:')) {
           const identity = rawFrom.replace('client:', '');
-          // identity format: sales_rep_<id with underscores>
-          const idPart = identity.replace('sales_rep_', '').replace(/_/g, '-');
+          // identity format: sales_rep_<id_with_underscores>
+          // Convert underscores back to hyphens for UUID lookup
+          // UUID pattern: 8-4-4-4-12 hex chars separated by hyphens
+          const withoutPrefix = identity.replace(/^sales_rep_/, '');
+          // Reconstruct UUID: replace underscores with hyphens at UUID positions
+          const uuidLike = withoutPrefix.replace(/_/g, '-');
           try {
-            const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: idPart });
-            const caller = members?.[0];
-            if (caller) {
-              const ext = caller.extension ? ` (Ext. ${caller.extension})` : '';
-              setIncomingDisplayName(`${caller.full_name}${ext}`);
+            const res = await base44.functions.invoke('lookupSalesMemberByIdentity', { identity });
+            if (res?.data?.full_name) {
+              const ext = res.data.extension ? ` (Ext. ${res.data.extension})` : '';
+              setIncomingDisplayName(`${res.data.full_name}${ext}`);
             } else {
               setIncomingDisplayName('Internal Call');
             }
