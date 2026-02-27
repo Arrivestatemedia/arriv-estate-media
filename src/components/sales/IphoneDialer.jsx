@@ -417,12 +417,9 @@ export default function IphoneDialer({ salesMemberId }) {
               callRef.current.disconnect();
               callRef.current = null;
             }
-            setCurrentCall({ 
-              ...currentCall,
-              isConferenceTransfer: true,
-              transferId: response.data.transferId 
-            });
-            return; // Don't make direct call
+            setCurrentCall(null);
+            setCallState(CALL_STATES.IDLE);
+            return; // Exit here and do not proceed to regular call flow
           }
         } catch (e) {
           console.error('Conference transfer failed:', e);
