@@ -389,30 +389,24 @@ export default function IphoneDialer({ salesMemberId }) {
 
       console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)', transferring ? '(conference transfer)' : '');
       
-      // For conference transfer, use backend to redirect sender's existing call
+      // For dialer transfer, use backend API to bridge calls
       if (transferring && callRef.current && currentCall?.number) {
-        console.log('Initiating conference bridge...');
+        console.log('Initiating blind transfer via backend...');
         try {
-          const senderMemberId = localStorage.getItem('sales_member_id');
-          // Use the stored sender call SID from the active call
           const senderCallSid = window._senderCallSid || callRef.current?.sid;
           if (!senderCallSid) {
             throw new Error('No active call to transfer');
           }
           
-          const transferId = `transfer-${Date.now()}`;
-          const response = await base44.functions.invoke('acceptCallTransfer', {
-            originalCallerPhone: currentCall.number,
-            recipientPhone: formattedPhone,
+          const response = await base44.functions.invoke('blindTransferTest', {
             senderCallSid: senderCallSid,
-            senderMemberId: senderMemberId,
-            transferId: transferId,
+            externalCallerNumber: currentCall.number,
+            recipientExtension: parseInt(formattedPhone)
           });
 
           if (response.data.success) {
-            console.log('Conference transfer initiated:', response.data.transferId);
-            // CRITICAL: Disconnect SDK call FIRST before any new calls
-            // The backend has already redirected the caller, so SDK must release the call
+            console.log('Blind transfer initiated:', response.data.conferenceId);
+            // Disconnect SDK call since backend has redirected it
             if (callRef.current) {
               try {
                 callRef.current.disconnect();
@@ -423,10 +417,10 @@ export default function IphoneDialer({ salesMemberId }) {
             }
             setCurrentCall(null);
             setCallState(CALL_STATES.IDLE);
-            return; // Exit here and do not proceed to regular call flow
+            return;
           }
         } catch (e) {
-          console.error('Conference transfer failed:', e);
+          console.error('Blind transfer failed:', e);
           setError('Transfer failed: ' + e.message);
           return;
         }
