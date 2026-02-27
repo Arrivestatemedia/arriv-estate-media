@@ -157,24 +157,27 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   }, [selectedConvo?.id]);
 
-  // ⚠️ DO NOT REMOVE — reads '_dialerPhone' from localStorage set by HubSpotActivityLog
-  // when a contact card phone number is clicked. Switches to Keypad tab and pre-fills number.
-  // Also handles transfer calls via '_isTransferCall' flag set by ChatWindow.
+  // ⚠️ DO NOT REMOVE — listens for initiateTransfer custom event dispatched by ChatWindow or contact cards
+  // Handles both regular calls and transfer calls (auto-starts second call if already in active call)
   useEffect(() => {
-    const phone = localStorage.getItem('_dialerPhone');
-    const isTransferCall = localStorage.getItem('_isTransferCall') === 'true';
-    if (phone) {
-      if (isTransferCall && callRef.current && callState === CALL_STATES.IN_CALL) {
-        // Auto-start second call for transfer if already in a call
-        startCall(phone, false);
+    const handleTransfer = (e) => {
+      const { extension, name } = e.detail;
+      if (!extension) return;
+
+      // If already in a call, this becomes the second call for 3-way transfer
+      if (callStateRef.current === CALL_STATES.IN_CALL && callRef.current) {
+        console.log('Transfer triggered while in call - initiating second call for 3-way');
+        startCall(extension, false);
       } else {
-        setKeypadInput(phone);
+        // Otherwise just pre-fill keypad and switch tab
+        setKeypadInput(extension);
         setActiveTab(TABS.KEYPAD);
       }
-      localStorage.removeItem('_dialerPhone');
-      localStorage.removeItem('_isTransferCall');
-    }
-  }, [callState]);
+    };
+
+    window.addEventListener('initiateTransfer', handleTransfer);
+    return () => window.removeEventListener('initiateTransfer', handleTransfer);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
