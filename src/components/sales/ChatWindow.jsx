@@ -59,6 +59,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [messageKeywords, setMessageKeywords] = useState({});
   const [pendingTransfer, setPendingTransfer] = useState(null);
   const [sentTransferStatus, setSentTransferStatus] = useState(null);
+  const [transferTargets, setTransferTargets] = useState([]);
+  const [showTransferSelector, setShowTransferSelector] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Listen for incoming call transfers — show inline in chat
@@ -177,6 +179,12 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     };
     window.addEventListener('openContactSearch', handleOpenContact);
     return () => window.removeEventListener('openContactSearch', handleOpenContact);
+  }, []);
+
+  useEffect(() => {
+    base44.entities.SalesTeamMember.filter({ is_active: true }).then(members => {
+      setTransferTargets(members || []);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -555,14 +563,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                         setMessages(prev => [...prev]);
                       }}
                     />
-                    {chatType === "dm" && onInitiateTransfer && (
+                    {onInitiateTransfer && msg.sender_id === currentUserId && (
                       <button
                         onClick={() => {
-                          const member = Object.values(memberProfiles)[0] ? Object.keys(memberProfiles)[0] : chatId;
-                          onInitiateTransfer(chatId, chatName);
+                          if (chatType === "dm") {
+                            onInitiateTransfer(chatId, chatName);
+                          } else {
+                            setShowTransferSelector(true);
+                          }
                         }}
                         className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
-                        title="Transfer to this contact"
+                        title="Transfer to contact"
                       >
                         📞 Transfer
                       </button>
@@ -700,10 +711,39 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     </div>
 
       <SalesRepProfileModal
-        memberId={profileMemberId}
-        open={!!profileMemberId}
-        onClose={() => setProfileMemberId(null)}
-      />
-    </>
-  );
-}
+         memberId={profileMemberId}
+         open={!!profileMemberId}
+         onClose={() => setProfileMemberId(null)}
+       />
+
+       {showTransferSelector && (
+         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+           <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+             <h3 className="font-semibold text-lg mb-4">Transfer to Contact</h3>
+             <div className="space-y-2 max-h-60 overflow-y-auto">
+               {transferTargets.filter(m => m.id !== currentUserId && m.extension).map(member => (
+                 <button
+                   key={member.id}
+                   onClick={() => {
+                     onInitiateTransfer(member.id, member.full_name);
+                     setShowTransferSelector(false);
+                   }}
+                   className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition border border-gray-200"
+                 >
+                   <p className="font-medium text-gray-900">{member.full_name}</p>
+                   <p className="text-xs text-gray-500">Ext. {member.extension}</p>
+                 </button>
+               ))}
+             </div>
+             <button
+               onClick={() => setShowTransferSelector(false)}
+               className="mt-4 w-full p-2 text-sm text-gray-600 hover:text-gray-900 border rounded-lg"
+             >
+               Cancel
+             </button>
+           </div>
+         </div>
+       )}
+      </>
+      );
+      }
