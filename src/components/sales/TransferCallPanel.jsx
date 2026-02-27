@@ -42,12 +42,12 @@ export default function TransferCallPanel({ onClose, currentCallNumber, currentC
 
       // Watch for acceptance — once accepted, dial the recipient's extension to bridge the call
       const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
-        if (event.data?.id === record.id && event.data?.status === "accepted") {
+        const matchId = event.id === record.id || event.data?.id === record.id;
+        if (matchId && event.data?.status === "accepted") {
           unsubscribe();
-          // Signal the active call to transfer by dialing the extension
           onTransferAccepted?.(String(rep.extension));
         }
-        if (event.data?.id === record.id && event.data?.status === "declined") {
+        if (matchId && event.data?.status === "declined") {
           unsubscribe();
           toast.error(`${rep.full_name} declined the transfer`);
         }
