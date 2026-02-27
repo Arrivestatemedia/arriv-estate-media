@@ -104,7 +104,18 @@ export default function IphoneDialer({ salesMemberId }) {
         fromName: e.detail?.fromName
       };
     };
+    
+    // Listen for admin accepting a transfer call (admin should dial the customer)
+    const handleAdminTransferCall = (e) => {
+      const phoneNumber = e.detail?.phoneNumber;
+      if (phoneNumber) {
+        setTimeout(() => startCall(phoneNumber), 100);
+      }
+    };
+    
     window.addEventListener('autoAcceptNextCall', handleAutoAccept);
+    window.addEventListener('adminDialTransferCall', handleAdminTransferCall);
+    
     // Also handle localStorage fallback for cross-component scenarios
     const stored = localStorage.getItem('_autoAcceptNextCall');
     if (stored === 'true') {
@@ -115,7 +126,11 @@ export default function IphoneDialer({ salesMemberId }) {
       localStorage.removeItem('_autoAcceptNextCall');
       localStorage.removeItem('_autoAcceptCallerName');
     }
-    return () => window.removeEventListener('autoAcceptNextCall', handleAutoAccept);
+    
+    return () => {
+      window.removeEventListener('autoAcceptNextCall', handleAutoAccept);
+      window.removeEventListener('adminDialTransferCall', handleAdminTransferCall);
+    };
   }, []);
 
   // Keyboard handler — separate effect so it never re-initializes device
