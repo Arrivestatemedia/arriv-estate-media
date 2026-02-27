@@ -173,11 +173,33 @@ export default function IphoneDialer({ salesMemberId }) {
         setCallState(CALL_STATES.IDLE);
       });
 
-      twilioDevice.on('incoming', (call) => {
-        console.log('Incoming call received from:', call.parameters?.From);
+      twilioDevice.on('incoming', async (call) => {
+        const rawFrom = call.parameters?.From || 'Unknown';
+        console.log('Incoming call received from:', rawFrom);
         setIncomingCall(call);
-        setIncomingFrom(call.parameters?.From || 'Unknown');
+        setIncomingFrom(rawFrom);
         setCallState(CALL_STATES.INCOMING);
+
+        // If caller is a client identity (internal extension call), look up their name/extension
+        if (rawFrom.startsWith('client:')) {
+          const identity = rawFrom.replace('client:', '');
+          // identity format: sales_rep_<id with underscores>
+          const idPart = identity.replace('sales_rep_', '').replace(/_/g, '-');
+          try {
+            const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: idPart });
+            const caller = members?.[0];
+            if (caller) {
+              const ext = caller.extension ? ` (Ext. ${caller.extension})` : '';
+              setIncomingDisplayName(`${caller.full_name}${ext}`);
+            } else {
+              setIncomingDisplayName('Internal Call');
+            }
+          } catch (_) {
+            setIncomingDisplayName('Internal Call');
+          }
+        } else {
+          setIncomingDisplayName('');
+        }
         
         call.on('disconnect', () => {
            console.log('Incoming call disconnected');
