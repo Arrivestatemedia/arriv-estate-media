@@ -601,20 +601,24 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       }}
                     />
                     {onInitiateTransfer && msg.sender_id === currentUserId && (
-                      <button
-                        onClick={() => {
-                          if (chatType === "dm") {
-                            onInitiateTransfer(chatId, chatName);
-                          } else {
-                            setShowTransferSelector(true);
-                          }
-                        }}
-                        className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
-                        title="Transfer to contact"
-                      >
-                        📞 Transfer
-                      </button>
-                    )}
+                       <button
+                         onClick={() => {
+                           if (chatType === "dm") {
+                             const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                             if (ext) {
+                               localStorage.setItem('_dialerPhone', String(ext));
+                               window.dispatchEvent(new Event('dialerCardReady'));
+                             }
+                           } else {
+                             setShowTransferSelector(true);
+                           }
+                         }}
+                         className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+                         title="Transfer to contact"
+                       >
+                         📞 Transfer
+                       </button>
+                     )}
                     {msg.sender_id === currentUserId && (
                       <button
                         onClick={() => handleDeleteMessage(msg.id, chatType)}
