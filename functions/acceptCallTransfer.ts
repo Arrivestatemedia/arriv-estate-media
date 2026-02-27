@@ -27,19 +27,25 @@ Deno.serve(async (req) => {
       Deno.env.get('TWILIO_AUTH_TOKEN')
     );
 
-    // Redirect the original caller's call to the conference (not the sender)
-    // This way the caller stays on the call with the recipient, sender drops out
+    // Redirect the original caller's call to the conference
     await client.calls(senderCallSid).update({
       twiml: `<Response><Dial><Conference>${transferId}</Conference></Dial></Response>`
     });
-
     console.log('Redirected caller to conference:', senderCallSid);
 
-    // Store conference info for recipient to join via their keypad
+    // Dial the recipient to bridge them into the same conference
+    const recipientCall = await client.calls.create({
+      from: senderPhone,
+      to: recipientPhone,
+      twiml: `<Response><Dial><Conference>${transferId}</Conference></Dial></Response>`
+    });
+    console.log('Dialed recipient into conference:', recipientCall.sid);
+
+    // Update transfer status
     await base44.asServiceRole.entities.PendingCallTransfer.update(transferId, { 
       conference_id: transferId,
       initiated_at: new Date().toISOString(),
-      status: 'pending'
+      status: 'accepted'
     }).catch(() => {});
 
     return Response.json({ 
