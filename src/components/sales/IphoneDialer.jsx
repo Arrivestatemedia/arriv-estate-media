@@ -54,15 +54,15 @@ export default function IphoneDialer({ salesMemberId }) {
     const id = salesMemberId || localStorage.getItem('sales_member_id');
     if (!id) return;
 
-    // Check if this user has a twilio phone number assigned
+    // Initialize device for any active sales member
     base44.entities.SalesTeamMember.filter({ id }).then(members => {
-      if (!members?.[0]?.twilio_phone_number) {
-        setError('A phone number has not been assigned to your account yet. Contact your administrator.');
+      if (!members?.[0]) {
+        setError('Unable to verify your account. Contact your administrator.');
         return;
       }
       initDevice();
     }).catch(() => {
-      setError('Unable to verify phone number assignment');
+      setError('Unable to verify account');
     });
     
     setTimeout(() => {
