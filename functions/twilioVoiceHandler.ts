@@ -44,13 +44,55 @@ Deno.serve(async (req) => {
     const isOutbound = from?.startsWith('client:');
 
     if (isOutbound) {
-      const dest = to.trim().startsWith('+') ? to.trim() : '+1' + to.replace(/\D/g, '');
-      console.log('Outbound → dialing:', dest, 'callerId:', callerId);
+      const dest = to.trim();
+
+      // Check if dialing an extension (3 digits, 100-999)
+      const extensionMatch = dest.match(/^(\d{3})$/);
+      if (extensionMatch) {
+        const extension = parseInt(extensionMatch[1]);
+        console.log('Extension dial detected:', extension);
+
+        const base44 = createClientFromRequest(req);
+        let members = [];
+        try {
+          members = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
+        } catch (e) {
+          console.error('Failed to fetch members for extension lookup:', e.message);
+        }
+
+        const target = members.find(m => m.extension === extension);
+        if (!target) {
+          return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>Extension ${extension} not found.</Say>
+</Response>`);
+        }
+
+        const targetIdentity = `sales_rep_${target.id.replace(/-/g, '_')}`;
+        console.log('Extension → client identity:', targetIdentity, 'cell fallback:', target.phone_number);
+
+        // Try Twilio Client first, fall back to cell phone if no answer
+        let dialTwiml = `<Client>${targetIdentity}</Client>`;
+        if (target.phone_number) {
+          const cellNumber = target.phone_number.startsWith('+') ? target.phone_number : '+1' + target.phone_number.replace(/\D/g, '');
+          dialTwiml += `<Number>${cellNumber}</Number>`;
+        }
+
+        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${callerId}" answerOnBridge="true" timeout="20">
+    ${dialTwiml}
+  </Dial>
+</Response>`);
+      }
+
+      const formattedDest = dest.startsWith('+') ? dest : '+1' + dest.replace(/\D/g, '');
+      console.log('Outbound → dialing:', formattedDest, 'callerId:', callerId);
 
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" answerOnBridge="true" timeout="30">
-    <Number>${dest}</Number>
+    <Number>${formattedDest}</Number>
   </Dial>
 </Response>`);
 
