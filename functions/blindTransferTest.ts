@@ -56,9 +56,15 @@ Deno.serve(async (req) => {
 
     // Step 4: Dial recipient into the same conference
     const mainNumber = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
+    const recipientPhoneNumber = recipient.phone_number;
+    
+    if (!recipientPhoneNumber) {
+      return Response.json({ error: `Recipient (${recipient.full_name}) has no phone number on file` }, { status: 400 });
+    }
+
     const recipientCall = await client.calls.create({
       from: mainNumber,
-      to: recipient.phone_number || externalCallerNumber, // Fallback to external if no cell
+      to: recipientPhoneNumber,
       twiml: `<Response><Dial><Conference>${conferenceId}</Conference></Dial></Response>`
     });
     console.log('Recipient call initiated:', recipientCall.sid);
