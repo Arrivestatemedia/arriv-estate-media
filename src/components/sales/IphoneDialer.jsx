@@ -176,9 +176,6 @@ export default function IphoneDialer({ salesMemberId }) {
       twilioDevice.on('incoming', async (call) => {
         const rawFrom = call.parameters?.From || 'Unknown';
         console.log('Incoming call received from:', rawFrom);
-        console.log('customParameters object:', call.customParameters);
-        console.log('customParameters entries:', call.customParameters ? [...call.customParameters.entries()] : 'none');
-        console.log('call.parameters full:', JSON.stringify(call.parameters));
         setIncomingCall(call);
         setIncomingFrom(rawFrom);
         setCallState(CALL_STATES.INCOMING);
