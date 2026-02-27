@@ -97,36 +97,37 @@ export default function IphoneDialer({ salesMemberId }) {
 
   // Listen for transfer acceptance via real-time subscription
   useEffect(() => {
-    const handleTransferStatusUpdate = (e) => {
-      const detail = e.detail;
-      const salesMemberId = localStorage.getItem('sales_member_id');
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    if (!salesMemberId) return;
+    
+    // Listen to PendingCallTransfer updates to reliably track transfer acceptance
+    const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
+      const transfer = event.data;
+      if (event.type !== 'update' || !transfer) return;
       
-      if (detail?.status !== 'accepted') return;
-      
-      console.log('Transfer status update:', detail);
+      console.log('Transfer status update:', transfer);
       
       // Case 1: This user INITIATED the transfer (they're the sender) — dial recipient
-      if (detail?.fromMemberId === salesMemberId) {
-        console.log('Transfer accepted by recipient, dialing extension:', detail.toMemberExtension);
-        const extension = String(detail.toMemberExtension);
+      if (transfer.from_member_id === salesMemberId && transfer.status === 'accepted') {
+        console.log('Transfer accepted by recipient, dialing extension:', transfer.to_member_extension);
+        const extension = String(transfer.to_member_extension);
         startCall(extension);
-        base44.entities.PendingCallTransfer.update(detail.id, { status: 'completed' }).catch(() => {});
+        base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         setShowTransferPanel(false);
         return;
       }
       
       // Case 2: This user RECEIVED the transfer (they're the recipient) — dial sender
-      if (detail?.toMemberId === salesMemberId) {
-        console.log('Accepted transfer as recipient, dialing sender extension:', detail.toMemberExtension);
-        const extension = String(detail.toMemberExtension);
+      if (transfer.to_member_id === salesMemberId && transfer.status === 'accepted') {
+        console.log('Accepted transfer as recipient, dialing sender extension:', transfer.to_member_extension);
+        const extension = String(transfer.to_member_extension);
         startCall(extension);
-        base44.entities.PendingCallTransfer.update(detail.id, { status: 'completed' }).catch(() => {});
+        base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         return;
       }
-    };
+    });
     
-    window.addEventListener('transferStatusUpdate', handleTransferStatusUpdate);
-    return () => window.removeEventListener('transferStatusUpdate', handleTransferStatusUpdate);
+    return unsubscribe;
   }, []);
 
   // Keyboard handler — separate effect so it never re-initializes device
