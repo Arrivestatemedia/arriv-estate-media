@@ -36,15 +36,28 @@ Deno.serve(async (req) => {
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>No destination provided.</Say></Response>`);
     }
 
-    const callerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER') || Deno.env.get('TWILIO_PHONE_NUMBER');
-    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+    const defaultCallerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER') || Deno.env.get('TWILIO_PHONE_NUMBER');
 
     // Detect outbound call: From is a Twilio client identity like "client:sales_rep_xxx"
     const isOutbound = from?.startsWith('client:');
 
     if (isOutbound) {
       const dest = to.trim();
+      const base44 = createClientFromRequest(req);
+
+      // Identify the calling rep so we can use their personal Twilio number as caller ID
+      const callerIdentity = from.replace('client:', '');
+      const callerIdPart = callerIdentity.replace('sales_rep_', '').replace(/_/g, '-');
+      let callerMember = null;
+      try {
+        const callerMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: callerIdPart });
+        callerMember = callerMembers?.[0] || null;
+      } catch (e) {
+        console.error('Failed to fetch caller member:', e.message);
+      }
+      // Only use the caller's personal Twilio number if it belongs to them
+      const callerId = callerMember?.twilio_phone_number || defaultCallerId;
+      console.log('Caller:', callerMember?.full_name, 'callerId:', callerId);
 
       // Check if dialing an extension (3 digits, 100-999)
       const extensionMatch = dest.match(/^(\d{3})$/);
@@ -52,7 +65,6 @@ Deno.serve(async (req) => {
         const extension = parseInt(extensionMatch[1]);
         console.log('Extension dial detected:', extension);
 
-        const base44 = createClientFromRequest(req);
         let members = [];
         try {
           members = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
@@ -69,12 +81,13 @@ Deno.serve(async (req) => {
         }
 
         const targetIdentity = `sales_rep_${target.id.replace(/-/g, '_')}`;
+        // Use caller identity as the "from" so recipient can display name/extension
         console.log('Extension → client identity:', targetIdentity, 'cell fallback:', target.phone_number);
 
-        // Try browser dialer first (20s), then fall back to cell phone
+        // Try browser dialer first (25s), then fall back to target's cell phone
         let twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerId}" answerOnBridge="true" timeout="20">
+  <Dial callerId="${callerId}" answerOnBridge="true" timeout="25">
     <Client>${targetIdentity}</Client>
   </Dial>`;
 
