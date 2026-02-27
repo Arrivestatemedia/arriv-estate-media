@@ -438,6 +438,16 @@ export default function IphoneDialer({ salesMemberId }) {
         timerRef.current = setInterval(() => {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
         }, 1000);
+        
+        // Auto-resume held call for transfer
+        if (heldCall && transferring) {
+          console.log('Recipient answered, resuming held call...');
+          try {
+            heldCall.hold(false);
+          } catch (e) {
+            console.error('Failed to resume held call:', e);
+          }
+        }
       });
       call.on('disconnect', () => {
         console.log('Call disconnected');
