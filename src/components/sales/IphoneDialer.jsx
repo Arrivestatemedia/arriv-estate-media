@@ -410,16 +410,20 @@ export default function IphoneDialer({ salesMemberId }) {
       console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)', transferring ? '(blind transfer)' : '');
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       
-      const previousCall = transferring ? callRef.current : null;
-
-      // For blind transfer, disconnect the previous call immediately so we can make the new one
-      if (transferring && previousCall) {
-        console.log('Blind transfer: disconnecting sender call...');
-        previousCall.disconnect();
+      // If there's an active call and we're transferring, hold it instead of disconnecting
+      if (transferring && callRef.current && callRef.current.state === 'open') {
+        console.log('Holding current call for transfer...');
+        try {
+          callRef.current.hold(true);
+        } catch (e) {
+          console.error('Failed to hold call:', e);
+        }
       }
 
+      // Store both calls for potential bridging
+      const heldCall = transferring ? callRef.current : null;
       callRef.current = call;
-      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, isTransfer: transferring, previousCall });
+      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, heldCall });
       // Show the in-call UI immediately so user can hang up before recipient answers
       setCallState(CALL_STATES.IN_CALL);
 
