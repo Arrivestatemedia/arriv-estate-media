@@ -58,6 +58,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [profileMemberId, setProfileMemberId] = useState(null);
   const [messageKeywords, setMessageKeywords] = useState({});
   const [pendingTransfer, setPendingTransfer] = useState(null);
+  const [sentTransferStatus, setSentTransferStatus] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Listen for incoming call transfers — show inline in chat
