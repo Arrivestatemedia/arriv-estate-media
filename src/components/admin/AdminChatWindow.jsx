@@ -108,6 +108,25 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     }
   });
 
+  // Listen for incoming call transfers for the admin
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    base44.entities.PendingCallTransfer.filter({ to_member_id: currentUserId, status: "pending" })
+      .then(records => { if (records?.[0]) setPendingTransfer(records[0]); })
+      .catch(() => {});
+
+    const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
+      if (event.type === "create" && event.data?.to_member_id === currentUserId && event.data?.status === "pending") {
+        setPendingTransfer(event.data);
+      }
+      if (event.type === "update" && event.data?.to_member_id === currentUserId && event.data?.status !== "pending") {
+        setPendingTransfer(prev => (prev?.id === event.data?.id ? null : prev));
+      }
+    });
+    return unsubscribe;
+  }, [currentUserId]);
+
   // Subscribe to incoming messages and play sound
   useEffect(() => {
     if (!selectedRepId) return;
