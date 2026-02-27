@@ -57,6 +57,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [contactToEdit, setContactToEdit] = useState(null);
   const [profileMemberId, setProfileMemberId] = useState(null);
   const [messageKeywords, setMessageKeywords] = useState({});
+  const [pendingTransfer, setPendingTransfer] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Request / check notification permission
