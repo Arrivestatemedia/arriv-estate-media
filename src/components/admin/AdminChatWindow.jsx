@@ -230,6 +230,24 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
         <p className="text-sm font-medium ml-2" style={{ color: '#1A1A1A' }}>{selectedRepName}</p>
       </div>
 
+      {/* Incoming transfer notification */}
+      {pendingTransfer && (
+        <div className="border-b p-3 bg-blue-50 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-900">{pendingTransfer.from_member_name} is transferring a call</p>
+            <p className="text-xs text-gray-600">From: {pendingTransfer.caller_name || pendingTransfer.caller_number || "Unknown Caller"}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={declineTransfer} variant="outline" className="h-8 px-3 text-red-600 border-red-200 hover:bg-red-50">
+              Decline
+            </Button>
+            <Button size="sm" onClick={acceptTransfer} className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white">
+              Accept Call
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
