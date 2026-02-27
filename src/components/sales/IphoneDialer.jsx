@@ -407,24 +407,44 @@ export default function IphoneDialer({ salesMemberId }) {
         });
       }
 
-      console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)', transferring ? '(blind transfer)' : '');
-      const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
+      console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)', transferring ? '(conference transfer)' : '');
       
-      // If there's an active call and we're transferring, hold it instead of disconnecting
-      if (transferring && callRef.current && callRef.current.state === 'open') {
-        console.log('Holding current call for transfer...');
+      // For conference transfer, use backend instead of direct call
+      if (transferring && callRef.current && currentCall?.number) {
+        console.log('Initiating conference bridge...');
         try {
-          callRef.current.hold(true);
+          const senderMemberId = localStorage.getItem('sales_member_id');
+          const response = await base44.functions.invoke('initiateConferenceTransfer', {
+            originalCallerPhone: currentCall.number,
+            recipientPhone: formattedPhone,
+            senderPhone: senderMemberId || 'sender',
+            transferId: `transfer-${Date.now()}`,
+          });
+
+          if (response.data.success) {
+            console.log('Conference transfer initiated:', response.data.transferId);
+            setCurrentCall({ 
+              number: formattedPhone, 
+              startTime: Date.now(), 
+              incoming: false,
+              isConferenceTransfer: true,
+              transferId: response.data.transferId 
+            });
+            setCallState(CALL_STATES.IN_CALL);
+            return; // Don't make direct call
+          }
         } catch (e) {
-          console.error('Failed to hold call:', e);
+          console.error('Conference transfer failed:', e);
+          setError('Transfer failed: ' + e.message);
+          setCallState(CALL_STATES.IDLE);
+          return;
         }
       }
-
-      // Store both calls for potential bridging
-      const heldCall = transferring ? callRef.current : null;
+      
+      // Regular call flow
+      const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       callRef.current = call;
-      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, heldCall });
-      // Show the in-call UI immediately so user can hang up before recipient answers
+      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false });
       setCallState(CALL_STATES.IN_CALL);
 
       call.on('ringing', () => {
@@ -438,16 +458,6 @@ export default function IphoneDialer({ salesMemberId }) {
         timerRef.current = setInterval(() => {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
         }, 1000);
-        
-        // Auto-resume held call for transfer
-        if (heldCall && transferring) {
-          console.log('Recipient answered, resuming held call...');
-          try {
-            heldCall.hold(false);
-          } catch (e) {
-            console.error('Failed to resume held call:', e);
-          }
-        }
       });
       call.on('disconnect', () => {
         console.log('Call disconnected');
