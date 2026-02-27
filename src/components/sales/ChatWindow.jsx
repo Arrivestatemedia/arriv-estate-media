@@ -61,6 +61,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [sentTransferStatus, setSentTransferStatus] = useState(null);
   const [transferTargets, setTransferTargets] = useState([]);
   const [showTransferSelector, setShowTransferSelector] = useState(false);
+  const [videoCallError, setVideoCallError] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Listen for incoming call transfers — show inline in chat
@@ -517,9 +518,16 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                   </button>
                   <button
                     onClick={() => {
-                      localStorage.setItem('_videoCallExtension', String(transferTargets.find(m => m.id === chatId)?.extension || ''));
+                      const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                      if (!ext) {
+                        setVideoCallError('No extension found for video call');
+                        setTimeout(() => setVideoCallError(null), 3000);
+                        return;
+                      }
+                      localStorage.setItem('_videoCallExtension', String(ext));
                       localStorage.setItem('_videoCallName', chatName);
-                      setShowTransferSelector(false);
+                      localStorage.setItem('_videoCallMode', 'true');
+                      onInitiateTransfer?.(chatId, chatName);
                     }}
                     className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                     title="Video Call"
@@ -766,6 +774,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                Cancel
              </button>
            </div>
+         </div>
+       )}
+
+       {videoCallError && (
+         <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
+           <AlertCircle className="w-4 h-4 text-red-600" />
+           <p className="text-sm text-red-700">{videoCallError}</p>
          </div>
        )}
       </>

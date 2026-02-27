@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Mail, Phone, Smartphone, Briefcase, User, Hash } from "lucide-react";
+import { Mail, Phone, Smartphone, Briefcase, User, Hash, Video } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 
 const STATUS_LABELS = {
@@ -21,10 +22,11 @@ const STATUS_COLORS = {
   break: "#3b82f6", offline: "#6b7280"
 };
 
-export default function SalesRepProfileModal({ memberId, open, onClose }) {
+export default function SalesRepProfileModal({ memberId, open, onClose, onCallClick }) {
   const [member, setMember] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [videoMode, setVideoMode] = useState(false);
 
   useEffect(() => {
     if (!open || !memberId) return;
@@ -130,10 +132,32 @@ export default function SalesRepProfileModal({ memberId, open, onClose }) {
                 </div>
               )}
               {member.extension && (
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <Hash className="w-4 h-4 text-[#B8956A] flex-shrink-0" />
-                  <span className="text-xs text-gray-500 mr-1">Extension:</span>
-                  <span className="font-mono font-semibold">{member.extension}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-gray-700">
+                    <Hash className="w-4 h-4 text-[#B8956A] flex-shrink-0" />
+                    <span className="text-xs text-gray-500 mr-1">Extension:</span>
+                    <span className="font-mono font-semibold">{member.extension}</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onCallClick?.(member.id, member.full_name, false)}
+                      className="h-7 px-2 gap-1"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      Call
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onCallClick?.(member.id, member.full_name, true)}
+                      className="h-7 px-2 gap-1"
+                    >
+                      <Video className="w-3.5 h-3.5" />
+                      Video
+                    </Button>
+                  </div>
                 </div>
               )}
               {!member.company_email && !member.work_phone && !member.phone_number && !member.extension && (
