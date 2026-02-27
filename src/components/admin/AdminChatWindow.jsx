@@ -11,6 +11,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [selectedRepName, setSelectedRepName] = useState(null);
   const [messageText, setMessageText] = useState("");
   const [salesReps, setSalesReps] = useState([]);
+  const [pendingTransfer, setPendingTransfer] = useState(null);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
