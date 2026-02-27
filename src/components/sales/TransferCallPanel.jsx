@@ -2,70 +2,45 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Phone, X, Search } from "lucide-react";
 import { toast } from "sonner";
 
-export default function TransferCallPanel({ onClose }) {
+export default function TransferCallPanel({ onClose, currentCallNumber, currentCallName }) {
   const [salesReps, setSalesReps] = useState([]);
-  const [selectedRep, setSelectedRep] = useState("");
-  const [directNumber, setDirectNumber] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [useDirectory, setUseDirectory] = useState(true);
 
   useEffect(() => {
-    loadSalesReps();
+    base44.entities.SalesTeamMember.filter({ is_active: true }, "full_name")
+      .then(reps => setSalesReps(reps.filter(r => r.extension)))
+      .catch(() => toast.error("Failed to load sales reps"));
   }, []);
 
-  const loadSalesReps = async () => {
-    try {
-      const reps = await base44.entities.SalesTeamMember.filter(
-        { is_active: true },
-        "full_name"
-      );
-      setSalesReps(reps.filter((r) => r.extension && r.twilio_phone_number));
-    } catch (err) {
-      console.error("Failed to load reps:", err);
-      toast.error("Failed to load sales reps");
-    }
-  };
-
-  const filteredReps = salesReps.filter(
-    (rep) =>
-      rep.full_name.toLowerCase().includes(searchInput.toLowerCase()) ||
-      rep.extension?.toString().includes(searchInput)
+  const filteredReps = salesReps.filter(rep =>
+    rep.full_name.toLowerCase().includes(searchInput.toLowerCase()) ||
+    rep.extension?.toString().includes(searchInput)
   );
 
-  const initiateTransfer = async () => {
-    if (useDirectory && !selectedRep) {
-      toast.error("Please select a recipient");
-      return;
-    }
-    if (!useDirectory && !directNumber.trim()) {
-      toast.error("Please enter a phone number");
-      return;
-    }
-
+  const initiateTransfer = async (rep) => {
     setLoading(true);
     try {
-      const rep = useDirectory
-        ? salesReps.find((r) => r.id === selectedRep)
-        : null;
-      const message = rep
-        ? `Transfer initiated to ${rep.full_name} (${rep.extension})`
-        : `Transfer initiated to ${directNumber}`;
-      toast.success(message);
+      const myId = localStorage.getItem('sales_member_id');
+      const myName = localStorage.getItem('sales_member_name');
+
+      await base44.entities.PendingCallTransfer.create({
+        from_member_id: myId,
+        from_member_name: myName,
+        to_member_id: rep.id,
+        caller_number: currentCallNumber || '',
+        caller_name: currentCallName || currentCallNumber || 'Unknown Caller',
+        status: 'pending'
+      });
+
+      toast.success(`Transfer request sent to ${rep.full_name}`);
       onClose?.();
     } catch (err) {
       console.error("Transfer error:", err);
-      toast.error("Failed to initiate transfer");
+      toast.error("Failed to send transfer request");
     }
     setLoading(false);
   };
@@ -75,96 +50,43 @@ export default function TransferCallPanel({ onClose }) {
       <div className="bg-white rounded-lg w-full max-w-sm p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">Transfer Call</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Toggle between directory and direct number */}
-        <div className="flex gap-2">
-          <Button
-            variant={useDirectory ? "default" : "outline"}
-            onClick={() => setUseDirectory(true)}
-            className="flex-1 text-sm"
-            size="sm"
-          >
-            Directory
-          </Button>
-          <Button
-            variant={!useDirectory ? "default" : "outline"}
-            onClick={() => setUseDirectory(false)}
-            className="flex-1 text-sm"
-            size="sm"
-          >
-            Direct Number
-          </Button>
-        </div>
-
-        {useDirectory ? (
-          <>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Search by name or extension"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-
-            <Select value={selectedRep} onValueChange={setSelectedRep}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select recipient" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredReps.length === 0 ? (
-                  <div className="p-2 text-sm text-gray-500 text-center">
-                    No reps available
-                  </div>
-                ) : (
-                  filteredReps.map((rep) => (
-                    <SelectItem key={rep.id} value={rep.id}>
-                      {rep.full_name} ({rep.extension})
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </>
-        ) : (
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
           <Input
-            placeholder="Enter phone number"
-            value={directNumber}
-            onChange={(e) => setDirectNumber(e.target.value)}
-            type="tel"
+            placeholder="Search by name or extension"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-8"
+            autoFocus
           />
-        )}
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="flex-1"
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={initiateTransfer}
-            disabled={
-              loading ||
-              (useDirectory && !selectedRep) ||
-              (!useDirectory && !directNumber.trim())
-            }
-            className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white gap-2"
-          >
-            <Phone className="w-4 h-4" />
-            {loading ? "Transferring..." : "Transfer"}
-          </Button>
         </div>
+
+        <div className="space-y-1 max-h-60 overflow-y-auto">
+          {filteredReps.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-4">No reps found</p>
+          ) : (
+            filteredReps.map(rep => (
+              <button
+                key={rep.id}
+                onClick={() => initiateTransfer(rep)}
+                disabled={loading}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#B8956A]/10 transition text-left"
+              >
+                <span className="text-sm font-medium text-gray-800">{rep.full_name}</span>
+                <span className="text-sm font-mono font-bold" style={{ color: '#B8956A' }}>Ext. {rep.extension}</span>
+              </button>
+            ))
+          )}
+        </div>
+
+        <Button variant="outline" onClick={onClose} className="w-full" disabled={loading}>
+          Cancel
+        </Button>
       </div>
     </div>
   );
