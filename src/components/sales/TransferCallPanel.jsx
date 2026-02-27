@@ -27,17 +27,31 @@ export default function TransferCallPanel({ onClose, currentCallNumber, currentC
       const myId = localStorage.getItem('sales_member_id');
       const myName = localStorage.getItem('sales_member_name');
 
-      await base44.entities.PendingCallTransfer.create({
+      const record = await base44.entities.PendingCallTransfer.create({
         from_member_id: myId,
         from_member_name: myName,
         to_member_id: rep.id,
+        to_member_extension: rep.extension,
         caller_number: currentCallNumber || '',
         caller_name: currentCallName || currentCallNumber || 'Unknown Caller',
         status: 'pending'
       });
 
-      toast.success(`Transfer request sent to ${rep.full_name}`);
+      toast.success(`Waiting for ${rep.full_name} to accept...`);
       onClose?.();
+
+      // Watch for acceptance — once accepted, dial the recipient's extension to bridge the call
+      const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
+        if (event.data?.id === record.id && event.data?.status === "accepted") {
+          unsubscribe();
+          // Signal the active call to transfer by dialing the extension
+          onTransferAccepted?.(String(rep.extension));
+        }
+        if (event.data?.id === record.id && event.data?.status === "declined") {
+          unsubscribe();
+          toast.error(`${rep.full_name} declined the transfer`);
+        }
+      });
     } catch (err) {
       console.error("Transfer error:", err);
       toast.error("Failed to send transfer request");
