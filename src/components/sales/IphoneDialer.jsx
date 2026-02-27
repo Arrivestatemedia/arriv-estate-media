@@ -390,17 +390,6 @@ export default function IphoneDialer({ salesMemberId }) {
     // Send extension as-is (3 digits), format phone numbers with country code
     const formattedPhone = isExtension ? digitsOnly : (phoneToDial.startsWith('+') ? phoneToDial : '+1' + digitsOnly);
     setError('');
-    
-    // If there's an active call and we're transferring, hold it instead of disconnecting
-    if (transferring && callRef.current && callRef.current.state === 'open') {
-      console.log('Holding current call for transfer...');
-      try {
-        callRef.current.hold(true);
-      } catch (e) {
-        console.error('Failed to hold call:', e);
-      }
-    }
-    
     setCallState(CALL_STATES.CONNECTING);
 
     try {
@@ -418,13 +407,12 @@ export default function IphoneDialer({ salesMemberId }) {
         });
       }
 
-      console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)');
+      console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)', transferring ? '(blind transfer)' : '');
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       
-      // Store both calls for potential bridging
-      const heldCall = transferring ? callRef.current : null;
+      const previousCall = transferring ? callRef.current : null;
       callRef.current = call;
-      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, heldCall });
+      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, isTransfer: transferring, previousCall });
       // Show the in-call UI immediately so user can hang up before recipient answers
       setCallState(CALL_STATES.IN_CALL);
 
@@ -440,14 +428,12 @@ export default function IphoneDialer({ salesMemberId }) {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
         }, 1000);
         
-        // Auto-resume held call for transfer
-        if (heldCall && transferring) {
-          console.log('Recipient answered, resuming held call...');
-          try {
-            heldCall.hold(false);
-          } catch (e) {
-            console.error('Failed to resume held call:', e);
-          }
+        // Blind transfer: disconnect previous call so original caller stays with recipient
+        if (previousCall && transferring) {
+          console.log('Recipient answered, disconnecting sender (blind transfer)...');
+          previousCall.disconnect();
+          // Mark that we've completed the transfer handoff
+          setCurrentCall(prev => prev ? { ...prev, transferComplete: true } : null);
         }
       });
       call.on('disconnect', () => {
