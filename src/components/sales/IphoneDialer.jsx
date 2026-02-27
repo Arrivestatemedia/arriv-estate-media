@@ -434,14 +434,6 @@ export default function IphoneDialer({ salesMemberId }) {
         timerRef.current = setInterval(() => {
           setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
         }, 1000);
-        
-        // Blind transfer: disconnect previous call so original caller stays with recipient
-        if (previousCall && transferring) {
-          console.log('Recipient answered, disconnecting sender (blind transfer)...');
-          previousCall.disconnect();
-          // Mark that we've completed the transfer handoff
-          setCurrentCall(prev => prev ? { ...prev, transferComplete: true } : null);
-        }
       });
       call.on('disconnect', () => {
         console.log('Call disconnected');
