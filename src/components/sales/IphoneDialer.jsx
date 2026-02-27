@@ -42,6 +42,9 @@ export default function IphoneDialer({ salesMemberId }) {
    const [showTransferPanel, setShowTransferPanel] = useState(false);
   const [allMembers, setAllMembers] = useState([]);
   const [extensionSearch, setExtensionSearch] = useState("");
+  const [secondCallNumber, setSecondCallNumber] = useState("");
+  const [secondCallSid, setSecondCallSid] = useState(null);
+  const [showThreeWayButton, setShowThreeWayButton] = useState(false);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -429,8 +432,13 @@ export default function IphoneDialer({ salesMemberId }) {
       // Regular call flow
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       callRef.current = call;
-      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false });
+      setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, sid: null });
       setCallState(CALL_STATES.IN_CALL);
+      
+      // If this is a second call during an active call, mark it differently
+      if (callState === CALL_STATES.IN_CALL && secondCallNumber === '') {
+        setSecondCallNumber(formattedPhone);
+      }
 
       call.on('ringing', () => {
         console.log('Call ringing');
@@ -441,11 +449,19 @@ export default function IphoneDialer({ salesMemberId }) {
         // Store the call SID so backend can use Call Control API to redirect it
         window._senderCallSid = call.sid;
         callRef.current = call; // Ensure callRef is updated with accepted call
-        setCallState(CALL_STATES.IN_CALL);
-        callStartRef.current = Date.now();
-        timerRef.current = setInterval(() => {
-          setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
-        }, 1000);
+        setCurrentCall(prev => ({ ...prev, sid: call.sid }));
+        
+        // If we already have an active call, show 3-way button
+        if (callState === CALL_STATES.IN_CALL) {
+          setSecondCallSid(call.sid);
+          setShowThreeWayButton(true);
+        } else {
+          setCallState(CALL_STATES.IN_CALL);
+          callStartRef.current = Date.now();
+          timerRef.current = setInterval(() => {
+            setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+          }, 1000);
+        }
       });
       call.on('disconnect', () => {
         console.log('Call disconnected');
@@ -501,6 +517,46 @@ export default function IphoneDialer({ salesMemberId }) {
     if (callRef.current) {
       callRef.current.mute(!muted);
       setMuted(!muted);
+    }
+  };
+
+  const initiateThreeWay = async () => {
+    if (!window._senderCallSid || !secondCallSid) {
+      setError('Both calls must be active to create 3-way');
+      return;
+    }
+
+    try {
+      const response = await base44.functions.invoke('warmTransfer', {
+        senderCallSid: window._senderCallSid,
+        recipientCallSid: secondCallSid,
+        externalCallerNumber: currentCall?.number,
+        senderNumber: currentCall?.number
+      });
+
+      if (response.data.success) {
+        console.log('3-way conference created:', response.data.conferenceId);
+        setShowThreeWayButton(false);
+      }
+    } catch (e) {
+      console.error('3-way conference failed:', e);
+      setError('Failed to create 3-way: ' + e.message);
+    }
+  };
+
+  const dropFromConference = () => {
+    if (callRef.current) {
+      try {
+        callRef.current.disconnect();
+        callRef.current = null;
+        window._senderCallSid = null;
+        setShowThreeWayButton(false);
+        setSecondCallNumber("");
+        setSecondCallSid(null);
+        setError("You've been disconnected from the conference. The other parties remain connected.");
+      } catch (e) {
+        console.error('Error dropping from conference:', e);
+      }
     }
   };
 
@@ -629,18 +685,33 @@ export default function IphoneDialer({ salesMemberId }) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col items-center justify-center p-4 z-50 text-white">
         <p className="text-lg opacity-70 mb-2">{currentCall?.incoming ? 'On Call' : 'Calling'}</p>
-        <p className="text-4xl font-bold mb-4">{currentCall?.number}</p>
+        <p className="text-4xl font-bold mb-1">{currentCall?.number}</p>
+        {secondCallNumber && <p className="text-sm opacity-60 mb-4">+ {secondCallNumber}</p>}
         <p className="text-3xl font-mono mb-8">{formatDuration(callDuration)}</p>
         <div className="flex gap-4 mb-6">
           <Button onClick={toggleMute} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
             {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
           </Button>
-          <Button onClick={() => setShowTransferPanel(true)} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
-            <ArrowRight className="w-6 h-6" />
-          </Button>
-          <Button onClick={hangUp} className="bg-red-600 hover:bg-red-700 h-14 w-14 rounded-full">
-            <PhoneOff className="w-6 h-6" />
-          </Button>
+          {!showThreeWayButton && (
+            <Button onClick={() => setShowTransferPanel(true)} variant="ghost" className="text-white hover:bg-white/20 h-14 w-14 rounded-full">
+              <ArrowRight className="w-6 h-6" />
+            </Button>
+          )}
+          {showThreeWayButton && (
+            <Button onClick={initiateThreeWay} className="bg-blue-600 hover:bg-blue-700 h-14 w-14 rounded-full" title="Create 3-way call">
+              <Plus className="w-6 h-6" />
+            </Button>
+          )}
+          {showThreeWayButton && (
+            <Button onClick={dropFromConference} className="bg-orange-600 hover:bg-orange-700 h-14 w-14 rounded-full" title="Drop from conference">
+              <PhoneOff className="w-6 h-6" />
+            </Button>
+          )}
+          {!showThreeWayButton && (
+            <Button onClick={hangUp} className="bg-red-600 hover:bg-red-700 h-14 w-14 rounded-full">
+              <PhoneOff className="w-6 h-6" />
+            </Button>
+          )}
         </div>
         {showTransferPanel && (
           <TransferCallPanel
@@ -649,8 +720,7 @@ export default function IphoneDialer({ salesMemberId }) {
             currentCallName={currentCall?.number}
             onTransferAccepted={(extension) => {
               setShowTransferPanel(false);
-              // Initiate conference transfer (backend handles bridging)
-              startCall(extension, true);
+              startCall(extension);
             }}
           />
         )}
