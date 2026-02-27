@@ -116,20 +116,26 @@ Deno.serve(async (req) => {
 </Response>`);
       }
 
-      let clientTags = '';
-      for (const member of activeMembers) {
-        const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
-        console.log('Adding client:', identity);
-        clientTags += `<Client>${identity}</Client>`;
-      }
-
       const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
       const missedCallbackUrl = appDomain ? `${appDomain}/functions/handleMissedCall` : '';
+
+      // For each active member, ring their browser dialer first, then fall back to cell phone
+      // We do this by ringing all clients simultaneously AND their cell phones with the same timeout
+      let dialTargets = '';
+      for (const member of activeMembers) {
+        const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
+        console.log('Adding client:', identity, 'cell:', member.phone_number);
+        dialTargets += `<Client>${identity}</Client>`;
+        if (member.phone_number) {
+          const cellNumber = member.phone_number.startsWith('+') ? member.phone_number : '+1' + member.phone_number.replace(/\D/g, '');
+          dialTargets += `<Number>${cellNumber}</Number>`;
+        }
+      }
 
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" timeout="30" action="${missedCallbackUrl}" method="POST">
-    ${clientTags}
+    ${dialTargets}
   </Dial>
 </Response>`);
     }
