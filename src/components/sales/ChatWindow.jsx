@@ -606,8 +606,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                            if (chatType === "dm") {
                              const ext = transferTargets.find(m => m.id === chatId)?.extension;
                              if (ext) {
-                               localStorage.setItem('_dialerPhone', String(ext));
-                               window.dispatchEvent(new Event('dialerCardReady'));
+                               window.dispatchEvent(new CustomEvent('initiateTransfer', { 
+                                 detail: { extension: String(ext), name: chatName }
+                               }));
                              }
                            } else {
                              setShowTransferSelector(true);
