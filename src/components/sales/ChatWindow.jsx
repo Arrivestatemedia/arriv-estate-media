@@ -81,6 +81,29 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return unsubscribe;
   }, [currentUserId]);
 
+  // Listen for transfer status updates on transfers this rep initiated
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
+      if (event.type === "update" && event.data?.from_member_id === currentUserId) {
+        // Update the status display
+        setSentTransferStatus({
+          id: event.data.id,
+          status: event.data.status,
+          toName: event.data.to_member_name,
+          callerName: event.data.caller_name || event.data.caller_number
+        });
+        
+        // Auto-dismiss after 5 seconds if accepted or declined
+        if (event.data.status !== 'pending') {
+          setTimeout(() => setSentTransferStatus(null), 5000);
+        }
+      }
+    });
+    return unsubscribe;
+  }, [currentUserId]);
+
   const acceptTransfer = async () => {
     if (!pendingTransfer) return;
     try {
