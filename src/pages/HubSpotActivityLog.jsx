@@ -522,7 +522,20 @@ export default function HubSpotActivityLog() {
         )}
 
         {activeTab === "chat" && (
-          <ChatTab currentUserId={user?.id} currentUserName={user?.full_name} salesMemberId={user?.id} isAdmin={user?.role === 'admin'} />
+          <ChatTab 
+            currentUserId={user?.id} 
+            currentUserName={user?.full_name} 
+            salesMemberId={user?.id} 
+            isAdmin={user?.role === 'admin'}
+            onInitiateTransfer={(memberId, memberName) => {
+              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                if (members?.[0]?.extension) {
+                  setActiveTab("call");
+                  localStorage.setItem('_transferExtension', String(members[0].extension));
+                }
+              }).catch(() => {});
+            }}
+          />
         )}
 
         {activeTab === "activity" && (
