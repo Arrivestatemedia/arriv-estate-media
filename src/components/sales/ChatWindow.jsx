@@ -60,6 +60,45 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [pendingTransfer, setPendingTransfer] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  // Listen for incoming call transfers — show inline in chat
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    // Check for existing pending transfers
+    base44.entities.PendingCallTransfer.filter({ to_member_id: currentUserId, status: "pending" })
+      .then(records => { if (records?.[0]) setPendingTransfer(records[0]); })
+      .catch(() => {});
+
+    const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
+      if (event.type === "create" && event.data?.to_member_id === currentUserId && event.data?.status === "pending") {
+        setPendingTransfer(event.data);
+      }
+      if (event.type === "update" && event.data?.to_member_id === currentUserId && event.data?.status !== "pending") {
+        setPendingTransfer(prev => (prev?.id === event.data?.id ? null : prev));
+      }
+    });
+    return unsubscribe;
+  }, [currentUserId]);
+
+  const acceptTransfer = async () => {
+    if (!pendingTransfer) return;
+    try {
+      await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
+      toast.success("Transfer accepted — the call will ring on your dialer shortly");
+    } catch (e) {
+      toast.error("Failed to accept transfer");
+    }
+    setPendingTransfer(null);
+  };
+
+  const declineTransfer = async () => {
+    if (!pendingTransfer) return;
+    try {
+      await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "declined" });
+    } catch (e) {}
+    setPendingTransfer(null);
+  };
+
   // Request / check notification permission
   useEffect(() => {
     if (!("Notification" in window)) return;
