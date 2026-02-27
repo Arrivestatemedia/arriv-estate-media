@@ -24,6 +24,14 @@ export default function TransferCallPanel({ onClose, currentCallNumber, currentC
     rep.extension?.toString().includes(searchInput)
   );
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (unsubRef.current) unsubRef.current();
+    };
+  }, []);
+
   const initiateTransfer = async (rep) => {
     setLoading(true);
     try {
@@ -47,41 +55,47 @@ export default function TransferCallPanel({ onClose, currentCallNumber, currentC
         return;
       }
 
+      setWaitingFor({ rep, recordId });
       toast.success(`Waiting for ${rep.full_name} to accept...`);
-      onClose?.();
 
-      // Poll every 2s as a reliable fallback (real-time subscription may miss the event)
-      const pollInterval = setInterval(async () => {
+      const handleAccepted = () => {
+        if (pollRef.current) clearInterval(pollRef.current);
+        if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+        setWaitingFor(null);
+        onTransferAccepted?.(String(rep.extension));
+        onClose?.();
+      };
+
+      const handleDeclined = () => {
+        if (pollRef.current) clearInterval(pollRef.current);
+        if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+        setWaitingFor(null);
+        toast.error(`${rep.full_name} declined the transfer`);
+      };
+
+      // Poll every 2s — most reliable
+      pollRef.current = setInterval(async () => {
         try {
           const results = await base44.entities.PendingCallTransfer.filter({ id: recordId });
           const updated = results?.[0];
-          if (updated?.status === "accepted") {
-            clearInterval(pollInterval);
-            onTransferAccepted?.(String(rep.extension));
-          } else if (updated?.status === "declined") {
-            clearInterval(pollInterval);
-            toast.error(`${rep.full_name} declined the transfer`);
-          }
+          if (updated?.status === "accepted") handleAccepted();
+          else if (updated?.status === "declined") handleDeclined();
         } catch (_) {}
       }, 2000);
 
-      // Also listen via real-time subscription
-      const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
+      // Also subscribe for instant response
+      unsubRef.current = base44.entities.PendingCallTransfer.subscribe((event) => {
         const matchId = event.id === recordId || event.data?.id === recordId;
-        if (matchId && event.data?.status === "accepted") {
-          clearInterval(pollInterval);
-          unsubscribe();
-          onTransferAccepted?.(String(rep.extension));
-        }
-        if (matchId && event.data?.status === "declined") {
-          clearInterval(pollInterval);
-          unsubscribe();
-          toast.error(`${rep.full_name} declined the transfer`);
-        }
+        if (matchId && event.data?.status === "accepted") handleAccepted();
+        if (matchId && event.data?.status === "declined") handleDeclined();
       });
 
       // Auto-expire after 60s
-      setTimeout(() => { clearInterval(pollInterval); unsubscribe(); }, 60000);
+      setTimeout(() => {
+        if (pollRef.current) clearInterval(pollRef.current);
+        if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+        setWaitingFor(null);
+      }, 60000);
 
     } catch (err) {
       console.error("Transfer error:", err);
