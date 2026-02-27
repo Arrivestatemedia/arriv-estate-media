@@ -565,7 +565,20 @@ export default function IphoneDialer({ salesMemberId }) {
             <PhoneOff className="w-6 h-6" />
           </Button>
         </div>
-        {showTransferPanel && <TransferCallPanel onClose={() => setShowTransferPanel(false)} />}
+        {showTransferPanel && (
+          <TransferCallPanel
+            onClose={() => setShowTransferPanel(false)}
+            currentCallNumber={currentCall?.number}
+            currentCallName={currentCall?.number}
+          />
+        )}
+        <IncomingTransferAlert
+          salesMemberId={salesMemberId || localStorage.getItem('sales_member_id')}
+          onAccept={(number) => {
+            setCallState(CALL_STATES.IDLE);
+            setTimeout(() => startCall(number), 300);
+          }}
+        />
       </div>
     );
   }
