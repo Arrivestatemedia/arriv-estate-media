@@ -774,10 +774,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                  <button
                    key={member.id}
                    onClick={() => {
-                     const ext = String(member.extension);
-                     localStorage.setItem('_dialerPhone', ext);
-                     localStorage.setItem('_isTransferCall', 'true');
-                     window.dispatchEvent(new Event('dialerCardReady'));
+                     window.dispatchEvent(new CustomEvent('initiateTransfer', { 
+                       detail: { extension: String(member.extension), name: member.full_name }
+                     }));
                      setShowTransferSelector(false);
                    }}
                    className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition border border-gray-200"
