@@ -180,25 +180,27 @@ export default function IphoneDialer({ salesMemberId }) {
         setIncomingFrom(rawFrom);
         setCallState(CALL_STATES.INCOMING);
 
-        // If caller is a client identity (internal extension call), look up their name/extension
+        // If caller is a client identity (internal extension call), read name/extension from custom params
         if (rawFrom.startsWith('client:')) {
-          const identity = rawFrom.replace('client:', '');
-          // identity format: sales_rep_<id_with_underscores>
-          // Convert underscores back to hyphens for UUID lookup
-          // UUID pattern: 8-4-4-4-12 hex chars separated by hyphens
-          const withoutPrefix = identity.replace(/^sales_rep_/, '');
-          // Reconstruct UUID: replace underscores with hyphens at UUID positions
-          const uuidLike = withoutPrefix.replace(/_/g, '-');
-          try {
-            const res = await base44.functions.invoke('lookupSalesMemberByIdentity', { identity });
-            if (res?.data?.full_name) {
-              const ext = res.data.extension ? ` (Ext. ${res.data.extension})` : '';
-              setIncomingDisplayName(`${res.data.full_name}${ext}`);
-            } else {
+          const callerName = call.customParameters?.get('callerName') || '';
+          const callerExtension = call.customParameters?.get('callerExtension') || '';
+          if (callerName) {
+            const ext = callerExtension ? ` (Ext. ${callerExtension})` : '';
+            setIncomingDisplayName(`${callerName}${ext}`);
+          } else {
+            // Fallback: look up by identity
+            try {
+              const identity = rawFrom.replace('client:', '');
+              const res = await base44.functions.invoke('lookupSalesMemberByIdentity', { identity });
+              if (res?.data?.full_name) {
+                const ext = res.data.extension ? ` (Ext. ${res.data.extension})` : '';
+                setIncomingDisplayName(`${res.data.full_name}${ext}`);
+              } else {
+                setIncomingDisplayName('Internal Call');
+              }
+            } catch (_) {
               setIncomingDisplayName('Internal Call');
             }
-          } catch (_) {
-            setIncomingDisplayName('Internal Call');
           }
         } else {
           setIncomingDisplayName('');
