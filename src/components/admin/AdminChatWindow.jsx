@@ -163,8 +163,23 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const acceptTransfer = async () => {
     if (!pendingTransfer) return;
     try {
-      // Just mark as accepted — sender's dialer will detect this and dial the recipient's extension
+      // Mark as accepted
       await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
+
+      // Notify the sender via CustomEvent
+      window.dispatchEvent(new CustomEvent('transferStatusUpdate', {
+        detail: {
+          id: pendingTransfer.id,
+          status: 'accepted',
+          fromMemberId: pendingTransfer.from_member_id,
+          toMemberId: pendingTransfer.to_member_id,
+          toMemberExtension: pendingTransfer.to_member_extension,
+          toMemberName: selectedRepName,
+          callerName: pendingTransfer.caller_name,
+          callerNumber: pendingTransfer.caller_number
+        }
+      }));
+
       toast.success(`Transfer accepted — waiting for call...`);
     } catch (e) {
       console.error("Failed to accept transfer:", e);
@@ -177,6 +192,17 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     if (!pendingTransfer) return;
     try {
       await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "declined" });
+
+      // Notify the sender via CustomEvent
+      window.dispatchEvent(new CustomEvent('transferStatusUpdate', {
+        detail: {
+          id: pendingTransfer.id,
+          status: 'declined',
+          fromMemberId: pendingTransfer.from_member_id,
+          toMemberId: pendingTransfer.to_member_id,
+          toMemberName: selectedRepName
+        }
+      }));
     } catch (e) {}
     setPendingTransfer(null);
   };
