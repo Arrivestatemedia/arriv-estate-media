@@ -209,12 +209,14 @@ export default function IphoneDialer({ salesMemberId }) {
           console.log('Incoming call cancelled');
           setIncomingCall(null);
           setIncomingFrom('');
+          setIncomingDisplayName('');
           setCallState(CALL_STATES.IDLE);
         });
         call.on('reject', () => {
           console.log('Incoming call rejected');
           setIncomingCall(null);
           setIncomingFrom('');
+          setIncomingDisplayName('');
           setCallState(CALL_STATES.IDLE);
         });
       });
