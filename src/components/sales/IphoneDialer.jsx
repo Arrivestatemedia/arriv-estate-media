@@ -22,6 +22,7 @@ export default function IphoneDialer({ salesMemberId }) {
   const [muted, setMuted] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [incomingFrom, setIncomingFrom] = useState("");
+  const [incomingDisplayName, setIncomingDisplayName] = useState("");
   const [currentCall, setCurrentCall] = useState(null);
   const [callLogs, setCallLogs] = useState([]);
   const [conversations, setConversations] = useState([]);
