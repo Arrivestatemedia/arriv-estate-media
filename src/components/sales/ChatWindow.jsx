@@ -773,7 +773,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                  <button
                    key={member.id}
                    onClick={() => {
-                     localStorage.setItem('_dialerPhone', String(member.extension));
+                     const ext = String(member.extension);
+                     localStorage.setItem('_dialerPhone', ext);
+                     localStorage.setItem('_isTransferCall', 'true');
                      window.dispatchEvent(new Event('dialerCardReady'));
                      setShowTransferSelector(false);
                    }}
