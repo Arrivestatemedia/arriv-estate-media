@@ -33,13 +33,15 @@ export default function IncomingTransferAlert({ salesMemberId, onAccept }) {
   const accept = async () => {
     if (!pendingTransfer) return;
     try {
-      // Just mark accepted — the transferring rep's dialer watches this and dials the extension
+      // Mark accepted — the transferring rep's dialer is watching this and will
+      // disconnect their current call and dial this recipient's extension via Twilio.
+      // That will cause a normal incoming call to ring on THIS dialer automatically.
       await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
-      // No action needed on this side — the incoming call will ring through Twilio normally
     } catch (e) {
       console.error("Failed to accept transfer:", e);
     }
     setPendingTransfer(null);
+    // The incoming Twilio call will ring through on its own — no need to initiate anything here
   };
 
   const decline = async () => {
