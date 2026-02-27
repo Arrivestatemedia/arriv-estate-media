@@ -94,6 +94,29 @@ export default function IphoneDialer({ salesMemberId }) {
       };
   }, [salesMemberId]);
 
+  // Listen for auto-accept signal from ChatWindow (when recipient accepts a transfer)
+  useEffect(() => {
+    const handleAutoAccept = (e) => {
+      // Set a flag — when next incoming call arrives, accept it automatically
+      autoAcceptRef.current = {
+        callerName: e.detail?.callerName,
+        fromName: e.detail?.fromName
+      };
+    };
+    window.addEventListener('autoAcceptNextCall', handleAutoAccept);
+    // Also handle localStorage fallback for cross-component scenarios
+    const stored = localStorage.getItem('_autoAcceptNextCall');
+    if (stored === 'true') {
+      autoAcceptRef.current = {
+        callerName: localStorage.getItem('_autoAcceptCallerName') || 'Transferred Call',
+        fromName: ''
+      };
+      localStorage.removeItem('_autoAcceptNextCall');
+      localStorage.removeItem('_autoAcceptCallerName');
+    }
+    return () => window.removeEventListener('autoAcceptNextCall', handleAutoAccept);
+  }, []);
+
   // Keyboard handler — separate effect so it never re-initializes device
   useEffect(() => {
     const handleKeydown = (e) => {
