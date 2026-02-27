@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [selectedRepId, setSelectedRepId] = useState(null);
