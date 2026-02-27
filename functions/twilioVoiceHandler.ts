@@ -159,13 +159,13 @@ Deno.serve(async (req) => {
       // Try browser dialers first, then cell phones as fallback
       let twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerId}" timeout="20" action="${missedCallbackUrl}" method="POST">
+  <Dial callerId="${defaultCallerId}" timeout="20" action="${missedCallbackUrl}" method="POST">
     ${clientTags}
   </Dial>`;
 
       if (cellTags) {
         twiml += `
-  <Dial callerId="${callerId}" timeout="30" action="${missedCallbackUrl}" method="POST">
+  <Dial callerId="${defaultCallerId}" timeout="30" action="${missedCallbackUrl}" method="POST">
     ${cellTags}
   </Dial>`;
       }
