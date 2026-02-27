@@ -412,9 +412,14 @@ export default function IphoneDialer({ salesMemberId }) {
 
           if (response.data.success) {
             console.log('Conference transfer initiated:', response.data.transferId);
-            // Disconnect SDK call since backend is now managing via Call Control API
+            // CRITICAL: Disconnect SDK call FIRST before any new calls
+            // The backend has already redirected the caller, so SDK must release the call
             if (callRef.current) {
-              callRef.current.disconnect();
+              try {
+                callRef.current.disconnect();
+              } catch (e) {
+                console.warn('Error disconnecting call during transfer:', e);
+              }
               callRef.current = null;
             }
             setCurrentCall(null);
