@@ -390,9 +390,10 @@ export default function IphoneDialer({ salesMemberId }) {
       
       // For dialer transfer, use backend API to bridge calls
       if (transferring && callRef.current && currentCall?.number) {
-        console.log('Initiating blind transfer via backend...');
+        console.log('Initiating blind transfer via backend, callRef.current:', callRef.current, 'window._senderCallSid:', window._senderCallSid);
         try {
           const senderCallSid = window._senderCallSid || callRef.current?.sid;
+          console.log('Using senderCallSid:', senderCallSid);
           if (!senderCallSid) {
             throw new Error('No active call to transfer');
           }
