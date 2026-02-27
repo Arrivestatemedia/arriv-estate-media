@@ -50,6 +50,7 @@ export default function IphoneDialer({ salesMemberId }) {
   const deviceRef = useRef(null);
   const activeTabRef = useRef(activeTab);
   const callStateRef = useRef(callState);
+  const autoAcceptRef = useRef(null); // set when recipient accepts a transfer
 
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { callStateRef.current = callState; }, [callState]);
