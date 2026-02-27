@@ -45,7 +45,7 @@ const playDing = () => {
 };
 
 
-export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {} }) {
+export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {}, onInitiateTransfer }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -370,21 +370,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   };
 
   const handleSendMessage = async (e) => {
-   if (e.key && e.key !== "Enter") return;
-   if (e.key === "Enter" && (e.shiftKey || e.ctrlKey || e.metaKey)) return;
-   e.preventDefault();
-   const text = newMessage.trim();
-    if (!text) return;
-
-    // Check for transfer keywords
-    try {
-      const keywordCheck = await base44.functions.invoke('detectTransferKeywords', { messageContent: text });
-      if (keywordCheck.data?.hasKeywords) {
-        setMessageKeywords(prev => ({ ...prev, [text]: true }));
-      }
-    } catch (e) {
-      console.log('Keyword detection skipped');
-    }
+    if (e.key && e.key !== "Enter") return;
+    if (e.key === "Enter" && (e.shiftKey || e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    const text = newMessage.trim();
+     if (!text) return;
 
     // Optimistic update
     const optimisticMsg = {
@@ -565,14 +555,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                         setMessages(prev => [...prev]);
                       }}
                     />
-                    {msg.sender_id === currentUserId && messageKeywords[msg.content] && (
-                      <TransferCallButton
-                        message={msg}
-                        currentUserId={currentUserId}
-                        chatType={chatType}
-                        dmRecipientId={chatId}
-                        dmRecipientName={chatName}
-                      />
+                    {chatType === "dm" && onInitiateTransfer && (
+                      <button
+                        onClick={() => {
+                          const member = Object.values(memberProfiles)[0] ? Object.keys(memberProfiles)[0] : chatId;
+                          onInitiateTransfer(chatId, chatName);
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+                        title="Transfer to this contact"
+                      >
+                        📞 Transfer
+                      </button>
                     )}
                     {msg.sender_id === currentUserId && (
                       <button

@@ -461,7 +461,21 @@ export default function AdminActivityPage({ user }) {
         )}
 
         {activeTab === "chat" && (
-          <ChatTab currentUserId={user?.id} currentUserName={user?.full_name} salesMemberId={user?.id} isAdmin={true} />
+          <ChatTab 
+            currentUserId={user?.id} 
+            currentUserName={user?.full_name} 
+            salesMemberId={user?.id} 
+            isAdmin={true}
+            onInitiateTransfer={(memberId, memberName) => {
+              // Find member extension and initiate 3-way transfer
+              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                if (members?.[0]?.extension) {
+                  setActiveTab("call");
+                  localStorage.setItem('_transferExtension', String(members[0].extension));
+                }
+              }).catch(() => {});
+            }}
+          />
         )}
 
         {activeTab === "calendar" && (

@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import ChatSidebar from "./ChatSidebar";
 import ChatWindow from "./ChatWindow";
 
-export default function ChatTab({ currentUserId, currentUserName, salesMemberId, isAdmin }) {
+export default function ChatTab({ currentUserId, currentUserName, salesMemberId, isAdmin, onInitiateTransfer }) {
   const [selectedChat, setSelectedChat] = useState(null);
   const [memberProfiles, setMemberProfiles] = useState({});
   const [memberStatuses, setMemberStatuses] = useState({});
@@ -81,6 +81,7 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
             currentUserName={currentUserName}
             memberProfiles={memberProfiles}
             memberStatuses={memberStatuses}
+            onInitiateTransfer={onInitiateTransfer}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
