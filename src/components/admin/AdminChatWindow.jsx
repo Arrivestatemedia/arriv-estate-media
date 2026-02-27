@@ -159,6 +159,33 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     }
   }, [selectedRepId, messages, currentUserId]);
 
+  const acceptTransfer = async () => {
+    if (!pendingTransfer) return;
+    try {
+      await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
+      localStorage.setItem('_autoAcceptNextCall', 'true');
+      localStorage.setItem('_autoAcceptCallerName', pendingTransfer.caller_name || pendingTransfer.caller_number || 'Transferred Call');
+      window.dispatchEvent(new CustomEvent('autoAcceptNextCall', {
+        detail: {
+          callerName: pendingTransfer.caller_name || pendingTransfer.caller_number || 'Transferred Call',
+          callerNumber: pendingTransfer.caller_number || '',
+          fromName: pendingTransfer.from_member_name
+        }
+      }));
+    } catch (e) {
+      console.error("Failed to accept transfer:", e);
+    }
+    setPendingTransfer(null);
+  };
+
+  const declineTransfer = async () => {
+    if (!pendingTransfer) return;
+    try {
+      await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "declined" });
+    } catch (e) {}
+    setPendingTransfer(null);
+  };
+
   const handleSendMessage = () => {
     if (!messageText.trim() || !selectedRepId) return;
     sendMessageMutation.mutate(messageText);
