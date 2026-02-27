@@ -159,14 +159,22 @@ export default function IphoneDialer({ salesMemberId }) {
 
   // ⚠️ DO NOT REMOVE — reads '_dialerPhone' from localStorage set by HubSpotActivityLog
   // when a contact card phone number is clicked. Switches to Keypad tab and pre-fills number.
+  // Also handles transfer calls via '_isTransferCall' flag set by ChatWindow.
   useEffect(() => {
     const phone = localStorage.getItem('_dialerPhone');
+    const isTransferCall = localStorage.getItem('_isTransferCall') === 'true';
     if (phone) {
-      setKeypadInput(phone);
-      setActiveTab(TABS.KEYPAD);
+      if (isTransferCall && callRef.current && callState === CALL_STATES.IN_CALL) {
+        // Auto-start second call for transfer if already in a call
+        startCall(phone, false);
+      } else {
+        setKeypadInput(phone);
+        setActiveTab(TABS.KEYPAD);
+      }
       localStorage.removeItem('_dialerPhone');
+      localStorage.removeItem('_isTransferCall');
     }
-  }, []);
+  }, [callState]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
