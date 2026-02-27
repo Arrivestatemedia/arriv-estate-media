@@ -117,11 +117,10 @@ export default function IphoneDialer({ salesMemberId }) {
         return;
       }
       
-      // Case 2: This user RECEIVED the transfer (they're the recipient) — hold & dial sender
+      // Case 2: This user RECEIVED the transfer (they're the recipient)
+      // The backend is already dialing them into the conference, so they just wait for the incoming call
       if (transfer.to_member_id === salesMemberId && transfer.status === 'accepted') {
-        console.log('Accepted transfer as recipient, holding current call and dialing sender extension:', transfer.to_member_extension);
-        const extension = String(transfer.to_member_extension);
-        startCall(extension, true); // true = transferring (hold current call)
+        console.log('Transfer accepted as recipient - backend will dial you into the conference');
         base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         return;
       }
