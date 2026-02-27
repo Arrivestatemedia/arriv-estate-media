@@ -467,15 +467,13 @@ export default function AdminActivityPage({ user }) {
             salesMemberId={user?.id} 
             isAdmin={true}
             onInitiateTransfer={(memberId, memberName) => {
-              // Find member extension and initiate 3-way transfer
+              // Find member extension and dispatch initiateTransfer event
               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                 if (members?.[0]?.extension) {
                   setActiveTab("call");
-                  localStorage.setItem('_transferExtension', String(members[0].extension));
-                  if (localStorage.getItem('_videoCallMode')) {
-                    localStorage.setItem('_videoCallEnabled', 'true');
-                    localStorage.removeItem('_videoCallMode');
-                  }
+                  window.dispatchEvent(new CustomEvent('initiateTransfer', { 
+                    detail: { extension: String(members[0].extension), name: memberName || members[0].full_name }
+                  }));
                 }
               }).catch(() => {});
             }}
