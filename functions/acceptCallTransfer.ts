@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     return Response.json({ 
       success: true, 
       transferId, 
-      callSid: call.sid
+      callSid: recipientCall.sid
     });
   } catch (error) {
     console.error('Accept transfer error:', error);
