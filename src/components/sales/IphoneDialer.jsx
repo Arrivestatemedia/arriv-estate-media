@@ -107,21 +107,21 @@ export default function IphoneDialer({ salesMemberId }) {
       
       console.log('Transfer status update:', transfer);
       
-      // Case 1: This user INITIATED the transfer (they're the sender) — dial recipient
+      // Case 1: This user INITIATED the transfer (they're the sender) — hold & dial recipient
       if (transfer.from_member_id === salesMemberId && transfer.status === 'accepted') {
-        console.log('Transfer accepted by recipient, dialing extension:', transfer.to_member_extension);
+        console.log('Transfer accepted by recipient, holding current call and dialing extension:', transfer.to_member_extension);
         const extension = String(transfer.to_member_extension);
-        startCall(extension);
+        startCall(extension, true); // true = transferring (hold current call)
         base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         setShowTransferPanel(false);
         return;
       }
       
-      // Case 2: This user RECEIVED the transfer (they're the recipient) — dial sender
+      // Case 2: This user RECEIVED the transfer (they're the recipient) — hold & dial sender
       if (transfer.to_member_id === salesMemberId && transfer.status === 'accepted') {
-        console.log('Accepted transfer as recipient, dialing sender extension:', transfer.to_member_extension);
+        console.log('Accepted transfer as recipient, holding current call and dialing sender extension:', transfer.to_member_extension);
         const extension = String(transfer.to_member_extension);
-        startCall(extension);
+        startCall(extension, true); // true = transferring (hold current call)
         base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         return;
       }
