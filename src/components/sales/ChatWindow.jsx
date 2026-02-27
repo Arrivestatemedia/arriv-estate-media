@@ -510,7 +510,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               {transferTargets.find(m => m.id === chatId)?.extension && (
                 <>
                   <button
-                    onClick={() => onInitiateTransfer?.(chatId, chatName)}
+                    onClick={() => {
+                      const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                      localStorage.setItem('_dialerPhone', String(ext));
+                      window.dispatchEvent(new Event('dialerCardReady'));
+                    }}
                     className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                     title="Call"
                   >
@@ -524,10 +528,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                         setTimeout(() => setVideoCallError(null), 3000);
                         return;
                       }
-                      localStorage.setItem('_videoCallExtension', String(ext));
-                      localStorage.setItem('_videoCallName', chatName);
+                      localStorage.setItem('_dialerPhone', String(ext));
                       localStorage.setItem('_videoCallMode', 'true');
-                      onInitiateTransfer?.(chatId, chatName);
+                      window.dispatchEvent(new Event('dialerCardReady'));
                     }}
                     className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                     title="Video Call"
