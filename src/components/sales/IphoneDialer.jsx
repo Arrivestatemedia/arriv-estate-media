@@ -489,7 +489,13 @@ export default function IphoneDialer({ salesMemberId }) {
         <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
           <Phone className="w-12 h-12 mx-auto mb-4 animate-pulse" style={{ color: '#22c55e' }} />
           <p className="text-lg font-semibold mb-2">Incoming Call</p>
-          <p className="text-2xl font-bold mb-8" style={{ color: '#B8956A' }}>{incomingFrom || 'Unknown'}</p>
+          <p className="text-2xl font-bold" style={{ color: '#B8956A' }}>
+            {incomingDisplayName || incomingFrom || 'Unknown'}
+          </p>
+          {incomingDisplayName && (
+            <p className="text-sm opacity-50 mb-8">Internal</p>
+          )}
+          {!incomingDisplayName && <div className="mb-8" />}
           <div className="flex gap-3">
             <Button onClick={rejectCall} variant="destructive" className="flex-1 h-12 text-base">
               <PhoneOff className="w-5 h-5 mr-2" /> Decline
