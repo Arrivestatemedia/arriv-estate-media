@@ -494,19 +494,43 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="border-b border-gray-200 p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {chatType === "dm" ? (
-            <button
-              className="text-lg font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
-              onClick={() => setProfileMemberId(chatId)}
-            >
-              {chatName}
-            </button>
+            <>
+              <button
+                className="text-lg font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
+                onClick={() => setProfileMemberId(chatId)}
+              >
+                {chatName}
+              </button>
+              {memberStatuses[chatId] && (
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[memberStatuses[chatId]] || "#6b7280" }} />
+              )}
+              {transferTargets.find(m => m.id === chatId)?.extension && (
+                <>
+                  <button
+                    onClick={() => onInitiateTransfer?.(chatId, chatName)}
+                    className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+                    title="Call"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('_videoCallExtension', String(transferTargets.find(m => m.id === chatId)?.extension || ''));
+                      localStorage.setItem('_videoCallName', chatName);
+                      setShowTransferSelector(false);
+                    }}
+                    className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+                    title="Video Call"
+                  >
+                    <Video className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </>
           ) : (
             <h2 className="text-lg font-semibold text-gray-900">#{chatName}</h2>
-          )}
-          {chatType === "dm" && memberStatuses[chatId] && (
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[memberStatuses[chatId]] || "#6b7280" }} />
           )}
         </div>
         {notificationsEnabled && (
