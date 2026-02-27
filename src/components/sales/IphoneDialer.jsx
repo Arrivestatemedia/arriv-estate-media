@@ -401,12 +401,13 @@ export default function IphoneDialer({ salesMemberId }) {
             throw new Error('No active call to transfer');
           }
           
+          const transferId = `transfer-${Date.now()}`;
           const response = await base44.functions.invoke('acceptCallTransfer', {
             originalCallerPhone: currentCall.number,
             recipientPhone: formattedPhone,
             senderCallSid: senderCallSid,
             senderMemberId: senderMemberId,
-            transferId: `transfer-${Date.now()}`,
+            transferId: transferId,
           });
 
           if (response.data.success) {
