@@ -746,8 +746,7 @@ export default function IphoneDialer({ salesMemberId }) {
                 </div>
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {allMembers
-                    .filter(m => m.extension && (
-                      extensionSearch === '' ||
+                    .filter(m => m.extension && extensionSearch !== '' && (
                       m.full_name?.toLowerCase().includes(extensionSearch.toLowerCase()) ||
                       String(m.extension).includes(extensionSearch)
                     ))
