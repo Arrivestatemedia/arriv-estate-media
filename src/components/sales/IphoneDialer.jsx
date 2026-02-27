@@ -354,10 +354,12 @@ export default function IphoneDialer({ salesMemberId }) {
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       callRef.current = call;
       setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false });
+      // Show the in-call UI immediately so user can hang up before recipient answers
+      setCallState(CALL_STATES.IN_CALL);
 
       call.on('ringing', () => {
         console.log('Call ringing');
-        setCallState(CALL_STATES.RINGING);
+        setCallState(CALL_STATES.IN_CALL);
       });
       call.on('accept', () => {
         console.log('Call accepted');
