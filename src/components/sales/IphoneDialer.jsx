@@ -66,6 +66,8 @@ export default function IphoneDialer({ salesMemberId }) {
       }
       setHasTwilioNumber(!!members[0].twilio_phone_number);
       initDevice();
+      // Load all members for extension directory
+      base44.entities.SalesTeamMember.filter({ is_active: true }).then(setAllMembers).catch(() => {});
     }).catch(() => {
       setError('Unable to verify account');
     });
