@@ -532,6 +532,10 @@ export default function HubSpotActivityLog() {
                 if (members?.[0]?.extension) {
                   setActiveTab("call");
                   localStorage.setItem('_transferExtension', String(members[0].extension));
+                  if (localStorage.getItem('_videoCallMode')) {
+                    localStorage.setItem('_videoCallEnabled', 'true');
+                    localStorage.removeItem('_videoCallMode');
+                  }
                 }
               }).catch(() => {});
             }}
