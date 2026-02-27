@@ -218,7 +218,26 @@ export default function IphoneDialer({ salesMemberId }) {
         const rawFrom = call.parameters?.From || 'Unknown';
         console.log('Incoming call received from:', rawFrom);
 
-        // Auto-accept if recipient previously accepted a transfer
+        // Check if this is a transfer call — auto-accept without popup
+        const isTransferCall = localStorage.getItem('_transferInProgress') === 'true';
+        if (isTransferCall) {
+          localStorage.removeItem('_transferInProgress');
+          console.log('Auto-accepting transfer call from:', rawFrom);
+          call.accept();
+          setCurrentCall({ number: rawFrom, startTime: Date.now(), incoming: true, isTransfer: true });
+          setCallState(CALL_STATES.IN_CALL);
+          setIncomingFrom(rawFrom);
+          setIncomingDisplayName('Transfer Connected');
+          callStartRef.current = Date.now();
+          timerRef.current = setInterval(() => {
+            setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+          }, 1000);
+          callRef.current = call;
+          call.on('disconnect', () => handleCallEnded(rawFrom));
+          return;
+        }
+
+        // Auto-accept if recipient previously accepted a transfer (legacy)
         if (autoAcceptRef.current) {
           const meta = autoAcceptRef.current;
           autoAcceptRef.current = null;
