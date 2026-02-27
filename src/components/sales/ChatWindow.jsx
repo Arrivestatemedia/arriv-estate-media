@@ -773,7 +773,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                  <button
                    key={member.id}
                    onClick={() => {
-                     onInitiateTransfer(member.id, member.full_name);
+                     localStorage.setItem('_dialerPhone', String(member.extension));
+                     window.dispatchEvent(new Event('dialerCardReady'));
                      setShowTransferSelector(false);
                    }}
                    className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition border border-gray-200"
