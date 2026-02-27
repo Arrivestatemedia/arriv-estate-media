@@ -661,9 +661,8 @@ export default function IphoneDialer({ salesMemberId }) {
             currentCallName={currentCall?.number}
             onTransferAccepted={(extension) => {
               setShowTransferPanel(false);
-              // Hang up current call and dial the recipient's extension to bridge
-              if (callRef.current) callRef.current.disconnect();
-              setTimeout(() => startCall(extension), 500);
+              // Initiate conference transfer (backend handles bridging)
+              startCall(extension, true);
             }}
           />
         )}
