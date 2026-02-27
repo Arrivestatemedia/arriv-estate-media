@@ -175,33 +175,39 @@ export default function IphoneDialer({ salesMemberId }) {
 
       twilioDevice.on('incoming', async (call) => {
         const rawFrom = call.parameters?.From || 'Unknown';
-        console.log('Incoming call received from:', rawFrom);
+        console.log('Incoming call received from:', rawFrom, 'customParameters:', call.customParameters);
         setIncomingCall(call);
         setIncomingFrom(rawFrom);
         setCallState(CALL_STATES.INCOMING);
 
-        // If caller is a client identity (internal extension call), read name/extension from custom params
-        if (rawFrom.startsWith('client:')) {
-          const callerName = call.customParameters?.get('callerName') || '';
-          const callerExtension = call.customParameters?.get('callerExtension') || '';
-          if (callerName) {
-            const ext = callerExtension ? ` (Ext. ${callerExtension})` : '';
-            setIncomingDisplayName(`${callerName}${ext}`);
-          } else {
-            // Fallback: look up by identity
-            try {
-              const identity = rawFrom.replace('client:', '');
-              const res = await base44.functions.invoke('lookupSalesMemberByIdentity', { identity });
-              if (res?.data?.full_name) {
-                const ext = res.data.extension ? ` (Ext. ${res.data.extension})` : '';
-                setIncomingDisplayName(`${res.data.full_name}${ext}`);
-              } else {
-                setIncomingDisplayName('Internal Call');
-              }
-            } catch (_) {
+        // Check custom parameters first — these are set for internal extension calls
+        // regardless of what the From/callerId shows (which may be the company number)
+        const callerName = call.customParameters?.get('callerName') || '';
+        const callerExtension = call.customParameters?.get('callerExtension') || '';
+        const callerIdentityParam = call.customParameters?.get('callerIdentity') || '';
+
+        console.log('callerName:', callerName, 'callerExtension:', callerExtension, 'callerIdentity:', callerIdentityParam);
+
+        if (callerName) {
+          // Internal call — show name and extension
+          const ext = callerExtension ? ` (Ext. ${callerExtension})` : '';
+          setIncomingDisplayName(`${callerName}${ext}`);
+        } else if (callerIdentityParam) {
+          // Has identity but no name — look up
+          try {
+            const res = await base44.functions.invoke('lookupSalesMemberByIdentity', { identity: callerIdentityParam });
+            if (res?.data?.full_name) {
+              const ext = res.data.extension ? ` (Ext. ${res.data.extension})` : '';
+              setIncomingDisplayName(`${res.data.full_name}${ext}`);
+            } else {
               setIncomingDisplayName('Internal Call');
             }
+          } catch (_) {
+            setIncomingDisplayName('Internal Call');
           }
+        } else if (rawFrom.startsWith('client:')) {
+          // Legacy fallback for client: identity in From
+          setIncomingDisplayName('Internal Call');
         } else {
           setIncomingDisplayName('');
         }
