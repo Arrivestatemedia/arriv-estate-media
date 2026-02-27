@@ -129,7 +129,14 @@ export default function SalesRepProfileModal({ memberId, open, onClose }) {
                   <a href={`tel:${member.phone_number}`} className="hover:underline">{member.phone_number}</a>
                 </div>
               )}
-              {!member.company_email && !member.work_phone && !member.phone_number && (
+              {member.extension && (
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <Hash className="w-4 h-4 text-[#B8956A] flex-shrink-0" />
+                  <span className="text-xs text-gray-500 mr-1">Extension:</span>
+                  <span className="font-mono font-semibold">{member.extension}</span>
+                </div>
+              )}
+              {!member.company_email && !member.work_phone && !member.phone_number && !member.extension && (
                 <p className="text-xs text-gray-400">No contact info on file.</p>
               )}
             </div>
