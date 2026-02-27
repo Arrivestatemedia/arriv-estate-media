@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Phone, X, Search } from "lucide-react";
 import { toast } from "sonner";
 
-export default function TransferCallPanel({ onClose, currentCallNumber, currentCallName }) {
+export default function TransferCallPanel({ onClose, currentCallNumber, currentCallName, onTransferAccepted }) {
   const [salesReps, setSalesReps] = useState([]);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
