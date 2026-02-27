@@ -79,8 +79,14 @@ Deno.serve(async (req) => {
     // (This leaves the external caller + recipient connected in the conference)
     setTimeout(async () => {
       try {
-        await client.calls(senderCallSid).update({
-          twiml: `<Response><Hangup/></Response>`
+        const callControlUrl = `https://calls.twilio.com/v1/Calls/${senderCallSid}`;
+        await fetch(callControlUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${Deno.env.get('TWILIO_ACCOUNT_SID')}:${Deno.env.get('TWILIO_AUTH_TOKEN')}`),
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: `Twiml=${encodeURIComponent('<Response><Hangup/></Response>')}`
         });
         console.log('Sender disconnected from conference');
       } catch (e) {
