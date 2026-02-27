@@ -34,8 +34,10 @@ Deno.serve(async (req) => {
     console.log('Redirected caller to conference:', senderCallSid);
 
     // Dial the recipient to bridge them into the same conference
+    // Use main company number, not sender's number (sender is already in active call)
+    const mainNumber = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
     const recipientCall = await client.calls.create({
-      from: senderPhone,
+      from: mainNumber,
       to: recipientPhone,
       twiml: `<Response><Dial><Conference>${transferId}</Conference></Dial></Response>`
     });
