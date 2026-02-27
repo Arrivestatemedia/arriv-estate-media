@@ -157,10 +157,6 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        localStorage.setItem('_videoCallMode', 'true');
-                        window.dispatchEvent(new CustomEvent('initiateTransfer', { 
-                          detail: { extension: String(member.extension), name: member.full_name }
-                        }));
                         onCallClick?.(member.id, member.full_name, true);
                       }}
                       className="h-7 px-2 gap-1"
