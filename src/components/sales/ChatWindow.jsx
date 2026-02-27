@@ -81,27 +81,27 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return unsubscribe;
   }, [currentUserId]);
 
-  // Listen for transfer status updates on transfers this rep initiated
+  // Listen for transfer status updates via CustomEvent (from AdminChatWindow)
   useEffect(() => {
-    if (!currentUserId) return;
-
-    const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
-      if (event.type === "update" && event.data?.from_member_id === currentUserId) {
-        // Update the status display
+    const handleTransferStatusUpdate = (e) => {
+      const detail = e.detail;
+      if (detail?.fromMemberId === currentUserId) {
         setSentTransferStatus({
-          id: event.data.id,
-          status: event.data.status,
-          toName: event.data.to_member_name,
-          callerName: event.data.caller_name || event.data.caller_number
+          id: detail.id,
+          status: detail.status,
+          toName: detail.toMemberName,
+          callerName: detail.callerName || detail.callerNumber
         });
         
         // Auto-dismiss after 5 seconds if accepted or declined
-        if (event.data.status !== 'pending') {
+        if (detail.status !== 'pending') {
           setTimeout(() => setSentTransferStatus(null), 5000);
         }
       }
-    });
-    return unsubscribe;
+    };
+    
+    window.addEventListener('transferStatusUpdate', handleTransferStatusUpdate);
+    return () => window.removeEventListener('transferStatusUpdate', handleTransferStatusUpdate);
   }, [currentUserId]);
 
   const acceptTransfer = async () => {
