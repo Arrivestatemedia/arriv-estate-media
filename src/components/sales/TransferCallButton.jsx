@@ -2,70 +2,99 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Phone, X, Search } from "lucide-react";
 import { toast } from "sonner";
 
-export default function TransferCallButton({ message, currentUserId }) {
+// Transfer to a specific member (DM) or pick from list (channel)
+export default function TransferCallButton({ message, currentUserId, chatType, dmRecipientId, dmRecipientName }) {
   const [showTransfer, setShowTransfer] = useState(false);
-  const [salesReps, setSalesReps] = useState([]);
-  const [selectedRep, setSelectedRep] = useState("");
+  const [allMembers, setAllMembers] = useState([]);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (showTransfer) {
-      loadSalesReps();
-    }
-  }, [showTransfer]);
+  const myId = localStorage.getItem('sales_member_id');
 
-  const loadSalesReps = async () => {
+  useEffect(() => {
+    // Only need to load members for channel (list selection)
+    if (showTransfer && chatType === "channel") {
+      loadMembers();
+    }
+  }, [showTransfer, chatType]);
+
+  const loadMembers = async () => {
     try {
-      const reps = await base44.entities.SalesTeamMember.filter(
-        { is_active: true },
-        "full_name"
-      );
-      setSalesReps(reps.filter((r) => r.extension && r.twilio_phone_number));
+      const members = await base44.entities.SalesTeamMember.filter({ is_active: true }, "full_name");
+      // Exclude self
+      setAllMembers(members.filter((m) => m.id !== myId && m.extension));
     } catch (err) {
-      console.error("Failed to load reps:", err);
-      toast.error("Failed to load sales reps");
+      console.error("Failed to load members:", err);
+      toast.error("Failed to load team members");
     }
   };
 
-  const filteredReps = salesReps.filter(
-    (rep) =>
-      rep.full_name.toLowerCase().includes(searchInput.toLowerCase()) ||
-      rep.extension?.toString().includes(searchInput)
+  const filteredMembers = allMembers.filter(
+    (m) =>
+      m.full_name.toLowerCase().includes(searchInput.toLowerCase()) ||
+      m.extension?.toString().includes(searchInput)
   );
 
-  const initiateTransfer = async () => {
-    if (!selectedRep) {
-      toast.error("Please select a recipient");
-      return;
-    }
-
+  const doTransfer = async (rep) => {
     setLoading(true);
     try {
-      const rep = salesReps.find((r) => r.id === selectedRep);
-      toast.success(
-        `Transfer initiated to ${rep.full_name} (${rep.extension})`
-      );
+      const myName = localStorage.getItem('sales_member_name');
+      await base44.entities.PendingCallTransfer.create({
+        from_member_id: myId,
+        from_member_name: myName,
+        to_member_id: rep.id,
+        to_member_extension: rep.extension,
+        caller_number: '',
+        caller_name: 'Chat transfer',
+        status: 'pending'
+      });
+      toast.success(`Transfer request sent to ${rep.full_name}`);
       setShowTransfer(false);
-      setSelectedRep("");
-      setSearchInput("");
     } catch (err) {
       console.error("Transfer error:", err);
-      toast.error("Failed to initiate transfer");
+      toast.error("Failed to send transfer request");
     }
     setLoading(false);
   };
 
+  // For DM: just one button to transfer to the person you're chatting with
+  if (chatType === "dm") {
+    // Don't show if somehow chatting with yourself
+    if (dmRecipientId === myId) return null;
+
+    return (
+      <Button
+        size="sm"
+        disabled={loading}
+        onClick={async () => {
+          setLoading(true);
+          try {
+            // Look up the DM recipient's member record to get their extension
+            const members = await base44.entities.SalesTeamMember.filter({ id: dmRecipientId });
+            const rep = members?.[0];
+            if (!rep?.extension) {
+              toast.error(`${dmRecipientName} doesn't have an extension set up`);
+              setLoading(false);
+              return;
+            }
+            await doTransfer(rep);
+          } catch (err) {
+            toast.error("Failed to send transfer request");
+          }
+          setLoading(false);
+        }}
+        className="mt-2 bg-[#B8956A] hover:bg-[#A68559] text-white gap-2"
+      >
+        <Phone className="w-3 h-3" />
+        {loading ? "Sending..." : `Transfer to ${dmRecipientName}`}
+      </Button>
+    );
+  }
+
+  // For channel: show list excluding self
   if (!showTransfer) {
     return (
       <Button
@@ -83,10 +112,7 @@ export default function TransferCallButton({ message, currentUserId }) {
     <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
       <div className="flex items-center justify-between">
         <p className="font-medium text-sm">Transfer to:</p>
-        <button
-          onClick={() => setShowTransfer(false)}
-          className="text-gray-500 hover:text-gray-700"
-        >
+        <button onClick={() => setShowTransfer(false)} className="text-gray-500 hover:text-gray-700">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -101,34 +127,23 @@ export default function TransferCallButton({ message, currentUserId }) {
         />
       </div>
 
-      <Select value={selectedRep} onValueChange={setSelectedRep}>
-        <SelectTrigger className="text-sm">
-          <SelectValue placeholder="Select recipient" />
-        </SelectTrigger>
-        <SelectContent>
-          {filteredReps.length === 0 ? (
-            <div className="p-2 text-xs text-gray-500 text-center">
-              No reps available
-            </div>
-          ) : (
-            filteredReps.map((rep) => (
-              <SelectItem key={rep.id} value={rep.id}>
-                {rep.full_name} ({rep.extension})
-              </SelectItem>
-            ))
-          )}
-        </SelectContent>
-      </Select>
-
-      <Button
-        onClick={initiateTransfer}
-        disabled={!selectedRep || loading}
-        className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white gap-2"
-        size="sm"
-      >
-        <Phone className="w-3 h-3" />
-        {loading ? "Transferring..." : "Confirm Transfer"}
-      </Button>
+      <div className="space-y-1 max-h-48 overflow-y-auto">
+        {filteredMembers.length === 0 ? (
+          <p className="text-xs text-gray-500 text-center py-2">No team members available</p>
+        ) : (
+          filteredMembers.map((rep) => (
+            <button
+              key={rep.id}
+              onClick={() => doTransfer(rep)}
+              disabled={loading}
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#B8956A]/10 text-sm flex items-center justify-between"
+            >
+              <span className="font-medium">{rep.full_name}</span>
+              <span className="text-gray-400 text-xs">ext. {rep.extension}</span>
+            </button>
+          ))
+        )}
+      </div>
     </div>
   );
 }
