@@ -8,9 +8,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { transferId, recipientMemberId, senderMemberId, originalCallerPhone, callerName, senderCallSid } = await req.json();
+    const { transferId, senderMemberId, originalCallerPhone, recipientPhone, senderCallSid } = await req.json();
 
-    if (!transferId || !recipientMemberId || !senderMemberId || !originalCallerPhone || !senderCallSid) {
+    if (!transferId || !senderMemberId || !originalCallerPhone || !recipientPhone || !senderCallSid) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -19,13 +19,6 @@ Deno.serve(async (req) => {
     const senderPhone = sender?.[0]?.twilio_phone_number;
     if (!senderPhone) {
       return Response.json({ error: 'Sender has no Twilio number' }, { status: 400 });
-    }
-
-    // Get recipient's Twilio phone number
-    const recipient = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: recipientMemberId });
-    const recipientPhone = recipient?.[0]?.twilio_phone_number;
-    if (!recipientPhone) {
-      return Response.json({ error: 'Recipient has no Twilio number' }, { status: 400 });
     }
 
     const twilio = await import('npm:twilio@4.10.0').then(m => m.default);
