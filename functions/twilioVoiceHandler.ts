@@ -36,7 +36,11 @@ Deno.serve(async (req) => {
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>No destination provided.</Say></Response>`);
     }
 
-    const defaultCallerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER') || Deno.env.get('TWILIO_PHONE_NUMBER');
+    const defaultCallerId = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER');
+    console.log('TWILIO_CALLING_PHONE_NUMBER:', defaultCallerId, '| TWILIO_PHONE_NUMBER:', Deno.env.get('TWILIO_PHONE_NUMBER'));
+    if (!defaultCallerId) {
+      console.error('TWILIO_CALLING_PHONE_NUMBER is not set! This will cause calls to fail or use wrong number.');
+    }
 
     // Detect outbound call: From is a Twilio client identity like "client:sales_rep_xxx"
     const isOutbound = from?.startsWith('client:');
