@@ -143,8 +143,9 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        localStorage.setItem('_dialerPhone', String(member.extension));
-                        window.dispatchEvent(new Event('dialerCardReady'));
+                        window.dispatchEvent(new CustomEvent('initiateTransfer', { 
+                          detail: { extension: String(member.extension), name: member.full_name }
+                        }));
                         onCallClick?.(member.id, member.full_name, false);
                       }}
                       className="h-7 px-2 gap-1"
@@ -156,9 +157,10 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        localStorage.setItem('_dialerPhone', String(member.extension));
                         localStorage.setItem('_videoCallMode', 'true');
-                        window.dispatchEvent(new Event('dialerCardReady'));
+                        window.dispatchEvent(new CustomEvent('initiateTransfer', { 
+                          detail: { extension: String(member.extension), name: member.full_name }
+                        }));
                         onCallClick?.(member.id, member.full_name, true);
                       }}
                       className="h-7 px-2 gap-1"
