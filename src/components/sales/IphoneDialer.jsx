@@ -412,7 +412,11 @@ export default function IphoneDialer({ salesMemberId }) {
 
           if (response.data.success) {
             console.log('Conference transfer initiated:', response.data.transferId);
-            // Keep current call state but mark as transfer mode
+            // Disconnect SDK call since backend is now managing via Call Control API
+            if (callRef.current) {
+              callRef.current.disconnect();
+              callRef.current = null;
+            }
             setCurrentCall({ 
               ...currentCall,
               isConferenceTransfer: true,
