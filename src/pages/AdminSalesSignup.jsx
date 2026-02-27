@@ -245,6 +245,9 @@ export default function AdminSalesSignup() {
                         {member.twilio_phone_number && (
                           <p className="text-sm text-gray-500">Twilio: {member.twilio_phone_number}</p>
                         )}
+                        {member.extension && (
+                          <p className="text-sm text-gray-500 font-medium">Ext: <span className="text-[#B8956A]">{member.extension}</span></p>
+                        )}
                         {member.company_email ? (
                          <Badge className="mt-2 bg-blue-100 text-blue-800">{member.company_email}</Badge>
                         ) : (
