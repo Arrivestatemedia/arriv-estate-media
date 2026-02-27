@@ -71,19 +71,23 @@ Deno.serve(async (req) => {
         const targetIdentity = `sales_rep_${target.id.replace(/-/g, '_')}`;
         console.log('Extension → client identity:', targetIdentity, 'cell fallback:', target.phone_number);
 
-        // Try Twilio Client first, fall back to cell phone if no answer
-        let dialTwiml = `<Client>${targetIdentity}</Client>`;
-        if (target.phone_number) {
-          const cellNumber = target.phone_number.startsWith('+') ? target.phone_number : '+1' + target.phone_number.replace(/\D/g, '');
-          dialTwiml += `<Number>${cellNumber}</Number>`;
-        }
-
-        return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+        // Try browser dialer first (20s), then fall back to cell phone
+        let twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" answerOnBridge="true" timeout="20">
-    ${dialTwiml}
-  </Dial>
-</Response>`);
+    <Client>${targetIdentity}</Client>
+  </Dial>`;
+
+        if (target.phone_number) {
+          const cellNumber = target.phone_number.startsWith('+') ? target.phone_number : '+1' + target.phone_number.replace(/\D/g, '');
+          twiml += `
+  <Dial callerId="${callerId}" answerOnBridge="true" timeout="30">
+    <Number>${cellNumber}</Number>
+  </Dial>`;
+        }
+
+        twiml += `\n</Response>`;
+        return xmlResponse(twiml);
       }
 
       const formattedDest = dest.startsWith('+') ? dest : '+1' + dest.replace(/\D/g, '');
