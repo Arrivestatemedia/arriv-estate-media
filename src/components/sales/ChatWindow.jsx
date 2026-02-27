@@ -475,7 +475,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       }}
                     />
                     {msg.sender_id === currentUserId && messageKeywords[msg.content] && (
-                      <TransferCallButton message={msg} currentUserId={currentUserId} />
+                      <TransferCallButton
+                        message={msg}
+                        currentUserId={currentUserId}
+                        chatType={chatType}
+                        dmRecipientId={chatId}
+                        dmRecipientName={chatName}
+                      />
                     )}
                     {msg.sender_id === currentUserId && (
                       <button
