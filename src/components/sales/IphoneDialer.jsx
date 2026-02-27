@@ -926,10 +926,7 @@ export default function IphoneDialer({ salesMemberId }) {
         </p>
       )}
 
-      <IncomingTransferAlert
-        salesMemberId={salesMemberId || localStorage.getItem('sales_member_id')}
-        onAccept={(number) => startCall(number)}
-      />
+      {/* Transfer alerts are now shown inside the ChatWindow via IncomingTransferBanner */}
     </div>
   );
 }
