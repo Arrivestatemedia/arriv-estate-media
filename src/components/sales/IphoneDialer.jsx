@@ -199,7 +199,7 @@ export default function IphoneDialer({ salesMemberId }) {
         codecPreferences: ['opus', 'pcmu'], 
         enableRingingState: true,
         closeProtection: false,
-        allowIncomingWhileBusy: true
+        allowIncomingWhileBusy: false
       });
 
       twilioDevice.on('registered', () => {
