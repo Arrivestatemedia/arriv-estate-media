@@ -279,12 +279,14 @@ export default function IphoneDialer({ salesMemberId }) {
       return;
     }
 
-    const formattedPhone = !phoneToDial.startsWith('+') ? '+1' + phoneToDial.replace(/\D/g, '') : phoneToDial;
+    // Detect extension (exactly 3 digits, 100-999)
+    const isExtension = /^\d{3}$/.test(phoneToDial) && parseInt(phoneToDial) >= 100;
+    const formattedPhone = isExtension ? phoneToDial : (!phoneToDial.startsWith('+') ? '+1' + phoneToDial.replace(/\D/g, '') : phoneToDial);
     setError('');
     setCallState(CALL_STATES.CONNECTING);
 
     try {
-      console.log('Initiating call to:', formattedPhone);
+      console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)');
       const call = await device.connect({ params: { To: formattedPhone } });
       callRef.current = call;
       setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false });
