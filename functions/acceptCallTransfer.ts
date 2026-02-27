@@ -27,30 +27,19 @@ Deno.serve(async (req) => {
       Deno.env.get('TWILIO_AUTH_TOKEN')
     );
 
-    const baseUrl = Deno.env.get('BASE44_APP_DOMAIN') || 'https://arriv.app';
-
-    // Step 1: Use Call Control API to redirect sender's active call to the conference
-    // This moves their existing call mid-stream without dropping it
+    // Redirect the original caller's call to the conference (not the sender)
+    // This way the caller stays on the call with the recipient, sender drops out
     await client.calls(senderCallSid).update({
       twiml: `<Response><Dial><Conference>${transferId}</Conference></Dial></Response>`
     });
 
-    console.log('Redirected sender call to conference via Call Control:', senderCallSid);
+    console.log('Redirected caller to conference:', senderCallSid);
 
-    // Step 2: Call the recipient — they can answer and join the same conference
-    const recipientCall = await client.calls.create({
-      to: recipientPhone,
-      from: Deno.env.get('TWILIO_CALLING_PHONE_NUMBER'),
-      url: `${baseUrl}/api/transferRecipientTwiml?transferId=${transferId}`,
-      statusCallback: `${baseUrl}/api/transferStatusCallback?transferId=${transferId}`,
-      statusCallbackMethod: 'POST'
-    });
-
-    console.log('Initiated call to recipient:', recipientCall.sid);
-
+    // Store conference info for recipient to join via their keypad
     await base44.asServiceRole.entities.PendingCallTransfer.update(transferId, { 
-      twilio_call_sid: recipientCall.sid,
-      initiated_at: new Date().toISOString()
+      conference_id: transferId,
+      initiated_at: new Date().toISOString(),
+      status: 'pending'
     }).catch(() => {});
 
     return Response.json({ 
