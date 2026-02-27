@@ -163,19 +163,9 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const acceptTransfer = async () => {
     if (!pendingTransfer) return;
     try {
-      // Mark transfer as accepted in database
+      // Just mark as accepted — sender's dialer will detect this and dial the recipient's extension
       await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
-      
-      // Signal to admin's dialer (if open) to dial the caller
-      window.dispatchEvent(new CustomEvent('adminDialTransferCall', {
-        detail: {
-          phoneNumber: pendingTransfer.caller_number,
-          callerName: pendingTransfer.caller_name,
-          fromRep: pendingTransfer.from_member_name
-        }
-      }));
-      
-      toast.success(`Transfer from ${pendingTransfer.from_member_name} — dialing ${pendingTransfer.caller_name || pendingTransfer.caller_number}...`);
+      toast.success(`Transfer accepted — waiting for call...`);
     } catch (e) {
       console.error("Failed to accept transfer:", e);
       toast.error("Failed to accept transfer");
