@@ -43,10 +43,17 @@ Deno.serve(async (req) => {
       from: Deno.env.get('TWILIO_CALLING_PHONE_NUMBER'),
       url: twimlUrl,
       statusCallback: `${baseUrl}/api/transferStatusCallback?transferId=${transferId}`,
-      statusCallbackMethod: 'POST'
+      statusCallbackMethod: 'POST',
+      record: false
     });
 
     console.log('Initiated transfer call to sender:', call.sid);
+
+    // Store transfer metadata for the sender to retrieve (backend tells sender about the transfer via SDK)
+    await base44.asServiceRole.entities.PendingCallTransfer.update(transferId, { 
+      twilio_call_sid: call.sid,
+      initiated_at: new Date().toISOString()
+    }).catch(() => {});
 
     return Response.json({ 
       success: true, 
