@@ -515,19 +515,22 @@ export default function IphoneDialer({ salesMemberId }) {
       {/* Tab Navigation */}
       <div className="flex border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
         {[
-          { tab: TABS.RECENTS, icon: Clock, label: 'Recents' },
-          { tab: TABS.KEYPAD, icon: Phone, label: 'Keypad' },
-          ...(hasTwilioNumber ? [{ tab: TABS.MESSAGES, icon: MessageSquare, label: 'Messages' }] : [])
-        ].map(({ tab, icon: Icon, label }) => (
+          { tab: TABS.RECENTS, icon: Clock, label: 'Recents', disabled: false },
+          { tab: TABS.KEYPAD, icon: Phone, label: 'Keypad', disabled: false },
+          { tab: TABS.MESSAGES, icon: MessageSquare, label: 'Messages', disabled: !hasTwilioNumber }
+        ].map(({ tab, icon: Icon, label, disabled }) => (
           <button
             key={tab}
             onClick={() => {
+              if (disabled) return;
               setActiveTab(tab);
               setSelectedConvo(null);
             }}
+            disabled={disabled}
+            title={disabled ? 'SMS requires an assigned Twilio number' : undefined}
             className={`flex-1 flex flex-col items-center gap-1 py-3 transition ${
               activeTab === tab ? 'border-b-2' : ''
-            }`}
+            } ${disabled ? 'opacity-35 cursor-not-allowed' : ''}`}
             style={{
               borderBottomColor: activeTab === tab ? '#B8956A' : 'transparent',
               color: activeTab === tab ? '#B8956A' : 'rgba(26,26,26,0.5)'
