@@ -85,6 +85,8 @@ Deno.serve(async (req) => {
         console.log('Extension → client identity:', targetIdentity, 'cell fallback:', target.phone_number);
 
         // Try browser dialer first (25s), then fall back to target's cell phone
+        // For cell fallback, use the shared company number (not the caller's personal Twilio number)
+        const companyCellFallbackId = defaultCallerId;
         let twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${callerId}" answerOnBridge="true" timeout="25">
@@ -94,7 +96,7 @@ Deno.serve(async (req) => {
         if (target.phone_number) {
           const cellNumber = target.phone_number.startsWith('+') ? target.phone_number : '+1' + target.phone_number.replace(/\D/g, '');
           twiml += `
-  <Dial callerId="${callerId}" answerOnBridge="true" timeout="30">
+  <Dial callerId="${companyCellFallbackId}" answerOnBridge="true" timeout="30">
     <Number>${cellNumber}</Number>
   </Dial>`;
         }
