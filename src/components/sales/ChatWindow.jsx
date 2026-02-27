@@ -623,6 +623,33 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       </div>
                     </div>
                   )}
+
+                  {/* Transfer status feedback for sender */}
+                  {sentTransferStatus && (
+                    <div className="flex gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        sentTransferStatus.status === 'accepted' ? 'bg-green-100' : 'bg-red-100'
+                      }`}>
+                        <span className={sentTransferStatus.status === 'accepted' ? 'text-green-600 text-xs font-bold' : 'text-red-600 text-xs font-bold'}>
+                          {sentTransferStatus.status === 'accepted' ? '✓' : '✕'}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-700 text-sm">
+                          {sentTransferStatus.status === 'accepted' ? (
+                            <>
+                              <strong>{sentTransferStatus.toName}</strong> accepted the transfer of <strong>{sentTransferStatus.callerName}</strong>
+                            </>
+                          ) : (
+                            <>
+                              <strong>{sentTransferStatus.toName}</strong> declined the transfer
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div ref={messagesEndRef} />
                   </div>
 
