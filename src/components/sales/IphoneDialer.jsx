@@ -107,11 +107,10 @@ export default function IphoneDialer({ salesMemberId }) {
       
       console.log('Transfer status update:', transfer);
       
-      // Case 1: This user INITIATED the transfer (they're the sender) — hold & dial recipient
+      // Case 1: This user INITIATED the transfer (they're the sender)
+      // Backend handles all the call manipulation (hold, dial, bridge)
       if (transfer.from_member_id === salesMemberId && transfer.status === 'accepted') {
-        console.log('Transfer accepted by recipient, holding current call and dialing extension:', transfer.to_member_extension);
-        const extension = String(transfer.to_member_extension);
-        startCall(extension, true); // true = transferring (hold current call)
+        console.log('Transfer accepted by recipient - backend is handling the call bridging');
         base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         setShowTransferPanel(false);
         return;
