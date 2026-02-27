@@ -108,25 +108,26 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     if (!pendingTransfer) return;
     try {
       console.log('Accepting transfer:', pendingTransfer.id);
-      
+
       // 1. Mark as accepted
-      const updateRes = await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
-      console.log('Transfer marked accepted:', updateRes);
+      await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
 
-      // 2. Tell our local IphoneDialer to auto-accept the next incoming call
-      localStorage.setItem('_autoAcceptNextCall', 'true');
-      localStorage.setItem('_autoAcceptCallerName', pendingTransfer.caller_name || pendingTransfer.caller_number || 'Transferred Call');
-      
-      console.log('Dispatching autoAcceptNextCall event');
-      window.dispatchEvent(new CustomEvent('autoAcceptNextCall', {
-        detail: {
-          callerName: pendingTransfer.caller_name || pendingTransfer.caller_number || 'Transferred Call',
-          callerNumber: pendingTransfer.caller_number || '',
-          fromName: pendingTransfer.from_member_name
-        }
-      }));
+      // 2. Call the backend to initiate the conference bridge
+      // Backend will call the sender's Twilio number
+      const response = await base44.functions.invoke('acceptCallTransfer', {
+        transferId: pendingTransfer.id,
+        recipientMemberId: currentUserId,
+        senderMemberId: pendingTransfer.from_member_id,
+        originalCallerPhone: pendingTransfer.caller_number,
+        callerName: pendingTransfer.caller_name
+      });
 
-      toast.success(`Transfer accepted — waiting for call...`);
+      if (response.data?.success) {
+        console.log('Transfer initiated with sender phone call');
+        toast.success(`Transfer accepted — connecting ${pendingTransfer.from_member_name}...`);
+      } else {
+        toast.error("Transfer setup failed");
+      }
     } catch (e) {
       console.error('Transfer accept error:', e);
       toast.error("Failed to accept transfer: " + e.message);
