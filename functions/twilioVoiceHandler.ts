@@ -81,22 +81,26 @@ Deno.serve(async (req) => {
         }
 
         const targetIdentity = `sales_rep_${target.id.replace(/-/g, '_')}`;
-        // Use caller identity as the "from" so recipient can display name/extension
-        console.log('Extension → client identity:', targetIdentity, 'cell fallback:', target.phone_number);
+        const callerIdentityStr = callerMember ? `sales_rep_${callerMember.id.replace(/-/g, '_')}` : '';
+        console.log('Extension → client identity:', targetIdentity, 'callerIdentity:', callerIdentityStr, 'cell fallback:', target.phone_number);
 
-        // Try browser dialer first (25s), then fall back to target's cell phone
-        // For cell fallback, use the shared company number (not the caller's personal Twilio number)
-        const companyCellFallbackId = defaultCallerId;
+        // Always use company number as callerId for internal calls — never expose personal Twilio numbers
+        // Pass caller identity as a custom parameter so the receiving browser dialer can display name/extension
         let twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerId}" answerOnBridge="true" timeout="25">
-    <Client>${targetIdentity}</Client>
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="25">
+    <Client>
+      <Identity>${targetIdentity}</Identity>
+      <Parameter name="callerIdentity" value="${callerIdentityStr}"/>
+      <Parameter name="callerName" value="${callerMember?.full_name || ''}"/>
+      <Parameter name="callerExtension" value="${callerMember?.extension || ''}"/>
+    </Client>
   </Dial>`;
 
         if (target.phone_number) {
           const cellNumber = target.phone_number.startsWith('+') ? target.phone_number : '+1' + target.phone_number.replace(/\D/g, '');
           twiml += `
-  <Dial callerId="${companyCellFallbackId}" answerOnBridge="true" timeout="30">
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="30">
     <Number>${cellNumber}</Number>
   </Dial>`;
         }
