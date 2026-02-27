@@ -390,34 +390,38 @@ export default function IphoneDialer({ salesMemberId }) {
 
       console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)', transferring ? '(conference transfer)' : '');
       
-      // For conference transfer, use backend instead of direct call
+      // For conference transfer, use backend to redirect sender's existing call
       if (transferring && callRef.current && currentCall?.number) {
         console.log('Initiating conference bridge...');
         try {
           const senderMemberId = localStorage.getItem('sales_member_id');
-          const response = await base44.functions.invoke('initiateConferenceTransfer', {
+          // Use the stored sender call SID from the active call
+          const senderCallSid = window._senderCallSid || callRef.current?.sid;
+          if (!senderCallSid) {
+            throw new Error('No active call to transfer');
+          }
+          
+          const response = await base44.functions.invoke('acceptCallTransfer', {
             originalCallerPhone: currentCall.number,
             recipientPhone: formattedPhone,
-            senderPhone: senderMemberId || 'sender',
+            senderCallSid: senderCallSid,
+            senderMemberId: senderMemberId,
             transferId: `transfer-${Date.now()}`,
           });
 
           if (response.data.success) {
             console.log('Conference transfer initiated:', response.data.transferId);
+            // Keep current call state but mark as transfer mode
             setCurrentCall({ 
-              number: formattedPhone, 
-              startTime: Date.now(), 
-              incoming: false,
+              ...currentCall,
               isConferenceTransfer: true,
               transferId: response.data.transferId 
             });
-            setCallState(CALL_STATES.IN_CALL);
             return; // Don't make direct call
           }
         } catch (e) {
           console.error('Conference transfer failed:', e);
           setError('Transfer failed: ' + e.message);
-          setCallState(CALL_STATES.IDLE);
           return;
         }
       }
