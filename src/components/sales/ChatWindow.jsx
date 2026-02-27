@@ -546,6 +546,40 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                   );
                   })
                   )}
+                  {/* Incoming transfer — shown inline like the sender's Transfer button */}
+                  {pendingTransfer && (
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-blue-600 text-xs font-bold">📞</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-semibold text-gray-900">{pendingTransfer.from_member_name}</span>
+                          <span className="text-xs text-gray-500">just now</span>
+                        </div>
+                        <p className="text-gray-700 text-sm mt-1">
+                          wants to transfer a call from <strong>{pendingTransfer.caller_name || pendingTransfer.caller_number || "Unknown Caller"}</strong> to you
+                        </p>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            size="sm"
+                            onClick={declineTransfer}
+                            variant="outline"
+                            className="h-8 px-3 text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            Decline
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={acceptTransfer}
+                            className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            Accept Call
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                   </div>
 
