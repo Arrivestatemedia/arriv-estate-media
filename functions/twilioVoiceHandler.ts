@@ -119,25 +119,37 @@ Deno.serve(async (req) => {
       const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
       const missedCallbackUrl = appDomain ? `${appDomain}/functions/handleMissedCall` : '';
 
-      // For each active member, ring their browser dialer first, then fall back to cell phone
-      // We do this by ringing all clients simultaneously AND their cell phones with the same timeout
-      let dialTargets = '';
+      // Ring all browser dialers simultaneously first (20s timeout)
+      // If nobody answers, fall back to all cell phones
+      let clientTags = '';
+      let cellTags = '';
       for (const member of activeMembers) {
         const identity = `sales_rep_${member.id.replace(/-/g, '_')}`;
-        console.log('Adding client:', identity, 'cell:', member.phone_number);
-        dialTargets += `<Client>${identity}</Client>`;
+        console.log('Adding client:', identity, 'cell fallback:', member.phone_number);
+        clientTags += `<Client>${identity}</Client>`;
         if (member.phone_number) {
           const cellNumber = member.phone_number.startsWith('+') ? member.phone_number : '+1' + member.phone_number.replace(/\D/g, '');
-          dialTargets += `<Number>${cellNumber}</Number>`;
+          cellTags += `<Number>${cellNumber}</Number>`;
         }
       }
 
-      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+      // Try browser dialers first, then cell phones as fallback
+      let twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+  <Dial callerId="${callerId}" timeout="20" action="${missedCallbackUrl}" method="POST">
+    ${clientTags}
+  </Dial>`;
+
+      if (cellTags) {
+        twiml += `
   <Dial callerId="${callerId}" timeout="30" action="${missedCallbackUrl}" method="POST">
-    ${dialTargets}
-  </Dial>
-</Response>`);
+    ${cellTags}
+  </Dial>`;
+      }
+
+      twiml += `\n</Response>`;
+
+      return xmlResponse(twiml);
     }
 
   } catch (error) {
