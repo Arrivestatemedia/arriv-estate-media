@@ -921,6 +921,11 @@ export default function IphoneDialer({ salesMemberId }) {
           Setting up calling...
         </p>
       )}
+
+      <IncomingTransferAlert
+        salesMemberId={salesMemberId || localStorage.getItem('sales_member_id')}
+        onAccept={(number) => startCall(number)}
+      />
     </div>
   );
 }
