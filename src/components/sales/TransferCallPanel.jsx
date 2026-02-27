@@ -9,6 +9,9 @@ export default function TransferCallPanel({ onClose, currentCallNumber, currentC
   const [salesReps, setSalesReps] = useState([]);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [waitingFor, setWaitingFor] = useState(null); // { rep, recordId }
+  const pollRef = useRef(null);
+  const unsubRef = useRef(null);
 
   useEffect(() => {
     base44.entities.SalesTeamMember.filter({ is_active: true }, "full_name")
