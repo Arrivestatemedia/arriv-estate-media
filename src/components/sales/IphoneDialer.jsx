@@ -169,9 +169,8 @@ export default function IphoneDialer({ salesMemberId }) {
         console.log('Transfer triggered while in call - initiating second call for 3-way');
         startCall(extension, false);
       } else {
-        // Otherwise just pre-fill keypad and switch tab
-        setKeypadInput(extension);
-        setActiveTab(TABS.KEYPAD);
+        // Otherwise auto-dial the extension
+        startCall(extension);
       }
     };
 
