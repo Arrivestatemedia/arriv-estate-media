@@ -755,6 +755,10 @@ export default function IphoneDialer({ salesMemberId }) {
                     placeholder="Search by name or extension..."
                     value={extensionSearch}
                     onChange={(e) => setExtensionSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      // Allow backspace to work without triggering the global keypad handler
+                      e.stopPropagation();
+                    }}
                     className="pl-8 h-8 text-sm"
                   />
                 </div>

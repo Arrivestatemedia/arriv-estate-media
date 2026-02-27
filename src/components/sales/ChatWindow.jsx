@@ -12,6 +12,7 @@ import ContactCardDisplay from "./ContactCardDisplay";
 import ContactSearch from "./ContactSearch";
 import SalesRepProfileModal from "./SalesRepProfileModal";
 import TransferCallButton from "./TransferCallButton";
+import IncomingTransferBanner from "./IncomingTransferBanner";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
