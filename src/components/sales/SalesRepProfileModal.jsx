@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Mail, Phone, Smartphone, Briefcase, User } from "lucide-react";
+import { Mail, Phone, Smartphone, Briefcase, User, Hash } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 const STATUS_LABELS = {
