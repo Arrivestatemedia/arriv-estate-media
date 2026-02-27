@@ -515,8 +515,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                   <button
                     onClick={() => {
                       const ext = transferTargets.find(m => m.id === chatId)?.extension;
-                      localStorage.setItem('_dialerPhone', String(ext));
-                      window.dispatchEvent(new Event('dialerCardReady'));
+                      window.dispatchEvent(new CustomEvent('initiateTransfer', { 
+                        detail: { extension: String(ext), name: chatName }
+                      }));
                     }}
                     className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                     title="Call"
