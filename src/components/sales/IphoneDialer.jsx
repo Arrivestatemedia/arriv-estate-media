@@ -95,43 +95,39 @@ export default function IphoneDialer({ salesMemberId }) {
       };
   }, [salesMemberId]);
 
-  // Listen for auto-accept signal from ChatWindow (when recipient accepts a transfer)
+  // Listen for transfer acceptance and dial recipient's extension
   useEffect(() => {
-    const handleAutoAccept = (e) => {
-      // Set a flag — when next incoming call arrives, accept it automatically
-      autoAcceptRef.current = {
-        callerName: e.detail?.callerName,
-        fromName: e.detail?.fromName
-      };
-    };
+    if (!showTransferPanel) return;
     
-    // Listen for admin accepting a transfer call (admin should dial the customer)
-    const handleAdminTransferCall = (e) => {
-      const phoneNumber = e.detail?.phoneNumber;
-      if (phoneNumber) {
-        setTimeout(() => startCall(phoneNumber), 100);
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    if (!salesMemberId) return;
+    
+    const checkTransferStatus = async () => {
+      try {
+        // Poll the most recent transfer initiated by this rep
+        const transfers = await base44.entities.PendingCallTransfer.filter(
+          { from_member_id: salesMemberId },
+          '-created_date',
+          1
+        );
+        
+        if (transfers?.[0]?.status === 'accepted' && transfers[0].status !== 'completed') {
+          // Recipient accepted! Dial their extension
+          const extension = String(transfers[0].to_member_extension);
+          startCall(extension);
+          
+          // Mark as completed so we don't keep dialing
+          await base44.entities.PendingCallTransfer.update(transfers[0].id, { status: 'completed' });
+          setShowTransferPanel(false);
+        }
+      } catch (err) {
+        console.error('Error checking transfer status:', err);
       }
     };
     
-    window.addEventListener('autoAcceptNextCall', handleAutoAccept);
-    window.addEventListener('adminDialTransferCall', handleAdminTransferCall);
-    
-    // Also handle localStorage fallback for cross-component scenarios
-    const stored = localStorage.getItem('_autoAcceptNextCall');
-    if (stored === 'true') {
-      autoAcceptRef.current = {
-        callerName: localStorage.getItem('_autoAcceptCallerName') || 'Transferred Call',
-        fromName: ''
-      };
-      localStorage.removeItem('_autoAcceptNextCall');
-      localStorage.removeItem('_autoAcceptCallerName');
-    }
-    
-    return () => {
-      window.removeEventListener('autoAcceptNextCall', handleAutoAccept);
-      window.removeEventListener('adminDialTransferCall', handleAdminTransferCall);
-    };
-  }, []);
+    const interval = setInterval(checkTransferStatus, 500);
+    return () => clearInterval(interval);
+  }, [showTransferPanel]);
 
   // Keyboard handler — separate effect so it never re-initializes device
   useEffect(() => {
