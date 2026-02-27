@@ -112,29 +112,31 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       // 1. Mark as accepted
       await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
 
-      // 2. Flag that sender should auto-accept the incoming transfer call (no popup)
-      localStorage.setItem('_transferInProgress', 'true');
+      // 2. Get the sender's active call SID (from dialer)
+      const senderCallSid = window._senderCallSid;
+      if (!senderCallSid) {
+        toast.error("Sender is not on an active call");
+        return;
+      }
 
-      // 3. Call the backend to initiate the conference bridge
-      // Backend will call the sender's Twilio number — sender will auto-accept it
+      // 3. Redirect sender's call to conference via backend
       const response = await base44.functions.invoke('acceptCallTransfer', {
         transferId: pendingTransfer.id,
         recipientMemberId: currentUserId,
         senderMemberId: pendingTransfer.from_member_id,
         originalCallerPhone: pendingTransfer.caller_number,
-        callerName: pendingTransfer.caller_name
+        callerName: pendingTransfer.caller_name,
+        senderCallSid: senderCallSid
       });
 
       if (response.data?.success) {
-        console.log('Transfer initiated — sender will auto-accept');
+        console.log('Transfer initiated — recipient call being placed');
         toast.success(`Connecting ${pendingTransfer.from_member_name}...`);
       } else {
-        localStorage.removeItem('_transferInProgress');
         toast.error("Transfer setup failed");
       }
     } catch (e) {
       console.error('Transfer accept error:', e);
-      localStorage.removeItem('_transferInProgress');
       toast.error("Failed to accept transfer: " + e.message);
     }
     setPendingTransfer(null);
