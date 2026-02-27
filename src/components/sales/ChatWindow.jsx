@@ -604,11 +604,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                        <button
                          onClick={() => {
                            if (chatType === "dm") {
-                             const ext = transferTargets.find(m => m.id === chatId)?.extension;
-                             if (ext) {
-                               localStorage.setItem('_dialerPhone', String(ext));
-                               window.dispatchEvent(new Event('dialerCardReady'));
-                             }
+                             onInitiateTransfer(chatId, chatName);
                            } else {
                              setShowTransferSelector(true);
                            }
