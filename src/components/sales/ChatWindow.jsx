@@ -83,13 +83,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const acceptTransfer = async () => {
     if (!pendingTransfer) return;
     try {
-      // 1. Mark as accepted — sender's TransferCallPanel will detect this and dial our extension
-      await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
+      console.log('Accepting transfer:', pendingTransfer.id);
+      
+      // 1. Mark as accepted
+      const updateRes = await base44.entities.PendingCallTransfer.update(pendingTransfer.id, { status: "accepted" });
+      console.log('Transfer marked accepted:', updateRes);
 
       // 2. Tell our local IphoneDialer to auto-accept the next incoming call
-      //    (it will ring because the sender will now dial our extension via Twilio)
       localStorage.setItem('_autoAcceptNextCall', 'true');
       localStorage.setItem('_autoAcceptCallerName', pendingTransfer.caller_name || pendingTransfer.caller_number || 'Transferred Call');
+      
+      console.log('Dispatching autoAcceptNextCall event');
       window.dispatchEvent(new CustomEvent('autoAcceptNextCall', {
         detail: {
           callerName: pendingTransfer.caller_name || pendingTransfer.caller_number || 'Transferred Call',
@@ -98,9 +102,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         }
       }));
 
-      toast.success(`Transfer accepted — connecting call from ${pendingTransfer.caller_name || pendingTransfer.caller_number || 'caller'}...`);
+      toast.success(`Transfer accepted — waiting for call...`);
     } catch (e) {
-      toast.error("Failed to accept transfer");
+      console.error('Transfer accept error:', e);
+      toast.error("Failed to accept transfer: " + e.message);
     }
     setPendingTransfer(null);
   };
