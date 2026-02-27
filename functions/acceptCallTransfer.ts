@@ -8,9 +8,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { transferId, recipientMemberId, senderMemberId, originalCallerPhone, callerName } = await req.json();
+    const { transferId, recipientMemberId, senderMemberId, originalCallerPhone, callerName, senderCallSid } = await req.json();
 
-    if (!transferId || !recipientMemberId || !senderMemberId || !originalCallerPhone) {
+    if (!transferId || !recipientMemberId || !senderMemberId || !originalCallerPhone || !senderCallSid) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -28,7 +28,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Recipient has no Twilio number' }, { status: 400 });
     }
 
-    // Initiate call to sender using Twilio SDK
     const twilio = await import('npm:twilio@4.10.0').then(m => m.default);
     const client = twilio(
       Deno.env.get('TWILIO_ACCOUNT_SID'),
@@ -36,22 +35,28 @@ Deno.serve(async (req) => {
     );
 
     const baseUrl = Deno.env.get('BASE44_APP_DOMAIN') || 'https://arriv.app';
-    const twimlUrl = `${baseUrl}/api/conferenceTwiml?transferId=${transferId}&originalCaller=${encodeURIComponent(originalCallerPhone)}&senderPhone=${encodeURIComponent(senderPhone)}&recipientPhone=${encodeURIComponent(recipientPhone)}`;
 
-    const call = await client.calls.create({
-      to: senderPhone,
-      from: Deno.env.get('TWILIO_CALLING_PHONE_NUMBER'),
-      url: twimlUrl,
-      statusCallback: `${baseUrl}/api/transferStatusCallback?transferId=${transferId}`,
-      statusCallbackMethod: 'POST',
-      record: false
+    // Step 1: Use Call Control API to redirect sender's active call to the conference
+    // This moves their existing call mid-stream without dropping it
+    await client.calls(senderCallSid).update({
+      twiml: `<Response><Dial><Conference>${transferId}</Conference></Dial></Response>`
     });
 
-    console.log('Initiated transfer call to sender:', call.sid);
+    console.log('Redirected sender call to conference via Call Control:', senderCallSid);
 
-    // Store transfer metadata for the sender to retrieve (backend tells sender about the transfer via SDK)
+    // Step 2: Call the recipient — they can answer and join the same conference
+    const recipientCall = await client.calls.create({
+      to: recipientPhone,
+      from: Deno.env.get('TWILIO_CALLING_PHONE_NUMBER'),
+      url: `${baseUrl}/api/transferRecipientTwiml?transferId=${transferId}`,
+      statusCallback: `${baseUrl}/api/transferStatusCallback?transferId=${transferId}`,
+      statusCallbackMethod: 'POST'
+    });
+
+    console.log('Initiated call to recipient:', recipientCall.sid);
+
     await base44.asServiceRole.entities.PendingCallTransfer.update(transferId, { 
-      twilio_call_sid: call.sid,
+      twilio_call_sid: recipientCall.sid,
       initiated_at: new Date().toISOString()
     }).catch(() => {});
 
