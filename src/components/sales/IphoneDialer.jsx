@@ -434,6 +434,8 @@ export default function IphoneDialer({ salesMemberId }) {
       });
       call.on('accept', () => {
         console.log('Call accepted');
+        // Store the call SID so backend can use Call Control API to redirect it
+        window._senderCallSid = call.sid;
         setCallState(CALL_STATES.IN_CALL);
         callStartRef.current = Date.now();
         timerRef.current = setInterval(() => {
