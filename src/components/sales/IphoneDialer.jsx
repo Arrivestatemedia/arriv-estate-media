@@ -411,6 +411,13 @@ export default function IphoneDialer({ salesMemberId }) {
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       
       const previousCall = transferring ? callRef.current : null;
+
+      // For blind transfer, disconnect the previous call immediately so we can make the new one
+      if (transferring && previousCall) {
+        console.log('Blind transfer: disconnecting sender call...');
+        previousCall.disconnect();
+      }
+
       callRef.current = call;
       setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, isTransfer: transferring, previousCall });
       // Show the in-call UI immediately so user can hang up before recipient answers
