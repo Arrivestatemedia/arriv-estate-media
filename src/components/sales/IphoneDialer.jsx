@@ -61,6 +61,7 @@ export default function IphoneDialer({ salesMemberId }) {
         setError('Unable to verify your account. Contact your administrator.');
         return;
       }
+      setHasTwilioNumber(!!members[0].twilio_phone_number);
       initDevice();
     }).catch(() => {
       setError('Unable to verify account');
