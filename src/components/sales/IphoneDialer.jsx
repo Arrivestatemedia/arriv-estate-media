@@ -728,6 +728,42 @@ export default function IphoneDialer({ salesMemberId }) {
                 <Phone className="w-4 h-4" /> Call
               </Button>
             </div>
+
+            {/* Extension Directory */}
+            {allMembers.length > 0 && (
+              <div className="border-t pt-4" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Extension Directory</p>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <Input
+                    placeholder="Search by name or extension..."
+                    value={extensionSearch}
+                    onChange={(e) => setExtensionSearch(e.target.value)}
+                    className="pl-8 h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {allMembers
+                    .filter(m => m.extension && (
+                      extensionSearch === '' ||
+                      m.full_name?.toLowerCase().includes(extensionSearch.toLowerCase()) ||
+                      String(m.extension).includes(extensionSearch)
+                    ))
+                    .sort((a, b) => a.extension - b.extension)
+                    .map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => startCall(String(m.extension))}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#B8956A]/10 transition text-left"
+                      >
+                        <span className="text-sm font-medium text-gray-800">{m.full_name}</span>
+                        <span className="text-sm font-mono font-bold" style={{ color: '#B8956A' }}>Ext. {m.extension}</span>
+                      </button>
+                    ))
+                  }
+                </div>
+              </div>
+            )}
           </div>
         )}
 
