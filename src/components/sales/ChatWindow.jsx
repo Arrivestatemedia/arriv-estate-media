@@ -63,6 +63,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [transferTargets, setTransferTargets] = useState([]);
   const [showTransferSelector, setShowTransferSelector] = useState(false);
   const [videoCallError, setVideoCallError] = useState(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [videoCallTarget, setVideoCallTarget] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Listen for incoming call transfers — show inline in chat
