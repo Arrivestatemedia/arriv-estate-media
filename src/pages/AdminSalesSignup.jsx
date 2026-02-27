@@ -316,6 +316,10 @@ export default function AdminSalesSignup() {
               <label className="block text-sm font-medium mb-1">Twilio Phone Number</label>
               <Input placeholder="+15551234567" value={editData.twilio_phone_number || ""} onChange={(e) => setEditData({...editData, twilio_phone_number: e.target.value})} />
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Extension (100–999)</label>
+              <Input type="number" min="100" max="999" placeholder="e.g. 101" value={editData.extension || ""} onChange={(e) => setEditData({...editData, extension: e.target.value ? parseInt(e.target.value) : ""})} />
+            </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="is_active" checked={!!editData.is_active} onChange={(e) => setEditData({...editData, is_active: e.target.checked})} />
               <label htmlFor="is_active" className="text-sm font-medium">Active</label>
