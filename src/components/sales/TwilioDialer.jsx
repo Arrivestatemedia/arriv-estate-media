@@ -123,24 +123,34 @@ export default function TwilioDialer({ salesMemberId }) {
   };
 
   const startCall = async () => {
-    let phoneToDial = toNumber.trim();
-    if (!phoneToDial) {
+    const raw = toNumber.trim();
+    if (!raw) {
       setError('Please enter a phone number');
       return;
     }
-    // Format to E.164 if needed
-    if (!phoneToDial.startsWith('+')) {
-      phoneToDial = '+1' + phoneToDial.replace(/\D/g, '');
-    }
+
+    const digitsOnly = raw.replace(/\D/g, '');
+    const isExtension = /^\d{3}$/.test(digitsOnly) && parseInt(digitsOnly) >= 100 && raw === digitsOnly;
+    const phoneToDial = isExtension ? digitsOnly : (raw.startsWith('+') ? raw : '+1' + digitsOnly);
+
     setError('');
     setCallState(CALL_STATES.CONNECTING);
 
     try {
-      const params = {
-        To: phoneToDial
-      };
+      // Wait for device to be registered if not yet ready
+      if (!device) {
+        setError('Dialer not ready. Please wait a moment and try again.');
+        setCallState(CALL_STATES.IDLE);
+        return;
+      }
+      if (device.state !== 'registered') {
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Device registration timed out')), 8000);
+          device.once('registered', () => { clearTimeout(timeout); resolve(); });
+        });
+      }
 
-      const call = await device.connect({ params });
+      const call = await device.connect({ params: { To: phoneToDial } });
       callRef.current = call;
 
       call.on('ringing', () => setCallState(CALL_STATES.RINGING));
