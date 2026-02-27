@@ -375,6 +375,7 @@ export default function IphoneDialer({ salesMemberId }) {
       incomingCall.reject();
       setIncomingCall(null);
       setIncomingFrom('');
+      setIncomingDisplayName('');
       setCallState(CALL_STATES.IDLE);
     }
   };
