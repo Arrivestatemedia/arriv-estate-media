@@ -517,7 +517,7 @@ export default function IphoneDialer({ salesMemberId }) {
         {[
           { tab: TABS.RECENTS, icon: Clock, label: 'Recents' },
           { tab: TABS.KEYPAD, icon: Phone, label: 'Keypad' },
-          { tab: TABS.MESSAGES, icon: MessageSquare, label: 'Messages' }
+          ...(hasTwilioNumber ? [{ tab: TABS.MESSAGES, icon: MessageSquare, label: 'Messages' }] : [])
         ].map(({ tab, icon: Icon, label }) => (
           <button
             key={tab}
