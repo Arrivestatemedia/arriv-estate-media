@@ -95,38 +95,29 @@ export default function IphoneDialer({ salesMemberId }) {
       };
   }, [salesMemberId]);
 
-  // Listen for transfer acceptance and dial recipient's extension
+  // Listen for transfer acceptance via real-time subscription
   useEffect(() => {
     if (!showTransferPanel) return;
     
     const salesMemberId = localStorage.getItem('sales_member_id');
     if (!salesMemberId) return;
     
-    const checkTransferStatus = async () => {
-      try {
-        // Poll the most recent transfer initiated by this rep
-        const transfers = await base44.entities.PendingCallTransfer.filter(
-          { from_member_id: salesMemberId },
-          '-created_date',
-          1
-        );
+    const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
+      // Only care about updates to transfers this rep initiated
+      if (event.data?.from_member_id !== salesMemberId) return;
+      
+      // If recipient accepted, dial their extension
+      if (event.data?.status === 'accepted') {
+        const extension = String(event.data.to_member_extension);
+        startCall(extension);
         
-        if (transfers?.[0]?.status === 'accepted' && transfers[0].status !== 'completed') {
-          // Recipient accepted! Dial their extension
-          const extension = String(transfers[0].to_member_extension);
-          startCall(extension);
-          
-          // Mark as completed so we don't keep dialing
-          await base44.entities.PendingCallTransfer.update(transfers[0].id, { status: 'completed' });
-          setShowTransferPanel(false);
-        }
-      } catch (err) {
-        console.error('Error checking transfer status:', err);
+        // Mark as completed
+        base44.entities.PendingCallTransfer.update(event.data.id, { status: 'completed' }).catch(() => {});
+        setShowTransferPanel(false);
       }
-    };
+    });
     
-    const interval = setInterval(checkTransferStatus, 500);
-    return () => clearInterval(interval);
+    return () => unsubscribe();
   }, [showTransferPanel]);
 
   // Keyboard handler — separate effect so it never re-initializes device
