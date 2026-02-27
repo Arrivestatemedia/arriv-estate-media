@@ -429,6 +429,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         )}
       </div>
 
+      {/* Incoming transfer banner */}
+      <IncomingTransferBanner salesMemberId={currentUserId} />
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
         {loading ? (
