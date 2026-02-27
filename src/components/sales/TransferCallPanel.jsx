@@ -125,27 +125,43 @@ export default function TransferCallPanel({ onClose, currentCallNumber, currentC
           />
         </div>
 
-        <div className="space-y-1 max-h-60 overflow-y-auto">
-          {filteredReps.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">No reps found</p>
-          ) : (
-            filteredReps.map(rep => (
-              <button
-                key={rep.id}
-                onClick={() => initiateTransfer(rep)}
-                disabled={loading}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#B8956A]/10 transition text-left"
-              >
-                <span className="text-sm font-medium text-gray-800">{rep.full_name}</span>
-                <span className="text-sm font-mono font-bold" style={{ color: '#B8956A' }}>Ext. {rep.extension}</span>
-              </button>
-            ))
-          )}
-        </div>
-
-        <Button variant="outline" onClick={onClose} className="w-full" disabled={loading}>
-          Cancel
-        </Button>
+        {waitingFor ? (
+          <div className="text-center py-6 space-y-3">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto animate-pulse">
+              <Phone className="w-5 h-5 text-green-600" />
+            </div>
+            <p className="text-sm font-medium text-gray-800">Waiting for <strong>{waitingFor.rep.full_name}</strong> to accept...</p>
+            <Button variant="outline" size="sm" onClick={() => {
+              if (pollRef.current) clearInterval(pollRef.current);
+              if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+              setWaitingFor(null);
+              base44.entities.PendingCallTransfer.update(waitingFor.recordId, { status: 'expired' }).catch(() => {});
+            }}>Cancel Transfer</Button>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-1 max-h-60 overflow-y-auto">
+              {filteredReps.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No reps found</p>
+              ) : (
+                filteredReps.map(rep => (
+                  <button
+                    key={rep.id}
+                    onClick={() => initiateTransfer(rep)}
+                    disabled={loading}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#B8956A]/10 transition text-left"
+                  >
+                    <span className="text-sm font-medium text-gray-800">{rep.full_name}</span>
+                    <span className="text-sm font-mono font-bold" style={{ color: '#B8956A' }}>Ext. {rep.extension}</span>
+                  </button>
+                ))
+              )}
+            </div>
+            <Button variant="outline" onClick={onClose} className="w-full" disabled={loading}>
+              Cancel
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );
