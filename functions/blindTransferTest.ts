@@ -40,9 +40,15 @@ Deno.serve(async (req) => {
       to: senderCall.to
     });
 
-    // Step 2: Redirect sender into conference
-    await client.calls(senderCallSid).update({
-      twiml: `<Response><Dial><Conference>${conferenceId}</Conference></Dial></Response>`
+    // Step 2: Redirect sender into conference using Call Control API
+    const callControlUrl = `https://calls.twilio.com/v1/Calls/${senderCallSid}`;
+    await fetch(callControlUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${Deno.env.get('TWILIO_ACCOUNT_SID')}:${Deno.env.get('TWILIO_AUTH_TOKEN')}`),
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `Twiml=${encodeURIComponent(`<Response><Dial><Conference>${conferenceId}</Conference></Dial></Response>`)}`
     });
     console.log('Redirected sender call into conference:', conferenceId);
 
