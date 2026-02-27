@@ -600,14 +600,14 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                         setMessages(prev => [...prev]);
                       }}
                     />
-                    {onInitiateTransfer && msg.sender_id === currentUserId && (
+                    {onInitiateTransfer && msg.sender_id !== currentUserId && (
                        <button
                          onClick={() => {
                            if (chatType === "dm") {
-                             const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                             const ext = transferTargets.find(m => m.id === msg.sender_id)?.extension;
                              if (ext) {
                                window.dispatchEvent(new CustomEvent('initiateTransfer', { 
-                                 detail: { extension: String(ext), name: chatName }
+                                 detail: { extension: String(ext), name: msg.sender_name }
                                }));
                              }
                            } else {
