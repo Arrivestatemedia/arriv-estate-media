@@ -572,13 +572,7 @@ export default function IphoneDialer({ salesMemberId }) {
             currentCallName={currentCall?.number}
           />
         )}
-        <IncomingTransferAlert
-          salesMemberId={salesMemberId || localStorage.getItem('sales_member_id')}
-          onAccept={(number) => {
-            setCallState(CALL_STATES.IDLE);
-            setTimeout(() => startCall(number), 300);
-          }}
-        />
+
       </div>
     );
   }
