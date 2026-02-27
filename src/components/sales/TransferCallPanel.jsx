@@ -37,21 +37,49 @@ export default function TransferCallPanel({ onClose, currentCallNumber, currentC
         status: 'pending'
       });
 
+      const recordId = record?.id;
+      if (!recordId) {
+        toast.error("Failed to create transfer request");
+        setLoading(false);
+        return;
+      }
+
       toast.success(`Waiting for ${rep.full_name} to accept...`);
       onClose?.();
 
-      // Watch for acceptance — once accepted, dial the recipient's extension to bridge the call
+      // Poll every 2s as a reliable fallback (real-time subscription may miss the event)
+      const pollInterval = setInterval(async () => {
+        try {
+          const results = await base44.entities.PendingCallTransfer.filter({ id: recordId });
+          const updated = results?.[0];
+          if (updated?.status === "accepted") {
+            clearInterval(pollInterval);
+            onTransferAccepted?.(String(rep.extension));
+          } else if (updated?.status === "declined") {
+            clearInterval(pollInterval);
+            toast.error(`${rep.full_name} declined the transfer`);
+          }
+        } catch (_) {}
+      }, 2000);
+
+      // Also listen via real-time subscription
       const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
-        const matchId = event.id === record.id || event.data?.id === record.id;
+        const matchId = event.id === recordId || event.data?.id === recordId;
         if (matchId && event.data?.status === "accepted") {
+          clearInterval(pollInterval);
           unsubscribe();
           onTransferAccepted?.(String(rep.extension));
         }
         if (matchId && event.data?.status === "declined") {
+          clearInterval(pollInterval);
           unsubscribe();
           toast.error(`${rep.full_name} declined the transfer`);
         }
       });
+
+      // Auto-expire after 60s
+      setTimeout(() => { clearInterval(pollInterval); unsubscribe(); }, 60000);
+
     } catch (err) {
       console.error("Transfer error:", err);
       toast.error("Failed to send transfer request");
