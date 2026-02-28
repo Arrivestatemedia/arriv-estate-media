@@ -352,8 +352,8 @@ export default function VideoCallPanel({
         {/* Header */}
         <div className="bg-gray-800 p-4 flex items-center justify-between border-b border-gray-700">
           <div>
-            <h3 className="text-white font-semibold">{recipientName}</h3>
-            <p className="text-gray-400 text-xs">Ext. {recipientExtension}</p>
+            <h3 className="text-white font-semibold">{recipientName || 'Video Call'}</h3>
+            {recipientExtension && <p className="text-gray-400 text-xs">Ext. {recipientExtension}</p>}
           </div>
           <Button
             variant="ghost"
