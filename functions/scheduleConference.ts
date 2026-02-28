@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     // Create conference record
     console.log('Creating Conference entity...');
-    const conference = await base44.entities.Conference.create({
+    const conference = await base44.asServiceRole.entities.Conference.create({
       title,
       description: description || '',
       scheduled_date: scheduled_date,
@@ -51,9 +51,9 @@ Deno.serve(async (req) => {
       duration_minutes: duration_minutes,
       room_name: roomName,
       meeting_link: `${Deno.env.get('BASE44_APP_DOMAIN')}/Conference?room=${encodeURIComponent(roomName)}`,
-      organizer_id: user.id,
-      organizer_name: user.full_name,
-      organizer_email: user.email,
+      organizer_id: organizerId,
+      organizer_name: organizerName,
+      organizer_email: organizerEmail,
       participants: participants.map(p => ({
         id: p.id,
         name: p.name,
