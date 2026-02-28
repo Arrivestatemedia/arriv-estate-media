@@ -74,13 +74,13 @@ Deno.serve(async (req) => {
       console.log('Getting Google Calendar access token...');
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
       
-      const year = parseInt(scheduledDate.split('-')[0]);
-      const month = parseInt(scheduledDate.split('-')[1]) - 1;
-      const day = parseInt(scheduledDate.split('-')[2]);
-      const hours = parseInt(scheduledTime.split(':')[0]);
-      const mins = parseInt(scheduledTime.split(':')[1]);
+      const year = parseInt(scheduled_date.split('-')[0]);
+      const month = parseInt(scheduled_date.split('-')[1]) - 1;
+      const day = parseInt(scheduled_date.split('-')[2]);
+      const hours = parseInt(scheduled_time.split(':')[0]);
+      const mins = parseInt(scheduled_time.split(':')[1]);
       const startTime = new Date(year, month, day, hours, mins);
-      const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+      const endTime = new Date(startTime.getTime() + duration_minutes * 60000);
 
       const attendees = participants.map(p => ({
         email: p.email,
