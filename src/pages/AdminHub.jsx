@@ -239,11 +239,15 @@ export default function AdminHub() {
             const ext = members?.[0]?.extension;
             if (ext) {
               setActiveTab("activity");
+              // Store in localStorage so AdminActivityPage can pick it up after mounting
+              localStorage.setItem('_pendingTransferExt', String(ext));
+              localStorage.setItem('_pendingTransferName', memberName || members[0]?.full_name || '');
+              // Also try immediately in case dialer is already mounted
               setTimeout(() => {
                 window.dispatchEvent(new CustomEvent('initiateTransfer', {
                   detail: { extension: String(ext), name: memberName || members[0]?.full_name }
                 }));
-              }, 600);
+              }, 800);
             }
           }).catch(() => {});
         }}
