@@ -17,6 +17,7 @@ export default function VideoCallPanel({
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
   const screenStreamRef = useRef(null);
   const twilioRoomRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -72,12 +73,78 @@ export default function VideoCallPanel({
     };
   }, []);
 
+  const attachTrack = useCallback((track) => {
+    if (track.kind === 'video' && remoteVideoRef.current) {
+      console.log('🎥 Attaching video track');
+      try {
+        const videoElement = track.attach();
+        videoElement.autoplay = true;
+        videoElement.playsInline = true;
+        videoElement.style.width = '100%';
+        videoElement.style.height = '100%';
+        videoElement.style.objectFit = 'cover';
+        remoteVideoRef.current.innerHTML = '';
+        remoteVideoRef.current.appendChild(videoElement);
+        console.log('✅ Video attached');
+      } catch (err) {
+        console.error('❌ Video attach error:', err);
+      }
+    } else if (track.kind === 'audio') {
+      console.log('🔊 Attaching audio track');
+      try {
+        const audioElement = track.attach();
+        audioElement.autoplay = true;
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.innerHTML = '';
+          remoteAudioRef.current.appendChild(audioElement);
+        } else {
+          document.body.appendChild(audioElement);
+        }
+        console.log('✅ Audio attached');
+      } catch (err) {
+        console.error('❌ Audio attach error:', err);
+      }
+    }
+  }, []);
+
+  const handleParticipantDisconnected = useCallback((participant) => {
+    console.log('👋 Participant disconnected:', participant.sid);
+    if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = '';
+  }, []);
+
+  const handleParticipantConnected = useCallback((participant) => {
+    console.log('👤 Participant connected:', participant.sid, 'identity:', participant.identity);
+    setRemoteParticipantName(participant.identity);
+
+    // Subscribe to existing tracks
+    participant.tracks.forEach(publication => {
+      if (publication.isSubscribed) {
+        console.log('📥 Track already subscribed:', publication.track.kind);
+        attachTrack(publication.track);
+      }
+    });
+
+    participant.on('trackSubscribed', track => {
+      console.log('📥 Track subscribed:', track.kind);
+      attachTrack(track);
+    });
+
+    participant.on('trackUnsubscribed', track => {
+      console.log('📤 Track unsubscribed:', track.kind);
+      try {
+        track.detach().forEach(el => el?.remove?.());
+      } catch (err) {
+        console.warn('Detach error:', err);
+      }
+    });
+  }, [attachTrack]);
+
   // Auto-start
   useEffect(() => {
     if (autoStart && roomName && !recipientExtension && callState === "idle" && localStream) {
       setTimeout(handleStartCall, 100);
     }
-  }, [autoStart, roomName, callState, localStream, handleStartCall]);
+  }, [autoStart, roomName, callState, localStream]);
 
   const handleStartCall = useCallback(async () => {
     console.log('📞 Starting call...');
@@ -127,43 +194,41 @@ export default function VideoCallPanel({
   const connectToRoom = useCallback(async (token, room) => {
     try {
       console.log('🌐 Connecting to', room, '...');
-
+      
       if (!window.Twilio?.Video) {
         console.log('📦 Loading Twilio Video SDK...');
-        const Video = await new Promise((resolve, reject) => {
+        await new Promise((resolve, reject) => {
           const script = document.createElement('script');
           script.id = 'twilio-video-sdk';
           script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
-
+          
           script.onload = () => {
             setTimeout(() => {
               if (window?.Twilio?.Video) {
                 console.log('✅ SDK loaded');
-                resolve(window.Twilio.Video);
+                resolve(true);
               } else {
                 reject(new Error('Twilio.Video not available after load'));
               }
             }, 200);
           };
-
+          
           script.onerror = (err) => {
             console.error('SDK load error:', err);
             reject(new Error('Failed to load Twilio SDK'));
           };
-
+          
           document.head.appendChild(script);
-
+          
           setTimeout(() => {
-            if (!script.loaded) {
-              reject(new Error('SDK load timeout'));
-            }
+            reject(new Error('SDK load timeout'));
           }, 10000);
         });
-        console.log('Got Video class:', !!Video);
       }
 
       const Video = window?.Twilio?.Video;
       if (!Video) throw new Error('Twilio Video not available');
+
       const connectOptions = {
         name: room,
         audio: { echoCancellation: true, noiseSuppression: true },
@@ -193,62 +258,24 @@ export default function VideoCallPanel({
 
       setCallState("connected");
 
+      // Handle existing participants
       videoRoom.participants.forEach(handleParticipantConnected);
+      
+      // Handle new participants
       videoRoom.on('participantConnected', handleParticipantConnected);
       videoRoom.on('participantDisconnected', handleParticipantDisconnected);
+      
+      // Handle disconnection
       videoRoom.on('disconnected', () => {
-        console.log('📴 Disconnected');
+        console.log('📴 Disconnected from room');
         setCallState("idle");
       });
-      } catch (err) {
+    } catch (err) {
       console.error('❌ Connection error:', err);
       setError("Connection failed: " + err.message);
       setCallState("idle");
-      }
-      }, [handleParticipantConnected, handleParticipantDisconnected]);
-
-  const handleParticipantConnected = useCallback((participant) => {
-    console.log('👤 Participant connected:', participant.name);
-    setRemoteParticipantName(participant.name);
-
-    participant.tracks.forEach(publication => {
-      if (publication.isSubscribed) {
-        attachTrack(publication.track);
-      }
-    });
-
-    participant.on('trackSubscribed', track => {
-      console.log('📥 Track subscribed:', track.kind);
-      attachTrack(track);
-    });
-
-    participant.on('trackUnsubscribed', track => {
-       console.log('📤 Unsubscribed:', track.kind);
-       track.detach().forEach(el => el?.remove?.());
-     });
-    }, [attachTrack]);
-
-  const attachTrack = useCallback((track) => {
-    if (track.kind === 'video' && remoteVideoRef.current) {
-      const videoElement = track.attach();
-      videoElement.autoplay = true;
-      videoElement.playsInline = true;
-      videoElement.style.width = '100%';
-      videoElement.style.height = '100%';
-      videoElement.style.objectFit = 'cover';
-      remoteVideoRef.current.innerHTML = '';
-      remoteVideoRef.current.appendChild(videoElement);
-    } else if (track.kind === 'audio') {
-      const audioElement = track.attach();
-      audioElement.autoplay = true;
-      document.body.appendChild(audioElement);
     }
-  }, []);
-
-  const handleParticipantDisconnected = useCallback((participant) => {
-    console.log('👋 Disconnected:', participant.name);
-    if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = '';
-  }, []);
+  }, [handleParticipantConnected, handleParticipantDisconnected]);
 
   const toggleMic = useCallback(() => {
     try {
