@@ -6,8 +6,11 @@ import { base44 } from "@/api/base44Client";
 export default function VideoCallPanel({ 
   recipientName, 
   recipientExtension,
+  callerToken,
+  roomName,
   onClose,
-  currentUserName 
+  currentUserName,
+  isIncoming = false
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -63,42 +66,33 @@ export default function VideoCallPanel({
   };
 
   const handleStartCall = async () => {
+    // If we already have a token and room name (incoming call or token was provided), connect directly
+    if (callerToken && roomName) {
+      console.log('Using provided token and room name');
+      initializeVideoRoom(callerToken);
+      return;
+    }
+
     setCallState("calling");
     setIsLoading(true);
     setError(null);
     try {
-      // Get video room token from backend
       const salesMemberId = localStorage.getItem('sales_member_id');
       if (!salesMemberId) {
-        throw new Error('Sales member ID not found in localStorage');
+        throw new Error('Sales member ID not found');
       }
 
-      const roomName = `video-call-${Date.now()}`;
-      const response = await base44.functions.invoke('generateTwilioVideoToken', {
+      const response = await base44.functions.invoke('initiateVideoCall', {
         salesMemberId: salesMemberId.trim(),
-        recipientExtension: parseInt(recipientExtension),
-        roomName
+        recipientExtension: parseInt(recipientExtension)
       });
 
-      if (!response.data?.token) {
-         throw new Error('Failed to get video token: ' + JSON.stringify(response.data));
-       }
+      if (!response.data?.roomName || !response.data?.caller?.token) {
+        throw new Error('Failed to initiate video call: ' + JSON.stringify(response.data));
+      }
 
-      console.log('Video token received successfully');
-
-       // Load and initialize Twilio Video SDK
-       const Video = window.Twilio?.Video;
-       if (!Video) {
-         const script = document.createElement('script');
-         script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
-         script.onload = () => initializeVideoRoom(response.data.token);
-         script.onerror = () => {
-           throw new Error('Failed to load Twilio Video SDK');
-         };
-         document.body.appendChild(script);
-       } else {
-         initializeVideoRoom(response.data.token);
-       }
+      console.log('Video call initiated, connecting...');
+      initializeVideoRoom(response.data.caller.token, response.data.roomName);
     } catch (err) {
       setError('Failed to start video call: ' + err.message);
       setCallState("idle");
@@ -107,48 +101,76 @@ export default function VideoCallPanel({
     }
   };
 
-  const initializeVideoRoom = async (token) => {
+  const initializeVideoRoom = async (token, room) => {
     try {
+      // Ensure SDK is loaded
       if (!window.Twilio?.Video) {
-        throw new Error('Twilio Video SDK not loaded');
+        const Video = await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
+          script.onload = () => {
+            setTimeout(() => resolve(window.Twilio.Video), 100);
+          };
+          script.onerror = () => reject(new Error('Failed to load Twilio Video SDK'));
+          document.head.appendChild(script);
+        });
       }
 
       const Video = window.Twilio.Video;
-      console.log('Connecting to video room with token...');
+      console.log('Connecting to video room:', room || 'generated-room');
 
-      const room = await Video.connect(token, {
-        name: `video-${Date.now()}`,
+      const connectOptions = {
+        name: room || `video-${Date.now()}`,
         audio: { echoCancellation: true },
         video: { width: 640, height: 480 },
-        networkQuality: { local: 1, remote: 1 }
-      });
+        networkQuality: { local: 1, remote: 1 },
+        maxAudioBitrate: 50000
+      };
 
-      console.log('Video room connected:', room.name);
-      twilioRoomRef.current = room;
+      const videoRoom = await Video.connect(token, connectOptions);
+      console.log('Connected to room:', videoRoom.name);
+      twilioRoomRef.current = videoRoom;
       setCallState("connected");
 
-      // Handle remote participants
-      room.on('participantConnected', participant => {
-        console.log('Remote participant connected:', participant.sid);
-        participant.videoTracks.forEach(videoTrack => {
-          if (remoteVideoRef.current) {
-            const videoElement = videoTrack.attach();
-            remoteVideoRef.current.innerHTML = '';
-            remoteVideoRef.current.appendChild(videoElement);
-          }
-        });
-      });
+      // Handle existing participants
+      videoRoom.participants.forEach(participantConnected);
 
-      room.on('participantDisconnected', () => {
-        console.log('Remote participant disconnected');
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.innerHTML = '';
-        }
+      // Handle new participants
+      videoRoom.on('participantConnected', participantConnected);
+      videoRoom.on('participantDisconnected', participantDisconnected);
+      videoRoom.on('disconnected', () => {
+        console.log('Disconnected from room');
+        setCallState("idle");
       });
     } catch (err) {
       console.error('Video room connection error:', err);
-      setError('Failed to connect to video room: ' + err.message);
+      setError('Failed to connect: ' + err.message);
       setCallState("idle");
+    }
+  };
+
+  const participantConnected = (participant) => {
+    console.log('Participant connected:', participant.name, participant.sid);
+    participant.videoTracks.forEach(videoTrackSubscription => {
+      const videoElement = videoTrackSubscription.track.attach();
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.innerHTML = '';
+        remoteVideoRef.current.appendChild(videoElement);
+      }
+    });
+    participant.on('trackSubscribed', track => {
+      if (track.kind === 'video' && remoteVideoRef.current) {
+        const videoElement = track.attach();
+        remoteVideoRef.current.innerHTML = '';
+        remoteVideoRef.current.appendChild(videoElement);
+      }
+    });
+  };
+
+  const participantDisconnected = (participant) => {
+    console.log('Participant disconnected:', participant.sid);
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.innerHTML = '';
     }
   };
 
@@ -211,7 +233,10 @@ export default function VideoCallPanel({
             </div>
           ) : isLoading ? (
             <div className="text-center">
-              <p className="text-gray-300">Connecting video...</p>
+              <p className="text-gray-300 flex items-center justify-center gap-2">
+                <span className="animate-spin inline-block">⟳</span>
+                Connecting...
+              </p>
             </div>
           ) : (
             <>
@@ -264,13 +289,23 @@ export default function VideoCallPanel({
             {isVideoOn ? "📹" : "🚫"}
           </Button>
 
-          {callState === "idle" ? (
+          {callState === "idle" && !isIncoming ? (
             <Button
               onClick={handleStartCall}
+              disabled={isLoading}
               className="bg-green-600 hover:bg-green-700 text-white gap-2"
             >
               <Phone className="w-4 h-4" />
               Start Call
+            </Button>
+          ) : callState === "idle" && isIncoming ? (
+            <Button
+              onClick={handleStartCall}
+              disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700 text-white gap-2"
+            >
+              <Phone className="w-4 h-4" />
+              {isLoading ? "Connecting..." : "Join Call"}
             </Button>
           ) : (
             <Button
