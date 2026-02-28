@@ -537,10 +537,11 @@ export default function IphoneDialer({ salesMemberId }) {
     }
 
     try {
-      const response = await base44.functions.invoke('conferenceTwiml', {
+      const response = await base44.functions.invoke('warmTransfer', {
         senderCallSid: window._senderCallSid,
         recipientCallSid: secondCallSid,
-        externalCallerNumber: currentCall?.number
+        externalCallerNumber: currentCall?.number,
+        senderNumber: currentCall?.number
       });
 
       if (response.data.success) {
