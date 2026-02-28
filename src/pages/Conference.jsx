@@ -15,17 +15,22 @@ export default function Conference() {
     const params = new URLSearchParams(window.location.search);
     const room = params.get('room');
     
+    console.log('Conference page loaded, room param:', room);
+    
     if (!room) {
+      console.error('No room parameter in URL');
       setError('No conference room specified');
       setLoading(false);
       return;
     }
 
+    console.log('Setting room name to:', room);
     setRoomName(room);
 
     // Try to get current user info
     base44.auth.isAuthenticated()
       .then(isAuth => {
+        console.log('User authenticated:', isAuth);
         if (isAuth) {
           return base44.auth.me();
         } else {
@@ -33,6 +38,7 @@ export default function Conference() {
         }
       })
       .then(userData => {
+        console.log('User data:', userData);
         if (userData) {
           setUser(userData);
         } else {
