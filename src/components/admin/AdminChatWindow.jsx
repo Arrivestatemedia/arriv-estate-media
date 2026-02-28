@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { Video, AlertCircle } from "lucide-react";
+import VideoCallPanel from "@/components/sales/VideoCallPanel";
+import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 
 export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [selectedRepId, setSelectedRepId] = useState(null);
@@ -13,6 +16,10 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [messageText, setMessageText] = useState("");
   const [salesReps, setSalesReps] = useState([]);
   const [pendingTransfer, setPendingTransfer] = useState(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [videoCallError, setVideoCallError] = useState(null);
+  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
+  const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -144,6 +151,19 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     return unsubscribe;
   }, [selectedRepId, currentUserId]);
 
+  // Listen for incoming video calls
+  useEffect(() => {
+    const handleIncomingVideoCall = (e) => {
+      if (e.detail?.recipientId === currentUserId) {
+        console.log('Incoming video call received in AdminChatWindow:', e.detail);
+        setIncomingVideoCall(e.detail);
+      }
+    };
+    
+    window.addEventListener('incomingVideoCall', handleIncomingVideoCall);
+    return () => window.removeEventListener('incomingVideoCall', handleIncomingVideoCall);
+  }, [currentUserId]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -237,18 +257,37 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
 
   return (
     <>
-      {/* Back button and rep name */}
-      <div className="border-b p-3 flex items-center gap-2">
-        <button
-          onClick={() => {
-            setSelectedRepId(null);
-            setSelectedRepName(null);
-          }}
-          className="text-sm text-blue-600 hover:text-blue-700"
-        >
-          ← Back
-        </button>
-        <p className="text-sm font-medium ml-2" style={{ color: '#1A1A1A' }}>{selectedRepName}</p>
+      {/* Back button, rep name, and video call button */}
+      <div className="border-b p-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setSelectedRepId(null);
+              setSelectedRepName(null);
+            }}
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            ← Back
+          </button>
+          <p className="text-sm font-medium ml-2" style={{ color: '#1A1A1A' }}>{selectedRepName}</p>
+        </div>
+        {selectedRepId && (
+          <button
+            onClick={() => {
+              const rep = salesReps.find(r => r.id === selectedRepId);
+              if (!rep?.extension) {
+                setVideoCallError('No extension found for video call');
+                setTimeout(() => setVideoCallError(null), 3000);
+                return;
+              }
+              setShowVideoCall(true);
+            }}
+            className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+            title="Video Call"
+          >
+            <Video className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Incoming transfer notification */}
@@ -320,6 +359,39 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
           <Send className="w-4 h-4" />
         </Button>
       </div>
+
+      {videoCallError && (
+        <div className="border-t bg-red-50 border-red-200 p-3 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-red-600" />
+          <p className="text-sm text-red-700">{videoCallError}</p>
+        </div>
+      )}
+
+      {showVideoCall && selectedRepId && (
+        <VideoCallPanel
+          recipientName={selectedRepName}
+          recipientExtension={salesReps.find(r => r.id === selectedRepId)?.extension}
+          currentUserName={currentUserName}
+          onClose={() => setShowVideoCall(false)}
+        />
+      )}
+
+      {incomingVideoCall && (
+        <IncomingVideoCallModal
+          callerName={incomingVideoCall.callerName}
+          callerExtension={incomingVideoCall.callerExtension}
+          isProcessing={videoCallProcessing}
+          onDecline={() => {
+            setIncomingVideoCall(null);
+          }}
+          onAccept={() => {
+            setVideoCallProcessing(true);
+            setIncomingVideoCall(null);
+            setShowVideoCall(true);
+            setVideoCallProcessing(false);
+          }}
+        />
+      )}
     </>
   );
 }
