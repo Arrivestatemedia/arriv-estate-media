@@ -352,6 +352,17 @@ export default function VideoCallPanel({
               console.log('Replacing camera with screen track in Twilio');
               const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
               if (videoTrackPublication && videoTrackPublication.track) {
+                // Stop the camera track first
+                try {
+                  const oldTrack = videoTrackPublication.track;
+                  if (oldTrack && oldTrack.mediaStreamTrack) {
+                    oldTrack.mediaStreamTrack.stop();
+                  }
+                } catch (err) {
+                  console.warn('Error stopping old track:', err);
+                }
+                
+                // Now replace with screen track
                 await videoTrackPublication.track.replaceTrack(screenTrack);
                 console.log('Screen share sent to remote participant');
                 setIsScreenSharing(true);
@@ -373,6 +384,17 @@ export default function VideoCallPanel({
                 try {
                   const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
                   if (videoTrackPublication && videoTrackPublication.track) {
+                    // Stop the screen track first
+                    try {
+                      const oldTrack = videoTrackPublication.track;
+                      if (oldTrack && oldTrack.mediaStreamTrack) {
+                        oldTrack.mediaStreamTrack.stop();
+                      }
+                    } catch (err) {
+                      console.warn('Error stopping old track:', err);
+                    }
+                    
+                    // Now replace with camera track
                     await videoTrackPublication.track.replaceTrack(cameraTrack);
                     console.log('Auto-switched back to camera');
                   }
