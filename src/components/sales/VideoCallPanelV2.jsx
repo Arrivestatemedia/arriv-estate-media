@@ -318,8 +318,18 @@ export default function VideoCallPanelV2({
 
   const toggleScreenShare = async () => {
     try {
-      if (!twilioRoomRef.current?.localParticipant?.videoTracks.size) {
-        setError("Video must be connected first");
+      if (!twilioRoomRef.current) {
+        setError("Not connected to call");
+        return;
+      }
+
+      if (!twilioRoomRef.current.localParticipant) {
+        setError("Local participant not found");
+        return;
+      }
+
+      if (!twilioRoomRef.current.localParticipant.videoTracks || twilioRoomRef.current.localParticipant.videoTracks.size === 0) {
+        setError("Video must be enabled first");
         return;
       }
 
