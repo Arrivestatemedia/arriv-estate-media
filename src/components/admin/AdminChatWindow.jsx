@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Video, AlertCircle } from "lucide-react";
 import VideoCallPanel from "@/components/sales/VideoCallPanel";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
+import ConferenceScheduler from "@/components/chat/ConferenceScheduler";
 
 export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [selectedRepId, setSelectedRepId] = useState(null);
@@ -21,6 +22,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [acceptedIncomingCall, setAcceptedIncomingCall] = useState(null);
+  const [showConferenceScheduler, setShowConferenceScheduler] = useState(false);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -265,7 +267,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
 
   return (
     <>
-      {/* Back button, rep name, and video call button */}
+      {/* Back button, rep name, and action buttons */}
       <div className="border-b p-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
@@ -280,21 +282,30 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
           <p className="text-sm font-medium ml-2" style={{ color: '#1A1A1A' }}>{selectedRepName}</p>
         </div>
         {selectedRepId && (
-          <button
-            onClick={() => {
-              const rep = salesReps.find(r => r.id === selectedRepId);
-              if (!rep?.extension) {
-                setVideoCallError('No extension found for video call');
-                setTimeout(() => setVideoCallError(null), 3000);
-                return;
-              }
-              setShowVideoCall(true);
-            }}
-            className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
-            title="Video Call"
-          >
-            <Video className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                const rep = salesReps.find(r => r.id === selectedRepId);
+                if (!rep?.extension) {
+                  setVideoCallError('No extension found for video call');
+                  setTimeout(() => setVideoCallError(null), 3000);
+                  return;
+                }
+                setShowVideoCall(true);
+              }}
+              className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+              title="Video Call"
+            >
+              <Video className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowConferenceScheduler(true)}
+              className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+              title="Schedule Conference"
+            >
+              <Video className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -416,6 +427,19 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
           }}
         />
       )}
-    </>
-  );
-}
+
+      {showConferenceScheduler && (
+        <ConferenceScheduler
+          channelId={null}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          transferTargets={salesReps}
+          onConferenceCreated={(conference) => {
+            toast.success(`Conference "${conference.title}" scheduled!`);
+          }}
+          onClose={() => setShowConferenceScheduler(false)}
+        />
+      )}
+      </>
+      );
+      }
