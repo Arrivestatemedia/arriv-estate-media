@@ -2,11 +2,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
+    console.log('=== scheduleConference called ===');
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
     if (!user) {
+      console.error('No user authenticated');
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('User:', user.email, user.id);
+
+    let body;
+    try {
+      body = await req.json();
+      console.log('Request body:', JSON.stringify(body, null, 2));
+    } catch (e) {
+      console.error('Failed to parse JSON:', e.message);
+      return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
 
     const {
@@ -17,16 +30,20 @@ Deno.serve(async (req) => {
       durationMinutes = 60,
       participants = [],
       channelId
-    } = await req.json();
+    } = body;
 
     if (!title || !scheduledDate || !scheduledTime) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+      console.error('Missing required fields:', { title, scheduledDate, scheduledTime });
+      return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime' }, { status: 400 });
     }
+
+    console.log('Creating conference with:', { title, scheduledDate, scheduledTime, durationMinutes, participants: participants.length });
 
     // Generate unique room name
     const roomName = `conf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Create conference record
+    console.log('Creating Conference entity...');
     const conference = await base44.entities.Conference.create({
       title,
       description: description || '',
@@ -46,10 +63,13 @@ Deno.serve(async (req) => {
       channel_id: channelId || null,
       status: 'scheduled'
     });
+    console.log('Conference created:', conference.id, conference.meeting_link);
 
     // Create Google Calendar event
     try {
+      console.log('Attempting to get Google Calendar access token...');
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+      console.log('Access token obtained, creating calendar event...');
       
       const year = parseInt(scheduledDate.split('-')[0]);
       const month = parseInt(scheduledDate.split('-')[1]) - 1;
@@ -87,6 +107,7 @@ Deno.serve(async (req) => {
         }
       };
 
+      console.log('Sending to Google Calendar API...');
       const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1', {
         method: 'POST',
         headers: {
@@ -95,6 +116,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify(event)
       });
+      console.log('Google Calendar response status:', calendarResponse.status);
 
       if (calendarResponse.ok) {
         const calendarEvent = await calendarResponse.json();
@@ -112,6 +134,7 @@ Deno.serve(async (req) => {
       // Continue - conference is created even if calendar fails
     }
 
+    console.log('Returning success response');
     return Response.json({
       success: true,
       conference: {
@@ -124,7 +147,10 @@ Deno.serve(async (req) => {
       }
     });
   } catch (error) {
-    console.error('Conference scheduling error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('=== Conference scheduling error ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    return Response.json({ error: error.message || 'Unknown error', stack: error.stack }, { status: 500 });
   }
 });
