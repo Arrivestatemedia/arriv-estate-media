@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
     // Notify recipient about incoming video call (backend can trigger UI notification)
     // For now, just send the token back to the caller
-    console.log(`Video call initiated from ${user.full_name} to ${recipient.full_name} in room: ${roomName}`);
+    console.log(`Video call initiated from ${caller.full_name} to ${recipient.full_name} in room: ${roomName}`);
 
     return Response.json({
       success: true,
