@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { Send, Video, AlertCircle, Calendar } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { Video, AlertCircle } from "lucide-react";
 import VideoCallPanel from "@/components/sales/VideoCallPanel";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import ConferenceScheduler from "@/components/chat/ConferenceScheduler";
