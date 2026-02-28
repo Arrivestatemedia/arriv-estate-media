@@ -70,7 +70,7 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onClose}>
+      <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Team Member Profile</DialogTitle>
