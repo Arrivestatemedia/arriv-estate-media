@@ -50,10 +50,11 @@ export default function VideoCallPanel({
   }, []);
 
   useEffect(() => {
-    if (autoStart && roomName && !recipientExtension && callState === "idle") {
+    if (autoStart && roomName && !recipientExtension && callState === "idle" && localStream) {
+      console.log('Auto-starting video call with room:', roomName);
       handleStartCall();
     }
-  }, [autoStart, roomName]);
+  }, [autoStart, roomName, localStream]);
 
   const toggleMic = () => {
     if (localStream) {
