@@ -578,17 +578,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                     ) : (
                     <h2 className="text-lg font-semibold text-gray-900">#{chatName}</h2>
                     )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                    {chatType === "channel" && (
                     <button
-                    onClick={() => setShowConferenceScheduler(true)}
-                    className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
-                    title="Schedule Conference"
+                      onClick={() => setShowConferenceScheduler(true)}
+                      className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+                      title="Schedule Conference"
                     >
-                    <Video className="w-4 h-4" />
+                      <Video className="w-4 h-4" />
                     </button>
-                    )}
         </div>
 
       </div>
