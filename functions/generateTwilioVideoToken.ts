@@ -3,19 +3,26 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    const { recipientExtension, roomName, salesMemberId } = await req.json();
 
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { recipientExtension, roomName } = await req.json();
-
-    if (!recipientExtension || !roomName) {
+    if (!recipientExtension || !roomName || !salesMemberId) {
       return Response.json({ 
-        error: 'Missing recipientExtension or roomName' 
+        error: 'Missing recipientExtension, roomName, or salesMemberId' 
       }, { status: 400 });
     }
+
+    // Verify caller (sales member) exists
+    const callers = await base44.asServiceRole.entities.SalesTeamMember.filter({
+      id: salesMemberId
+    });
+
+    if (!callers || callers.length === 0) {
+      return Response.json({ 
+        error: 'Caller not found or unauthorized' 
+      }, { status: 401 });
+    }
+
+    const caller = callers[0];
 
     // Verify recipient exists
     const recipients = await base44.asServiceRole.entities.SalesTeamMember.filter({
@@ -42,7 +49,7 @@ Deno.serve(async (req) => {
     );
 
     // Generate unique identifier for the caller
-    const callerIdentity = `${user.full_name}-${user.email}-${Date.now()}`;
+    const callerIdentity = `${caller.full_name}-${caller.email}-${Date.now()}`;
     accessToken.identity = callerIdentity;
     accessToken.addGrant(new VideoGrant({ room: roomName }));
 
