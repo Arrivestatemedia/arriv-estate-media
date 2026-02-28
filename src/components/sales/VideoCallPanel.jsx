@@ -33,15 +33,47 @@ export default function VideoCallPanel({
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: true
         });
-        console.log('Camera stream obtained, attaching to video ref');
+        console.log('Camera stream obtained:', stream.id, 'video tracks:', stream.getVideoTracks().length);
+        
+        // Verify stream is valid
+        const videoTracks = stream.getVideoTracks();
+        if (videoTracks.length === 0) {
+          throw new Error('No video tracks in stream');
+        }
+        
+        const videoTrack = videoTracks[0];
+        console.log('Video track:', {
+          enabled: videoTrack.enabled,
+          readyState: videoTrack.readyState,
+          kind: videoTrack.kind
+        });
+
         setLocalStream(stream);
+        
         if (localVideoRef.current) {
+          console.log('Setting srcObject on localVideoRef');
           localVideoRef.current.srcObject = stream;
-          // Force play
+          
+          // Wait for video to be loadable
+          localVideoRef.current.onloadedmetadata = () => {
+            console.log('Video metadata loaded, playing');
+            localVideoRef.current.play().catch(err => {
+              console.error('Play error:', err);
+            });
+          };
+          
+          // Force play immediately
           localVideoRef.current.play().catch(err => {
-            console.warn('Auto-play failed (expected in some browsers):', err);
+            console.warn('Immediate play failed:', err);
           });
-          console.log('Local stream attached to video ref');
+          
+          console.log('Local stream attached to video ref, element:', {
+            src: localVideoRef.current.srcObject ? 'set' : 'not set',
+            autoplay: localVideoRef.current.autoplay,
+            muted: localVideoRef.current.muted,
+            playsInline: localVideoRef.current.playsInline,
+            paused: localVideoRef.current.paused
+          });
         } else {
           console.warn('localVideoRef is not ready yet');
         }
@@ -56,10 +88,13 @@ export default function VideoCallPanel({
     return () => {
       if (localStream) {
         console.log('Cleaning up camera stream');
-        localStream.getTracks().forEach(track => track.stop());
+        localStream.getTracks().forEach(track => {
+          console.log('Stopping track:', track.kind);
+          track.stop();
+        });
       }
     };
-  }, [localVideoRef]);
+  }, []);
 
   useEffect(() => {
     if (autoStart && roomName && !recipientExtension && callState === "idle" && localStream) {
