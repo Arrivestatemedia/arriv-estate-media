@@ -30,13 +30,7 @@ Deno.serve(async (req) => {
       }, { status: 401 });
     }
 
-    if (!callers || callers.length === 0) {
-      return Response.json({ 
-        error: 'Caller not found or unauthorized' 
-      }, { status: 401 });
-    }
 
-    const caller = callers[0];
 
     // Verify recipient exists
     const recipients = await base44.asServiceRole.entities.SalesTeamMember.filter({
