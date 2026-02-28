@@ -250,20 +250,46 @@ export default function VideoCallPanelV2({
    };
 
     const unsubscriptionHandler = (subscription) => {
-      console.log("Track unsubscribed:", subscription.track.kind);
-      subscription.track.detach().forEach((element) => element.remove());
+      if (!subscription || !subscription.track) {
+        console.warn("Unsubscription: subscription or track is null");
+        return;
+      }
+
+      try {
+        console.log("Track unsubscribed:", subscription.track.kind);
+        const detachedElements = subscription.track.detach();
+        if (Array.isArray(detachedElements)) {
+          detachedElements.forEach((element) => {
+            try {
+              element.remove();
+            } catch (err) {
+              console.warn("Failed to remove element:", err);
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error unsubscribing from track:", err);
+      }
     };
 
     // Subscribe to existing tracks
-    participant.tracks.forEach((subscription) => {
-      if (subscription.isSubscribed) {
-        subscriptionHandler(subscription);
-      }
-    });
+    try {
+      participant.tracks.forEach((subscription) => {
+        if (subscription && subscription.isSubscribed) {
+          subscriptionHandler(subscription);
+        }
+      });
+    } catch (err) {
+      console.error("Error subscribing to existing tracks:", err);
+    }
 
     // Subscribe to future tracks
-    participant.on("trackSubscribed", subscriptionHandler);
-    participant.on("trackUnsubscribed", unsubscriptionHandler);
+    try {
+      participant.on("trackSubscribed", subscriptionHandler);
+      participant.on("trackUnsubscribed", unsubscriptionHandler);
+    } catch (err) {
+      console.error("Error setting up track event handlers:", err);
+    }
   };
 
   const detachParticipant = (participant) => {
