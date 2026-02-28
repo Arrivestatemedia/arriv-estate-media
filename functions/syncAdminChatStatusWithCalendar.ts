@@ -14,11 +14,13 @@ Deno.serve(async (req) => {
     // Get Google Calendar access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
     
-    // Fetch all events for the admin's email (no time filter - let Google handle it)
+    // Fetch events for the admin's email with time range (current time ± 1 hour to catch active meetings)
     const now = new Date();
+    const timeMin = new Date(now.getTime() - 60 * 60 * 1000).toISOString(); // 1 hour ago
+    const timeMax = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1 hour from now
     
     const calResponse = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
       {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
