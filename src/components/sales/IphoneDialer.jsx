@@ -9,6 +9,7 @@ import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 import TransferCallPanel from "./TransferCallPanel";
 import IncomingTransferAlert from "./IncomingTransferAlert";
+import VideoCallPanelV2 from "./VideoCallPanelV2";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
