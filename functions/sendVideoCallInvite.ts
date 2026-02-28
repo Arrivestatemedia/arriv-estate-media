@@ -28,16 +28,28 @@ Deno.serve(async (req) => {
     console.log(`Video call invitation sent: ${caller.full_name} → ${recipient.full_name}`);
     console.log(`Room: ${roomName}, Recipient ID: ${recipient.id}`);
 
-    // Dispatch event to notify the recipient in real-time
-    if (recipient.id) {
-      // Use window.postMessage-style approach for all tabs
-      console.log(`Dispatching incoming video call event to recipient ${recipient.id}`);
-    }
+    // Create a pending notification for the recipient
+    const notification = await base44.asServiceRole.entities.PendingNotification.create({
+      recipient_id: recipient.id,
+      event_type: 'incoming_video_call',
+      event_data: {
+        callerId: caller.id,
+        callerName: caller.full_name,
+        callerExtension: caller.extension,
+        roomName: roomName,
+        recipientToken: recipientToken,
+        recipientExtension: recipient.extension,
+        recipientId: recipient.id
+      },
+      is_read: false
+    });
+
+    console.log(`Pending notification created for recipient: ${notification.id}`);
 
     // Return success
     return Response.json({
       success: true,
-      message: 'Video call invite prepared',
+      message: 'Video call invite sent',
       recipientId: recipient.id,
       recipientName: recipient.full_name,
       recipientToken: recipientToken,
