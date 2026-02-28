@@ -74,7 +74,13 @@ Deno.serve(async (req) => {
       const day = parseInt(scheduled_date.split('-')[2]);
       const hours = parseInt(scheduled_time.split(':')[0]);
       const mins = parseInt(scheduled_time.split(':')[1]);
-      const startTime = new Date(year, month, day, hours, mins);
+      
+      // Create date in America/New_York timezone and convert to UTC
+      const estDate = new Date(year, month, day, hours, mins);
+      // Get the UTC offset for this date in America/New_York (accounts for DST)
+      const estUTC = new Date(estDate.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const offset = estDate.getTime() - estUTC.getTime();
+      const startTime = new Date(estDate.getTime() + offset);
       const endTime = new Date(startTime.getTime() + duration_minutes * 60000);
 
       const attendees = participants.map(p => ({
