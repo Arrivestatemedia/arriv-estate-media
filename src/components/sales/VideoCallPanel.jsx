@@ -395,6 +395,10 @@ export default function VideoCallPanel({
         const videoElement = track.attach();
         videoElement.autoplay = true;
         videoElement.playsInline = true;
+        videoElement.style.width = '100%';
+        videoElement.style.height = '100%';
+        videoElement.style.objectFit = 'cover';
+        videoElement.style.display = 'block';
         remoteVideoRef.current.innerHTML = '';
         remoteVideoRef.current.appendChild(videoElement);
         videoElement.play().catch(err => console.warn('Remote video play error:', err));
