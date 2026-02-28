@@ -295,6 +295,19 @@ export default function VideoCallPanel({
      const videoRoom = await Video.connect(token, connectOptions);
      console.log('Successfully connected to room:', videoRoom.name);
      twilioRoomRef.current = videoRoom;
+
+     // Ensure local video is playing
+     if (localVideoRef.current && localStream) {
+       console.log('Ensuring local video is playing after room connection');
+       if (localVideoRef.current.srcObject !== localStream) {
+         console.log('Setting srcObject because it changed');
+         localVideoRef.current.srcObject = localStream;
+       }
+       localVideoRef.current.play().catch(err => {
+         console.error('Error playing local video after connection:', err);
+       });
+     }
+
      setIsLoading(false);
      setCallState("connected");
 
