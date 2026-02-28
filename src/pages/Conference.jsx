@@ -8,6 +8,7 @@ export default function Conference() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+  const [autoStart, setAutoStart] = useState(false);
 
   useEffect(() => {
     // Get room from URL params
@@ -26,10 +27,12 @@ export default function Conference() {
     base44.auth.me()
       .then(userData => {
         setUser(userData);
+        setAutoStart(true); // Auto-start video when user loads
       })
       .catch(() => {
-        // User not authenticated, that's okay - guest join
-        setUser(null);
+        // User not authenticated, still allow guest join
+        setUser({ full_name: 'Guest' });
+        setAutoStart(true);
       })
       .finally(() => {
         setLoading(false);
