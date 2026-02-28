@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Phone, PhoneOff, MessageSquare, Clock, Send, Loader2, Mic, MicOff, Check, Plus, X, ArrowRight, Search } from "lucide-react";
+import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 import TransferCallPanel from "./TransferCallPanel";
 import IncomingTransferAlert from "./IncomingTransferAlert";

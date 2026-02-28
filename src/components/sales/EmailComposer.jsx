@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar } from "lucide-react";
+import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 
 export default function EmailComposer({ salesMemberId, isAdmin = false }) {
