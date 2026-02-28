@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Phone, Mail, Calendar, Clock, Zap, MessageSquare } from "lucide-react";
+import { Plus, Phone, Mail, Calendar, Clock, Zap, MessageSquare, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
@@ -17,6 +17,7 @@ import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import CalendarTab from "@/components/sales/CalendarTab";
+import AiAssistantTab from "@/components/sales/AiAssistantTab";
 
 export default function AdminActivityPage({ user }) {
   const [activeTab, setActiveTab] = useState("activity");
