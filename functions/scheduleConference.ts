@@ -31,9 +31,9 @@ Deno.serve(async (req) => {
     const scheduled_time = scheduledTime;
     const duration_minutes = durationMinutes;
 
-    if (!title || !scheduled_date || !scheduled_time) {
-      console.error('Missing required fields:', { title, scheduled_date, scheduled_time });
-      return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime' }, { status: 400 });
+    if (!title || !scheduled_date || !scheduled_time || !organizerName || !organizerEmail) {
+      console.error('Missing required fields:', { title, scheduled_date, scheduled_time, organizerName, organizerEmail });
+      return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime, organizerName, organizerEmail' }, { status: 400 });
     }
 
     console.log('Creating conference with:', { title, scheduled_date, scheduled_time, duration_minutes, participants: participants.length });
