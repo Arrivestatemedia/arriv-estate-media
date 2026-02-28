@@ -66,10 +66,14 @@ export default function AdminActivityPage({ user }) {
     const handleDialerCardReady = () => {
       const phone = localStorage.getItem('dialerPhone');
       if (phone) {
-        localStorage.setItem('_dialerPhone', phone);
-        localStorage.setItem('_dialerTab', 'keypad');
         setActiveTab('call');
         localStorage.removeItem('dialerPhone');
+        // After switching to call tab and dialer mounts, dispatch initiateTransfer
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('initiateTransfer', {
+            detail: { extension: phone, name: '' }
+          }));
+        }, 400);
       }
     };
 
