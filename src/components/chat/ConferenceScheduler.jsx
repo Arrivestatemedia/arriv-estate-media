@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { X, Video, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ConferenceScheduler({ channelId, currentUserId, currentUserName, transferTargets = [], onConferenceCreated, onClose }) {
+export default function ConferenceScheduler({ channelId, currentUserId, currentUserName, currentUserEmail, transferTargets = [], onConferenceCreated, onClose }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
