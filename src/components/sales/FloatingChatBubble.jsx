@@ -4,7 +4,7 @@ import { MessageSquare, X } from "lucide-react";
 // base44 already imported above
 import ChatTab from "./ChatTab";
 
-export default function FloatingChatBubble({ currentUserId, currentUserName }) {
+export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
