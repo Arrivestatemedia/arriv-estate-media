@@ -433,6 +433,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
           channelId={null}
           currentUserId={currentUserId}
           currentUserName={currentUserName}
+          currentUserEmail={localStorage.getItem('user_email')}
           transferTargets={salesReps}
           onConferenceCreated={(conference) => {
             toast.success(`Conference "${conference.title}" scheduled!`);
