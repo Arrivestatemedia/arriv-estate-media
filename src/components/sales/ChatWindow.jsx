@@ -769,10 +769,21 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
          memberId={profileMemberId}
          open={!!profileMemberId}
          onClose={() => setProfileMemberId(null)}
-         onCallClick={(memberId, memberName, isVideo) => {
-           onInitiateTransfer?.(memberId, memberName);
-           if (isVideo) {
-             localStorage.setItem('_videoCallMode', 'true');
+         onCallClick={(memberId, memberName) => {
+           if (onInitiateTransfer) {
+             onInitiateTransfer(memberId, memberName);
+           } else {
+             // Fallback: use dialerCardReady flow
+             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+               const ext = members?.[0]?.extension;
+               if (ext) {
+                 localStorage.setItem('_dialerPhone', String(ext));
+                 localStorage.setItem('_dialerTab', 'keypad');
+                 window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                   detail: { extension: String(ext), name: memberName }
+                 }));
+               }
+             }).catch(() => {});
            }
            setProfileMemberId(null);
          }}
