@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       scheduled_time: scheduled_time,
       duration_minutes: duration_minutes,
       room_name: roomName,
-      meeting_link: `https://${Deno.env.get('BASE44_APP_DOMAIN').replace(/^https?:\/\//, '')}/Conference?room=${encodeURIComponent(roomName)}`,
+      meeting_link: `${Deno.env.get('BASE44_APP_DOMAIN')}/Conference?room=${encodeURIComponent(roomName)}`,
       organizer_id: organizerId || null,
       organizer_name: organizerName,
       organizer_email: organizerEmail,
