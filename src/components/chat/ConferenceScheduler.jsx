@@ -39,10 +39,10 @@ export default function ConferenceScheduler({ channelId, currentUserId, currentU
 
     setLoading(true);
     try {
-      // Get organizer info from localStorage (sales rep who's initiating)
+      // Get organizer info (sales rep from localStorage or admin from props)
       const organizerName = localStorage.getItem('sales_member_name') || currentUserName;
-      const organizerEmail = localStorage.getItem('sales_member_email');
-      const organizerId = localStorage.getItem('sales_member_id');
+      const organizerEmail = localStorage.getItem('sales_member_email') || currentUserEmail;
+      const organizerId = localStorage.getItem('sales_member_id') || currentUserId;
 
       const response = await base44.functions.invoke('scheduleConference', {
         title,
