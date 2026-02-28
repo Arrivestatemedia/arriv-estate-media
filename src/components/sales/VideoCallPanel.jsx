@@ -51,13 +51,30 @@ export default function VideoCallPanel({
         setLocalStream(stream);
         
         if (localVideoRef.current) {
-          console.log('Setting srcObject on localVideoRef.current with stream:', stream.id);
+          console.log('Camera initialized, setting up video ref. localVideoRef:', !!localVideoRef.current, 'stream id:', stream.id, 'stream tracks:', stream.getTracks().length);
+
+            if (!localVideoRef.current) {
+              console.warn('localVideoRef.current is null, deferring setup');
+              setTimeout(initCamera, 500);
+              return;
+            }
+
+            console.log('Setting srcObject on localVideoRef.current with stream:', stream.id);
             localVideoRef.current.srcObject = stream;
             localVideoRef.current.muted = true;
             localVideoRef.current.playsInline = true;
             localVideoRef.current.autoplay = true;
 
+            console.log('Video element after srcObject assignment:', {
+              hasSrcObject: !!localVideoRef.current.srcObject,
+              trackCount: localVideoRef.current.srcObject?.getTracks().length || 0
+            });
+
             const playLocalVideo = () => {
+              if (!localVideoRef.current) {
+                console.warn('localVideoRef.current is null during play attempt');
+                return;
+              }
               localVideoRef.current.play().then(() => {
                 console.log('Local video playing successfully.');
               }).catch(err => {
@@ -790,42 +807,52 @@ export default function VideoCallPanel({
               
               {/* Local video (picture-in-picture) */}
               {localStream && callState !== "idle" && (
-                <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black shadow-lg z-10">
-                  {!isScreenSharing ? (
-                    <video
-                      ref={localVideoRef}
-                      key="local-video"
-                      autoPlay={true}
-                      playsInline={true}
-                      muted={true}
-                      className="w-full h-full object-cover bg-black"
-                      onError={(e) => {
-                        console.error('Local video error:', e.target.error?.code, e);
-                      }}
-                      onLoadedMetadata={() => {
-                        console.log('Local video metadata loaded');
-                        localVideoRef.current?.play().catch(err => {
-                          console.error('Play error on metadata loaded:', err);
-                        });
-                      }}
-                      onPlay={() => {
-                        console.log('Local video playing');
-                      }}
-                      onPause={() => {
-                        console.log('Local video paused');
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                      <span className="text-xs text-gray-400 text-center px-2">Sharing screen</span>
-                    </div>
-                  )}
-                  {!isVideoOn && !isScreenSharing && (
-                    <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-                      <span className="text-xs text-gray-300">📷 Off</span>
-                    </div>
-                  )}
-                </div>
+                <>
+                  {console.log('Rendering local video PIP, localStream:', !!localStream, 'callState:', callState, 'isScreenSharing:', isScreenSharing)}
+                  <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-yellow-500 bg-black shadow-lg z-10">
+                    {!isScreenSharing ? (
+                      <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                          backgroundColor: '#000'
+                        }}
+                        onError={(e) => {
+                          console.error('Local video error:', e.target.error?.code, e);
+                        }}
+                        onLoadedMetadata={() => {
+                          console.log('Local video metadata loaded, element:', localVideoRef.current);
+                          if (localVideoRef.current) {
+                            localVideoRef.current.play().catch(err => {
+                              console.error('Play error on metadata loaded:', err);
+                            });
+                          }
+                        }}
+                        onPlay={() => {
+                          console.log('Local video playing');
+                        }}
+                        onPause={() => {
+                          console.log('Local video paused');
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                        <span className="text-xs text-gray-400 text-center px-2">Sharing screen</span>
+                      </div>
+                    )}
+                    {!isVideoOn && !isScreenSharing && (
+                      <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                        <span className="text-xs text-gray-300">📷 Off</span>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </>
           )}
