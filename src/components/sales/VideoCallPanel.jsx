@@ -410,6 +410,12 @@ export default function VideoCallPanel({
 
   const toggleScreenShare = async () => {
     try {
+      // Check if we're ready to screen share
+      if (!twilioRoomRef.current?.localParticipant?.videoTracks.length) {
+        setError('Video call must be connected before sharing screen');
+        return;
+      }
+
       if (isScreenSharing) {
         // Stop screen sharing - switch back to camera
         console.log('Stopping screen share...');
