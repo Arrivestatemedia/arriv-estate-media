@@ -19,9 +19,11 @@ export default function VideoCallControls({
   onEndCall,
   onClose,
 }) {
+  const [tooltips, setTooltips] = React.useState({});
+
   return (
     <div className="bg-black/60 backdrop-blur-lg border-t border-purple-500/20 px-6 py-4">
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex items-center justify-center gap-3 relative">
         {/* Mic Control */}
         <Button
           size="lg"
@@ -70,9 +72,13 @@ export default function VideoCallControls({
         {/* Blur Background */}
         <Button
           size="lg"
-          onClick={onToggleBlur}
+          onClick={() => {
+            onToggleBlur();
+            setTooltips(p => ({ ...p, blur: true }));
+            setTimeout(() => setTooltips(p => ({ ...p, blur: false })), 2000);
+          }}
           disabled={callState === "idle"}
-          className={`control-button h-12 w-12 p-0 rounded-full ${
+          className={`control-button h-12 w-12 p-0 rounded-full relative ${
             blurEnabled
               ? "bg-cyan-500/80 hover:bg-cyan-600 text-white"
               : "bg-purple-600/60 hover:bg-purple-700 text-white"
@@ -80,6 +86,11 @@ export default function VideoCallControls({
           title={blurEnabled ? "Disable blur" : "Enable blur"}
         >
           <Wind className="w-5 h-5" />
+          {tooltips.blur && (
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+              {blurEnabled ? "Blur: ON" : "Blur: OFF"}
+            </span>
+          )}
         </Button>
 
         {/* Chat */}
