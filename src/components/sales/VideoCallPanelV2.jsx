@@ -293,8 +293,26 @@ export default function VideoCallPanelV2({
   };
 
   const detachParticipant = (participant) => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.innerHTML = "";
+    try {
+      if (remoteParticipantRef.current) {
+        remoteParticipantRef.current = null;
+      }
+      
+      if (remoteVideoRef.current) {
+        const children = Array.from(remoteVideoRef.current.children || []);
+        children.forEach((child) => {
+          try {
+            child.remove();
+          } catch (err) {
+            console.warn("Failed to remove video element:", err);
+          }
+        });
+        remoteVideoRef.current.innerHTML = "";
+      }
+      
+      console.log("Participant detached");
+    } catch (err) {
+      console.error("Error detaching participant:", err);
     }
   };
 
