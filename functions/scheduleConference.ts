@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
 
       const event = {
         summary: title,
-        description: description || '',
+        description: `${description || ''}\n\nJoin Video Conference: ${conference.meeting_link}`,
         start: {
           dateTime: startTime.toISOString(),
           timeZone: 'America/New_York'
