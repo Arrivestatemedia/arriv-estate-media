@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { X, Phone, PhoneOff, Mic, MicOff, Monitor, MessageSquare, Wind } from "lucide-react";
+import { X, Phone, PhoneOff, Mic, MicOff, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import ChatPanel from "./ChatPanel";
@@ -408,27 +408,27 @@ export default function VideoCallPanel({
     <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
       <style>{`
         .video-frame {
-          border: 1px solid rgba(139, 92, 246, 0.3);
-          box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 0 20px rgba(139, 92, 246, 0.05);
+          border: 1px solid rgba(184, 149, 106, 0.3);
+          box-shadow: 0 0 20px rgba(184, 149, 106, 0.15), inset 0 0 20px rgba(184, 149, 106, 0.05);
         }
         .control-button {
           transition: all 0.2s ease;
-          border: 1px solid rgba(139, 92, 246, 0.5);
+          border: 1px solid rgba(184, 149, 106, 0.5);
         }
         .control-button:hover {
-          border-color: rgba(139, 92, 246, 0.8);
-          box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+          border-color: rgba(184, 149, 106, 0.8);
+          box-shadow: 0 0 10px rgba(184, 149, 106, 0.5);
         }
       `}</style>
 
-      <div className="w-full h-full bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 flex flex-col">
+      <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex flex-col">
         {/* Header */}
-        <div className="bg-black/60 backdrop-blur-lg border-b border-purple-500/20 px-6 py-4 flex items-center justify-between">
+        <div className="bg-black/80 backdrop-blur-lg border-b border-yellow-600/20 px-6 py-4 flex items-center justify-between">
           <div>
             <h3 className="text-white font-semibold text-lg">
               {remoteParticipantName || recipientName || 'Video Call'}
             </h3>
-            {recipientExtension && <p className="text-purple-300 text-xs">Ext. {recipientExtension}</p>}
+            {recipientExtension && <p className="text-yellow-600/70 text-xs">Ext. {recipientExtension}</p>}
             {callState === "connected" && <p className="text-green-400 text-xs">● Connected</p>}
           </div>
           <Button
@@ -478,7 +478,7 @@ export default function VideoCallPanel({
 
             {/* Screen Share Indicator */}
             {isScreenSharing && (
-              <div className="absolute top-6 right-6 bg-blue-500/90 backdrop-blur px-4 py-2 rounded-lg text-white text-sm flex items-center gap-2 z-40">
+              <div className="absolute top-6 right-6 bg-yellow-600/80 backdrop-blur px-4 py-2 rounded-lg text-white text-sm flex items-center gap-2 z-40">
                 <Monitor className="w-4 h-4" />
                 Sharing Screen
               </div>

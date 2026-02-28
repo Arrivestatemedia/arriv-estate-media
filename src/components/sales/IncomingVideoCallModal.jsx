@@ -15,14 +15,14 @@ export default function IncomingVideoCallModal({ callerName, callerExtension, on
         }
       `}</style>
       
-      <div className="bg-gradient-to-br from-slate-900 to-purple-900 rounded-2xl p-8 w-full max-w-sm text-center border border-purple-500/30 shadow-2xl shadow-purple-500/20">
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 w-full max-w-sm text-center border border-yellow-600/30 shadow-2xl shadow-yellow-600/10">
         <div className="mb-6">
           <div className="ring-animation inline-block">
             <Phone className="w-16 h-16 mx-auto mb-4 text-green-400 animate-pulse" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Incoming Video Call</h2>
-          <p className="text-lg font-semibold text-purple-200">{callerName}</p>
-          {callerExtension && <p className="text-sm text-purple-400">Ext. {callerExtension}</p>}
+          <p className="text-lg font-semibold text-yellow-200">{callerName}</p>
+          {callerExtension && <p className="text-sm text-yellow-400">Ext. {callerExtension}</p>}
         </div>
         
         <div className="flex gap-3">
