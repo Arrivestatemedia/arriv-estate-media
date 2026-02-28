@@ -534,23 +534,29 @@ export default function VideoCallPanel({
               />
               
               {/* Local video (picture-in-picture) */}
-              {!isScreenSharing && callState === "connected" && (
-                <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black shadow-lg z-10">
-                  <video
-                    ref={localVideoRef}
-                    autoPlay={true}
-                    playsInline={true}
-                    muted={true}
-                    className="w-full h-full object-cover bg-black"
-                    style={{ display: 'block' }}
-                  />
-                  {!isVideoOn && (
-                    <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-                      <span className="text-xs text-gray-300">📷 Off</span>
-                    </div>
-                  )}
-                </div>
-              )}
+               {callState === "connected" && (
+                 <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black shadow-lg z-10">
+                   {!isScreenSharing ? (
+                     <video
+                       ref={localVideoRef}
+                       autoPlay={true}
+                       playsInline={true}
+                       muted={true}
+                       className="w-full h-full object-cover bg-black"
+                       style={{ display: 'block' }}
+                     />
+                   ) : (
+                     <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                       <span className="text-xs text-gray-400 text-center px-2">Sharing screen</span>
+                     </div>
+                   )}
+                   {!isVideoOn && !isScreenSharing && (
+                     <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                       <span className="text-xs text-gray-300">📷 Off</span>
+                     </div>
+                   )}
+                 </div>
+               )}
             </>
           )}
         </div>
