@@ -525,6 +525,10 @@ export default function HubSpotActivityLog() {
           </Card>
         )}
 
+        {activeTab === "ai" && (
+          <AiAssistantTab repName={user?.full_name} />
+        )}
+
         {activeTab === "chat" && (
           <ChatTab 
             currentUserId={user?.id} 
