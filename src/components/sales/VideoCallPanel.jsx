@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { X, Phone, PhoneOff, Mic, MicOff, Monitor, Settings, Send, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import VideoDisplay from "./VideoDisplay";
-import VideoControls from "./VideoControls";
-import ChatPanel from "./ChatPanel";
+import VideoDisplay from "./VideoDisplay.jsx";
+import VideoControls from "./VideoControls.jsx";
+import ChatPanel from "./ChatPanel.jsx";
 
 export default function VideoCallPanel({ 
   recipientName, 
