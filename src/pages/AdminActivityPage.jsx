@@ -99,7 +99,20 @@ export default function AdminActivityPage({ user }) {
 
   const queryClient = useQueryClient();
 
+  // Sync chat status with calendar every 3 minutes (same as AdminHub)
+  useEffect(() => {
+    const syncStatus = async () => {
+      try {
+        await base44.functions.invoke('syncAdminChatStatusWithCalendar', {});
+      } catch (error) {
+        console.error('Chat status sync error:', error);
+      }
+    };
 
+    syncStatus();
+    const interval = setInterval(syncStatus, 3 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
   useEffect(() => {
