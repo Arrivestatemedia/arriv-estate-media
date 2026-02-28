@@ -132,33 +132,48 @@ export default function VideoCallPanel({
   }, [autoStart, roomName, callState, localStream]);
 
   const toggleMic = () => {
-    if (localStream) {
-      localStream.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
+    if (!twilioRoomRef.current?.localParticipant) {
+      console.warn('No local participant in Twilio room');
+      return;
+    }
+    
+    try {
+      const audioTracks = twilioRoomRef.current.localParticipant.audioTracks;
+      audioTracks.forEach(audioTrackPublication => {
+        if (audioTrackPublication.track) {
+          audioTrackPublication.track.disable();
+          console.log('Toggling audio to:', !isMuted);
+        }
       });
       setIsMuted(!isMuted);
+    } catch (err) {
+      console.error('Error toggling mic:', err);
+      setError('Failed to toggle microphone');
     }
   };
 
   const toggleVideo = () => {
-    if (localStream) {
-      const videoTracks = localStream.getVideoTracks();
-      console.log('Toggling video, current state:', isVideoOn, 'tracks count:', videoTracks.length);
-      videoTracks.forEach(track => {
-        track.enabled = !track.enabled;
-        console.log('Video track state:', { enabled: track.enabled, readyState: track.readyState });
+    if (!twilioRoomRef.current?.localParticipant) {
+      console.warn('No local participant in Twilio room');
+      return;
+    }
+    
+    try {
+      const videoTracks = twilioRoomRef.current.localParticipant.videoTracks;
+      videoTracks.forEach(videoTrackPublication => {
+        if (videoTrackPublication.track) {
+          if (isVideoOn) {
+            videoTrackPublication.track.disable();
+          } else {
+            videoTrackPublication.track.enable();
+          }
+          console.log('Video track toggled to:', !isVideoOn ? 'enabled' : 'disabled');
+        }
       });
       setIsVideoOn(!isVideoOn);
-      
-      // Verify the change took effect
-      setTimeout(() => {
-        if (localVideoRef.current) {
-          console.log('Video element state after toggle:', {
-            paused: localVideoRef.current.paused,
-            srcObject: localVideoRef.current.srcObject ? 'set' : 'not set'
-          });
-        }
-      }, 100);
+    } catch (err) {
+      console.error('Error toggling video:', err);
+      setError('Failed to toggle video');
     }
   };
 
