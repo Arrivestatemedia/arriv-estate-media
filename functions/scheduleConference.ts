@@ -4,6 +4,14 @@ Deno.serve(async (req) => {
   try {
     console.log('=== scheduleConference called ===');
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+
+    if (!user) {
+      console.error('No user authenticated');
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('User:', user.email, user.id);
 
     let body;
     try {
@@ -21,19 +29,16 @@ Deno.serve(async (req) => {
       scheduledTime,
       durationMinutes = 60,
       participants = [],
-      channelId,
-      organizerId,
-      organizerName,
-      organizerEmail
+      channelId
     } = body;
 
     const scheduled_date = scheduledDate;
     const scheduled_time = scheduledTime;
     const duration_minutes = durationMinutes;
 
-    if (!title || !scheduled_date || !scheduled_time || !organizerId || !organizerName || !organizerEmail) {
-      console.error('Missing required fields:', { title, scheduled_date, scheduled_time, organizerId, organizerName, organizerEmail });
-      return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime, organizerId, organizerName, organizerEmail' }, { status: 400 });
+    if (!title || !scheduled_date || !scheduled_time) {
+      console.error('Missing required fields:', { title, scheduled_date, scheduled_time });
+      return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime' }, { status: 400 });
     }
 
     console.log('Creating conference with:', { title, scheduled_date, scheduled_time, duration_minutes, participants: participants.length });
@@ -43,7 +48,7 @@ Deno.serve(async (req) => {
 
     // Create conference record
     console.log('Creating Conference entity...');
-    const conference = await base44.asServiceRole.entities.Conference.create({
+    const conference = await base44.entities.Conference.create({
       title,
       description: description || '',
       scheduled_date: scheduled_date,
@@ -51,9 +56,9 @@ Deno.serve(async (req) => {
       duration_minutes: duration_minutes,
       room_name: roomName,
       meeting_link: `${Deno.env.get('BASE44_APP_DOMAIN')}/Conference?room=${encodeURIComponent(roomName)}`,
-      organizer_id: organizerId,
-      organizer_name: organizerName,
-      organizer_email: organizerEmail,
+      organizer_id: user.id,
+      organizer_name: user.full_name,
+      organizer_email: user.email,
       participants: participants.map(p => ({
         id: p.id,
         name: p.name,
