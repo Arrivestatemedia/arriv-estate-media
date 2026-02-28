@@ -213,7 +213,7 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
       </div>
 
       {/* ── RIGHT CHAT AREA ── */}
-      <div className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: '#212121' }}>
+      <div className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: '#ffffff' }}>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto">
@@ -224,8 +224,8 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                 <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#B8956A' }}>
                   <Sparkles className="w-7 h-7 text-white" />
                 </div>
-                <h2 className="text-2xl font-semibold mb-2" style={{ color: '#ececec' }}>How can I help you today?</h2>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Your AI sales assistant for Arriv — emails, scripts, objections & more.</p>
+                <h2 className="text-2xl font-semibold mb-2" style={{ color: '#1a1a1a' }}>How can I help you today?</h2>
+                <p className="text-sm" style={{ color: 'rgba(0,0,0,0.45)' }}>Your AI sales assistant for Arriv — emails, scripts, objections & more.</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
                 {STARTER_PROMPTS.map((p, i) => (
@@ -233,9 +233,9 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                     key={i}
                     onClick={() => sendMessage(p)}
                     className="text-left text-sm px-4 py-3 rounded-xl border transition"
-                    style={{ borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.8)' }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                    style={{ borderColor: '#e5e5e5', backgroundColor: '#f9f9f9', color: '#1a1a1a' }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#efefef'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = '#f9f9f9'}
                   >
                     {p}
                   </button>
@@ -255,27 +255,27 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                     className="text-sm leading-relaxed"
                     style={{
                       maxWidth: msg.role === "user" ? '70%' : '85%',
-                      backgroundColor: msg.role === "user" ? '#2f2f2f' : 'transparent',
-                      color: '#ececec',
+                      backgroundColor: msg.role === "user" ? '#1a1a1a' : 'transparent',
+                      color: msg.role === "user" ? '#fff' : '#1a1a1a',
                       borderRadius: msg.role === "user" ? '18px' : '0',
                       padding: msg.role === "user" ? '10px 16px' : '0',
                     }}
                   >
                     {msg.role === "assistant" ? (
                       <ReactMarkdown
-                        className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                        className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
                         components={{
                           p: ({ children }) => <p className="my-1.5 leading-relaxed">{children}</p>,
                           ul: ({ children }) => <ul className="my-2 ml-4 list-disc space-y-1">{children}</ul>,
                           ol: ({ children }) => <ol className="my-2 ml-4 list-decimal space-y-1">{children}</ol>,
                           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                          strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-                          h1: ({ children }) => <h1 className="text-lg font-semibold mt-3 mb-1 text-white">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-base font-semibold mt-3 mb-1 text-white">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1 text-white">{children}</h3>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          h1: ({ children }) => <h1 className="text-lg font-semibold mt-3 mb-1">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-semibold mt-3 mb-1">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1">{children}</h3>,
                           code: ({ inline, children }) => inline
-                            ? <code className="px-1 py-0.5 rounded text-xs" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>{children}</code>
-                            : <pre className="p-3 rounded-lg text-xs overflow-x-auto my-2" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}><code>{children}</code></pre>,
+                            ? <code className="px-1 py-0.5 rounded text-xs" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>{children}</code>
+                            : <pre className="p-3 rounded-lg text-xs overflow-x-auto my-2" style={{ backgroundColor: '#f4f4f4' }}><code>{children}</code></pre>,
                         }}
                       >
                         {msg.content}
@@ -292,10 +292,10 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                   <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#B8956A' }}>
                     <Sparkles className="w-4 h-4 text-white" />
                   </div>
-                  <div className="flex items-center gap-1 pt-1">
-                    <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'rgba(255,255,255,0.4)', animationDelay: '0ms' }} />
-                    <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'rgba(255,255,255,0.4)', animationDelay: '150ms' }} />
-                    <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'rgba(255,255,255,0.4)', animationDelay: '300ms' }} />
+                  <div className="flex items-center gap-1 pt-2">
+                    <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'rgba(0,0,0,0.3)', animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'rgba(0,0,0,0.3)', animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: 'rgba(0,0,0,0.3)', animationDelay: '300ms' }} />
                   </div>
                 </div>
               )}
@@ -305,11 +305,11 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
         </div>
 
         {/* Input area */}
-        <div className="px-4 pb-5 pt-2" style={{ backgroundColor: '#212121' }}>
+        <div className="px-4 pb-5 pt-2" style={{ backgroundColor: '#ffffff' }}>
           <div className="max-w-3xl mx-auto">
             <div
               className="flex items-end gap-2 rounded-2xl px-4 py-3"
-              style={{ backgroundColor: '#2f2f2f', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ backgroundColor: '#f4f4f4', border: '1px solid #e5e5e5' }}
             >
               <Textarea
                 ref={textareaRef}
@@ -319,18 +319,18 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                 onKeyDown={handleKeyDown}
                 rows={1}
                 className="flex-1 resize-none text-sm border-0 bg-transparent p-0 focus-visible:ring-0 shadow-none"
-                style={{ color: '#ececec', minHeight: '24px', maxHeight: '160px' }}
+                style={{ color: '#1a1a1a', minHeight: '24px', maxHeight: '160px' }}
               />
               <button
                 onClick={() => sendMessage()}
                 disabled={!input.trim() || loading}
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition disabled:opacity-30"
-                style={{ backgroundColor: input.trim() && !loading ? '#B8956A' : 'rgba(255,255,255,0.15)' }}
+                style={{ backgroundColor: input.trim() && !loading ? '#B8956A' : '#d0d0d0' }}
               >
                 {loading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Send className="w-4 h-4 text-white" />}
               </button>
             </div>
-            <p className="text-center text-xs mt-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <p className="text-center text-xs mt-2" style={{ color: 'rgba(0,0,0,0.25)' }}>
               Press Enter to send · Shift+Enter for new line
             </p>
           </div>
