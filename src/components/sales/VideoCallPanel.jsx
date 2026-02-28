@@ -130,6 +130,19 @@ export default function VideoCallPanel({
   };
 
   const handleEndCall = () => {
+    if (twilioRoomRef.current) {
+      twilioRoomRef.current.localParticipant.videoTracks.forEach(trackSubscription => {
+        trackSubscription.track.stop();
+      });
+      twilioRoomRef.current.localParticipant.audioTracks.forEach(trackSubscription => {
+        trackSubscription.track.stop();
+      });
+      twilioRoomRef.current.disconnect();
+      twilioRoomRef.current = null;
+    }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.innerHTML = '';
+    }
     setCallState("idle");
   };
 
