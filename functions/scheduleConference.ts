@@ -4,14 +4,6 @@ Deno.serve(async (req) => {
   try {
     console.log('=== scheduleConference called ===');
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      console.error('No user authenticated');
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.log('User:', user.email, user.id);
 
     let body;
     try {
@@ -29,16 +21,19 @@ Deno.serve(async (req) => {
       scheduledTime,
       durationMinutes = 60,
       participants = [],
-      channelId
+      channelId,
+      organizerId,
+      organizerName,
+      organizerEmail
     } = body;
 
     const scheduled_date = scheduledDate;
     const scheduled_time = scheduledTime;
     const duration_minutes = durationMinutes;
 
-    if (!title || !scheduled_date || !scheduled_time) {
-      console.error('Missing required fields:', { title, scheduled_date, scheduled_time });
-      return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime' }, { status: 400 });
+    if (!title || !scheduled_date || !scheduled_time || !organizerId || !organizerName || !organizerEmail) {
+      console.error('Missing required fields:', { title, scheduled_date, scheduled_time, organizerId, organizerName, organizerEmail });
+      return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime, organizerId, organizerName, organizerEmail' }, { status: 400 });
     }
 
     console.log('Creating conference with:', { title, scheduled_date, scheduled_time, duration_minutes, participants: participants.length });
