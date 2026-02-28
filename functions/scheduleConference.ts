@@ -4,14 +4,6 @@ Deno.serve(async (req) => {
   try {
     console.log('=== scheduleConference called ===');
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      console.error('No user authenticated');
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.log('User:', user.email, user.id);
 
     let body;
     try {
@@ -29,7 +21,10 @@ Deno.serve(async (req) => {
       scheduledTime,
       durationMinutes = 60,
       participants = [],
-      channelId
+      channelId,
+      organizerId,
+      organizerName,
+      organizerEmail
     } = body;
 
     const scheduled_date = scheduledDate;
