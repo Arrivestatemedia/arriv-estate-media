@@ -142,7 +142,16 @@ export default function VideoCallPanelV2({
 
       // Ensure Twilio SDK is loaded
       if (!window.Twilio?.Video) {
-        await loadTwilioSDK();
+        try {
+          await loadTwilioSDK();
+        } catch (sdkErr) {
+          console.error("SDK load failed:", sdkErr);
+          throw new Error("Failed to load Twilio Video SDK: " + sdkErr.message);
+        }
+      }
+
+      if (!window.Twilio?.Video) {
+        throw new Error("Twilio Video SDK is not available");
       }
 
       const Video = window.Twilio.Video;
