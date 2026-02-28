@@ -28,13 +28,22 @@ export default function VideoCallPanel({
   useEffect(() => {
     const initCamera = async () => {
       try {
+        console.log('Initializing camera...');
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: true
         });
+        console.log('Camera stream obtained, attaching to video ref');
         setLocalStream(stream);
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
+          // Force play
+          localVideoRef.current.play().catch(err => {
+            console.warn('Auto-play failed (expected in some browsers):', err);
+          });
+          console.log('Local stream attached to video ref');
+        } else {
+          console.warn('localVideoRef is not ready yet');
         }
       } catch (err) {
         console.error('Camera access error:', err);
@@ -46,10 +55,11 @@ export default function VideoCallPanel({
 
     return () => {
       if (localStream) {
+        console.log('Cleaning up camera stream');
         localStream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [localVideoRef]);
 
   useEffect(() => {
     if (autoStart && roomName && !recipientExtension && callState === "idle" && localStream) {
