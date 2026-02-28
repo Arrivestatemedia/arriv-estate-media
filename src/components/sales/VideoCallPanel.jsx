@@ -624,16 +624,34 @@ export default function VideoCallPanel({
               />
               
               {/* Local video (picture-in-picture) */}
-               {callState === "connected" && (
+               {callState === "connected" && localStream && (
                  <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black shadow-lg z-10">
                    {!isScreenSharing ? (
                      <video
                        ref={localVideoRef}
+                       key="local-video"
                        autoPlay={true}
                        playsInline={true}
                        muted={true}
                        className="w-full h-full object-cover bg-black"
-                       style={{ display: 'block' }}
+                       style={{ 
+                         display: 'block',
+                         width: '100%',
+                         height: '100%',
+                         objectFit: 'cover'
+                       }}
+                       onError={(e) => {
+                         console.error('Local video error:', e);
+                       }}
+                       onLoadedMetadata={() => {
+                         console.log('Local video metadata loaded');
+                       }}
+                       onPlay={() => {
+                         console.log('Local video playing');
+                       }}
+                       onPause={() => {
+                         console.log('Local video paused');
+                       }}
                      />
                    ) : (
                      <div className="w-full h-full bg-gray-800 flex items-center justify-center">
