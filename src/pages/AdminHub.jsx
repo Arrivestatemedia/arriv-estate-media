@@ -231,7 +231,27 @@ export default function AdminHub() {
       />
 
       {/* Admin floating chat bubble */}
-      <AdminChatBubble currentUserId={user.id} currentUserName={user.full_name} />
+      <AdminChatBubble
+        currentUserId={user.id}
+        currentUserName={user.full_name}
+        onInitiateTransfer={(memberId, memberName) => {
+          base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+            const ext = members?.[0]?.extension;
+            if (ext) {
+              setActiveTab("activity");
+              setTimeout(() => {
+                localStorage.setItem('dialerPhone', String(ext));
+                window.dispatchEvent(new Event('dialerCardReady'));
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                    detail: { extension: String(ext), name: memberName }
+                  }));
+                }, 200);
+              }, 100);
+            }
+          }).catch(() => {});
+        }}
+      />
     </div>
   );
 }
