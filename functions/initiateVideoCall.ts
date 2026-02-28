@@ -32,21 +32,23 @@ Deno.serve(async (req) => {
     const AccessToken = Twilio.jwt.AccessToken;
     const VideoGrant = AccessToken.VideoGrant;
 
-    const callerToken = new AccessToken(
-      Deno.env.get('TWILIO_ACCOUNT_SID'),
-      Deno.env.get('TWILIO_API_KEY'),
-      Deno.env.get('TWILIO_API_SECRET')
-    );
-    callerToken.addGrant(new VideoGrant({ room: roomName }));
-    callerToken.identity = `${caller.id}:${caller.full_name}`;
+    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+    const apiKey = Deno.env.get('TWILIO_API_KEY');
+    const apiSecret = Deno.env.get('TWILIO_API_SECRET');
 
-    const recipientToken = new AccessToken(
-      Deno.env.get('TWILIO_ACCOUNT_SID'),
-      Deno.env.get('TWILIO_API_KEY'),
-      Deno.env.get('TWILIO_API_SECRET')
-    );
+    if (!accountSid || !apiKey || !apiSecret) {
+      return Response.json({ error: 'Missing Twilio credentials' }, { status: 500 });
+    }
+
+    const callerToken = new AccessToken(accountSid, apiKey, apiSecret, {
+      identity: `${caller.id}:${caller.full_name}`
+    });
+    callerToken.addGrant(new VideoGrant({ room: roomName }));
+
+    const recipientToken = new AccessToken(accountSid, apiKey, apiSecret, {
+      identity: `${recipient.id}:${recipient.full_name}`
+    });
     recipientToken.addGrant(new VideoGrant({ room: roomName }));
-    recipientToken.identity = `${recipient.id}:${recipient.full_name}`;
 
     console.log(`Video call initiated: ${caller.full_name} → ${recipient.full_name} (room: ${roomName})`);
 
