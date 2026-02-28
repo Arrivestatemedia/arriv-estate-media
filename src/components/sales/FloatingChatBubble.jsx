@@ -54,6 +54,10 @@ export default function FloatingChatBubble({ currentUserId, currentUserName }) {
             <ChatTab 
               currentUserId={currentUserId} 
               currentUserName={currentUserName}
+              onInitiateTransfer={(memberId, memberName) => {
+                const ext = memberId;
+                window.dispatchEvent(new CustomEvent('initiateTransfer', { detail: { extension: String(ext), name: memberName } }));
+              }}
             />
           </div>
         </div>
