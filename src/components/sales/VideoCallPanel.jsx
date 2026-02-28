@@ -67,6 +67,32 @@ export default function VideoCallPanel({
   };
 
   const handleStartCall = async () => {
+    // If we already have a room name, generate a token and connect directly
+    if (roomName && !recipientExtension) {
+      console.log('Generating token for room:', roomName);
+      setCallState("calling");
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await base44.functions.invoke('generateTwilioVideoToken', {
+          roomName: roomName,
+          participantName: currentUserName || 'Guest'
+        });
+        
+        if (response?.data?.token) {
+          initializeVideoRoom(response.data.token, roomName);
+        } else {
+          throw new Error('Failed to generate video token');
+        }
+      } catch (err) {
+        console.error('Failed to generate token:', err);
+        setError('Failed to start video call: ' + err.message);
+        setCallState("idle");
+        setIsLoading(false);
+      }
+      return;
+    }
+
     // If we already have a token and room name (incoming call or token was provided), connect directly
     if (callerToken && roomName) {
       console.log('Using provided token and room name, connecting to room:', roomName);
