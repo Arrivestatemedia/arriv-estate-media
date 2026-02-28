@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { X, Phone, PhoneOff, Mic, MicOff, Monitor } from "lucide-react";
+import { X, Mic, MicOff, Video, VideoOff, Monitor, Phone, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import ChatPanel from "./ChatPanel";
-import VideoCallControls from "./VideoCallControls";
 
 export default function VideoCallPanel({ 
   recipientName, 
@@ -17,50 +15,35 @@ export default function VideoCallPanel({
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const remoteAudioRef = useRef(null);
-  const screenStreamRef = useRef(null);
   const twilioRoomRef = useRef(null);
   const localStreamRef = useRef(null);
 
-  const [localStream, setLocalStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [error, setError] = useState(null);
   const [callState, setCallState] = useState("idle");
   const [isLoading, setIsLoading] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [blurEnabled, setBlurEnabled] = useState(false);
   const [remoteParticipantName, setRemoteParticipantName] = useState(null);
 
   // Initialize camera
   useEffect(() => {
     const initCamera = async () => {
       try {
-        console.log('🎥 Initializing camera...');
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: { echoCancellation: true, noiseSuppression: true }
         });
 
-        const videoTracks = stream.getVideoTracks();
-        if (videoTracks.length === 0) throw new Error('No video tracks');
-
-        console.log('✅ Camera ready');
-        
         localStreamRef.current = stream;
-        setLocalStream(stream);
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
-          localVideoRef.current.muted = true;
-          localVideoRef.current.autoplay = true;
-          localVideoRef.current.playsInline = true;
-          await localVideoRef.current.play().catch(err => console.warn('Play:', err));
+          await localVideoRef.current.play().catch(() => {});
         }
       } catch (err) {
-        console.error('❌ Camera error:', err);
-        setError("Camera access denied: " + err.message);
+        console.error('Camera error:', err);
+        setError("Unable to access camera");
       }
     };
 
@@ -68,86 +51,19 @@ export default function VideoCallPanel({
 
     return () => {
       if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current.getTracks().forEach(t => t.stop());
       }
     };
   }, []);
 
-  const attachTrack = useCallback((track) => {
-    if (track.kind === 'video' && remoteVideoRef.current) {
-      console.log('🎥 Attaching video track');
-      try {
-        const videoElement = track.attach();
-        videoElement.autoplay = true;
-        videoElement.playsInline = true;
-        videoElement.style.width = '100%';
-        videoElement.style.height = '100%';
-        videoElement.style.objectFit = 'cover';
-        remoteVideoRef.current.innerHTML = '';
-        remoteVideoRef.current.appendChild(videoElement);
-        console.log('✅ Video attached');
-      } catch (err) {
-        console.error('❌ Video attach error:', err);
-      }
-    } else if (track.kind === 'audio') {
-      console.log('🔊 Attaching audio track');
-      try {
-        const audioElement = track.attach();
-        audioElement.autoplay = true;
-        if (remoteAudioRef.current) {
-          remoteAudioRef.current.innerHTML = '';
-          remoteAudioRef.current.appendChild(audioElement);
-        } else {
-          document.body.appendChild(audioElement);
-        }
-        console.log('✅ Audio attached');
-      } catch (err) {
-        console.error('❌ Audio attach error:', err);
-      }
-    }
-  }, []);
-
-  const handleParticipantDisconnected = useCallback((participant) => {
-    console.log('👋 Participant disconnected:', participant.sid);
-    if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = '';
-  }, []);
-
-  const handleParticipantConnected = useCallback((participant) => {
-    console.log('👤 Participant connected:', participant.sid, 'identity:', participant.identity);
-    setRemoteParticipantName(participant.identity);
-
-    // Subscribe to existing tracks
-    participant.tracks.forEach(publication => {
-      if (publication.isSubscribed) {
-        console.log('📥 Track already subscribed:', publication.track.kind);
-        attachTrack(publication.track);
-      }
-    });
-
-    participant.on('trackSubscribed', track => {
-      console.log('📥 Track subscribed:', track.kind);
-      attachTrack(track);
-    });
-
-    participant.on('trackUnsubscribed', track => {
-      console.log('📤 Track unsubscribed:', track.kind);
-      try {
-        track.detach().forEach(el => el?.remove?.());
-      } catch (err) {
-        console.warn('Detach error:', err);
-      }
-    });
-  }, [attachTrack]);
-
   // Auto-start
   useEffect(() => {
-    if (autoStart && roomName && !recipientExtension && callState === "idle" && localStream) {
-      setTimeout(handleStartCall, 100);
+    if (autoStart && roomName && callState === "idle") {
+      setTimeout(() => handleStartCall(), 500);
     }
-  }, [autoStart, roomName, callState, localStream]);
+  }, [autoStart, roomName, callState]);
 
   const handleStartCall = useCallback(async () => {
-    console.log('📞 Starting call...');
     setCallState("calling");
     setIsLoading(true);
     setError(null);
@@ -156,364 +72,290 @@ export default function VideoCallPanel({
       let token = callerToken;
       let room = roomName;
 
-      // Generate room name if not provided (outgoing calls)
-      if (!room && !token) {
-        const ext = recipientExtension || 'unknown';
-        const ts = Date.now();
-        room = `call-${currentUserName?.replace(/\s+/g, '-')}-${ext}-${ts}`.toLowerCase();
-        console.log('🏠 Generated room:', room);
-      }
-
       if (!token && room) {
-        console.log('🔐 Generating token for room:', room);
         const response = await base44.functions.invoke('generateDirectVideoToken', {
           roomName: room,
           participantName: currentUserName || 'Guest'
         });
         if (!response?.data?.token) {
-          console.error('Token response:', response);
-          throw new Error('Failed to generate token: ' + (response?.data?.error || 'No token in response'));
+          throw new Error('Failed to generate token');
         }
         token = response.data.token;
-        console.log('✅ Token generated');
       }
 
-      if (!token) throw new Error('No token: ' + (room ? 'generation failed' : 'not provided'));
-      if (!room) throw new Error('No room name');
+      if (!token || !room) {
+        throw new Error('Missing token or room name');
+      }
 
       await connectToRoom(token, room);
     } catch (err) {
-      console.error('❌ Error:', err);
-      setError("Failed: " + err.message);
+      console.error('Error:', err);
+      setError(err.message);
       setCallState("idle");
     } finally {
       setIsLoading(false);
     }
-  }, [callerToken, roomName, currentUserName, recipientExtension]);
+  }, [callerToken, roomName, currentUserName]);
 
   const connectToRoom = useCallback(async (token, room) => {
     try {
-      console.log('🌐 Connecting to', room, '...');
-      
       if (!window.Twilio?.Video) {
-        console.log('📦 Loading Twilio Video SDK...');
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.id = 'twilio-video-sdk';
           script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
-          
           script.onload = () => {
             setTimeout(() => {
-              if (window?.Twilio?.Video) {
-                console.log('✅ SDK loaded');
-                resolve(true);
-              } else {
-                reject(new Error('Twilio.Video not available after load'));
-              }
-            }, 200);
+              if (window?.Twilio?.Video) resolve();
+              else reject(new Error('Twilio.Video not loaded'));
+            }, 100);
           };
-          
-          script.onerror = (err) => {
-            console.error('SDK load error:', err);
-            reject(new Error('Failed to load Twilio SDK'));
-          };
-          
+          script.onerror = () => reject(new Error('Failed to load SDK'));
           document.head.appendChild(script);
-          
-          setTimeout(() => {
-            reject(new Error('SDK load timeout'));
-          }, 10000);
         });
       }
 
       const Video = window?.Twilio?.Video;
       if (!Video) throw new Error('Twilio Video not available');
 
-      const connectOptions = {
+      const videoRoom = await Video.connect(token, {
         name: room,
         audio: { echoCancellation: true, noiseSuppression: true },
         video: { width: 640 },
-        networkQuality: { local: 1, remote: 1 },
         dominantSpeaker: true
-      };
+      });
 
-      const videoRoom = await Video.connect(token, connectOptions);
-      console.log('✅ Connected to room:', videoRoom.name);
       twilioRoomRef.current = videoRoom;
 
-      // Ensure local video plays with error handling
       if (localVideoRef.current && localStreamRef.current) {
-        try {
-          localVideoRef.current.srcObject = localStreamRef.current;
-          localVideoRef.current.autoplay = true;
-          localVideoRef.current.muted = true;
-          localVideoRef.current.playsInline = true;
-          await localVideoRef.current.play().catch(e => console.log('Play pending:', e));
-        } catch (err) {
-          console.error('Local video setup error:', err);
-        }
-      } else {
-        console.warn('Local video ref or stream missing:', !!localVideoRef.current, !!localStreamRef.current);
+        localVideoRef.current.srcObject = localStreamRef.current;
       }
 
       setCallState("connected");
 
-      // Handle existing participants
-      videoRoom.participants.forEach(handleParticipantConnected);
-      
-      // Handle new participants
+      videoRoom.participants.forEach(p => handleParticipantConnected(p));
       videoRoom.on('participantConnected', handleParticipantConnected);
       videoRoom.on('participantDisconnected', handleParticipantDisconnected);
-      
-      // Handle disconnection
-      videoRoom.on('disconnected', () => {
-        console.log('📴 Disconnected from room');
-        setCallState("idle");
-      });
+      videoRoom.on('disconnected', () => setCallState("idle"));
     } catch (err) {
-      console.error('❌ Connection error:', err);
-      setError("Connection failed: " + err.message);
+      console.error('Connection error:', err);
+      setError(err.message);
       setCallState("idle");
     }
-  }, [handleParticipantConnected, handleParticipantDisconnected]);
-
-  const toggleMic = useCallback(() => {
-    try {
-      if (localStreamRef.current) {
-        localStreamRef.current.getAudioTracks().forEach(t => {
-          t.enabled = !t.enabled;
-        });
-        setIsMuted(!isMuted);
-      }
-    } catch (err) {
-      console.error('Mic error:', err);
-    }
-  }, [isMuted]);
-
-  const toggleVideo = useCallback(() => {
-    try {
-      if (localStreamRef.current) {
-        localStreamRef.current.getVideoTracks().forEach(t => {
-          t.enabled = !t.enabled;
-        });
-        setIsVideoOn(!isVideoOn);
-      }
-    } catch (err) {
-      console.error('Video error:', err);
-    }
-  }, [isVideoOn]);
-
-  const toggleScreenShare = useCallback(async () => {
-    if (!twilioRoomRef.current?.localParticipant) {
-      setError('Not connected');
-      return;
-    }
-
-    try {
-      if (isScreenSharing) {
-        console.log('🛑 Stopping screen share...');
-        if (screenStreamRef.current) {
-          screenStreamRef.current.getTracks().forEach(t => t.stop());
-          screenStreamRef.current = null;
-        }
-
-        if (localStreamRef.current) {
-          const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-          const videoTrackPub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
-          if (cameraTrack && videoTrackPub?.track) {
-            await videoTrackPub.track.replaceTrack(cameraTrack);
-            console.log('✅ Switched to camera');
-          }
-        }
-        setIsScreenSharing(false);
-      } else {
-        console.log('📺 Starting screen share...');
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: 'always' },
-          audio: false
-        });
-
-        const screenTrack = screenStream.getVideoTracks()[0];
-        if (!screenTrack) throw new Error('No screen track');
-
-        screenStreamRef.current = screenStream;
-
-        const videoTrackPub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
-        if (!videoTrackPub?.track) throw new Error('No video track in room');
-
-        await videoTrackPub.track.replaceTrack(screenTrack);
-        console.log('✅ Screen share started');
-        setIsScreenSharing(true);
-
-        screenTrack.onended = async () => {
-          console.log('📵 Screen share stopped');
-          if (localStreamRef.current) {
-            const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-            if (cameraTrack && videoTrackPub?.track) {
-              await videoTrackPub.track.replaceTrack(cameraTrack);
-            }
-          }
-          setIsScreenSharing(false);
-        };
-      }
-    } catch (err) {
-      if (err.name !== 'NotAllowedError') {
-        console.error('❌ Screen share error:', err);
-        setError('Screen share failed: ' + err.message);
-      }
-      setIsScreenSharing(false);
-    }
-  }, [isScreenSharing]);
-
-  const handleEndCall = useCallback(() => {
-    console.log('🏁 Ending call...');
-    setCallState("disconnecting");
-
-    try {
-      if (twilioRoomRef.current) {
-        twilioRoomRef.current.disconnect();
-        twilioRoomRef.current = null;
-      }
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-      }
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(t => t.stop());
-        screenStreamRef.current = null;
-      }
-      setCallState("idle");
-      setIsScreenSharing(false);
-    } catch (err) {
-      console.error('❌ End call error:', err);
-    }
-
-    setTimeout(handleClose, 100);
   }, []);
 
-  const handleClose = useCallback(() => {
-    console.log('❌ Closing...');
-    try {
-      if (twilioRoomRef.current) twilioRoomRef.current.disconnect();
-      if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
-      if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach(t => t.stop());
-      setCallState("idle");
-      if (onClose) onClose();
-    } catch (err) {
-      console.error('Close error:', err);
-      if (onClose) onClose();
+  const handleParticipantConnected = useCallback((participant) => {
+    console.log('Participant connected:', participant.identity);
+    setRemoteParticipantName(participant.identity);
+
+    participant.tracks.forEach(pub => {
+      if (pub.isSubscribed) attachTrack(pub.track);
+    });
+
+    participant.on('trackSubscribed', attachTrack);
+    participant.on('trackUnsubscribed', track => {
+      try {
+        track.detach().forEach(el => el?.remove?.());
+      } catch (err) {
+        console.warn('Detach error:', err);
+      }
+    });
+  }, []);
+
+  const handleParticipantDisconnected = useCallback((participant) => {
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.innerHTML = '';
     }
-  }, [onClose]);
+  }, []);
+
+  const attachTrack = (track) => {
+    if (track.kind === 'video' && remoteVideoRef.current) {
+      const videoElement = track.attach();
+      videoElement.style.width = '100%';
+      videoElement.style.height = '100%';
+      videoElement.style.objectFit = 'cover';
+      remoteVideoRef.current.innerHTML = '';
+      remoteVideoRef.current.appendChild(videoElement);
+    } else if (track.kind === 'audio') {
+      const audioElement = track.attach();
+      document.body.appendChild(audioElement);
+    }
+  };
+
+  const toggleMic = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(t => {
+        t.enabled = !t.enabled;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach(t => {
+        t.enabled = !t.enabled;
+      });
+      setIsVideoOn(!isVideoOn);
+    }
+  };
+
+  const handleEndCall = () => {
+    setCallState("disconnecting");
+    if (twilioRoomRef.current) {
+      twilioRoomRef.current.disconnect();
+    }
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => t.stop());
+    }
+    setCallState("idle");
+    setTimeout(onClose, 100);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-      <style>{`
-        .video-frame {
-          border: 1px solid rgba(184, 149, 106, 0.3);
-          box-shadow: 0 0 20px rgba(184, 149, 106, 0.15), inset 0 0 20px rgba(184, 149, 106, 0.05);
-        }
-        .control-button {
-          transition: all 0.2s ease;
-          border: 1px solid rgba(184, 149, 106, 0.5);
-        }
-        .control-button:hover {
-          border-color: rgba(184, 149, 106, 0.8);
-          box-shadow: 0 0 10px rgba(184, 149, 106, 0.5);
-        }
-      `}</style>
+    <div className="fixed inset-0 bg-black flex flex-col z-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 border-b border-yellow-500/20 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-white font-semibold text-lg">
+            {remoteParticipantName || recipientName || 'Video Call'}
+          </h3>
+          {recipientExtension && <p className="text-yellow-500/70 text-xs">Ext. {recipientExtension}</p>}
+          {callState === "connected" && <p className="text-green-400 text-xs font-semibold">● Connected</p>}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleEndCall}
+          className="text-white hover:bg-red-500/20"
+        >
+          <X className="w-5 h-5" />
+        </Button>
+      </div>
 
-      <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex flex-col">
-        {/* Header */}
-        <div className="bg-black/80 backdrop-blur-lg border-b border-yellow-600/20 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-white font-semibold text-lg">
-              {remoteParticipantName || recipientName || 'Video Call'}
-            </h3>
-            {recipientExtension && <p className="text-yellow-600/70 text-xs">Ext. {recipientExtension}</p>}
-            {callState === "connected" && <p className="text-green-400 text-xs">● Connected</p>}
-          </div>
+      {/* Video Area */}
+      <div className="flex-1 flex gap-4 p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-black overflow-hidden">
+        {/* Main Video */}
+        <div className="flex-1 relative rounded-2xl overflow-hidden bg-black shadow-2xl border border-yellow-500/10">
+          {error ? (
+            <div className="absolute inset-0 flex items-center justify-center flex-col gap-4 p-6">
+              <p className="text-red-400 text-center">{error}</p>
+              <Button onClick={onClose} variant="destructive">Close</Button>
+            </div>
+          ) : isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-yellow-500/20 border-t-yellow-500 rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-white">Connecting...</p>
+              </div>
+            </div>
+          ) : (
+            <div ref={remoteVideoRef} className="w-full h-full bg-black" />
+          )}
+
+          {/* Local Video PIP */}
+          {callState === "connected" && (
+            <div className="absolute bottom-6 right-6 w-48 h-36 rounded-xl overflow-hidden bg-slate-900 shadow-2xl border-2 border-yellow-500/50 z-40">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  transform: isVideoOn ? 'scaleX(-1)' : 'scaleX(-1)',
+                }}
+              />
+              {!isVideoOn && (
+                <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
+                  <span className="text-white text-sm">Camera Off</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 border-t border-yellow-500/20 px-6 py-4">
+        <div className="flex items-center justify-center gap-3">
           <Button
+            size="lg"
+            onClick={toggleMic}
+            className={`h-14 w-14 rounded-full transition-all ${
+              isMuted
+                ? 'bg-red-600/90 hover:bg-red-700 text-white'
+                : 'bg-slate-700 hover:bg-slate-600 text-white'
+            }`}
+            title={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </Button>
+
+          <Button
+            size="lg"
+            onClick={toggleVideo}
+            className={`h-14 w-14 rounded-full transition-all ${
+              !isVideoOn
+                ? 'bg-red-600/90 hover:bg-red-700 text-white'
+                : 'bg-slate-700 hover:bg-slate-600 text-white'
+            }`}
+            title={isVideoOn ? 'Turn off camera' : 'Turn on camera'}
+          >
+            {isVideoOn ? (
+              <Video className="w-5 h-5" />
+            ) : (
+              <VideoOff className="w-5 h-5" />
+            )}
+          </Button>
+
+          {callState === "idle" && !isIncoming ? (
+            <Button
+              onClick={handleStartCall}
+              disabled={isLoading}
+              size="lg"
+              className="h-14 px-8 bg-green-600 hover:bg-green-700 text-white font-semibold gap-2"
+            >
+              <Phone className="w-5 h-5" />
+              Start Call
+            </Button>
+          ) : callState === "idle" && isIncoming ? (
+            <Button
+              onClick={handleStartCall}
+              disabled={isLoading}
+              size="lg"
+              className="h-14 px-8 bg-green-600 hover:bg-green-700 text-white font-semibold gap-2"
+            >
+              <Phone className="w-5 h-5" />
+              Join Call
+            </Button>
+          ) : callState !== "idle" ? (
+            <Button
+              onClick={handleEndCall}
+              disabled={callState === "disconnecting"}
+              size="lg"
+              className="h-14 px-8 bg-red-600 hover:bg-red-700 text-white font-semibold gap-2"
+            >
+              <PhoneOff className="w-5 h-5" />
+              End Call
+            </Button>
+          ) : null}
+
+          <Button
+            onClick={onClose}
+            size="lg"
             variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="text-white hover:bg-red-500/20 hover:text-red-300"
+            className="h-14 w-14 rounded-full text-gray-300 hover:bg-slate-700/50"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </Button>
         </div>
-
-        {/* Main */}
-        <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-          {/* Video */}
-          <div className="flex-1 flex flex-col gap-4">
-            <div className="flex-1 relative rounded-xl overflow-hidden video-frame bg-black">
-              {error ? (
-                <div className="absolute inset-0 flex items-center justify-center flex-col gap-4 p-4">
-                  <p className="text-red-400 text-center">{error}</p>
-                  <Button onClick={handleClose} variant="destructive">Close</Button>
-                </div>
-              ) : isLoading ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <p className="text-white">Connecting...</p>
-                </div>
-              ) : (
-                <div ref={remoteVideoRef} className="w-full h-full bg-black" />
-              )}
-            </div>
-
-            {/* Remote Audio (hidden) */}
-            <div ref={remoteAudioRef} style={{ display: 'none' }} />
-
-            {/* Local PIP */}
-            {localStream && callState === "connected" && !isScreenSharing && (
-              <div className="absolute top-6 right-6 w-40 h-28 rounded-lg overflow-hidden video-frame bg-black shadow-2xl z-40">
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
-            )}
-
-            {/* Screen Share Indicator */}
-            {isScreenSharing && (
-              <div className="absolute top-6 right-6 bg-yellow-600/80 backdrop-blur px-4 py-2 rounded-lg text-white text-sm flex items-center gap-2 z-40">
-                <Monitor className="w-4 h-4" />
-                Sharing Screen
-              </div>
-            )}
-          </div>
-
-          {/* Chat */}
-          {showChat && (
-            <ChatPanel 
-              remoteParticipantName={remoteParticipantName} 
-              roomName={roomName}
-              currentUserId={currentUserName}
-              currentUserName={currentUserName}
-            />
-          )}
-        </div>
-
-        {/* Controls */}
-        <VideoCallControls
-          callState={callState}
-          isMuted={isMuted}
-          isVideoOn={isVideoOn}
-          isScreenSharing={isScreenSharing}
-          isLoading={isLoading}
-          blurEnabled={blurEnabled}
-          showChat={showChat}
-          onToggleMic={toggleMic}
-          onToggleVideo={toggleVideo}
-          onToggleScreenShare={toggleScreenShare}
-          onToggleBlur={() => setBlurEnabled(!blurEnabled)}
-          onToggleChat={() => setShowChat(!showChat)}
-          onStartCall={handleStartCall}
-          onEndCall={handleEndCall}
-          onClose={handleClose}
-        />
       </div>
     </div>
   );
