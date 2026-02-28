@@ -151,17 +151,24 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
     return unsubscribe;
   }, [selectedRepId, currentUserId]);
 
-  // Listen for incoming video calls
+  // Listen for incoming video calls via PendingNotification
   useEffect(() => {
-    const handleIncomingVideoCall = (e) => {
-      if (e.detail?.recipientId === currentUserId) {
-        console.log('Incoming video call received in AdminChatWindow:', e.detail);
-        setIncomingVideoCall(e.detail);
+    const unsubscribe = base44.entities.PendingNotification.subscribe((event) => {
+      if (event.type === 'create' && event.data?.recipient_id === currentUserId && event.data?.event_type === 'incoming_video_call') {
+        const eventData = event.data.event_data;
+        console.log('Incoming video call received in AdminChatWindow:', eventData);
+        setIncomingVideoCall({
+          callerId: eventData.callerId,
+          callerName: eventData.callerName,
+          callerExtension: eventData.callerExtension,
+          recipientId: eventData.recipientId,
+          recipientToken: eventData.recipientToken,
+          roomName: eventData.roomName
+        });
       }
-    };
-    
-    window.addEventListener('incomingVideoCall', handleIncomingVideoCall);
-    return () => window.removeEventListener('incomingVideoCall', handleIncomingVideoCall);
+    });
+
+    return unsubscribe;
   }, [currentUserId]);
 
   // Auto-scroll to bottom when new messages arrive
