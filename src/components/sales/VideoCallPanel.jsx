@@ -34,6 +34,7 @@ export default function VideoCallPanel({
           localVideoRef.current.srcObject = stream;
         }
       } catch (err) {
+        console.error('Camera access error:', err);
         setError("Unable to access camera: " + err.message);
       }
     };
@@ -69,6 +70,7 @@ export default function VideoCallPanel({
     // If we already have a token and room name (incoming call or token was provided), connect directly
     if (callerToken && roomName) {
       console.log('Using provided token and room name, connecting to room:', roomName);
+      setCallState("connecting");
       initializeVideoRoom(callerToken, roomName);
       return;
     }
@@ -157,6 +159,7 @@ export default function VideoCallPanel({
       const videoRoom = await Video.connect(token, connectOptions);
       console.log('Connected to room:', videoRoom.name);
       twilioRoomRef.current = videoRoom;
+      setIsLoading(false);
       setCallState("connected");
 
       // Handle existing participants
@@ -172,24 +175,38 @@ export default function VideoCallPanel({
     } catch (err) {
       console.error('Video room connection error:', err);
       setError('Failed to connect: ' + err.message);
+      setIsLoading(false);
       setCallState("idle");
     }
   };
 
   const participantConnected = (participant) => {
     console.log('Participant connected:', participant.name, participant.sid);
+    
+    // Handle existing video tracks
     participant.videoTracks.forEach(videoTrackSubscription => {
-      const videoElement = videoTrackSubscription.track.attach();
-      if (remoteVideoRef.current) {
+      if (videoTrackSubscription.track && remoteVideoRef.current) {
+        const videoElement = videoTrackSubscription.track.attach();
         remoteVideoRef.current.innerHTML = '';
         remoteVideoRef.current.appendChild(videoElement);
       }
     });
+
+    // Handle new tracks that appear later
     participant.on('trackSubscribed', track => {
+      console.log('Track subscribed:', track.kind);
       if (track.kind === 'video' && remoteVideoRef.current) {
         const videoElement = track.attach();
         remoteVideoRef.current.innerHTML = '';
         remoteVideoRef.current.appendChild(videoElement);
+      }
+    });
+
+    // Handle track that gets unsubscribed
+    participant.on('trackUnsubscribed', track => {
+      console.log('Track unsubscribed:', track.kind);
+      if (track.kind === 'video' && remoteVideoRef.current) {
+        track.detach().forEach(element => element.remove());
       }
     });
   };

@@ -847,6 +847,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
            <VideoCallPanel
              recipientName={videoCallTarget.name}
              recipientExtension={videoCallTarget.extension}
+             callerToken={null}
+             roomName={null}
              currentUserName={currentUserName}
              onClose={() => {
                setShowVideoCall(false);
@@ -864,7 +866,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               setIncomingVideoCall(null);
             }}
             onAccept={() => {
-              setVideoCallProcessing(true);
               setVideoCallTarget({
                 id: incomingVideoCall.callerId,
                 name: incomingVideoCall.callerName,
@@ -872,7 +873,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               });
               setIncomingVideoCall(null);
               setShowVideoCall(true);
-              setVideoCallProcessing(false);
             }}
           />
         )}

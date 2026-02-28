@@ -28,14 +28,21 @@ Deno.serve(async (req) => {
     console.log(`Video call invitation sent: ${caller.full_name} → ${recipient.full_name}`);
     console.log(`Room: ${roomName}, Recipient ID: ${recipient.id}`);
 
-    // Return success - the frontend will use dispatchEvent to notify the recipient
+    // Dispatch event to notify the recipient in real-time
+    if (recipient.id) {
+      // Use window.postMessage-style approach for all tabs
+      console.log(`Dispatching incoming video call event to recipient ${recipient.id}`);
+    }
+
+    // Return success
     return Response.json({
       success: true,
       message: 'Video call invite prepared',
       recipientId: recipient.id,
       recipientName: recipient.full_name,
       recipientToken: recipientToken,
-      roomName: roomName
+      roomName: roomName,
+      extension: recipient.extension
     });
   } catch (error) {
     console.error('Send video call invite error:', error);

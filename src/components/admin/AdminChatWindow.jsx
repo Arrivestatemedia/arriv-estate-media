@@ -371,6 +371,8 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
         <VideoCallPanel
           recipientName={selectedRepName}
           recipientExtension={salesReps.find(r => r.id === selectedRepId)?.extension}
+          callerToken={null}
+          roomName={null}
           currentUserName={currentUserName}
           onClose={() => setShowVideoCall(false)}
         />
@@ -385,10 +387,8 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
             setIncomingVideoCall(null);
           }}
           onAccept={() => {
-            setVideoCallProcessing(true);
             setIncomingVideoCall(null);
             setShowVideoCall(true);
-            setVideoCallProcessing(false);
           }}
         />
       )}
