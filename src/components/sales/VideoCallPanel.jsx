@@ -915,21 +915,29 @@ export default function VideoCallPanel({
               <Phone className="w-4 h-4" />
               {isLoading ? "Connecting..." : "Join Call"}
             </Button>
-          ) : (
+          ) : callState !== "idle" && callState !== "disconnecting" ? (
             <Button
-              onClick={handleEndCall}
+              onClick={() => {
+                console.log('End Call button clicked');
+                handleEndCall();
+              }}
               className="bg-red-600 hover:bg-red-700 text-white gap-2"
+              disabled={callState === "disconnecting"}
             >
               <PhoneOff className="w-4 h-4" />
               End Call
             </Button>
-          )}
+          ) : null}
 
           <Button
-            onClick={handleClose}
+            onClick={() => {
+              console.log('Close button clicked');
+              handleClose();
+            }}
             variant="outline"
             className="text-gray-300 border-gray-600 hover:bg-gray-700"
             type="button"
+            disabled={callState === "disconnecting"}
           >
             Close
           </Button>
