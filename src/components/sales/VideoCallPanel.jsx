@@ -92,8 +92,12 @@ export default function VideoCallPanel({
         callerName: salesMemberName
       });
 
+      if (response?.status >= 400 || response?.data?.error) {
+        throw new Error(`Video call initiation failed: ${response?.data?.error || 'Unknown error'}`);
+      }
+
       if (!response.data?.roomName || !response.data?.caller?.token || !response.data?.recipient?.token) {
-        throw new Error('Failed to initiate video call: ' + JSON.stringify(response.data));
+        throw new Error('Failed to initiate video call: missing roomName or tokens');
       }
 
       console.log('Video call initiated successfully:', {
