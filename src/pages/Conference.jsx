@@ -24,13 +24,24 @@ export default function Conference() {
     setRoomName(room);
 
     // Try to get current user info
-    base44.auth.me()
-      .then(userData => {
-        setUser(userData);
-        setAutoStart(true); // Auto-start video when user loads
+    base44.auth.isAuthenticated()
+      .then(isAuth => {
+        if (isAuth) {
+          return base44.auth.me();
+        } else {
+          return null;
+        }
       })
-      .catch(() => {
-        // User not authenticated, still allow guest join
+      .then(userData => {
+        if (userData) {
+          setUser(userData);
+        } else {
+          setUser({ full_name: 'Guest' });
+        }
+        setAutoStart(true);
+      })
+      .catch((err) => {
+        console.error('Auth check error:', err);
         setUser({ full_name: 'Guest' });
         setAutoStart(true);
       })
