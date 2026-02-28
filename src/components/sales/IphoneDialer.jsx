@@ -54,17 +54,17 @@ export default function IphoneDialer({ salesMemberId }) {
   const deviceRef = useRef(null);
   const activeTabRef = useRef(activeTab);
   const callStateRef = useRef(callState);
-  const autoAcceptRef = useRef(null); // set when recipient accepts a transfer
+  const currentCallRef = useRef(currentCall);
 
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { callStateRef.current = callState; }, [callState]);
+  useEffect(() => { currentCallRef.current = currentCall; }, [currentCall]);
 
   // Device init — only runs once when salesMemberId is available
   useEffect(() => {
     const id = salesMemberId || localStorage.getItem('sales_member_id');
     if (!id) return;
 
-    // Initialize device for any active sales member
     base44.entities.SalesTeamMember.filter({ id }).then(members => {
       if (!members?.[0]) {
         setError('Unable to verify your account. Contact your administrator.');
@@ -72,17 +72,11 @@ export default function IphoneDialer({ salesMemberId }) {
       }
       setHasTwilioNumber(!!members[0].twilio_phone_number);
       initDevice();
-      // Load all members for extension directory
       base44.entities.SalesTeamMember.filter({ is_active: true }).then(setAllMembers).catch(() => {});
     }).catch(() => {
       setError('Unable to verify account');
     });
     
-    setTimeout(() => {
-      loadCallLogs().catch(() => {});
-      loadConversations().catch(() => {});
-    }, 500);
-
     setTimeout(() => {
       loadCallLogs().catch(() => {});
       loadConversations().catch(() => {});
@@ -99,30 +93,22 @@ export default function IphoneDialer({ salesMemberId }) {
       };
   }, [salesMemberId]);
 
-  // Listen for transfer acceptance via real-time subscription
   useEffect(() => {
-    const salesMemberId = localStorage.getItem('sales_member_id');
-    if (!salesMemberId) return;
+    const salesMemberIdLocal = localStorage.getItem('sales_member_id');
+    if (!salesMemberIdLocal) return;
     
-    // Listen to PendingCallTransfer updates to reliably track transfer acceptance
     const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
       const transfer = event.data;
       if (event.type !== 'update' || !transfer) return;
       
-      console.log('Transfer status update:', transfer);
-      
-      // Case 1: This user INITIATED the transfer (they're the sender)
-      // Backend handles all the call manipulation (hold, dial, bridge)
-      if (transfer.from_member_id === salesMemberId && transfer.status === 'accepted') {
+      if (transfer.from_member_id === salesMemberIdLocal && transfer.status === 'accepted') {
         console.log('Transfer accepted by recipient - backend is handling the call bridging');
         base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         setShowTransferPanel(false);
         return;
       }
       
-      // Case 2: This user RECEIVED the transfer (they're the recipient)
-      // The backend is already dialing them into the conference, so they just wait for the incoming call
-      if (transfer.to_member_id === salesMemberId && transfer.status === 'accepted') {
+      if (transfer.to_member_id === salesMemberIdLocal && transfer.status === 'accepted') {
         console.log('Transfer accepted as recipient - backend will dial you into the conference');
         base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         return;
@@ -132,7 +118,7 @@ export default function IphoneDialer({ salesMemberId }) {
     return unsubscribe;
   }, []);
 
-  // Keyboard handler — separate effect so it never re-initializes device
+  // Keyboard handler
   useEffect(() => {
     const handleKeydown = (e) => {
       if (activeTabRef.current !== TABS.KEYPAD || callStateRef.current !== CALL_STATES.IDLE) return;
@@ -158,19 +144,16 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   }, [selectedConvo?.id]);
 
-  // ⚠️ DO NOT REMOVE — listens for initiateTransfer custom event dispatched by ChatWindow or contact cards
-  // Handles both regular calls and transfer calls (auto-starts second call if already in active call)
+  // Listens for initiateTransfer custom event dispatched by ChatWindow or contact cards
   useEffect(() => {
     const handleTransfer = (e) => {
       const { extension, name } = e.detail;
       if (!extension) return;
 
-      // If already in a call, initiate blind transfer via backend
       if (callStateRef.current === CALL_STATES.IN_CALL && callRef.current) {
         console.log('Transfer triggered while in call - initiating blind transfer via backend');
         startCall(extension, true);
       } else {
-        // Otherwise auto-dial the extension
         startCall(extension);
       }
     };
@@ -234,20 +217,14 @@ export default function IphoneDialer({ salesMemberId }) {
         setIncomingFrom(rawFrom);
         setCallState(CALL_STATES.INCOMING);
 
-        // Check custom parameters first — these are set for internal extension calls
-        // regardless of what the From/callerId shows (which may be the company number)
         const callerName = call.customParameters?.get('callerName') || '';
         const callerExtension = call.customParameters?.get('callerExtension') || '';
         const callerIdentityParam = call.customParameters?.get('callerIdentity') || '';
 
-        console.log('callerName:', callerName, 'callerExtension:', callerExtension, 'callerIdentity:', callerIdentityParam);
-
         if (callerName) {
-          // Internal call — show name and extension
           const ext = callerExtension ? ` (Ext. ${callerExtension})` : '';
           setIncomingDisplayName(`${callerName}${ext}`);
         } else if (callerIdentityParam) {
-          // Has identity but no name — look up
           try {
             const res = await base44.functions.invoke('lookupSalesMemberByIdentity', { identity: callerIdentityParam });
             if (res?.data?.full_name) {
@@ -260,7 +237,6 @@ export default function IphoneDialer({ salesMemberId }) {
             setIncomingDisplayName('Internal Call');
           }
         } else if (rawFrom.startsWith('client:')) {
-          // Legacy fallback for client: identity in From
           setIncomingDisplayName('Internal Call');
         } else {
           setIncomingDisplayName('');
@@ -268,17 +244,15 @@ export default function IphoneDialer({ salesMemberId }) {
         
         call.on('disconnect', () => {
            console.log('Incoming call disconnected');
-           handleCallEnded(incomingFrom);
+           handleCallEnded(rawFrom);
          });
         call.on('cancel', () => {
-          console.log('Incoming call cancelled');
           setIncomingCall(null);
           setIncomingFrom('');
           setIncomingDisplayName('');
           setCallState(CALL_STATES.IDLE);
         });
         call.on('reject', () => {
-          console.log('Incoming call rejected');
           setIncomingCall(null);
           setIncomingFrom('');
           setIncomingDisplayName('');
@@ -309,12 +283,8 @@ export default function IphoneDialer({ salesMemberId }) {
   const loadConversations = async () => {
     try {
       const id = salesMemberId || localStorage.getItem('sales_member_id');
-
-      // Load all SMS conversations and filter to only those assigned to this rep
       const allConversations = await base44.entities.SmsConversation.list();
       const filtered = allConversations.filter(conv => conv.sales_member_id === id);
-
-      // Sort by last message time, newest first
       filtered.sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at));
       setConversations(filtered);
     } catch (err) {
@@ -341,11 +311,10 @@ export default function IphoneDialer({ salesMemberId }) {
     setCallState(CALL_STATES.IDLE);
     callRef.current = null;
 
-    // Auto-log the call
     if (phoneNumber) {
       try {
         const id = salesMemberId || localStorage.getItem('sales_member_id');
-        const isIncoming = currentCall?.incoming || false;
+        const isIncoming = currentCallRef.current?.incoming || false;
         await base44.functions.invoke('logCallActivity', {
           salesMemberId: id,
           toNumber: phoneNumber,
@@ -364,6 +333,13 @@ export default function IphoneDialer({ salesMemberId }) {
     setCurrentCall(null);
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // startCall — the ONLY place calls are initiated or transfers are executed.
+  //
+  // KEY RULE: if `transferring` is true, we ALWAYS return early after the
+  // transfer block, no matter what. The regular device.connect() path must
+  // NEVER be reached when transferring.
+  // ─────────────────────────────────────────────────────────────────────────────
   const startCall = async (phoneNumber = null, transferring = false) => {
     const phoneToDial = (phoneNumber || keypadInput).trim();
     if (!phoneToDial) {
@@ -371,22 +347,70 @@ export default function IphoneDialer({ salesMemberId }) {
       return;
     }
 
-    // Detect extension (exactly 3 digits, 100-999) — must be ONLY digits, no formatting
     const digitsOnly = phoneToDial.replace(/\D/g, '');
     const isExtension = /^\d{3}$/.test(digitsOnly) && parseInt(digitsOnly) >= 100 && phoneToDial === digitsOnly;
 
-    // Block external calls if rep has no Twilio number
     if (!isExtension && !hasTwilioNumber) {
       setError('You need an assigned Twilio number to make external calls. Internal extensions only.');
       return;
     }
-    // Send extension as-is (3 digits), format phone numbers with country code
+
     const formattedPhone = isExtension ? digitsOnly : (phoneToDial.startsWith('+') ? phoneToDial : '+1' + digitsOnly);
     setError('');
+
+    // ── TRANSFER PATH ─────────────────────────────────────────────────────────
+    // If transferring is true, call the backend and return. Period. No fallthrough.
+    if (transferring) {
+      console.log('[Transfer] Initiating blind transfer. formattedPhone:', formattedPhone, 'window._senderCallSid:', window._senderCallSid);
+      const senderCallSid = window._senderCallSid || callRef.current?.parameters?.CallSid;
+
+      if (!senderCallSid) {
+        setError('Transfer failed: No active call SID found. Please try again.');
+        return;
+      }
+
+      const activeCallNumber = currentCallRef.current?.number;
+      if (!activeCallNumber) {
+        setError('Transfer failed: Could not identify the current call.');
+        return;
+      }
+
+      try {
+        const response = await base44.functions.invoke('blindTransferTest', {
+          senderCallSid: senderCallSid,
+          externalCallerNumber: activeCallNumber,
+          recipientExtension: parseInt(formattedPhone)
+        });
+
+        console.log('[Transfer] Backend response:', response.data);
+
+        if (response.data.success) {
+          console.log('[Transfer] Success! Conference ID:', response.data.conferenceId);
+          // Disconnect our SDK leg — the backend has already redirected the external caller
+          if (callRef.current) {
+            try { callRef.current.disconnect(); } catch (e) { /* ignore */ }
+            callRef.current = null;
+          }
+          window._senderCallSid = null;
+          setCurrentCall(null);
+          setCallState(CALL_STATES.IDLE);
+          setShowTransferPanel(false);
+        } else {
+          setError('Transfer failed: ' + (response.data.error || 'Unknown error from backend'));
+        }
+      } catch (e) {
+        console.error('[Transfer] Exception:', e);
+        setError('Transfer failed: ' + e.message);
+      }
+
+      // ALWAYS return here — never fall through to device.connect()
+      return;
+    }
+
+    // ── REGULAR CALL PATH ─────────────────────────────────────────────────────
     setCallState(CALL_STATES.CONNECTING);
 
     try {
-      // Ensure device is registered before connecting (fixes first-call routing to cell issue)
       // Wait for device to be ready (up to 10 seconds)
       if (!deviceRef.current || deviceRef.current.state !== 'registered') {
         console.log('Device not yet registered, waiting...');
@@ -402,56 +426,12 @@ export default function IphoneDialer({ salesMemberId }) {
         });
       }
 
-      console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)', transferring ? '(conference transfer)' : '');
+      console.log('Initiating call to:', formattedPhone, isExtension ? '(extension)' : '(phone number)');
       
-      // For dialer transfer, use backend API to bridge calls
-      if (transferring && callRef.current && currentCall?.number) {
-        console.log('Initiating blind transfer via backend, callRef.current:', callRef.current, 'window._senderCallSid:', window._senderCallSid);
-        try {
-          const senderCallSid = window._senderCallSid || callRef.current?.sid;
-          console.log('Using senderCallSid:', senderCallSid);
-          if (!senderCallSid) {
-            throw new Error('No active call to transfer');
-          }
-          
-          const response = await base44.functions.invoke('blindTransferTest', {
-            senderCallSid: senderCallSid,
-            externalCallerNumber: currentCall.number,
-            recipientExtension: parseInt(formattedPhone)
-          });
-
-          if (response.data.success) {
-            console.log('Blind transfer initiated:', response.data.conferenceId);
-            // Disconnect SDK call since backend has redirected it
-            if (callRef.current) {
-              try {
-                callRef.current.disconnect();
-              } catch (e) {
-                console.warn('Error disconnecting call during transfer:', e);
-              }
-              callRef.current = null;
-            }
-            setCurrentCall(null);
-            setCallState(CALL_STATES.IDLE);
-            return;
-          }
-        } catch (e) {
-          console.error('Blind transfer failed:', e);
-          setError('Transfer failed: ' + e.message);
-          return;
-        }
-      }
-      
-      // Regular call flow
       const call = await deviceRef.current.connect({ params: { To: formattedPhone } });
       callRef.current = call;
       setCurrentCall({ number: formattedPhone, startTime: Date.now(), incoming: false, sid: null });
       setCallState(CALL_STATES.IN_CALL);
-      
-      // If this is a second call during an active call, mark it differently
-      if (callState === CALL_STATES.IN_CALL && secondCallNumber === '') {
-        setSecondCallNumber(formattedPhone);
-      }
 
       call.on('ringing', () => {
         console.log('Call ringing');
@@ -459,22 +439,14 @@ export default function IphoneDialer({ salesMemberId }) {
       });
       call.on('accept', () => {
         console.log('Call accepted, SID:', call.sid);
-        // Store the call SID so backend can use Call Control API to redirect it
         window._senderCallSid = call.sid;
-        callRef.current = call; // Ensure callRef is updated with accepted call
+        callRef.current = call;
         setCurrentCall(prev => ({ ...prev, sid: call.sid }));
-        
-        // If we already have an active call, show 3-way button
-        if (callState === CALL_STATES.IN_CALL) {
-          setSecondCallSid(call.sid);
-          setShowThreeWayButton(true);
-        } else {
-          setCallState(CALL_STATES.IN_CALL);
-          callStartRef.current = Date.now();
-          timerRef.current = setInterval(() => {
-            setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
-          }, 1000);
-        }
+        setCallState(CALL_STATES.IN_CALL);
+        callStartRef.current = Date.now();
+        timerRef.current = setInterval(() => {
+          setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+        }, 1000);
       });
       call.on('disconnect', () => {
         console.log('Call disconnected');
@@ -651,7 +623,6 @@ export default function IphoneDialer({ salesMemberId }) {
         notes: callNotes || `Call to ${currentCall?.number}`
       });
 
-      // Reset form and show success message
       setContactName('');
       setContactEmail('');
       setCompanyName('');
@@ -737,7 +708,6 @@ export default function IphoneDialer({ salesMemberId }) {
             }}
           />
         )}
-
       </div>
     );
   }
@@ -915,7 +885,6 @@ export default function IphoneDialer({ salesMemberId }) {
               </Button>
             </div>
 
-            {/* AI Call Script */}
             {keypadInput.length >= 7 && (
               <div className="flex justify-center">
                 <AiAssistButton
@@ -928,7 +897,6 @@ export default function IphoneDialer({ salesMemberId }) {
               </div>
             )}
 
-            {/* Extension Directory */}
             {allMembers.length > 0 && (
               <div className="border-t pt-4" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
                 <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Extension Directory</p>
@@ -938,10 +906,7 @@ export default function IphoneDialer({ salesMemberId }) {
                     placeholder="Search by name or extension..."
                     value={extensionSearch}
                     onChange={(e) => setExtensionSearch(e.target.value)}
-                    onKeyDown={(e) => {
-                      // Allow backspace to work without triggering the global keypad handler
-                      e.stopPropagation();
-                    }}
+                    onKeyDown={(e) => { e.stopPropagation(); }}
                     className="pl-8 h-8 text-sm"
                   />
                 </div>
@@ -1018,43 +983,42 @@ export default function IphoneDialer({ salesMemberId }) {
                         <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
                         <p className="text-sm">No messages</p>
                       </div>
-                ) : (
-                  conversations.map((convo) => (
-                    <button
-                      key={convo.id}
-                      onClick={() => setSelectedConvo(convo)}
-                      className="w-full text-left p-4 border-b hover:bg-gray-50 transition"
-                      style={{ borderColor: 'rgba(184,149,106,0.1)' }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium" style={{ color: '#1A1A1A' }}>
-                              {convo.contact_name || convo.from_number}
+                    ) : (
+                      conversations.map((convo) => (
+                        <button
+                          key={convo.id}
+                          onClick={() => setSelectedConvo(convo)}
+                          className="w-full text-left p-4 border-b hover:bg-gray-50 transition"
+                          style={{ borderColor: 'rgba(184,149,106,0.1)' }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium" style={{ color: '#1A1A1A' }}>
+                                  {convo.contact_name || convo.from_number}
+                                </p>
+                                {convo.unread_count > 0 && (
+                                  <span className="text-xs font-bold text-white rounded-full px-1.5 py-0.5" style={{ backgroundColor: '#B8956A' }}>
+                                    {convo.unread_count}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm truncate mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                                {convo.last_message}
+                              </p>
+                            </div>
+                            <p className="text-xs ml-3 shrink-0" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                              {formatTime(convo.last_message_at)}
                             </p>
-                            {convo.unread_count > 0 && (
-                              <span className="text-xs font-bold text-white rounded-full px-1.5 py-0.5" style={{ backgroundColor: '#B8956A' }}>
-                                {convo.unread_count}
-                              </span>
-                            )}
                           </div>
-                          <p className="text-sm truncate mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
-                            {convo.last_message}
-                          </p>
-                        </div>
-                        <p className="text-xs ml-3 shrink-0" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                          {formatTime(convo.last_message_at)}
-                        </p>
-                      </div>
-                    </button>
-                  ))
+                        </button>
+                      ))
                     )}
-                    </div>
-                  )}
                   </div>
-                  ) : (
+                )}
+              </div>
+            ) : (
               <div className="flex flex-col h-full">
-                {/* Header */}
                 <div className="flex items-center gap-3 p-4 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
                   <Button variant="ghost" size="icon" onClick={() => setSelectedConvo(null)}>
                     <Phone className="w-5 h-5" />
@@ -1065,7 +1029,6 @@ export default function IphoneDialer({ salesMemberId }) {
                   </div>
                 </div>
 
-                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
                   {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
@@ -1085,7 +1048,6 @@ export default function IphoneDialer({ salesMemberId }) {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Reply */}
                 <div className="flex gap-2 p-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
                   <Input
                     placeholder="Message..."
@@ -1108,8 +1070,6 @@ export default function IphoneDialer({ salesMemberId }) {
           Setting up calling...
         </p>
       )}
-
-      {/* Transfer alerts are now shown inside the ChatWindow via IncomingTransferBanner */}
     </div>
   );
 }
