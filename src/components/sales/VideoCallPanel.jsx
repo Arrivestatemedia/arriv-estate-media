@@ -545,45 +545,25 @@ export default function VideoCallPanel({
   };
 
   const handleEndCall = () => {
-    console.log('=== HANDLE END CALL TRIGGERED ===');
     try {
       if (twilioRoomRef.current) {
-        console.log('Disconnecting Twilio room...');
-        try {
-          twilioRoomRef.current.localParticipant.videoTracks.forEach(trackSubscription => {
-            console.log('Stopping video track');
-            trackSubscription.track.stop();
-          });
-        } catch (err) {
-          console.warn('Error stopping video tracks:', err);
-        }
-        try {
-          twilioRoomRef.current.localParticipant.audioTracks.forEach(trackSubscription => {
-            console.log('Stopping audio track');
-            trackSubscription.track.stop();
-          });
-        } catch (err) {
-          console.warn('Error stopping audio tracks:', err);
-        }
-        try {
-          console.log('Calling room.disconnect()');
-          twilioRoomRef.current.disconnect();
-          console.log('Room disconnected successfully');
-        } catch (err) {
-          console.warn('Error disconnecting room:', err);
-        }
+        twilioRoomRef.current.localParticipant.videoTracks.forEach(trackSubscription => {
+          trackSubscription.track.stop();
+        });
+        twilioRoomRef.current.localParticipant.audioTracks.forEach(trackSubscription => {
+          trackSubscription.track.stop();
+        });
+        twilioRoomRef.current.disconnect();
         twilioRoomRef.current = null;
       }
       if (remoteVideoRef.current) {
         remoteVideoRef.current.innerHTML = '';
       }
       setCallState("idle");
-      console.log('Calling handleClose from handleEndCall');
       handleClose();
     } catch (err) {
-      console.error('Error in handleEndCall:', err);
+      console.error('Error ending call:', err);
       setCallState("idle");
-      console.log('Calling handleClose from error handler');
       handleClose();
     }
   };
