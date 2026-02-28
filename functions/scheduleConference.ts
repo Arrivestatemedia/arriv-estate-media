@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
       
       // Add organizer as accepted
       attendees.push({
-        email: user.email,
-        displayName: user.full_name,
+        email: organizerEmail,
+        displayName: organizerName,
         responseStatus: 'accepted'
       });
 
