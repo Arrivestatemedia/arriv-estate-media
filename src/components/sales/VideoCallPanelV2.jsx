@@ -462,27 +462,68 @@ export default function VideoCallPanelV2({
 
     try {
       // Disconnect Twilio room
-      if (twilioRoomRef.current) {
-        twilioRoomRef.current.disconnect();
-        twilioRoomRef.current = null;
+      try {
+        if (twilioRoomRef.current) {
+          twilioRoomRef.current.disconnect();
+          twilioRoomRef.current = null;
+        }
+      } catch (err) {
+        console.warn("Error disconnecting room:", err);
       }
 
       // Stop all tracks
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop());
+      try {
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach((track) => {
+            try {
+              track.stop();
+            } catch (err) {
+              console.warn("Error stopping local track:", err);
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Error stopping local stream:", err);
       }
 
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((track) => track.stop());
-        screenStreamRef.current = null;
+      try {
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach((track) => {
+            try {
+              track.stop();
+            } catch (err) {
+              console.warn("Error stopping screen track:", err);
+            }
+          });
+          screenStreamRef.current = null;
+        }
+      } catch (err) {
+        console.warn("Error stopping screen stream:", err);
       }
 
       // Clear video elements
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.innerHTML = "";
+      try {
+        if (remoteVideoRef.current) {
+          const children = Array.from(remoteVideoRef.current.children || []);
+          children.forEach((child) => {
+            try {
+              child.remove();
+            } catch (err) {
+              console.warn("Error removing remote element:", err);
+            }
+          });
+          remoteVideoRef.current.innerHTML = "";
+        }
+      } catch (err) {
+        console.warn("Error clearing remote video:", err);
       }
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = null;
+
+      try {
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = null;
+        }
+      } catch (err) {
+        console.warn("Error clearing local video:", err);
       }
 
       setCallState("idle");
