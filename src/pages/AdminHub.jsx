@@ -238,16 +238,12 @@ export default function AdminHub() {
           base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
             const ext = members?.[0]?.extension;
             if (ext) {
+              // Switch to My Activity tab, then signal AdminActivityPage to open dialer
               setActiveTab("activity");
-              // Store in localStorage so AdminActivityPage can pick it up after mounting
-              localStorage.setItem('_pendingTransferExt', String(ext));
-              localStorage.setItem('_pendingTransferName', memberName || members[0]?.full_name || '');
-              // Also try immediately in case dialer is already mounted
+              localStorage.setItem('dialerPhone', String(ext));
               setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                  detail: { extension: String(ext), name: memberName || members[0]?.full_name }
-                }));
-              }, 800);
+                window.dispatchEvent(new Event('dialerCardReady'));
+              }, 300);
             }
           }).catch(() => {});
         }}
