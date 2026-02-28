@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Phone, PhoneOff, Mic, MicOff } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 
 export default function VideoCallPanel({ 
   recipientName, 
@@ -9,11 +10,14 @@ export default function VideoCallPanel({
   currentUserName 
 }) {
   const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
   const [localStream, setLocalStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [error, setError] = useState(null);
   const [callState, setCallState] = useState("idle"); // idle, calling, connected
+  const twilioRoomRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const initCamera = async () => {
