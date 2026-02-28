@@ -14,6 +14,7 @@ import ContactSearch from "./ContactSearch";
 import SalesRepProfileModal from "./SalesRepProfileModal";
 import TransferCallButton from "./TransferCallButton";
 import VideoCallPanel from "./VideoCallPanel";
+import IncomingVideoCallModal from "./IncomingVideoCallModal";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
@@ -66,6 +67,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [videoCallError, setVideoCallError] = useState(null);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [videoCallTarget, setVideoCallTarget] = useState(null);
+  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
+  const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Listen for incoming call transfers — show inline in chat
@@ -109,6 +112,19 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     
     window.addEventListener('transferStatusUpdate', handleTransferStatusUpdate);
     return () => window.removeEventListener('transferStatusUpdate', handleTransferStatusUpdate);
+  }, [currentUserId]);
+
+  // Listen for incoming video calls
+  useEffect(() => {
+    const handleIncomingVideoCall = (e) => {
+      if (e.detail?.recipientId === currentUserId) {
+        console.log('Incoming video call received in ChatWindow:', e.detail);
+        setIncomingVideoCall(e.detail);
+      }
+    };
+    
+    window.addEventListener('incomingVideoCall', handleIncomingVideoCall);
+    return () => window.removeEventListener('incomingVideoCall', handleIncomingVideoCall);
   }, [currentUserId]);
 
   const acceptTransfer = async () => {
@@ -828,16 +844,38 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         )}
 
         {showVideoCall && videoCallTarget && (
-          <VideoCallPanel
-            recipientName={videoCallTarget.name}
-            recipientExtension={videoCallTarget.extension}
-            currentUserName={currentUserName}
-            onClose={() => {
-              setShowVideoCall(false);
-              setVideoCallTarget(null);
+           <VideoCallPanel
+             recipientName={videoCallTarget.name}
+             recipientExtension={videoCallTarget.extension}
+             currentUserName={currentUserName}
+             onClose={() => {
+               setShowVideoCall(false);
+               setVideoCallTarget(null);
+             }}
+           />
+         )}
+
+        {incomingVideoCall && (
+          <IncomingVideoCallModal
+            callerName={incomingVideoCall.callerName}
+            callerExtension={incomingVideoCall.callerExtension}
+            isProcessing={videoCallProcessing}
+            onDecline={() => {
+              setIncomingVideoCall(null);
+            }}
+            onAccept={() => {
+              setVideoCallProcessing(true);
+              setVideoCallTarget({
+                id: incomingVideoCall.callerId,
+                name: incomingVideoCall.callerName,
+                extension: incomingVideoCall.callerExtension
+              });
+              setIncomingVideoCall(null);
+              setShowVideoCall(true);
+              setVideoCallProcessing(false);
             }}
           />
         )}
-       </>
-       );
-       }
+        </>
+        );
+        }
