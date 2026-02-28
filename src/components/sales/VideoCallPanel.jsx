@@ -415,7 +415,7 @@ export default function VideoCallPanel({
   const toggleScreenShare = async () => {
     try {
       // Check if we're ready to screen share
-      if (!twilioRoomRef.current?.localParticipant?.videoTracks.length) {
+      if (!twilioRoomRef.current?.localParticipant?.videoTracks.size) {
         setError('Video call must be connected before sharing screen');
         return;
       }
@@ -433,12 +433,12 @@ export default function VideoCallPanel({
         }
 
         // Switch back to camera video in Twilio
-        if (twilioRoomRef.current && localStream && twilioRoomRef.current.localParticipant.videoTracks.length > 0) {
+        if (twilioRoomRef.current && localStream && twilioRoomRef.current.localParticipant.videoTracks.size > 0) {
           const cameraTrack = localStream.getVideoTracks()[0];
           if (cameraTrack && cameraTrack.readyState === 'live') {
             try {
               console.log('Replacing screen track with camera track');
-              const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
+              const videoTrackPublication = Array.from(twilioRoomRef.current.localParticipant.videoTracks)[0];
               if (videoTrackPublication && videoTrackPublication.track) {
                 cameraTrack.enabled = true;
                 await videoTrackPublication.track.replaceTrack(cameraTrack);
@@ -471,10 +471,10 @@ export default function VideoCallPanel({
          console.log('Screen track obtained, enabled:', screenTrack.enabled, 'readyState:', screenTrack.readyState);
 
          // Replace camera video with screen share in Twilio
-         if (twilioRoomRef.current && twilioRoomRef.current.localParticipant.videoTracks.length > 0) {
+         if (twilioRoomRef.current && twilioRoomRef.current.localParticipant.videoTracks.size > 0) {
            try {
              console.log('Replacing camera with screen track in Twilio');
-             const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
+             const videoTrackPublication = Array.from(twilioRoomRef.current.localParticipant.videoTracks)[0];
 
              if (videoTrackPublication && videoTrackPublication.track) {
                const twilioTrack = videoTrackPublication.track;
@@ -503,11 +503,11 @@ export default function VideoCallPanel({
          // Listen for when user stops screen share from OS
          screenTrack.onended = async () => {
            console.log('Screen share stopped by user from OS');
-           if (localStream && twilioRoomRef.current?.localParticipant.videoTracks.length > 0) {
+           if (localStream && twilioRoomRef.current?.localParticipant.videoTracks.size > 0) {
              const cameraTrack = localStream.getVideoTracks()[0];
              if (cameraTrack && cameraTrack.readyState === 'live') {
                try {
-                 const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
+                 const videoTrackPublication = Array.from(twilioRoomRef.current.localParticipant.videoTracks)[0];
                  if (videoTrackPublication && videoTrackPublication.track) {
                    console.log('Auto-replacing screen with camera track');
                    await videoTrackPublication.track.replaceTrack(cameraTrack);
