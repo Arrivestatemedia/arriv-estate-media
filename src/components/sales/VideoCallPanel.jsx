@@ -65,17 +65,19 @@ export default function VideoCallPanel({
   const handleStartCall = async () => {
     setCallState("calling");
     setIsLoading(true);
+    setError(null);
     try {
       // Get video room token from backend
       const salesMemberId = localStorage.getItem('sales_member_id');
       if (!salesMemberId) {
-        throw new Error('Sales member ID not found');
+        throw new Error('Sales member ID not found in localStorage');
       }
 
+      const roomName = `video-call-${Date.now()}`;
       const response = await base44.functions.invoke('generateTwilioVideoToken', {
-        salesMemberId,
-        recipientExtension,
-        roomName: `video-${Date.now()}`
+        salesMemberId: salesMemberId.trim(),
+        recipientExtension: parseInt(recipientExtension),
+        roomName
       });
 
       if (!response.data?.token) {
