@@ -147,7 +147,7 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
     <div className="flex rounded-xl overflow-hidden border" style={{ height: '700px', borderColor: 'rgba(0,0,0,0.1)', backgroundColor: '#fff' }}>
 
       {/* ── LEFT SIDEBAR (ChatGPT-style) ── */}
-      <div className="flex flex-col" style={{ width: '260px', minWidth: '260px', backgroundColor: '#171717', flexShrink: 0 }}>
+      <div className="flex flex-col" style={{ width: '260px', minWidth: '260px', backgroundColor: '#f9f9f9', flexShrink: 0, borderRight: '1px solid #e5e5e5' }}>
         
         {/* New Chat button */}
         <div className="p-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
