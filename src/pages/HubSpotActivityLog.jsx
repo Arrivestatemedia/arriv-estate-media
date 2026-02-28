@@ -719,7 +719,23 @@ export default function HubSpotActivityLog() {
         <PoweredByFooter />
 
         {activeTab !== "chat" && (
-          <FloatingChatBubble currentUserId={user?.id} currentUserName={user?.full_name} />
+          <FloatingChatBubble
+            currentUserId={user?.id}
+            currentUserName={user?.full_name}
+            onInitiateTransfer={(memberId, memberName) => {
+              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                const ext = members?.[0]?.extension;
+                if (ext) {
+                  setActiveTab("call");
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                      detail: { extension: String(ext), name: memberName || members[0].full_name }
+                    }));
+                  }, 150);
+                }
+              }).catch(() => {});
+            }}
+          />
         )}
 
       </div>
