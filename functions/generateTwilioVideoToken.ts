@@ -11,10 +11,24 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // Verify caller (sales member) exists
-    const callers = await base44.asServiceRole.entities.SalesTeamMember.filter({
-      id: salesMemberId
-    });
+    console.log('Video token request:', { salesMemberId, recipientExtension, roomName });
+
+    // Verify caller (sales member) exists by ID
+    let caller;
+    try {
+      caller = await base44.asServiceRole.entities.SalesTeamMember.get(salesMemberId);
+    } catch (e) {
+      console.error('Failed to find caller by ID:', salesMemberId, e.message);
+      return Response.json({ 
+        error: `Caller with ID ${salesMemberId} not found` 
+      }, { status: 401 });
+    }
+
+    if (!caller) {
+      return Response.json({ 
+        error: 'Caller not found' 
+      }, { status: 401 });
+    }
 
     if (!callers || callers.length === 0) {
       return Response.json({ 
