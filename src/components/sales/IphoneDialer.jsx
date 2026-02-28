@@ -89,11 +89,30 @@ export default function IphoneDialer({ salesMemberId }) {
       const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
       const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
 
+      // Listen for incoming video calls
+      const videoCalls = base44.entities.PendingNotification.subscribe((event) => {
+        if (event.type !== 'create') return;
+        const notif = event.data;
+        if (notif?.event_type === 'incoming_video_call' && notif?.event_data) {
+          const data = notif.event_data;
+          console.log('📞 Incoming video call:', data);
+          setIncomingVideoCall({
+            id: notif.id,
+            callerId: data.callerId,
+            callerName: data.callerName,
+            callerExtension: data.callerExtension,
+            roomName: data.roomName,
+            recipientToken: data.recipientToken
+          });
+        }
+      });
+
       return () => {
         if (deviceRef.current) { deviceRef.current.destroy(); deviceRef.current = null; }
         if (timerRef.current) clearInterval(timerRef.current);
         callLogsUnsub();
         convoUnsub();
+        videoCalls();
       };
   }, [salesMemberId]);
 
