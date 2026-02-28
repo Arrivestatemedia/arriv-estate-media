@@ -42,30 +42,30 @@ Deno.serve(async (req) => {
     const AccessToken = twilio.jwt.AccessToken;
     const VideoGrant = AccessToken.VideoGrant;
 
+    // Generate unique identifier for the caller
+    const callerIdentity = `${caller.full_name.replace(/\s+/g, '-')}-${Date.now()}`;
+    
     const accessToken = new AccessToken(
       Deno.env.get('TWILIO_ACCOUNT_SID'),
       Deno.env.get('TWILIO_API_KEY'),
-      Deno.env.get('TWILIO_API_SECRET')
+      Deno.env.get('TWILIO_API_SECRET'),
+      { identity: callerIdentity }
     );
 
-    // Generate unique identifier for the caller
-    const callerIdentity = `${caller.full_name}-${caller.email}-${Date.now()}`;
-    accessToken.identity = callerIdentity;
     accessToken.addGrant(new VideoGrant({ room: roomName }));
-
     const callerToken = accessToken.toJwt();
 
     // Generate token for the recipient
+    const recipientIdentity = `${recipient.full_name.replace(/\s+/g, '-')}-${Date.now()}`;
+    
     const recipientAccessToken = new AccessToken(
       Deno.env.get('TWILIO_ACCOUNT_SID'),
       Deno.env.get('TWILIO_API_KEY'),
-      Deno.env.get('TWILIO_API_SECRET')
+      Deno.env.get('TWILIO_API_SECRET'),
+      { identity: recipientIdentity }
     );
 
-    const recipientIdentity = `${recipient.full_name}-${recipient.email}-${Date.now()}`;
-    recipientAccessToken.identity = recipientIdentity;
     recipientAccessToken.addGrant(new VideoGrant({ room: roomName }));
-
     const recipientToken = recipientAccessToken.toJwt();
 
     // Notify recipient about incoming video call (backend can trigger UI notification)
