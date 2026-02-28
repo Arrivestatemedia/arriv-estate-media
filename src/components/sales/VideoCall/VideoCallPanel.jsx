@@ -77,7 +77,7 @@ export default function VideoCallPanel({
     if (autoStart && roomName && !recipientExtension && callState === "idle" && localStream) {
       setTimeout(handleStartCall, 100);
     }
-  }, [autoStart, roomName, callState, localStream]);
+  }, [autoStart, roomName, callState, localStream, handleStartCall]);
 
   const handleStartCall = useCallback(async () => {
     console.log('📞 Starting call...');
@@ -95,11 +95,15 @@ export default function VideoCallPanel({
           roomName: room,
           participantName: currentUserName || 'Guest'
         });
-        if (!response.data?.token) throw new Error('No token');
+        if (!response?.data?.token) {
+          console.error('Token response:', response);
+          throw new Error('Failed to generate token: ' + (response?.data?.error || 'No token in response'));
+        }
         token = response.data.token;
       }
 
-      if (!token || !room) throw new Error('Missing token/room');
+      if (!token) throw new Error('No token: ' + (room ? 'generation failed' : 'not provided'));
+      if (!room) throw new Error('No room name');
 
       await connectToRoom(token, room);
     } catch (err) {
@@ -113,24 +117,44 @@ export default function VideoCallPanel({
 
   const connectToRoom = useCallback(async (token, room) => {
     try {
-      console.log('🌐 Connecting...');
-      
+      console.log('🌐 Connecting to', room, '...');
+
       if (!window.Twilio?.Video) {
+        console.log('📦 Loading Twilio Video SDK...');
         const Video = await new Promise((resolve, reject) => {
           const script = document.createElement('script');
+          script.id = 'twilio-video-sdk';
           script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
+
           script.onload = () => {
             setTimeout(() => {
-              if (window.Twilio?.Video) resolve(window.Twilio.Video);
-              else reject(new Error('SDK not loaded'));
-            }, 100);
+              if (window?.Twilio?.Video) {
+                console.log('✅ SDK loaded');
+                resolve(window.Twilio.Video);
+              } else {
+                reject(new Error('Twilio.Video not available after load'));
+              }
+            }, 200);
           };
-          script.onerror = () => reject(new Error('Failed to load'));
+
+          script.onerror = (err) => {
+            console.error('SDK load error:', err);
+            reject(new Error('Failed to load Twilio SDK'));
+          };
+
           document.head.appendChild(script);
+
+          setTimeout(() => {
+            if (!script.loaded) {
+              reject(new Error('SDK load timeout'));
+            }
+          }, 10000);
         });
+        console.log('Got Video class:', !!Video);
       }
 
-      const Video = window.Twilio.Video;
+      const Video = window?.Twilio?.Video;
+      if (!Video) throw new Error('Twilio Video not available');
       const connectOptions = {
         name: room,
         audio: { echoCancellation: true, noiseSuppression: true },
@@ -140,13 +164,22 @@ export default function VideoCallPanel({
       };
 
       const videoRoom = await Video.connect(token, connectOptions);
-      console.log('✅ Connected');
+      console.log('✅ Connected to room:', videoRoom.name);
       twilioRoomRef.current = videoRoom;
 
-      // Ensure local video plays
+      // Ensure local video plays with error handling
       if (localVideoRef.current && localStreamRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current;
-        try { await localVideoRef.current.play(); } catch (err) { console.warn('Play:', err); }
+        try {
+          localVideoRef.current.srcObject = localStreamRef.current;
+          localVideoRef.current.autoplay = true;
+          localVideoRef.current.muted = true;
+          localVideoRef.current.playsInline = true;
+          await localVideoRef.current.play().catch(e => console.log('Play pending:', e));
+        } catch (err) {
+          console.error('Local video setup error:', err);
+        }
+      } else {
+        console.warn('Local video ref or stream missing:', !!localVideoRef.current, !!localStreamRef.current);
       }
 
       setCallState("connected");
@@ -414,7 +447,7 @@ export default function VideoCallPanel({
           </div>
 
           {/* Chat */}
-          {showChat && (
+          {showChat && roomName && (
             <ChatPanel 
               remoteParticipantName={remoteParticipantName} 
               roomName={roomName}
