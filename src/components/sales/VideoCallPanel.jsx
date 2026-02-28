@@ -628,6 +628,7 @@ export default function VideoCallPanel({
             onClick={handleClose}
             variant="outline"
             className="text-gray-300 border-gray-600 hover:bg-gray-700"
+            type="button"
           >
             Close
           </Button>
