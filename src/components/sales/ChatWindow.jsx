@@ -770,11 +770,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
          open={!!profileMemberId}
          onClose={() => setProfileMemberId(null)}
          onCallClick={(memberId, memberName, isVideo) => {
-           onInitiateTransfer?.(memberId, memberName);
-           if (isVideo) {
-             localStorage.setItem('_videoCallMode', 'true');
-           }
            setProfileMemberId(null);
+           if (isVideo) {
+             const target = transferTargets.find(m => m.id === memberId);
+             const ext = target?.extension;
+             if (ext) {
+               setVideoCallTarget({ id: memberId, name: memberName, extension: ext });
+               setShowVideoCall(true);
+             }
+           } else {
+             onInitiateTransfer?.(memberId, memberName);
+           }
          }}
        />
 
