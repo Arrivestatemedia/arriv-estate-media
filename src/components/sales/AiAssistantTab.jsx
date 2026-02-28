@@ -150,13 +150,13 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
       <div className="flex flex-col" style={{ width: '260px', minWidth: '260px', backgroundColor: '#f9f9f9', flexShrink: 0, borderRight: '1px solid #e5e5e5' }}>
         
         {/* New Chat button */}
-        <div className="p-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="p-3 border-b" style={{ borderColor: '#e5e5e5' }}>
           <button
             onClick={createSession}
             className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition"
-            style={{ color: '#ececec', backgroundColor: 'rgba(255,255,255,0.08)' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.14)'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
+            style={{ color: '#1a1a1a', backgroundColor: '#efefef' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e0e0e0'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#efefef'}
           >
             <Edit3 className="w-4 h-4" />
             New chat
@@ -166,32 +166,32 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
         {/* Sessions list */}
         <div className="flex-1 overflow-y-auto py-2">
           {sessions.length === 0 && (
-            <p className="text-xs text-center mt-6 px-4" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-xs text-center mt-6 px-4" style={{ color: 'rgba(0,0,0,0.35)' }}>
               No chats yet — start one!
             </p>
           )}
           {sessions.length > 0 && (
             <div className="px-2">
-              <p className="text-xs px-2 mb-1 font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Recent</p>
+              <p className="text-xs px-2 mb-1 font-medium" style={{ color: 'rgba(0,0,0,0.35)' }}>Recent</p>
               {sessions.map(s => (
                 <div
                   key={s.id}
                   className="group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition mb-0.5"
                   style={{
-                    backgroundColor: s.id === activeSessionId ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    backgroundColor: s.id === activeSessionId ? '#e8e8e8' : 'transparent',
                   }}
                   onClick={() => setActiveSessionId(s.id)}
-                  onMouseEnter={e => { if (s.id !== activeSessionId) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'; }}
+                  onMouseEnter={e => { if (s.id !== activeSessionId) e.currentTarget.style.backgroundColor = '#efefef'; }}
                   onMouseLeave={e => { if (s.id !== activeSessionId) e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
-                  <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
-                  <span className="flex-1 text-sm truncate" style={{ color: s.id === activeSessionId ? '#fff' : 'rgba(255,255,255,0.75)' }}>
+                  <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(0,0,0,0.35)' }} />
+                  <span className="flex-1 text-sm truncate" style={{ color: s.id === activeSessionId ? '#1a1a1a' : 'rgba(0,0,0,0.7)' }}>
                     {s.title || "Chat"}
                   </span>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition hover:text-red-400"
-                    style={{ color: 'rgba(255,255,255,0.4)' }}
+                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded transition hover:text-red-500"
+                    style={{ color: 'rgba(0,0,0,0.35)' }}
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -202,12 +202,12 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="p-3 border-t" style={{ borderColor: '#e5e5e5' }}>
           <div className="flex items-center gap-2 px-2">
             <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: '#B8956A' }}>
               <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>AI Sales Assistant</span>
+            <span className="text-xs truncate" style={{ color: 'rgba(0,0,0,0.45)' }}>AI Sales Assistant</span>
           </div>
         </div>
       </div>
