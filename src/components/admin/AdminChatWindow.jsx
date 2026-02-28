@@ -20,6 +20,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [videoCallError, setVideoCallError] = useState(null);
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
+  const [acceptedIncomingCall, setAcceptedIncomingCall] = useState(null);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -374,7 +375,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
         </div>
       )}
 
-      {showVideoCall && selectedRepId && (
+      {showVideoCall && !acceptedIncomingCall && selectedRepId && (
         <VideoCallPanel
           recipientName={selectedRepName}
           recipientExtension={salesReps.find(r => r.id === selectedRepId)?.extension}
@@ -394,8 +395,24 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
             setIncomingVideoCall(null);
           }}
           onAccept={() => {
+            setAcceptedIncomingCall(incomingVideoCall);
             setIncomingVideoCall(null);
             setShowVideoCall(true);
+          }}
+        />
+      )}
+
+      {showVideoCall && acceptedIncomingCall && (
+        <VideoCallPanel
+          recipientName={acceptedIncomingCall.callerName}
+          recipientExtension={acceptedIncomingCall.callerExtension}
+          callerToken={acceptedIncomingCall.recipientToken}
+          roomName={acceptedIncomingCall.roomName}
+          currentUserName={currentUserName}
+          isIncoming={true}
+          onClose={() => {
+            setShowVideoCall(false);
+            setAcceptedIncomingCall(null);
           }}
         />
       )}
