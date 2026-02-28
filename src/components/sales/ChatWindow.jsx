@@ -722,6 +722,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           </div>
         )}
         <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv" />
+        <div className="flex items-center gap-1 mb-1.5">
+          <AiAssistButton
+            mode="chat"
+            context={{
+              recipientName: chatName,
+              recentMessages: messages.slice(-6),
+              repName: currentUserName
+            }}
+            onInsert={(text) => setNewMessage(text)}
+          />
+        </div>
         <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
           <ChatContactCard
             channelId={chatId}
