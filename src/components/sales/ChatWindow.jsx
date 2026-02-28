@@ -905,6 +905,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             channelId={chatId}
             currentUserId={currentUserId}
             currentUserName={currentUserName}
+            currentUserEmail={localStorage.getItem('sales_member_email')}
             transferTargets={transferTargets}
             onConferenceCreated={(conference) => {
               toast.success(`Conference "${conference.title}" scheduled!`);
