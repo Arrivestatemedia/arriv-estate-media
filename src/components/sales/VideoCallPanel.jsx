@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Phone, PhoneOff, Mic, MicOff, Share2, StopCircle } from "lucide-react";
+import { X, Phone, PhoneOff, Mic, MicOff } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 export default function VideoCallPanel({ 
@@ -248,6 +248,66 @@ export default function VideoCallPanel({
         track.detach().forEach(element => element.remove());
       }
     });
+  };
+
+  const toggleScreenShare = async () => {
+    try {
+      if (isScreenSharing) {
+        // Stop screen sharing
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach(track => {
+            track.stop();
+          });
+          screenStreamRef.current = null;
+        }
+        
+        // Switch back to camera video
+        if (twilioRoomRef.current && localStream) {
+          const videoTrack = localStream.getVideoTracks()[0];
+          if (videoTrack) {
+            await twilioRoomRef.current.localParticipant.videoTracks[0].track.replaceTrack(videoTrack);
+          }
+        }
+        setIsScreenSharing(false);
+      } else {
+        // Start screen sharing
+        try {
+          const screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { cursor: 'always' },
+            audio: false
+          });
+          screenStreamRef.current = screenStream;
+          
+          // Replace camera video with screen share
+          if (twilioRoomRef.current) {
+            const screenTrack = screenStream.getVideoTracks()[0];
+            if (screenTrack && twilioRoomRef.current.localParticipant.videoTracks[0]) {
+              await twilioRoomRef.current.localParticipant.videoTracks[0].track.replaceTrack(screenTrack);
+              setIsScreenSharing(true);
+              
+              // Listen for when user stops screen share from OS
+              screenTrack.onended = () => {
+                if (localStream) {
+                  const videoTrack = localStream.getVideoTracks()[0];
+                  if (videoTrack && twilioRoomRef.current?.localParticipant.videoTracks[0]) {
+                    twilioRoomRef.current.localParticipant.videoTracks[0].track.replaceTrack(videoTrack);
+                  }
+                }
+                setIsScreenSharing(false);
+              };
+            }
+          }
+        } catch (err) {
+          if (err.name !== 'NotAllowedError') {
+            console.error('Screen share error:', err);
+            setError('Failed to share screen: ' + err.message);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Toggle screen share error:', err);
+      setError('Screen share error: ' + err.message);
+    }
   };
 
   const participantDisconnected = (participant) => {
