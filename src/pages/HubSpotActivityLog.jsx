@@ -461,8 +461,7 @@ export default function HubSpotActivityLog() {
             { id: "contacts", label: "Contacts" },
             { id: "mycontacts", label: "My Contacts" },
             { id: "calendar", label: "Calendar" },
-          { id: "ai", label: null },
-          ].map(tab => tab.label === null ? null : (
+          ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
               {tab.label}
             </button>
@@ -478,6 +477,9 @@ export default function HubSpotActivityLog() {
           </button>
           <button onClick={() => setActiveTab("chat")} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === "chat" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "chat" ? '#B8956A' : 'transparent' }}>
             <span className="flex items-center gap-1"><MessageSquare className="w-4 h-4" />Chat</span>
+          </button>
+          <button onClick={() => setActiveTab("ai")} className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap" style={{ color: activeTab === "ai" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "ai" ? '#B8956A' : 'transparent' }}>
+            <span className="flex items-center gap-1"><Sparkles className="w-4 h-4" />AI Assistant</span>
           </button>
         </div>
 
