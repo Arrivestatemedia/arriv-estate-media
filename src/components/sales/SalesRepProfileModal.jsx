@@ -198,5 +198,14 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
         )}
       </DialogContent>
     </Dialog>
+
+    {showVideoCall && member?.extension && (
+      <VideoCallPanel
+        recipientName={member.full_name}
+        recipientExtension={member.extension}
+        currentUserName=""
+        onClose={() => setShowVideoCall(false)}
+      />
+    )}
   );
 }
