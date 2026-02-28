@@ -49,6 +49,12 @@ export default function VideoCallPanel({
     };
   }, []);
 
+  useEffect(() => {
+    if (autoStart && roomName && !recipientExtension && callState === "idle") {
+      handleStartCall();
+    }
+  }, [autoStart, roomName]);
+
   const toggleMic = () => {
     if (localStream) {
       localStream.getAudioTracks().forEach(track => {
