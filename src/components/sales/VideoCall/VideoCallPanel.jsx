@@ -414,7 +414,14 @@ export default function VideoCallPanel({
           </div>
 
           {/* Chat */}
-          {showChat && <ChatPanel remoteParticipantName={remoteParticipantName} />}
+          {showChat && (
+            <ChatPanel 
+              remoteParticipantName={remoteParticipantName} 
+              roomName={roomName}
+              currentUserId={currentUserName}
+              currentUserName={currentUserName}
+            />
+          )}
         </div>
 
         {/* Controls */}

@@ -1,35 +1,70 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Send, Smile } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 
 const EMOJIS = [
   "😀", "😂", "😍", "🤔", "👍", "🎉", "🚀", "💯",
-  "❤️", "🔥", "😂", "😎", "🙏", "👌", "✨", "💪"
+  "❤️", "🔥", "😎", "🙏", "👌", "✨", "💪", "👏"
 ];
 
-export default function ChatPanel({ remoteParticipantName }) {
+export default function ChatPanel({ remoteParticipantName, roomName, currentUserId, currentUserName }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // Load and subscribe to messages
+  useEffect(() => {
+    if (!roomName || !currentUserId) return;
+
+    const loadMessages = async () => {
+      try {
+        const msgs = await base44.entities.VideoCallChat.filter(
+          { room_name: roomName },
+          "timestamp",
+          100
+        );
+        setMessages(msgs || []);
+      } catch (err) {
+        console.error("Failed to load chat:", err);
+      }
+    };
+
+    loadMessages();
+
+    // Subscribe to new messages
+    const unsubscribe = base44.entities.VideoCallChat.subscribe((event) => {
+      if (event.data?.room_name === roomName) {
+        if (event.type === "create") {
+          setMessages(prev => [...prev, event.data]);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [roomName, currentUserId]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (inputValue.trim()) {
-      setMessages([
-        ...messages,
-        {
-          id: Date.now(),
-          text: inputValue,
-          sender: "you",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        }
-      ]);
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || !roomName) return;
+    const text = inputValue.trim();
+    
+    try {
+      await base44.entities.VideoCallChat.create({
+        room_name: roomName,
+        sender_id: currentUserId,
+        sender_name: currentUserName,
+        content: text,
+        timestamp: new Date().toISOString()
+      });
       setInputValue("");
       setShowEmojis(false);
+    } catch (err) {
+      console.error("Failed to send message:", err);
     }
   };
 
@@ -62,17 +97,19 @@ export default function ChatPanel({ remoteParticipantName }) {
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.sender === "you" ? "justify-end" : "justify-start"}`}
+              className={`flex ${msg.sender_id === currentUserId ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                  msg.sender === "you"
+                  msg.sender_id === currentUserId
                     ? "bg-purple-600/70 text-white rounded-br-none"
                     : "bg-slate-700/70 text-purple-100 rounded-bl-none"
                 }`}
               >
-                <p className="break-words">{msg.text}</p>
-                <p className="text-xs mt-1 opacity-60">{msg.timestamp}</p>
+                <p className="break-words">{msg.content}</p>
+                <p className="text-xs mt-1 opacity-60">
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </p>
               </div>
             </div>
           ))
@@ -103,22 +140,24 @@ export default function ChatPanel({ remoteParticipantName }) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type a message..."
-            className="flex-1 bg-slate-900/50 border border-purple-500/30 rounded px-3 py-2 text-white text-sm placeholder-purple-300/50 focus:outline-none focus:border-purple-500/60"
+            placeholder={roomName ? "Type a message..." : "Not connected..."}
+            disabled={!roomName}
+            className="flex-1 bg-slate-900/50 border border-purple-500/30 rounded px-3 py-2 text-white text-sm placeholder-purple-300/50 focus:outline-none focus:border-purple-500/60 disabled:opacity-50"
           />
           <Button
             size="icon"
             variant="ghost"
             onClick={() => setShowEmojis(!showEmojis)}
-            className="text-purple-300 hover:bg-purple-500/30"
+            disabled={!roomName}
+            className="text-purple-300 hover:bg-purple-500/30 disabled:opacity-50"
           >
             <Smile className="w-4 h-4" />
           </Button>
           <Button
             size="icon"
             onClick={handleSendMessage}
-            disabled={!inputValue.trim()}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            disabled={!inputValue.trim() || !roomName}
+            className="bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
           </Button>
