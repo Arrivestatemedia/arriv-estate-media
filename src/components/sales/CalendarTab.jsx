@@ -237,7 +237,7 @@ export default function CalendarTab({ salesMemberId }) {
 
               {selectedEvent.description && (
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-sm" style={{ color: '#1A1A1A' }}>{selectedEvent.description}</p>
+                  <p className="text-sm" style={{ color: '#1A1A1A' }}>{renderTextWithLinks(selectedEvent.description)}</p>
                 </div>
               )}
 
