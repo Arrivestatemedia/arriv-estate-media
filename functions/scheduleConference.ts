@@ -32,8 +32,12 @@ Deno.serve(async (req) => {
       channelId
     } = body;
 
-    if (!title || !scheduledDate || !scheduledTime) {
-      console.error('Missing required fields:', { title, scheduledDate, scheduledTime });
+    const scheduled_date = scheduledDate;
+    const scheduled_time = scheduledTime;
+    const duration_minutes = durationMinutes;
+
+    if (!title || !scheduled_date || !scheduled_time) {
+      console.error('Missing required fields:', { title, scheduled_date, scheduled_time });
       return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime' }, { status: 400 });
     }
 
