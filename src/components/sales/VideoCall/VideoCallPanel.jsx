@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import ChatPanel from "./ChatPanel";
 import VideoCallControls from "./VideoCallControls";
-import ParticipantVideo from "./ParticipantVideo";
 
 export default function VideoCallPanel({ 
   recipientName, 
@@ -21,8 +20,6 @@ export default function VideoCallPanel({
   const screenStreamRef = useRef(null);
   const twilioRoomRef = useRef(null);
   const localStreamRef = useRef(null);
-  const videoTrackPublicationRef = useRef(null);
-  const audioTrackPublicationRef = useRef(null);
 
   const [localStream, setLocalStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -35,7 +32,7 @@ export default function VideoCallPanel({
   const [blurEnabled, setBlurEnabled] = useState(false);
   const [remoteParticipantName, setRemoteParticipantName] = useState(null);
 
-  // Initialize camera stream
+  // Initialize camera
   useEffect(() => {
     const initCamera = async () => {
       try {
@@ -46,24 +43,19 @@ export default function VideoCallPanel({
         });
 
         const videoTracks = stream.getVideoTracks();
-        const audioTracks = stream.getAudioTracks();
-        
-        if (videoTracks.length === 0) {
-          throw new Error('No video tracks in stream');
-        }
+        if (videoTracks.length === 0) throw new Error('No video tracks');
 
-        console.log('✅ Camera initialized with', videoTracks.length, 'video and', audioTracks.length, 'audio tracks');
+        console.log('✅ Camera ready');
         
         localStreamRef.current = stream;
         setLocalStream(stream);
 
-        // Attach to video element
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
           localVideoRef.current.muted = true;
           localVideoRef.current.autoplay = true;
           localVideoRef.current.playsInline = true;
-          await localVideoRef.current.play().catch(err => console.warn('Play error:', err));
+          await localVideoRef.current.play().catch(err => console.warn('Play:', err));
         }
       } catch (err) {
         console.error('❌ Camera error:', err);
@@ -80,10 +72,9 @@ export default function VideoCallPanel({
     };
   }, []);
 
-  // Auto-start call if needed
+  // Auto-start
   useEffect(() => {
     if (autoStart && roomName && !recipientExtension && callState === "idle" && localStream) {
-      console.log('🔄 Auto-starting call...');
       setTimeout(handleStartCall, 100);
     }
   }, [autoStart, roomName, callState, localStream]);
@@ -98,28 +89,22 @@ export default function VideoCallPanel({
       let token = callerToken;
       let room = roomName;
 
-      // If no token provided, generate one
       if (!token && room) {
         console.log('🔐 Generating token...');
         const response = await base44.functions.invoke('generateDirectVideoToken', {
           roomName: room,
           participantName: currentUserName || 'Guest'
         });
-
-        if (!response.data?.token) {
-          throw new Error('Failed to generate token');
-        }
+        if (!response.data?.token) throw new Error('No token');
         token = response.data.token;
       }
 
-      if (!token || !room) {
-        throw new Error('Missing token or room name');
-      }
+      if (!token || !room) throw new Error('Missing token/room');
 
       await connectToRoom(token, room);
     } catch (err) {
-      console.error('❌ Call start error:', err);
-      setError("Failed to start call: " + err.message);
+      console.error('❌ Error:', err);
+      setError("Failed: " + err.message);
       setCallState("idle");
     } finally {
       setIsLoading(false);
@@ -128,27 +113,24 @@ export default function VideoCallPanel({
 
   const connectToRoom = useCallback(async (token, room) => {
     try {
-      console.log('🌐 Connecting to room:', room);
+      console.log('🌐 Connecting...');
       
-      // Load Twilio SDK if needed
       if (!window.Twilio?.Video) {
-        console.log('📦 Loading Twilio SDK...');
         const Video = await new Promise((resolve, reject) => {
           const script = document.createElement('script');
           script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
           script.onload = () => {
             setTimeout(() => {
               if (window.Twilio?.Video) resolve(window.Twilio.Video);
-              else reject(new Error('Twilio not loaded'));
+              else reject(new Error('SDK not loaded'));
             }, 100);
           };
-          script.onerror = () => reject(new Error('Failed to load SDK'));
+          script.onerror = () => reject(new Error('Failed to load'));
           document.head.appendChild(script);
         });
       }
 
       const Video = window.Twilio.Video;
-      
       const connectOptions = {
         name: room,
         audio: { echoCancellation: true, noiseSuppression: true },
@@ -158,38 +140,22 @@ export default function VideoCallPanel({
       };
 
       const videoRoom = await Video.connect(token, connectOptions);
-      console.log('✅ Connected to room:', videoRoom.name);
+      console.log('✅ Connected');
       twilioRoomRef.current = videoRoom;
 
-      // Store track publications for later access
-      const localParticipant = videoRoom.localParticipant;
-      videoTrackPublicationRef.current = Array.from(localParticipant.videoTracks.values())[0] || null;
-      audioTrackPublicationRef.current = Array.from(localParticipant.audioTracks.values())[0] || null;
-
-      console.log('📺 Video tracks:', localParticipant.videoTracks.size);
-      console.log('🔊 Audio tracks:', localParticipant.audioTracks.size);
-
-      // Ensure local video is playing
+      // Ensure local video plays
       if (localVideoRef.current && localStreamRef.current) {
         localVideoRef.current.srcObject = localStreamRef.current;
-        localVideoRef.current.muted = true;
-        try {
-          await localVideoRef.current.play();
-        } catch (err) {
-          console.warn('Local video play:', err);
-        }
+        try { await localVideoRef.current.play(); } catch (err) { console.warn('Play:', err); }
       }
 
       setCallState("connected");
 
-      // Handle existing participants
       videoRoom.participants.forEach(handleParticipantConnected);
-
-      // Handle new participants
       videoRoom.on('participantConnected', handleParticipantConnected);
       videoRoom.on('participantDisconnected', handleParticipantDisconnected);
       videoRoom.on('disconnected', () => {
-        console.log('📴 Room disconnected');
+        console.log('📴 Disconnected');
         setCallState("idle");
       });
     } catch (err) {
@@ -203,28 +169,25 @@ export default function VideoCallPanel({
     console.log('👤 Participant connected:', participant.name);
     setRemoteParticipantName(participant.name);
 
-    // Handle existing tracks
     participant.tracks.forEach(publication => {
       if (publication.isSubscribed) {
         attachTrack(publication.track);
       }
     });
 
-    // Handle new tracks
     participant.on('trackSubscribed', track => {
       console.log('📥 Track subscribed:', track.kind);
       attachTrack(track);
     });
 
     participant.on('trackUnsubscribed', track => {
-      console.log('📤 Track unsubscribed:', track.kind);
-      detachTrack(track);
+      console.log('📤 Unsubscribed:', track.kind);
+      track.detach().forEach(el => el?.remove?.());
     });
   }, []);
 
   const attachTrack = useCallback((track) => {
     if (track.kind === 'video' && remoteVideoRef.current) {
-      console.log('🎬 Attaching video track');
       const videoElement = track.attach();
       videoElement.autoplay = true;
       videoElement.playsInline = true;
@@ -234,101 +197,67 @@ export default function VideoCallPanel({
       remoteVideoRef.current.innerHTML = '';
       remoteVideoRef.current.appendChild(videoElement);
     } else if (track.kind === 'audio') {
-      console.log('🔊 Attaching audio track');
       const audioElement = track.attach();
       audioElement.autoplay = true;
       document.body.appendChild(audioElement);
     }
   }, []);
 
-  const detachTrack = useCallback((track) => {
-    console.log('🔌 Detaching track:', track.kind);
-    track.detach().forEach(el => el?.remove?.());
-  }, []);
-
   const handleParticipantDisconnected = useCallback((participant) => {
-    console.log('👋 Participant disconnected:', participant.name);
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.innerHTML = '';
-    }
+    console.log('👋 Disconnected:', participant.name);
+    if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = '';
   }, []);
 
   const toggleMic = useCallback(() => {
-    console.log('🎤 Toggling mic...');
     try {
       if (localStreamRef.current) {
-        const audioTracks = localStreamRef.current.getAudioTracks();
-        audioTracks.forEach(track => {
-          track.enabled = !track.enabled;
+        localStreamRef.current.getAudioTracks().forEach(t => {
+          t.enabled = !t.enabled;
         });
         setIsMuted(!isMuted);
-        console.log('✅ Mic toggled:', !isMuted ? 'OFF' : 'ON');
-      } else if (twilioRoomRef.current?.localParticipant?.audioTracks?.size > 0) {
-        const audioTrackPub = Array.from(twilioRoomRef.current.localParticipant.audioTracks.values())[0];
-        if (audioTrackPub?.track) {
-          audioTrackPub.track.enable(!isMuted);
-          setIsMuted(!isMuted);
-          console.log('✅ Twilio mic toggled:', !isMuted ? 'OFF' : 'ON');
-        }
       }
     } catch (err) {
-      console.error('❌ Mic toggle error:', err);
-      setError('Mic control failed');
+      console.error('Mic error:', err);
     }
   }, [isMuted]);
 
   const toggleVideo = useCallback(() => {
-    console.log('📹 Toggling video...');
     try {
       if (localStreamRef.current) {
-        const videoTracks = localStreamRef.current.getVideoTracks();
-        videoTracks.forEach(track => {
-          track.enabled = !track.enabled;
+        localStreamRef.current.getVideoTracks().forEach(t => {
+          t.enabled = !t.enabled;
         });
         setIsVideoOn(!isVideoOn);
-        console.log('✅ Video toggled:', !isVideoOn ? 'OFF' : 'ON');
-      } else if (twilioRoomRef.current?.localParticipant?.videoTracks?.size > 0) {
-        const videoTrackPub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
-        if (videoTrackPub?.track) {
-          videoTrackPub.track.enable(!isVideoOn);
-          setIsVideoOn(!isVideoOn);
-          console.log('✅ Twilio video toggled:', !isVideoOn ? 'OFF' : 'ON');
-        }
       }
     } catch (err) {
-      console.error('❌ Video toggle error:', err);
-      setError('Video control failed');
+      console.error('Video error:', err);
     }
   }, [isVideoOn]);
 
   const toggleScreenShare = useCallback(async () => {
-    console.log('🖥️ Toggling screen share...');
-    
     if (!twilioRoomRef.current?.localParticipant) {
-      setError('Not connected to call');
+      setError('Not connected');
       return;
     }
 
     try {
       if (isScreenSharing) {
-        // Stop screen share
         console.log('🛑 Stopping screen share...');
         if (screenStreamRef.current) {
           screenStreamRef.current.getTracks().forEach(t => t.stop());
           screenStreamRef.current = null;
         }
 
-        // Switch back to camera
         if (localStreamRef.current) {
           const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-          if (cameraTrack && videoTrackPublicationRef.current?.track) {
-            await videoTrackPublicationRef.current.track.replaceTrack(cameraTrack);
-            console.log('✅ Switched back to camera');
+          const videoTrackPub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
+          if (cameraTrack && videoTrackPub?.track) {
+            await videoTrackPub.track.replaceTrack(cameraTrack);
+            console.log('✅ Switched to camera');
           }
         }
         setIsScreenSharing(false);
       } else {
-        // Start screen share
         console.log('📺 Starting screen share...');
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: { cursor: 'always' },
@@ -340,19 +269,15 @@ export default function VideoCallPanel({
 
         screenStreamRef.current = screenStream;
 
-        // Replace camera with screen
         const videoTrackPub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
-        if (!videoTrackPub?.track) {
-          throw new Error('No video track publication found');
-        }
+        if (!videoTrackPub?.track) throw new Error('No video track in room');
 
         await videoTrackPub.track.replaceTrack(screenTrack);
         console.log('✅ Screen share started');
         setIsScreenSharing(true);
 
-        // Listen for when user stops sharing
         screenTrack.onended = async () => {
-          console.log('📵 Screen share stopped by user');
+          console.log('📵 Screen share stopped');
           if (localStreamRef.current) {
             const cameraTrack = localStreamRef.current.getVideoTracks()[0];
             if (cameraTrack && videoTrackPub?.track) {
@@ -371,12 +296,6 @@ export default function VideoCallPanel({
     }
   }, [isScreenSharing]);
 
-  const toggleBlur = useCallback(() => {
-    console.log('✨ Toggling blur...');
-    setBlurEnabled(!blurEnabled);
-    // TODO: Implement actual blur effect using canvas/WebGL
-  }, [blurEnabled]);
-
   const handleEndCall = useCallback(() => {
     console.log('🏁 Ending call...');
     setCallState("disconnecting");
@@ -386,42 +305,32 @@ export default function VideoCallPanel({
         twilioRoomRef.current.disconnect();
         twilioRoomRef.current = null;
       }
-
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(t => t.stop());
       }
-
       if (screenStreamRef.current) {
         screenStreamRef.current.getTracks().forEach(t => t.stop());
         screenStreamRef.current = null;
       }
-
       setCallState("idle");
       setIsScreenSharing(false);
-      setLocalStream(null);
     } catch (err) {
       console.error('❌ End call error:', err);
     }
 
-    setTimeout(() => handleClose(), 100);
+    setTimeout(handleClose, 100);
   }, []);
 
   const handleClose = useCallback(() => {
-    console.log('❌ Closing video panel...');
+    console.log('❌ Closing...');
     try {
-      if (twilioRoomRef.current) {
-        twilioRoomRef.current.disconnect();
-      }
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-      }
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(t => t.stop());
-      }
+      if (twilioRoomRef.current) twilioRoomRef.current.disconnect();
+      if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
+      if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach(t => t.stop());
       setCallState("idle");
       if (onClose) onClose();
     } catch (err) {
-      console.error('❌ Close error:', err);
+      console.error('Close error:', err);
       if (onClose) onClose();
     }
   }, [onClose]);
@@ -429,10 +338,6 @@ export default function VideoCallPanel({
   return (
     <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
       <style>{`
-        @keyframes shimmer {
-          0% { background-position: -1000px 0; }
-          100% { background-position: 1000px 0; }
-        }
         .video-frame {
           border: 1px solid rgba(139, 92, 246, 0.3);
           box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 0 20px rgba(139, 92, 246, 0.05);
@@ -467,11 +372,10 @@ export default function VideoCallPanel({
           </Button>
         </div>
 
-        {/* Main Content */}
+        {/* Main */}
         <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-          {/* Video Area */}
+          {/* Video */}
           <div className="flex-1 flex flex-col gap-4">
-            {/* Remote Video */}
             <div className="flex-1 relative rounded-xl overflow-hidden video-frame bg-black">
               {error ? (
                 <div className="absolute inset-0 flex items-center justify-center flex-col gap-4 p-4">
@@ -487,7 +391,7 @@ export default function VideoCallPanel({
               )}
             </div>
 
-            {/* Local PIP - Shows when in call */}
+            {/* Local PIP */}
             {localStream && callState === "connected" && !isScreenSharing && (
               <div className="absolute top-6 right-6 w-40 h-28 rounded-lg overflow-hidden video-frame bg-black shadow-2xl z-40">
                 <video
@@ -509,7 +413,7 @@ export default function VideoCallPanel({
             )}
           </div>
 
-          {/* Chat Sidebar */}
+          {/* Chat */}
           {showChat && <ChatPanel remoteParticipantName={remoteParticipantName} />}
         </div>
 
@@ -525,7 +429,7 @@ export default function VideoCallPanel({
           onToggleMic={toggleMic}
           onToggleVideo={toggleVideo}
           onToggleScreenShare={toggleScreenShare}
-          onToggleBlur={toggleBlur}
+          onToggleBlur={() => setBlurEnabled(!blurEnabled)}
           onToggleChat={() => setShowChat(!showChat)}
           onStartCall={handleStartCall}
           onEndCall={handleEndCall}
