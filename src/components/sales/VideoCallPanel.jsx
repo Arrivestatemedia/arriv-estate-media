@@ -15,9 +15,11 @@ export default function VideoCallPanel({
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const screenStreamRef = useRef(null);
   const [localStream, setLocalStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [error, setError] = useState(null);
   const [callState, setCallState] = useState("idle"); // idle, calling, connected
   const twilioRoomRef = useRef(null);
