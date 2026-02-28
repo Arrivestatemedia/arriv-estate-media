@@ -16,7 +16,14 @@ export default function ChatPanel({ remoteParticipantName, roomName, currentUser
 
   // Load and subscribe to messages
   useEffect(() => {
-    if (!roomName || !currentUserId) return;
+    if (!roomName) {
+      console.warn('ChatPanel: no roomName');
+      return;
+    }
+    if (!currentUserId) {
+      console.warn('ChatPanel: no currentUserId');
+      return;
+    }
 
     const loadMessages = async () => {
       try {

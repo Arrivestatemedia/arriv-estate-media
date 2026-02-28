@@ -89,8 +89,16 @@ export default function VideoCallPanel({
       let token = callerToken;
       let room = roomName;
 
+      // Generate room name if not provided (outgoing calls)
+      if (!room && !token) {
+        const ext = recipientExtension || 'unknown';
+        const ts = Date.now();
+        room = `call-${currentUserName?.replace(/\s+/g, '-')}-${ext}-${ts}`.toLowerCase();
+        console.log('🏠 Generated room:', room);
+      }
+
       if (!token && room) {
-        console.log('🔐 Generating token...');
+        console.log('🔐 Generating token for room:', room);
         const response = await base44.functions.invoke('generateDirectVideoToken', {
           roomName: room,
           participantName: currentUserName || 'Guest'
@@ -100,6 +108,7 @@ export default function VideoCallPanel({
           throw new Error('Failed to generate token: ' + (response?.data?.error || 'No token in response'));
         }
         token = response.data.token;
+        console.log('✅ Token generated');
       }
 
       if (!token) throw new Error('No token: ' + (room ? 'generation failed' : 'not provided'));
@@ -113,7 +122,7 @@ export default function VideoCallPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [callerToken, roomName, currentUserName]);
+  }, [callerToken, roomName, currentUserName, recipientExtension]);
 
   const connectToRoom = useCallback(async (token, room) => {
     try {
@@ -447,7 +456,7 @@ export default function VideoCallPanel({
           </div>
 
           {/* Chat */}
-          {showChat && roomName && (
+          {showChat && (
             <ChatPanel 
               remoteParticipantName={remoteParticipantName} 
               roomName={roomName}

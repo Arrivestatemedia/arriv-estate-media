@@ -862,6 +862,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
              callerToken={null}
              roomName={null}
              currentUserName={currentUserName}
+             autoStart={true}
              onClose={() => {
                setShowVideoCall(false);
                setVideoCallTarget(null);
