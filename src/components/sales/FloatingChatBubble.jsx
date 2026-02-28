@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "./ChatTab";
 
-export default function FloatingChatBubble({ currentUserId, currentUserName }) {
+export default function FloatingChatBubble({ currentUserId, currentUserName, salesMemberId, isAdmin }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
