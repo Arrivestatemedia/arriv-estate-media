@@ -731,7 +731,7 @@ export default function IphoneDialer({ salesMemberId }) {
             currentCallName={currentCall?.number}
             onTransferAccepted={(extension) => {
               setShowTransferPanel(false);
-              startCall(extension);
+              startCall(extension, true);
             }}
           />
         )}
