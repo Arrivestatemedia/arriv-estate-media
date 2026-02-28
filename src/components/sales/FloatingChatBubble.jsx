@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
+// base44 already imported above
 import ChatTab from "./ChatTab";
 
 export default function FloatingChatBubble({ currentUserId, currentUserName }) {
