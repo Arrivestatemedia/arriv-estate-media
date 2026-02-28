@@ -51,21 +51,27 @@ export default function VideoCallPanel({
         setLocalStream(stream);
         
         if (localVideoRef.current) {
-          console.log('Setting srcObject on localVideoRef');
-          localVideoRef.current.srcObject = stream;
-          
-          // Wait for video to be loadable
-          localVideoRef.current.onloadedmetadata = () => {
-            console.log('Video metadata loaded, playing');
-            localVideoRef.current.play().catch(err => {
-              console.error('Play error:', err);
-            });
-          };
-          
-          // Force play immediately
-          localVideoRef.current.play().catch(err => {
-            console.warn('Immediate play failed:', err);
-          });
+          console.log('Setting srcObject on localVideoRef.current with stream:', stream.id);
+            localVideoRef.current.srcObject = stream;
+            localVideoRef.current.muted = true;
+            localVideoRef.current.playsInline = true;
+            localVideoRef.current.autoplay = true;
+
+            const playLocalVideo = () => {
+              localVideoRef.current.play().then(() => {
+                console.log('Local video playing successfully.');
+              }).catch(err => {
+                console.warn('Local video play failed, retrying in 200ms:', err);
+                setTimeout(playLocalVideo, 200);
+              });
+            };
+
+            localVideoRef.current.onloadedmetadata = () => {
+              console.log('Local video metadata loaded.');
+              playLocalVideo();
+            };
+
+            playLocalVideo();
           
           console.log('Local stream attached to video ref, element:', {
             src: localVideoRef.current.srcObject ? 'set' : 'not set',
@@ -299,13 +305,23 @@ export default function VideoCallPanel({
      // Ensure local video is playing
      if (localVideoRef.current && localStream) {
        console.log('Ensuring local video is playing after room connection');
-       if (localVideoRef.current.srcObject !== localStream) {
-         console.log('Setting srcObject because it changed');
-         localVideoRef.current.srcObject = localStream;
-       }
-       localVideoRef.current.play().catch(err => {
-         console.error('Error playing local video after connection:', err);
-       });
+         if (localVideoRef.current.srcObject !== localStream) {
+           console.log('srcObject mismatch, re-attaching localStream to localVideoRef');
+           localVideoRef.current.srcObject = localStream;
+         }
+         localVideoRef.current.muted = true;
+         localVideoRef.current.playsInline = true;
+         localVideoRef.current.autoplay = true;
+
+         const playLocalVideoAfterConnect = () => {
+           localVideoRef.current.play().then(() => {
+             console.log('Local video playing successfully after room connection.');
+           }).catch(err => {
+             console.warn('Local video play failed after connect, retrying in 200ms:', err);
+             setTimeout(playLocalVideoAfterConnect, 200);
+           });
+         };
+         playLocalVideoAfterConnect();
      }
 
      setIsLoading(false);
@@ -336,33 +352,43 @@ export default function VideoCallPanel({
 
   const participantConnected = (participant) => {
     console.log('Participant connected:', participant.name, participant.sid);
-    
-    // Handle existing video tracks
-    participant.videoTracks.forEach(videoTrackSubscription => {
-      if (videoTrackSubscription.track && remoteVideoRef.current) {
-        const videoElement = videoTrackSubscription.track.attach();
-        remoteVideoRef.current.innerHTML = '';
-        remoteVideoRef.current.appendChild(videoElement);
+
+    // Handle existing tracks
+    participant.tracks.forEach(publication => {
+      if (publication.isSubscribed) {
+        attachTrack(publication.track);
       }
     });
 
     // Handle new tracks that appear later
     participant.on('trackSubscribed', track => {
-      console.log('Track subscribed:', track.kind);
-      if (track.kind === 'video' && remoteVideoRef.current) {
-        const videoElement = track.attach();
-        remoteVideoRef.current.innerHTML = '';
-        remoteVideoRef.current.appendChild(videoElement);
-      }
+      console.log('Participant', participant.sid, 'subscribed to track:', track.kind);
+      attachTrack(track);
     });
 
-    // Handle track that gets unsubscribed
+    // Handle tracks that get unsubscribed
     participant.on('trackUnsubscribed', track => {
-      console.log('Track unsubscribed:', track.kind);
-      if (track.kind === 'video' && remoteVideoRef.current) {
-        track.detach().forEach(element => element.remove());
-      }
+      console.log('Participant', participant.sid, 'unsubscribed from track:', track.kind);
+      track.detach().forEach(element => element.remove());
     });
+
+    function attachTrack(track) {
+      if (track.kind === 'video' && remoteVideoRef.current) {
+        console.log('Attaching video track to remote video ref:', track.sid);
+        const videoElement = track.attach();
+        videoElement.autoplay = true;
+        videoElement.playsInline = true;
+        remoteVideoRef.current.innerHTML = '';
+        remoteVideoRef.current.appendChild(videoElement);
+        videoElement.play().catch(err => console.warn('Remote video play error:', err));
+      } else if (track.kind === 'audio') {
+        console.log('Attaching audio track:', track.sid);
+        const audioElement = track.attach();
+        audioElement.autoplay = true;
+        audioElement.playsInline = true;
+        document.body.appendChild(audioElement);
+      }
+    }
   };
 
   const toggleScreenShare = async () => {
@@ -380,18 +406,28 @@ export default function VideoCallPanel({
         }
 
         // Switch back to camera video in Twilio
-        if (twilioRoomRef.current && localStream) {
-          const cameraTrack = localStream.getVideoTracks()[0];
-          if (cameraTrack && twilioRoomRef.current.localParticipant.videoTracks.length > 0) {
-            try {
-              console.log('Replacing screen track with camera track');
-              const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
-              if (videoTrackPublication && videoTrackPublication.track) {
-                await videoTrackPublication.track.replaceTrack(cameraTrack);
-                console.log('Successfully replaced screen with camera');
+        const localParticipant = twilioRoomRef.current?.localParticipant;
+        if (localParticipant) {
+          // Unpublish the screen share track
+          const publications = Array.from(localParticipant.tracks.values());
+          const screenSharePublication = publications.find(p => p.trackName === 'screen-share');
+
+          if (screenSharePublication && screenSharePublication.track) {
+            console.log('Unpublishing screen share track');
+            localParticipant.unpublishTrack(screenSharePublication.track);
+          }
+
+          // Re-publish the camera track
+          if (localStream) {
+            const cameraTrack = localStream.getVideoTracks()[0];
+            if (cameraTrack && cameraTrack.readyState === 'live') {
+              try {
+                console.log('Re-publishing camera track to Twilio room');
+                await localParticipant.publishTrack(cameraTrack);
+                console.log('Successfully re-published camera track');
+              } catch (err) {
+                console.error('Error re-publishing camera track:', err);
               }
-            } catch (err) {
-              console.error('Error replacing screen with camera:', err);
             }
           }
         }
@@ -416,107 +452,50 @@ export default function VideoCallPanel({
 
          console.log('Screen track obtained, enabled:', screenTrack.enabled, 'readyState:', screenTrack.readyState);
 
-         // Replace camera video with screen share in Twilio
-         if (twilioRoomRef.current && twilioRoomRef.current.localParticipant.videoTracks.length > 0) {
-           try {
-             console.log('Replacing camera with screen track in Twilio');
-             const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
-             console.log('Video track publication:', videoTrackPublication);
-
-             if (videoTrackPublication && videoTrackPublication.track) {
-               const twilioTrack = videoTrackPublication.track;
-               console.log('Twilio track before replace:', {
-                 kind: twilioTrack.kind,
-                 enabled: twilioTrack.enabled,
-                 name: twilioTrack.name
-               });
-
-               // Ensure screen track is enabled
-               screenTrack.enabled = true;
-               console.log('Screen track enabled:', screenTrack.enabled);
-
-               // Stop the camera track first
-               let oldTrack = null;
-               try {
-                 oldTrack = twilioTrack.mediaStreamTrack;
-                 if (oldTrack) {
-                   console.log('Stopping old camera track');
-                   oldTrack.stop();
-                 }
-               } catch (err) {
-                 console.warn('Error stopping old track:', err);
-               }
-
-               // Wait a moment to ensure old track is fully stopped
-               await new Promise(resolve => setTimeout(resolve, 100));
-
-               // Now replace with screen track
-               console.log('Calling replaceTrack with screen track');
-               await twilioTrack.replaceTrack(screenTrack);
-               console.log('replaceTrack completed');
-
-               // Verify the track was replaced
-               console.log('Twilio track after replace:', {
-                 kind: twilioTrack.kind,
-                 enabled: twilioTrack.enabled,
-                 name: twilioTrack.name
-               });
-
-               // Ensure the publication is still active
-               console.log('Video track publication after replace:', videoTrackPublication.isSubscribed);
-               console.log('Screen share sent to remote participant');
-               setIsScreenSharing(true);
-             }
-           } catch (err) {
-             console.error('Error replacing camera with screen:', err);
-             console.error('Error stack:', err.stack);
-             throw err;
-           }
-         } else {
-           throw new Error('No video tracks in Twilio room');
+         // Get local participant and ensure it exists
+         const localParticipant = twilioRoomRef.current?.localParticipant;
+         if (!localParticipant) {
+           throw new Error('Twilio local participant not found');
          }
+
+         // Unpublish the existing camera video track
+         const existingVideoPublication = Array.from(localParticipant.videoTracks.values())[0];
+         if (existingVideoPublication) {
+           console.log('Unpublishing existing camera video track:', existingVideoPublication.trackSid);
+           localParticipant.unpublishTrack(existingVideoPublication.track);
+         }
+
+         // Publish the screen share track
+         console.log('Publishing screen share track to Twilio room');
+         screenTrack.enabled = true;
+         await localParticipant.publishTrack(screenTrack, { name: 'screen-share' });
+         console.log('Screen share track published successfully');
+         setIsScreenSharing(true);
 
          // Listen for when user stops screen share from OS
          screenTrack.onended = async () => {
-           console.log('Screen share stopped by user');
-           if (localStream && twilioRoomRef.current?.localParticipant.videoTracks.length > 0) {
-             const cameraTrack = localStream.getVideoTracks()[0];
-             console.log('Camera track available:', !!cameraTrack, 'enabled:', cameraTrack?.enabled, 'readyState:', cameraTrack?.readyState);
+           console.log('Screen share stopped by user from OS');
+           const localParticipant = twilioRoomRef.current?.localParticipant;
+           if (localParticipant) {
+             // Unpublish the screen share track
+             const publications = Array.from(localParticipant.tracks.values());
+             const screenSharePublication = publications.find(p => p.trackName === 'screen-share');
 
-             if (cameraTrack && cameraTrack.readyState === 'live') {
-               try {
-                 const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
-                 if (videoTrackPublication && videoTrackPublication.track) {
-                   const twilioTrack = videoTrackPublication.track;
+             if (screenSharePublication && screenSharePublication.track) {
+               console.log('Unpublishing screen share track due to user stop');
+               localParticipant.unpublishTrack(screenSharePublication.track);
+             }
 
-                   // Ensure camera track is enabled
-                   cameraTrack.enabled = true;
-                   console.log('Camera track enabled:', cameraTrack.enabled);
-
-                   // Stop the screen track first
-                   try {
-                     const oldTrack = twilioTrack.mediaStreamTrack;
-                     if (oldTrack) {
-                       console.log('Stopping screen track');
-                       oldTrack.stop();
-                     }
-                   } catch (err) {
-                     console.warn('Error stopping screen track:', err);
-                   }
-
-                   // Wait a moment to ensure screen track is fully stopped
-                   await new Promise(resolve => setTimeout(resolve, 100));
-
-                   // Now replace with camera track
-                   console.log('Calling replaceTrack with camera track');
-                   await twilioTrack.replaceTrack(cameraTrack);
-                   console.log('Auto-switched back to camera');
-                 }
-               } catch (err) {
-                 console.error('Error auto-switching to camera:', err);
+             // Re-publish the camera track if localStream exists
+             if (localStream) {
+               const cameraVideoTrack = localStream.getVideoTracks()[0];
+               if (cameraVideoTrack && cameraVideoTrack.readyState === 'live') {
+                 console.log('Re-publishing camera video track to Twilio room');
+                 await localParticipant.publishTrack(cameraVideoTrack);
+                 console.log('Camera track re-published successfully');
+               } else {
+                 console.warn('Camera video track not available or not live to re-publish');
                }
-             } else {
-               console.warn('Camera track not available or not live, cannot switch back');
              }
            }
            setIsScreenSharing(false);
@@ -817,47 +796,44 @@ export default function VideoCallPanel({
               />
               
               {/* Local video (picture-in-picture) */}
-               {callState === "connected" && localStream && (
-                 <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black shadow-lg z-10">
-                   {!isScreenSharing ? (
-                     <video
-                       ref={localVideoRef}
-                       key="local-video"
-                       autoPlay={true}
-                       playsInline={true}
-                       muted={true}
-                       className="w-full h-full object-cover bg-black"
-                       style={{ 
-                         display: 'block',
-                         width: '100%',
-                         height: '100%',
-                         objectFit: 'cover'
-                       }}
-                       onError={(e) => {
-                         console.error('Local video error:', e);
-                       }}
-                       onLoadedMetadata={() => {
-                         console.log('Local video metadata loaded');
-                       }}
-                       onPlay={() => {
-                         console.log('Local video playing');
-                       }}
-                       onPause={() => {
-                         console.log('Local video paused');
-                       }}
-                     />
-                   ) : (
-                     <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                       <span className="text-xs text-gray-400 text-center px-2">Sharing screen</span>
-                     </div>
-                   )}
-                   {!isVideoOn && !isScreenSharing && (
-                     <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-                       <span className="text-xs text-gray-300">📷 Off</span>
-                     </div>
-                   )}
-                 </div>
-               )}
+              {localStream && callState !== "idle" && (
+                <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black shadow-lg z-10">
+                  {!isScreenSharing ? (
+                    <video
+                      ref={localVideoRef}
+                      key="local-video"
+                      autoPlay={true}
+                      playsInline={true}
+                      muted={true}
+                      className="w-full h-full object-cover bg-black"
+                      onError={(e) => {
+                        console.error('Local video error:', e.target.error?.code, e);
+                      }}
+                      onLoadedMetadata={() => {
+                        console.log('Local video metadata loaded');
+                        localVideoRef.current?.play().catch(err => {
+                          console.error('Play error on metadata loaded:', err);
+                        });
+                      }}
+                      onPlay={() => {
+                        console.log('Local video playing');
+                      }}
+                      onPause={() => {
+                        console.log('Local video paused');
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                      <span className="text-xs text-gray-400 text-center px-2">Sharing screen</span>
+                    </div>
+                  )}
+                  {!isVideoOn && !isScreenSharing && (
+                    <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                      <span className="text-xs text-gray-300">📷 Off</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
