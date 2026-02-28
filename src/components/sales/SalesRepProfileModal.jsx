@@ -69,6 +69,7 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
   const contacts = Object.values(contactMap).sort((a, b) => new Date(b.lastDate) - new Date(a.lastDate));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
