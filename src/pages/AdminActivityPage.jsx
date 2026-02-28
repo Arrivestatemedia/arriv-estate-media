@@ -648,11 +648,10 @@ export default function AdminActivityPage({ user }) {
               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                 const ext = members?.[0]?.extension;
                 if (ext) {
+                  localStorage.setItem('dialerPhone', String(ext));
                   setActiveTab("call");
                   setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                      detail: { extension: String(ext), name: memberName || members[0]?.full_name }
-                    }));
+                    window.dispatchEvent(new Event('dialerCardReady'));
                   }, 400);
                 }
               }).catch(() => {});
