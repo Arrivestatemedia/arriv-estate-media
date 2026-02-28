@@ -9,6 +9,8 @@ import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 import TransferCallPanel from "./TransferCallPanel";
 import IncomingTransferAlert from "./IncomingTransferAlert";
+import IncomingVideoCallModal from "./IncomingVideoCallModal";
+import VideoCallPanel from "./VideoCall/VideoCallPanel";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
@@ -46,6 +48,8 @@ export default function IphoneDialer({ salesMemberId }) {
   const [secondCallNumber, setSecondCallNumber] = useState("");
   const [secondCallSid, setSecondCallSid] = useState(null);
   const [showThreeWayButton, setShowThreeWayButton] = useState(false);
+  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -636,7 +640,49 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
-  // Incoming call modal
+  // Incoming video call
+  if (incomingVideoCall && !showVideoCall) {
+    return (
+      <IncomingVideoCallModal
+        callerName={incomingVideoCall.callerName}
+        callerExtension={incomingVideoCall.callerExtension}
+        isProcessing={false}
+        onAccept={() => {
+          setShowVideoCall(true);
+        }}
+        onDecline={() => {
+          setIncomingVideoCall(null);
+          if (incomingVideoCall.id) {
+            base44.entities.PendingNotification.delete(incomingVideoCall.id).catch(() => {});
+          }
+        }}
+      />
+    );
+  }
+
+  // Show video call panel
+  if (showVideoCall && incomingVideoCall) {
+    return (
+      <VideoCallPanel
+        recipientName={incomingVideoCall.callerName}
+        recipientExtension={incomingVideoCall.callerExtension}
+        callerToken={incomingVideoCall.recipientToken}
+        roomName={incomingVideoCall.roomName}
+        onClose={() => {
+          setShowVideoCall(false);
+          setIncomingVideoCall(null);
+          if (incomingVideoCall.id) {
+            base44.entities.PendingNotification.delete(incomingVideoCall.id).catch(() => {});
+          }
+        }}
+        currentUserName={localStorage.getItem('sales_member_name')}
+        isIncoming={true}
+        autoStart={true}
+      />
+    );
+  }
+
+  // Incoming voice call modal
   if (callState === CALL_STATES.INCOMING && incomingCall) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
