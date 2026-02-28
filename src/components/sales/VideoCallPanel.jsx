@@ -336,87 +336,138 @@ export default function VideoCallPanel({
         }
         setIsScreenSharing(false);
       } else {
-        // Start screen sharing
-        try {
-          console.log('Starting screen share...');
-          const screenStream = await navigator.mediaDevices.getDisplayMedia({
-            video: { cursor: 'always' },
-            audio: false
-          });
-          screenStreamRef.current = screenStream;
+       // Start screen sharing
+       try {
+         console.log('Starting screen share...');
+         const screenStream = await navigator.mediaDevices.getDisplayMedia({
+           video: { 
+             cursor: 'always',
+             frameRate: { ideal: 15, max: 30 }
+           },
+           audio: false
+         });
+         screenStreamRef.current = screenStream;
 
-          const screenTrack = screenStream.getVideoTracks()[0];
-          if (!screenTrack) {
-            throw new Error('No screen track obtained');
-          }
+         const screenTrack = screenStream.getVideoTracks()[0];
+         if (!screenTrack) {
+           throw new Error('No screen track obtained');
+         }
 
-          // Replace camera video with screen share in Twilio
-          if (twilioRoomRef.current && twilioRoomRef.current.localParticipant.videoTracks.length > 0) {
-            try {
-              console.log('Replacing camera with screen track in Twilio');
-              const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
-              if (videoTrackPublication && videoTrackPublication.track) {
-                // Stop the camera track first
-                try {
-                  const oldTrack = videoTrackPublication.track;
-                  if (oldTrack && oldTrack.mediaStreamTrack) {
-                    oldTrack.mediaStreamTrack.stop();
-                  }
-                } catch (err) {
-                  console.warn('Error stopping old track:', err);
-                }
-                
-                // Now replace with screen track
-                await videoTrackPublication.track.replaceTrack(screenTrack);
-                console.log('Screen share sent to remote participant');
-                setIsScreenSharing(true);
-              }
-            } catch (err) {
-              console.error('Error replacing camera with screen:', err);
-              throw err;
-            }
-          } else {
-            throw new Error('No video tracks in Twilio room');
-          }
+         console.log('Screen track obtained, enabled:', screenTrack.enabled, 'readyState:', screenTrack.readyState);
 
-          // Listen for when user stops screen share from OS
-          screenTrack.onended = async () => {
-            console.log('Screen share stopped by user');
-            if (localStream && twilioRoomRef.current?.localParticipant.videoTracks.length > 0) {
-              const cameraTrack = localStream.getVideoTracks()[0];
-              if (cameraTrack) {
-                try {
-                  const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
-                  if (videoTrackPublication && videoTrackPublication.track) {
-                    // Stop the screen track first
-                    try {
-                      const oldTrack = videoTrackPublication.track;
-                      if (oldTrack && oldTrack.mediaStreamTrack) {
-                        oldTrack.mediaStreamTrack.stop();
-                      }
-                    } catch (err) {
-                      console.warn('Error stopping old track:', err);
-                    }
-                    
-                    // Now replace with camera track
-                    await videoTrackPublication.track.replaceTrack(cameraTrack);
-                    console.log('Auto-switched back to camera');
-                  }
-                } catch (err) {
-                  console.error('Error auto-switching to camera:', err);
-                }
-              }
-            }
-            setIsScreenSharing(false);
-          };
-        } catch (err) {
-          if (err.name !== 'NotAllowedError') {
-            console.error('Screen share error:', err);
-            setError('Failed to share screen: ' + err.message);
-          }
-          screenStreamRef.current = null;
-          setIsScreenSharing(false);
-        }
+         // Replace camera video with screen share in Twilio
+         if (twilioRoomRef.current && twilioRoomRef.current.localParticipant.videoTracks.length > 0) {
+           try {
+             console.log('Replacing camera with screen track in Twilio');
+             const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
+             console.log('Video track publication:', videoTrackPublication);
+
+             if (videoTrackPublication && videoTrackPublication.track) {
+               const twilioTrack = videoTrackPublication.track;
+               console.log('Twilio track before replace:', {
+                 kind: twilioTrack.kind,
+                 enabled: twilioTrack.enabled,
+                 name: twilioTrack.name
+               });
+
+               // Ensure screen track is enabled
+               screenTrack.enabled = true;
+               console.log('Screen track enabled:', screenTrack.enabled);
+
+               // Stop the camera track first
+               let oldTrack = null;
+               try {
+                 oldTrack = twilioTrack.mediaStreamTrack;
+                 if (oldTrack) {
+                   console.log('Stopping old camera track');
+                   oldTrack.stop();
+                 }
+               } catch (err) {
+                 console.warn('Error stopping old track:', err);
+               }
+
+               // Wait a moment to ensure old track is fully stopped
+               await new Promise(resolve => setTimeout(resolve, 100));
+
+               // Now replace with screen track
+               console.log('Calling replaceTrack with screen track');
+               await twilioTrack.replaceTrack(screenTrack);
+               console.log('replaceTrack completed');
+
+               // Verify the track was replaced
+               console.log('Twilio track after replace:', {
+                 kind: twilioTrack.kind,
+                 enabled: twilioTrack.enabled,
+                 name: twilioTrack.name
+               });
+
+               // Ensure the publication is still active
+               console.log('Video track publication after replace:', videoTrackPublication.isSubscribed);
+               console.log('Screen share sent to remote participant');
+               setIsScreenSharing(true);
+             }
+           } catch (err) {
+             console.error('Error replacing camera with screen:', err);
+             console.error('Error stack:', err.stack);
+             throw err;
+           }
+         } else {
+           throw new Error('No video tracks in Twilio room');
+         }
+
+         // Listen for when user stops screen share from OS
+         screenTrack.onended = async () => {
+           console.log('Screen share stopped by user');
+           if (localStream && twilioRoomRef.current?.localParticipant.videoTracks.length > 0) {
+             const cameraTrack = localStream.getVideoTracks()[0];
+             console.log('Camera track available:', !!cameraTrack, 'enabled:', cameraTrack?.enabled, 'readyState:', cameraTrack?.readyState);
+
+             if (cameraTrack && cameraTrack.readyState === 'live') {
+               try {
+                 const videoTrackPublication = twilioRoomRef.current.localParticipant.videoTracks[0];
+                 if (videoTrackPublication && videoTrackPublication.track) {
+                   const twilioTrack = videoTrackPublication.track;
+
+                   // Ensure camera track is enabled
+                   cameraTrack.enabled = true;
+                   console.log('Camera track enabled:', cameraTrack.enabled);
+
+                   // Stop the screen track first
+                   try {
+                     const oldTrack = twilioTrack.mediaStreamTrack;
+                     if (oldTrack) {
+                       console.log('Stopping screen track');
+                       oldTrack.stop();
+                     }
+                   } catch (err) {
+                     console.warn('Error stopping screen track:', err);
+                   }
+
+                   // Wait a moment to ensure screen track is fully stopped
+                   await new Promise(resolve => setTimeout(resolve, 100));
+
+                   // Now replace with camera track
+                   console.log('Calling replaceTrack with camera track');
+                   await twilioTrack.replaceTrack(cameraTrack);
+                   console.log('Auto-switched back to camera');
+                 }
+               } catch (err) {
+                 console.error('Error auto-switching to camera:', err);
+               }
+             } else {
+               console.warn('Camera track not available or not live, cannot switch back');
+             }
+           }
+           setIsScreenSharing(false);
+         };
+       } catch (err) {
+         if (err.name !== 'NotAllowedError') {
+           console.error('Screen share error:', err);
+           setError('Failed to share screen: ' + err.message);
+         }
+         screenStreamRef.current = null;
+         setIsScreenSharing(false);
+       }
       }
     } catch (err) {
       console.error('Toggle screen share error:', err);
