@@ -207,5 +207,6 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
         onClose={() => setShowVideoCall(false)}
       />
     )}
+    </>
   );
 }
