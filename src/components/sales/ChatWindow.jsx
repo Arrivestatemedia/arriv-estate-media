@@ -15,6 +15,7 @@ import SalesRepProfileModal from "./SalesRepProfileModal";
 import TransferCallButton from "./TransferCallButton";
 import VideoCallPanel from "./VideoCallPanel";
 import IncomingVideoCallModal from "./IncomingVideoCallModal";
+import ConferenceScheduler from "@/components/chat/ConferenceScheduler";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
@@ -70,6 +71,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [acceptedIncomingCall, setAcceptedIncomingCall] = useState(null);
+  const [showConferenceScheduler, setShowConferenceScheduler] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Listen for incoming call transfers — show inline in chat
@@ -536,42 +538,51 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[memberStatuses[chatId]] || "#6b7280" }} />
               )}
               {transferTargets.find(m => m.id === chatId)?.extension && (
-                <>
-                  <button
-                   onClick={() => {
-                     const ext = transferTargets.find(m => m.id === chatId)?.extension;
-                     if (ext) {
-                       if (onInitiateTransfer) {
-                         onInitiateTransfer(chatId, chatName);
-                       } else {
-                         localStorage.setItem('dialerPhone', String(ext));
-                         window.dispatchEvent(new Event('dialerCardReady'));
-                       }
-                     }
-                   }}
-                   className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
-                   title="Call"
-                  >
-                   <Phone className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      const ext = transferTargets.find(m => m.id === chatId)?.extension;
-                      if (!ext) {
-                        setVideoCallError('No extension found for video call');
-                        setTimeout(() => setVideoCallError(null), 3000);
-                        return;
-                      }
-                      setVideoCallTarget({ id: chatId, name: chatName, extension: ext });
-                      setShowVideoCall(true);
-                    }}
-                    className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
-                    title="Video Call"
-                  >
-                    <Video className="w-4 h-4" />
-                  </button>
-                </>
-              )}
+                    <>
+                      <button
+                       onClick={() => {
+                         const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                         if (ext) {
+                           if (onInitiateTransfer) {
+                             onInitiateTransfer(chatId, chatName);
+                           } else {
+                             localStorage.setItem('dialerPhone', String(ext));
+                             window.dispatchEvent(new Event('dialerCardReady'));
+                           }
+                         }
+                       }}
+                       className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+                       title="Call"
+                      >
+                       <Phone className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                          if (!ext) {
+                            setVideoCallError('No extension found for video call');
+                            setTimeout(() => setVideoCallError(null), 3000);
+                            return;
+                          }
+                          setVideoCallTarget({ id: chatId, name: chatName, extension: ext });
+                          setShowVideoCall(true);
+                        }}
+                        className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+                        title="Video Call"
+                      >
+                        <Video className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                  {chatType === "channel" && (
+                    <button
+                      onClick={() => setShowConferenceScheduler(true)}
+                      className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+                      title="Schedule Conference"
+                    >
+                      <Video className="w-4 h-4" />
+                    </button>
+                  )}
             </>
           ) : (
             <h2 className="text-lg font-semibold text-gray-900">#{chatName}</h2>
@@ -893,6 +904,19 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               setShowVideoCall(false);
               setAcceptedIncomingCall(null);
             }}
+          />
+        )}
+
+        {showConferenceScheduler && (
+          <ConferenceScheduler
+            channelId={chatId}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            transferTargets={transferTargets}
+            onConferenceCreated={(conference) => {
+              toast.success(`Conference "${conference.title}" scheduled!`);
+            }}
+            onClose={() => setShowConferenceScheduler(false)}
           />
         )}
         </>
