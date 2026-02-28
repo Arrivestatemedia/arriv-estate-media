@@ -537,13 +537,14 @@ export default function HubSpotActivityLog() {
             isAdmin={user?.role === 'admin'}
             onInitiateTransfer={(memberId, memberName) => {
               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                if (members?.[0]?.extension) {
+                const ext = members?.[0]?.extension;
+                if (ext) {
                   setActiveTab("call");
-                  localStorage.setItem('_transferExtension', String(members[0].extension));
-                  if (localStorage.getItem('_videoCallMode')) {
-                    localStorage.setItem('_videoCallEnabled', 'true');
-                    localStorage.removeItem('_videoCallMode');
-                  }
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                      detail: { extension: String(ext), name: memberName || members[0].full_name }
+                    }));
+                  }, 150);
                 }
               }).catch(() => {});
             }}
