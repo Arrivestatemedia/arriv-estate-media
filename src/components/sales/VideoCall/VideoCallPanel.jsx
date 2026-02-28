@@ -191,12 +191,12 @@ export default function VideoCallPanel({
         console.log('📴 Disconnected');
         setCallState("idle");
       });
-    } catch (err) {
+      } catch (err) {
       console.error('❌ Connection error:', err);
       setError("Connection failed: " + err.message);
       setCallState("idle");
-    }
-  }, []);
+      }
+      }, [handleParticipantConnected, handleParticipantDisconnected]);
 
   const handleParticipantConnected = useCallback((participant) => {
     console.log('👤 Participant connected:', participant.name);
@@ -214,10 +214,10 @@ export default function VideoCallPanel({
     });
 
     participant.on('trackUnsubscribed', track => {
-      console.log('📤 Unsubscribed:', track.kind);
-      track.detach().forEach(el => el?.remove?.());
-    });
-  }, []);
+       console.log('📤 Unsubscribed:', track.kind);
+       track.detach().forEach(el => el?.remove?.());
+     });
+    }, [attachTrack]);
 
   const attachTrack = useCallback((track) => {
     if (track.kind === 'video' && remoteVideoRef.current) {
