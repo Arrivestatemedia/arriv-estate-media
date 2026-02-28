@@ -143,9 +143,6 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        window.dispatchEvent(new CustomEvent('initiateTransfer', { 
-                          detail: { extension: String(member.extension), name: member.full_name }
-                        }));
                         onCallClick?.(member.id, member.full_name, false);
                       }}
                       className="h-7 px-2 gap-1"
