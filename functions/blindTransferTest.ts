@@ -34,20 +34,28 @@ Deno.serve(async (req) => {
       return Response.json({ error: `Sender call is not active (status: ${senderCall.status})` }, { status: 400 });
     }
 
-    // Step 2: Find the external caller's leg (inbound call from the PSTN)
-    // The external caller called in and Twilio created a call leg for them.
-    // We search for an in-progress inbound call from that number.
+    // Step 2: Find the external caller's leg (could be inbound OR outbound)
+    // If external caller called in: it's an inbound call (from: externalNumber)
+    // If agent called out to external number: it's an outbound call (to: externalNumber)
     let externalCallSid = null;
     try {
       const normalizedNumber = externalCallerNumber.startsWith('+') ? externalCallerNumber : '+1' + externalCallerNumber.replace(/\D/g, '');
-      const inboundCalls = await client.calls.list({ from: normalizedNumber, status: 'in-progress' });
-      console.log(`Found ${inboundCalls.length} inbound calls from ${normalizedNumber}`);
-      if (inboundCalls.length > 0) {
-        externalCallSid = inboundCalls[0].sid;
-        console.log('External caller leg SID:', externalCallSid);
+      
+      // Try inbound first (external caller called in)
+      let calls = await client.calls.list({ from: normalizedNumber, status: 'in-progress' });
+      if (calls.length > 0) {
+        externalCallSid = calls[0].sid;
+        console.log('Found inbound call from:', normalizedNumber, '→ SID:', externalCallSid);
+      } else {
+        // Try outbound (agent called out to external number)
+        calls = await client.calls.list({ to: normalizedNumber, status: 'in-progress' });
+        if (calls.length > 0) {
+          externalCallSid = calls[0].sid;
+          console.log('Found outbound call to:', normalizedNumber, '→ SID:', externalCallSid);
+        }
       }
     } catch (e) {
-      console.warn('Could not find inbound external call leg:', e.message);
+      console.warn('Could not find external call leg:', e.message);
     }
 
     // Step 3: Look up recipient by extension
