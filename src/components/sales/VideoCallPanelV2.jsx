@@ -43,19 +43,41 @@ export default function VideoCallPanelV2({
           audio: true
         });
 
+        if (!stream) {
+          throw new Error("getUserMedia returned no stream");
+        }
+
+        const videoTracks = stream.getVideoTracks();
+        const audioTracks = stream.getAudioTracks();
+
         console.log("Camera stream obtained:", {
           id: stream.id,
-          videoTracks: stream.getVideoTracks().length,
-          audioTracks: stream.getAudioTracks().length
+          videoTracks: videoTracks.length,
+          audioTracks: audioTracks.length
         });
+
+        if (videoTracks.length === 0) {
+          console.warn("No video tracks in stream");
+          setError("Camera not available");
+          return;
+        }
 
         localStreamRef.current = stream;
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
+          localVideoRef.current.onloadedmetadata = () => {
+            localVideoRef.current?.play().catch((err) => {
+              console.warn("Play failed on metadata load:", err);
+            });
+          };
+          
+          // Try to play immediately as well
           localVideoRef.current.play().catch((err) => {
             console.warn("Play failed on init, will retry on metadata load:", err);
           });
+        } else {
+          console.warn("Local video ref not available");
         }
       } catch (err) {
         console.error("Camera initialization error:", err);
@@ -66,11 +88,20 @@ export default function VideoCallPanelV2({
     initCamera();
 
     return () => {
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => {
-          console.log("Cleanup: stopping", track.kind, "track");
-          track.stop();
-        });
+      try {
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach((track) => {
+            try {
+              console.log("Cleanup: stopping", track.kind, "track");
+              track.stop();
+            } catch (err) {
+              console.warn("Error stopping track during cleanup:", err);
+            }
+          });
+          localStreamRef.current = null;
+        }
+      } catch (err) {
+        console.warn("Error during stream cleanup:", err);
       }
     };
   }, []);
