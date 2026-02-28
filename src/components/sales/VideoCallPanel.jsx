@@ -431,8 +431,39 @@ export default function VideoCallPanel({
   };
 
   const handleClose = () => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+    try {
+      if (twilioRoomRef.current) {
+        try {
+          twilioRoomRef.current.localParticipant.videoTracks.forEach(trackSubscription => {
+            trackSubscription.track.stop();
+          });
+          twilioRoomRef.current.localParticipant.audioTracks.forEach(trackSubscription => {
+            trackSubscription.track.stop();
+          });
+        } catch (err) {
+          console.warn('Error stopping tracks:', err);
+        }
+        try {
+          twilioRoomRef.current.disconnect();
+        } catch (err) {
+          console.warn('Error disconnecting room:', err);
+        }
+        twilioRoomRef.current = null;
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+        screenStreamRef.current = null;
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.innerHTML = '';
+      }
+      setCallState("idle");
+      setIsScreenSharing(false);
+    } catch (err) {
+      console.error('Error during cleanup:', err);
     }
     onClose();
   };
