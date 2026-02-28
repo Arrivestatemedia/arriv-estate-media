@@ -87,7 +87,7 @@ export default function VideoCallPanel({
         });
         
         if (response?.data?.token) {
-          initializeVideoRoom(response.data.token, roomName);
+          await initializeVideoRoom(response.data.token, roomName);
         } else {
           throw new Error('Failed to generate video token');
         }
