@@ -653,41 +653,124 @@ export default function VideoCallPanel({
   };
 
   const handleClose = () => {
+    console.log('handleClose called');
     try {
+      // Stop Twilio room and tracks
       if (twilioRoomRef.current) {
+        console.log('Closing Twilio room...');
         try {
-          twilioRoomRef.current.localParticipant.videoTracks.forEach(trackSubscription => {
-            trackSubscription.track.stop();
-          });
-          twilioRoomRef.current.localParticipant.audioTracks.forEach(trackSubscription => {
-            trackSubscription.track.stop();
-          });
+          const localParticipant = twilioRoomRef.current.localParticipant;
+
+          // Stop all video tracks
+          try {
+            const videoTracks = localParticipant.videoTracks;
+            console.log('Stopping Twilio video tracks:', videoTracks.length);
+            videoTracks.forEach((trackSubscription, i) => {
+              try {
+                console.log('Stopping Twilio video track', i);
+                if (trackSubscription.track) {
+                  trackSubscription.track.stop();
+                }
+              } catch (err) {
+                console.warn('Error stopping Twilio video track:', err);
+              }
+            });
+          } catch (err) {
+            console.warn('Error accessing Twilio video tracks:', err);
+          }
+
+          // Stop all audio tracks
+          try {
+            const audioTracks = localParticipant.audioTracks;
+            console.log('Stopping Twilio audio tracks:', audioTracks.length);
+            audioTracks.forEach((trackSubscription, i) => {
+              try {
+                console.log('Stopping Twilio audio track', i);
+                if (trackSubscription.track) {
+                  trackSubscription.track.stop();
+                }
+              } catch (err) {
+                console.warn('Error stopping Twilio audio track:', err);
+              }
+            });
+          } catch (err) {
+            console.warn('Error accessing Twilio audio tracks:', err);
+          }
         } catch (err) {
-          console.warn('Error stopping tracks:', err);
+          console.warn('Error stopping local participant tracks:', err);
         }
+
         try {
+          console.log('Disconnecting Twilio room...');
           twilioRoomRef.current.disconnect();
+          console.log('Twilio room disconnected successfully');
         } catch (err) {
-          console.warn('Error disconnecting room:', err);
+          console.error('Error disconnecting Twilio room:', err);
         }
+
         twilioRoomRef.current = null;
       }
+
+      // Clean up local media stream
       if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+        console.log('Stopping all local media stream tracks');
+        localStream.getTracks().forEach((track, i) => {
+          try {
+            console.log('Stopping local stream track', i, track.kind);
+            track.stop();
+          } catch (err) {
+            console.warn('Error stopping local stream track:', err);
+          }
+        });
+        setLocalStream(null);
       }
+
+      // Clean up screen stream
       if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(track => track.stop());
+        console.log('Stopping screen stream tracks');
+        screenStreamRef.current.getTracks().forEach((track, i) => {
+          try {
+            console.log('Stopping screen track', i);
+            track.stop();
+          } catch (err) {
+            console.warn('Error stopping screen track:', err);
+          }
+        });
         screenStreamRef.current = null;
       }
+
+      // Clear video elements
       if (remoteVideoRef.current) {
+        console.log('Clearing remote video element');
         remoteVideoRef.current.innerHTML = '';
       }
+
+      if (localVideoRef.current) {
+        console.log('Clearing local video element');
+        localVideoRef.current.srcObject = null;
+      }
+
+      // Update UI state
       setCallState("idle");
       setIsScreenSharing(false);
+      setError(null);
+
+      console.log('All cleanup complete, calling onClose callback');
     } catch (err) {
-      console.error('Error during cleanup:', err);
+      console.error('Unexpected error during handleClose cleanup:', err);
     }
-    onClose();
+
+    // Call the onClose callback last to close the modal
+    try {
+      console.log('Invoking onClose callback');
+      if (onClose && typeof onClose === 'function') {
+        onClose();
+      } else {
+        console.warn('onClose callback not available or not a function');
+      }
+    } catch (err) {
+      console.error('Error calling onClose:', err);
+    }
   };
 
   return (
