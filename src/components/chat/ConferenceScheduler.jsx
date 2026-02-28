@@ -39,6 +39,11 @@ export default function ConferenceScheduler({ channelId, currentUserId, currentU
 
     setLoading(true);
     try {
+      // Get organizer info from localStorage (sales rep who's initiating)
+      const organizerName = localStorage.getItem('sales_member_name') || currentUserName;
+      const organizerEmail = localStorage.getItem('sales_member_email');
+      const organizerId = localStorage.getItem('sales_member_id');
+
       const response = await base44.functions.invoke('scheduleConference', {
         title,
         description,
@@ -46,7 +51,10 @@ export default function ConferenceScheduler({ channelId, currentUserId, currentU
         scheduledTime,
         durationMinutes,
         participants: selectedParticipants,
-        channelId
+        channelId,
+        organizerId,
+        organizerName,
+        organizerEmail
       });
 
       if (response?.data?.success) {
