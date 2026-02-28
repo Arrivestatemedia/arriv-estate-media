@@ -240,14 +240,10 @@ export default function AdminHub() {
             if (ext) {
               setActiveTab("activity");
               setTimeout(() => {
-                localStorage.setItem('dialerPhone', String(ext));
-                window.dispatchEvent(new Event('dialerCardReady'));
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                    detail: { extension: String(ext), name: memberName }
-                  }));
-                }, 200);
-              }, 100);
+                window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                  detail: { extension: String(ext), name: memberName || members[0]?.full_name }
+                }));
+              }, 600);
             }
           }).catch(() => {});
         }}
