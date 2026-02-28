@@ -140,28 +140,27 @@ export default function SalesRepProfileModal({ memberId, open, onClose, onCallCl
                     <span className="font-mono font-semibold">{member.extension}</span>
                   </div>
                   <div className="flex gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        onCallClick?.(member.id, member.full_name, false);
-                      }}
-                      className="h-7 px-2 gap-1"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      Call
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        onCallClick?.(member.id, member.full_name, true);
-                      }}
-                      className="h-7 px-2 gap-1"
-                    >
-                      <Video className="w-3.5 h-3.5" />
-                      Video
-                    </Button>
+                   <Button
+                     size="sm"
+                     variant="outline"
+                     onClick={() => {
+                       onCallClick?.(member.id, member.full_name);
+                       onClose();
+                     }}
+                     className="h-7 px-2 gap-1"
+                   >
+                     <Phone className="w-3.5 h-3.5" />
+                     Call
+                   </Button>
+                   <Button
+                     size="sm"
+                     variant="outline"
+                     onClick={() => setShowVideoCall(true)}
+                     className="h-7 px-2 gap-1"
+                   >
+                     <Video className="w-3.5 h-3.5" />
+                     Video
+                   </Button>
                   </div>
                 </div>
               )}
