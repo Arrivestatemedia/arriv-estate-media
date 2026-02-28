@@ -22,11 +22,11 @@ const STATUS_COLORS = {
   break: "#3b82f6", offline: "#6b7280"
 };
 
-export default function SalesRepProfileModal({ memberId, open, onClose, onCallClick }) {
+export default function SalesRepProfileModal({ memberId, open, onClose, onCallClick, onVideoClick }) {
   const [member, setMember] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [videoMode, setVideoMode] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false);
 
   useEffect(() => {
     if (!open || !memberId) return;
