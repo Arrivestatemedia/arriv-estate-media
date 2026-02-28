@@ -9,8 +9,6 @@ import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 import TransferCallPanel from "./TransferCallPanel";
 import IncomingTransferAlert from "./IncomingTransferAlert";
-import IncomingVideoCallModal from "./IncomingVideoCallModal";
-import VideoCallPanel from "./VideoCall/VideoCallPanel";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
@@ -48,8 +46,6 @@ export default function IphoneDialer({ salesMemberId }) {
   const [secondCallNumber, setSecondCallNumber] = useState("");
   const [secondCallSid, setSecondCallSid] = useState(null);
   const [showThreeWayButton, setShowThreeWayButton] = useState(false);
-  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
-  const [showVideoCall, setShowVideoCall] = useState(false);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -89,30 +85,11 @@ export default function IphoneDialer({ salesMemberId }) {
       const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
       const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
 
-      // Listen for incoming video calls
-      const videoCalls = base44.entities.PendingNotification.subscribe((event) => {
-        if (event.type !== 'create') return;
-        const notif = event.data;
-        if (notif?.event_type === 'incoming_video_call' && notif?.event_data) {
-          const data = notif.event_data;
-          console.log('📞 Incoming video call:', data);
-          setIncomingVideoCall({
-            id: notif.id,
-            callerId: data.callerId,
-            callerName: data.callerName,
-            callerExtension: data.callerExtension,
-            roomName: data.roomName,
-            recipientToken: data.recipientToken
-          });
-        }
-      });
-
       return () => {
         if (deviceRef.current) { deviceRef.current.destroy(); deviceRef.current = null; }
         if (timerRef.current) clearInterval(timerRef.current);
         callLogsUnsub();
         convoUnsub();
-        videoCalls();
       };
   }, [salesMemberId]);
 
@@ -659,49 +636,7 @@ export default function IphoneDialer({ salesMemberId }) {
     }
   };
 
-  // Incoming video call
-  if (incomingVideoCall && !showVideoCall) {
-    return (
-      <IncomingVideoCallModal
-        callerName={incomingVideoCall.callerName}
-        callerExtension={incomingVideoCall.callerExtension}
-        isProcessing={false}
-        onAccept={() => {
-          setShowVideoCall(true);
-        }}
-        onDecline={() => {
-          setIncomingVideoCall(null);
-          if (incomingVideoCall.id) {
-            base44.entities.PendingNotification.delete(incomingVideoCall.id).catch(() => {});
-          }
-        }}
-      />
-    );
-  }
-
-  // Show video call panel
-  if (showVideoCall && incomingVideoCall) {
-    return (
-      <VideoCallPanel
-        recipientName={incomingVideoCall.callerName}
-        recipientExtension={incomingVideoCall.callerExtension}
-        callerToken={incomingVideoCall.recipientToken}
-        roomName={incomingVideoCall.roomName}
-        onClose={() => {
-          setShowVideoCall(false);
-          setIncomingVideoCall(null);
-          if (incomingVideoCall.id) {
-            base44.entities.PendingNotification.delete(incomingVideoCall.id).catch(() => {});
-          }
-        }}
-        currentUserName={localStorage.getItem('sales_member_name')}
-        isIncoming={true}
-        autoStart={true}
-      />
-    );
-  }
-
-  // Incoming voice call modal
+  // Incoming call modal
   if (callState === CALL_STATES.INCOMING && incomingCall) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">

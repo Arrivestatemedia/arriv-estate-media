@@ -13,7 +13,7 @@ import ContactCardDisplay from "./ContactCardDisplay";
 import ContactSearch from "./ContactSearch";
 import SalesRepProfileModal from "./SalesRepProfileModal";
 import TransferCallButton from "./TransferCallButton";
-import VideoCallPanel from "./VideoCall/VideoCallPanel";
+import VideoCallPanel from "./VideoCallPanel";
 import IncomingVideoCallModal from "./IncomingVideoCallModal";
 import ConferenceScheduler from "@/components/chat/ConferenceScheduler";
 
@@ -862,7 +862,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
              callerToken={null}
              roomName={null}
              currentUserName={currentUserName}
-             autoStart={true}
              onClose={() => {
                setShowVideoCall(false);
                setVideoCallTarget(null);
