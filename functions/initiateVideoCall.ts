@@ -37,7 +37,8 @@ Deno.serve(async (req) => {
     const apiSecret = Deno.env.get('TWILIO_API_SECRET');
 
     if (!accountSid || !apiKey || !apiSecret) {
-      return Response.json({ error: 'Missing Twilio credentials' }, { status: 500 });
+      console.error('Missing Twilio credentials:', { accountSid: !!accountSid, apiKey: !!apiKey, apiSecret: !!apiSecret });
+      return Response.json({ error: 'Missing Twilio credentials in environment' }, { status: 500 });
     }
 
     const callerToken = new AccessToken(accountSid, apiKey, apiSecret, {
