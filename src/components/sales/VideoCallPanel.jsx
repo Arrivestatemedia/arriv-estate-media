@@ -219,7 +219,8 @@ export default function VideoCallPanel({
     // If we already have a token and room name (incoming call or token was provided), connect directly
     if (callerToken && roomName) {
       console.log('Using provided token and room name, connecting to room:', roomName);
-      setCallState("connecting");
+      setCallState("calling");
+      setIsLoading(true);
       initializeVideoRoom(callerToken, roomName);
       return;
     }
@@ -268,11 +269,8 @@ export default function VideoCallPanel({
         console.log('Video call invite sent to recipient');
       } catch (err) {
         console.warn('Failed to send video call invite:', err);
-        // Continue anyway - connection can still work
       }
 
-      // Connect caller to the room
-      console.log('Connecting to video room...');
       initializeVideoRoom(response.data.caller.token, response.data.roomName);
     } catch (err) {
       console.error('Failed to start video call:', err);
