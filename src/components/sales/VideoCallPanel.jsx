@@ -89,15 +89,26 @@ export default function VideoCallPanel({
           participantName: currentUserName || 'Guest'
         });
         
-        if (response?.data?.token) {
-          console.log('Token generated successfully, connecting to room...');
-          await initializeVideoRoom(response.data.token, roomName);
-        } else {
-          throw new Error('No token returned from server');
+        console.log('Token response:', response);
+        
+        if (!response) {
+          throw new Error('No response from token generation');
         }
+
+        if (response.status && response.status >= 400) {
+          throw new Error(response.data?.error || `Server error: ${response.status}`);
+        }
+        
+        const token = response.data?.token;
+        if (!token) {
+          throw new Error(`No token in response. Got: ${JSON.stringify(response.data)}`);
+        }
+        
+        console.log('Token generated successfully, connecting to room...');
+        await initializeVideoRoom(token, roomName);
       } catch (err) {
         console.error('Failed to generate token:', err);
-        setError('Failed to connect: ' + (err.response?.data?.error || err.message));
+        setError(`Connection failed: ${err.message}`);
         setCallState("idle");
         setIsLoading(false);
       }
