@@ -24,6 +24,7 @@ export default function VideoCallPanel({
   const [callState, setCallState] = useState("idle"); // idle, calling, connected
   const twilioRoomRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
+  const publishedTracksRef = useRef({ audio: null, video: null });
 
   useEffect(() => {
     const initCamera = async () => {
