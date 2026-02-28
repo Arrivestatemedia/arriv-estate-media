@@ -115,24 +115,48 @@ export default function VideoCallPanelV2({
   }, [autoStart, roomName, callState]);
 
   const toggleMic = () => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-        console.log("Mute toggled:", !audioTrack.enabled);
+    try {
+      if (!localStreamRef.current) {
+        console.warn("No local stream to toggle mic");
+        return;
       }
+
+      const audioTracks = localStreamRef.current.getAudioTracks();
+      if (audioTracks.length === 0) {
+        console.warn("No audio tracks available");
+        return;
+      }
+
+      const audioTrack = audioTracks[0];
+      audioTrack.enabled = !audioTrack.enabled;
+      setIsMuted(!audioTrack.enabled);
+      console.log("Mute toggled:", !audioTrack.enabled);
+    } catch (err) {
+      console.error("Error toggling mic:", err);
+      setError("Failed to toggle mic: " + err.message);
     }
   };
 
   const toggleVideo = () => {
-    if (localStreamRef.current) {
-      const videoTrack = localStreamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOn(videoTrack.enabled);
-        console.log("Video toggled:", videoTrack.enabled);
+    try {
+      if (!localStreamRef.current) {
+        console.warn("No local stream to toggle video");
+        return;
       }
+
+      const videoTracks = localStreamRef.current.getVideoTracks();
+      if (videoTracks.length === 0) {
+        console.warn("No video tracks available");
+        return;
+      }
+
+      const videoTrack = videoTracks[0];
+      videoTrack.enabled = !videoTrack.enabled;
+      setIsVideoOn(videoTrack.enabled);
+      console.log("Video toggled:", videoTrack.enabled);
+    } catch (err) {
+      console.error("Error toggling video:", err);
+      setError("Failed to toggle video: " + err.message);
     }
   };
 
