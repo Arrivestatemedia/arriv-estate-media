@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Phone, PhoneOff, Mic, MicOff } from "lucide-react";
 import { base44 } from "@/api/base44Client";
