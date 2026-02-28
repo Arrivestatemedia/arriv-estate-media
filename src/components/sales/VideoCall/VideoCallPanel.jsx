@@ -433,6 +433,9 @@ export default function VideoCallPanel({
               )}
             </div>
 
+            {/* Remote Audio (hidden) */}
+            <div ref={remoteAudioRef} style={{ display: 'none' }} />
+
             {/* Local PIP */}
             {localStream && callState === "connected" && !isScreenSharing && (
               <div className="absolute top-6 right-6 w-40 h-28 rounded-lg overflow-hidden video-frame bg-black shadow-2xl z-40">
