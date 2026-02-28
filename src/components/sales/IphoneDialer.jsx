@@ -165,10 +165,10 @@ export default function IphoneDialer({ salesMemberId }) {
       const { extension, name } = e.detail;
       if (!extension) return;
 
-      // If already in a call, this becomes the second call for 3-way transfer
+      // If already in a call, initiate blind transfer via backend
       if (callStateRef.current === CALL_STATES.IN_CALL && callRef.current) {
-        console.log('Transfer triggered while in call - initiating second call for 3-way');
-        startCall(extension, false);
+        console.log('Transfer triggered while in call - initiating blind transfer via backend');
+        startCall(extension, true);
       } else {
         // Otherwise auto-dial the extension
         startCall(extension);
