@@ -336,64 +336,115 @@ export default function VideoCallPanelV2({
       if (isScreenSharing) {
         // Stop screen sharing
         console.log("Stopping screen share");
-        if (screenStreamRef.current) {
-          screenStreamRef.current.getTracks().forEach((track) => track.stop());
-          screenStreamRef.current = null;
+
+        try {
+          if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach((track) => {
+              try {
+                track.stop();
+              } catch (err) {
+                console.warn("Failed to stop screen track:", err);
+              }
+            });
+            screenStreamRef.current = null;
+          }
+        } catch (err) {
+          console.warn("Error stopping screen stream:", err);
         }
 
         // Switch back to camera
-        if (localStreamRef.current) {
-          const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-          if (cameraTrack?.readyState === "live") {
-            const videoPublication = Array.from(twilioRoomRef.current.localParticipant.videoTracks)[0];
-            if (videoPublication?.track) {
-              await videoPublication.track.replaceTrack(cameraTrack);
-              console.log("Switched back to camera");
+        try {
+          if (localStreamRef.current && twilioRoomRef.current?.localParticipant) {
+            const cameraTrack = localStreamRef.current.getVideoTracks()[0];
+            if (cameraTrack?.readyState === "live") {
+              const videoPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks || []);
+              const videoPublication = videoPublications[0];
+              if (videoPublication?.track) {
+                await videoPublication.track.replaceTrack(cameraTrack);
+                console.log("Switched back to camera");
+              }
             }
           }
+        } catch (err) {
+          console.error("Error switching back to camera:", err);
+          setError("Failed to switch back to camera: " + err.message);
         }
+
         setIsScreenSharing(false);
       } else {
         // Start screen sharing
         console.log("Starting screen share");
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: "always" },
-          audio: false
-        });
 
-        screenStreamRef.current = screenStream;
-        const screenTrack = screenStream.getVideoTracks()[0];
+        try {
+          const screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { cursor: "always" },
+            audio: false
+          });
 
-        if (!screenTrack) {
-          throw new Error("No screen track obtained");
-        }
+          screenStreamRef.current = screenStream;
+          const screenTrack = screenStream.getVideoTracks()[0];
 
-        // Replace camera with screen in Twilio
-        const videoPublication = Array.from(twilioRoomRef.current.localParticipant.videoTracks)[0];
-        if (!videoPublication?.track) {
-          throw new Error("No video track publication");
-        }
+          if (!screenTrack) {
+            throw new Error("No screen track obtained");
+          }
 
-        screenTrack.enabled = true;
-        await videoPublication.track.replaceTrack(screenTrack);
-        console.log("Screen share started and published");
-        setIsScreenSharing(true);
+          // Replace camera with screen in Twilio
+          if (!twilioRoomRef.current?.localParticipant) {
+            throw new Error("No local participant");
+          }
 
-        // Handle when user stops screen share from OS
-        screenTrack.onended = async () => {
-          console.log("Screen share stopped by user");
-          if (localStreamRef.current) {
-            const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-            if (cameraTrack?.readyState === "live") {
-              const vidPublication = Array.from(twilioRoomRef.current.localParticipant.videoTracks)[0];
-              if (vidPublication?.track) {
-                await vidPublication.track.replaceTrack(cameraTrack);
-                console.log("Auto-switched back to camera");
+          const videoPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks || []);
+          const videoPublication = videoPublications[0];
+
+          if (!videoPublication?.track) {
+            throw new Error("No video track publication");
+          }
+
+          screenTrack.enabled = true;
+          await videoPublication.track.replaceTrack(screenTrack);
+          console.log("Screen share started and published");
+          setIsScreenSharing(true);
+
+          // Handle when user stops screen share from OS
+          screenTrack.onended = async () => {
+            console.log("Screen share stopped by user");
+            try {
+              if (localStreamRef.current && twilioRoomRef.current?.localParticipant) {
+                const cameraTrack = localStreamRef.current.getVideoTracks()[0];
+                if (cameraTrack?.readyState === "live") {
+                  const vidPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks || []);
+                  const vidPublication = vidPublications[0];
+                  if (vidPublication?.track) {
+                    await vidPublication.track.replaceTrack(cameraTrack);
+                    console.log("Auto-switched back to camera");
+                  }
+                }
               }
+            } catch (err) {
+              console.error("Error in auto-switch back:", err);
             }
+            setIsScreenSharing(false);
+          };
+        } catch (err) {
+          if (err.name === "NotAllowedError") {
+            console.log("User cancelled screen share");
+          } else {
+            console.error("Screen share error:", err);
+            setError("Screen share failed: " + err.message);
+          }
+
+          if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach((track) => {
+              try {
+                track.stop();
+              } catch (e) {
+                console.warn("Failed to stop screen track on error:", e);
+              }
+            });
+            screenStreamRef.current = null;
           }
           setIsScreenSharing(false);
-        };
+        }
       }
     } catch (err) {
       if (err.name !== "NotAllowedError") {
