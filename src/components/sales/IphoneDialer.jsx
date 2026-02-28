@@ -844,14 +844,25 @@ export default function IphoneDialer({ salesMemberId }) {
                           </div>
                         )}
                         {phoneNumber && (
-                          <Button 
-                            onClick={() => startCall(phoneNumber)}
-                            className="w-full gap-2 mt-3"
-                            style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-                          >
-                            <Phone className="w-4 h-4" />
-                            Call Now
-                          </Button>
+                          <div className="flex flex-col gap-2 mt-3">
+                            <AiAssistButton
+                              mode="call"
+                              context={{
+                                contactName: log.contact_name || phoneNumber,
+                                contactCompany: log.company_name,
+                                callHistory: log.notes,
+                                repName: localStorage.getItem('sales_member_name') || ''
+                              }}
+                            />
+                            <Button 
+                              onClick={() => startCall(phoneNumber)}
+                              className="w-full gap-2"
+                              style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+                            >
+                              <Phone className="w-4 h-4" />
+                              Call Now
+                            </Button>
+                          </div>
                         )}
                       </div>
                     )}
