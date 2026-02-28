@@ -821,8 +821,21 @@ export default function VideoCallPanel({
                   {console.log('Rendering local video PIP, localStream:', !!localStream, 'callState:', callState, 'isScreenSharing:', isScreenSharing)}
                   <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-yellow-500 bg-black shadow-lg z-10">
                     {!isScreenSharing ? (
-                      <video
-                        ref={localVideoRef}
+                      <>
+                        {(() => {
+                          const videoTracks = localStream.getVideoTracks();
+                          if (videoTracks.length > 0) {
+                            videoTracks.forEach(track => {
+                              if (!track.enabled) {
+                                console.log('Enabling disabled video track');
+                                track.enabled = true;
+                              }
+                            });
+                          }
+                          return null;
+                        })()}
+                        <video
+                          ref={localVideoRef}
                         autoPlay
                         playsInline
                         muted
@@ -851,6 +864,7 @@ export default function VideoCallPanel({
                           console.log('Local video paused');
                         }}
                       />
+                      </>
                     ) : (
                       <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                         <span className="text-xs text-gray-400 text-center px-2">Sharing screen</span>
