@@ -479,14 +479,15 @@ export default function VideoCallPanel({
               />
               
               {/* Local video (picture-in-picture) */}
-              {!isScreenSharing && (
-                <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black shadow-lg">
+              {!isScreenSharing && callState === "connected" && (
+                <div className="absolute bottom-4 right-4 w-32 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black shadow-lg z-10">
                   <video
                     ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
+                    autoPlay={true}
+                    playsInline={true}
+                    muted={true}
+                    className="w-full h-full object-cover bg-black"
+                    style={{ display: 'block' }}
                   />
                   {!isVideoOn && (
                     <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
