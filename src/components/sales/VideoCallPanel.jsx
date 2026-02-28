@@ -81,19 +81,24 @@ export default function VideoCallPanel({
       });
 
       if (!response.data?.token) {
-        throw new Error('Failed to get video token');
-      }
+         throw new Error('Failed to get video token: ' + JSON.stringify(response.data));
+       }
 
-      // Load and initialize Twilio Video SDK
-      const Video = window.Twilio?.Video;
-      if (!Video) {
-        const script = document.createElement('script');
-        script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
-        script.onload = () => initializeVideoRoom(response.data.token);
-        document.body.appendChild(script);
-      } else {
-        initializeVideoRoom(response.data.token);
-      }
+      console.log('Video token received successfully');
+
+       // Load and initialize Twilio Video SDK
+       const Video = window.Twilio?.Video;
+       if (!Video) {
+         const script = document.createElement('script');
+         script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
+         script.onload = () => initializeVideoRoom(response.data.token);
+         script.onerror = () => {
+           throw new Error('Failed to load Twilio Video SDK');
+         };
+         document.body.appendChild(script);
+       } else {
+         initializeVideoRoom(response.data.token);
+       }
     } catch (err) {
       setError('Failed to start video call: ' + err.message);
       setCallState("idle");
