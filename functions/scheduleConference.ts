@@ -69,18 +69,34 @@ Deno.serve(async (req) => {
       console.log('Getting Google Calendar access token...');
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
       
-      const year = parseInt(scheduled_date.split('-')[0]);
-      const month = parseInt(scheduled_date.split('-')[1]) - 1;
-      const day = parseInt(scheduled_date.split('-')[2]);
-      const hours = parseInt(scheduled_time.split(':')[0]);
-      const mins = parseInt(scheduled_time.split(':')[1]);
+      const [year, month, day] = scheduled_date.split('-').map(Number);
+      const [hours, minutes] = scheduled_time.split(':').map(Number);
       
-      // Create date in America/New_York timezone and convert to UTC
-      const estDate = new Date(year, month, day, hours, mins);
-      // Get the UTC offset for this date in America/New_York (accounts for DST)
-      const estUTC = new Date(estDate.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-      const offset = estDate.getTime() - estUTC.getTime();
-      const startTime = new Date(estDate.getTime() + offset);
+      // Create a UTC date as reference
+      const testDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+      
+      // Get what time this UTC date is in America/New_York
+      const nyFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      
+      const parts = nyFormatter.formatToParts(testDate);
+      const nyTime = {};
+      parts.forEach(p => nyTime[p.type] = p.value);
+      
+      // Calculate the offset needed to convert user's local time to UTC
+      const nyHours = parseInt(nyTime.hour);
+      const nyMinutes = parseInt(nyTime.minute);
+      const offsetMinutes = (hours - nyHours) * 60 + (minutes - nyMinutes);
+      
+      // Apply offset to get the correct UTC time
+      const startTime = new Date(testDate.getTime() + offsetMinutes * 60 * 1000);
       const endTime = new Date(startTime.getTime() + duration_minutes * 60000);
 
       const attendees = participants.map(p => ({
