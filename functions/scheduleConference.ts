@@ -65,83 +65,75 @@ Deno.serve(async (req) => {
     });
     console.log('Conference created:', conference.id, conference.meeting_link);
 
-    // Create Google Calendar event (optional - if it fails, conference still succeeds)
+    // Create Google Calendar event (replicate exact pattern from scheduleGoogleCalendarInvite)
     try {
-      console.log('Attempting to get Google Calendar access token...');
-      let accessToken;
-      try {
-        accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
-      } catch (tokenError) {
-        console.warn('Could not get Google Calendar token:', tokenError.message);
-        console.warn('Conference created but calendar invite skipped');
-        accessToken = null;
-      }
+      console.log('Getting Google Calendar access token...');
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+      
+      const year = parseInt(scheduledDate.split('-')[0]);
+      const month = parseInt(scheduledDate.split('-')[1]) - 1;
+      const day = parseInt(scheduledDate.split('-')[2]);
+      const hours = parseInt(scheduledTime.split(':')[0]);
+      const mins = parseInt(scheduledTime.split(':')[1]);
+      const startTime = new Date(year, month, day, hours, mins);
+      const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 
-      if (accessToken) {
-        console.log('Access token obtained, creating calendar event...');
-        
-        const year = parseInt(scheduledDate.split('-')[0]);
-        const month = parseInt(scheduledDate.split('-')[1]) - 1;
-        const day = parseInt(scheduledDate.split('-')[2]);
-        const hours = parseInt(scheduledTime.split(':')[0]);
-        const mins = parseInt(scheduledTime.split(':')[1]);
-        const startTime = new Date(year, month, day, hours, mins);
-        const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+      const attendees = participants.map(p => ({
+        email: p.email,
+        displayName: p.name,
+        responseStatus: 'needsAction'
+      }));
+      
+      // Add organizer as accepted
+      attendees.push({
+        email: user.email,
+        displayName: user.full_name,
+        responseStatus: 'accepted'
+      });
 
-        const attendees = [
-          { email: user.email, displayName: user.full_name, responseStatus: 'accepted' },
-          ...participants.map(p => ({
-            email: p.email,
-            displayName: p.name,
-            responseStatus: 'needsAction'
-          }))
-        ];
-
-        const event = {
-          summary: title,
-          description: `${description}\n\nJoin Video Conference: ${conference.meeting_link}`,
-          start: {
-            dateTime: startTime.toISOString(),
-            timeZone: 'UTC'
-          },
-          end: {
-            dateTime: endTime.toISOString(),
-            timeZone: 'UTC'
-          },
-          attendees: attendees,
-          conferenceData: {
-            createRequest: {
-              requestId: `conf-${conference.id}`
-            }
+      const event = {
+        summary: title,
+        description: description || '',
+        start: {
+          dateTime: startTime.toISOString(),
+          timeZone: 'America/New_York'
+        },
+        end: {
+          dateTime: endTime.toISOString(),
+          timeZone: 'America/New_York'
+        },
+        attendees: attendees,
+        guestsCanInviteOthers: false,
+        conferenceData: {
+          createRequest: {
+            requestId: `conf-${conference.id}`,
+            conferenceSolutionKey: { type: 'hangoutsMeet' }
           }
-        };
-
-        console.log('Sending to Google Calendar API...');
-        const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(event)
-        });
-        console.log('Google Calendar response status:', calendarResponse.status);
-
-        if (calendarResponse.ok) {
-          const calendarEvent = await calendarResponse.json();
-          if (calendarEvent.id) {
-            await base44.entities.Conference.update(conference.id, {
-              google_calendar_event_id: calendarEvent.id
-            });
-            console.log('Calendar event created:', calendarEvent.id);
-          }
-        } else {
-          const errorText = await calendarResponse.text();
-          console.warn('Google Calendar API error:', calendarResponse.status, errorText);
         }
+      };
+
+      console.log('Sending calendar invite with sendUpdates=all...');
+      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(event)
+      });
+
+      const calendarEvent = await calendarResponse.json();
+      
+      if (!calendarResponse.ok) {
+        console.warn('Calendar error:', calendarEvent.error?.message || 'Failed to create event');
+      } else {
+        await base44.entities.Conference.update(conference.id, {
+          google_calendar_event_id: calendarEvent.id
+        });
+        console.log('Calendar event created with invites sent:', calendarEvent.id);
       }
     } catch (calendarError) {
-      console.warn('Failed to create Google Calendar event:', calendarError.message);
+      console.warn('Failed to create calendar invite:', calendarError.message);
       // Continue - conference is created even if calendar fails
     }
 
