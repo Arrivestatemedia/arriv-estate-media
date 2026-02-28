@@ -183,53 +183,80 @@ export default function VideoCallPanel({
   };
 
   const initializeVideoRoom = async (token, room) => {
-    try {
-      // Ensure SDK is loaded
-      if (!window.Twilio?.Video) {
-        const Video = await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
-          script.onload = () => {
-            setTimeout(() => resolve(window.Twilio.Video), 100);
-          };
-          script.onerror = () => reject(new Error('Failed to load Twilio Video SDK'));
-          document.head.appendChild(script);
-        });
-      }
+   try {
+     if (!token) {
+       throw new Error('No token provided to initializeVideoRoom');
+     }
 
-      const Video = window.Twilio.Video;
-      console.log('Connecting to video room:', room || 'generated-room');
+     if (!room) {
+       throw new Error('No room name provided to initializeVideoRoom');
+     }
 
-      const connectOptions = {
-        name: room || `video-${Date.now()}`,
-        audio: { echoCancellation: true },
-        video: { width: 640, height: 480 },
-        networkQuality: { local: 1, remote: 1 },
-        maxAudioBitrate: 50000
-      };
+     // Ensure SDK is loaded
+     if (!window.Twilio?.Video) {
+       console.log('Loading Twilio Video SDK...');
+       const Video = await new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+         script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
+         script.onload = () => {
+           setTimeout(() => {
+             if (window.Twilio?.Video) {
+               console.log('Twilio SDK loaded successfully');
+               resolve(window.Twilio.Video);
+             } else {
+               reject(new Error('Twilio.Video not available after SDK load'));
+             }
+           }, 100);
+         };
+         script.onerror = () => reject(new Error('Failed to load Twilio Video SDK script'));
+         document.head.appendChild(script);
+       });
+     }
 
-      const videoRoom = await Video.connect(token, connectOptions);
-      console.log('Connected to room:', videoRoom.name);
-      twilioRoomRef.current = videoRoom;
-      setIsLoading(false);
-      setCallState("connected");
+     const Video = window.Twilio.Video;
+     if (!Video) {
+       throw new Error('Twilio Video not available');
+     }
 
-      // Handle existing participants
-      videoRoom.participants.forEach(participantConnected);
+     console.log('Connecting to video room:', room, 'with token:', token.substring(0, 20) + '...');
 
-      // Handle new participants
-      videoRoom.on('participantConnected', participantConnected);
-      videoRoom.on('participantDisconnected', participantDisconnected);
-      videoRoom.on('disconnected', () => {
-        console.log('Disconnected from room');
-        setCallState("idle");
-      });
-    } catch (err) {
-      console.error('Video room connection error:', err);
-      setError('Failed to connect: ' + err.message);
-      setIsLoading(false);
-      setCallState("idle");
-    }
+     const connectOptions = {
+       name: room,
+       audio: { echoCancellation: true, noiseSuppression: true },
+       video: { width: 640, height: 480 },
+       networkQuality: { local: 1, remote: 1 },
+       maxAudioBitrate: 50000,
+       dominantSpeaker: true
+     };
+
+     console.log('Connect options:', connectOptions);
+     const videoRoom = await Video.connect(token, connectOptions);
+     console.log('Successfully connected to room:', videoRoom.name);
+     twilioRoomRef.current = videoRoom;
+     setIsLoading(false);
+     setCallState("connected");
+
+     // Handle existing participants
+     videoRoom.participants.forEach(participantConnected);
+
+     // Handle new participants
+     videoRoom.on('participantConnected', participantConnected);
+     videoRoom.on('participantDisconnected', participantDisconnected);
+     videoRoom.on('disconnected', () => {
+       console.log('Disconnected from room');
+       setCallState("idle");
+     });
+
+     videoRoom.on('error', (error) => {
+       console.error('Room error:', error);
+       setError('Room error: ' + error.message);
+     });
+   } catch (err) {
+     console.error('Video room connection error:', err);
+     setError(`Connection error: ${err.message}`);
+     setIsLoading(false);
+     setCallState("idle");
+   }
   };
 
   const participantConnected = (participant) => {
