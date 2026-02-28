@@ -49,6 +49,17 @@ export default function CalendarTab({ salesMemberId }) {
     catch { return dateStr; }
   };
 
+  const renderTextWithLinks = (text) => {
+    if (!text) return '';
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) => 
+      urlRegex.test(part) ? 
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#B8956A', textDecoration: 'underline' }}>{part}</a>
+      : part
+    );
+  };
+
   const getUserRsvp = (event) => {
     const userEmail = salesMember?.company_email || salesMember?.email;
     if (!userEmail) return null;
