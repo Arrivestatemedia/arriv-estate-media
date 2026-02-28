@@ -484,9 +484,9 @@ export default function AdminActivityPage({ user }) {
                   setActiveTab("call");
                   setTimeout(() => {
                     window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                      detail: { extension: String(ext), name: memberName || members[0].full_name }
+                      detail: { extension: String(ext), name: memberName || members[0]?.full_name }
                     }));
-                  }, 150);
+                  }, 400);
                 }
               }).catch(() => {});
             }}
