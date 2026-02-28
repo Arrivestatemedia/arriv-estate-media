@@ -387,16 +387,18 @@ export default function IphoneDialer({ salesMemberId }) {
 
     try {
       // Ensure device is registered before connecting (fixes first-call routing to cell issue)
-      if (!deviceRef.current) {
-        setError('Dialer not ready. Please wait a moment and try again.');
-        setCallState(CALL_STATES.IDLE);
-        return;
-      }
-      if (deviceRef.current.state !== 'registered') {
+      // Wait for device to be ready (up to 10 seconds)
+      if (!deviceRef.current || deviceRef.current.state !== 'registered') {
         console.log('Device not yet registered, waiting...');
         await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Device registration timed out')), 8000);
-          deviceRef.current.once('registered', () => { clearTimeout(timeout); resolve(); });
+          const timeout = setTimeout(() => reject(new Error('Dialer not ready. Please wait a moment and try again.')), 10000);
+          const check = setInterval(() => {
+            if (deviceRef.current && deviceRef.current.state === 'registered') {
+              clearInterval(check);
+              clearTimeout(timeout);
+              resolve();
+            }
+          }, 200);
         });
       }
 
