@@ -65,6 +65,7 @@ export default function Conference() {
         currentUserName={user?.full_name || 'Guest'}
         recipientName="Conference"
         onClose={() => window.history.back()}
+        autoStart={autoStart}
       />
     </div>
   );
