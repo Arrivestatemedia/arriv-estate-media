@@ -902,6 +902,19 @@ export default function IphoneDialer({ salesMemberId }) {
               </Button>
             </div>
 
+            {/* AI Call Script */}
+            {keypadInput.length >= 7 && (
+              <div className="flex justify-center">
+                <AiAssistButton
+                  mode="call"
+                  context={{
+                    contactName: keypadInput,
+                    repName: localStorage.getItem('sales_member_name') || ''
+                  }}
+                />
+              </div>
+            )}
+
             {/* Extension Directory */}
             {allMembers.length > 0 && (
               <div className="border-t pt-4" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
