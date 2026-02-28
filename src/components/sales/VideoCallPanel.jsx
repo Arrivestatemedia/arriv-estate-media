@@ -109,7 +109,13 @@ export default function VideoCallPanel({
 
   const initializeVideoRoom = async (token) => {
     try {
+      if (!window.Twilio?.Video) {
+        throw new Error('Twilio Video SDK not loaded');
+      }
+
       const Video = window.Twilio.Video;
+      console.log('Connecting to video room with token...');
+
       const room = await Video.connect(token, {
         name: `video-${Date.now()}`,
         audio: { echoCancellation: true },
@@ -117,11 +123,13 @@ export default function VideoCallPanel({
         networkQuality: { local: 1, remote: 1 }
       });
 
+      console.log('Video room connected:', room.name);
       twilioRoomRef.current = room;
       setCallState("connected");
 
       // Handle remote participants
       room.on('participantConnected', participant => {
+        console.log('Remote participant connected:', participant.sid);
         participant.videoTracks.forEach(videoTrack => {
           if (remoteVideoRef.current) {
             const videoElement = videoTrack.attach();
@@ -132,11 +140,13 @@ export default function VideoCallPanel({
       });
 
       room.on('participantDisconnected', () => {
+        console.log('Remote participant disconnected');
         if (remoteVideoRef.current) {
           remoteVideoRef.current.innerHTML = '';
         }
       });
     } catch (err) {
+      console.error('Video room connection error:', err);
       setError('Failed to connect to video room: ' + err.message);
       setCallState("idle");
     }
