@@ -9,6 +9,8 @@ import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 import TransferCallPanel from "./TransferCallPanel";
 import IncomingTransferAlert from "./IncomingTransferAlert";
+import IncomingVideoCallModal from "./IncomingVideoCallModal";
+import VideoCallPanel from "./VideoCallPanel";
 
 const TABS = { RECENTS: "recents", KEYPAD: "keypad", MESSAGES: "messages" };
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", INCOMING: "incoming", IN_CALL: "in_call", ENDED: "ended" };
@@ -46,6 +48,10 @@ export default function IphoneDialer({ salesMemberId }) {
   const [secondCallNumber, setSecondCallNumber] = useState("");
   const [secondCallSid, setSecondCallSid] = useState(null);
   const [showThreeWayButton, setShowThreeWayButton] = useState(false);
+  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
+  const [showVideoCallPanel, setShowVideoCallPanel] = useState(false);
+  const [videoCallData, setVideoCallData] = useState(null);
+  const [videoCallProcessing, setVideoCallProcessing] = useState(false);
 
   const callRef = useRef(null);
   const timerRef = useRef(null);
@@ -97,25 +103,45 @@ export default function IphoneDialer({ salesMemberId }) {
     const salesMemberIdLocal = localStorage.getItem('sales_member_id');
     if (!salesMemberIdLocal) return;
     
-    const unsubscribe = base44.entities.PendingCallTransfer.subscribe((event) => {
+    // Subscribe to pending call transfers
+    const transferUnsub = base44.entities.PendingCallTransfer.subscribe((event) => {
       const transfer = event.data;
       if (event.type !== 'update' || !transfer) return;
       
       if (transfer.from_member_id === salesMemberIdLocal && transfer.status === 'accepted') {
-        console.log('Transfer accepted by recipient - backend is handling the call bridging');
+        console.log('Transfer accepted by recipient');
         base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         setShowTransferPanel(false);
         return;
       }
       
       if (transfer.to_member_id === salesMemberIdLocal && transfer.status === 'accepted') {
-        console.log('Transfer accepted as recipient - backend will dial you into the conference');
+        console.log('Transfer accepted as recipient');
         base44.entities.PendingCallTransfer.update(transfer.id, { status: 'completed' }).catch(() => {});
         return;
       }
     });
     
-    return unsubscribe;
+    // Subscribe to incoming video calls
+    const videoCallUnsub = base44.entities.SalesTeamMember.subscribe((event) => {
+      // Listen for custom video call events via localStorage+CustomEvent
+      // This is handled via the window event below
+    });
+    
+    const handleIncomingVideoCall = (e) => {
+      if (e.detail.recipientId === salesMemberIdLocal) {
+        console.log('Incoming video call:', e.detail);
+        setIncomingVideoCall(e.detail);
+      }
+    };
+    
+    window.addEventListener('incomingVideoCall', handleIncomingVideoCall);
+    
+    return () => {
+      transferUnsub();
+      videoCallUnsub();
+      window.removeEventListener('incomingVideoCall', handleIncomingVideoCall);
+    };
   }, []);
 
   // Keyboard handler
@@ -661,6 +687,57 @@ export default function IphoneDialer({ salesMemberId }) {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Video call modal
+  if (showVideoCallPanel && videoCallData) {
+    return (
+      <VideoCallPanel
+        recipientName={videoCallData.recipientName}
+        recipientExtension={videoCallData.recipientExtension}
+        callerToken={videoCallData.token}
+        roomName={videoCallData.roomName}
+        currentUserName={localStorage.getItem('sales_member_name')}
+        isIncoming={videoCallData.isIncoming}
+        onClose={() => {
+          setShowVideoCallPanel(false);
+          setVideoCallData(null);
+          setIncomingVideoCall(null);
+        }}
+      />
+    );
+  }
+
+  // Incoming video call modal
+  if (incomingVideoCall) {
+    return (
+      <IncomingVideoCallModal
+        callerName={incomingVideoCall.callerName}
+        callerExtension={incomingVideoCall.callerExtension}
+        isProcessing={videoCallProcessing}
+        onDecline={() => {
+          setIncomingVideoCall(null);
+        }}
+        onAccept={async () => {
+          setVideoCallProcessing(true);
+          try {
+            setVideoCallData({
+              recipientName: incomingVideoCall.callerName,
+              recipientExtension: incomingVideoCall.callerExtension,
+              token: incomingVideoCall.token,
+              roomName: incomingVideoCall.roomName,
+              isIncoming: true
+            });
+            setShowVideoCallPanel(true);
+          } catch (err) {
+            setError('Failed to join video call: ' + err.message);
+            setIncomingVideoCall(null);
+          } finally {
+            setVideoCallProcessing(false);
+          }
+        }}
+      />
     );
   }
 
