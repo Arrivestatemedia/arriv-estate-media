@@ -545,26 +545,110 @@ export default function VideoCallPanel({
   };
 
   const handleEndCall = () => {
+    console.log('handleEndCall called, current room:', !!twilioRoomRef.current);
     try {
+      // Disable all controls first to prevent double-clicks
+      setCallState("disconnecting");
+
       if (twilioRoomRef.current) {
-        twilioRoomRef.current.localParticipant.videoTracks.forEach(trackSubscription => {
-          trackSubscription.track.stop();
-        });
-        twilioRoomRef.current.localParticipant.audioTracks.forEach(trackSubscription => {
-          trackSubscription.track.stop();
-        });
-        twilioRoomRef.current.disconnect();
+        console.log('Stopping all tracks in Twilio room...');
+        try {
+          // Stop local participant's video tracks
+          const videoTracks = twilioRoomRef.current.localParticipant.videoTracks;
+          console.log('Video tracks to stop:', videoTracks.length);
+          videoTracks.forEach((trackSubscription, i) => {
+            try {
+              console.log('Stopping video track', i);
+              if (trackSubscription.track) {
+                trackSubscription.track.stop();
+              }
+            } catch (err) {
+              console.warn('Error stopping video track:', err);
+            }
+          });
+        } catch (err) {
+          console.warn('Error accessing video tracks:', err);
+        }
+
+        try {
+          // Stop local participant's audio tracks
+          const audioTracks = twilioRoomRef.current.localParticipant.audioTracks;
+          console.log('Audio tracks to stop:', audioTracks.length);
+          audioTracks.forEach((trackSubscription, i) => {
+            try {
+              console.log('Stopping audio track', i);
+              if (trackSubscription.track) {
+                trackSubscription.track.stop();
+              }
+            } catch (err) {
+              console.warn('Error stopping audio track:', err);
+            }
+          });
+        } catch (err) {
+          console.warn('Error accessing audio tracks:', err);
+        }
+
+        try {
+          // Disconnect from room
+          console.log('Disconnecting from Twilio room...');
+          twilioRoomRef.current.disconnect();
+          console.log('Room disconnect completed');
+        } catch (err) {
+          console.error('Error disconnecting room:', err);
+        }
+
         twilioRoomRef.current = null;
       }
+
+      // Clear remote video
       if (remoteVideoRef.current) {
+        console.log('Clearing remote video ref');
         remoteVideoRef.current.innerHTML = '';
       }
+
+      // Cleanup local stream tracks (separate from Twilio)
+      if (localStream) {
+        console.log('Stopping local media stream tracks');
+        localStream.getTracks().forEach((track, i) => {
+          try {
+            console.log('Stopping local stream track', i, track.kind);
+            track.stop();
+          } catch (err) {
+            console.warn('Error stopping local stream track:', err);
+          }
+        });
+        setLocalStream(null);
+      }
+
+      // Cleanup screen stream if active
+      if (screenStreamRef.current) {
+        console.log('Stopping screen stream tracks');
+        screenStreamRef.current.getTracks().forEach((track, i) => {
+          try {
+            console.log('Stopping screen track', i);
+            track.stop();
+          } catch (err) {
+            console.warn('Error stopping screen track:', err);
+          }
+        });
+        screenStreamRef.current = null;
+      }
+
+      console.log('Setting call state to idle and closing');
       setCallState("idle");
-      handleClose();
+      setIsScreenSharing(false);
+
+      // Wait a tick before closing to ensure state updates
+      setTimeout(() => {
+        console.log('Calling handleClose from handleEndCall');
+        handleClose();
+      }, 50);
     } catch (err) {
-      console.error('Error ending call:', err);
+      console.error('Unexpected error in handleEndCall:', err);
       setCallState("idle");
-      handleClose();
+      setTimeout(() => {
+        handleClose();
+      }, 50);
     }
   };
 
