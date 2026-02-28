@@ -478,13 +478,12 @@ export default function AdminActivityPage({ user }) {
             salesMemberId={user?.id} 
             isAdmin={true}
             onInitiateTransfer={(memberId, memberName) => {
-              // Find member extension and dispatch initiateTransfer event
               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                if (members?.[0]?.extension) {
+                const ext = members?.[0]?.extension;
+                if (ext) {
+                  localStorage.setItem('dialerPhone', String(ext));
                   setActiveTab("call");
-                  window.dispatchEvent(new CustomEvent('initiateTransfer', { 
-                    detail: { extension: String(members[0].extension), name: memberName || members[0].full_name }
-                  }));
+                  setTimeout(() => window.dispatchEvent(new Event('dialerCardReady')), 100);
                 }
               }).catch(() => {});
             }}
