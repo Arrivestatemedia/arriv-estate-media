@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Phone, PhoneOff, Mic, MicOff, Share2, StopCircle } from "lucide-react";
+import { X, Phone, PhoneOff, Mic, MicOff, Monitor } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 export default function VideoCallPanel({ 
@@ -71,57 +71,6 @@ export default function VideoCallPanel({
         track.enabled = !track.enabled;
       });
       setIsVideoOn(!isVideoOn);
-    }
-  };
-
-  const handleScreenShare = async () => {
-    if (isScreenSharing) {
-      // Stop screen sharing
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(track => track.stop());
-        screenStreamRef.current = null;
-      }
-      // Replace with camera track
-      if (twilioRoomRef.current && localStream) {
-        const videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) {
-          await twilioRoomRef.current.localParticipant.videoTracks.forEach(trackSubscription => {
-            trackSubscription.track.replaceTrack(videoTrack);
-          });
-        }
-      }
-      setIsScreenSharing(false);
-      return;
-    }
-
-    try {
-      // Start screen sharing
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { cursor: 'always' },
-        audio: false
-      });
-      
-      screenStreamRef.current = screenStream;
-      
-      if (twilioRoomRef.current) {
-        const screenTrack = screenStream.getVideoTracks()[0];
-        if (screenTrack) {
-          await twilioRoomRef.current.localParticipant.videoTracks.forEach(trackSubscription => {
-            trackSubscription.track.replaceTrack(screenTrack);
-          });
-          setIsScreenSharing(true);
-          
-          // Listen for stop event (when user clicks stop in browser dialog)
-          screenTrack.onended = () => {
-            handleScreenShare(); // Toggle off
-          };
-        }
-      }
-    } catch (err) {
-      if (err.name !== 'NotAllowedError') {
-        console.error('Screen share error:', err);
-        setError('Screen share failed: ' + err.message);
-      }
     }
   };
 
@@ -301,6 +250,66 @@ export default function VideoCallPanel({
     });
   };
 
+  const toggleScreenShare = async () => {
+    try {
+      if (isScreenSharing) {
+        // Stop screen sharing
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach(track => {
+            track.stop();
+          });
+          screenStreamRef.current = null;
+        }
+        
+        // Switch back to camera video
+        if (twilioRoomRef.current && localStream) {
+          const videoTrack = localStream.getVideoTracks()[0];
+          if (videoTrack) {
+            await twilioRoomRef.current.localParticipant.videoTracks[0].track.replaceTrack(videoTrack);
+          }
+        }
+        setIsScreenSharing(false);
+      } else {
+        // Start screen sharing
+        try {
+          const screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { cursor: 'always' },
+            audio: false
+          });
+          screenStreamRef.current = screenStream;
+          
+          // Replace camera video with screen share
+          if (twilioRoomRef.current) {
+            const screenTrack = screenStream.getVideoTracks()[0];
+            if (screenTrack && twilioRoomRef.current.localParticipant.videoTracks[0]) {
+              await twilioRoomRef.current.localParticipant.videoTracks[0].track.replaceTrack(screenTrack);
+              setIsScreenSharing(true);
+              
+              // Listen for when user stops screen share from OS
+              screenTrack.onended = () => {
+                if (localStream) {
+                  const videoTrack = localStream.getVideoTracks()[0];
+                  if (videoTrack && twilioRoomRef.current?.localParticipant.videoTracks[0]) {
+                    twilioRoomRef.current.localParticipant.videoTracks[0].track.replaceTrack(videoTrack);
+                  }
+                }
+                setIsScreenSharing(false);
+              };
+            }
+          }
+        } catch (err) {
+          if (err.name !== 'NotAllowedError') {
+            console.error('Screen share error:', err);
+            setError('Failed to share screen: ' + err.message);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Toggle screen share error:', err);
+      setError('Screen share error: ' + err.message);
+    }
+  };
+
   const participantDisconnected = (participant) => {
     console.log('Participant disconnected:', participant.sid);
     if (remoteVideoRef.current) {
@@ -423,21 +432,16 @@ export default function VideoCallPanel({
             {isVideoOn ? "📹" : "🚫"}
           </Button>
 
-          {callState === "connected" && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleScreenShare}
-              className={`h-10 w-10 p-0 ${isScreenSharing ? "bg-blue-500 hover:bg-blue-600 border-blue-600" : ""}`}
-              title={isScreenSharing ? "Stop sharing" : "Share screen"}
-            >
-              {isScreenSharing ? (
-                <StopCircle className="w-5 h-5 text-white" />
-              ) : (
-                <Share2 className="w-5 h-5 text-white" />
-              )}
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={toggleScreenShare}
+            disabled={callState !== "connected"}
+            className={`h-10 w-10 p-0 ${isScreenSharing ? "bg-blue-500 hover:bg-blue-600 border-blue-600" : ""}`}
+            title={isScreenSharing ? "Stop sharing" : "Share screen"}
+          >
+            <Monitor className="w-5 h-5 text-white" />
+          </Button>
 
           {callState === "idle" && !isIncoming ? (
             <Button
