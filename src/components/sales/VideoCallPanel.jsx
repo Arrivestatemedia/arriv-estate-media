@@ -62,10 +62,71 @@ export default function VideoCallPanel({
     }
   };
 
-  const handleStartCall = () => {
+  const handleStartCall = async () => {
     setCallState("calling");
-    // In a real implementation, this would connect to the recipient via WebRTC or Twilio Video
-    console.log(`Starting video call with ${recipientName} (ext. ${recipientExtension})`);
+    setIsLoading(true);
+    try {
+      // Get video room token from backend
+      const response = await base44.functions.invoke('generateTwilioVideoToken', {
+        recipientExtension,
+        roomName: `video-${Date.now()}`
+      });
+
+      if (!response.data?.token) {
+        throw new Error('Failed to get video token');
+      }
+
+      // Load and initialize Twilio Video SDK
+      const Video = window.Twilio?.Video;
+      if (!Video) {
+        const script = document.createElement('script');
+        script.src = 'https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js';
+        script.onload = () => initializeVideoRoom(response.data.token);
+        document.body.appendChild(script);
+      } else {
+        initializeVideoRoom(response.data.token);
+      }
+    } catch (err) {
+      setError('Failed to start video call: ' + err.message);
+      setCallState("idle");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const initializeVideoRoom = async (token) => {
+    try {
+      const Video = window.Twilio.Video;
+      const room = await Video.connect(token, {
+        name: `video-${Date.now()}`,
+        audio: { echoCancellation: true },
+        video: { width: 640, height: 480 },
+        networkQuality: { local: 1, remote: 1 }
+      });
+
+      twilioRoomRef.current = room;
+      setCallState("connected");
+
+      // Handle remote participants
+      room.on('participantConnected', participant => {
+        participant.videoTracks.forEach(videoTrack => {
+          if (remoteVideoRef.current) {
+            const videoElement = videoTrack.attach();
+            remoteVideoRef.current.innerHTML = '';
+            remoteVideoRef.current.appendChild(videoElement);
+          }
+        });
+      });
+
+      room.on('participantDisconnected', () => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.innerHTML = '';
+        }
+      });
+    } catch (err) {
+      setError('Failed to connect to video room: ' + err.message);
+      setCallState("idle");
+    }
   };
 
   const handleEndCall = () => {
