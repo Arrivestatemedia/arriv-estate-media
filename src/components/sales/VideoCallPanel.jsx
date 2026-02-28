@@ -10,7 +10,8 @@ export default function VideoCallPanel({
   roomName,
   onClose,
   currentUserName,
-  isIncoming = false
+  isIncoming = false,
+  autoStart = false
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
