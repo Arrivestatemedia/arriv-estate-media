@@ -425,6 +425,16 @@ export default function AdminActivityPage({ user }) {
           >
             <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />Calendar</span>
           </button>
+          <button
+            onClick={() => setActiveTab("ai")}
+            className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap"
+            style={{
+              color: activeTab === "ai" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "ai" ? '#B8956A' : 'transparent'
+            }}
+          >
+            <span className="flex items-center gap-1"><Sparkles className="w-4 h-4" />AI Assistant</span>
+          </button>
         </div>
 
         {activeTab === "email" && (
@@ -483,6 +493,10 @@ export default function AdminActivityPage({ user }) {
 
         {activeTab === "calendar" && (
           <CalendarTab salesMemberId={user?.id} />
+        )}
+
+        {activeTab === "ai" && (
+          <AiAssistantTab repName={user?.full_name} />
         )}
 
         {activeTab === "activity" && (
