@@ -49,18 +49,20 @@ export default function ConferenceScheduler({ channelId, currentUserId, currentU
         channelId
       });
 
-      if (response.data?.success) {
+      if (response?.data?.success) {
         toast.success("Conference scheduled and invites sent!");
         if (onConferenceCreated) {
           onConferenceCreated(response.data.conference);
         }
         onClose();
       } else {
-        toast.error(response.data?.error || "Failed to schedule conference");
+        const errorMsg = response?.data?.error || response?.error || "Failed to schedule conference";
+        console.error('Conference error:', errorMsg, response);
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error('Error scheduling conference:', error);
-      toast.error("Error scheduling conference: " + error.message);
+      toast.error("Error: " + (error.message || "Failed to schedule conference"));
     } finally {
       setLoading(false);
     }

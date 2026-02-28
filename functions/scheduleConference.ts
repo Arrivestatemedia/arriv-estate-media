@@ -51,9 +51,12 @@ Deno.serve(async (req) => {
     try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
       
-      const [year, month, day] = scheduledDate.split('-');
-      const [hours, minutes] = scheduledTime.split(':');
-      const startTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
+      const year = parseInt(scheduledDate.split('-')[0]);
+      const month = parseInt(scheduledDate.split('-')[1]) - 1;
+      const day = parseInt(scheduledDate.split('-')[2]);
+      const hours = parseInt(scheduledTime.split(':')[0]);
+      const mins = parseInt(scheduledTime.split(':')[1]);
+      const startTime = new Date(year, month, day, hours, mins);
       const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 
       const attendees = [
@@ -95,9 +98,14 @@ Deno.serve(async (req) => {
 
       if (calendarResponse.ok) {
         const calendarEvent = await calendarResponse.json();
-        await base44.entities.Conference.update(conference.id, {
-          google_calendar_event_id: calendarEvent.id
-        });
+        if (calendarEvent.id) {
+          await base44.entities.Conference.update(conference.id, {
+            google_calendar_event_id: calendarEvent.id
+          });
+        }
+      } else {
+        const errorText = await calendarResponse.text();
+        console.warn('Google Calendar API error:', calendarResponse.status, errorText);
       }
     } catch (calendarError) {
       console.warn('Failed to create Google Calendar event:', calendarError.message);
