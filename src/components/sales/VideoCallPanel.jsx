@@ -81,7 +81,7 @@ export default function VideoCallPanel({
       setIsLoading(true);
       setError(null);
       try {
-        const response = await base44.functions.invoke('generateTwilioVideoToken', {
+        const response = await base44.functions.invoke('generateTwilioToken', {
           roomName: roomName,
           participantName: currentUserName || 'Guest'
         });
