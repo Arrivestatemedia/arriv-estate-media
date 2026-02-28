@@ -118,10 +118,23 @@ export default function VideoCallPanel({
 
   const toggleVideo = () => {
     if (localStream) {
-      localStream.getVideoTracks().forEach(track => {
+      const videoTracks = localStream.getVideoTracks();
+      console.log('Toggling video, current state:', isVideoOn, 'tracks count:', videoTracks.length);
+      videoTracks.forEach(track => {
         track.enabled = !track.enabled;
+        console.log('Video track state:', { enabled: track.enabled, readyState: track.readyState });
       });
       setIsVideoOn(!isVideoOn);
+      
+      // Verify the change took effect
+      setTimeout(() => {
+        if (localVideoRef.current) {
+          console.log('Video element state after toggle:', {
+            paused: localVideoRef.current.paused,
+            srcObject: localVideoRef.current.srcObject ? 'set' : 'not set'
+          });
+        }
+      }, 100);
     }
   };
 
