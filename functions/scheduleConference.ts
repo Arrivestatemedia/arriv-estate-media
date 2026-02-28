@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields: title, scheduledDate, scheduledTime' }, { status: 400 });
     }
 
-    console.log('Creating conference with:', { title, scheduledDate, scheduledTime, durationMinutes, participants: participants.length });
+    console.log('Creating conference with:', { title, scheduled_date, scheduled_time, duration_minutes, participants: participants.length });
 
     // Generate unique room name
     const roomName = `conf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -51,9 +51,9 @@ Deno.serve(async (req) => {
     const conference = await base44.entities.Conference.create({
       title,
       description: description || '',
-      scheduled_date: scheduledDate,
-      scheduled_time: scheduledTime,
-      duration_minutes: durationMinutes,
+      scheduled_date: scheduled_date,
+      scheduled_time: scheduled_time,
+      duration_minutes: duration_minutes,
       room_name: roomName,
       meeting_link: `${Deno.env.get('BASE44_APP_DOMAIN')}/Conference?room=${encodeURIComponent(roomName)}`,
       organizer_id: user.id,
