@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Send, Paperclip, Smile, X, MessageCircle, Trash2, Phone, Video, AlertCircle, Calendar } from "lucide-react";
 import AiAssistButton from "./AiAssistButton";
