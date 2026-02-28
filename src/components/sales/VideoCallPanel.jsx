@@ -173,33 +173,41 @@ export default function VideoCallPanel({
         </div>
 
         {/* Video Area */}
-        <div className="relative bg-black aspect-video flex items-center justify-center">
+        <div className="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
           {error ? (
-            <div className="text-center">
+            <div className="text-center p-4">
               <p className="text-red-400 mb-4">{error}</p>
               <Button onClick={handleClose} variant="destructive">
                 Close
               </Button>
             </div>
+          ) : isLoading ? (
+            <div className="text-center">
+              <p className="text-gray-300">Connecting video...</p>
+            </div>
           ) : (
             <>
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
+              {/* Remote video (full screen) */}
+              <div 
+                ref={remoteVideoRef} 
+                className="absolute inset-0 w-full h-full"
               />
-              {!isVideoOn && (
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-2">
-                      <span className="text-2xl">📷</span>
-                    </div>
-                    <p className="text-gray-300 text-sm">Camera is off</p>
+              
+              {/* Local video (picture-in-picture) */}
+              <div className="absolute bottom-4 right-4 w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-600 bg-black">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                {!isVideoOn && (
+                  <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                    <span className="text-xs">📷 Off</span>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
         </div>
