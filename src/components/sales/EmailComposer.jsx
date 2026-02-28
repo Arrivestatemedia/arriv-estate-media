@@ -410,7 +410,20 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#1A1A1A' }}>Message</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium" style={{ color: '#1A1A1A' }}>Message</label>
+              <AiAssistButton
+                mode="email"
+                context={{
+                  contactName: selectedContact ? `${selectedContact.firstname || ''} ${selectedContact.lastname || ''}`.trim() : formData.to,
+                  contactCompany: selectedContact?.company,
+                  subject: formData.subject,
+                  existingBody: formData.body,
+                  repName: salesMember?.full_name
+                }}
+                onInsert={(text) => setFormData(f => ({ ...f, body: text }))}
+              />
+            </div>
             <Textarea placeholder="Your message..." value={formData.body} onChange={e => setFormData(f => ({ ...f, body: e.target.value }))} rows={8} />
           </div>
 
@@ -633,7 +646,19 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
                         <Input value={replyFormData.subject} onChange={e => setReplyFormData(f => ({ ...f, subject: e.target.value }))} className="text-sm" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium mb-1" style={{ color: '#1A1A1A' }}>Message</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-medium" style={{ color: '#1A1A1A' }}>Message</label>
+                          <AiAssistButton
+                            mode="email"
+                            context={{
+                              contactName: replyingTo?.from,
+                              subject: replyFormData.subject,
+                              existingBody: replyFormData.body,
+                              repName: salesMember?.full_name
+                            }}
+                            onInsert={(text) => setReplyFormData(f => ({ ...f, body: text }))}
+                          />
+                        </div>
                         <Textarea value={replyFormData.body} onChange={e => setReplyFormData(f => ({ ...f, body: e.target.value }))} rows={6} className="text-sm" />
                       </div>
                       <div className="flex gap-2">
