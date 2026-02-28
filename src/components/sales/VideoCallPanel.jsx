@@ -68,8 +68,8 @@ export default function VideoCallPanel({
   const handleStartCall = async () => {
     // If we already have a token and room name (incoming call or token was provided), connect directly
     if (callerToken && roomName) {
-      console.log('Using provided token and room name');
-      initializeVideoRoom(callerToken);
+      console.log('Using provided token and room name, connecting to room:', roomName);
+      initializeVideoRoom(callerToken, roomName);
       return;
     }
 
@@ -78,22 +78,49 @@ export default function VideoCallPanel({
     setError(null);
     try {
       const salesMemberId = localStorage.getItem('sales_member_id');
+      const salesMemberName = localStorage.getItem('sales_member_name');
       if (!salesMemberId) {
         throw new Error('Sales member ID not found');
       }
 
+      console.log('Initiating video call to extension:', recipientExtension);
       const response = await base44.functions.invoke('initiateVideoCall', {
         salesMemberId: salesMemberId.trim(),
-        recipientExtension: parseInt(recipientExtension)
+        recipientExtension: parseInt(recipientExtension),
+        callerName: salesMemberName
       });
 
-      if (!response.data?.roomName || !response.data?.caller?.token) {
+      if (!response.data?.roomName || !response.data?.caller?.token || !response.data?.recipient?.token) {
         throw new Error('Failed to initiate video call: ' + JSON.stringify(response.data));
       }
 
-      console.log('Video call initiated, connecting...');
+      console.log('Video call initiated successfully:', {
+        roomName: response.data.roomName,
+        recipientId: response.data.recipient.id,
+        recipientName: response.data.recipient.name,
+        extension: response.data.recipient.extension
+      });
+
+      // Send invite to recipient
+      try {
+        await base44.functions.invoke('sendVideoCallInvite', {
+          salesMemberId: salesMemberId.trim(),
+          recipientExtension: parseInt(recipientExtension),
+          recipientToken: response.data.recipient.token,
+          roomName: response.data.roomName,
+          callerName: salesMemberName
+        });
+        console.log('Video call invite sent to recipient');
+      } catch (err) {
+        console.warn('Failed to send video call invite:', err);
+        // Continue anyway - connection can still work
+      }
+
+      // Connect caller to the room
+      console.log('Connecting to video room...');
       initializeVideoRoom(response.data.caller.token, response.data.roomName);
     } catch (err) {
+      console.error('Failed to start video call:', err);
       setError('Failed to start video call: ' + err.message);
       setCallState("idle");
     } finally {
