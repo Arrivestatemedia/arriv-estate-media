@@ -583,7 +583,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                       title="Schedule Conference"
                     >
-                      <Video className="w-4 h-4" />
+                      <Calendar className="w-4 h-4" />
                     </button>
         </div>
 
