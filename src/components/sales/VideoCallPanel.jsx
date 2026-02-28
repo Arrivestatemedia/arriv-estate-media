@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Phone, PhoneOff, Mic, MicOff } from "lucide-react";
+import { X, Phone, PhoneOff, Mic, MicOff, Share2, StopCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 export default function VideoCallPanel({ 
