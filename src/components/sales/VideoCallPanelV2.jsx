@@ -221,31 +221,61 @@ export default function VideoCallPanelV2({
       twilioRoomRef.current = videoRoom;
 
       // Handle existing participants
-      videoRoom.participants.forEach((participant) => {
-        console.log("Existing participant:", participant.name);
-        attachParticipant(participant);
-      });
+      try {
+       const existingParticipants = Array.from(videoRoom.participants?.values?.() || []);
+       console.log("Existing participants count:", existingParticipants.length);
+       existingParticipants.forEach((participant) => {
+         if (participant) {
+           console.log("Existing participant:", participant.name);
+           attachParticipant(participant);
+         }
+       });
+      } catch (err) {
+       console.warn("Error handling existing participants:", err);
+      }
 
       // Handle new participants
-      videoRoom.on("participantConnected", (participant) => {
-        console.log("Participant connected:", participant.name);
-        attachParticipant(participant);
-      });
+      try {
+       videoRoom.on("participantConnected", (participant) => {
+         if (participant) {
+           console.log("Participant connected:", participant.name);
+           attachParticipant(participant);
+         }
+       });
+      } catch (err) {
+       console.warn("Error setting participantConnected handler:", err);
+      }
 
-      videoRoom.on("participantDisconnected", (participant) => {
-        console.log("Participant disconnected:", participant.name);
-        detachParticipant(participant);
-      });
+      try {
+       videoRoom.on("participantDisconnected", (participant) => {
+         if (participant) {
+           console.log("Participant disconnected:", participant.name);
+           detachParticipant(participant);
+         }
+       });
+      } catch (err) {
+       console.warn("Error setting participantDisconnected handler:", err);
+      }
 
-      videoRoom.on("error", (error) => {
-        console.error("Room error:", error);
-        setError("Room error: " + error.message);
-      });
+      try {
+       videoRoom.on("error", (error) => {
+         if (error) {
+           console.error("Room error:", error);
+           setError("Room error: " + (error.message || String(error)));
+         }
+       });
+      } catch (err) {
+       console.warn("Error setting error handler:", err);
+      }
 
-      videoRoom.on("disconnected", () => {
-        console.log("Disconnected from room");
-        setCallState("idle");
-      });
+      try {
+       videoRoom.on("disconnected", () => {
+         console.log("Disconnected from room");
+         setCallState("idle");
+       });
+      } catch (err) {
+       console.warn("Error setting disconnected handler:", err);
+      }
 
       setCallState("connected");
     } catch (err) {
