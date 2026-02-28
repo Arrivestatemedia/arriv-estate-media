@@ -51,7 +51,12 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
             </button>
           </div>
           <div style={{ height: 'calc(100% - 40px)' }}>
-            <ChatTab currentUserId={currentUserId} currentUserName={currentUserName} />
+            <ChatTab
+              currentUserId={currentUserId}
+              currentUserName={currentUserName}
+              isAdmin={true}
+              onInitiateTransfer={onInitiateTransfer}
+            />
           </div>
         </div>
       )}
