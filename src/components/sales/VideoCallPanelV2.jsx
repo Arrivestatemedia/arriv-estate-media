@@ -201,28 +201,53 @@ export default function VideoCallPanelV2({
   };
 
   const attachParticipant = (participant) => {
-    remoteParticipantRef.current = participant;
+   remoteParticipantRef.current = participant;
 
-    const subscriptionHandler = (subscription) => {
-      const { track } = subscription;
-      console.log("Track subscribed:", track.kind);
+   const subscriptionHandler = (subscription) => {
+     if (!subscription) {
+       console.warn("Subscription is null or undefined");
+       return;
+     }
 
-      if (track.kind === "video") {
-        if (remoteVideoRef.current) {
-          const element = track.attach();
-          element.style.width = "100%";
-          element.style.height = "100%";
-          element.style.objectFit = "cover";
-          element.style.display = "block";
-          remoteVideoRef.current.innerHTML = "";
-          remoteVideoRef.current.appendChild(element);
-        }
-      } else if (track.kind === "audio") {
-        const audioElement = track.attach();
-        audioElement.autoplay = true;
-        document.body.appendChild(audioElement);
-      }
-    };
+     const { track } = subscription;
+     if (!track) {
+       console.warn("Track is null or undefined");
+       return;
+     }
+
+     console.log("Track subscribed:", track.kind);
+
+     if (track.kind === "video") {
+       if (remoteVideoRef.current) {
+         try {
+           const element = track.attach();
+           if (element) {
+             element.style.width = "100%";
+             element.style.height = "100%";
+             element.style.objectFit = "cover";
+             element.style.display = "block";
+             remoteVideoRef.current.innerHTML = "";
+             remoteVideoRef.current.appendChild(element);
+             console.log("Remote video attached successfully");
+           }
+         } catch (err) {
+           console.error("Failed to attach video track:", err);
+         }
+       }
+     } else if (track.kind === "audio") {
+       try {
+         const audioElement = track.attach();
+         if (audioElement) {
+           audioElement.autoplay = true;
+           audioElement.style.display = "none";
+           document.body.appendChild(audioElement);
+           console.log("Remote audio attached successfully");
+         }
+       } catch (err) {
+         console.error("Failed to attach audio track:", err);
+       }
+     }
+   };
 
     const unsubscriptionHandler = (subscription) => {
       console.log("Track unsubscribed:", subscription.track.kind);
