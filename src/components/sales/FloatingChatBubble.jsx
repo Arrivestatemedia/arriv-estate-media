@@ -54,9 +54,16 @@ export default function FloatingChatBubble({ currentUserId, currentUserName }) {
             <ChatTab 
               currentUserId={currentUserId} 
               currentUserName={currentUserName}
-              onInitiateTransfer={(memberId, memberName) => {
-                const ext = memberId;
-                window.dispatchEvent(new CustomEvent('initiateTransfer', { detail: { extension: String(ext), name: memberName } }));
+              onInitiateTransfer={async (memberId, memberName) => {
+                try {
+                  const members = await base44.entities.SalesTeamMember.filter({ id: memberId });
+                  const ext = members?.[0]?.extension;
+                  if (ext) {
+                    window.dispatchEvent(new CustomEvent('initiateTransfer', { 
+                      detail: { extension: String(ext), name: memberName || members[0].full_name }
+                    }));
+                  }
+                } catch (e) {}
               }}
             />
           </div>
