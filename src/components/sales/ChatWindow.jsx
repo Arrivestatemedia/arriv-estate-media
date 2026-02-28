@@ -69,6 +69,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [videoCallTarget, setVideoCallTarget] = useState(null);
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
+  const [acceptedIncomingCall, setAcceptedIncomingCall] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   // Listen for incoming call transfers — show inline in chat
@@ -850,7 +851,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           </div>
         )}
 
-        {showVideoCall && videoCallTarget && (
+        {showVideoCall && !acceptedIncomingCall && videoCallTarget && (
            <VideoCallPanel
              recipientName={videoCallTarget.name}
              recipientExtension={videoCallTarget.extension}
@@ -873,13 +874,24 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               setIncomingVideoCall(null);
             }}
             onAccept={() => {
-              setVideoCallTarget({
-                id: incomingVideoCall.callerId,
-                name: incomingVideoCall.callerName,
-                extension: incomingVideoCall.callerExtension
-              });
+              setAcceptedIncomingCall(incomingVideoCall);
               setIncomingVideoCall(null);
               setShowVideoCall(true);
+            }}
+          />
+        )}
+
+        {showVideoCall && acceptedIncomingCall && (
+          <VideoCallPanel
+            recipientName={acceptedIncomingCall.callerName}
+            recipientExtension={acceptedIncomingCall.callerExtension}
+            callerToken={acceptedIncomingCall.recipientToken}
+            roomName={acceptedIncomingCall.roomName}
+            currentUserName={currentUserName}
+            isIncoming={true}
+            onClose={() => {
+              setShowVideoCall(false);
+              setAcceptedIncomingCall(null);
             }}
           />
         )}
