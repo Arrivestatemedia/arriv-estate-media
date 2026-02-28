@@ -422,9 +422,11 @@ export default function VideoCallPanel({
         remoteVideoRef.current.innerHTML = '';
       }
       setCallState("idle");
+      handleClose();
     } catch (err) {
       console.error('Error ending call:', err);
       setCallState("idle");
+      handleClose();
     }
   };
 
