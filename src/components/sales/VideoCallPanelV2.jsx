@@ -215,27 +215,64 @@ export default function VideoCallPanelV2({
       return;
     }
 
+    const participant = twilioRoomRef.current.localParticipant;
+
     if (isScreenSharingRef.current) {
       // Stop screen share → back to camera
       screenStreamRef.current?.getTracks().forEach(t => t.stop());
-      await switchBackToCamera();
+      screenStreamRef.current = null;
+      setScreenSharing(false);
+
+      // Unpublish screen track, republish camera track
+      participant.videoTracks.forEach(pub => {
+        participant.unpublishTrack(pub.track);
+        pub.track.stop();
+      });
+
+      const camTrack = localStreamRef.current?.getVideoTracks()[0];
+      if (camTrack && window.Twilio?.Video) {
+        const twilioTrack = new window.Twilio.Video.LocalVideoTrack(camTrack);
+        await participant.publishTrack(twilioTrack);
+        // Update local preview
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+      }
     } else {
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
         const screenTrack = screenStream.getVideoTracks()[0];
         if (!screenTrack) throw new Error("No screen track obtained");
 
-        const pub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
-        if (!pub?.track) throw new Error("No local video publication found");
-
         screenStreamRef.current = screenStream;
-        await pub.track.replaceTrack(screenTrack);
+
+        // Unpublish existing camera track, publish screen track
+        participant.videoTracks.forEach(pub => {
+          participant.unpublishTrack(pub.track);
+        });
+
+        const twilioScreenTrack = new window.Twilio.Video.LocalVideoTrack(screenTrack);
+        await participant.publishTrack(twilioScreenTrack);
         setScreenSharing(true);
 
-        // When user stops via browser chrome — ref is always current here
+        // When user stops via browser's built-in "Stop sharing" button
         screenTrack.onended = () => {
           screenStreamRef.current?.getTracks().forEach(t => t.stop());
-          switchBackToCamera();
+          screenStreamRef.current = null;
+          setScreenSharing(false);
+
+          // Republish camera
+          const camTrack = localStreamRef.current?.getVideoTracks()[0];
+          if (camTrack && window.Twilio?.Video) {
+            participant.videoTracks.forEach(pub => {
+              participant.unpublishTrack(pub.track);
+            });
+            const twilioTrack = new window.Twilio.Video.LocalVideoTrack(camTrack);
+            participant.publishTrack(twilioTrack).catch(console.error);
+            if (localVideoRef.current) {
+              localVideoRef.current.srcObject = localStreamRef.current;
+            }
+          }
         };
       } catch (err) {
         if (err.name !== "NotAllowedError") setError("Screen share failed: " + err.message);
@@ -243,7 +280,7 @@ export default function VideoCallPanelV2({
         screenStreamRef.current = null;
       }
     }
-  }, [switchBackToCamera]);
+  }, []);
 
   // ─── End call ────────────────────────────────────────────────────────────────
   const handleEndCall = useCallback(() => {
