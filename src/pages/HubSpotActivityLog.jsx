@@ -21,6 +21,8 @@ import PoweredByFooter from "@/components/PoweredByFooter";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
+import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
+import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
