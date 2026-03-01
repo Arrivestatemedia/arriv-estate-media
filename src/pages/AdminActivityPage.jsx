@@ -27,6 +27,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [minimizedVideoCall, setMinimizedVideoCall] = useState(null);
+  const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
 
   // Load user from localStorage if not provided
   useEffect(() => {
