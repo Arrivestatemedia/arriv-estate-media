@@ -56,15 +56,15 @@ Deno.serve(async (req) => {
     // Store a notification record so the recipient can subscribe and receive it
     await base44.asServiceRole.entities.PendingNotification.create({
       recipient_id: recipient.id,
-      type: 'incoming_video_call',
-      data: JSON.stringify({
+      event_type: 'incoming_video_call',
+      event_data: {
         roomName,
         callerName: caller.full_name,
         callerId: caller.id,
         recipientToken: recipientTokenJwt,
         callerExtension: caller.extension
-      }),
-      status: 'pending'
+      },
+      is_read: false
     });
 
     console.log(`Video call initiated: ${caller.full_name} → ${recipient.full_name} (room: ${roomName})`);
