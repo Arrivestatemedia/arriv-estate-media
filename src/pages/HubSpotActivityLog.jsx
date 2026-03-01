@@ -240,6 +240,22 @@ export default function HubSpotActivityLog() {
     }
   };
 
+  const handleAcceptVideoCall = async () => {
+    if (!incomingVideoCall) return;
+    setVideoCallProcessing(true);
+    // Mark notification as read
+    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    setActiveVideoCall(incomingVideoCall);
+    setIncomingVideoCall(null);
+    setVideoCallProcessing(false);
+  };
+
+  const handleDeclineVideoCall = async () => {
+    if (!incomingVideoCall) return;
+    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    setIncomingVideoCall(null);
+  };
+
   const activityIcons = {
     call: <Phone className="w-4 h-4" />,
     email: <Mail className="w-4 h-4" />,
