@@ -292,9 +292,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     console.log('[ADMIN_ACCEPT_CALL] Accepting call:', { notificationId: incomingVideoCall.notificationId, caller: incomingVideoCall.callerName, isVideoWindowOpen: true });
     setVideoCallProcessing(true);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
-    // Set window open FIRST so VideoCallPanelV2 will render
     setIsVideoWindowOpen(true);
     setActiveVideoCall(incomingVideoCall);
+    setHideChatBubble(true);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
     onVideoCallStateChange?.(true);
@@ -879,10 +879,12 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
              onClose={() => {
                setActiveVideoCall(null);
                setIsVideoWindowOpen(false);
+               setHideChatBubble(false);
                onVideoCallStateChange?.(false);
              }}
              onMinimize={() => {
                setIsVideoWindowOpen(false);
+               setHideChatBubble(false);
              }}
              isVideoWindowOpen={isVideoWindowOpen}
              onChatOpenRequest={() => {}}
@@ -906,7 +908,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                }
              }).catch(() => {});
            }}
-           isVideoCallActive={isVideoWindowOpen && !!activeVideoCall}
+           isVideoCallActive={hideChatBubble && isVideoWindowOpen}
          />
 
         {/* Minimized video call indicator */}
