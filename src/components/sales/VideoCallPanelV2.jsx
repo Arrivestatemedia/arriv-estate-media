@@ -435,11 +435,12 @@ export default function VideoCallPanelV2({
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={onMinimize}
+            onClick={() => {
+              if (onMinimize) onMinimize();
+            }}
             className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0" 
             title="Minimize"
             style={{ minWidth: '40px', minHeight: '40px' }}
-            disabled={!onMinimize}
           >
             <span className="text-lg leading-none">−</span>
           </Button>
