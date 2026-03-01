@@ -18,7 +18,8 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
   }, [isVideoActive]);
 
   useEffect(() => {
-    if (!currentUserId) return;
+    const userId = currentUserId || localStorage.getItem('sales_member_id');
+    if (!userId) return;
 
     const loadUnread = async () => {
       const msgs = await base44.entities.DirectMessage.filter({
