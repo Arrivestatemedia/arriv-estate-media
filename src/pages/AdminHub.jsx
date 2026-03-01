@@ -235,7 +235,7 @@ export default function AdminHub() {
       <AdminChatBubble
         currentUserId={user.id}
         currentUserName={user.full_name}
-        isVideoActive={activeTab === "activity"} // Chat bubble positioning depends on if admin has video active
+        isVideoActive={isVideoCallActive}
         onInitiateTransfer={(memberId, memberName) => {
           base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
             const ext = members?.[0]?.extension;
