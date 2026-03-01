@@ -312,7 +312,7 @@ export default function VideoCallPanelV2({
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-black flex flex-col z-50">
+    <div className="fixed inset-0 bg-black flex flex-col z-[200]">
 
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700">
