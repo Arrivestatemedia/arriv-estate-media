@@ -180,7 +180,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   useEffect(() => {
     if (!user?.id) return;
 
-    // Load existing unread incoming video calls
+    // Load existing unread incoming video calls (only if created in the last 5 minutes)
     (async () => {
       const existing = await base44.entities.PendingNotification.filter({
         recipient_id: user.id,
@@ -189,14 +189,21 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
       });
       if (existing?.[0]) {
         const notification = existing[0];
-        const d = notification.event_data;
-        setIncomingVideoCall({
-          notificationId: notification.id,
-          roomName: d.roomName,
-          callerName: d.callerName,
-          callerExtension: d.callerExtension,
-          recipientToken: d.recipientToken
-        });
+        const createdAt = new Date(notification.created_date);
+        const now = new Date();
+        const ageMinutes = (now - createdAt) / (1000 * 60);
+        
+        // Only show if call came in within last 5 minutes
+        if (ageMinutes < 5) {
+          const d = notification.event_data;
+          setIncomingVideoCall({
+            notificationId: notification.id,
+            roomName: d.roomName,
+            callerName: d.callerName,
+            callerExtension: d.callerExtension,
+            recipientToken: d.recipientToken
+          });
+        }
       }
     })();
 
