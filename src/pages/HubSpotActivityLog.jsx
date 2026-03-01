@@ -754,6 +754,30 @@ export default function HubSpotActivityLog() {
 
         <PoweredByFooter />
 
+        {/* Incoming video call notification */}
+        {incomingVideoCall && (
+          <IncomingVideoCallModal
+            callerName={incomingVideoCall.callerName}
+            callerExtension={incomingVideoCall.callerExtension}
+            onAccept={handleAcceptVideoCall}
+            onDecline={handleDeclineVideoCall}
+            isProcessing={videoCallProcessing}
+          />
+        )}
+
+        {/* Active video call panel */}
+        {activeVideoCall && (
+          <VideoCallPanelV2
+            recipientName={activeVideoCall.callerName}
+            callerToken={activeVideoCall.recipientToken}
+            roomName={activeVideoCall.roomName}
+            currentUserName={user?.full_name}
+            isIncoming={true}
+            autoStart={true}
+            onClose={() => setActiveVideoCall(null)}
+          />
+        )}
+
         {activeTab !== "chat" && (
           <FloatingChatBubble
             currentUserId={user?.id}
