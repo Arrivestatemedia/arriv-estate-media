@@ -24,6 +24,10 @@ export default function VideoCallPanelV2({
   const twilioRoomRef = useRef(null);
   // Use a ref for isScreenSharing so async callbacks always see latest value
   const isScreenSharingRef = useRef(false);
+  const blurStreamRef = useRef(null); // canvas stream when blur is on
+  const isBlurredRef = useRef(false);
+
+  const { startBlur, stopBlur } = useBackgroundBlur();
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
