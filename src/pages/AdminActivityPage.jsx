@@ -15,7 +15,7 @@ import IphoneDialer from "@/components/sales/IphoneDialer";
 import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
-import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
@@ -901,7 +901,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
         )}
 
         {/* Active video call panel */}
-         {activeVideoCall && (
+        {activeVideoCall && isVideoWindowOpen && (
            <VideoCallPanelV2
              recipientName={activeVideoCall.callerName}
              callerToken={activeVideoCall.recipientToken}
@@ -923,7 +923,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
          )}
 
         {/* Chat bubble - only visible when no video call active (unless notification) */}
-        <FloatingChatBubble 
+        <AdminChatBubble
           currentUserId={user?.id} 
           currentUserName={user?.full_name}
           onInitiateTransfer={(memberId, memberName) => {
