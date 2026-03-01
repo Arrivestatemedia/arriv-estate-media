@@ -829,8 +829,6 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                onVideoCallStateChange?.(false);
              }}
              onMinimize={() => {
-               setMinimizedVideoCall(activeVideoCall);
-               setActiveVideoCall(null);
                setIsVideoWindowOpen(false);
              }}
              isVideoWindowOpen={isVideoWindowOpen}
