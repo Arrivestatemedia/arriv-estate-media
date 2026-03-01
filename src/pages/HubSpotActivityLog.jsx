@@ -307,16 +307,15 @@ export default function HubSpotActivityLog() {
 
   const handleAcceptVideoCall = async () => {
     if (!incomingVideoCall) return;
-    console.log('[HUBSPOT_ACTIVITY] Accept video call clicked for:', incomingVideoCall.callerName);
+    console.log('[HUBSPOT_ACTIVITY] Accept video call clicked, states:', { caller: incomingVideoCall.callerName, windowOpen: true, hasCall: true });
     setVideoCallProcessing(true);
     // Mark notification as read
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
-    // Set both states together to ensure both conditions are true when panel renders
+    // Set window open AND active call - React batches these in dev mode but processes in order
     setIsVideoWindowOpen(true);
     setActiveVideoCall(incomingVideoCall);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
-    console.log('[HUBSPOT_ACTIVITY] Video call states updated - should now render panel');
   };
 
   const handleDeclineVideoCall = async () => {
