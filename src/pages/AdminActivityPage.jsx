@@ -906,7 +906,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                }
              }).catch(() => {});
            }}
-           isVideoCallActive={isVideoWindowOpen && !!activeVideoCall}
+           isVideoCallActive={!!activeVideoCall}
          />
 
         {/* Minimized video call indicator */}
