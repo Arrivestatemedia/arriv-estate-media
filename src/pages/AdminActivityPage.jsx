@@ -756,27 +756,28 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
         )}
 
         {/* Active video call panel */}
-        {activeVideoCall && (
-          <VideoCallPanelV2
-            recipientName={activeVideoCall.callerName}
-            callerToken={activeVideoCall.recipientToken}
-            roomName={activeVideoCall.roomName}
-            currentUserName={user?.full_name}
-            isIncoming={true}
-            autoStart={true}
-            onClose={() => {
-              setActiveVideoCall(null);
-              setIsVideoWindowOpen(false);
-              onVideoCallStateChange?.(false);
-            }}
-            onMinimize={() => {
-              setMinimizedVideoCall(activeVideoCall);
-              setActiveVideoCall(null);
-              setIsVideoWindowOpen(false);
-            }}
-            onChatOpenRequest={() => {}}
-          />
-        )}
+         {activeVideoCall && (
+           <VideoCallPanelV2
+             recipientName={activeVideoCall.callerName}
+             callerToken={activeVideoCall.recipientToken}
+             roomName={activeVideoCall.roomName}
+             currentUserName={user?.full_name}
+             isIncoming={true}
+             autoStart={true}
+             isVideoWindowOpen={isVideoWindowOpen}
+             onClose={() => {
+               setActiveVideoCall(null);
+               setIsVideoWindowOpen(false);
+               onVideoCallStateChange?.(false);
+             }}
+             onMinimize={() => {
+               setMinimizedVideoCall(activeVideoCall);
+               setActiveVideoCall(null);
+               setIsVideoWindowOpen(false);
+             }}
+             onChatOpenRequest={() => {}}
+           />
+         )}
 
         {/* Minimized video call indicator */}
         {minimizedVideoCall && !activeVideoCall && (
