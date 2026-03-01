@@ -786,29 +786,26 @@ export default function AdminActivityPage({ user: propsUser }) {
         )}
 
         {/* Floating chat bubble - shown when NOT on chat tab */}
-        {activeTab !== "chat" && (
-          <FloatingChatBubble
-            currentUserId={user?.id}
-            currentUserName={user?.full_name}
-            isVideoActive={!!activeVideoCall}
-            onOpenChat={() => {
-              // This is for opening chat inside the video call, not switching tabs
-              // The video call component handles the chat opening via onChatOpenRequest
-            }}
-            onInitiateTransfer={(memberId, memberName) => {
-              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                const ext = members?.[0]?.extension;
-                if (ext) {
-                  localStorage.setItem('dialerPhone', String(ext));
-                  setActiveTab("call");
-                  setTimeout(() => {
-                    window.dispatchEvent(new Event('dialerCardReady'));
-                  }, 400);
-                }
-              }).catch(() => {});
-            }}
-          />
-        )}
+         {activeTab !== "chat" && (
+           <FloatingChatBubble
+             currentUserId={user?.id}
+             currentUserName={user?.full_name}
+             isVideoActive={!!activeVideoCall}
+             onOpenChat={() => setActiveTab("chat")}
+             onInitiateTransfer={(memberId, memberName) => {
+               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                 const ext = members?.[0]?.extension;
+                 if (ext) {
+                   localStorage.setItem('dialerPhone', String(ext));
+                   setActiveTab("call");
+                   setTimeout(() => {
+                     window.dispatchEvent(new Event('dialerCardReady'));
+                   }, 400);
+                 }
+               }).catch(() => {});
+             }}
+           />
+         )}
       </div>
     </div>
   );
