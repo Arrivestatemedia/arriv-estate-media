@@ -410,7 +410,15 @@ export default function VideoCallPanelV2({
   // ─── Render ──────────────────────────────────────────────────────────────────
   // When minimized, hide but keep mounted to maintain Twilio connection
   if (!isVideoWindowOpen) return (
-    <div style={{ display: "none" }} />
+    <div className="fixed bottom-4 right-4 z-[150]">
+      <Button
+        onClick={() => onMinimize?.()}
+        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+        title="Restore video call"
+      >
+        <Phone className="w-5 h-5" />
+      </Button>
+    </div>
   );
 
   return (
