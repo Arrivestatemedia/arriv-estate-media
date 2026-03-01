@@ -425,21 +425,23 @@ export default function VideoCallPanelV2({
               {callState === "connected" ? "● Connected" :
                callState === "calling"   ? "● Connecting..." : "● Preview"}
             </p>
+            <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
+              PANEL: VideoCallPanelV2 | onMinimize: {onMinimize ? 'true' : 'false'} | isVideoWindowOpen: {typeof onMinimize}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {onMinimize && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={onMinimize}
-              className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0" 
-              title="Minimize"
-              style={{ minWidth: '40px', minHeight: '40px' }}
-            >
-              <span className="text-lg leading-none">−</span>
-            </Button>
-          )}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onMinimize}
+            className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0" 
+            title="Minimize"
+            style={{ minWidth: '40px', minHeight: '40px' }}
+            disabled={!onMinimize}
+          >
+            <span className="text-lg leading-none">−</span>
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
