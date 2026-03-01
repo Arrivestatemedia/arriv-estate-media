@@ -805,6 +805,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
              currentUserId={user?.id}
              currentUserName={user?.full_name}
              isVideoWindowOpen={isVideoWindowOpen}
+             _debug_isVideoWindowOpen={isVideoWindowOpen}
             onOpenChat={() => {
                // This is for opening chat inside the video call, not switching tabs
                // The video call component handles the chat opening via onChatOpenRequest
