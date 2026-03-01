@@ -203,6 +203,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
             callerExtension: d.callerExtension,
             recipientToken: d.recipientToken
           });
+          // Mark as read so it doesn't show again
+          await base44.entities.PendingNotification.update(notification.id, { is_read: true });
         }
       }
     })();
