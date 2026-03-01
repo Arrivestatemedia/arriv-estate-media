@@ -394,8 +394,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
               <div><strong>DIAGNOSTIC STATUS:</strong></div>
               <div>✓ videoListenerReady: {String(videoListenerReady)}</div>
               <div>✓ subscribedToPendingNotification: {String(subscribedToPendingNotification)}</div>
-              <div>✓ currentUserId: {userId?.slice(0, 12) || 'none'}</div>
-              <div>✓ salesMemberId: {salesMemberId?.slice(0, 12) || 'none'}</div>
+              <div>✓ currentUserId: {user?.id?.slice(0, 12) || 'none'}</div>
+              <div>✓ userEmail: {user?.email?.slice(0, 20) || 'none'}</div>
               <div>✓ lastIncomingNotificationId: {lastIncomingNotificationId?.slice(0, 12) || 'none'}</div>
               <div>✓ activeVideoCall: {String(!!activeVideoCall)}</div>
               <div>✓ isVideoWindowOpen: {String(isVideoWindowOpen)}</div>
@@ -404,9 +404,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
               onClick={async () => {
                 setTestNotifLoading(true);
                 try {
-                  console.log('[TEST] Sending test notification to:', userId);
+                  console.log('[TEST] Sending test notification to:', user?.id);
                   await base44.entities.PendingNotification.create({
-                    recipient_id: userId,
+                    recipient_id: user?.id,
                     event_type: 'incoming_video_call',
                     is_read: false,
                     event_data: {
