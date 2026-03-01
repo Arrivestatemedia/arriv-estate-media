@@ -808,6 +808,7 @@ export default function HubSpotActivityLog() {
 
         {activeTab !== "chat" && (
           <FloatingChatBubble
+            key={activeVideoCall ? 'with-video' : 'no-video'}
             currentUserId={user?.id}
             currentUserName={user?.full_name}
             isVideoActive={!!activeVideoCall}
