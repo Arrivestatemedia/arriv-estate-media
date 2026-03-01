@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import VideoControls from "./VideoControls";
 import VideoChat from "./VideoChat";
 import VideoSettingsPanel from "./VideoSettingsPanel";
+import { useBackgroundBlur } from "./useBackgroundBlur";
 
 export default function VideoCallPanelV2({
   recipientName,
