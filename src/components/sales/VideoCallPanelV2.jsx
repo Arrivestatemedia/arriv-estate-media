@@ -249,6 +249,7 @@ export default function VideoCallPanelV2({
       screenStreamRef.current?.getTracks().forEach(t => t.stop());
       screenStreamRef.current = null;
       setScreenSharing(false);
+      updateRemoteVideoFit("cover");
 
       // Unpublish screen track, republish camera track
       participant.videoTracks.forEach(pub => {
