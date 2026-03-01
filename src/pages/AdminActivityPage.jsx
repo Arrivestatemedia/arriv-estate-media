@@ -179,38 +179,49 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   // Listen for incoming video call notifications - subscribe immediately, filter for user on events
   useEffect(() => {
     const userId = user?.id || localStorage.getItem('sales_member_id');
-    if (!userId) return;
+    console.log('[AdminActivityPage] Video call listener setup, userId:', userId);
+    if (!userId) {
+      console.warn('[AdminActivityPage] No userId available for video call subscription');
+      return;
+    }
 
     // Load existing unread incoming video calls (only if created in the last 5 minutes)
     (async () => {
-      const existing = await base44.entities.PendingNotification.filter({
-        recipient_id: userId,
-        event_type: 'incoming_video_call',
-        is_read: false
-      });
-      if (existing?.[0]) {
-        const notification = existing[0];
-        const createdAt = new Date(notification.created_date);
-        const now = new Date();
-        const ageMinutes = (now - createdAt) / (1000 * 60);
-        
-        // Only show if call came in within last 5 minutes
-        if (ageMinutes < 5) {
-          const d = notification.event_data;
-          setIncomingVideoCall({
-            notificationId: notification.id,
-            roomName: d.roomName,
-            callerName: d.callerName,
-            callerExtension: d.callerExtension,
-            recipientToken: d.recipientToken
-          });
+      try {
+        const existing = await base44.entities.PendingNotification.filter({
+          recipient_id: userId,
+          event_type: 'incoming_video_call',
+          is_read: false
+        });
+        if (existing?.[0]) {
+          const notification = existing[0];
+          const createdAt = new Date(notification.created_date);
+          const now = new Date();
+          const ageMinutes = (now - createdAt) / (1000 * 60);
+          
+          // Only show if call came in within last 5 minutes
+          if (ageMinutes < 5) {
+            console.log('[AdminActivityPage] Found existing video call notification:', notification.id);
+            const d = notification.event_data;
+            setIncomingVideoCall({
+              notificationId: notification.id,
+              roomName: d.roomName,
+              callerName: d.callerName,
+              callerExtension: d.callerExtension,
+              recipientToken: d.recipientToken
+            });
+          }
         }
+      } catch (err) {
+        console.error('[AdminActivityPage] Error loading existing notifications:', err);
       }
     })();
 
     // Subscribe to new incoming video calls
     const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
+      console.log('[AdminActivityPage] PendingNotification event:', event.type, 'recipient_id:', event.data?.recipient_id, 'expected:', userId, 'match:', event.data?.recipient_id === userId);
       if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === userId) {
+        console.log('[AdminActivityPage] Incoming video call matched, processing...');
         const d = event.data.event_data;
         setIncomingVideoCall({
           notificationId: event.id,
