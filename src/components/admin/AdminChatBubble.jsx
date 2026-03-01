@@ -36,27 +36,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
 
-  // If video is active, show button on right side only
-  if (isVideoActive) {
-    return (
-      <button
-        onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
-        className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
-        style={{ right: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
-      >
-        <MessageSquare className="w-6 h-6 text-white" />
-        {displayCount > 0 && (
-          <span
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style={{ backgroundColor: '#ef4444', minWidth: '1.25rem' }}
-          >
-            {displayCount > 9 ? '9+' : displayCount}
-          </span>
-        )}
-      </button>
-    );
-  }
-
+  // Standard floating chat bubble (chat panel opens when clicked)
   return (
     <>
       {/* Floating Chat Panel */}
@@ -82,11 +62,11 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
         </div>
       )}
 
-      {/* Bubble Button */}
+      {/* Bubble Button - left side always, moves to right during active video call */}
       <button
         onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
         className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
-        style={{ left: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
+        style={{ [isVideoActive ? 'right' : 'left']: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (
