@@ -102,10 +102,30 @@ export default function HubSpotActivityLog() {
         if (event.data?.activity_type === 'call') loadDialerBadge();
       });
 
+      // Load existing unread incoming video calls and mark them as read immediately to prevent resurfacing
+      base44.entities.PendingNotification.filter({
+        recipient_id: salesMemberId,
+        event_type: 'incoming_video_call',
+        is_read: false
+      }).then(existing => {
+        if (existing?.[0]) {
+          console.log(`[HUBSPOT_ACTIVITY] Found existing unread incoming call notification, marking as read:`, existing[0].id);
+          base44.entities.PendingNotification.update(existing[0].id, { is_read: true }).catch(e => console.error('Failed to mark notification as read:', e));
+        }
+      }).catch(() => {});
+
       // Listen for incoming video call notifications
       const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
+        console.log(`[HUBSPOT_ACTIVITY] PendingNotification event received:`, {
+          type: event.type,
+          event_type: event.data?.event_type,
+          recipient_id: event.data?.recipient_id,
+          current_userId: salesMemberId,
+          matches: event.data?.recipient_id === salesMemberId
+        });
         if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId) {
           const d = event.data.event_data;
+          console.log(`[HUBSPOT_ACTIVITY] Incoming video call received from ${d.callerName}`);
           setIncomingVideoCall({
             notificationId: event.id,
             roomName: d.roomName,
