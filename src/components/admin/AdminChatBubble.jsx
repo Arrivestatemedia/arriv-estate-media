@@ -41,8 +41,8 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
-  // Hide bubble during active video call UNLESS there's an unread notification
-  const shouldShowBubble = !isVideoCallActive || unreadCount > 0;
+  // Hide bubble during active video call
+  const shouldShowBubble = !isVideoCallActive;
 
   if (!shouldShowBubble) return null;
 
