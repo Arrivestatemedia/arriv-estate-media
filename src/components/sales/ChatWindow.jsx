@@ -558,15 +558,30 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                        <Phone className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           const ext = transferTargets.find(m => m.id === chatId)?.extension;
                           if (!ext) {
                             setVideoCallError('No extension found for video call');
                             setTimeout(() => setVideoCallError(null), 3000);
                             return;
                           }
-                          setVideoCallTarget({ id: chatId, name: chatName, extension: ext });
-                          setShowVideoCall(true);
+                          try {
+                            const res = await base44.functions.invoke('initiateVideoCall', {
+                              salesMemberId: currentUserId,
+                              recipientExtension: String(ext),
+                              callerName: currentUserName
+                            });
+                            if (res.data?.success) {
+                              setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
+                              setShowVideoCall(true);
+                            } else {
+                              setVideoCallError('Failed to start video call');
+                              setTimeout(() => setVideoCallError(null), 3000);
+                            }
+                          } catch (err) {
+                            setVideoCallError('Failed to start video call: ' + err.message);
+                            setTimeout(() => setVideoCallError(null), 4000);
+                          }
                         }}
                         className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                         title="Video Call"
