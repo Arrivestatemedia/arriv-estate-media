@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AccountSettings from './pages/AccountSettings';
+import AdminActivityPage from './pages/AdminActivityPage';
 import AdminBookings from './pages/AdminBookings';
 import AdminClientTerms from './pages/AdminClientTerms';
 import AdminHub from './pages/AdminHub';
@@ -70,6 +71,7 @@ import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import ForgotEmail from './pages/ForgotEmail';
 import ForgotPassword from './pages/ForgotPassword';
+import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import JobApplication from './pages/JobApplication';
 import JobBoard from './pages/JobBoard';
 import ManualClosingInvoice from './pages/ManualClosingInvoice';
@@ -91,13 +93,12 @@ import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import AdminActivityPage from './pages/AdminActivityPage';
-import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AccountSettings": AccountSettings,
+    "AdminActivityPage": AdminActivityPage,
     "AdminBookings": AdminBookings,
     "AdminClientTerms": AdminClientTerms,
     "AdminHub": AdminHub,
@@ -120,6 +121,7 @@ export const PAGES = {
     "DeleteAccountRequest": DeleteAccountRequest,
     "ForgotEmail": ForgotEmail,
     "ForgotPassword": ForgotPassword,
+    "HubSpotActivityLog": HubSpotActivityLog,
     "JobApplication": JobApplication,
     "JobBoard": JobBoard,
     "ManualClosingInvoice": ManualClosingInvoice,
@@ -141,8 +143,6 @@ export const PAGES = {
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "AdminActivityPage": AdminActivityPage,
-    "HubSpotActivityLog": HubSpotActivityLog,
 }
 
 export const pagesConfig = {
