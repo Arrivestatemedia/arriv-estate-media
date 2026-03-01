@@ -267,6 +267,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setActiveVideoCall(incomingVideoCall);
     setIncomingVideoCall(null);
+    setIsVideoWindowOpen(true);
     setVideoCallProcessing(false);
     onVideoCallStateChange?.(true);
   };
