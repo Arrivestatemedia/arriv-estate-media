@@ -73,55 +73,22 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [subscribedToPendingNotification, setSubscribedToPendingNotification] = useState(false);
   const [testNotifLoading, setTestNotifLoading] = useState(false);
 
-  // Initialize Twilio Video listener immediately on mount
+  // Initialize Twilio Video listener immediately on mount - listen for calls regardless of tab
   useEffect(() => {
    if (!user?.id) return;
 
-   console.log('[ADMIN_LISTENER_INIT] Starting video listener initialization for admin:', user?.id);
+   console.log('[ADMIN_LISTENER] Initializing video call listener for admin:', user?.id);
 
-   const initializeListener = async () => {
-     try {
-       // Wait for SDK to load (max 10 seconds)
-       let attempts = 0;
-       while (!window.Twilio?.Video && attempts < 100) {
-         await new Promise(r => setTimeout(r, 100));
-         attempts++;
-       }
+   // Always set listener ready - incoming calls via PendingNotification work on any tab
+   setVideoListenerReady(true);
 
-       if (!window.Twilio?.Video) {
-         console.error('[ADMIN_LISTENER_INIT] Twilio SDK failed to load after 10 seconds');
-         setVideoListenerReady(false);
-         return;
-       }
-
-       console.log('[ADMIN_LISTENER_INIT] Twilio SDK loaded, listener ready for incoming calls');
-       setVideoListenerReady(true);
-     } catch (err) {
-       console.error('[ADMIN_LISTENER_INIT] Failed to initialize listener:', err);
-       setVideoListenerReady(false);
-     }
-   };
-
-   // Load SDK if not already loaded
-   if (window.Twilio?.Video) {
-     console.log('[ADMIN_LISTENER_INIT] SDK already loaded, setting listener ready');
-     setVideoListenerReady(true);
-   } else {
+   // Load SDK in background if needed
+   if (!window.Twilio?.Video) {
      const script = document.createElement("script");
      script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
      script.async = true;
-     script.onload = () => {
-       console.log('[ADMIN_LISTENER_INIT] SDK loaded via script, initializing listener');
-       initializeListener();
-     };
-     script.onerror = () => {
-       console.error('[ADMIN_LISTENER_INIT] Failed to load SDK script');
-       setVideoListenerReady(false);
-     };
      document.head.appendChild(script);
    }
-
-   initializeListener();
   }, [user?.id]);
 
   // ============================================================
