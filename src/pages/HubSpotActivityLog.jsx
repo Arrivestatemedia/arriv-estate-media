@@ -845,6 +845,7 @@ export default function HubSpotActivityLog() {
             callerToken={activeVideoCall.recipientToken}
             roomName={activeVideoCall.roomName}
             currentUserName={user?.full_name}
+            currentUserId={user?.id}
             isIncoming={true}
             autoStart={true}
             onClose={() => {
