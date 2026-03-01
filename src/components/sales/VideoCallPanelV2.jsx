@@ -476,7 +476,7 @@ export default function VideoCallPanelV2({
             throw new Error("No local participant");
           }
 
-          const videoPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks || []);
+          const videoPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values());
           const videoPublication = videoPublications[0];
 
           if (!videoPublication?.track) {
