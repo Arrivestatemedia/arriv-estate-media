@@ -35,7 +35,7 @@ export default function VideoChat({ isOpen, onClose, currentUserName }) {
   if (!isOpen) return null;
 
   return (
-    <div className="absolute top-0 right-0 h-full w-72 bg-gray-900/95 backdrop-blur-sm border-l border-gray-700 flex flex-col z-[8]">
+    <div className="absolute top-0 left-0 h-full w-72 bg-gray-900/95 backdrop-blur-sm border-r border-gray-700 flex flex-col z-[8]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 flex-shrink-0">
         <h3 className="text-white font-semibold text-sm">In-call Chat</h3>
