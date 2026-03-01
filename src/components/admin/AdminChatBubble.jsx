@@ -3,19 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "@/components/sales/ChatTab";
 
-export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive }) {
+export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoWindowOpen }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [videoState, setVideoState] = useState(isVideoActive);
 
-  useEffect(() => {
-    setVideoState(isVideoActive);
-  }, [isVideoActive]);
-
-  // When video call starts/ends, close the chat panel to ensure clean remount
+  // When video call window opens/closes, close the chat panel to ensure clean remount
   useEffect(() => {
     setOpen(false);
-  }, [isVideoActive]);
+  }, [isVideoWindowOpen]);
 
   useEffect(() => {
     const userId = currentUserId || localStorage.getItem('sales_member_id');
