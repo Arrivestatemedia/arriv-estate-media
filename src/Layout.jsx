@@ -106,7 +106,7 @@ import TrackLink from "@/pages/TrackLink";
   // Determine if current page is a primary route (shows bottom tabs)
   const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess"];
   const isPrimaryRoute = primaryRoutes.includes(currentPageName);
-  const showBackButton = user && !isPrimaryRoute && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName);
+  const showBackButton = user && !isPrimaryRoute && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
