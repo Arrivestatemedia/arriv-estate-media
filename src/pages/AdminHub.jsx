@@ -32,8 +32,6 @@ export default function AdminHub() {
     // Verify this user is an admin
     base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
       if (members?.[0]?.role === 'admin') {
-        // Store admin ID in localStorage so AdminActivityPage can use it immediately for subscriptions
-        localStorage.setItem('admin_user_id', salesMemberId);
         setUser({
           id: salesMemberId,
           email: salesMemberEmail,
