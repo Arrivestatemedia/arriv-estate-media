@@ -4,7 +4,6 @@ import { MessageSquare, X } from "lucide-react";
 import ChatTab from "./ChatTab";
 
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive, onOpenChat }) {
-  const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -33,50 +32,27 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     return unsubscribe;
   }, [currentUserId]);
 
-  // When opened, don't show badge
-  const displayCount = open ? 0 : unreadCount;
+  const handleClick = () => {
+    setUnreadCount(0);
+    onOpenChat?.();
+  };
 
-  // Standard floating chat bubble (chat panel opens when clicked)
   return (
-    <>
-      {/* Floating Chat Panel */}
-      {open && (
-        <div
-          className="fixed bottom-20 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
-          style={{ left: '1rem', height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 250 }}
+    <button
+      onClick={handleClick}
+      className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
+      style={{ [isVideoActive ? 'right' : 'left']: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
+      title="Open chat"
+    >
+      <MessageSquare className="w-6 h-6 text-white" />
+      {unreadCount > 0 && (
+        <span
+          className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+          style={{ backgroundColor: '#ef4444', minWidth: '1.25rem' }}
         >
-          <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
-            <span className="text-sm font-semibold text-white">Team Chat</span>
-            <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div style={{ height: 'calc(100% - 40px)' }}>
-            <ChatTab 
-              currentUserId={currentUserId} 
-              currentUserName={currentUserName}
-              onInitiateTransfer={onInitiateTransfer}
-            />
-          </div>
-        </div>
+          {unreadCount > 9 ? '9+' : unreadCount}
+        </span>
       )}
-
-      {/* Bubble Button - left side always, moves to right during active video call */}
-      <button
-        onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
-        className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
-        style={{ [isVideoActive ? 'right' : 'left']: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
-      >
-        <MessageSquare className="w-6 h-6 text-white" />
-        {displayCount > 0 && (
-          <span
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style={{ backgroundColor: '#ef4444', minWidth: '1.25rem' }}
-          >
-            {displayCount > 9 ? '9+' : displayCount}
-          </span>
-        )}
-      </button>
-    </>
+    </button>
   );
 }
