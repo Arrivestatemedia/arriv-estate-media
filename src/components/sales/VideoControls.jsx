@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, Phone, PhoneOff, Settings } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, PhoneOff, Settings } from "lucide-react";
 
 export default function VideoControls({
   isMuted,
@@ -14,77 +14,64 @@ export default function VideoControls({
   onSettings
 }) {
   return (
-    <div className="flex items-center justify-center gap-3 bg-gradient-to-b from-black/30 to-black/60 px-6 py-4 backdrop-blur-md">
+    <div className="flex items-center justify-center gap-2">
+      {/* Mic */}
       <Button
         size="icon"
         onClick={onToggleMic}
-        className={`h-12 w-12 rounded-full transition-all ${
-          isMuted
-            ? "bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50"
-            : "bg-gray-700 hover:bg-gray-600 shadow-lg shadow-gray-700/50"
-        }`}
         title={isMuted ? "Unmute" : "Mute"}
+        className={`h-10 w-10 rounded-full ${
+          isMuted ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"
+        }`}
       >
-        {isMuted ? (
-          <MicOff className="w-6 h-6 text-white" />
-        ) : (
-          <Mic className="w-6 h-6 text-white" />
-        )}
+        {isMuted ? <MicOff className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-white" />}
       </Button>
 
+      {/* Camera */}
       <Button
         size="icon"
         onClick={onToggleVideo}
-        className={`h-12 w-12 rounded-full transition-all ${
-          !isVideoOn
-            ? "bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50"
-            : "bg-gray-700 hover:bg-gray-600 shadow-lg shadow-gray-700/50"
-        }`}
         title={isVideoOn ? "Stop video" : "Start video"}
+        className={`h-10 w-10 rounded-full ${
+          !isVideoOn ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"
+        }`}
       >
-        {isVideoOn ? (
-          <Video className="w-6 h-6 text-white" />
-        ) : (
-          <VideoOff className="w-6 h-6 text-white" />
-        )}
+        {isVideoOn ? <Video className="w-5 h-5 text-white" /> : <VideoOff className="w-5 h-5 text-white" />}
       </Button>
 
+      {/* Screen share */}
       <Button
         size="icon"
         onClick={onToggleScreenShare}
         disabled={!canScreenShare}
-        className={`h-12 w-12 rounded-full transition-all ${
-          isScreenSharing
-            ? "bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/50"
-            : "bg-gray-700 hover:bg-gray-600 shadow-lg shadow-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed"
-        }`}
         title={isScreenSharing ? "Stop sharing" : "Share screen"}
+        className={`h-10 w-10 rounded-full ${
+          isScreenSharing ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
+        } disabled:opacity-40 disabled:cursor-not-allowed`}
       >
-        {isScreenSharing ? (
-          <MonitorOff className="w-6 h-6 text-white" />
-        ) : (
-          <Monitor className="w-6 h-6 text-white" />
-        )}
+        {isScreenSharing ? <MonitorOff className="w-5 h-5 text-white" /> : <Monitor className="w-5 h-5 text-white" />}
       </Button>
 
+      {/* Settings */}
       <Button
         size="icon"
         onClick={onSettings}
-        className="h-12 w-12 rounded-full bg-gray-700 hover:bg-gray-600 shadow-lg shadow-gray-700/50"
         title="Settings"
+        className="h-10 w-10 rounded-full bg-gray-700 hover:bg-gray-600"
       >
-        <Settings className="w-6 h-6 text-white" />
+        <Settings className="w-5 h-5 text-white" />
       </Button>
 
-      <div className="w-px h-8 bg-gray-600 mx-2" />
+      <div className="w-px h-7 bg-gray-600 mx-1" />
 
+      {/* End call */}
       <Button
         size="icon"
         onClick={onEndCall}
-        className="h-12 w-12 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/50"
         title="End call"
+        className="h-10 w-10 rounded-full bg-red-600 hover:bg-red-700"
       >
-        <PhoneOff className="w-6 h-6 text-white" />
+        <PhoneOff className="w-5 h-5 text-white" />
       </Button>
     </div>
   );
