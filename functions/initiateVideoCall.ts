@@ -54,7 +54,16 @@ Deno.serve(async (req) => {
     const recipientTokenJwt = recipientToken.toJwt();
 
     // Store a notification record so the recipient can subscribe and receive it
-    await base44.asServiceRole.entities.PendingNotification.create({
+    console.log(`[VIDEO_CALL_DEBUG] Attempting to create PendingNotification:`, {
+      recipientExtension: recipientExtension,
+      recipient_full_name: recipient.full_name,
+      recipient_id: recipient.id,
+      roomName: roomName,
+      caller_id: caller.id,
+      caller_name: caller.full_name
+    });
+
+    const notification = await base44.asServiceRole.entities.PendingNotification.create({
       recipient_id: recipient.id,
       event_type: 'incoming_video_call',
       event_data: {
@@ -65,6 +74,12 @@ Deno.serve(async (req) => {
         callerExtension: caller.extension
       },
       is_read: false
+    });
+
+    console.log(`[VIDEO_CALL_DEBUG] PendingNotification created successfully:`, {
+      notification_id: notification.id,
+      recipient_id: notification.recipient_id,
+      created_at: notification.created_date
     });
 
     console.log(`Video call initiated: ${caller.full_name} → ${recipient.full_name} (room: ${roomName})`);
