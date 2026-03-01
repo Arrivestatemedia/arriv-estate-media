@@ -427,7 +427,7 @@ export default function VideoCallPanelV2({
                callState === "calling"   ? "● Connecting..." : "● Preview"}
             </p>
             <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
-              PANEL: VideoCallPanelV2 | onMinimize: {onMinimize ? 'true' : 'false'} | isVideoWindowOpen: {typeof onMinimize}
+              PANEL: VideoCallPanelV2 | onMinimize: {onMinimize ? 'true' : 'false'} | isVideoWindowOpen: {isVideoWindowOpen ? 'true' : 'false'}
             </p>
           </div>
         </div>
