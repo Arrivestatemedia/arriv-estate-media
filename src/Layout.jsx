@@ -222,7 +222,7 @@ import TrackLink from "@/pages/TrackLink";
                   );
                   })}
 
-                  {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName) && (
+                  {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
                   <Link
                     to={createPageUrl("PublicAccountSettings")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
