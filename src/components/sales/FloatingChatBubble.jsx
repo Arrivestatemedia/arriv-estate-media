@@ -40,8 +40,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
-  // Hide bubble during active video call
-  const shouldShowBubble = !isVideoCallActive;
+  // Hide bubble during active video call, or when no unread messages and panel is closed
+  const shouldShowBubble = !isVideoCallActive && (unreadCount > 0 || open);
 
   if (!shouldShowBubble) return null;
 
