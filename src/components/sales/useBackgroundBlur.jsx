@@ -9,6 +9,7 @@ export function useBackgroundBlur() {
   const canvasRef = useRef(null);
   const animFrameRef = useRef(null);
   const isRunningRef = useRef(false);
+  const resultHandlerSetRef = useRef(false);
 
   const loadMediaPipe = useCallback(async () => {
     if (segmenterRef.current) return segmenterRef.current;
@@ -43,33 +44,47 @@ export function useBackgroundBlur() {
     const ctx = canvas.getContext("2d");
 
     isRunningRef.current = true;
+    resultHandlerSetRef.current = false;
 
-    // Ensure onResults is set up before starting the frame loop
-    segmenter.onResults((results) => {
-      if (!isRunningRef.current) return;
+    // Set up result handler BEFORE starting frame processing
+    if (!resultHandlerSetRef.current) {
+      resultHandlerSetRef.current = true;
+      segmenter.onResults((results) => {
+        if (!isRunningRef.current || !results) return;
 
-      ctx.save();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        try {
+          ctx.save();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Draw the original frame
-      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+          // 1. Draw the original frame
+          if (results.image) {
+            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+          }
 
-      // 2. Use the segmentation mask: destination-out punch a hole for person
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+          // 2. Use the segmentation mask: destination-out punch a hole for person
+          if (results.segmentationMask) {
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+          }
 
-      ctx.restore();
+          ctx.restore();
 
-      // 3. Draw blurred background behind
-      ctx.save();
-      ctx.filter = `blur(${blurAmount}px)`;
-      ctx.globalCompositeOperation = "destination-over";
-      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-      ctx.restore();
+          // 3. Draw blurred background behind
+          if (results.image) {
+            ctx.save();
+            ctx.filter = `blur(${blurAmount}px)`;
+            ctx.globalCompositeOperation = "destination-over";
+            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+            ctx.restore();
+          }
 
-      // Reset composite
-      ctx.globalCompositeOperation = "source-over";
-    });
+          // Reset composite
+          ctx.globalCompositeOperation = "source-over";
+        } catch (err) {
+          console.error("Blur rendering error:", err);
+        }
+      });
+    }
 
     const processFrame = async () => {
       if (!isRunningRef.current) return;
@@ -82,9 +97,11 @@ export function useBackgroundBlur() {
 
       try {
         await segmenter.send({ image: videoElement });
-      } catch (_) {
+      } catch (err) {
         // If segmenter fails a frame, just draw raw
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        try {
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        } catch (_) {}
       }
 
       animFrameRef.current = requestAnimationFrame(processFrame);
