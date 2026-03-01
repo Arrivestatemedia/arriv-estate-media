@@ -156,10 +156,9 @@ export default function AdminActivityPage({ user }) {
 
   // Listen for incoming video call notifications
   useEffect(() => {
-    if (!user?.id) return;
-    const salesMemberId = user.id;
+    if (!user?.email) return;
     const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
-      if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId) {
+      if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && (event.data?.recipient_id === user.email || event.data?.recipient_id === user.id)) {
         const d = event.data.event_data;
         setIncomingVideoCall({
           notificationId: event.id,
@@ -171,7 +170,7 @@ export default function AdminActivityPage({ user }) {
       }
     });
     return () => { videoCallSub(); };
-  }, [user?.id]);
+  }, [user?.email, user?.id]);
 
   const { data: activities = [] } = useQuery({
     queryKey: ['adminActivities', user?.email],
