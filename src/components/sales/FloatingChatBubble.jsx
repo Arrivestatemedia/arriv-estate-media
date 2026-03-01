@@ -8,9 +8,15 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [unreadCount, setUnreadCount] = useState(0);
   const [videoState, setVideoState] = useState(isVideoActive);
 
+  // Force re-render when video state changes for positioning update
   useEffect(() => {
     setVideoState(isVideoActive);
   }, [isVideoActive]);
+
+  // Ensure positioning is correct on mount/remount
+  useEffect(() => {
+    setVideoState(isVideoActive);
+  }, []);
 
   useEffect(() => {
     if (!currentUserId) return;
