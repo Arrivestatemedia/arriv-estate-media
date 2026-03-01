@@ -1,14 +1,45 @@
 import React, { useState, useRef, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, X } from "lucide-react";
 import { format } from "date-fns";
 
-export default function VideoChat({ isOpen, onClose, currentUserName }) {
+export default function VideoChat({ isOpen, onClose, currentUserName, roomName, currentUserId }) {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Load messages from database
+  useEffect(() => {
+    if (!roomName) return;
+
+    const loadMessages = async () => {
+      try {
+        const msgs = await base44.entities.VideoCallMessage.filter(
+          { room_name: roomName },
+          'created_date',
+          100
+        );
+        setMessages(msgs || []);
+      } catch (err) {
+        console.error('Error loading messages:', err);
+      }
+    };
+
+    loadMessages();
+
+    // Subscribe to new messages
+    const unsubscribe = base44.entities.VideoCallMessage.subscribe((event) => {
+      if (event.type === 'create' && event.data?.room_name === roomName) {
+        setMessages(prev => [...prev, event.data]);
+      }
+    });
+
+    return unsubscribe;
+  }, [roomName]);
 
   useEffect(() => {
     if (isOpen) {
@@ -20,16 +51,23 @@ export default function VideoChat({ isOpen, onClose, currentUserName }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
-    if (!message.trim()) return;
-    setMessages(prev => [...prev, {
-      id: Date.now(),
-      sender: currentUserName || "You",
-      content: message.trim(),
-      time: new Date(),
-      isMe: true
-    }]);
-    setMessage("");
+  const handleSend = async () => {
+    if (!message.trim() || !roomName) return;
+
+    setLoading(true);
+    try {
+      await base44.entities.VideoCallMessage.create({
+        room_name: roomName,
+        sender_id: currentUserId,
+        sender_name: currentUserName,
+        content: message.trim()
+      });
+      setMessage("");
+    } catch (err) {
+      console.error('Error sending message:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -52,12 +90,12 @@ export default function VideoChat({ isOpen, onClose, currentUserName }) {
           </div>
         ) : (
           messages.map((msg) => (
-            <div key={msg.id} className={`flex flex-col ${msg.isMe ? "items-end" : "items-start"}`}>
+            <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUserId ? "items-end" : "items-start"}`}>
               <span className="text-gray-400 text-[10px] mb-0.5 px-1">
-                {msg.isMe ? "You" : msg.sender} · {format(msg.time, "h:mm a")}
+                {msg.sender_id === currentUserId ? "You" : msg.sender_name} · {format(msg.created_date, "h:mm a")}
               </span>
               <div className={`max-w-[200px] rounded-lg px-3 py-2 text-sm break-words ${
-                msg.isMe ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-100"
+                msg.sender_id === currentUserId ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-100"
               }`}>
                 {msg.content}
               </div>
@@ -75,12 +113,13 @@ export default function VideoChat({ isOpen, onClose, currentUserName }) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          disabled={loading}
           className="bg-gray-800 border-gray-700 text-white placeholder-gray-500 text-xs h-8 flex-1"
         />
         <Button
           size="icon"
           onClick={handleSend}
-          disabled={!message.trim()}
+          disabled={!message.trim() || loading}
           className="bg-blue-600 hover:bg-blue-700 h-8 w-8 flex-shrink-0"
         >
           <Send className="w-3 h-3" />
