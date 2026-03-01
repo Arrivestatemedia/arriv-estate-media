@@ -576,7 +576,7 @@ export default function VideoCallPanelV2({
             setIsChatOpen(v => !v);
             onChatOpenRequest?.();
           }}
-          className={`h-10 w-10 rounded-full flex-shrink-0 mr-4 ${
+          className={`h-10 w-10 rounded-full flex-shrink-0 ${
             isChatOpen ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
           }`}
           title="Chat"
