@@ -791,26 +791,27 @@ export default function HubSpotActivityLog() {
         )}
 
         {/* Active video call panel */}
-        {activeVideoCall && (
-          <VideoCallPanelV2
-            recipientName={activeVideoCall.callerName}
-            callerToken={activeVideoCall.recipientToken}
-            roomName={activeVideoCall.roomName}
-            currentUserName={user?.full_name}
-            isIncoming={true}
-            autoStart={true}
-            onClose={() => {
-              setActiveVideoCall(null);
-              setIsVideoWindowOpen(false);
-            }}
-            onMinimize={() => {
-              setMinimizedVideoCall(activeVideoCall);
-              setActiveVideoCall(null);
-              setIsVideoWindowOpen(false);
-            }}
-            onChatOpenRequest={() => {}}
-          />
-        )}
+         {activeVideoCall && (
+           <VideoCallPanelV2
+             recipientName={activeVideoCall.callerName}
+             callerToken={activeVideoCall.recipientToken}
+             roomName={activeVideoCall.roomName}
+             currentUserName={user?.full_name}
+             isIncoming={true}
+             autoStart={true}
+             onClose={() => {
+               setActiveVideoCall(null);
+               setIsVideoWindowOpen(false);
+             }}
+             onMinimize={() => {
+               setMinimizedVideoCall(activeVideoCall);
+               setActiveVideoCall(null);
+               setIsVideoWindowOpen(false);
+             }}
+             isVideoWindowOpen={isVideoWindowOpen}
+             onChatOpenRequest={() => {}}
+           />
+         )}
 
         {/* Minimized video call indicator */}
         {minimizedVideoCall && !activeVideoCall && (
