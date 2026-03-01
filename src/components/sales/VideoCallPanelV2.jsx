@@ -550,7 +550,7 @@ export default function VideoCallPanelV2({
       <VideoSettingsPanel
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        onBlurChange={setIsBlurred}
+        onBlurChange={handleBlurChange}
         isBlurred={isBlurred}
       />
     </div>
