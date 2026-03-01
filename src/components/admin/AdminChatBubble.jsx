@@ -23,7 +23,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
     const loadUnread = async () => {
       const msgs = await base44.entities.DirectMessage.filter({
-        recipient_id: currentUserId,
+        recipient_id: userId,
         read: false
       });
       setUnreadCount(msgs?.length || 0);
@@ -33,10 +33,10 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
     // Subscribe to new DMs
     const unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
-      if (event.type === "create" && event.data?.recipient_id === currentUserId) {
+      if (event.type === "create" && event.data?.recipient_id === userId) {
         setUnreadCount(prev => prev + 1);
       }
-      if (event.type === "update" && event.data?.recipient_id === currentUserId && event.data?.read) {
+      if (event.type === "update" && event.data?.recipient_id === userId && event.data?.read) {
         loadUnread();
       }
     });
