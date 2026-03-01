@@ -17,11 +17,6 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
     setOpen(false);
   }, [isVideoActive]);
 
-  // Ensure the wrapper key forces complete remount when video state changes
-  useEffect(() => {
-    // This runs whenever isVideoActive changes, ensuring side switch happens
-  }, [isVideoActive]);
-
   useEffect(() => {
     if (!currentUserId) return;
 
