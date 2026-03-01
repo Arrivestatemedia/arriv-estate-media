@@ -176,16 +176,15 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     return () => { smsSub(); callSub(); };
   }, [user?.email]);
 
-  // Listen for incoming video call notifications - subscribe immediately using localStorage as fallback
+  // Listen for incoming video call notifications - subscribe immediately
   useEffect(() => {
-    // Get userId immediately from localStorage, don't wait for user state
-    const adminId = localStorage.getItem('admin_user_id') || user?.id;
-    if (!adminId) return;
+    const userId = user?.id;
+    if (!userId) return;
 
     // Load existing unread incoming video calls (only if created in the last 5 minutes)
     (async () => {
       const existing = await base44.entities.PendingNotification.filter({
-        recipient_id: adminId,
+        recipient_id: userId,
         event_type: 'incoming_video_call',
         is_read: false
       });
@@ -210,7 +209,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
 
     // Subscribe to new incoming video calls
     const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
-      if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === adminId) {
+      if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === userId) {
         const d = event.data.event_data;
         setIncomingVideoCall({
           notificationId: event.id,
