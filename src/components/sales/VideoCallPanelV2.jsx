@@ -17,8 +17,7 @@ export default function VideoCallPanelV2({
   isIncoming = false,
   autoStart = false,
   onMinimize,
-  onChatOpenRequest,
-  isVideoWindowOpen = false
+  onChatOpenRequest
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -426,24 +425,21 @@ export default function VideoCallPanelV2({
               {callState === "connected" ? "● Connected" :
                callState === "calling"   ? "● Connecting..." : "● Preview"}
             </p>
-            {/* DEBUG LABEL */}
-            <p className="text-[10px] text-purple-300 mt-1 font-mono">
-              PANEL: VideoCallPanelV2 | onMinimize: {String(!!onMinimize)} | isVideoWindowOpen: {String(isVideoWindowOpen)}
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* ALWAYS render minimize button (test render) */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onMinimize}
-            className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0" 
-            title="Minimize"
-            style={{ minWidth: '40px', minHeight: '40px' }}
-          >
-            <span className="text-lg leading-none">−</span>
-          </Button>
+          {onMinimize && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onMinimize}
+              className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0" 
+              title="Minimize"
+              style={{ minWidth: '40px', minHeight: '40px' }}
+            >
+              <span className="text-lg leading-none">−</span>
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="icon" 
