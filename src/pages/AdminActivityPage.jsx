@@ -68,30 +68,57 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
+  const [videoListenerReady, setVideoListenerReady] = useState(false);
+  const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
 
-  // Load Twilio SDK on mount so inbound calls work immediately after login (no warm-up needed)
+  // Initialize Twilio Video device and listener on mount
   useEffect(() => {
-   const loadTwilioSDK = async () => {
-     try {
-       if (window.Twilio?.Video) {
-         console.log('[ADMIN_MOUNT] Twilio SDK already loaded');
-         return;
-       }
-       const script = document.createElement("script");
-       script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
-       script.async = true;
-       script.onload = () => {
-         console.log('[ADMIN_MOUNT] Twilio SDK loaded');
-       };
-       script.onerror = () => {
-         console.error('[ADMIN_MOUNT] Failed to load Twilio SDK');
-       };
-       document.head.appendChild(script);
-     } catch (err) {
-       console.error('[ADMIN_MOUNT] Twilio load error:', err);
-     }
-   };
-   loadTwilioSDK();
+    const initializeVideoDevice = async () => {
+      try {
+        // Wait for SDK to load
+        let attempts = 0;
+        while (!window.Twilio?.Video && attempts < 50) {
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
+        }
+
+        if (!window.Twilio?.Video) {
+          console.error('[ADMIN_VIDEO_INIT] Twilio SDK failed to load');
+          return;
+        }
+
+        console.log('[ADMIN_VIDEO_INIT] Twilio SDK available, device listener initialized');
+        setVideoListenerReady(true);
+      } catch (err) {
+        console.error('[ADMIN_VIDEO_INIT] Failed to initialize video device:', err);
+      }
+    };
+
+    // First load SDK
+    const loadTwilioSDK = async () => {
+      try {
+        if (window.Twilio?.Video) {
+          console.log('[ADMIN_VIDEO_INIT] Twilio SDK already loaded, initializing device');
+          await initializeVideoDevice();
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
+        script.async = true;
+        script.onload = async () => {
+          console.log('[ADMIN_VIDEO_INIT] Twilio SDK loaded, initializing device');
+          await initializeVideoDevice();
+        };
+        script.onerror = () => {
+          console.error('[ADMIN_VIDEO_INIT] Failed to load Twilio SDK');
+        };
+        document.head.appendChild(script);
+      } catch (err) {
+        console.error('[ADMIN_VIDEO_INIT] Twilio load error:', err);
+      }
+    };
+
+    loadTwilioSDK();
   }, []);
 
   // ============================================================
