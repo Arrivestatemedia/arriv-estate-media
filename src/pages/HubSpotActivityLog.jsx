@@ -778,6 +778,7 @@ export default function HubSpotActivityLog() {
             autoStart={true}
             onClose={() => setActiveVideoCall(null)}
             onMinimize={() => setActiveVideoCall(null)}
+            onChatOpenRequest={() => {}}
           />
         )}
 
@@ -787,9 +788,8 @@ export default function HubSpotActivityLog() {
             currentUserName={user?.full_name}
             isVideoActive={!!activeVideoCall}
             onOpenChat={() => {
-              if (activeVideoCall) {
-                setActiveTab("chat");
-              }
+              // This is for opening chat inside the video call, not switching tabs
+              // The video call component handles the chat opening via onChatOpenRequest
             }}
             onInitiateTransfer={(memberId, memberName) => {
               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
