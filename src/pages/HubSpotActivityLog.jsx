@@ -43,6 +43,9 @@ export default function HubSpotActivityLog() {
   const [passwordMsg, setPasswordMsg] = useState(null);
   const [unreadSmsCount, setUnreadSmsCount] = useState(0);
   const [missedCallsCount, setMissedCallsCount] = useState(0);
+  const [incomingVideoCall, setIncomingVideoCall] = useState(null); // { notificationId, roomName, callerName, callerExtension, recipientToken }
+  const [activeVideoCall, setActiveVideoCall] = useState(null);
+  const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
