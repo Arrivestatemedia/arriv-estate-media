@@ -6,6 +6,11 @@ import ChatTab from "@/components/sales/ChatTab";
 export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [videoState, setVideoState] = useState(isVideoActive);
+
+  useEffect(() => {
+    setVideoState(isVideoActive);
+  }, [isVideoActive]);
 
   // When video call starts/ends, close the chat panel to ensure clean remount
   useEffect(() => {
