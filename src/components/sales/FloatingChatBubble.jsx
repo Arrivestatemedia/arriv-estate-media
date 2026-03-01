@@ -6,6 +6,11 @@ import ChatTab from "./ChatTab";
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive, onOpenChat }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [videoState, setVideoState] = useState(isVideoActive);
+
+  useEffect(() => {
+    setVideoState(isVideoActive);
+  }, [isVideoActive]);
 
   useEffect(() => {
     if (!currentUserId) return;
