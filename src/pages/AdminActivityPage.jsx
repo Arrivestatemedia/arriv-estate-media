@@ -251,7 +251,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     })();
 
     // Subscribe to new incoming video calls
+     setSubscribedToPendingNotification(false);
      const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
+       setSubscribedToPendingNotification(true);
        console.log(`[ADMIN_ACTIVITY] PendingNotification event received:`, {
          type: event.type,
          event_type: event.data?.event_type,
@@ -272,6 +274,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
          });
        }
      });
+     setSubscribedToPendingNotification(true);
     return () => { videoCallSub(); };
   }, [user?.id]);
 
