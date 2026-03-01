@@ -21,11 +21,33 @@ import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 
-export default function AdminActivityPage({ user }) {
+export default function AdminActivityPage({ user: propsUser }) {
+  const [user, setUser] = useState(propsUser);
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [minimizedVideoCall, setMinimizedVideoCall] = useState(null);
+
+  // Load user from localStorage if not provided
+  useEffect(() => {
+    if (propsUser) {
+      setUser(propsUser);
+    } else {
+      const salesMemberId = localStorage.getItem('sales_member_id');
+      if (salesMemberId) {
+        base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+          if (members?.[0]) {
+            setUser({
+              id: members[0].id,
+              email: members[0].email,
+              full_name: members[0].full_name,
+              role: members[0].role
+            });
+          }
+        }).catch(() => {});
+      }
+    }
+  }, [propsUser]);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
