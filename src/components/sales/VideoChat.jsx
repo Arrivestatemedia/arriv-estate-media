@@ -34,7 +34,7 @@ export default function VideoChat({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="absolute top-0 right-0 h-full w-72 bg-gray-900/95 backdrop-blur-sm border-l border-gray-700 flex flex-col shadow-xl">
+    <div className="fixed top-0 right-0 h-full w-72 bg-gray-900/95 backdrop-blur-sm border-l border-gray-700 flex flex-col shadow-xl z-[60]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700">
         <h3 className="text-white font-semibold text-sm">Chat</h3>
