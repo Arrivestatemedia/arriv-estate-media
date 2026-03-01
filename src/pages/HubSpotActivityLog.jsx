@@ -45,6 +45,7 @@ export default function HubSpotActivityLog() {
   const [missedCallsCount, setMissedCallsCount] = useState(0);
   const [incomingVideoCall, setIncomingVideoCall] = useState(null); // { notificationId, roomName, callerName, callerExtension, recipientToken }
   const [activeVideoCall, setActiveVideoCall] = useState(null);
+  const [minimizedVideoCall, setMinimizedVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [formData, setFormData] = useState({
     activity_type: "call",
@@ -777,9 +778,23 @@ export default function HubSpotActivityLog() {
             isIncoming={true}
             autoStart={true}
             onClose={() => setActiveVideoCall(null)}
-            onMinimize={() => setActiveVideoCall(null)}
+            onMinimize={() => {
+              setMinimizedVideoCall(activeVideoCall);
+              setActiveVideoCall(null);
+            }}
             onChatOpenRequest={() => {}}
           />
+        )}
+
+        {/* Minimized video call indicator */}
+        {minimizedVideoCall && !activeVideoCall && (
+          <button
+            onClick={() => setActiveVideoCall(minimizedVideoCall)}
+            className="fixed bottom-4 right-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg z-[249] transition-colors"
+            title="Restore video call"
+          >
+            📞 Restore Call
+          </button>
         )}
 
         {activeTab !== "chat" && (
