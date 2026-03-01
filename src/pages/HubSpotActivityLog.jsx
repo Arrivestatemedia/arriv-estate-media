@@ -848,8 +848,15 @@ export default function HubSpotActivityLog() {
             isIncoming={true}
             autoStart={true}
             onClose={() => {
+              console.log('[HUBSPOT_ACTIVITY] Call ended, clearing states');
+              // Clear all call-related state on hangup
               setActiveVideoCall(null);
+              setIncomingVideoCall(null);
               setIsVideoWindowOpen(false);
+              // Mark notification as read so we don't accidentally re-trigger it
+              if (activeVideoCall?.notificationId) {
+                base44.entities.PendingNotification.update(activeVideoCall.notificationId, { is_read: true }).catch(() => {});
+              }
             }}
             onMinimize={() => {
               setIsVideoWindowOpen(false);
