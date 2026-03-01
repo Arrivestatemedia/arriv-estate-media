@@ -48,6 +48,7 @@ export default function HubSpotActivityLog() {
   const [minimizedVideoCall, setMinimizedVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
+  const [hideChatBubble, setHideChatBubble] = useState(false);
   const [videoListenerReady, setVideoListenerReady] = useState(false);
   const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
   const [lastHandledNotificationId, setLastHandledNotificationId] = useState(null); // Dedupe prevention
@@ -310,9 +311,9 @@ export default function HubSpotActivityLog() {
     console.log('[HUBSPOT_ACTIVITY] Accepting call:', { caller: incomingVideoCall.callerName });
     setVideoCallProcessing(true);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
-    // Set window open FIRST so VideoCallPanelV2 will render
     setIsVideoWindowOpen(true);
     setActiveVideoCall(incomingVideoCall);
+    setHideChatBubble(true);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
   };
@@ -854,6 +855,7 @@ export default function HubSpotActivityLog() {
               setActiveVideoCall(null);
               setIncomingVideoCall(null);
               setIsVideoWindowOpen(false);
+              setHideChatBubble(false);
               // Mark notification as read so we don't accidentally re-trigger it
               if (activeVideoCall?.notificationId) {
                 base44.entities.PendingNotification.update(activeVideoCall.notificationId, { is_read: true }).catch(() => {});
@@ -861,6 +863,7 @@ export default function HubSpotActivityLog() {
             }}
             onMinimize={() => {
               setIsVideoWindowOpen(false);
+              setHideChatBubble(false);
             }}
             isVideoWindowOpen={isVideoWindowOpen}
             onChatOpenRequest={() => {}}
@@ -894,7 +897,7 @@ export default function HubSpotActivityLog() {
         <FloatingChatBubble
           currentUserId={user?.id}
           currentUserName={user?.full_name}
-          isVideoCallActive={isVideoWindowOpen && !!activeVideoCall}
+          isVideoCallActive={hideChatBubble && isVideoWindowOpen}
           onOpenChat={() => {}}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
