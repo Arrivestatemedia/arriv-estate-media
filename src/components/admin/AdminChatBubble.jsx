@@ -74,7 +74,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
       <button
         onClick={handleToggleChat}
         className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ right: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
+        style={{ right: '1rem', zIndex: 9999, backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (
