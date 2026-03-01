@@ -1,8 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
+  if (req.method !== 'POST') {
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  }
+
   try {
-    const { email, password } = await req.json();
+    const body = await req.json();
+    const { email, password } = body;
 
     if (!email || !password) {
       return Response.json({ error: 'Email and password required' }, { status: 400 });
@@ -45,7 +50,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Sales team login error:', error);
-    return Response.json({ error: error.message || 'Login failed' }, { status: 500 });
+    console.error('Sales team login error:', error.message || error);
+    return Response.json({ error: 'Login failed: ' + (error.message || 'Unknown error') }, { status: 500 });
   }
 });
