@@ -566,25 +566,27 @@ export default function HubSpotActivityLog() {
         )}
 
         {activeTab === "chat" && (
-          <ChatTab 
-            currentUserId={user?.id} 
-            currentUserName={user?.full_name} 
-            salesMemberId={user?.id} 
-            isAdmin={user?.role === 'admin'}
-            onInitiateTransfer={(memberId, memberName) => {
-              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                const ext = members?.[0]?.extension;
-                if (ext) {
-                  setActiveTab("call");
-                  setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                      detail: { extension: String(ext), name: memberName || members[0].full_name }
-                    }));
-                  }, 150);
-                }
-              }).catch(() => {});
-            }}
-          />
+          <div style={{ height: '600px' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+            <ChatTab 
+              currentUserId={user?.id} 
+              currentUserName={user?.full_name} 
+              salesMemberId={user?.id} 
+              isAdmin={user?.role === 'admin'}
+              onInitiateTransfer={(memberId, memberName) => {
+                base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                  const ext = members?.[0]?.extension;
+                  if (ext) {
+                    setActiveTab("call");
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                        detail: { extension: String(ext), name: memberName || members[0].full_name }
+                      }));
+                    }, 150);
+                  }
+                }).catch(() => {});
+              }}
+            />
+          </div>
         )}
 
         {activeTab === "activity" && (
