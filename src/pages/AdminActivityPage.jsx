@@ -41,6 +41,9 @@ export default function AdminActivityPage({ user }) {
   const [prefilledContactData, setPrefilledContactData] = useState(null);
   const [unreadSmsCount, setUnreadSmsCount] = useState(0);
   const [missedCallsCount, setMissedCallsCount] = useState(0);
+  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
+  const [activeVideoCall, setActiveVideoCall] = useState(null);
+  const [videoCallProcessing, setVideoCallProcessing] = useState(false);
 
   // ============================================================
   // ⚠️  DO NOT MODIFY THIS useEffect BLOCK ⚠️
