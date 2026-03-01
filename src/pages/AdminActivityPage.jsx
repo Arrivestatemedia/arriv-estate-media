@@ -867,8 +867,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
           />
         )}
 
-        {/* Active video call panel */}
-        {activeVideoCall && isVideoWindowOpen && (
+        {/* Active video call panel - always render if call active, but VideoCallPanelV2 handles visibility */}
+        {activeVideoCall && (
            <VideoCallPanelV2
              recipientName={activeVideoCall.callerName}
              callerToken={activeVideoCall.recipientToken}
