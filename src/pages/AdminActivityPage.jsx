@@ -70,6 +70,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [videoListenerReady, setVideoListenerReady] = useState(false);
   const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
+  const [subscribedToPendingNotification, setSubscribedToPendingNotification] = useState(false);
+  const [testNotifLoading, setTestNotifLoading] = useState(false);
 
   // Initialize Twilio Video device and listener on mount
   useEffect(() => {
