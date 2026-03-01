@@ -89,6 +89,6 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
           </span>
         )}
       </button>
-    </>
+    </div>
   );
 }
