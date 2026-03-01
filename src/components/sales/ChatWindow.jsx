@@ -872,15 +872,16 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         )}
 
         {/* Outgoing video call */}
-        {showVideoCall && !acceptedIncomingCall && videoCallTarget && (
+        {showVideoCall && !acceptedIncomingCall && outgoingCallData && (
            <VideoCallPanelV2
-             recipientName={videoCallTarget.name}
-             recipientExtension={videoCallTarget.extension}
+             recipientName={outgoingCallData.recipientName}
+             callerToken={outgoingCallData.token}
+             roomName={outgoingCallData.roomName}
              currentUserName={currentUserName}
-             salesMemberId={currentUserId}
+             autoStart={true}
              onClose={() => {
                setShowVideoCall(false);
-               setVideoCallTarget(null);
+               setOutgoingCallData(null);
              }}
            />
          )}
