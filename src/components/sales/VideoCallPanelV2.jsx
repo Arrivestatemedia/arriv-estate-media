@@ -717,9 +717,12 @@ export default function VideoCallPanelV2({
           </>
         )}
 
-        {/* Chat Sidebar */}
-        <VideoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       </div>
+
+      {/* Chat Sidebar - overlays on top of video */}
+      {isChatOpen && (
+        <VideoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      )}
 
       {/* Controls */}
       <div className="flex items-center justify-between px-4 bg-gradient-to-t from-black/80 via-gray-900/60 to-transparent backdrop-blur-md">
