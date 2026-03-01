@@ -16,6 +16,7 @@ export default function AdminHub() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("team");
   const [profilePicUrl, setProfilePicUrl] = useState("");
+  const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
 
