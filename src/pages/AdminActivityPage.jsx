@@ -325,9 +325,10 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     console.log('[ADMIN_ACCEPT_CALL] Accepting call:', { notificationId: incomingVideoCall.notificationId, caller: incomingVideoCall.callerName, isVideoWindowOpen: true });
     setVideoCallProcessing(true);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    // Set window open FIRST so VideoCallPanelV2 will render
+    setIsVideoWindowOpen(true);
     setActiveVideoCall(incomingVideoCall);
     setIncomingVideoCall(null);
-    setIsVideoWindowOpen(true);
     setVideoCallProcessing(false);
     onVideoCallStateChange?.(true);
     console.log('[ADMIN_ACCEPT_CALL] Call accepted, isVideoWindowOpen state set to TRUE');
