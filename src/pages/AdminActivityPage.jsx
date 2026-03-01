@@ -757,7 +757,10 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
             currentUserName={user?.full_name}
             isIncoming={true}
             autoStart={true}
-            onClose={() => setActiveVideoCall(null)}
+            onClose={() => {
+              setActiveVideoCall(null);
+              onVideoCallStateChange?.(false);
+            }}
             onMinimize={() => {
               setMinimizedVideoCall(activeVideoCall);
               setActiveVideoCall(null);
