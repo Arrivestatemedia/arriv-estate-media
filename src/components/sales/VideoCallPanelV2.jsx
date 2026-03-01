@@ -318,8 +318,74 @@ export default function VideoCallPanelV2({
     }
   }, []);
 
+  // ─── Background blur toggle (Zoom-style via MediaPipe canvas) ───────────────
+  const handleBlurChange = useCallback(async (enabled) => {
+    setIsBlurred(enabled);
+    isBlurredRef.current = enabled;
+
+    const participant = twilioRoomRef.current?.localParticipant;
+
+    if (enabled) {
+      const videoEl = localVideoRef.current;
+      if (!videoEl) return;
+
+      // Wait for video to have dimensions
+      const waitForVideo = () => new Promise(resolve => {
+        if (videoEl.videoWidth > 0) return resolve();
+        videoEl.addEventListener("loadedmetadata", resolve, { once: true });
+        setTimeout(resolve, 2000);
+      });
+      await waitForVideo();
+
+      const canvasStream = await startBlur(videoEl, 18);
+      blurStreamRef.current = canvasStream;
+
+      // Show blurred canvas in local PIP
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = canvasStream;
+      }
+
+      // Replace Twilio published track with canvas stream track
+      if (participant && window.Twilio?.Video) {
+        const canvasTrack = canvasStream.getVideoTracks()[0];
+        if (canvasTrack) {
+          participant.videoTracks.forEach(pub => {
+            try { participant.unpublishTrack(pub.track); } catch (_) {}
+          });
+          const twilioTrack = new window.Twilio.Video.LocalVideoTrack(canvasTrack);
+          await participant.publishTrack(twilioTrack).catch(console.error);
+        }
+      }
+    } else {
+      stopBlur();
+      blurStreamRef.current?.getTracks().forEach(t => t.stop());
+      blurStreamRef.current = null;
+
+      // Restore raw camera to local PIP
+      if (localVideoRef.current && localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+
+      // Re-publish raw camera track to Twilio
+      if (participant && window.Twilio?.Video) {
+        const camTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (camTrack) {
+          participant.videoTracks.forEach(pub => {
+            try { participant.unpublishTrack(pub.track); } catch (_) {}
+          });
+          const twilioTrack = new window.Twilio.Video.LocalVideoTrack(camTrack);
+          await participant.publishTrack(twilioTrack).catch(console.error);
+        }
+      }
+    }
+  }, [startBlur, stopBlur]);
+
   // ─── End call ────────────────────────────────────────────────────────────────
   const handleEndCall = useCallback(() => {
+    stopBlur();
+    blurStreamRef.current?.getTracks().forEach(t => t.stop());
+    blurStreamRef.current = null;
+
     try { twilioRoomRef.current?.disconnect(); } catch (_) {}
     twilioRoomRef.current = null;
 
@@ -333,7 +399,7 @@ export default function VideoCallPanelV2({
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
     onClose();
-  }, [onClose]);
+  }, [onClose, stopBlur]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
