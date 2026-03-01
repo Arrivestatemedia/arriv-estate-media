@@ -891,11 +891,11 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {/* Chat bubble - only visible when no video call active (unless notification) */}
+        {/* Chat bubble - hide during active video call unless unread messages */}
         <FloatingChatBubble
           currentUserId={user?.id}
           currentUserName={user?.full_name}
-          isVideoCallActive={!!activeVideoCall}
+          isVideoCallActive={isVideoWindowOpen && !!activeVideoCall}
           onOpenChat={() => {}}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
