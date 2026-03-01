@@ -7,12 +7,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Close chat panel when video window opens (not when minimized)
-  useEffect(() => {
-    if (isVideoCallActive) {
-      setOpen(false);
-    }
-  }, [isVideoCallActive]);
+
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -42,14 +37,10 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
-  // Hide bubble during active video call
-  const shouldShowBubble = !isVideoCallActive;
-
-  if (!shouldShowBubble) return null;
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
-    <div key={isVideoCallActive ? 'call-active' : 'call-inactive'}>
+    <div>
       {/* Floating Chat Panel */}
       {open && (
         <div
