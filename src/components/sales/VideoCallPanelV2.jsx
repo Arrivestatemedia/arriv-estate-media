@@ -570,10 +570,7 @@ export default function VideoCallPanelV2({
           />
           <Button
             size="icon"
-            onClick={() => {
-              setIsChatOpen(v => !v);
-              onChatOpenRequest?.();
-            }}
+            onClick={() => setIsChatOpen(v => !v)}
             className={`h-10 w-10 rounded-full flex-shrink-0 ${
               isChatOpen ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
             }`}
