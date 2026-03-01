@@ -19,12 +19,9 @@ Deno.serve(async (req) => {
     // Get recipient by extension
     const recipients = await base44.asServiceRole.entities.SalesTeamMember.filter({ extension: parseInt(recipientExtension) });
     if (!recipients?.[0]) {
-      console.error(`[VIDEO_CALL] Recipient extension ${recipientExtension} not found`);
       return Response.json({ error: 'Recipient extension not found' }, { status: 404 });
     }
     const recipient = recipients[0];
-
-    console.log(`[VIDEO_CALL] Initiating call from ${caller.full_name} (${caller.id}) to ${recipient.full_name} (${recipient.id}) via extension ${recipientExtension}`);
 
     // Generate unique room name
     const roomName = `video-call-${salesMemberId}-${recipient.id}-${Date.now()}`;
@@ -57,7 +54,7 @@ Deno.serve(async (req) => {
     const recipientTokenJwt = recipientToken.toJwt();
 
     // Store a notification record so the recipient can subscribe and receive it
-    const notification = await base44.asServiceRole.entities.PendingNotification.create({
+    await base44.asServiceRole.entities.PendingNotification.create({
       recipient_id: recipient.id,
       event_type: 'incoming_video_call',
       event_data: {
@@ -70,7 +67,7 @@ Deno.serve(async (req) => {
       is_read: false
     });
 
-    console.log(`[VIDEO_CALL] ✅ PendingNotification created: id=${notification.id}, recipient_id=${recipient.id}, roomName=${roomName}`);
+    console.log(`Video call initiated: ${caller.full_name} → ${recipient.full_name} (room: ${roomName})`);
 
     return Response.json({
       success: true,
