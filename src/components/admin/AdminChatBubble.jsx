@@ -35,8 +35,8 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
-  // Position changes based on video call state
-  const isOnRight = isVideoActive;
+  // Always position on the right
+  const isOnRight = true;
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
