@@ -185,16 +185,35 @@ export default function VideoCallPanelV2({
     });
   }, []);
 
-  const toggleVideo = useCallback(() => {
-    setIsVideoOn(prev => {
-      const newOn = !prev;
-      localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = newOn; });
-      twilioRoomRef.current?.localParticipant?.videoTracks.forEach(pub => {
-        newOn ? pub.track?.enable() : pub.track?.disable();
+  const toggleVideo = useCallback(async () => {
+    const participant = twilioRoomRef.current?.localParticipant;
+    const newOn = !isVideoOn;
+    setIsVideoOn(newOn);
+
+    // Always disable/enable the raw local track so PIP reflects state
+    localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = newOn; });
+
+    if (!participant) return;
+
+    if (!newOn) {
+      // Unpublish all video tracks so remote side sees nothing
+      const pubs = [...participant.videoTracks.values()];
+      pubs.forEach(pub => {
+        try { participant.unpublishTrack(pub.track); } catch (_) {}
       });
-      return newOn;
-    });
-  }, []);
+    } else {
+      // Republish camera track
+      const camTrack = localStreamRef.current?.getVideoTracks()[0];
+      if (camTrack && window.Twilio?.Video) {
+        try {
+          const twilioTrack = new window.Twilio.Video.LocalVideoTrack(camTrack);
+          await participant.publishTrack(twilioTrack);
+        } catch (err) {
+          console.error("Failed to republish camera:", err);
+        }
+      }
+    }
+  }, [isVideoOn]);
 
   // ─── Screen share (uses ref to avoid stale closure in onended) ───────────────
 
