@@ -763,11 +763,13 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
             autoStart={true}
             onClose={() => {
               setActiveVideoCall(null);
+              setIsVideoWindowOpen(false);
               onVideoCallStateChange?.(false);
             }}
             onMinimize={() => {
               setMinimizedVideoCall(activeVideoCall);
               setActiveVideoCall(null);
+              setIsVideoWindowOpen(false);
             }}
             onChatOpenRequest={() => {}}
           />
