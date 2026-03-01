@@ -915,6 +915,26 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
            />
          )}
 
+        {/* Chat bubble - only visible when no video call active (unless notification) */}
+        <FloatingChatBubble 
+          currentUserId={user?.id} 
+          currentUserName={user?.full_name}
+          onInitiateTransfer={(memberId, memberName) => {
+            base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+              const ext = members?.[0]?.extension;
+              if (ext) {
+                setActiveTab("call");
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                    detail: { extension: String(ext), name: memberName || members[0]?.full_name }
+                  }));
+                }, 400);
+              }
+            }).catch(() => {});
+          }}
+          isVideoCallActive={!!activeVideoCall}
+        />
+
         {/* Minimized video call indicator */}
         {activeVideoCall && !isVideoWindowOpen && (
           <div className="fixed bottom-4 right-4 z-[249] flex flex-col gap-2">
