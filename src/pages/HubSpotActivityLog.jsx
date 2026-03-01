@@ -104,39 +104,76 @@ export default function HubSpotActivityLog() {
         if (event.data?.activity_type === 'call') loadDialerBadge();
       });
 
-      // Load existing unread incoming video calls and mark them as read immediately to prevent resurfacing
-      base44.entities.PendingNotification.filter({
-        recipient_id: salesMemberId,
-        event_type: 'incoming_video_call',
-        is_read: false
-      }).then(existing => {
-        if (existing?.[0]) {
-          console.log(`[HUBSPOT_ACTIVITY] Found existing unread incoming call notification, marking as read:`, existing[0].id);
-          base44.entities.PendingNotification.update(existing[0].id, { is_read: true }).catch(e => console.error('Failed to mark notification as read:', e));
-        }
-      }).catch(() => {});
+      // Initialize Twilio Video device and listener on mount
+          const initializeVideoDevice = async () => {
+            try {
+              let attempts = 0;
+              while (!window.Twilio?.Video && attempts < 50) {
+                await new Promise(r => setTimeout(r, 100));
+                attempts++;
+              }
+              if (!window.Twilio?.Video) {
+                console.error('[HUBSPOT_VIDEO_INIT] Twilio SDK failed to load');
+                return;
+              }
+              console.log('[HUBSPOT_VIDEO_INIT] Twilio SDK available, device listener initialized');
+              setVideoListenerReady(true);
+            } catch (err) {
+              console.error('[HUBSPOT_VIDEO_INIT] Failed to initialize video device:', err);
+            }
+          };
 
-      // Listen for incoming video call notifications
-      const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
-        console.log(`[HUBSPOT_ACTIVITY] PendingNotification event received:`, {
-          type: event.type,
-          event_type: event.data?.event_type,
-          recipient_id: event.data?.recipient_id,
-          current_userId: salesMemberId,
-          matches: event.data?.recipient_id === salesMemberId
-        });
-        if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId) {
-          const d = event.data.event_data;
-          console.log(`[HUBSPOT_ACTIVITY] Incoming video call received from ${d.callerName}`);
-          setIncomingVideoCall({
-            notificationId: event.id,
-            roomName: d.roomName,
-            callerName: d.callerName,
-            callerExtension: d.callerExtension,
-            recipientToken: d.recipientToken
+          // Load SDK and initialize device
+          if (window.Twilio?.Video) {
+            initializeVideoDevice();
+          } else {
+            const script = document.createElement("script");
+            script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
+            script.async = true;
+            script.onload = () => {
+              console.log('[HUBSPOT_VIDEO_INIT] Twilio SDK loaded, initializing device');
+              initializeVideoDevice();
+            };
+            script.onerror = () => {
+              console.error('[HUBSPOT_VIDEO_INIT] Failed to load Twilio SDK');
+            };
+            document.head.appendChild(script);
+          }
+
+          // Load existing unread incoming video calls and mark them as read immediately to prevent resurfacing
+          base44.entities.PendingNotification.filter({
+            recipient_id: salesMemberId,
+            event_type: 'incoming_video_call',
+            is_read: false
+          }).then(existing => {
+            if (existing?.[0]) {
+              console.log(`[HUBSPOT_ACTIVITY] Found existing unread incoming call notification, marking as read:`, existing[0].id);
+              base44.entities.PendingNotification.update(existing[0].id, { is_read: true }).catch(e => console.error('Failed to mark notification as read:', e));
+            }
+          }).catch(() => {});
+
+          // Listen for incoming video call notifications
+          const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
+            console.log(`[HUBSPOT_ACTIVITY] PendingNotification event received:`, {
+              type: event.type,
+              event_type: event.data?.event_type,
+              recipient_id: event.data?.recipient_id,
+              current_userId: salesMemberId,
+              matches: event.data?.recipient_id === salesMemberId
+            });
+            if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId) {
+              const d = event.data.event_data;
+              console.log(`[HUBSPOT_ACTIVITY] Incoming video call received from ${d.callerName}`);
+              setLastIncomingNotificationId(event.id);
+              setIncomingVideoCall({
+                notificationId: event.id,
+                roomName: d.roomName,
+                callerName: d.callerName,
+                callerExtension: d.callerExtension,
+                recipientToken: d.recipientToken
+              });
+            }
           });
-        }
-      });
 
       return () => { smsSub(); callSub(); videoCallSub(); };
     } else {
