@@ -51,6 +51,22 @@ Deno.serve(async (req) => {
     });
     recipientToken.addGrant(new VideoGrant({ room: roomName }));
 
+    const recipientTokenJwt = recipientToken.toJwt();
+
+    // Store a notification record so the recipient can subscribe and receive it
+    await base44.asServiceRole.entities.PendingNotification.create({
+      recipient_id: recipient.id,
+      type: 'incoming_video_call',
+      data: JSON.stringify({
+        roomName,
+        callerName: caller.full_name,
+        callerId: caller.id,
+        recipientToken: recipientTokenJwt,
+        callerExtension: caller.extension
+      }),
+      status: 'pending'
+    });
+
     console.log(`Video call initiated: ${caller.full_name} → ${recipient.full_name} (room: ${roomName})`);
 
     return Response.json({
@@ -64,7 +80,7 @@ Deno.serve(async (req) => {
       recipient: {
         id: recipient.id,
         name: recipient.full_name,
-        token: recipientToken.toJwt(),
+        token: recipientTokenJwt,
         extension: recipient.extension
       }
     });
