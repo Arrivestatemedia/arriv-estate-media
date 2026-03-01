@@ -307,13 +307,16 @@ export default function HubSpotActivityLog() {
 
   const handleAcceptVideoCall = async () => {
     if (!incomingVideoCall) return;
+    console.log('[HUBSPOT_ACTIVITY] Accept video call clicked for:', incomingVideoCall.callerName);
     setVideoCallProcessing(true);
     // Mark notification as read
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    // Set window open FIRST so VideoCallPanelV2 will render
+    setIsVideoWindowOpen(true);
     setActiveVideoCall(incomingVideoCall);
     setIncomingVideoCall(null);
-    setIsVideoWindowOpen(true);
     setVideoCallProcessing(false);
+    console.log('[HUBSPOT_ACTIVITY] Video call states updated - should now render panel');
   };
 
   const handleDeclineVideoCall = async () => {
