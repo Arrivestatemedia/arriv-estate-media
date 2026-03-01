@@ -116,47 +116,45 @@ export default function VideoCallPanelV2({
 
   const toggleMic = () => {
     try {
-      if (!localStreamRef.current) {
-        console.warn("No local stream to toggle mic");
-        return;
+      const newMuted = !isMuted;
+      // Toggle local stream audio
+      if (localStreamRef.current) {
+        localStreamRef.current.getAudioTracks().forEach(t => { t.enabled = !newMuted; });
       }
-
-      const audioTracks = localStreamRef.current.getAudioTracks();
-      if (audioTracks.length === 0) {
-        console.warn("No audio tracks available");
-        return;
+      // Also disable/enable the published Twilio audio track
+      if (twilioRoomRef.current?.localParticipant) {
+        twilioRoomRef.current.localParticipant.audioTracks.forEach(pub => {
+          if (pub.track) {
+            newMuted ? pub.track.disable() : pub.track.enable();
+          }
+        });
       }
-
-      const audioTrack = audioTracks[0];
-      audioTrack.enabled = !audioTrack.enabled;
-      setIsMuted(!audioTrack.enabled);
-      console.log("Mute toggled:", !audioTrack.enabled);
+      setIsMuted(newMuted);
+      console.log("Mic toggled, muted:", newMuted);
     } catch (err) {
       console.error("Error toggling mic:", err);
-      setError("Failed to toggle mic: " + err.message);
     }
   };
 
   const toggleVideo = () => {
     try {
-      if (!localStreamRef.current) {
-        console.warn("No local stream to toggle video");
-        return;
+      const newVideoOn = !isVideoOn;
+      // Toggle local stream video
+      if (localStreamRef.current) {
+        localStreamRef.current.getVideoTracks().forEach(t => { t.enabled = newVideoOn; });
       }
-
-      const videoTracks = localStreamRef.current.getVideoTracks();
-      if (videoTracks.length === 0) {
-        console.warn("No video tracks available");
-        return;
+      // Also disable/enable the published Twilio video track
+      if (twilioRoomRef.current?.localParticipant) {
+        twilioRoomRef.current.localParticipant.videoTracks.forEach(pub => {
+          if (pub.track) {
+            newVideoOn ? pub.track.enable() : pub.track.disable();
+          }
+        });
       }
-
-      const videoTrack = videoTracks[0];
-      videoTrack.enabled = !videoTrack.enabled;
-      setIsVideoOn(videoTrack.enabled);
-      console.log("Video toggled:", videoTrack.enabled);
+      setIsVideoOn(newVideoOn);
+      console.log("Video toggled, on:", newVideoOn);
     } catch (err) {
       console.error("Error toggling video:", err);
-      setError("Failed to toggle video: " + err.message);
     }
   };
 
