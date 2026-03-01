@@ -41,6 +41,7 @@ export default function VideoCallPanelV2({
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
 
   // Keep ref in sync with state
   const setScreenSharing = (val) => {
