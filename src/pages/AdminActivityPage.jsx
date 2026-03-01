@@ -150,8 +150,13 @@ export default function AdminActivityPage({ user }) {
       if (event.data?.activity_type === 'call') loadDialerBadge();
     });
 
-    // Listen for incoming video call notifications
-    const salesMemberId = user?.id;
+    return () => { smsSub(); callSub(); };
+  }, [user?.email]);
+
+  // Listen for incoming video call notifications
+  useEffect(() => {
+    if (!user?.id) return;
+    const salesMemberId = user.id;
     const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
       if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId) {
         const d = event.data.event_data;
@@ -164,9 +169,8 @@ export default function AdminActivityPage({ user }) {
         });
       }
     });
-
-    return () => { smsSub(); callSub(); videoCallSub(); };
-  }, [user?.email]);
+    return () => { videoCallSub(); };
+  }, [user?.id]);
 
   const { data: activities = [] } = useQuery({
     queryKey: ['adminActivities', user?.email],
