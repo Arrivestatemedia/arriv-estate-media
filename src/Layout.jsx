@@ -110,7 +110,7 @@ import TrackLink from "@/pages/TrackLink";
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
-      {currentPageName !== "SignIn" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && <GoogleMapsLoader />}
+      {currentPageName !== "SignIn" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && currentPageName !== "SalesLogin" && <GoogleMapsLoader />}
       <TwilioSdkLoader />
       <style>{`
         :root {
