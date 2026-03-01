@@ -133,6 +133,7 @@ export default function VideoCallPanelV2({
   }, [attachTrack, detachTrack]);
 
   const detachParticipant = useCallback(() => {
+    setHasRemoteVideo(false);
     if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = "";
   }, []);
 
