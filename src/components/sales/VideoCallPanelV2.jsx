@@ -197,17 +197,7 @@ export default function VideoCallPanelV2({
   }, []);
 
   // ─── Screen share (uses ref to avoid stale closure in onended) ───────────────
-  const switchBackToCamera = useCallback(async () => {
-    const camTrack = localStreamRef.current?.getVideoTracks()[0];
-    if (camTrack?.readyState === "live") {
-      const pub = Array.from(twilioRoomRef.current?.localParticipant?.videoTracks.values() || [])[0];
-      if (pub?.track) {
-        await pub.track.replaceTrack(camTrack).catch(console.error);
-      }
-    }
-    screenStreamRef.current = null;
-    setScreenSharing(false);
-  }, []);
+
 
   const toggleScreenShare = useCallback(async () => {
     if (!twilioRoomRef.current?.localParticipant) {
