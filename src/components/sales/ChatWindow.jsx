@@ -855,13 +855,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           </div>
         )}
 
+        {/* Outgoing video call */}
         {showVideoCall && !acceptedIncomingCall && videoCallTarget && (
-           <VideoCallPanel
+           <VideoCallPanelV2
              recipientName={videoCallTarget.name}
              recipientExtension={videoCallTarget.extension}
-             callerToken={null}
-             roomName={null}
              currentUserName={currentUserName}
+             salesMemberId={currentUserId}
              onClose={() => {
                setShowVideoCall(false);
                setVideoCallTarget(null);
@@ -869,14 +869,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
            />
          )}
 
+        {/* Incoming video call notification */}
         {incomingVideoCall && (
           <IncomingVideoCallModal
             callerName={incomingVideoCall.callerName}
             callerExtension={incomingVideoCall.callerExtension}
             isProcessing={videoCallProcessing}
-            onDecline={() => {
-              setIncomingVideoCall(null);
-            }}
+            onDecline={() => setIncomingVideoCall(null)}
             onAccept={() => {
               setAcceptedIncomingCall(incomingVideoCall);
               setIncomingVideoCall(null);
@@ -885,14 +884,15 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           />
         )}
 
+        {/* Accepted incoming call */}
         {showVideoCall && acceptedIncomingCall && (
-          <VideoCallPanel
+          <VideoCallPanelV2
             recipientName={acceptedIncomingCall.callerName}
-            recipientExtension={acceptedIncomingCall.callerExtension}
             callerToken={acceptedIncomingCall.recipientToken}
             roomName={acceptedIncomingCall.roomName}
             currentUserName={currentUserName}
             isIncoming={true}
+            autoStart={true}
             onClose={() => {
               setShowVideoCall(false);
               setAcceptedIncomingCall(null);
