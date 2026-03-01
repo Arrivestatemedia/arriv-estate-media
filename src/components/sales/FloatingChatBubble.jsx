@@ -35,6 +35,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
+  // Position changes based on video call state
+  const isOnRight = isVideoActive;
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
@@ -43,7 +45,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {open && (
         <div
           className="fixed bottom-20 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
-          style={{ left: '1rem', height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 250 }}
+          style={{ [isOnRight ? 'right' : 'left']: '1rem', height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 250 }}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
             <span className="text-sm font-semibold text-white">Team Chat</span>
@@ -61,11 +63,11 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
         </div>
       )}
 
-      {/* Bubble Button - left side always, moves to right during active video call */}
+      {/* Bubble Button - moves left/right based on video call state */}
       <button
         onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
-        className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
-        style={{ [isVideoActive ? 'right' : 'left']: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
+        className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
+        style={{ [isOnRight ? 'right' : 'left']: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (
