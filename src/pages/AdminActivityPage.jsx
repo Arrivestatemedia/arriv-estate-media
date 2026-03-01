@@ -744,6 +744,40 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
           </DialogContent>
         </Dialog>
 
+        {/* Test button for incoming video notification (Admin only) */}
+        {user?.role === 'admin' && (
+          <div className="fixed top-20 left-4 z-[250]">
+            <Button 
+              onClick={async () => {
+                console.log('[ADMIN_TEST] Sending test incoming video notification to Admin:', user?.id);
+                try {
+                  await base44.entities.PendingNotification.create({
+                    recipient_id: user?.id,
+                    recipient_email: user?.email,
+                    event_type: 'incoming_video_call',
+                    is_read: false,
+                    event_data: {
+                      roomName: 'test-room-' + Date.now(),
+                      callerName: 'Test Caller',
+                      callerExtension: '999',
+                      recipientToken: 'test-token-' + Date.now()
+                    }
+                  });
+                  console.log('[ADMIN_TEST] Test notification created');
+                } catch (err) {
+                  console.error('[ADMIN_TEST] Failed to create test notification:', err);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              title="Send a test incoming video call notification"
+            >
+              🧪 Test Incoming Call
+            </Button>
+          </div>
+        )}
+
         {/* Incoming video call */}
         {incomingVideoCall && (
           <IncomingVideoCallModal
