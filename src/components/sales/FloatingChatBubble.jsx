@@ -67,7 +67,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {/* Floating Chat Panel */}
       {open && (
         <div
-          className={`fixed bottom-20 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden ${isVideoActive ? 'right-4' : 'left-4'}`}
+          className="fixed bottom-20 left-4 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
           style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 250 }}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
@@ -89,7 +89,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {/* Bubble Button */}
       <button
         onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
-        className={`fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105 ${isVideoActive ? 'right-4' : 'left-4'}`}
+        className="fixed bottom-4 left-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
         style={{ zIndex: 250, backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
