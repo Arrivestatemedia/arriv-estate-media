@@ -311,7 +311,7 @@ export default function HubSpotActivityLog() {
     setVideoCallProcessing(true);
     // Mark notification as read
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
-    // Set window open FIRST so VideoCallPanelV2 will render
+    // Set both states together to ensure both conditions are true when panel renders
     setIsVideoWindowOpen(true);
     setActiveVideoCall(incomingVideoCall);
     setIncomingVideoCall(null);
