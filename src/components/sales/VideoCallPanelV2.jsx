@@ -440,7 +440,7 @@ export default function VideoCallPanelV2({
           if (localStreamRef.current && twilioRoomRef.current?.localParticipant) {
             const cameraTrack = localStreamRef.current.getVideoTracks()[0];
             if (cameraTrack?.readyState === "live") {
-              const videoPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks || []);
+              const videoPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values());
               const videoPublication = videoPublications[0];
               if (videoPublication?.track) {
                 await videoPublication.track.replaceTrack(cameraTrack);
