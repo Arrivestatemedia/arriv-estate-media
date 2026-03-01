@@ -6,11 +6,6 @@ import ChatTab from "./ChatTab";
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive, onOpenChat }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [videoState, setVideoState] = useState(isVideoActive);
-
-  useEffect(() => {
-    setVideoState(isVideoActive);
-  }, [isVideoActive]);
 
   // Close chat panel when video call state changes to ensure proper remount
   useEffect(() => {
@@ -46,7 +41,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
   // Position changes based on video call state
-  const isOnRight = !videoState;
+  const isOnRight = !isVideoActive;
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
