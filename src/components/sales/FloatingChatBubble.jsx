@@ -42,7 +42,6 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const displayCount = open ? 0 : unreadCount;
   // Hide bubble during active video call UNLESS there's an unread notification
   const shouldShowBubble = !isVideoCallActive || unreadCount > 0;
-  const isOnRight = true;
 
   if (!shouldShowBubble) return null;
 
@@ -52,8 +51,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {/* Floating Chat Panel */}
       {open && (
         <div
-          className="fixed bottom-20 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
-          style={{ [isOnRight ? 'right' : 'left']: '1rem', height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 250 }}
+          className="fixed bottom-20 right-4 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
+          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 250 }}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
             <span className="text-sm font-semibold text-white">Team Chat</span>
