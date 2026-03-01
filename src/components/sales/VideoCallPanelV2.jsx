@@ -93,6 +93,7 @@ export default function VideoCallPanelV2({
   const attachTrack = useCallback((track) => {
     if (!track) return;
     if (track.kind === "video" && remoteVideoRef.current) {
+      setHasRemoteVideo(true);
       const el = track.attach();
       // Use contain if it looks like a screen share (name hint or wide dimensions)
       const isScreen = track.name?.includes("screen") || track.mediaStreamTrack?.label?.toLowerCase().includes("screen");
