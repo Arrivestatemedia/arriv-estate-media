@@ -99,7 +99,22 @@ export default function HubSpotActivityLog() {
       const callSub = base44.entities.ActivityLog.subscribe((event) => {
         if (event.data?.activity_type === 'call') loadDialerBadge();
       });
-      return () => { smsSub(); callSub(); };
+
+      // Listen for incoming video call notifications
+      const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
+        if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId) {
+          const d = event.data.event_data;
+          setIncomingVideoCall({
+            notificationId: event.id,
+            roomName: d.roomName,
+            callerName: d.callerName,
+            callerExtension: d.callerExtension,
+            recipientToken: d.recipientToken
+          });
+        }
+      });
+
+      return () => { smsSub(); callSub(); videoCallSub(); };
     } else {
       base44.auth.me().then((adminUser) => {
         if (adminUser && adminUser.role === 'admin') {
