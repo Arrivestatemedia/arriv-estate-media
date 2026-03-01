@@ -7,9 +7,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Prevent chat from opening when video call is active
   const handleToggleChat = () => {
-    if (isVideoCallActive) return;
     setOpen(!open);
     if (!open) setUnreadCount(0);
   };
