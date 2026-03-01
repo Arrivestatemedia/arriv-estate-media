@@ -42,8 +42,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {/* Floating Chat Panel */}
       {open && (
         <div
-          className={`fixed bottom-20 z-50 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden ${isVideoActive ? 'left-4' : 'right-4'}`}
-          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)' }}
+          className={`fixed bottom-20 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden ${isVideoActive ? 'left-4' : 'right-4'}`}
+          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 300 }}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
             <span className="text-sm font-semibold text-white">Team Chat</span>
