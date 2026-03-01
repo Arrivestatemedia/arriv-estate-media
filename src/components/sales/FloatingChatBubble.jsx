@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
-// base44 already imported above
 import ChatTab from "./ChatTab";
 
-export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive }) {
+export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive, onOpenChat }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -37,6 +36,32 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
 
+  // If video is active and onOpenChat is provided, only show the button (not the full panel)
+  if (isVideoActive && onOpenChat) {
+    return (
+      <button
+        onClick={() => {
+          setOpen(false);
+          onOpenChat();
+          if (unreadCount > 0) setUnreadCount(0);
+        }}
+        className="fixed bottom-4 right-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
+        style={{ zIndex: 250, backgroundColor: '#B8956A' }}
+      >
+        <MessageSquare className="w-6 h-6 text-white" />
+        {displayCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+            style={{ backgroundColor: '#ef4444', minWidth: '1.25rem' }}
+          >
+            {displayCount > 9 ? '9+' : displayCount}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  // Standard floating chat bubble (when not in video)
   return (
     <>
       {/* Floating Chat Panel */}

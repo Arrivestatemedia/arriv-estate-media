@@ -15,7 +15,8 @@ export default function VideoCallPanelV2({
   onClose,
   currentUserName,
   isIncoming = false,
-  autoStart = false
+  autoStart = false,
+  onMinimize
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -422,10 +423,18 @@ export default function VideoCallPanelV2({
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleEndCall}
-          className="text-gray-400 hover:text-white hover:bg-gray-700">
-          <X className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {onMinimize && (
+            <Button variant="ghost" size="icon" onClick={onMinimize}
+              className="text-gray-400 hover:text-white hover:bg-gray-700" title="Minimize">
+              <span className="text-lg">−</span>
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={handleEndCall}
+            className="text-gray-400 hover:text-white hover:bg-gray-700">
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Video area */}
