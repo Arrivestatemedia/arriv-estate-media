@@ -388,7 +388,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
         {/* Video System Status Indicator - ADMIN ONLY */}
-        {isAdmin && (
+        {user?.role === 'admin' && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 border-2 border-red-400" style={{ color: '#1A1A1A' }}>
             <div className="text-xs font-mono space-y-1 mb-2">
               <div><strong>DIAGNOSTIC STATUS:</strong></div>
