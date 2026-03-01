@@ -429,13 +429,24 @@ export default function VideoCallPanelV2({
         </div>
         <div className="flex items-center gap-2">
           {onMinimize && (
-            <Button variant="ghost" size="icon" onClick={onMinimize}
-              className="text-gray-400 hover:text-white hover:bg-gray-700" title="Minimize">
-              <span className="text-lg">−</span>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onMinimize}
+              className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0" 
+              title="Minimize"
+              style={{ minWidth: '40px', minHeight: '40px' }}
+            >
+              <span className="text-lg leading-none">−</span>
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={handleEndCall}
-            className="text-gray-400 hover:text-white hover:bg-gray-700">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleEndCall}
+            className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0"
+            style={{ minWidth: '40px', minHeight: '40px' }}
+          >
             <X className="w-5 h-5" />
           </Button>
         </div>
