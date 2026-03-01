@@ -841,8 +841,8 @@ export default function HubSpotActivityLog() {
           />
         )}
 
-        {/* Active video call panel - always render when call exists (component returns null if !isVideoWindowOpen) */}
-        {activeVideoCall && (
+        {/* Active video call panel - render when call exists AND window is open */}
+        {activeVideoCall && isVideoWindowOpen && (
           <VideoCallPanelV2
             recipientName={activeVideoCall.callerName}
             callerToken={activeVideoCall.recipientToken}
