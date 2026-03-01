@@ -587,7 +587,7 @@ export default function VideoCallPanelV2({
 
       {/* Chat sidebar — overlays video area */}
       {isChatOpen && (
-       <VideoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} currentUserName={currentUserName} roomName={roomName} currentUserId={callerToken} />
+       <VideoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} currentUserName={currentUserName} roomName={roomName} currentUserId={currentUserId} />
       )}
 
       {/* Settings modal — fixed z-[70] */}
