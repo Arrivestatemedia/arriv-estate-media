@@ -797,11 +797,12 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
         )}
 
         {/* Floating chat bubble - shown when NOT on chat tab */}
-        {activeTab !== "chat" && (
-          <FloatingChatBubble
-            currentUserId={user?.id}
-            currentUserName={user?.full_name}
-            isVideoActive={!!activeVideoCall}
+         {activeTab !== "chat" && (
+           <FloatingChatBubble
+             key={activeVideoCall ? 'with-video' : 'no-video'}
+             currentUserId={user?.id}
+             currentUserName={user?.full_name}
+             isVideoActive={!!activeVideoCall}
             onOpenChat={() => {
               // This is for opening chat inside the video call, not switching tabs
               // The video call component handles the chat opening via onChatOpenRequest
