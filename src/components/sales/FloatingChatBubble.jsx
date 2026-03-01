@@ -64,7 +64,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {/* Bubble Button */}
       <button
         onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
-        className="fixed bottom-4 right-4 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105"
+        className={`fixed bottom-4 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105 ${isVideoActive ? 'left-4' : 'right-4'}`}
         style={{ backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
