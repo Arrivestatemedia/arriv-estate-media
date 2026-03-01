@@ -878,31 +878,26 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {activeTab !== "chat" && (
-          <FloatingChatBubble
-            key={isVideoWindowOpen ? 'with-video' : 'no-video'}
-            currentUserId={user?.id}
-            currentUserName={user?.full_name}
-            isVideoWindowOpen={isVideoWindowOpen}
-            onOpenChat={() => {
-              // This is for opening chat inside the video call, not switching tabs
-              // The video call component handles the chat opening via onChatOpenRequest
-            }}
-            onInitiateTransfer={(memberId, memberName) => {
-              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                const ext = members?.[0]?.extension;
-                if (ext) {
-                  setActiveTab("call");
-                  setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                      detail: { extension: String(ext), name: memberName || members[0].full_name }
-                    }));
-                  }, 150);
-                }
-              }).catch(() => {});
-            }}
-          />
-        )}
+        {/* Chat bubble - only visible when no video call active (unless notification) */}
+        <FloatingChatBubble
+          currentUserId={user?.id}
+          currentUserName={user?.full_name}
+          isVideoCallActive={!!activeVideoCall}
+          onOpenChat={() => {}}
+          onInitiateTransfer={(memberId, memberName) => {
+            base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+              const ext = members?.[0]?.extension;
+              if (ext) {
+                setActiveTab("call");
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                    detail: { extension: String(ext), name: memberName || members[0].full_name }
+                  }));
+                }, 150);
+              }
+            }).catch(() => {});
+          }}
+        />
 
       </div>
     </div>
