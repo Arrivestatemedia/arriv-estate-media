@@ -175,7 +175,7 @@ import TrackLink from "@/pages/TrackLink";
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             )}
-            {(currentPageName === "ClientSignup" || currentPageName === "MediaPartnerSignup" || currentPageName === "SignIn") ? (
+            {(currentPageName === "ClientSignup" || currentPageName === "MediaPartnerSignup" || currentPageName === "SignIn" || currentPageName === "SalesLogin") ? (
                   <div className="flex items-center gap-3">
                     <img 
                       src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
