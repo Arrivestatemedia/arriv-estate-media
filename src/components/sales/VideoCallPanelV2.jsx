@@ -408,6 +408,9 @@ export default function VideoCallPanelV2({
   }, [onClose, stopBlur]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
+  // When minimized, return null but keep component mounted to maintain Twilio connection
+  if (!isVideoWindowOpen) return null;
+
   return (
     <div className="fixed inset-0 bg-black flex flex-col z-[200]">
 
