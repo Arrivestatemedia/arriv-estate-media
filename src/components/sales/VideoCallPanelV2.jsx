@@ -21,6 +21,8 @@ export default function VideoCallPanelV2({
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
   const twilioRoomRef = useRef(null);
+  // Use a ref for isScreenSharing so async callbacks always see latest value
+  const isScreenSharingRef = useRef(false);
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -32,6 +34,12 @@ export default function VideoCallPanelV2({
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+
+  // Keep ref in sync with state
+  const setScreenSharing = (val) => {
+    isScreenSharingRef.current = val;
+    setIsScreenSharing(val);
+  };
 
   // ─── Camera init ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -46,12 +54,14 @@ export default function VideoCallPanelV2({
         if (!mounted) { stream.getTracks().forEach(t => t.stop()); return; }
 
         localStreamRef.current = stream;
-
-        // Attach to video element — it's always mounted in the DOM
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
         setCameraReady(true);
+
+        // Use a small timeout to ensure the video element is fully in DOM
+        setTimeout(() => {
+          if (localVideoRef.current && localStreamRef.current) {
+            localVideoRef.current.srcObject = localStreamRef.current;
+          }
+        }, 50);
       } catch (err) {
         if (mounted) setError("Camera error: " + err.message);
       }
@@ -64,12 +74,12 @@ export default function VideoCallPanelV2({
     };
   }, []);
 
-  // ─── Track attachment helpers (use refs so they're always current) ──────────
+  // ─── Track attachment helpers ────────────────────────────────────────────────
   const attachTrack = useCallback((track) => {
     if (!track) return;
     if (track.kind === "video" && remoteVideoRef.current) {
       const el = track.attach();
-      el.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+      el.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;";
       remoteVideoRef.current.innerHTML = "";
       remoteVideoRef.current.appendChild(el);
     } else if (track.kind === "audio") {
@@ -86,19 +96,18 @@ export default function VideoCallPanelV2({
   }, []);
 
   const attachParticipant = useCallback((participant) => {
-    // Handle already-subscribed tracks
+    // Already-subscribed tracks
     participant.tracks.forEach((publication) => {
       if (publication.isSubscribed && publication.track) {
         attachTrack(publication.track);
       }
     });
-    // Handle future track subscriptions
-    // Twilio fires: trackSubscribed(track, publication, participant)
-    participant.on("trackSubscribed", (track) => attachTrack(track));
-    participant.on("trackUnsubscribed", (track) => detachTrack(track));
+    // Twilio fires trackSubscribed(track, publication, participant) — first arg is the Track
+    participant.on("trackSubscribed", attachTrack);
+    participant.on("trackUnsubscribed", detachTrack);
   }, [attachTrack, detachTrack]);
 
-  const detachParticipant = useCallback((_participant) => {
+  const detachParticipant = useCallback(() => {
     if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = "";
   }, []);
 
@@ -115,10 +124,7 @@ export default function VideoCallPanelV2({
       });
 
       twilioRoomRef.current = videoRoom;
-
-      // Existing participants
       videoRoom.participants.forEach(p => attachParticipant(p));
-      // Future participants
       videoRoom.on("participantConnected", p => attachParticipant(p));
       videoRoom.on("participantDisconnected", p => detachParticipant(p));
       videoRoom.on("disconnected", () => setCallState("idle"));
@@ -167,7 +173,7 @@ export default function VideoCallPanelV2({
     }
   }, [autoStart, roomName, recipientExtension, callState, cameraReady, handleStartCall]);
 
-  // ─── Mic / Video toggles ──────────────────────────────────────────────────────
+  // ─── Mic / Video toggles (functional setState avoids stale closures) ──────────
   const toggleMic = useCallback(() => {
     setIsMuted(prev => {
       const newMuted = !prev;
@@ -190,24 +196,29 @@ export default function VideoCallPanelV2({
     });
   }, []);
 
-  // ─── Screen share ─────────────────────────────────────────────────────────────
+  // ─── Screen share (uses ref to avoid stale closure in onended) ───────────────
+  const switchBackToCamera = useCallback(async () => {
+    const camTrack = localStreamRef.current?.getVideoTracks()[0];
+    if (camTrack?.readyState === "live") {
+      const pub = Array.from(twilioRoomRef.current?.localParticipant?.videoTracks.values() || [])[0];
+      if (pub?.track) {
+        await pub.track.replaceTrack(camTrack).catch(console.error);
+      }
+    }
+    screenStreamRef.current = null;
+    setScreenSharing(false);
+  }, []);
+
   const toggleScreenShare = useCallback(async () => {
     if (!twilioRoomRef.current?.localParticipant) {
-      setError("Not in a call");
+      setError("Not in a call — cannot share screen");
       return;
     }
 
-    if (isScreenSharing) {
-      // Stop screen share → switch back to camera
+    if (isScreenSharingRef.current) {
+      // Stop screen share → back to camera
       screenStreamRef.current?.getTracks().forEach(t => t.stop());
-      screenStreamRef.current = null;
-
-      const camTrack = localStreamRef.current?.getVideoTracks()[0];
-      if (camTrack?.readyState === "live") {
-        const pub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
-        if (pub?.track) await pub.track.replaceTrack(camTrack).catch(console.error);
-      }
-      setIsScreenSharing(false);
+      await switchBackToCamera();
     } else {
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
@@ -219,17 +230,12 @@ export default function VideoCallPanelV2({
 
         screenStreamRef.current = screenStream;
         await pub.track.replaceTrack(screenTrack);
-        setIsScreenSharing(true);
+        setScreenSharing(true);
 
-        // When user stops sharing via browser UI
-        screenTrack.onended = async () => {
-          const camTrack = localStreamRef.current?.getVideoTracks()[0];
-          if (camTrack?.readyState === "live") {
-            const p2 = Array.from(twilioRoomRef.current?.localParticipant?.videoTracks.values() || [])[0];
-            if (p2?.track) await p2.track.replaceTrack(camTrack).catch(console.error);
-          }
-          screenStreamRef.current = null;
-          setIsScreenSharing(false);
+        // When user stops via browser chrome — ref is always current here
+        screenTrack.onended = () => {
+          screenStreamRef.current?.getTracks().forEach(t => t.stop());
+          switchBackToCamera();
         };
       } catch (err) {
         if (err.name !== "NotAllowedError") setError("Screen share failed: " + err.message);
@@ -237,7 +243,7 @@ export default function VideoCallPanelV2({
         screenStreamRef.current = null;
       }
     }
-  }, [isScreenSharing]);
+  }, [switchBackToCamera]);
 
   // ─── End call ────────────────────────────────────────────────────────────────
   const handleEndCall = useCallback(() => {
@@ -260,7 +266,7 @@ export default function VideoCallPanelV2({
   return (
     <div className="fixed inset-0 bg-black flex flex-col z-50">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
@@ -283,13 +289,13 @@ export default function VideoCallPanelV2({
         </Button>
       </div>
 
-      {/* ── Video area ── */}
+      {/* Video area */}
       <div className="flex-1 relative bg-black overflow-hidden">
 
-        {/* Remote video */}
+        {/* Remote video container */}
         <div ref={remoteVideoRef} className="absolute inset-0 w-full h-full bg-black" />
 
-        {/* "Waiting" text when connected but no remote yet */}
+        {/* Waiting text — only when connected but no remote video */}
         {callState === "connected" && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]">
             <p className="text-gray-600 text-sm">Waiting for other participant...</p>
@@ -308,13 +314,13 @@ export default function VideoCallPanelV2({
 
         {/* Error overlay */}
         {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-[6]">
-            <p className="text-red-400 text-sm font-semibold mb-4 px-8 text-center">⚠️ {error}</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-[6] px-8">
+            <p className="text-red-400 text-sm font-semibold mb-4 text-center">⚠️ {error}</p>
             <Button onClick={() => setError(null)} variant="outline" size="sm">Dismiss</Button>
           </div>
         )}
 
-        {/* Local video PIP — always shown */}
+        {/* Local video PIP — always rendered, srcObject set after mount */}
         <div className="absolute bottom-4 right-4 w-36 h-28 rounded-lg overflow-hidden border-2 border-blue-500 bg-gray-900 shadow-2xl z-[8]">
           <video
             ref={localVideoRef}
@@ -330,25 +336,22 @@ export default function VideoCallPanelV2({
               filter: isBlurred ? "blur(12px)" : "none"
             }}
           />
-          {/* Camera loading */}
           {!cameraReady && (
             <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
               <div className="w-5 h-5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
             </div>
           )}
-          {/* Video off overlay */}
           {cameraReady && !isVideoOn && (
             <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
               <span className="text-2xl">📷</span>
             </div>
           )}
-          {/* Screen sharing overlay */}
           {isScreenSharing && (
             <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-              <span className="text-xs text-gray-300">Sharing</span>
+              <span className="text-xs text-gray-300">Sharing screen</span>
             </div>
           )}
-          <div className="absolute bottom-1 left-0 right-0 text-center">
+          <div className="absolute bottom-1 left-0 right-0 text-center pointer-events-none">
             <span className="text-[10px] text-gray-400 bg-black/50 px-1 rounded">You</span>
           </div>
         </div>
@@ -361,10 +364,8 @@ export default function VideoCallPanelV2({
         )}
       </div>
 
-      {/* ── Controls bar ── */}
+      {/* Controls bar */}
       <div className="flex-shrink-0 bg-gray-900 border-t border-gray-700 px-4 py-3 flex items-center gap-3">
-
-        {/* Start / Join */}
         {callState === "idle" && (
           <Button
             onClick={handleStartCall}
@@ -376,8 +377,7 @@ export default function VideoCallPanelV2({
           </Button>
         )}
 
-        {/* Mic / Video / Screen / Settings / End */}
-        <div className="flex-1 flex items-center justify-center gap-2">
+        <div className="flex-1 flex items-center justify-center">
           <VideoControls
             isMuted={isMuted}
             isVideoOn={isVideoOn}
@@ -391,7 +391,6 @@ export default function VideoCallPanelV2({
           />
         </div>
 
-        {/* Chat */}
         <Button
           size="icon"
           onClick={() => setIsChatOpen(v => !v)}
@@ -404,12 +403,12 @@ export default function VideoCallPanelV2({
         </Button>
       </div>
 
-      {/* ── Chat sidebar (fixed, on top of everything) ── */}
+      {/* Chat sidebar — fixed z-[60] */}
       {isChatOpen && (
         <VideoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       )}
 
-      {/* ── Settings modal (fixed, highest z) ── */}
+      {/* Settings modal — fixed z-[70] */}
       <VideoSettingsPanel
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -425,7 +424,6 @@ async function loadTwilioSDK() {
   return new Promise((resolve, reject) => {
     if (window.Twilio?.Video) return resolve(window.Twilio.Video);
 
-    // If already injecting, wait for it
     const existing = document.querySelector('script[src*="twilio-video"]');
     if (existing) {
       const poll = setInterval(() => {
