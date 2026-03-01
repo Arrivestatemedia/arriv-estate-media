@@ -471,8 +471,7 @@ export default function VideoCallPanelV2({
               height: "100%",
               objectFit: "cover",
               display: "block",
-              transform: "scaleX(-1)",
-              filter: isBlurred ? "blur(12px)" : "none"
+              transform: "scaleX(-1)"
             }}
           />
           {!cameraReady && (
