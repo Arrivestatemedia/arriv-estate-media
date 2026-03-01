@@ -179,6 +179,28 @@ export default function AdminActivityPage({ user: propsUser }) {
   // Listen for incoming video call notifications
   useEffect(() => {
     if (!user?.id) return;
+
+    // Load existing unread incoming video calls
+    (async () => {
+      const existing = await base44.entities.PendingNotification.filter({
+        recipient_id: user.id,
+        event_type: 'incoming_video_call',
+        is_read: false
+      });
+      if (existing?.[0]) {
+        const notification = existing[0];
+        const d = notification.event_data;
+        setIncomingVideoCall({
+          notificationId: notification.id,
+          roomName: d.roomName,
+          callerName: d.callerName,
+          callerExtension: d.callerExtension,
+          recipientToken: d.recipientToken
+        });
+      }
+    })();
+
+    // Subscribe to new incoming video calls
     const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
       if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === user.id) {
         const d = event.data.event_data;
