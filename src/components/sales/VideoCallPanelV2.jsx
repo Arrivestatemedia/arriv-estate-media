@@ -14,6 +14,7 @@ export default function VideoCallPanelV2({
   roomName,
   onClose,
   currentUserName,
+  currentUserId,
   isIncoming = false,
   autoStart = false,
   onMinimize,
