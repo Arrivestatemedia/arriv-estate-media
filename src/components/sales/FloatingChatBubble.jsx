@@ -3,14 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "./ChatTab";
 
-export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive, onOpenChat }) {
+export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoWindowOpen, onOpenChat }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Close chat panel when video call state changes to ensure proper remount
+  // Close chat panel when video call window opens/closes to ensure proper remount
   useEffect(() => {
     setOpen(false);
-  }, [isVideoActive]);
+  }, [isVideoWindowOpen]);
 
   useEffect(() => {
     if (!currentUserId) return;
