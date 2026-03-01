@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
-import ChatTab from "./ChatTab";
+import ChatTab from "@/components/sales/ChatTab";
 
-export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive, onOpenChat }) {
+export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -52,9 +52,10 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
             </button>
           </div>
           <div style={{ height: 'calc(100% - 40px)' }}>
-            <ChatTab 
-              currentUserId={currentUserId} 
+            <ChatTab
+              currentUserId={currentUserId}
               currentUserName={currentUserName}
+              isAdmin={true}
               onInitiateTransfer={onInitiateTransfer}
             />
           </div>
