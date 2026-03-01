@@ -21,7 +21,7 @@ import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 
-export default function AdminActivityPage({ user: propsUser }) {
+export default function AdminActivityPage({ user: propsUser, onVideoCallStateChange }) {
   const [user, setUser] = useState(propsUser);
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
