@@ -70,11 +70,11 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
         </div>
       )}
 
-      {/* Bubble Button - moves left/right based on video call state */}
+      {/* Bubble Button */}
       <button
         onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
         className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ [isOnRight ? 'right' : 'left']: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
+        style={{ right: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (
