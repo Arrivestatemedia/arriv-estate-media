@@ -41,7 +41,6 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     return (
       <button
         onClick={() => {
-          setOpen(false);
           onOpenChat();
           if (unreadCount > 0) setUnreadCount(0);
         }}
