@@ -42,6 +42,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const displayCount = open ? 0 : unreadCount;
   // Hide bubble during active video call UNLESS there's an unread notification
   const shouldShowBubble = !isVideoCallActive || unreadCount > 0;
+  const isOnRight = true;
 
   if (!shouldShowBubble) return null;
 
