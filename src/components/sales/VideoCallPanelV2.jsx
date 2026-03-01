@@ -17,7 +17,8 @@ export default function VideoCallPanelV2({
   isIncoming = false,
   autoStart = false,
   onMinimize,
-  onChatOpenRequest
+  onChatOpenRequest,
+  isVideoWindowOpen = false
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
