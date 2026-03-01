@@ -1,14 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
-  }
-
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json();
-    const { salesMemberId, recipientExtension, callerName } = body;
+    const { salesMemberId, recipientExtension, callerName } = await req.json();
 
     if (!salesMemberId || !recipientExtension) {
       return Response.json({ error: 'salesMemberId and recipientExtension required' }, { status: 400 });
