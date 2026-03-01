@@ -784,6 +784,7 @@ export default function HubSpotActivityLog() {
           <FloatingChatBubble
             currentUserId={user?.id}
             currentUserName={user?.full_name}
+            isVideoActive={!!activeVideoCall}
             onInitiateTransfer={(memberId, memberName) => {
               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                 const ext = members?.[0]?.extension;
