@@ -175,15 +175,17 @@ export default function VideoCallPanelV2({
 
   // ─── Mic / Video toggles (functional setState avoids stale closures) ──────────
   const toggleMic = useCallback(() => {
-    setIsMuted(prev => {
-      const newMuted = !prev;
-      localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !newMuted; });
-      twilioRoomRef.current?.localParticipant?.audioTracks.forEach(pub => {
-        newMuted ? pub.track?.disable() : pub.track?.enable();
-      });
-      return newMuted;
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+
+    // Disable raw audio track immediately
+    localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !newMuted; });
+
+    // Tell Twilio to mute/unmute so remote side hears nothing
+    twilioRoomRef.current?.localParticipant?.audioTracks.forEach(pub => {
+      newMuted ? pub.track?.disable() : pub.track?.enable();
     });
-  }, []);
+  }, [isMuted]);
 
   const toggleVideo = useCallback(async () => {
     const participant = twilioRoomRef.current?.localParticipant;
