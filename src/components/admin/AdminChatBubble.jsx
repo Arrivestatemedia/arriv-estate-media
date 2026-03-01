@@ -6,17 +6,6 @@ import ChatTab from "@/components/sales/ChatTab";
 export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoActive }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [videoState, setVideoState] = useState(isVideoActive);
-
-  // Force re-render when video state changes for positioning update
-  useEffect(() => {
-    setVideoState(isVideoActive);
-  }, [isVideoActive]);
-
-  // Ensure positioning is correct on mount/remount
-  useEffect(() => {
-    setVideoState(isVideoActive);
-  }, []);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -47,7 +36,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
   // Position changes based on video call state
-  const isOnRight = !videoState;
+  const isOnRight = !isVideoActive;
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
