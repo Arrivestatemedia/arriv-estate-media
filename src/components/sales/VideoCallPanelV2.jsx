@@ -280,6 +280,7 @@ export default function VideoCallPanelV2({
           screenStreamRef.current?.getTracks().forEach(t => t.stop());
           screenStreamRef.current = null;
           setScreenSharing(false);
+          updateRemoteVideoFit("cover");
 
           // Republish camera
           const camTrack = localStreamRef.current?.getVideoTracks()[0];
