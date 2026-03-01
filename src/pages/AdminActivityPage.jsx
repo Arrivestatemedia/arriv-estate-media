@@ -713,6 +713,7 @@ export default function AdminActivityPage({ user }) {
             isIncoming={true}
             autoStart={true}
             onClose={() => setActiveVideoCall(null)}
+            onMinimize={() => setActiveVideoCall(null)}
           />
         )}
 
@@ -722,6 +723,11 @@ export default function AdminActivityPage({ user }) {
             currentUserId={user?.id}
             currentUserName={user?.full_name}
             isVideoActive={!!activeVideoCall}
+            onOpenChat={() => {
+              if (activeVideoCall) {
+                setActiveTab("chat");
+              }
+            }}
             onInitiateTransfer={(memberId, memberName) => {
               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                 const ext = members?.[0]?.extension;
