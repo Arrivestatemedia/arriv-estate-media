@@ -922,7 +922,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
            />
          )}
 
-        {/* Chat bubble - always visible */}
+        {/* Chat bubble - hide during active video call unless unread messages */}
          <AdminChatBubble
            currentUserId={user?.id} 
            currentUserName={user?.full_name}
@@ -939,7 +939,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                }
              }).catch(() => {});
            }}
-           isVideoCallActive={false}
+           isVideoCallActive={isVideoWindowOpen && !!activeVideoCall}
          />
 
         {/* Minimized video call indicator */}
