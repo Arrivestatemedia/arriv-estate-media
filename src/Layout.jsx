@@ -347,6 +347,11 @@ import TrackLink from "@/pages/TrackLink";
 
       {/* Mobile Bottom Tabs */}
       <MobileBottomTabs user={user} />
+
+      {/* Build Version Footer */}
+      <div className="fixed bottom-0 right-0 text-[0.65rem] font-mono text-gray-500/40 pointer-events-none p-2">
+        Build: {new Date().toISOString().split('T')[0]} | Deploy Check
+      </div>
     </div>
   );
 }
