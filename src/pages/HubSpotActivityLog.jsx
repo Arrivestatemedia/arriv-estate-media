@@ -799,10 +799,14 @@ export default function HubSpotActivityLog() {
             currentUserName={user?.full_name}
             isIncoming={true}
             autoStart={true}
-            onClose={() => setActiveVideoCall(null)}
+            onClose={() => {
+              setActiveVideoCall(null);
+              setIsVideoWindowOpen(false);
+            }}
             onMinimize={() => {
               setMinimizedVideoCall(activeVideoCall);
               setActiveVideoCall(null);
+              setIsVideoWindowOpen(false);
             }}
             onChatOpenRequest={() => {}}
           />
