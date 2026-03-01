@@ -272,6 +272,8 @@ export default function VideoCallPanelV2({
         const twilioScreenTrack = new window.Twilio.Video.LocalVideoTrack(screenTrack);
         await participant.publishTrack(twilioScreenTrack);
         setScreenSharing(true);
+        // Remote side: switch to contain so full screen is visible
+        updateRemoteVideoFit("contain");
 
         // When user stops via browser's built-in "Stop sharing" button
         screenTrack.onended = () => {
