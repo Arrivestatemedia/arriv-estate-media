@@ -264,6 +264,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     setActiveVideoCall(incomingVideoCall);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
+    onVideoCallStateChange?.(true);
   };
 
   const handleDeclineVideoCall = async () => {
