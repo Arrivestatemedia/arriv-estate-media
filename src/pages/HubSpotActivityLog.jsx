@@ -153,19 +153,22 @@ export default function HubSpotActivityLog() {
             }
           }).catch(() => {});
 
-          // Listen for incoming video call notifications
+          // Listen for incoming video call notifications (STRICTLY create events only)
           const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
-            console.log(`[HUBSPOT_ACTIVITY] PendingNotification event received:`, {
+            console.log(`[HUBSPOT_ACTIVITY] PendingNotification event:`, {
               type: event.type,
               event_type: event.data?.event_type,
+              notificationId: event.id,
               recipient_id: event.data?.recipient_id,
               current_userId: salesMemberId,
-              matches: event.data?.recipient_id === salesMemberId
+              matches: event.data?.recipient_id === salesMemberId && event.type === 'create'
             });
-            if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId) {
+            // ONLY handle CREATE events for incoming_video_call, and only if we haven't handled this notification before
+            if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId && lastHandledNotificationId !== event.id) {
               const d = event.data.event_data;
-              console.log(`[HUBSPOT_ACTIVITY] Incoming video call received from ${d.callerName}`);
+              console.log(`[HUBSPOT_ACTIVITY] NEW incoming video call from ${d.callerName} (notificationId: ${event.id})`);
               setLastIncomingNotificationId(event.id);
+              setLastHandledNotificationId(event.id); // Mark as handled to prevent re-triggering
               setIncomingVideoCall({
                 notificationId: event.id,
                 roomName: d.roomName,
