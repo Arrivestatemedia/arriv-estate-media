@@ -18,6 +18,8 @@ import ChatTab from "@/components/sales/ChatTab";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
+import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
+import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 
 export default function AdminActivityPage({ user }) {
   const [activeTab, setActiveTab] = useState("activity");
