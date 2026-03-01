@@ -388,18 +388,15 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
-        {/* Video System Status Indicator - ADMIN ONLY */}
+        {/* Video Listener Status - ADMIN ONLY */}
         {user?.role === 'admin' && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border-2 border-red-400" style={{ color: '#1A1A1A' }}>
+          <div className={`mb-4 p-3 rounded-lg border-2 ${videoListenerReady ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`} style={{ color: '#1A1A1A' }}>
             <div className="text-xs font-mono space-y-1 mb-2">
-              <div><strong>DIAGNOSTIC STATUS:</strong></div>
-              <div>✓ videoListenerReady: {String(videoListenerReady)}</div>
-              <div>✓ subscribedToPendingNotification: {String(subscribedToPendingNotification)}</div>
-              <div>✓ currentUserId: {user?.id?.slice(0, 12) || 'none'}</div>
-              <div>✓ userEmail: {user?.email?.slice(0, 20) || 'none'}</div>
-              <div>✓ lastIncomingNotificationId: {lastIncomingNotificationId?.slice(0, 12) || 'none'}</div>
-              <div>✓ activeVideoCall: {String(!!activeVideoCall)}</div>
-              <div>✓ isVideoWindowOpen: {String(isVideoWindowOpen)}</div>
+              <div><strong>VIDEO LISTENER STATUS:</strong></div>
+              <div>{videoListenerReady ? '✅' : '❌'} videoListenerReady: {String(videoListenerReady)}</div>
+              <div>• Admin ID: {user?.id?.slice(0, 12) || 'none'}</div>
+              <div>• Admin Email: {user?.email?.slice(0, 20) || 'none'}</div>
+              <div>• Can receive inbound calls: {videoListenerReady ? 'YES' : 'NO'}</div>
             </div>
             <button
               onClick={async () => {
