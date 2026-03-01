@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Phone, PhoneOff, MessageCircle } from "lucide-react";
+import { X, Phone, MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import VideoControls from "./VideoControls";
 import VideoChat from "./VideoChat";
@@ -21,7 +21,6 @@ export default function VideoCallPanelV2({
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
   const twilioRoomRef = useRef(null);
-  const remoteParticipantRef = useRef(null);
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -32,153 +31,98 @@ export default function VideoCallPanelV2({
   const [isLoading, setIsLoading] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
-  // Initialize camera on mount
+  // Initialize camera on mount — always show local preview
   useEffect(() => {
+    let mounted = true;
+
     const initCamera = async () => {
       try {
-        console.log("Initializing camera...");
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: true
         });
 
-        if (!stream) {
-          throw new Error("getUserMedia returned no stream");
-        }
-
-        const videoTracks = stream.getVideoTracks();
-        const audioTracks = stream.getAudioTracks();
-
-        console.log("Camera stream obtained:", {
-          id: stream.id,
-          videoTracks: videoTracks.length,
-          audioTracks: audioTracks.length
-        });
-
-        if (videoTracks.length === 0) {
-          console.warn("No video tracks in stream");
-          setError("Camera not available");
+        if (!mounted) {
+          stream.getTracks().forEach(t => t.stop());
           return;
         }
 
         localStreamRef.current = stream;
+        setCameraReady(true);
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
-          localVideoRef.current.onloadedmetadata = () => {
-            localVideoRef.current?.play().catch((err) => {
-              console.warn("Play failed on metadata load:", err);
-            });
-          };
-          
-          // Try to play immediately as well
-          localVideoRef.current.play().catch((err) => {
-            console.warn("Play failed on init, will retry on metadata load:", err);
-          });
-        } else {
-          console.warn("Local video ref not available");
+          localVideoRef.current.play().catch(() => {});
         }
       } catch (err) {
-        console.error("Camera initialization error:", err);
-        setError("Cannot access camera: " + err.message);
+        console.error("Camera init error:", err);
+        if (mounted) setError("Cannot access camera: " + err.message);
       }
     };
 
     initCamera();
 
     return () => {
-      try {
-        if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach((track) => {
-            try {
-              console.log("Cleanup: stopping", track.kind, "track");
-              track.stop();
-            } catch (err) {
-              console.warn("Error stopping track during cleanup:", err);
-            }
-          });
-          localStreamRef.current = null;
-        }
-      } catch (err) {
-        console.warn("Error during stream cleanup:", err);
+      mounted = false;
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
       }
     };
   }, []);
 
-  // Auto-start call if needed
-  useEffect(() => {
-    if (autoStart && roomName && !recipientExtension && callState === "idle" && localStreamRef.current) {
-      console.log("Auto-starting video call");
-      setTimeout(handleStartCall, 200);
-    }
-  }, [autoStart, roomName, callState]);
-
-  const toggleMic = () => {
+  // connectToRoom defined before handleStartCall so autoStart can use it
+  const connectToRoom = useCallback(async (token, room) => {
     try {
-      const newMuted = !isMuted;
-      // Toggle local stream audio
-      if (localStreamRef.current) {
-        localStreamRef.current.getAudioTracks().forEach(t => { t.enabled = !newMuted; });
+      if (!window.Twilio?.Video) {
+        await loadTwilioSDK();
       }
-      // Also disable/enable the published Twilio audio track
-      if (twilioRoomRef.current?.localParticipant) {
-        twilioRoomRef.current.localParticipant.audioTracks.forEach(pub => {
-          if (pub.track) {
-            newMuted ? pub.track.disable() : pub.track.enable();
-          }
-        });
-      }
-      setIsMuted(newMuted);
-      console.log("Mic toggled, muted:", newMuted);
-    } catch (err) {
-      console.error("Error toggling mic:", err);
-    }
-  };
+      if (!window.Twilio?.Video) throw new Error("Twilio Video SDK not available");
 
-  const toggleVideo = () => {
-    try {
-      const newVideoOn = !isVideoOn;
-      // Toggle local stream video
-      if (localStreamRef.current) {
-        localStreamRef.current.getVideoTracks().forEach(t => { t.enabled = newVideoOn; });
-      }
-      // Also disable/enable the published Twilio video track
-      if (twilioRoomRef.current?.localParticipant) {
-        twilioRoomRef.current.localParticipant.videoTracks.forEach(pub => {
-          if (pub.track) {
-            newVideoOn ? pub.track.enable() : pub.track.disable();
-          }
-        });
-      }
-      setIsVideoOn(newVideoOn);
-      console.log("Video toggled, on:", newVideoOn);
-    } catch (err) {
-      console.error("Error toggling video:", err);
-    }
-  };
+      const videoRoom = await window.Twilio.Video.connect(token, {
+        name: room,
+        audio: { echoCancellation: true, noiseSuppression: true },
+        video: { width: 640, height: 480 },
+        networkQuality: { local: 1, remote: 1 }
+      });
 
-  const handleStartCall = async () => {
+      twilioRoomRef.current = videoRoom;
+
+      // Existing participants
+      videoRoom.participants.forEach(p => attachParticipant(p));
+
+      videoRoom.on("participantConnected", p => attachParticipant(p));
+      videoRoom.on("participantDisconnected", p => detachParticipant(p));
+      videoRoom.on("disconnected", () => setCallState("idle"));
+      videoRoom.on("error", err => setError("Room error: " + err.message));
+
+      setCallState("connected");
+    } catch (err) {
+      console.error("Room connection error:", err);
+      setError("Connection failed: " + err.message);
+      setCallState("idle");
+    }
+  }, []);
+
+  const handleStartCall = useCallback(async () => {
     try {
       setCallState("calling");
       setIsLoading(true);
       setError(null);
 
-      // Generate token for direct connection
-      if (roomName && !recipientExtension) {
-        console.log("Generating token for room:", roomName);
+      if (callerToken && roomName) {
+        await connectToRoom(callerToken, roomName);
+      } else if (roomName) {
         const response = await base44.functions.invoke("generateDirectVideoToken", {
-          roomName: roomName,
+          roomName,
           participantName: currentUserName || "Guest"
         });
-
-        if (!response?.data?.token) {
-          throw new Error("Failed to generate token");
-        }
-
+        if (!response?.data?.token) throw new Error("Failed to generate token");
         await connectToRoom(response.data.token, roomName);
-      } else if (callerToken && roomName) {
-        await connectToRoom(callerToken, roomName);
+      } else {
+        throw new Error("No room name provided");
       }
     } catch (err) {
       console.error("Call start error:", err);
@@ -187,463 +131,159 @@ export default function VideoCallPanelV2({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [callerToken, roomName, currentUserName, connectToRoom]);
 
-  const connectToRoom = async (token, room) => {
-    try {
-      console.log("Connecting to room:", room);
-
-      // Ensure Twilio SDK is loaded
-      if (!window.Twilio?.Video) {
-        try {
-          await loadTwilioSDK();
-        } catch (sdkErr) {
-          console.error("SDK load failed:", sdkErr);
-          throw new Error("Failed to load Twilio Video SDK: " + sdkErr.message);
-        }
-      }
-
-      if (!window.Twilio?.Video) {
-        throw new Error("Twilio Video SDK is not available");
-      }
-
-      const Video = window.Twilio.Video;
-      const videoRoom = await Video.connect(token, {
-        name: room,
-        audio: { echoCancellation: true, noiseSuppression: true },
-        video: { width: 640, height: 480 },
-        networkQuality: { local: 1, remote: 1 }
-      });
-
-      console.log("Connected to room:", videoRoom.name);
-      twilioRoomRef.current = videoRoom;
-
-      // Handle existing participants
-      try {
-       const existingParticipants = Array.from(videoRoom.participants?.values?.() || []);
-       console.log("Existing participants count:", existingParticipants.length);
-       existingParticipants.forEach((participant) => {
-         if (participant) {
-           console.log("Existing participant:", participant.name);
-           attachParticipant(participant);
-         }
-       });
-      } catch (err) {
-       console.warn("Error handling existing participants:", err);
-      }
-
-      // Handle new participants
-      try {
-       videoRoom.on("participantConnected", (participant) => {
-         if (participant) {
-           console.log("Participant connected:", participant.name);
-           attachParticipant(participant);
-         }
-       });
-      } catch (err) {
-       console.warn("Error setting participantConnected handler:", err);
-      }
-
-      try {
-       videoRoom.on("participantDisconnected", (participant) => {
-         if (participant) {
-           console.log("Participant disconnected:", participant.name);
-           detachParticipant(participant);
-         }
-       });
-      } catch (err) {
-       console.warn("Error setting participantDisconnected handler:", err);
-      }
-
-      try {
-       videoRoom.on("error", (error) => {
-         if (error) {
-           console.error("Room error:", error);
-           setError("Room error: " + (error.message || String(error)));
-         }
-       });
-      } catch (err) {
-       console.warn("Error setting error handler:", err);
-      }
-
-      try {
-       videoRoom.on("disconnected", () => {
-         console.log("Disconnected from room");
-         setCallState("idle");
-       });
-      } catch (err) {
-       console.warn("Error setting disconnected handler:", err);
-      }
-
-      setCallState("connected");
-    } catch (err) {
-      console.error("Room connection error:", err);
-      setError("Connection error: " + err.message);
-      setCallState("idle");
+  // Auto-start
+  useEffect(() => {
+    if (autoStart && roomName && !recipientExtension && callState === "idle" && cameraReady) {
+      const t = setTimeout(handleStartCall, 300);
+      return () => clearTimeout(t);
     }
-  };
+  }, [autoStart, roomName, recipientExtension, callState, cameraReady, handleStartCall]);
 
   const attachParticipant = (participant) => {
-   remoteParticipantRef.current = participant;
-
-   const subscriptionHandler = (subscription) => {
-     if (!subscription) {
-       console.warn("Subscription is null or undefined");
-       return;
-     }
-
-     const { track } = subscription;
-     if (!track) {
-       console.warn("Track is null or undefined");
-       return;
-     }
-
-     console.log("Track subscribed:", track.kind);
-
-     if (track.kind === "video") {
-       if (remoteVideoRef.current) {
-         try {
-           const element = track.attach();
-           if (element) {
-             element.style.width = "100%";
-             element.style.height = "100%";
-             element.style.objectFit = "cover";
-             element.style.display = "block";
-             remoteVideoRef.current.innerHTML = "";
-             remoteVideoRef.current.appendChild(element);
-             console.log("Remote video attached successfully");
-           }
-         } catch (err) {
-           console.error("Failed to attach video track:", err);
-         }
-       }
-     } else if (track.kind === "audio") {
-       try {
-         const audioElement = track.attach();
-         if (audioElement) {
-           audioElement.autoplay = true;
-           audioElement.style.display = "none";
-           document.body.appendChild(audioElement);
-           console.log("Remote audio attached successfully");
-         }
-       } catch (err) {
-         console.error("Failed to attach audio track:", err);
-       }
-     }
-   };
-
-    const unsubscriptionHandler = (subscription) => {
-      if (!subscription || !subscription.track) {
-        console.warn("Unsubscription: subscription or track is null");
-        return;
-      }
-
-      try {
-        console.log("Track unsubscribed:", subscription.track.kind);
-        const detachedElements = subscription.track.detach();
-        if (Array.isArray(detachedElements)) {
-          detachedElements.forEach((element) => {
-            try {
-              element.remove();
-            } catch (err) {
-              console.warn("Failed to remove element:", err);
-            }
-          });
+    const onTrack = (publication) => {
+      if (!publication?.track) return;
+      const track = publication.track;
+      if (track.kind === "video") {
+        if (remoteVideoRef.current) {
+          const el = track.attach();
+          el.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+          remoteVideoRef.current.innerHTML = "";
+          remoteVideoRef.current.appendChild(el);
         }
-      } catch (err) {
-        console.error("Error unsubscribing from track:", err);
+      } else if (track.kind === "audio") {
+        const el = track.attach();
+        el.autoplay = true;
+        el.style.display = "none";
+        document.body.appendChild(el);
       }
     };
 
-    // Subscribe to existing tracks
-    try {
-      participant.tracks.forEach((subscription) => {
-        if (subscription && subscription.isSubscribed) {
-          subscriptionHandler(subscription);
-        }
-      });
-    } catch (err) {
-      console.error("Error subscribing to existing tracks:", err);
-    }
+    const onUntrack = (publication) => {
+      if (!publication?.track) return;
+      publication.track.detach().forEach(el => el.remove());
+    };
 
-    // Subscribe to future tracks
-    try {
-      participant.on("trackSubscribed", subscriptionHandler);
-      participant.on("trackUnsubscribed", unsubscriptionHandler);
-    } catch (err) {
-      console.error("Error setting up track event handlers:", err);
-    }
+    // Already subscribed tracks
+    participant.tracks.forEach(pub => {
+      if (pub.isSubscribed) onTrack(pub);
+    });
+
+    participant.on("trackSubscribed", track => onTrack({ track }));
+    participant.on("trackUnsubscribed", track => onUntrack({ track }));
   };
 
-  const detachParticipant = (participant) => {
-    try {
-      if (remoteParticipantRef.current) {
-        remoteParticipantRef.current = null;
-      }
-      
-      if (remoteVideoRef.current) {
-        const children = Array.from(remoteVideoRef.current.children || []);
-        children.forEach((child) => {
-          try {
-            child.remove();
-          } catch (err) {
-            console.warn("Failed to remove video element:", err);
-          }
-        });
-        remoteVideoRef.current.innerHTML = "";
-      }
-      
-      console.log("Participant detached");
-    } catch (err) {
-      console.error("Error detaching participant:", err);
-    }
+  const detachParticipant = (_participant) => {
+    if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = "";
+  };
+
+  const toggleMic = () => {
+    const newMuted = !isMuted;
+    localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !newMuted; });
+    twilioRoomRef.current?.localParticipant?.audioTracks.forEach(pub => {
+      newMuted ? pub.track?.disable() : pub.track?.enable();
+    });
+    setIsMuted(newMuted);
+  };
+
+  const toggleVideo = () => {
+    const newVideoOn = !isVideoOn;
+    localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = newVideoOn; });
+    twilioRoomRef.current?.localParticipant?.videoTracks.forEach(pub => {
+      newVideoOn ? pub.track?.enable() : pub.track?.disable();
+    });
+    setIsVideoOn(newVideoOn);
   };
 
   const toggleScreenShare = async () => {
-    try {
-      if (!twilioRoomRef.current) {
-        setError("Not connected to call");
-        return;
-      }
+    if (!twilioRoomRef.current?.localParticipant) {
+      setError("Not in a call");
+      return;
+    }
 
-      if (!twilioRoomRef.current.localParticipant) {
-        setError("Local participant not found");
-        return;
-      }
-
-      if (!twilioRoomRef.current.localParticipant.videoTracks || twilioRoomRef.current.localParticipant.videoTracks.size === 0) {
-        setError("Video must be enabled first");
-        return;
-      }
-
-      if (isScreenSharing) {
-        // Stop screen sharing
-        console.log("Stopping screen share");
-
-        try {
-          if (screenStreamRef.current) {
-            screenStreamRef.current.getTracks().forEach((track) => {
-              try {
-                track.stop();
-              } catch (err) {
-                console.warn("Failed to stop screen track:", err);
-              }
-            });
-            screenStreamRef.current = null;
-          }
-        } catch (err) {
-          console.warn("Error stopping screen stream:", err);
-        }
-
-        // Switch back to camera
-        try {
-          if (localStreamRef.current && twilioRoomRef.current?.localParticipant) {
-            const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-            if (cameraTrack?.readyState === "live") {
-              const videoPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values());
-              const videoPublication = videoPublications[0];
-              if (videoPublication?.track) {
-                await videoPublication.track.replaceTrack(cameraTrack);
-                console.log("Switched back to camera");
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Error switching back to camera:", err);
-          setError("Failed to switch back to camera: " + err.message);
-        }
-
-        setIsScreenSharing(false);
-      } else {
-        // Start screen sharing
-        console.log("Starting screen share");
-
-        try {
-          const screenStream = await navigator.mediaDevices.getDisplayMedia({
-            video: { cursor: "always" },
-            audio: false
-          });
-
-          screenStreamRef.current = screenStream;
-          const screenTrack = screenStream.getVideoTracks()[0];
-
-          if (!screenTrack) {
-            throw new Error("No screen track obtained");
-          }
-
-          // Replace camera with screen in Twilio
-          if (!twilioRoomRef.current?.localParticipant) {
-            throw new Error("No local participant");
-          }
-
-          const videoPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values());
-          const videoPublication = videoPublications[0];
-
-          if (!videoPublication?.track) {
-            throw new Error("No video track publication");
-          }
-
-          screenTrack.enabled = true;
-          await videoPublication.track.replaceTrack(screenTrack);
-          console.log("Screen share started and published");
-          setIsScreenSharing(true);
-
-          // Handle when user stops screen share from OS
-          screenTrack.onended = async () => {
-            console.log("Screen share stopped by user");
-            try {
-              if (localStreamRef.current && twilioRoomRef.current?.localParticipant) {
-                const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-                if (cameraTrack?.readyState === "live") {
-                  const vidPublications = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values());
-                  const vidPublication = vidPublications[0];
-                  if (vidPublication?.track) {
-                    await vidPublication.track.replaceTrack(cameraTrack);
-                    console.log("Auto-switched back to camera");
-                  }
-                }
-              }
-            } catch (err) {
-              console.error("Error in auto-switch back:", err);
-            }
-            setIsScreenSharing(false);
-          };
-        } catch (err) {
-          if (err.name === "NotAllowedError") {
-            console.log("User cancelled screen share");
-          } else {
-            console.error("Screen share error:", err);
-            setError("Screen share failed: " + err.message);
-          }
-
-          if (screenStreamRef.current) {
-            screenStreamRef.current.getTracks().forEach((track) => {
-              try {
-                track.stop();
-              } catch (e) {
-                console.warn("Failed to stop screen track on error:", e);
-              }
-            });
-            screenStreamRef.current = null;
-          }
-          setIsScreenSharing(false);
-        }
-      }
-    } catch (err) {
-      if (err.name !== "NotAllowedError") {
-        console.error("Screen share error:", err);
-        setError("Screen share failed: " + err.message);
-      }
+    if (isScreenSharing) {
+      // Stop screen share, switch back to camera
+      screenStreamRef.current?.getTracks().forEach(t => t.stop());
       screenStreamRef.current = null;
+
+      const cameraTrack = localStreamRef.current?.getVideoTracks()[0];
+      if (cameraTrack?.readyState === "live") {
+        const pub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
+        if (pub?.track) await pub.track.replaceTrack(cameraTrack).catch(console.error);
+      }
       setIsScreenSharing(false);
+    } else {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        screenStreamRef.current = screenStream;
+        const screenTrack = screenStream.getVideoTracks()[0];
+        if (!screenTrack) throw new Error("No screen track");
+
+        const pub = Array.from(twilioRoomRef.current.localParticipant.videoTracks.values())[0];
+        if (!pub?.track) throw new Error("No local video publication");
+
+        await pub.track.replaceTrack(screenTrack);
+        setIsScreenSharing(true);
+
+        screenTrack.onended = async () => {
+          const camTrack = localStreamRef.current?.getVideoTracks()[0];
+          if (camTrack?.readyState === "live") {
+            const p2 = Array.from(twilioRoomRef.current?.localParticipant?.videoTracks.values() || [])[0];
+            if (p2?.track) await p2.track.replaceTrack(camTrack).catch(console.error);
+          }
+          screenStreamRef.current = null;
+          setIsScreenSharing(false);
+        };
+      } catch (err) {
+        if (err.name !== "NotAllowedError") setError("Screen share failed: " + err.message);
+        screenStreamRef.current?.getTracks().forEach(t => t.stop());
+        screenStreamRef.current = null;
+        setIsScreenSharing(false);
+      }
     }
   };
 
-  const handleEndCall = async () => {
-    console.log("Ending call");
-    setCallState("disconnecting");
+  const handleEndCall = () => {
+    try { twilioRoomRef.current?.disconnect(); } catch (_) {}
+    twilioRoomRef.current = null;
 
-    try {
-      // Disconnect Twilio room
-      try {
-        if (twilioRoomRef.current) {
-          twilioRoomRef.current.disconnect();
-          twilioRoomRef.current = null;
-        }
-      } catch (err) {
-        console.warn("Error disconnecting room:", err);
-      }
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
 
-      // Stop all tracks
-      try {
-        if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach((track) => {
-            try {
-              track.stop();
-            } catch (err) {
-              console.warn("Error stopping local track:", err);
-            }
-          });
-        }
-      } catch (err) {
-        console.warn("Error stopping local stream:", err);
-      }
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    localStreamRef.current = null;
 
-      try {
-        if (screenStreamRef.current) {
-          screenStreamRef.current.getTracks().forEach((track) => {
-            try {
-              track.stop();
-            } catch (err) {
-              console.warn("Error stopping screen track:", err);
-            }
-          });
-          screenStreamRef.current = null;
-        }
-      } catch (err) {
-        console.warn("Error stopping screen stream:", err);
-      }
+    if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = "";
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
-      // Clear video elements
-      try {
-        if (remoteVideoRef.current) {
-          const children = Array.from(remoteVideoRef.current.children || []);
-          children.forEach((child) => {
-            try {
-              child.remove();
-            } catch (err) {
-              console.warn("Error removing remote element:", err);
-            }
-          });
-          remoteVideoRef.current.innerHTML = "";
-        }
-      } catch (err) {
-        console.warn("Error clearing remote video:", err);
-      }
-
-      try {
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = null;
-        }
-      } catch (err) {
-        console.warn("Error clearing local video:", err);
-      }
-
-      setCallState("idle");
-      setTimeout(onClose, 100);
-    } catch (err) {
-      console.error("Error ending call:", err);
-      setCallState("idle");
-      onClose();
-    }
+    setCallState("idle");
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-black via-gray-900 to-black flex flex-col z-50">
+    <div className="fixed inset-0 bg-black flex flex-col z-50">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-md border-b border-gray-700">
+      <div className="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
             <span className="text-white font-semibold text-sm">
-              {(recipientName || "User").charAt(0)}
+              {(recipientName || "U").charAt(0).toUpperCase()}
             </span>
           </div>
           <div>
-            <h3 className="text-white font-semibold">{recipientName || "Video Call"}</h3>
-            {callState === "connected" && (
-              <p className="text-green-400 text-xs font-medium">● Connected</p>
-            )}
-            {callState === "calling" && (
-              <p className="text-blue-400 text-xs font-medium">Connecting...</p>
-            )}
+            <h3 className="text-white font-semibold text-sm">{recipientName || "Video Call"}</h3>
+            {callState === "connected" && <p className="text-green-400 text-xs">● Connected</p>}
+            {callState === "calling" && <p className="text-yellow-400 text-xs">● Connecting...</p>}
+            {callState === "idle" && <p className="text-gray-400 text-xs">● Preview</p>}
             {recipientExtension && <p className="text-gray-400 text-xs">Ext. {recipientExtension}</p>}
           </div>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          onClick={onClose}
-          className="text-gray-400 hover:text-white hover:bg-gray-700/50"
+          onClick={handleEndCall}
+          className="text-gray-400 hover:text-white hover:bg-gray-700"
         >
           <X className="w-5 h-5" />
         </Button>
@@ -651,130 +291,129 @@ export default function VideoCallPanelV2({
 
       {/* Video Area */}
       <div className="flex-1 relative bg-black overflow-hidden">
-        {error ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-red-900/20 to-black">
-            <div className="text-center">
-              <p className="text-red-400 text-lg font-semibold mb-4">❌ {error}</p>
-              <Button onClick={handleEndCall} variant="destructive">
-                Close
-              </Button>
-            </div>
+        {/* Error overlay */}
+        {error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20">
+            <p className="text-red-400 text-base font-semibold mb-4">⚠️ {error}</p>
+            <Button onClick={() => setError(null)} variant="outline" size="sm" className="mr-2">
+              Dismiss
+            </Button>
           </div>
-        ) : isLoading && callState === "calling" ? (
-          <div className="absolute inset-0 flex items-center justify-center">
+        )}
+
+        {/* Loading overlay */}
+        {isLoading && callState === "calling" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mx-auto mb-4" />
+              <div className="w-10 h-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mx-auto mb-3" />
               <p className="text-white text-sm">Connecting...</p>
             </div>
           </div>
-        ) : (
-          <>
-            {/* Remote Video */}
-            <div
-              ref={remoteVideoRef}
-              className="absolute inset-0 w-full h-full bg-black"
-            />
-
-            {/* Local Video PIP */}
-            {callState !== "idle" && localStreamRef.current && (
-              <div className="absolute bottom-20 right-4 w-40 h-32 rounded-lg overflow-hidden border-2 border-blue-500 bg-black shadow-2xl z-10 backdrop-blur-sm">
-                {!isScreenSharing ? (
-                  <>
-                    <video
-                      ref={localVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        display: "block",
-                        backgroundColor: "#000",
-                        filter: isBlurred ? "blur(20px)" : "none"
-                      }}
-                    />
-                    {!isVideoOn && (
-                      <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-                        <span className="text-white text-xl">📷</span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                    <span className="text-xs text-gray-400">Sharing Screen</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Status Badge */}
-            {callState === "connected" && (
-              <div className="absolute top-4 left-4 px-3 py-1 bg-gradient-to-r from-green-500/80 to-emerald-600/80 backdrop-blur-md rounded-full text-white text-xs font-semibold">
-                ✓ Connected
-              </div>
-            )}
-          </>
         )}
 
-      </div>
+        {/* Remote video (full screen) */}
+        <div ref={remoteVideoRef} className="absolute inset-0 w-full h-full bg-black" />
 
-      {/* Chat Sidebar - overlays on top of video */}
-      {isChatOpen && (
-        <VideoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-      )}
+        {/* Waiting for remote placeholder */}
+        {callState === "connected" && (
+          <div
+            id="remote-placeholder"
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            style={{ display: remoteVideoRef.current?.children?.length ? "none" : "flex" }}
+          >
+            <p className="text-gray-500 text-sm">Waiting for other participant...</p>
+          </div>
+        )}
 
-      {/* Controls */}
-      <div className="flex items-center justify-between px-4 bg-gradient-to-t from-black/80 via-gray-900/60 to-transparent backdrop-blur-md">
-        <div className="flex-1">
-          {callState === "idle" && !isIncoming ? (
-            <Button
-              onClick={handleStartCall}
-              disabled={isLoading}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white gap-2 shadow-lg"
-            >
-              <Phone className="w-5 h-5" />
-              {isLoading ? "Connecting..." : "Start Call"}
-            </Button>
-          ) : callState === "idle" && isIncoming ? (
-            <Button
-              onClick={handleStartCall}
-              disabled={isLoading}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white gap-2 shadow-lg"
-            >
-              <Phone className="w-5 h-5" />
-              {isLoading ? "Connecting..." : "Join Call"}
-            </Button>
-          ) : null}
+        {/* Local video — always visible as PIP */}
+        <div className="absolute bottom-4 right-4 w-36 h-28 rounded-lg overflow-hidden border-2 border-blue-500 bg-black shadow-2xl z-10">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+              transform: "scaleX(-1)",
+              filter: isBlurred ? "blur(15px)" : "none"
+            }}
+          />
+          {!isVideoOn && (
+            <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+              <span className="text-2xl">📷</span>
+            </div>
+          )}
+          {isScreenSharing && (
+            <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
+              <span className="text-xs text-gray-300">Sharing</span>
+            </div>
+          )}
+          {!cameraReady && (
+            <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+              <div className="w-5 h-5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+            </div>
+          )}
         </div>
 
-        <VideoControls
-          isMuted={isMuted}
-          isVideoOn={isVideoOn}
-          isScreenSharing={isScreenSharing}
-          canScreenShare={callState === "connected"}
-          onToggleMic={toggleMic}
-          onToggleVideo={toggleVideo}
-          onToggleScreenShare={toggleScreenShare}
-          onEndCall={handleEndCall}
-          onSettings={() => setIsSettingsOpen(true)}
-        />
+        {/* Connected badge */}
+        {callState === "connected" && (
+          <div className="absolute top-3 left-3 px-3 py-1 bg-green-600/80 backdrop-blur rounded-full text-white text-xs font-semibold z-10">
+            ✓ Connected
+          </div>
+        )}
+      </div>
 
+      {/* Controls bar */}
+      <div className="flex-shrink-0 bg-gray-900 border-t border-gray-700 px-4 py-3 flex items-center gap-3">
+        {/* Start / Join button */}
+        {callState === "idle" && (
+          <Button
+            onClick={handleStartCall}
+            disabled={isLoading || !cameraReady}
+            className="bg-green-600 hover:bg-green-700 text-white gap-2 flex-shrink-0"
+          >
+            <Phone className="w-4 h-4" />
+            {isIncoming ? "Join Call" : "Start Call"}
+          </Button>
+        )}
+
+        {/* Main controls (mic, video, screen, settings, end) */}
+        <div className="flex-1">
+          <VideoControls
+            isMuted={isMuted}
+            isVideoOn={isVideoOn}
+            isScreenSharing={isScreenSharing}
+            canScreenShare={callState === "connected"}
+            onToggleMic={toggleMic}
+            onToggleVideo={toggleVideo}
+            onToggleScreenShare={toggleScreenShare}
+            onEndCall={handleEndCall}
+            onSettings={() => setIsSettingsOpen(true)}
+          />
+        </div>
+
+        {/* Chat toggle */}
         <Button
           size="icon"
           onClick={() => setIsChatOpen(!isChatOpen)}
-          className={`h-12 w-12 rounded-full shadow-lg ${
-            isChatOpen
-              ? "bg-blue-600 hover:bg-blue-700"
-              : "bg-gray-700 hover:bg-gray-600"
+          className={`h-10 w-10 rounded-full flex-shrink-0 ${
+            isChatOpen ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
           }`}
-          title="Toggle chat"
+          title="Chat"
         >
           <MessageCircle className="w-5 h-5 text-white" />
         </Button>
       </div>
 
-      {/* Settings Panel */}
+      {/* Chat panel — fixed overlay */}
+      {isChatOpen && (
+        <VideoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      )}
+
+      {/* Settings panel — fixed overlay */}
       <VideoSettingsPanel
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -787,18 +426,24 @@ export default function VideoCallPanelV2({
 
 async function loadTwilioSDK() {
   return new Promise((resolve, reject) => {
+    if (window.Twilio?.Video) return resolve(window.Twilio.Video);
+    const existing = document.querySelector('script[src*="twilio-video"]');
+    if (existing) {
+      const wait = setInterval(() => {
+        if (window.Twilio?.Video) { clearInterval(wait); resolve(window.Twilio.Video); }
+      }, 100);
+      setTimeout(() => { clearInterval(wait); reject(new Error("Twilio SDK timeout")); }, 10000);
+      return;
+    }
     const script = document.createElement("script");
     script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
     script.onload = () => {
-      setTimeout(() => {
-        if (window.Twilio?.Video) {
-          resolve(window.Twilio.Video);
-        } else {
-          reject(new Error("Twilio.Video not available"));
-        }
-      }, 200);
+      const wait = setInterval(() => {
+        if (window.Twilio?.Video) { clearInterval(wait); resolve(window.Twilio.Video); }
+      }, 100);
+      setTimeout(() => { clearInterval(wait); reject(new Error("Twilio.Video not available after load")); }, 5000);
     };
-    script.onerror = () => reject(new Error("Failed to load Twilio SDK"));
+    script.onerror = () => reject(new Error("Failed to load Twilio SDK script"));
     document.head.appendChild(script);
   });
 }
