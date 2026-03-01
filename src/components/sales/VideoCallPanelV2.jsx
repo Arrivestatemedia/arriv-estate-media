@@ -86,9 +86,18 @@ export default function VideoCallPanelV2({
     if (!track) return;
     if (track.kind === "video" && remoteVideoRef.current) {
       const el = track.attach();
-      el.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;background:#000;";
+      // Use contain if it looks like a screen share (name hint or wide dimensions)
+      const isScreen = track.name?.includes("screen") || track.mediaStreamTrack?.label?.toLowerCase().includes("screen");
+      el.style.cssText = `width:100%;height:100%;object-fit:${isScreen ? "contain" : "cover"};display:block;position:absolute;inset:0;background:#000;`;
       remoteVideoRef.current.innerHTML = "";
       remoteVideoRef.current.appendChild(el);
+      // Also detect via dimensions once metadata loads
+      el.addEventListener("loadedmetadata", () => {
+        if (el.videoWidth > 0 && el.videoHeight > 0) {
+          const ratio = el.videoWidth / el.videoHeight;
+          el.style.objectFit = ratio > 2 || (el.videoWidth > 1000) ? "contain" : "cover";
+        }
+      });
     } else if (track.kind === "audio") {
       const el = track.attach();
       el.autoplay = true;
