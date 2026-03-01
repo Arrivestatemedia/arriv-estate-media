@@ -713,7 +713,10 @@ export default function AdminActivityPage({ user }) {
             isIncoming={true}
             autoStart={true}
             onClose={() => setActiveVideoCall(null)}
-            onMinimize={() => setActiveVideoCall(null)}
+            onMinimize={() => {
+              setMinimizedVideoCall(activeVideoCall);
+              setActiveVideoCall(null);
+            }}
             onChatOpenRequest={() => {}}
           />
         )}
