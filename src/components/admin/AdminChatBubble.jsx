@@ -46,7 +46,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
-    <div key={isVideoActive ? 'with-video' : 'no-video'}>
+    <div key={isVideoWindowOpen ? 'with-video' : 'no-video'}>
       {/* Floating Chat Panel */}
       {open && (
         <div
