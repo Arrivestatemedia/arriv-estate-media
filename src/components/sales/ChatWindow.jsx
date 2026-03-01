@@ -13,7 +13,7 @@ import ContactCardDisplay from "./ContactCardDisplay";
 import ContactSearch from "./ContactSearch";
 import SalesRepProfileModal from "./SalesRepProfileModal";
 import TransferCallButton from "./TransferCallButton";
-import VideoCallPanel from "./VideoCallPanel";
+import VideoCallPanelV2 from "./VideoCallPanelV2";
 import IncomingVideoCallModal from "./IncomingVideoCallModal";
 import ConferenceScheduler from "@/components/chat/ConferenceScheduler";
 
