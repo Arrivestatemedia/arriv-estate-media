@@ -68,6 +68,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
+  const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
+  const [hideChatBubble, setHideChatBubble] = useState(false);
   const [videoListenerReady, setVideoListenerReady] = useState(false);
   const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
   const [subscribedToPendingNotification, setSubscribedToPendingNotification] = useState(false);
