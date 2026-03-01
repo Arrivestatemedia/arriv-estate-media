@@ -297,7 +297,7 @@ import TrackLink from "@/pages/TrackLink";
                   </Link>
                 );
               })}
-            {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup"].includes(currentPageName) && (
+            {user && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
               <Link
                 to={createPageUrl("PublicAccountSettings")}
                 onClick={() => setMobileOpen(false)}
