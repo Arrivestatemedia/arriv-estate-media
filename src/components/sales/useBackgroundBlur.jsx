@@ -44,26 +44,7 @@ export function useBackgroundBlur() {
 
     isRunningRef.current = true;
 
-    const processFrame = async () => {
-      if (!isRunningRef.current) return;
-
-      // Update canvas size if video dimensions changed
-      if (canvas.width !== videoElement.videoWidth && videoElement.videoWidth > 0) {
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
-      }
-
-      try {
-        await segmenter.send({ image: videoElement });
-      } catch (_) {
-        // If segmenter fails a frame, just draw raw
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-      }
-
-      animFrameRef.current = requestAnimationFrame(processFrame);
-    };
-
-    // Set up result handler
+    // Ensure onResults is set up before starting the frame loop
     segmenter.onResults((results) => {
       if (!isRunningRef.current) return;
 
@@ -89,6 +70,25 @@ export function useBackgroundBlur() {
       // Reset composite
       ctx.globalCompositeOperation = "source-over";
     });
+
+    const processFrame = async () => {
+      if (!isRunningRef.current) return;
+
+      // Update canvas size if video dimensions changed
+      if (canvas.width !== videoElement.videoWidth && videoElement.videoWidth > 0) {
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+      }
+
+      try {
+        await segmenter.send({ image: videoElement });
+      } catch (_) {
+        // If segmenter fails a frame, just draw raw
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+      }
+
+      animFrameRef.current = requestAnimationFrame(processFrame);
+    };
 
     // Start the frame loop
     animFrameRef.current = requestAnimationFrame(processFrame);
