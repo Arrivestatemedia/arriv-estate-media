@@ -7,6 +7,11 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // When video call starts/ends, close the chat panel to ensure clean remount
+  useEffect(() => {
+    setOpen(false);
+  }, [isVideoActive]);
+
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -40,7 +45,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
-    <>
+    <div key={isVideoActive ? 'with-video' : 'no-video'}>
       {/* Floating Chat Panel */}
       {open && (
         <div
@@ -80,6 +85,6 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
           </span>
         )}
       </button>
-    </>
+    </div>
   );
 }
