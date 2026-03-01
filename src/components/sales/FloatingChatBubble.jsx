@@ -7,9 +7,11 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Close chat panel when video call starts/ends
+  // Close chat panel when video window opens (not when minimized)
   useEffect(() => {
-    setOpen(false);
+    if (isVideoCallActive) {
+      setOpen(false);
+    }
   }, [isVideoCallActive]);
 
   useEffect(() => {
