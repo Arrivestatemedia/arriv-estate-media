@@ -73,15 +73,8 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
       {/* Bubble Button */}
       <button
         onClick={handleToggleChat}
-        disabled={isVideoCallActive}
         className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ 
-          right: '1rem', 
-          zIndex: 250, 
-          backgroundColor: '#B8956A',
-          opacity: isVideoCallActive ? 0.5 : 1,
-          cursor: isVideoCallActive ? 'not-allowed' : 'pointer'
-        }}
+        style={{ right: '1rem', zIndex: 250, backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (
