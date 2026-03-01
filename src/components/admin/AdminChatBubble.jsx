@@ -41,9 +41,10 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
+  // Hide bubble during active video call
+  const shouldShowBubble = !isVideoCallActive;
 
-  // Never show bubble when video call is active (even if minimized or during call transitions)
-  if (isVideoCallActive) return null;
+  if (!shouldShowBubble) return null;
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
