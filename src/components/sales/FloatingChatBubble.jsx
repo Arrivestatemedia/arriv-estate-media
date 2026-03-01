@@ -12,6 +12,11 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     setVideoState(isVideoActive);
   }, [isVideoActive]);
 
+  // When video call starts/ends, close the chat panel to ensure clean remount
+  useEffect(() => {
+    setOpen(false);
+  }, [isVideoActive]);
+
   useEffect(() => {
     if (!currentUserId) return;
 
