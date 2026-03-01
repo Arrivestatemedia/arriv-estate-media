@@ -804,8 +804,6 @@ export default function HubSpotActivityLog() {
                setIsVideoWindowOpen(false);
              }}
              onMinimize={() => {
-               setMinimizedVideoCall(activeVideoCall);
-               setActiveVideoCall(null);
                setIsVideoWindowOpen(false);
              }}
              isVideoWindowOpen={isVideoWindowOpen}
