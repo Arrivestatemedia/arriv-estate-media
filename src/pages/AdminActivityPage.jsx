@@ -25,6 +25,7 @@ export default function AdminActivityPage({ user }) {
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [minimizedVideoCall, setMinimizedVideoCall] = useState(null);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
@@ -719,6 +720,17 @@ export default function AdminActivityPage({ user }) {
             }}
             onChatOpenRequest={() => {}}
           />
+        )}
+
+        {/* Minimized video call indicator */}
+        {minimizedVideoCall && !activeVideoCall && (
+          <button
+            onClick={() => setActiveVideoCall(minimizedVideoCall)}
+            className="fixed bottom-4 right-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg z-[249] transition-colors"
+            title="Restore video call"
+          >
+            📞 Restore Call
+          </button>
         )}
 
         {/* Floating chat bubble - shown when NOT on chat tab */}
