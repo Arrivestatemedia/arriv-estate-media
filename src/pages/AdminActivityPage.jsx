@@ -387,10 +387,49 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
-        {/* Video System Status Indicator */}
-        <div className="mb-4 p-2 rounded-lg bg-gray-100 border border-gray-300 text-xs font-mono" style={{ color: '#1A1A1A' }}>
-          <div>videoListenerReady: {String(videoListenerReady)} | activeCall: {String(!!activeVideoCall)} | windowOpen: {String(isVideoWindowOpen)} | lastNotif: {lastIncomingNotificationId?.slice(0, 8) || 'none'}</div>
-        </div>
+        {/* Video System Status Indicator - ADMIN ONLY */}
+        {isAdmin && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 border-2 border-red-400" style={{ color: '#1A1A1A' }}>
+            <div className="text-xs font-mono space-y-1 mb-2">
+              <div><strong>DIAGNOSTIC STATUS:</strong></div>
+              <div>✓ videoListenerReady: {String(videoListenerReady)}</div>
+              <div>✓ subscribedToPendingNotification: {String(subscribedToPendingNotification)}</div>
+              <div>✓ currentUserId: {userId?.slice(0, 12) || 'none'}</div>
+              <div>✓ salesMemberId: {salesMemberId?.slice(0, 12) || 'none'}</div>
+              <div>✓ lastIncomingNotificationId: {lastIncomingNotificationId?.slice(0, 12) || 'none'}</div>
+              <div>✓ activeVideoCall: {String(!!activeVideoCall)}</div>
+              <div>✓ isVideoWindowOpen: {String(isVideoWindowOpen)}</div>
+            </div>
+            <button
+              onClick={async () => {
+                setTestNotifLoading(true);
+                try {
+                  console.log('[TEST] Sending test notification to:', userId);
+                  await base44.entities.PendingNotification.create({
+                    recipient_id: userId,
+                    event_type: 'incoming_video_call',
+                    is_read: false,
+                    event_data: {
+                      roomName: `test-room-${Date.now()}`,
+                      callerName: 'Test Admin',
+                      callerExtension: '999',
+                      recipientToken: 'test-token-' + Date.now()
+                    }
+                  });
+                  console.log('[TEST] Test notification sent');
+                } catch (err) {
+                  console.error('[TEST] Error sending test notification:', err);
+                } finally {
+                  setTestNotifLoading(false);
+                }
+              }}
+              disabled={testNotifLoading}
+              className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+            >
+              {testNotifLoading ? 'Sending...' : 'Send Test Incoming Call to Me'}
+            </button>
+          </div>
+        )}
 
         <div className="flex justify-between items-center mb-8">
            <div>
