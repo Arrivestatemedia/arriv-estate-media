@@ -834,10 +834,10 @@ export default function HubSpotActivityLog() {
 
         {activeTab !== "chat" && (
           <FloatingChatBubble
-            key={activeVideoCall ? 'with-video' : 'no-video'}
+            key={isVideoWindowOpen ? 'with-video' : 'no-video'}
             currentUserId={user?.id}
             currentUserName={user?.full_name}
-            isVideoActive={!!activeVideoCall}
+            isVideoWindowOpen={isVideoWindowOpen}
             onOpenChat={() => {
               // This is for opening chat inside the video call, not switching tabs
               // The video call component handles the chat opening via onChatOpenRequest
