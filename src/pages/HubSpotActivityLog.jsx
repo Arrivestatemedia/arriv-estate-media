@@ -48,6 +48,8 @@ export default function HubSpotActivityLog() {
   const [minimizedVideoCall, setMinimizedVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
+  const [videoListenerReady, setVideoListenerReady] = useState(false);
+  const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
