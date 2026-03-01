@@ -50,6 +50,7 @@ export default function HubSpotActivityLog() {
   const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
   const [videoListenerReady, setVideoListenerReady] = useState(false);
   const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
+  const [lastHandledNotificationId, setLastHandledNotificationId] = useState(null); // Dedupe prevention
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
