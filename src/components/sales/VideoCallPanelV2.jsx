@@ -75,11 +75,18 @@ export default function VideoCallPanelV2({
   }, []);
 
   // ─── Track attachment helpers ────────────────────────────────────────────────
+  const updateRemoteVideoFit = useCallback((fit = "cover") => {
+    if (remoteVideoRef.current) {
+      const el = remoteVideoRef.current.querySelector("video");
+      if (el) el.style.objectFit = fit;
+    }
+  }, []);
+
   const attachTrack = useCallback((track) => {
     if (!track) return;
     if (track.kind === "video" && remoteVideoRef.current) {
       const el = track.attach();
-      el.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;";
+      el.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;background:#000;";
       remoteVideoRef.current.innerHTML = "";
       remoteVideoRef.current.appendChild(el);
     } else if (track.kind === "audio") {
