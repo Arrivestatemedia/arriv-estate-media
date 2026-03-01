@@ -448,7 +448,7 @@ export default function VideoCallPanelV2({
         <div ref={remoteVideoRef} className="absolute inset-0 w-full h-full bg-black" />
 
         {/* Waiting text — only when connected but no remote video */}
-        {callState === "connected" && (
+        {callState === "connected" && !hasRemoteVideo && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]">
             <p className="text-gray-600 text-sm">Waiting for other participant...</p>
           </div>
