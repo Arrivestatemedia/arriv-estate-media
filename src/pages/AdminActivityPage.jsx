@@ -69,6 +69,31 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
 
+  // Load Twilio SDK on mount so inbound calls work immediately after login (no warm-up needed)
+  useEffect(() => {
+   const loadTwilioSDK = async () => {
+     try {
+       if (window.Twilio?.Video) {
+         console.log('[ADMIN_MOUNT] Twilio SDK already loaded');
+         return;
+       }
+       const script = document.createElement("script");
+       script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
+       script.async = true;
+       script.onload = () => {
+         console.log('[ADMIN_MOUNT] Twilio SDK loaded');
+       };
+       script.onerror = () => {
+         console.error('[ADMIN_MOUNT] Failed to load Twilio SDK');
+       };
+       document.head.appendChild(script);
+     } catch (err) {
+       console.error('[ADMIN_MOUNT] Twilio load error:', err);
+     }
+   };
+   loadTwilioSDK();
+  }, []);
+
   // ============================================================
   // ⚠️  DO NOT MODIFY THIS useEffect BLOCK ⚠️
   // Listens for contact card click events dispatched by AdminHub:
