@@ -249,26 +249,27 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     })();
 
     // Subscribe to new incoming video calls
-    const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
-      console.log(`[ADMIN_ACTIVITY] PendingNotification event received:`, {
-        type: event.type,
-        event_type: event.data?.event_type,
-        recipient_id: event.data?.recipient_id,
-        current_userId: userId,
-        matches: event.data?.recipient_id === userId
-      });
-      if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === userId) {
-        const d = event.data.event_data;
-        console.log(`[ADMIN_ACTIVITY] Incoming video call received from ${d.callerName}`);
-        setIncomingVideoCall({
-          notificationId: event.id,
-          roomName: d.roomName,
-          callerName: d.callerName,
-          callerExtension: d.callerExtension,
-          recipientToken: d.recipientToken
-        });
-      }
-    });
+     const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
+       console.log(`[ADMIN_ACTIVITY] PendingNotification event received:`, {
+         type: event.type,
+         event_type: event.data?.event_type,
+         recipient_id: event.data?.recipient_id,
+         current_userId: userId,
+         matches: event.data?.recipient_id === userId
+       });
+       if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === userId) {
+         const d = event.data.event_data;
+         console.log(`[ADMIN_ACTIVITY] Incoming video call received from ${d.callerName}`);
+         setLastIncomingNotificationId(event.id);
+         setIncomingVideoCall({
+           notificationId: event.id,
+           roomName: d.roomName,
+           callerName: d.callerName,
+           callerExtension: d.callerExtension,
+           recipientToken: d.recipientToken
+         });
+       }
+     });
     return () => { videoCallSub(); };
   }, [user?.id]);
 
