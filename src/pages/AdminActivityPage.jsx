@@ -382,13 +382,18 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
+        {/* Video System Status Indicator */}
+        <div className="mb-4 p-2 rounded-lg bg-gray-100 border border-gray-300 text-xs font-mono" style={{ color: '#1A1A1A' }}>
+          <div>videoListenerReady: {String(videoListenerReady)} | activeCall: {String(!!activeVideoCall)} | windowOpen: {String(isVideoWindowOpen)} | lastNotif: {lastIncomingNotificationId?.slice(0, 8) || 'none'}</div>
+        </div>
+
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>
-              <span style={{ fontStyle: 'italic' }}>My</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>Activity</span>
-            </h1>
-            <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Manage your sales activities</p>
-          </div>
+           <div>
+             <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>
+               <span style={{ fontStyle: 'italic' }}>My</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>Activity</span>
+             </h1>
+             <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Manage your sales activities</p>
+           </div>
           <div className="flex gap-2 items-center">
             {activeTab === "activity" && (
               <Dialog open={showForm} onOpenChange={setShowForm}>
