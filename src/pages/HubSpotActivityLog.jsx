@@ -48,7 +48,6 @@ export default function HubSpotActivityLog() {
   const [minimizedVideoCall, setMinimizedVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
-  const [hideChatBubble, setHideChatBubble] = useState(false);
   const [videoListenerReady, setVideoListenerReady] = useState(false);
   const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
   const [lastHandledNotificationId, setLastHandledNotificationId] = useState(null); // Dedupe prevention
@@ -313,7 +312,6 @@ export default function HubSpotActivityLog() {
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIsVideoWindowOpen(true);
     setActiveVideoCall(incomingVideoCall);
-    setHideChatBubble(true);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
   };
@@ -851,27 +849,31 @@ export default function HubSpotActivityLog() {
             isIncoming={true}
             autoStart={true}
             onClose={() => {
+              console.log('[HUBSPOT_ACTIVITY] Call ended, clearing states');
+              // Clear all call-related state on hangup
               setActiveVideoCall(null);
               setIncomingVideoCall(null);
               setIsVideoWindowOpen(false);
-              setHideChatBubble(false);
+              // Mark notification as read so we don't accidentally re-trigger it
+              if (activeVideoCall?.notificationId) {
+                base44.entities.PendingNotification.update(activeVideoCall.notificationId, { is_read: true }).catch(() => {});
+              }
             }}
             onMinimize={() => {
               setIsVideoWindowOpen(false);
-              setHideChatBubble(false);
             }}
-
             isVideoWindowOpen={isVideoWindowOpen}
             onChatOpenRequest={() => {}}
           />
         )}
 
-        {/* Minimized video call indicator */}
+        {/* Minimized video call indicator - positioned to not conflict with chat bubble (bottom-4 right-4) */}
         {activeVideoCall && !isVideoWindowOpen && (
-          <div style={{ position: 'fixed', bottom: '1rem', left: '1rem', zIndex: 99998, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div className="fixed bottom-4 left-4 z-[99998] flex flex-col gap-2">
             <button
               onClick={() => setIsVideoWindowOpen(true)}
-              style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', backgroundColor: '#2563eb', color: 'white', fontSize: '0.875rem', fontWeight: '600', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', border: 'none', cursor: 'pointer' }}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-colors"
+              title="Restore video call"
             >
               📞 Return to Call
             </button>
@@ -879,19 +881,20 @@ export default function HubSpotActivityLog() {
               onClick={() => {
                 setActiveVideoCall(null);
                 setIsVideoWindowOpen(false);
-                setHideChatBubble(false);
               }}
-              style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', backgroundColor: '#dc2626', color: 'white', fontSize: '0.875rem', fontWeight: '600', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', border: 'none', cursor: 'pointer' }}
+              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg transition-colors"
+              title="End call"
             >
               ✕ End Call
             </button>
           </div>
         )}
 
-        {/* Chat bubble - matches admin side exactly */}
+        {/* Chat bubble */}
         <FloatingChatBubble
           currentUserId={user?.id}
           currentUserName={user?.full_name}
+          onOpenChat={() => {}}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;
@@ -905,8 +908,6 @@ export default function HubSpotActivityLog() {
               }
             }).catch(() => {});
           }}
-          isVideoCallActive={hideChatBubble && isVideoWindowOpen}
-
         />
 
       </div>
