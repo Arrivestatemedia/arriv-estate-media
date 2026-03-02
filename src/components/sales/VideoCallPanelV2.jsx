@@ -158,6 +158,13 @@ export default function VideoCallPanelV2({
       videoRoom.participants.forEach(p => attachParticipant(p));
       videoRoom.on("participantConnected", p => attachParticipant(p));
       videoRoom.on("participantDisconnected", p => detachParticipant(p));
+      
+      // Attach room event listeners exactly once, non-destructively
+      videoRoom.once("connected", () => {
+        // Broadcast to OTHER side that THIS side is live
+        localStorage.setItem('remoteCallLive', 'true');
+      });
+      
       videoRoom.on("disconnected", () => {
         setCallState("idle");
         setRemoteCallLive(false);
@@ -166,11 +173,6 @@ export default function VideoCallPanelV2({
       videoRoom.on("error", err => setError("Room error: " + err.message));
 
       setCallState("connected");
-      // Broadcast to initiator that call is now live on receiver's side
-      if (isIncoming) {
-        setRemoteCallLive(true);
-        localStorage.setItem('remoteCallLive', 'true');
-      }
     } catch (err) {
       console.error("Room connection error:", err);
       setError("Connection failed: " + err.message);
