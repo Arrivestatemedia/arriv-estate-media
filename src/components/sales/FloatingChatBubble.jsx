@@ -6,7 +6,6 @@ import ChatTab from "./ChatTab";
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, onOpenChat }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isVideoActive, setIsVideoActive] = useState(false);
 
   // Resolve from localStorage immediately so we don't wait for async prop
   const userId = currentUserId || localStorage.getItem('sales_member_id');
@@ -16,45 +15,6 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     setOpen(!open);
     if (!open) setUnreadCount(0);
   };
-
-  // Listen for video call events
-  useEffect(() => {
-    console.log('[FloatingChatBubble] Setting up video call event listeners');
-    
-    const handleVideoStart = () => {
-      console.log('[FloatingChatBubble] videoCallStarted event received');
-      setIsVideoActive(true);
-      setOpen(false);
-    };
-
-    const handleVideoEnd = () => {
-      console.log('[FloatingChatBubble] videoCallEnded event received');
-      setIsVideoActive(false);
-    };
-
-    const handleVideoMinimized = () => {
-      console.log('[FloatingChatBubble] videoCallMinimized event received');
-      setIsVideoActive(false);
-    };
-
-    const handleVideoRestored = () => {
-      console.log('[FloatingChatBubble] videoCallRestored event received');
-      setIsVideoActive(true);
-      setOpen(false);
-    };
-
-    window.addEventListener('videoCallStarted', handleVideoStart);
-    window.addEventListener('videoCallEnded', handleVideoEnd);
-    window.addEventListener('videoCallMinimized', handleVideoMinimized);
-    window.addEventListener('videoCallRestored', handleVideoRestored);
-
-    return () => {
-      window.removeEventListener('videoCallStarted', handleVideoStart);
-      window.removeEventListener('videoCallEnded', handleVideoEnd);
-      window.removeEventListener('videoCallMinimized', handleVideoMinimized);
-      window.removeEventListener('videoCallRestored', handleVideoRestored);
-    };
-  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -87,9 +47,6 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
 
-  // Don't render if video call is active
-  if (isVideoActive) return null;
-
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
     <div>
@@ -97,7 +54,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {open && (
         <div
           className="fixed bottom-20 right-4 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
-          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 1000 }}
+          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 9000 }}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
             <span className="text-sm font-semibold text-white">Team Chat</span>
@@ -119,7 +76,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       <button
         onClick={handleToggleChat}
         className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ right: '1rem', zIndex: 1000, backgroundColor: '#B8956A' }}
+        style={{ right: '1rem', zIndex: 9000, backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (

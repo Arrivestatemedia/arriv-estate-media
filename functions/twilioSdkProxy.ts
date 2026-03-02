@@ -1,6 +1,6 @@
-Deno.serve(async (req) => {
+Deno.serve(async () => {
   try {
-    const res = await fetch('https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js');
+    const res = await fetch('https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2.10.0/dist/twilio.min.js');
     const text = await res.text();
     return new Response(text, {
       headers: {
@@ -9,7 +9,6 @@ Deno.serve(async (req) => {
       }
     });
   } catch (err) {
-    console.error('Twilio SDK proxy error:', err);
     return new Response(`// Failed to load Twilio SDK: ${err.message}`, {
       status: 500,
       headers: { 'Content-Type': 'application/javascript' }

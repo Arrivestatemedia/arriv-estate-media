@@ -565,11 +565,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             setTimeout(() => setVideoCallError(null), 3000);
                             return;
                           }
-                          // Listener 1: Hide chat bubble immediately
-                          window.dispatchEvent(new Event('videoCallStarted'));
-                          // Listener 2: Show UI and initiate call
-                          setShowVideoCall(true);
-                          setOutgoingCallData({ roomName: 'loading', token: 'loading', recipientName: chatName });
+                          // Set call state immediately when user initiates
+                          if (onVideoCallStarted) onVideoCallStarted('dialing');
                           try {
                             const res = await base44.functions.invoke('initiateVideoCall', {
                               salesMemberId: currentUserId,
@@ -578,15 +575,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             });
                             if (res.data?.success) {
                               setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
-                              if (onVideoCallStarted) onVideoCallStarted('dialing');
+                              setShowVideoCall(true);
                             } else {
-                              setShowVideoCall(false);
                               setVideoCallError('Failed to start video call');
                               if (onVideoCallEnded) onVideoCallEnded('failed');
                               setTimeout(() => setVideoCallError(null), 3000);
                             }
                           } catch (err) {
-                            setShowVideoCall(false);
                             setVideoCallError('Failed to start video call: ' + err.message);
                             if (onVideoCallEnded) onVideoCallEnded('error');
                             setTimeout(() => setVideoCallError(null), 4000);

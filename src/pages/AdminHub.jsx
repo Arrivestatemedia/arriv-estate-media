@@ -42,7 +42,6 @@ export default function AdminHub() {
     setIncomingVideoCall(null);
     setHasUnreadNotification(false);
     setIsVideoCallActive(false);
-    window.dispatchEvent(new Event('videoCallEnded'));
   };
 
   useEffect(() => {
@@ -182,7 +181,6 @@ export default function AdminHub() {
     setIsVideoCallActive(true);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
-    window.dispatchEvent(new Event('videoCallStarted'));
   };
 
   const handleDeclineVideoCall = async () => {
@@ -360,10 +358,7 @@ export default function AdminHub() {
       {activeVideoCall && !isVideoWindowOpen && (
         <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
           <button
-            onClick={() => {
-              setIsVideoWindowOpen(true);
-              window.dispatchEvent(new Event('videoCallRestored'));
-            }}
+            onClick={() => setIsVideoWindowOpen(true)}
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg"
           >
             📞 Return to Call
@@ -396,7 +391,7 @@ export default function AdminHub() {
       </div>
 
       {/* Admin floating chat bubble - hidden during live call */}
-      {!activeVideoCall && (
+      {((callStatus === 'idle') || hasUnreadNotification) && (
         <AdminChatBubble
           currentUserId={user.id}
           currentUserName={user.full_name}

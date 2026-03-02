@@ -6,45 +6,13 @@ import ChatTab from "@/components/sales/ChatTab";
 export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isVideoActive, setIsVideoActive] = useState(false);
 
   const handleToggleChat = () => {
     setOpen(!open);
     if (!open) setUnreadCount(0);
   };
 
-  // Listen for video call events
-  useEffect(() => {
-    const handleVideoStart = () => {
-      setIsVideoActive(true);
-      setOpen(false);
-    };
 
-    const handleVideoEnd = () => {
-      setIsVideoActive(false);
-    };
-
-    const handleVideoMinimized = () => {
-      setIsVideoActive(false);
-    };
-
-    const handleVideoRestored = () => {
-      setIsVideoActive(true);
-      setOpen(false);
-    };
-
-    window.addEventListener('videoCallStarted', handleVideoStart);
-    window.addEventListener('videoCallEnded', handleVideoEnd);
-    window.addEventListener('videoCallMinimized', handleVideoMinimized);
-    window.addEventListener('videoCallRestored', handleVideoRestored);
-
-    return () => {
-      window.removeEventListener('videoCallStarted', handleVideoStart);
-      window.removeEventListener('videoCallEnded', handleVideoEnd);
-      window.removeEventListener('videoCallMinimized', handleVideoMinimized);
-      window.removeEventListener('videoCallRestored', handleVideoRestored);
-    };
-  }, []);
 
   useEffect(() => {
     const userId = currentUserId || localStorage.getItem('sales_member_id');
@@ -75,9 +43,6 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
-
-  // Don't render if video call is active
-  if (isVideoActive) return null;
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (

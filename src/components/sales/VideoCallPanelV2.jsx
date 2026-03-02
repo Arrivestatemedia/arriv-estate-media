@@ -442,7 +442,6 @@ export default function VideoCallPanelV2({
             size="icon" 
             onClick={() => {
               if (onMinimize) onMinimize();
-              window.dispatchEvent(new Event('videoCallMinimized'));
             }}
             className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0" 
             title="Minimize"
@@ -595,7 +594,7 @@ async function loadTwilioSDK() {
     }
 
     const script = document.createElement("script");
-    script.src = "/api/apps/698b3b9e4b7d348873dbf213/functions/twilioSdkProxy";
+    script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
     script.onload = () => {
       const poll = setInterval(() => {
         if (window.Twilio?.Video) { clearInterval(poll); resolve(window.Twilio.Video); }

@@ -22,7 +22,6 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [acceptedIncomingCall, setAcceptedIncomingCall] = useState(null);
-  const [outgoingCallData, setOutgoingCallData] = useState(null);
   const [showConferenceScheduler, setShowConferenceScheduler] = useState(false);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
@@ -285,37 +284,14 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
         {selectedRepId && (
           <div className="flex items-center gap-1">
             <button
-              onClick={async () => {
+              onClick={() => {
                 const rep = salesReps.find(r => r.id === selectedRepId);
                 if (!rep?.extension) {
                   setVideoCallError('No extension found for video call');
                   setTimeout(() => setVideoCallError(null), 3000);
                   return;
                 }
-                // Listener 1: Hide chat bubble immediately
-                window.dispatchEvent(new Event('videoCallStarted'));
-                // Listener 2: Show UI and initiate call
                 setShowVideoCall(true);
-                setOutgoingCallData({ roomName: 'loading', token: 'loading', recipientName: selectedRepName });
-                try {
-                  const res = await base44.functions.invoke('initiateVideoCall', {
-                    salesMemberId: currentUserId,
-                    recipientExtension: String(rep.extension),
-                    callerName: currentUserName
-                  });
-                  if (res.data?.success) {
-                    setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: selectedRepName });
-                    setShowVideoCall(true);
-                  } else {
-                    setShowVideoCall(false);
-                    setVideoCallError('Failed to start video call');
-                    setTimeout(() => setVideoCallError(null), 3000);
-                  }
-                } catch (err) {
-                  setShowVideoCall(false);
-                  setVideoCallError('Failed to start video call: ' + err.message);
-                  setTimeout(() => setVideoCallError(null), 4000);
-                }
               }}
               className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
               title="Video Call"
@@ -410,16 +386,14 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
         </div>
       )}
 
-      {showVideoCall && !acceptedIncomingCall && outgoingCallData && (
+      {showVideoCall && !acceptedIncomingCall && selectedRepId && (
         <VideoCallPanel
-          recipientName={outgoingCallData.recipientName}
-          callerToken={outgoingCallData.token}
-          roomName={outgoingCallData.roomName}
+          recipientName={selectedRepName}
+          recipientExtension={salesReps.find(r => r.id === selectedRepId)?.extension}
+          callerToken={null}
+          roomName={null}
           currentUserName={currentUserName}
-          onClose={() => {
-            setShowVideoCall(false);
-            setOutgoingCallData(null);
-          }}
+          onClose={() => setShowVideoCall(false)}
         />
       )}
 

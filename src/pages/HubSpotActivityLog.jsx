@@ -80,7 +80,6 @@ export default function HubSpotActivityLog() {
     setActiveVideoCall(null);
     setIncomingVideoCall(null);
     setHasUnreadNotification(false);
-    window.dispatchEvent(new Event('videoCallEnded'));
   };
 
 
@@ -337,7 +336,6 @@ export default function HubSpotActivityLog() {
     setIsVideoWindowOpen(true);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
-    window.dispatchEvent(new Event('videoCallStarted'));
   };
 
   const handleDeclineVideoCall = async () => {
@@ -854,29 +852,6 @@ export default function HubSpotActivityLog() {
 
         <PoweredByFooter />
 
-        {/* Chat bubble - only render when no active video call */}
-        {!activeVideoCall && (
-          <FloatingChatBubble
-            currentUserId={user?.id}
-            currentUserName={user?.full_name}
-            isVideoCallActive={false}
-            onOpenChat={() => {}}
-            onInitiateTransfer={(memberId, memberName) => {
-              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                const ext = members?.[0]?.extension;
-                if (ext) {
-                  setActiveTab("call");
-                  setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                      detail: { extension: String(ext), name: memberName || members[0].full_name }
-                    }));
-                  }, 150);
-                }
-              }).catch(() => {});
-            }}
-          />
-        )}
-
         {/* Incoming video call notification */}
         {incomingVideoCall && (
           <IncomingVideoCallModal
@@ -909,10 +884,7 @@ export default function HubSpotActivityLog() {
         {activeVideoCall && !isVideoWindowOpen && (
           <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
             <button
-              onClick={() => {
-                setIsVideoWindowOpen(true);
-                window.dispatchEvent(new Event('videoCallRestored'));
-              }}
+              onClick={() => setIsVideoWindowOpen(true)}
               className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-colors"
               title="Restore video call"
             >
@@ -945,6 +917,29 @@ export default function HubSpotActivityLog() {
           <div>unread: {String(hasUnreadNotification)}</div>
           <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
         </div>
+
+        {/* Chat bubble - hidden during live call or if has unread notifications */}
+        {((callStatus === 'idle') || hasUnreadNotification) && (
+          <FloatingChatBubble
+            currentUserId={user?.id}
+            currentUserName={user?.full_name}
+            isVideoCallActive={false}
+            onOpenChat={() => {}}
+            onInitiateTransfer={(memberId, memberName) => {
+              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                const ext = members?.[0]?.extension;
+                if (ext) {
+                  setActiveTab("call");
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                      detail: { extension: String(ext), name: memberName || members[0].full_name }
+                    }));
+                  }, 150);
+                }
+              }).catch(() => {});
+            }}
+          />
+        )}
 
       </div>
     </div>
