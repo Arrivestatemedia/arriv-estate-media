@@ -19,20 +19,26 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   // Listen for video call events
   useEffect(() => {
+    console.log('[FloatingChatBubble] Setting up video call event listeners');
+    
     const handleVideoStart = () => {
+      console.log('[FloatingChatBubble] videoCallStarted event received');
       setIsVideoActive(true);
       setOpen(false);
     };
 
     const handleVideoEnd = () => {
+      console.log('[FloatingChatBubble] videoCallEnded event received');
       setIsVideoActive(false);
     };
 
     const handleVideoMinimized = () => {
+      console.log('[FloatingChatBubble] videoCallMinimized event received');
       setIsVideoActive(false);
     };
 
     const handleVideoRestored = () => {
+      console.log('[FloatingChatBubble] videoCallRestored event received');
       setIsVideoActive(true);
       setOpen(false);
     };
