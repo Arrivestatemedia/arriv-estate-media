@@ -250,6 +250,7 @@ export default function HubSpotActivityLog() {
       const data = event.detail;
       if (typeof data === 'object' && data.roomName && data.token) {
         // Full call data from ChatWindow
+        setLastCallEvent('OUTBOUND_START');
         setActiveVideoCall({
           callerName: data.recipientName,
           recipientToken: data.token,
@@ -260,6 +261,7 @@ export default function HubSpotActivityLog() {
         setIsVideoWindowOpen(true);
       } else {
         // Just status update
+        setLastCallEvent(data.reason || 'STATUS_UPDATE');
         setCallStatus(data.status || 'dialing');
       }
     };
@@ -686,7 +688,22 @@ export default function HubSpotActivityLog() {
                currentUserName={user?.full_name} 
                salesMemberId={user?.id} 
                isAdmin={user?.role === 'admin'}
-               onVideoCallStarted={(reason) => { setLastCallEvent('OUTBOUND_START'); setCallStatus(reason || "dialing"); setActiveVideoCall({ callerName: "Video Call" }); }}
+               onVideoCallStarted={(data) => {
+                 if (typeof data === 'object' && data.roomName && data.token) {
+                   setLastCallEvent('OUTBOUND_START');
+                   setActiveVideoCall({
+                     callerName: data.recipientName,
+                     recipientToken: data.token,
+                     roomName: data.roomName,
+                     isIncoming: data.isIncoming === true
+                   });
+                   setCallStatus('connected');
+                   setIsVideoWindowOpen(true);
+                 } else {
+                   setLastCallEvent('OUTBOUND_START');
+                   setCallStatus(data || "dialing");
+                 }
+               }}
                onVideoCallEnded={endVideoCall}
                endVideoCall={endVideoCall}
               onInitiateTransfer={(memberId, memberName) => {

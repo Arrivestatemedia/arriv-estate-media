@@ -123,6 +123,7 @@ export default function AdminHub() {
       const data = event.detail;
       if (typeof data === 'object' && data.roomName && data.token) {
         // Full call data from ChatWindow
+        setLastCallEvent('OUTBOUND_START');
         setActiveVideoCall({
           callerName: data.recipientName,
           recipientToken: data.token,
@@ -133,6 +134,7 @@ export default function AdminHub() {
         setIsVideoWindowOpen(true);
       } else {
         // Just status update
+        setLastCallEvent(data.reason || 'STATUS_UPDATE');
         setCallStatus(data.status || 'dialing');
       }
     };
@@ -331,7 +333,22 @@ export default function AdminHub() {
               <AdminActivityPage 
                 user={user} 
                 onVideoCallStateChange={setIsVideoCallActive}
-                onVideoCallStarted={(reason) => { setLastCallEvent('OUTBOUND_START'); setCallStatus(reason || "dialing"); setActiveVideoCall({ callerName: "Video Call" }); }}
+                onVideoCallStarted={(data) => {
+                  if (typeof data === 'object' && data.roomName && data.token) {
+                    setLastCallEvent('OUTBOUND_START');
+                    setActiveVideoCall({
+                      callerName: data.recipientName,
+                      recipientToken: data.token,
+                      roomName: data.roomName,
+                      isIncoming: data.isIncoming === true
+                    });
+                    setCallStatus('connected');
+                    setIsVideoWindowOpen(true);
+                  } else {
+                    setLastCallEvent('OUTBOUND_START');
+                    setCallStatus(data || "dialing");
+                  }
+                }}
                   onVideoCallEnded={endVideoCall}
                   endVideoCall={endVideoCall}
               />
