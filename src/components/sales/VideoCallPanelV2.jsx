@@ -187,6 +187,7 @@ export default function VideoCallPanelV2({
     setIsCallInitiator(true);
     setIsLoading(true);
     setError(null);
+    console.log('[VideoCallPanelV2] handleStartCall invoked');
     try {
       if (callerToken && roomName) {
         await connectToRoom(callerToken, roomName);
