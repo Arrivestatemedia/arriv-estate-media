@@ -888,11 +888,10 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {/* Chat bubble */}
+        {/* Chat bubble - matches admin side exactly */}
         <FloatingChatBubble
           currentUserId={user?.id}
           currentUserName={user?.full_name}
-          onOpenChat={() => {}}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;
@@ -906,6 +905,7 @@ export default function HubSpotActivityLog() {
               }
             }).catch(() => {});
           }}
+          isVideoCallActive={hideChatBubble && isVideoWindowOpen}
         />
 
       </div>
