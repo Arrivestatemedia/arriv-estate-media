@@ -34,7 +34,7 @@ export default function VideoCallPanelV2({
   const isBlurredRef = useRef(false);
 
   const { startBlur, stopBlur } = useBackgroundBlur();
-  const { setRemoteCallLive, setCallStatus } = useCallStatus();
+  const { setRemoteCallLive, setCallStatus, setIsCallInitiator } = useCallStatus();
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -184,6 +184,7 @@ export default function VideoCallPanelV2({
   const handleStartCall = useCallback(async () => {
     setCallState("calling");
     setCallStatus("calling");
+    setIsCallInitiator(true);
     setIsLoading(true);
     setError(null);
     try {
@@ -205,10 +206,11 @@ export default function VideoCallPanelV2({
       setError("Connection failed: " + err.message);
       setCallState("idle");
       setCallStatus("idle");
+      setIsCallInitiator(false);
     } finally {
       setIsLoading(false);
     }
-  }, [callerToken, roomName, currentUserName, connectToRoom, setCallStatus]);
+  }, [callerToken, roomName, currentUserName, connectToRoom, setCallStatus, setIsCallInitiator]);
 
   // ─── Auto-start ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -424,9 +426,10 @@ export default function VideoCallPanelV2({
 
     setRemoteCallLive(false);
     setCallStatus("idle");
+    setIsCallInitiator(false);
     localStorage.removeItem('remoteCallLive');
     onClose();
-  }, [onClose, stopBlur, setRemoteCallLive, setCallStatus]);
+  }, [onClose, stopBlur, setRemoteCallLive, setCallStatus, setIsCallInitiator]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   // When minimized, hide but keep mounted to maintain Twilio connection

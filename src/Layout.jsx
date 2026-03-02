@@ -14,7 +14,7 @@ import TrackLink from "@/pages/TrackLink";
 import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContext";
 
 function LayoutContent({ children, currentPageName }) {
-  const { isInLiveCall } = useCallStatus();
+  const { isCallInitiator } = useCallStatus();
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -365,8 +365,8 @@ function LayoutContent({ children, currentPageName }) {
         Build: {new Date().toISOString().split('T')[0]} | Deploy Check
       </div>
 
-      {/* Video Call Overlay — blocks right bottom area */}
-      {isInLiveCall && (
+      {/* Video Call Overlay — blocks right bottom area (initiator only) */}
+      {isCallInitiator && (
         <div className="fixed bottom-0 right-0 w-1/2 h-1/2 bg-transparent pointer-events-auto z-[9998]" />
       )}
     </div>
