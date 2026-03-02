@@ -339,13 +339,11 @@ function LayoutContent({ children, currentPageName }) {
         {currentPageName === "TrackLink" ? (
           <TrackLink />
         ) : (
-          <CallStatusProvider>
-            <MediaPartnerGate>
-              <PageTransition>
-                {children}
-              </PageTransition>
-            </MediaPartnerGate>
-          </CallStatusProvider>
+          <MediaPartnerGate>
+            <PageTransition>
+              {children}
+            </PageTransition>
+          </MediaPartnerGate>
         )}
       </main>
       
