@@ -891,10 +891,10 @@ export default function HubSpotActivityLog() {
         )}
 
         {/* Chat bubble */}
-        <FloatingChatBubble
+        {!activeVideoCall && <FloatingChatBubble
           currentUserId={user?.id}
           currentUserName={user?.full_name}
-          isVideoCallActive={!!activeVideoCall && isVideoWindowOpen}
+          isVideoCallActive={false}
           onOpenChat={() => {}}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
@@ -909,7 +909,7 @@ export default function HubSpotActivityLog() {
               }
             }).catch(() => {});
           }}
-        />
+        />}
 
       </div>
     </div>
