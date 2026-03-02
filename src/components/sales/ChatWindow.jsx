@@ -565,9 +565,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                              setTimeout(() => setVideoCallError(null), 3000);
                              return;
                            }
-                           // Dispatch event to update callStatus immediately
+                           // Dispatch event to update callStatus immediately AND call callback
                            window.dispatchEvent(new CustomEvent('videoCallInitiated', { detail: { status: 'dialing' } }));
-                           if (onVideoCallStarted) onVideoCallStarted('dialing');
+                           if (onVideoCallStarted) {
+                             onVideoCallStarted('dialing');
+                           }
                            try {
                              const res = await base44.functions.invoke('initiateVideoCall', {
                                salesMemberId: currentUserId,
