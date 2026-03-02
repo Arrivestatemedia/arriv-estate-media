@@ -339,24 +339,25 @@ export default function AdminHub() {
       )}
 
       {/* Admin floating chat bubble */}
-      {!activeVideoCall && <AdminChatBubble
-        currentUserId={user.id}
-        currentUserName={user.full_name}
-        isVideoActive={isVideoCallActive}
-        onInitiateTransfer={(memberId, memberName) => {
-          base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-            const ext = members?.[0]?.extension;
-            if (ext) {
-              // Switch to My Activity tab, then signal AdminActivityPage to open dialer
-              setActiveTab("activity");
-              localStorage.setItem('dialerPhone', String(ext));
-              setTimeout(() => {
-                window.dispatchEvent(new Event('dialerCardReady'));
-              }, 300);
-            }
-          }).catch(() => {});
-        }}
-        />}
-        </div>
-        );
-        }
+      {!activeVideoCall && (
+        <AdminChatBubble
+          currentUserId={user.id}
+          currentUserName={user.full_name}
+          isVideoActive={isVideoCallActive}
+          onInitiateTransfer={(memberId, memberName) => {
+            base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+              const ext = members?.[0]?.extension;
+              if (ext) {
+                setActiveTab("activity");
+                localStorage.setItem('dialerPhone', String(ext));
+                setTimeout(() => {
+                  window.dispatchEvent(new Event('dialerCardReady'));
+                }, 300);
+              }
+            }).catch(() => {});
+          }}
+        />
+      )}
+    </div>
+  );
+}
