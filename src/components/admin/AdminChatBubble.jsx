@@ -13,7 +13,38 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
     if (!open) setUnreadCount(0);
   };
 
+  // Listen for video call events
+  useEffect(() => {
+    const handleVideoStart = () => {
+      setIsVideoActive(true);
+      setOpen(false);
+    };
 
+    const handleVideoEnd = () => {
+      setIsVideoActive(false);
+    };
+
+    const handleVideoMinimized = () => {
+      setIsVideoActive(false);
+    };
+
+    const handleVideoRestored = () => {
+      setIsVideoActive(true);
+      setOpen(false);
+    };
+
+    window.addEventListener('videoCallStarted', handleVideoStart);
+    window.addEventListener('videoCallEnded', handleVideoEnd);
+    window.addEventListener('videoCallMinimized', handleVideoMinimized);
+    window.addEventListener('videoCallRestored', handleVideoRestored);
+
+    return () => {
+      window.removeEventListener('videoCallStarted', handleVideoStart);
+      window.removeEventListener('videoCallEnded', handleVideoEnd);
+      window.removeEventListener('videoCallMinimized', handleVideoMinimized);
+      window.removeEventListener('videoCallRestored', handleVideoRestored);
+    };
+  }, []);
 
   useEffect(() => {
     const userId = currentUserId || localStorage.getItem('sales_member_id');
