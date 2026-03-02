@@ -852,8 +852,8 @@ export default function HubSpotActivityLog() {
 
         <PoweredByFooter />
 
-        {/* Chat bubble - render always but behind video during calls */}
-        {((callStatus === 'idle') || hasUnreadNotification) && (
+        {/* Chat bubble - only render when no active video call */}
+        {!activeVideoCall && (
           <FloatingChatBubble
             currentUserId={user?.id}
             currentUserName={user?.full_name}
