@@ -6,6 +6,7 @@ import VideoControls from "./VideoControls";
 import VideoChat from "./VideoChat";
 import VideoSettingsPanel from "./VideoSettingsPanel";
 import { useBackgroundBlur } from "./useBackgroundBlur";
+import { useCallStatus } from "../CallStatusContext";
 
 export default function VideoCallPanelV2({
   recipientName,
@@ -33,6 +34,7 @@ export default function VideoCallPanelV2({
   const isBlurredRef = useRef(false);
 
   const { startBlur, stopBlur } = useBackgroundBlur();
+  const { setRemoteCallLive } = useCallStatus();
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -156,10 +158,17 @@ export default function VideoCallPanelV2({
       videoRoom.participants.forEach(p => attachParticipant(p));
       videoRoom.on("participantConnected", p => attachParticipant(p));
       videoRoom.on("participantDisconnected", p => detachParticipant(p));
-      videoRoom.on("disconnected", () => setCallState("idle"));
+      videoRoom.on("disconnected", () => {
+        setCallState("idle");
+        setRemoteCallLive(false);
+      });
       videoRoom.on("error", err => setError("Room error: " + err.message));
 
       setCallState("connected");
+      // Broadcast to initiator that call is now live on receiver's side
+      if (isIncoming) {
+        setRemoteCallLive(true);
+      }
     } catch (err) {
       console.error("Room connection error:", err);
       setError("Connection failed: " + err.message);
@@ -406,8 +415,9 @@ export default function VideoCallPanelV2({
     if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = "";
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
+    setRemoteCallLive(false);
     onClose();
-  }, [onClose, stopBlur]);
+  }, [onClose, stopBlur, setRemoteCallLive]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   // When minimized, hide but keep mounted to maintain Twilio connection
