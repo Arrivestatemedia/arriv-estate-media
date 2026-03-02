@@ -49,7 +49,7 @@ const playDing = () => {
 };
 
 
-export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {}, onInitiateTransfer }) {
+export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {}, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
