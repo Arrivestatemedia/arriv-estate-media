@@ -54,33 +54,38 @@ export default function AdminHub() {
     const salesMemberId = localStorage.getItem('sales_member_id');
     const salesMemberEmail = localStorage.getItem('sales_member_email');
     const salesMemberName = localStorage.getItem('sales_member_name');
+    const salesMemberRole = localStorage.getItem('sales_member_role');
     
     if (!salesMemberId || !salesMemberEmail) {
       window.location.href = '/SalesLogin';
       return;
     }
 
-    // Verify this user is an admin
+    if (salesMemberRole !== 'admin') {
+      window.location.href = '/HubSpotActivityLog';
+      return;
+    }
+
+    // Fetch full member details for profile picture
     base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-      console.log('[AdminHub] Filter result:', members, 'Role:', members?.[0]?.role);
-      const isAdmin = members?.[0]?.role === 'admin';
-      if (isAdmin) {
-        setUser({
-          id: salesMemberId,
-          email: salesMemberEmail,
-          full_name: salesMemberName || members[0]?.full_name || 'Admin',
-          role: 'admin',
-          profile_picture_url: members[0]?.profile_picture_url
-        });
-        setProfilePicUrl(members[0]?.profile_picture_url || "");
-        setTimeout(() => setShowPermissionBanner(true), 500);
-      } else {
-        console.log('[AdminHub] Not an admin, member role:', members?.[0]?.role, 'Redirecting to HubSpotActivityLog');
-        window.location.href = '/HubSpotActivityLog';
-      }
+      setUser({
+        id: salesMemberId,
+        email: salesMemberEmail,
+        full_name: salesMemberName || members[0]?.full_name || 'Admin',
+        role: 'admin',
+        profile_picture_url: members[0]?.profile_picture_url
+      });
+      setProfilePicUrl(members[0]?.profile_picture_url || "");
+      setTimeout(() => setShowPermissionBanner(true), 500);
     }).catch((err) => {
-      console.error('AdminHub auth error:', err);
-      window.location.href = '/SalesLogin';
+      console.error('AdminHub fetch error:', err);
+      // Still set user with basic info if fetch fails
+      setUser({
+        id: salesMemberId,
+        email: salesMemberEmail,
+        full_name: salesMemberName || 'Admin',
+        role: 'admin'
+      });
     });
   }, []);
 
