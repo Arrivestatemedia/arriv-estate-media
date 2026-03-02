@@ -410,8 +410,8 @@ export default function AdminHub() {
          </div>
        )}
 
-       {/* Chat bubble - show when no call OR when call is minimized */}
-       {(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen)) && (
+       {/* Chat bubble - only show when video window is closed */}
+       {!isVideoWindowOpen && (
          <FloatingChatBubble
            currentUserId={user.id}
            currentUserName={user.full_name}
