@@ -11,6 +11,7 @@ import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
 import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
 import TrackLink from "@/pages/TrackLink";
+import { CallStatusProvider } from "@/components/CallStatusContext";
 
       export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -337,11 +338,13 @@ import TrackLink from "@/pages/TrackLink";
         {currentPageName === "TrackLink" ? (
           <TrackLink />
         ) : (
-          <MediaPartnerGate>
-            <PageTransition>
-              {children}
-            </PageTransition>
-          </MediaPartnerGate>
+          <CallStatusProvider>
+            <MediaPartnerGate>
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </MediaPartnerGate>
+          </CallStatusProvider>
         )}
       </main>
 
