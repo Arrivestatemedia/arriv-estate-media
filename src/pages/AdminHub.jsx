@@ -320,9 +320,9 @@ export default function AdminHub() {
         />
       )}
 
-      {/* Minimized call restore button */}
+      {/* Minimized call restore button - always visible when call is minimized */}
       {activeVideoCall && !isVideoWindowOpen && (
-        <div className="fixed bottom-4 left-4 z-[99998] flex flex-col gap-2">
+        <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
           <button
             onClick={() => setIsVideoWindowOpen(true)}
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg"
@@ -338,12 +338,12 @@ export default function AdminHub() {
         </div>
       )}
 
-      {/* Admin floating chat bubble */}
+      {/* Admin floating chat bubble - NEVER shows during active video call */}
       {!activeVideoCall && (
         <AdminChatBubble
           currentUserId={user.id}
           currentUserName={user.full_name}
-          isVideoActive={isVideoCallActive}
+          isVideoActive={false}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;
