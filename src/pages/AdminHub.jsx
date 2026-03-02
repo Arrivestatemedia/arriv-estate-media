@@ -390,13 +390,13 @@ export default function AdminHub() {
         <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
       </div>
 
-      {/* Admin floating chat bubble - hidden during live call, disabled when video call active */}
-      {((callStatus === 'idle') || hasUnreadNotification) && (
+      {/* Admin floating chat bubble - never show during live call; show only when idle */}
+      {callStatus === 'idle' && (
         <AdminChatBubble
           currentUserId={user.id}
           currentUserName={user.full_name}
           isVideoActive={false}
-          disabled={isInLiveCall}
+          disabled={false}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;
