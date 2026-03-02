@@ -177,6 +177,7 @@ export default function AdminHub() {
     setActiveVideoCall(incomingVideoCall);
     setLastCallEvent('ACCEPT_INBOUND');
     setCallStatus("connected");
+    setHasUnreadNotification(false);
     setIsVideoWindowOpen(true);
     setIsVideoCallActive(true);
     setIncomingVideoCall(null);
@@ -391,7 +392,7 @@ export default function AdminHub() {
       </div>
 
       {/* Admin floating chat bubble - hidden during live call, disabled when video call active */}
-      {((callStatus === 'idle') || hasUnreadNotification) && (
+      {(callStatus === 'idle') && (
         <AdminChatBubble
           currentUserId={user.id}
           currentUserName={user.full_name}

@@ -332,6 +332,7 @@ export default function HubSpotActivityLog() {
     setActiveVideoCall(incomingVideoCall);
     setLastCallEvent('ACCEPT_INBOUND');
     setCallStatus("connected");
+    setHasUnreadNotification(false);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIsVideoWindowOpen(true);
     setIncomingVideoCall(null);
@@ -919,7 +920,7 @@ export default function HubSpotActivityLog() {
         </div>
 
         {/* Chat bubble - hidden during live call or if has unread notifications, disabled when video call active */}
-         {((callStatus === 'idle') || hasUnreadNotification) && (
+         {(callStatus === 'idle') && (
            <FloatingChatBubble
              currentUserId={user?.id}
              currentUserName={user?.full_name}
