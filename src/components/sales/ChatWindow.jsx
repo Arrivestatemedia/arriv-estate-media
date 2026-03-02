@@ -574,6 +574,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             if (res.data?.success) {
                               setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
                               setShowVideoCall(true);
+                              if (onVideoCallStarted) onVideoCallStarted();
                             } else {
                               setVideoCallError('Failed to start video call');
                               setTimeout(() => setVideoCallError(null), 3000);
