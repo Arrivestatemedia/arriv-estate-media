@@ -309,9 +309,9 @@ export default function HubSpotActivityLog() {
     if (!incomingVideoCall) return;
     console.log('[HUBSPOT_ACTIVITY] Accepting call:', { caller: incomingVideoCall.callerName });
     setVideoCallProcessing(true);
+    setActiveVideoCall(incomingVideoCall);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIsVideoWindowOpen(true);
-    setActiveVideoCall(incomingVideoCall);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
   };
