@@ -69,7 +69,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [videoCallTarget, setVideoCallTarget] = useState(null);
   const [outgoingCallData, setOutgoingCallData] = useState(null);
-
+  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [acceptedIncomingCall, setAcceptedIncomingCall] = useState(null);
   const [showConferenceScheduler, setShowConferenceScheduler] = useState(false);
@@ -118,7 +118,25 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return () => window.removeEventListener('transferStatusUpdate', handleTransferStatusUpdate);
   }, [currentUserId]);
 
+  // Listen for incoming video calls via PendingNotification
+  useEffect(() => {
+    const unsubscribe = base44.entities.PendingNotification.subscribe((event) => {
+      if (event.type === 'create' && event.data?.recipient_id === currentUserId && event.data?.event_type === 'incoming_video_call') {
+        const eventData = event.data.event_data;
+        console.log('Incoming video call received in ChatWindow:', eventData);
+        setIncomingVideoCall({
+          callerId: eventData.callerId,
+          callerName: eventData.callerName,
+          callerExtension: eventData.callerExtension,
+          recipientId: eventData.recipientId,
+          recipientToken: eventData.recipientToken,
+          roomName: eventData.roomName
+        });
+      }
+    });
 
+    return unsubscribe;
+  }, [currentUserId]);
 
   const acceptTransfer = async () => {
     if (!pendingTransfer) return;
