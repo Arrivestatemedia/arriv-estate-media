@@ -53,6 +53,7 @@ export default function AdminHub() {
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
     const salesMemberEmail = localStorage.getItem('sales_member_email');
+    const salesMemberName = localStorage.getItem('sales_member_name');
     
     if (!salesMemberId || !salesMemberEmail) {
       window.location.href = '/SalesLogin';
@@ -65,17 +66,17 @@ export default function AdminHub() {
         setUser({
           id: salesMemberId,
           email: salesMemberEmail,
-          full_name: localStorage.getItem('sales_member_name'),
+          full_name: salesMemberName || members[0]?.full_name || 'Admin',
           role: 'admin',
-          profile_picture_url: members[0].profile_picture_url
+          profile_picture_url: members[0]?.profile_picture_url
         });
-        setProfilePicUrl(members[0].profile_picture_url || "");
+        setProfilePicUrl(members[0]?.profile_picture_url || "");
         setTimeout(() => setShowPermissionBanner(true), 500);
       } else {
-        // Not an admin, redirect to activity log
         window.location.href = '/HubSpotActivityLog';
       }
-    }).catch(() => {
+    }).catch((err) => {
+      console.error('AdminHub auth error:', err);
       window.location.href = '/SalesLogin';
     });
   }, []);
