@@ -49,7 +49,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
-    <div key={isVideoCallActive ? 'call-active' : 'call-inactive'}>
+    <div>
       {/* Floating Chat Panel */}
       {open && (
         <div
