@@ -558,44 +558,38 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                        <Phone className="w-4 h-4" />
                       </button>
                       <button
-                        ref={(btn) => {
-                          if (btn) {
-                            btn.addEventListener('click', async () => {
-                              const ext = transferTargets.find(m => m.id === chatId)?.extension;
-                              if (!ext) return;
-                              // Listener 1: Hide chat bubble
-                              window.dispatchEvent(new Event('videoCallStarted'));
+                        onClick={async () => {
+                          const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                          if (!ext) {
+                            setVideoCallError('No extension found for video call');
+                            setTimeout(() => setVideoCallError(null), 3000);
+                            return;
+                          }
+                          // Listener 1: Hide chat bubble immediately
+                          window.dispatchEvent(new Event('videoCallStarted'));
+                          // Listener 2: Show UI and initiate call
+                          setShowVideoCall(true);
+                          setOutgoingCallData({ roomName: 'loading', token: 'loading', recipientName: chatName });
+                          try {
+                            const res = await base44.functions.invoke('initiateVideoCall', {
+                              salesMemberId: currentUserId,
+                              recipientExtension: String(ext),
+                              callerName: currentUserName
                             });
-                            btn.addEventListener('click', async () => {
-                              const ext = transferTargets.find(m => m.id === chatId)?.extension;
-                              if (!ext) {
-                                setVideoCallError('No extension found for video call');
-                                setTimeout(() => setVideoCallError(null), 3000);
-                                return;
-                              }
-                              // Wait 300ms for bubble to hide
-                              await new Promise(resolve => setTimeout(resolve, 300));
-                              try {
-                                const res = await base44.functions.invoke('initiateVideoCall', {
-                                  salesMemberId: currentUserId,
-                                  recipientExtension: String(ext),
-                                  callerName: currentUserName
-                                });
-                                if (res.data?.success) {
-                                  setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
-                                  setShowVideoCall(true);
-                                  if (onVideoCallStarted) onVideoCallStarted('dialing');
-                                } else {
-                                  setVideoCallError('Failed to start video call');
-                                  if (onVideoCallEnded) onVideoCallEnded('failed');
-                                  setTimeout(() => setVideoCallError(null), 3000);
-                                }
-                              } catch (err) {
-                                setVideoCallError('Failed to start video call: ' + err.message);
-                                if (onVideoCallEnded) onVideoCallEnded('error');
-                                setTimeout(() => setVideoCallError(null), 4000);
-                              }
-                            });
+                            if (res.data?.success) {
+                              setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
+                              if (onVideoCallStarted) onVideoCallStarted('dialing');
+                            } else {
+                              setShowVideoCall(false);
+                              setVideoCallError('Failed to start video call');
+                              if (onVideoCallEnded) onVideoCallEnded('failed');
+                              setTimeout(() => setVideoCallError(null), 3000);
+                            }
+                          } catch (err) {
+                            setShowVideoCall(false);
+                            setVideoCallError('Failed to start video call: ' + err.message);
+                            if (onVideoCallEnded) onVideoCallEnded('error');
+                            setTimeout(() => setVideoCallError(null), 4000);
                           }
                         }}
                         className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"

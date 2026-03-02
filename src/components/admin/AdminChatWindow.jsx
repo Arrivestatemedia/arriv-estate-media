@@ -285,41 +285,36 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
         {selectedRepId && (
           <div className="flex items-center gap-1">
             <button
-              ref={(btn) => {
-                if (btn) {
-                  btn.addEventListener('click', async () => {
-                    const rep = salesReps.find(r => r.id === selectedRepId);
-                    if (!rep?.extension) return;
-                    // Listener 1: Hide chat bubble
-                    window.dispatchEvent(new Event('videoCallStarted'));
+              onClick={async () => {
+                const rep = salesReps.find(r => r.id === selectedRepId);
+                if (!rep?.extension) {
+                  setVideoCallError('No extension found for video call');
+                  setTimeout(() => setVideoCallError(null), 3000);
+                  return;
+                }
+                // Listener 1: Hide chat bubble immediately
+                window.dispatchEvent(new Event('videoCallStarted'));
+                // Listener 2: Show UI and initiate call
+                setShowVideoCall(true);
+                setOutgoingCallData({ roomName: 'loading', token: 'loading', recipientName: selectedRepName });
+                try {
+                  const res = await base44.functions.invoke('initiateVideoCall', {
+                    salesMemberId: currentUserId,
+                    recipientExtension: String(rep.extension),
+                    callerName: currentUserName
                   });
-                  btn.addEventListener('click', async () => {
-                    const rep = salesReps.find(r => r.id === selectedRepId);
-                    if (!rep?.extension) {
-                      setVideoCallError('No extension found for video call');
-                      setTimeout(() => setVideoCallError(null), 3000);
-                      return;
-                    }
-                    // Wait 300ms for bubble to hide
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    try {
-                      const res = await base44.functions.invoke('initiateVideoCall', {
-                        salesMemberId: currentUserId,
-                        recipientExtension: String(rep.extension),
-                        callerName: currentUserName
-                      });
-                      if (res.data?.success) {
-                        setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: selectedRepName });
-                        setShowVideoCall(true);
-                      } else {
-                        setVideoCallError('Failed to start video call');
-                        setTimeout(() => setVideoCallError(null), 3000);
-                      }
-                    } catch (err) {
-                      setVideoCallError('Failed to start video call: ' + err.message);
-                      setTimeout(() => setVideoCallError(null), 4000);
-                    }
-                  });
+                  if (res.data?.success) {
+                    setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: selectedRepName });
+                    setShowVideoCall(true);
+                  } else {
+                    setShowVideoCall(false);
+                    setVideoCallError('Failed to start video call');
+                    setTimeout(() => setVideoCallError(null), 3000);
+                  }
+                } catch (err) {
+                  setShowVideoCall(false);
+                  setVideoCallError('Failed to start video call: ' + err.message);
+                  setTimeout(() => setVideoCallError(null), 4000);
                 }
               }}
               className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
