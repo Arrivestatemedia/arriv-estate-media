@@ -307,9 +307,9 @@ export default function AdminHub() {
               <AdminActivityPage 
                 user={user} 
                 onVideoCallStateChange={setIsVideoCallActive}
-                onVideoCallStarted={() => { setCallStatus("dialing"); setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
-                onVideoCallEnded={endVideoCall}
-                endVideoCall={endVideoCall}
+                onVideoCallStarted={(reason) => { setCallStatus(reason || "dialing"); setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
+                  onVideoCallEnded={endVideoCall}
+                  endVideoCall={endVideoCall}
               />
             </Suspense>
           </TabsContent>

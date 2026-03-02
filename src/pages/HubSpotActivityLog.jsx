@@ -663,7 +663,7 @@ export default function HubSpotActivityLog() {
                currentUserName={user?.full_name} 
                salesMemberId={user?.id} 
                isAdmin={user?.role === 'admin'}
-               onVideoCallStarted={() => { setCallStatus("dialing"); setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
+               onVideoCallStarted={(reason) => { setCallStatus(reason || "dialing"); setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
                onVideoCallEnded={endVideoCall}
                endVideoCall={endVideoCall}
               onInitiateTransfer={(memberId, memberName) => {
