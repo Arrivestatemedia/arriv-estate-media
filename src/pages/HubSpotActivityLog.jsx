@@ -313,6 +313,7 @@ export default function HubSpotActivityLog() {
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIsVideoWindowOpen(true);
     setActiveVideoCall(incomingVideoCall);
+    setHideChatBubble(true);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
   };
