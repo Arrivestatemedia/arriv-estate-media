@@ -11,9 +11,12 @@ import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
 import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
 import TrackLink from "@/pages/TrackLink";
-import { CallStatusProvider } from "@/components/CallStatusContext";
+import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContext";
 
-      export default function Layout({ children, currentPageName }) {
+function LayoutContent({ children, currentPageName }) {
+  const { isInLiveCall } = useCallStatus();
+
+      return (
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -363,6 +366,21 @@ import { CallStatusProvider } from "@/components/CallStatusContext";
       <div className="fixed bottom-0 right-0 text-[0.65rem] font-mono text-gray-500/40 pointer-events-none p-2">
         Build: {new Date().toISOString().split('T')[0]} | Deploy Check
       </div>
+
+      {/* Video Call Overlay — blocks right bottom area */}
+      {isInLiveCall && (
+        <div className="fixed bottom-0 right-0 w-1/2 h-1/2 bg-transparent pointer-events-auto z-[9998]" />
+      )}
     </div>
+  );
+}
+
+export default function Layout({ children, currentPageName }) {
+  return (
+    <CallStatusProvider>
+      <LayoutContent currentPageName={currentPageName}>
+        {children}
+      </LayoutContent>
+    </CallStatusProvider>
   );
 }
