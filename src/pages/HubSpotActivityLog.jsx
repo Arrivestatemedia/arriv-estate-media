@@ -51,6 +51,8 @@ export default function HubSpotActivityLog() {
   const [videoListenerReady, setVideoListenerReady] = useState(false);
   const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
   const [lastHandledNotificationId, setLastHandledNotificationId] = useState(null); // Dedupe prevention
+  const [isInLiveCall, setIsInLiveCall] = useState(false);
+  const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
@@ -169,6 +171,8 @@ export default function HubSpotActivityLog() {
               console.log(`[HUBSPOT_ACTIVITY] NEW incoming video call from ${d.callerName} (notificationId: ${event.id})`);
               setLastIncomingNotificationId(event.id);
               setLastHandledNotificationId(event.id); // Mark as handled to prevent re-triggering
+              setIsInLiveCall(true);
+              setHasUnreadNotification(true);
               setIncomingVideoCall({
                 notificationId: event.id,
                 roomName: d.roomName,
@@ -176,8 +180,8 @@ export default function HubSpotActivityLog() {
                 callerExtension: d.callerExtension,
                 recipientToken: d.recipientToken
               });
-            }
-          });
+              }
+              });
 
       return () => { smsSub(); callSub(); videoCallSub(); };
     } else {
@@ -309,6 +313,8 @@ export default function HubSpotActivityLog() {
     if (!incomingVideoCall) return;
     console.log('[HUBSPOT_ACTIVITY] Accepting call:', { caller: incomingVideoCall.callerName });
     setVideoCallProcessing(true);
+    setIsInLiveCall(true);
+    setHasUnreadNotification(false);
     setActiveVideoCall(incomingVideoCall);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIsVideoWindowOpen(true);
@@ -637,14 +643,14 @@ export default function HubSpotActivityLog() {
         )}
 
         {activeTab === "chat" && (
-          <div style={{ height: '600px' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-            <ChatTab 
-              currentUserId={user?.id} 
-              currentUserName={user?.full_name} 
-              salesMemberId={user?.id} 
-              isAdmin={user?.role === 'admin'}
-              onVideoCallStarted={() => setActiveVideoCall({ callerName: "Video Call" })}
-              onVideoCallEnded={() => setActiveVideoCall(null)}
+           <div style={{ height: '600px' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+             <ChatTab 
+               currentUserId={user?.id} 
+               currentUserName={user?.full_name} 
+               salesMemberId={user?.id} 
+               isAdmin={user?.role === 'admin'}
+               onVideoCallStarted={() => { setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
+               onVideoCallEnded={() => { setIsInLiveCall(false); setActiveVideoCall(null); }}
               onInitiateTransfer={(memberId, memberName) => {
                 base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                   const ext = members?.[0]?.extension;
@@ -892,8 +898,14 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {/* Chat bubble */}
-        {!activeVideoCall && <FloatingChatBubble
+        {/* Debug display */}
+        <div className="fixed top-4 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none">
+          <div>isInLiveCall: {String(isInLiveCall)}</div>
+          <div>hasUnreadNotif: {String(hasUnreadNotification)}</div>
+        </div>
+
+        {/* Chat bubble - hidden during any live call */}
+        {!isInLiveCall && <FloatingChatBubble
           currentUserId={user?.id}
           currentUserName={user?.full_name}
           isVideoCallActive={false}
