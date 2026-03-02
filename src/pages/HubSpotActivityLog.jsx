@@ -920,13 +920,14 @@ export default function HubSpotActivityLog() {
 
         {/* Chat bubble - hidden during live call or if has unread notifications, disabled when video call active */}
          {((callStatus === 'idle') || hasUnreadNotification) && (
-           <FloatingChatBubble
-             currentUserId={user?.id}
-             currentUserName={user?.full_name}
-             isVideoCallActive={false}
-             onOpenChat={() => {}}
-             disabled={isInLiveCall}
-             onInitiateTransfer={(memberId, memberName) => {
+            <FloatingChatBubble
+              currentUserId={user?.id}
+              currentUserName={user?.full_name}
+              isVideoCallActive={false}
+              onOpenChat={() => {}}
+              disabled={isInLiveCall}
+              isInLiveCall={isInLiveCall}
+              onInitiateTransfer={(memberId, memberName) => {
                base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                  const ext = members?.[0]?.extension;
                  if (ext) {

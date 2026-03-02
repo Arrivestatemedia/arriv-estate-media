@@ -397,6 +397,7 @@ export default function AdminHub() {
           currentUserName={user.full_name}
           isVideoActive={false}
           disabled={isInLiveCall}
+          isInLiveCall={isInLiveCall}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;

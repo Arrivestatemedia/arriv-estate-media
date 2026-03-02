@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "./ChatTab";
 
-export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, onOpenChat, disabled }) {
+export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, onOpenChat, disabled, isInLiveCall }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -76,8 +76,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {/* Bubble Button */}
       <button
         onClick={handleToggleChat}
-        className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto', cursor: disabled ? 'not-allowed' : 'pointer' }}
+        className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
+        style={{ bottom: isInLiveCall ? '-200px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto', cursor: disabled ? 'not-allowed' : 'pointer' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (
