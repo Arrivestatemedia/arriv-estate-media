@@ -5,7 +5,7 @@ import ChatTab from "@/components/sales/ChatTab";
 import { useCallStatus } from "@/components/CallStatusContext";
 
 export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
-  const { isInLiveCall: contextIsInLiveCall } = useCallStatus();
+  const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -77,7 +77,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
       <button
         onClick={handleToggleChat}
         className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ bottom: (isInLiveCall || (contextIsInLiveCall && activeVideoCall && isVideoWindowOpen)) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto', cursor: disabled ? 'not-allowed' : 'pointer' }}
+        style={{ bottom: (isInLiveCall || remoteCallLive) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto', cursor: disabled ? 'not-allowed' : 'pointer' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (

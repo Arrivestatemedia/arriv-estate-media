@@ -4,11 +4,12 @@ export const CallStatusContext = createContext();
 
 export function CallStatusProvider({ children }) {
   const [callStatus, setCallStatus] = useState('idle');
+  const [remoteCallLive, setRemoteCallLive] = useState(false);
 
   const isInLiveCall = callStatus !== 'idle';
 
   return (
-    <CallStatusContext.Provider value={{ callStatus, setCallStatus, isInLiveCall }}>
+    <CallStatusContext.Provider value={{ callStatus, setCallStatus, isInLiveCall, remoteCallLive, setRemoteCallLive }}>
       {children}
     </CallStatusContext.Provider>
   );
