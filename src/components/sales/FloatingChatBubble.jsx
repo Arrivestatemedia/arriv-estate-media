@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "./ChatTab";
 
-export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, onOpenChat }) {
+export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, onOpenChat, disabled }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -12,6 +12,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const userName = currentUserName || localStorage.getItem('sales_member_name');
 
   const handleToggleChat = () => {
+    if (disabled) return;
     setOpen(!open);
     if (!open) setUnreadCount(0);
   };
