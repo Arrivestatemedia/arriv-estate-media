@@ -595,7 +595,7 @@ async function loadTwilioSDK() {
     }
 
     const script = document.createElement("script");
-    script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
+    script.src = "/api/apps/698b3b9e4b7d348873dbf213/functions/twilioSdkProxy";
     script.onload = () => {
       const poll = setInterval(() => {
         if (window.Twilio?.Video) { clearInterval(poll); resolve(window.Twilio.Video); }
