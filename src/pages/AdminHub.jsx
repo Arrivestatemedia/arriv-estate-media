@@ -384,7 +384,7 @@ export default function AdminHub() {
       />
 
       {/* Admin floating chat bubble - hidden during live call */}
-      {callStatus === 'idle' || hasUnreadNotification ? (
+      {callStatus === 'idle' || hasUnreadNotification && (
         <AdminChatBubble
           currentUserId={user.id}
           currentUserName={user.full_name}
