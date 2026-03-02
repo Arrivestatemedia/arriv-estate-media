@@ -424,12 +424,12 @@ export default function AdminHub() {
       {/* Bubble Debug Badge */}
       <div style={{ position: 'fixed', bottom: 90, right: 20, fontSize: '11px', padding: '8px', background: '#333', color: '#fff', zIndex: 999, borderRadius: '4px' }}>
         <div>callStatus: {callStatus}</div>
-        <div>unread: {String(hasUnreadNotification)}</div>
-        <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
+        <div>windowOpen: {String(isVideoWindowOpen)}</div>
+        <div>show: {String(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen))}</div>
       </div>
 
-      {/* Admin floating chat bubble - hidden during live call, disabled when video call active */}
-      {(callStatus === 'idle') && (
+      {/* Admin floating chat bubble - show when no call OR when call is minimized */}
+      {(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen)) && (
         <AdminChatBubble
           currentUserId={user.id}
           currentUserName={user.full_name}

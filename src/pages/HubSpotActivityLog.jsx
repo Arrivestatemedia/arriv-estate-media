@@ -952,12 +952,12 @@ export default function HubSpotActivityLog() {
         {/* Bubble Debug Badge */}
         <div style={{ position: 'fixed', bottom: 90, right: 20, fontSize: '11px', padding: '8px', background: '#333', color: '#fff', zIndex: 999, borderRadius: '4px' }}>
           <div>callStatus: {callStatus}</div>
-          <div>unread: {String(hasUnreadNotification)}</div>
-          <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
+          <div>windowOpen: {String(isVideoWindowOpen)}</div>
+          <div>show: {String(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen))}</div>
         </div>
 
-        {/* Chat bubble - hidden during live call or if has unread notifications, disabled when video call active */}
-         {(callStatus === 'idle') && (
+        {/* Chat bubble - show when no call OR when call is minimized */}
+         {(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen)) && (
            <FloatingChatBubble
              currentUserId={user?.id}
              currentUserName={user?.full_name}
