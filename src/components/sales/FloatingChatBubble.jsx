@@ -54,7 +54,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {open && (
         <div
           className="fixed bottom-20 right-4 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
-          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 9000 }}
+          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 1000 }}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
             <span className="text-sm font-semibold text-white">Team Chat</span>
@@ -76,7 +76,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       <button
         onClick={handleToggleChat}
         className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ right: '1rem', zIndex: 9000, backgroundColor: '#B8956A' }}
+        style={{ right: '1rem', zIndex: 1000, backgroundColor: '#B8956A' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (
