@@ -408,6 +408,7 @@ export default function HubSpotActivityLog() {
   }
 
   return (
+    <>
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
 
@@ -904,5 +905,6 @@ export default function HubSpotActivityLog() {
         }).catch(() => {});
       }}
     />
+    </>
   );
 }
