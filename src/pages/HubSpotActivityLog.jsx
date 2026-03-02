@@ -918,28 +918,29 @@ export default function HubSpotActivityLog() {
           <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
         </div>
 
-        {/* Chat bubble - hidden during live call or if has unread notifications */}
-        {((callStatus === 'idle') || hasUnreadNotification) && (
-          <FloatingChatBubble
-            currentUserId={user?.id}
-            currentUserName={user?.full_name}
-            isVideoCallActive={false}
-            onOpenChat={() => {}}
-            onInitiateTransfer={(memberId, memberName) => {
-              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                const ext = members?.[0]?.extension;
-                if (ext) {
-                  setActiveTab("call");
-                  setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                      detail: { extension: String(ext), name: memberName || members[0].full_name }
-                    }));
-                  }, 150);
-                }
-              }).catch(() => {});
-            }}
-          />
-        )}
+        {/* Chat bubble - hidden during live call or if has unread notifications, disabled when video call active */}
+         {((callStatus === 'idle') || hasUnreadNotification) && (
+           <FloatingChatBubble
+             currentUserId={user?.id}
+             currentUserName={user?.full_name}
+             isVideoCallActive={false}
+             onOpenChat={() => {}}
+             disabled={isInLiveCall}
+             onInitiateTransfer={(memberId, memberName) => {
+               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                 const ext = members?.[0]?.extension;
+                 if (ext) {
+                   setActiveTab("call");
+                   setTimeout(() => {
+                     window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                       detail: { extension: String(ext), name: memberName || members[0].full_name }
+                     }));
+                   }, 150);
+                 }
+               }).catch(() => {});
+             }}
+           />
+         )}
 
       </div>
     </div>
