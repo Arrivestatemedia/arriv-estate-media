@@ -15,8 +15,6 @@ import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContex
 
 function LayoutContent({ children, currentPageName }) {
   const { isInLiveCall } = useCallStatus();
-
-      return (
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
