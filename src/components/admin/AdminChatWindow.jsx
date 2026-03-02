@@ -22,6 +22,7 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [acceptedIncomingCall, setAcceptedIncomingCall] = useState(null);
+  const [outgoingCallData, setOutgoingCallData] = useState(null);
   const [showConferenceScheduler, setShowConferenceScheduler] = useState(false);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
