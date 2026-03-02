@@ -87,6 +87,8 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       roomName,
+      token: callerToken.toJwt(),
+      recipientToken: recipientTokenJwt,
       caller: {
         id: caller.id,
         name: caller.full_name,

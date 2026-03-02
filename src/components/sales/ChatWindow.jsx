@@ -577,7 +577,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                                 onVideoCallStarted({
                                   status: 'connected',
                                   roomName: res.data.roomName,
-                                  token: res.data.caller.token,
+                                  token: res.data.token,
                                   recipientName: chatName,
                                   isIncoming: false
                                 });
