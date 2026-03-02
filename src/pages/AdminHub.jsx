@@ -25,6 +25,8 @@ export default function AdminHub() {
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
+  const [isInLiveCall, setIsInLiveCall] = useState(false);
+  const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
@@ -127,22 +129,26 @@ export default function AdminHub() {
         event.data?.recipient_id === user.id
       ) {
         const d = event.data.event_data;
-        setIncomingVideoCall({
-          notificationId: event.id,
-          roomName: d.roomName,
-          callerName: d.callerName,
-          callerExtension: d.callerExtension,
-          recipientToken: d.recipientToken
+         setIsInLiveCall(true);
+         setHasUnreadNotification(true);
+         setIncomingVideoCall({
+           notificationId: event.id,
+           roomName: d.roomName,
+           callerName: d.callerName,
+           callerExtension: d.callerExtension,
+           recipientToken: d.recipientToken
+         });
+        }
         });
-      }
-    });
 
-    return () => unsub();
-  }, [user?.id]);
+        return () => unsub();
+        }, [user?.id]);
 
   const handleAcceptVideoCall = async () => {
     if (!incomingVideoCall) return;
     setVideoCallProcessing(true);
+    setIsInLiveCall(true);
+    setHasUnreadNotification(false);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setActiveVideoCall(incomingVideoCall);
     setIsVideoWindowOpen(true);
@@ -278,8 +284,8 @@ export default function AdminHub() {
               <AdminActivityPage 
                 user={user} 
                 onVideoCallStateChange={setIsVideoCallActive}
-                onVideoCallStarted={() => setActiveVideoCall({ callerName: "Video Call" })}
-                onVideoCallEnded={() => setActiveVideoCall(null)}
+                onVideoCallStarted={() => { setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
+                onVideoCallEnded={() => { setIsInLiveCall(false); setActiveVideoCall(null); }}
               />
             </Suspense>
           </TabsContent>
@@ -343,8 +349,14 @@ export default function AdminHub() {
         </div>
       )}
 
-      {/* Admin floating chat bubble - NEVER shows during active video call */}
-      {!activeVideoCall && (
+      {/* Debug display */}
+      <div className="fixed top-20 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none">
+        <div>isInLiveCall: {String(isInLiveCall)}</div>
+        <div>hasUnreadNotif: {String(hasUnreadNotification)}</div>
+      </div>
+
+      {/* Admin floating chat bubble - hidden during active video call */}
+      {!isInLiveCall && (
         <AdminChatBubble
           currentUserId={user.id}
           currentUserName={user.full_name}
