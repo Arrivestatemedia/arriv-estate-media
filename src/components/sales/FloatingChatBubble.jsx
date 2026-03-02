@@ -7,7 +7,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Always resolve userId — currentUserId may be undefined on first render while user state loads
+  // Resolve from localStorage immediately so we don't wait for async prop
   const userId = currentUserId || localStorage.getItem('sales_member_id');
   const userName = currentUserName || localStorage.getItem('sales_member_name');
 
@@ -20,16 +20,17 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     if (!userId) return;
 
     const loadUnread = async () => {
-      const msgs = await base44.entities.DirectMessage.filter({
-        recipient_id: userId,
-        read: false
-      });
-      setUnreadCount(msgs?.length || 0);
+      try {
+        const msgs = await base44.entities.DirectMessage.filter({
+          recipient_id: userId,
+          read: false
+        });
+        setUnreadCount(msgs?.length || 0);
+      } catch (_) {}
     };
 
     loadUnread();
 
-    // Subscribe to new DMs
     const unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
       if (event.type === "create" && event.data?.recipient_id === userId) {
         setUnreadCount(prev => prev + 1);
@@ -40,7 +41,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     });
 
     return unsubscribe;
-  }, [userId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
