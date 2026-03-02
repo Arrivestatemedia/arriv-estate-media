@@ -8,6 +8,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [localRemoteCallLive, setLocalRemoteCallLive] = useState(localStorage.getItem('remoteCallLive') === 'true');
 
   // Resolve from localStorage immediately so we don't wait for async prop
   const userId = currentUserId || localStorage.getItem('sales_member_id');
@@ -79,7 +80,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       <button
         onClick={handleToggleChat}
         className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ bottom: (isInLiveCall || remoteCallLive) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto', cursor: disabled ? 'not-allowed' : 'pointer' }}
+        style={{ bottom: (isInLiveCall || localRemoteCallLive) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto', cursor: disabled ? 'not-allowed' : 'pointer' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (

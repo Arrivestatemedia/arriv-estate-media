@@ -161,6 +161,7 @@ export default function VideoCallPanelV2({
       videoRoom.on("disconnected", () => {
         setCallState("idle");
         setRemoteCallLive(false);
+        localStorage.removeItem('remoteCallLive');
       });
       videoRoom.on("error", err => setError("Room error: " + err.message));
 
@@ -168,6 +169,7 @@ export default function VideoCallPanelV2({
       // Broadcast to initiator that call is now live on receiver's side
       if (isIncoming) {
         setRemoteCallLive(true);
+        localStorage.setItem('remoteCallLive', 'true');
       }
     } catch (err) {
       console.error("Room connection error:", err);
@@ -416,6 +418,7 @@ export default function VideoCallPanelV2({
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
     setRemoteCallLive(false);
+    localStorage.removeItem('remoteCallLive');
     onClose();
   }, [onClose, stopBlur, setRemoteCallLive]);
 
