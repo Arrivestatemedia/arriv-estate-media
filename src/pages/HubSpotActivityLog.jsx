@@ -952,9 +952,10 @@ export default function HubSpotActivityLog() {
                }).catch(() => {});
              }}
            />
-         )}
+            </>
+           )}
 
-      </div>
-    </div>
-  );
-}
+           </div>
+           </div>
+           );
+           }
