@@ -525,6 +525,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
             currentUserName={user?.full_name} 
             salesMemberId={user?.id} 
             isAdmin={true}
+            onVideoCallStarted={() => setActiveVideoCall({ callerName: "Video Call" })}
+            onVideoCallEnded={() => setActiveVideoCall(null)}
             onInitiateTransfer={(memberId, memberName) => {
               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                 const ext = members?.[0]?.extension;
