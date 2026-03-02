@@ -6,6 +6,7 @@ import ChatTab from "./ChatTab";
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, onOpenChat }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isVideoActive, setIsVideoActive] = useState(false);
 
   // Resolve from localStorage immediately so we don't wait for async prop
   const userId = currentUserId || localStorage.getItem('sales_member_id');
@@ -15,6 +16,26 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     setOpen(!open);
     if (!open) setUnreadCount(0);
   };
+
+  // Listen for video call events
+  useEffect(() => {
+    const handleVideoStart = () => {
+      setIsVideoActive(true);
+      setOpen(false);
+    };
+
+    const handleVideoEnd = () => {
+      setIsVideoActive(false);
+    };
+
+    window.addEventListener('videoCallStarted', handleVideoStart);
+    window.addEventListener('videoCallEnded', handleVideoEnd);
+
+    return () => {
+      window.removeEventListener('videoCallStarted', handleVideoStart);
+      window.removeEventListener('videoCallEnded', handleVideoEnd);
+    };
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
