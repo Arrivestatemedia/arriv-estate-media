@@ -559,34 +559,35 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       </button>
                       <button
                         onClick={async () => {
-                          const ext = transferTargets.find(m => m.id === chatId)?.extension;
-                          if (!ext) {
-                            setVideoCallError('No extension found for video call');
-                            setTimeout(() => setVideoCallError(null), 3000);
-                            return;
-                          }
-                          // Set call state immediately when user initiates
-                          if (onVideoCallStarted) onVideoCallStarted('dialing');
-                          try {
-                            const res = await base44.functions.invoke('initiateVideoCall', {
-                              salesMemberId: currentUserId,
-                              recipientExtension: String(ext),
-                              callerName: currentUserName
-                            });
-                            if (res.data?.success) {
-                              setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
-                              setShowVideoCall(true);
-                            } else {
-                              setVideoCallError('Failed to start video call');
-                              if (onVideoCallEnded) onVideoCallEnded('failed');
-                              setTimeout(() => setVideoCallError(null), 3000);
-                            }
-                          } catch (err) {
-                            setVideoCallError('Failed to start video call: ' + err.message);
-                            if (onVideoCallEnded) onVideoCallEnded('error');
-                            setTimeout(() => setVideoCallError(null), 4000);
-                          }
-                        }}
+                           const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                           if (!ext) {
+                             setVideoCallError('No extension found for video call');
+                             setTimeout(() => setVideoCallError(null), 3000);
+                             return;
+                           }
+                           // Dispatch event to update callStatus immediately
+                           window.dispatchEvent(new CustomEvent('videoCallInitiated', { detail: { status: 'dialing' } }));
+                           if (onVideoCallStarted) onVideoCallStarted('dialing');
+                           try {
+                             const res = await base44.functions.invoke('initiateVideoCall', {
+                               salesMemberId: currentUserId,
+                               recipientExtension: String(ext),
+                               callerName: currentUserName
+                             });
+                             if (res.data?.success) {
+                               setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
+                               setShowVideoCall(true);
+                             } else {
+                               setVideoCallError('Failed to start video call');
+                               if (onVideoCallEnded) onVideoCallEnded('failed');
+                               setTimeout(() => setVideoCallError(null), 3000);
+                             }
+                           } catch (err) {
+                             setVideoCallError('Failed to start video call: ' + err.message);
+                             if (onVideoCallEnded) onVideoCallEnded('error');
+                             setTimeout(() => setVideoCallError(null), 4000);
+                           }
+                         }}
                         className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                         title="Video Call"
                       >

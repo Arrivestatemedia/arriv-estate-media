@@ -44,6 +44,16 @@ export default function AdminHub() {
     setIsVideoCallActive(false);
   };
 
+  // Listen for direct video call initiation events from ChatWindow
+  useEffect(() => {
+    const handleVideoCallInitiated = (e) => {
+      setCallStatus(e.detail?.status || 'dialing');
+      setLastCallEvent('OUTBOUND_START');
+    };
+    window.addEventListener('videoCallInitiated', handleVideoCallInitiated);
+    return () => window.removeEventListener('videoCallInitiated', handleVideoCallInitiated);
+  }, []);
+
   useEffect(() => {
     // Explicit initialization on mount
     setIsVideoWindowOpen(false);

@@ -82,6 +82,16 @@ export default function HubSpotActivityLog() {
     setHasUnreadNotification(false);
   };
 
+  // Listen for direct video call initiation events from ChatWindow
+  useEffect(() => {
+    const handleVideoCallInitiated = (e) => {
+      setCallStatus(e.detail?.status || 'dialing');
+      setLastCallEvent('OUTBOUND_START');
+    };
+    window.addEventListener('videoCallInitiated', handleVideoCallInitiated);
+    return () => window.removeEventListener('videoCallInitiated', handleVideoCallInitiated);
+  }, []);
+
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
