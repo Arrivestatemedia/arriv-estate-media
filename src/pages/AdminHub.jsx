@@ -21,6 +21,10 @@ export default function AdminHub() {
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
+  const [activeVideoCall, setActiveVideoCall] = useState(null);
+  const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
+  const [videoCallProcessing, setVideoCallProcessing] = useState(false);
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
