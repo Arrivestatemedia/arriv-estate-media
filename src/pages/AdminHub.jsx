@@ -405,6 +405,8 @@ export default function AdminHub() {
            isVideoActive={false}
            disabled={isInLiveCall}
            isInLiveCall={isInLiveCall}
+           activeVideoCall={activeVideoCall}
+           isVideoWindowOpen={isVideoWindowOpen}
            onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;
