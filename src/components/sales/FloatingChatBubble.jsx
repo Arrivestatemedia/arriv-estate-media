@@ -28,12 +28,25 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       setIsVideoActive(false);
     };
 
+    const handleVideoMinimized = () => {
+      setIsVideoActive(false);
+    };
+
+    const handleVideoRestored = () => {
+      setIsVideoActive(true);
+      setOpen(false);
+    };
+
     window.addEventListener('videoCallStarted', handleVideoStart);
     window.addEventListener('videoCallEnded', handleVideoEnd);
+    window.addEventListener('videoCallMinimized', handleVideoMinimized);
+    window.addEventListener('videoCallRestored', handleVideoRestored);
 
     return () => {
       window.removeEventListener('videoCallStarted', handleVideoStart);
       window.removeEventListener('videoCallEnded', handleVideoEnd);
+      window.removeEventListener('videoCallMinimized', handleVideoMinimized);
+      window.removeEventListener('videoCallRestored', handleVideoRestored);
     };
   }, []);
 
