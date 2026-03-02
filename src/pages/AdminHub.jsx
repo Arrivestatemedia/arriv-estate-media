@@ -275,7 +275,12 @@ export default function AdminHub() {
 
           <TabsContent value="activity" className="mt-6">
             <Suspense fallback={<div className="p-4">Loading...</div>}>
-              <AdminActivityPage user={user} onVideoCallStateChange={setIsVideoCallActive} />
+              <AdminActivityPage 
+                user={user} 
+                onVideoCallStateChange={setIsVideoCallActive}
+                onVideoCallStarted={() => setActiveVideoCall({ callerName: "Video Call" })}
+                onVideoCallEnded={() => setActiveVideoCall(null)}
+              />
             </Suspense>
           </TabsContent>
         </Tabs>
