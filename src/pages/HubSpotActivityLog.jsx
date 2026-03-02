@@ -247,7 +247,21 @@ export default function HubSpotActivityLog() {
     };
 
     const handleVideoCallInitiated = (event) => {
-      setCallStatus(event.detail.status || 'dialing');
+      const data = event.detail;
+      if (typeof data === 'object' && data.roomName && data.token) {
+        // Full call data from ChatWindow
+        setActiveVideoCall({
+          callerName: data.recipientName,
+          recipientToken: data.token,
+          roomName: data.roomName,
+          isIncoming: data.isIncoming === true
+        });
+        setCallStatus('connected');
+        setIsVideoWindowOpen(true);
+      } else {
+        // Just status update
+        setCallStatus(data.status || 'dialing');
+      }
     };
 
     window.addEventListener('openContact', handleOpenContact);
