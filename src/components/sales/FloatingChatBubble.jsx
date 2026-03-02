@@ -43,7 +43,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   // Standard floating chat bubble (chat panel opens when clicked)
   return (
-    <div>
+    <div key={isVideoCallActive ? 'call-active' : 'call-inactive'}>
       {/* Floating Chat Panel */}
       {open && (
         <div
@@ -68,7 +68,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
       {/* Bubble Button */}
       <button
-        onClick={() => { setOpen(!open); if (!open) setUnreadCount(0); }}
+        onClick={handleToggleChat}
         className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
         style={{ right: '1rem', zIndex: 9000, backgroundColor: '#B8956A' }}
       >
