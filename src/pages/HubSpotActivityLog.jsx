@@ -18,7 +18,7 @@ import ChatTab from "@/components/sales/ChatTab";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import PoweredByFooter from "@/components/PoweredByFooter";
-import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
@@ -949,36 +949,7 @@ export default function HubSpotActivityLog() {
           lastCallEvent={lastCallEvent}
         />
 
-        {/* Bubble Debug Badge */}
-        <div style={{ position: 'fixed', bottom: 90, right: 20, fontSize: '11px', padding: '8px', background: '#333', color: '#fff', zIndex: 999, borderRadius: '4px' }}>
-          <div>callStatus: {callStatus}</div>
-          <div>windowOpen: {String(isVideoWindowOpen)}</div>
-          <div>show: {String(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen))}</div>
-        </div>
 
-        {/* Chat bubble - show when no call OR when call is minimized */}
-         {(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen)) && (
-           <FloatingChatBubble
-             currentUserId={user?.id}
-             currentUserName={user?.full_name}
-             isVideoCallActive={false}
-             onOpenChat={() => {}}
-             disabled={isInLiveCall}
-             onInitiateTransfer={(memberId, memberName) => {
-               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                 const ext = members?.[0]?.extension;
-                 if (ext) {
-                   setActiveTab("call");
-                   setTimeout(() => {
-                     window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                       detail: { extension: String(ext), name: memberName || members[0].full_name }
-                     }));
-                   }, 150);
-                 }
-               }).catch(() => {});
-             }}
-           />
-         )}
 
       </div>
     </div>

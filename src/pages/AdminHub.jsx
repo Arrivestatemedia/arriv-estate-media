@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AdminChatBubble from "@/components/admin/AdminChatBubble";
+
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
@@ -421,34 +421,7 @@ export default function AdminHub() {
        lastCallEvent={lastCallEvent}
       />
 
-      {/* Bubble Debug Badge */}
-      <div style={{ position: 'fixed', bottom: 90, right: 20, fontSize: '11px', padding: '8px', background: '#333', color: '#fff', zIndex: 999, borderRadius: '4px' }}>
-        <div>callStatus: {callStatus}</div>
-        <div>windowOpen: {String(isVideoWindowOpen)}</div>
-        <div>show: {String(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen))}</div>
-      </div>
 
-      {/* Admin floating chat bubble - show when no call OR when call is minimized */}
-      {(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen)) && (
-        <AdminChatBubble
-          currentUserId={user.id}
-          currentUserName={user.full_name}
-          isVideoActive={false}
-          disabled={isInLiveCall}
-          onInitiateTransfer={(memberId, memberName) => {
-            base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-              const ext = members?.[0]?.extension;
-              if (ext) {
-                setActiveTab("activity");
-                localStorage.setItem('dialerPhone', String(ext));
-                setTimeout(() => {
-                  window.dispatchEvent(new Event('dialerCardReady'));
-                }, 300);
-              }
-            }).catch(() => {});
-          }}
-        />
-      )}
     </div>
   );
 }
