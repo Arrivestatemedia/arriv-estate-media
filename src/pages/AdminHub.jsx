@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
@@ -119,36 +119,14 @@ export default function AdminHub() {
       }, 0);
     };
 
-    const handleVideoCallInitiated = (event) => {
-      const data = event.detail;
-      if (typeof data === 'object' && data.roomName && data.token) {
-        // Full call data from ChatWindow
-        setLastCallEvent('OUTBOUND_START');
-        setActiveVideoCall({
-          callerName: data.recipientName,
-          recipientToken: data.token,
-          roomName: data.roomName,
-          isIncoming: data.isIncoming === true
-        });
-        setCallStatus('connected');
-        setIsVideoWindowOpen(true);
-      } else {
-        // Just status update
-        setLastCallEvent(data.reason || 'STATUS_UPDATE');
-        setCallStatus(data.status || 'dialing');
-      }
-    };
-
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openDialer', handleOpenDialer);
     window.addEventListener('openEmailComposer', handleOpenEmailComposer);
-    window.addEventListener('videoCallInitiated', handleVideoCallInitiated);
 
     return () => {
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
       window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
-      window.removeEventListener('videoCallInitiated', handleVideoCallInitiated);
     };
   }, []);
 
@@ -199,7 +177,6 @@ export default function AdminHub() {
     setActiveVideoCall(incomingVideoCall);
     setLastCallEvent('ACCEPT_INBOUND');
     setCallStatus("connected");
-    setHasUnreadNotification(false);
     setIsVideoWindowOpen(true);
     setIsVideoCallActive(true);
     setIncomingVideoCall(null);
@@ -333,22 +310,7 @@ export default function AdminHub() {
               <AdminActivityPage 
                 user={user} 
                 onVideoCallStateChange={setIsVideoCallActive}
-                onVideoCallStarted={(data) => {
-                  if (typeof data === 'object' && data.roomName && data.token) {
-                    setLastCallEvent('OUTBOUND_START');
-                    setActiveVideoCall({
-                      callerName: data.recipientName,
-                      recipientToken: data.token,
-                      roomName: data.roomName,
-                      isIncoming: data.isIncoming === true
-                    });
-                    setCallStatus('connected');
-                    setIsVideoWindowOpen(true);
-                  } else {
-                    setLastCallEvent('OUTBOUND_START');
-                    setCallStatus(data || "dialing");
-                  }
-                }}
+                onVideoCallStarted={(reason) => { setLastCallEvent('OUTBOUND_START'); setCallStatus(reason || "dialing"); setActiveVideoCall({ callerName: "Video Call" }); }}
                   onVideoCallEnded={endVideoCall}
                   endVideoCall={endVideoCall}
               />
@@ -393,46 +355,22 @@ export default function AdminHub() {
       )}
 
       {/* Minimized call restore button - always visible when call is minimized */}
-       {activeVideoCall && !isVideoWindowOpen && (
-         <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
-           <button
-             onClick={() => setIsVideoWindowOpen(true)}
-             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg"
-           >
-             📞 Return to Call
-           </button>
-           <button
-             onClick={() => endVideoCall("user_ended")}
-             className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg"
-           >
-             ✕ End Call
-           </button>
-         </div>
-       )}
-
-       {/* Chat bubble - show when no call OR when call is minimized */}
-       {(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen)) && (
-         <FloatingChatBubble
-           currentUserId={user.id}
-           currentUserName={user.full_name}
-           isVideoCallActive={false}
-           onOpenChat={() => {}}
-           disabled={isInLiveCall}
-           onInitiateTransfer={(memberId, memberName) => {
-             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-               const ext = members?.[0]?.extension;
-               if (ext) {
-                 setActiveTab("activity");
-                 setTimeout(() => {
-                   window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                     detail: { extension: String(ext), name: memberName || members[0].full_name }
-                   }));
-                 }, 150);
-               }
-             }).catch(() => {});
-           }}
-         />
-       )}
+      {activeVideoCall && !isVideoWindowOpen && (
+        <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
+          <button
+            onClick={() => setIsVideoWindowOpen(true)}
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg"
+          >
+            📞 Return to Call
+          </button>
+          <button
+            onClick={() => endVideoCall("user_ended")}
+            className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg"
+          >
+            ✕ End Call
+          </button>
+        </div>
+      )}
 
       {/* Call State Badge */}
       <CallStateBadge
@@ -445,7 +383,34 @@ export default function AdminHub() {
        lastCallEvent={lastCallEvent}
       />
 
+      {/* Bubble Debug Badge */}
+      <div style={{ position: 'fixed', bottom: 90, right: 20, fontSize: '11px', padding: '8px', background: '#333', color: '#fff', zIndex: 999, borderRadius: '4px' }}>
+        <div>callStatus: {callStatus}</div>
+        <div>unread: {String(hasUnreadNotification)}</div>
+        <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
+      </div>
 
+      {/* Admin floating chat bubble - hidden during live call, disabled when video call active */}
+      {((callStatus === 'idle') || hasUnreadNotification) && (
+        <AdminChatBubble
+          currentUserId={user.id}
+          currentUserName={user.full_name}
+          isVideoActive={false}
+          disabled={isInLiveCall}
+          onInitiateTransfer={(memberId, memberName) => {
+            base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+              const ext = members?.[0]?.extension;
+              if (ext) {
+                setActiveTab("activity");
+                localStorage.setItem('dialerPhone', String(ext));
+                setTimeout(() => {
+                  window.dispatchEvent(new Event('dialerCardReady'));
+                }, 300);
+              }
+            }).catch(() => {});
+          }}
+        />
+      )}
     </div>
   );
 }

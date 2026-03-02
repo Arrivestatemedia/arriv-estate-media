@@ -246,36 +246,14 @@ export default function HubSpotActivityLog() {
       setActiveTab("email");
     };
 
-    const handleVideoCallInitiated = (event) => {
-      const data = event.detail;
-      if (typeof data === 'object' && data.roomName && data.token) {
-        // Full call data from ChatWindow
-        setLastCallEvent('OUTBOUND_START');
-        setActiveVideoCall({
-          callerName: data.recipientName,
-          recipientToken: data.token,
-          roomName: data.roomName,
-          isIncoming: data.isIncoming === true
-        });
-        setCallStatus('connected');
-        setIsVideoWindowOpen(true);
-      } else {
-        // Just status update
-        setLastCallEvent(data.reason || 'STATUS_UPDATE');
-        setCallStatus(data.status || 'dialing');
-      }
-    };
-
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openDialer', handleOpenDialer);
     window.addEventListener('openEmailComposer', handleOpenEmailComposer);
-    window.addEventListener('videoCallInitiated', handleVideoCallInitiated);
 
     return () => {
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
       window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
-      window.removeEventListener('videoCallInitiated', handleVideoCallInitiated);
     };
   }, []);
 
@@ -354,7 +332,6 @@ export default function HubSpotActivityLog() {
     setActiveVideoCall(incomingVideoCall);
     setLastCallEvent('ACCEPT_INBOUND');
     setCallStatus("connected");
-    setHasUnreadNotification(false);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIsVideoWindowOpen(true);
     setIncomingVideoCall(null);
@@ -688,22 +665,7 @@ export default function HubSpotActivityLog() {
                currentUserName={user?.full_name} 
                salesMemberId={user?.id} 
                isAdmin={user?.role === 'admin'}
-               onVideoCallStarted={(data) => {
-                 if (typeof data === 'object' && data.roomName && data.token) {
-                   setLastCallEvent('OUTBOUND_START');
-                   setActiveVideoCall({
-                     callerName: data.recipientName,
-                     recipientToken: data.token,
-                     roomName: data.roomName,
-                     isIncoming: data.isIncoming === true
-                   });
-                   setCallStatus('connected');
-                   setIsVideoWindowOpen(true);
-                 } else {
-                   setLastCallEvent('OUTBOUND_START');
-                   setCallStatus(data || "dialing");
-                 }
-               }}
+               onVideoCallStarted={(reason) => { setLastCallEvent('OUTBOUND_START'); setCallStatus(reason || "dialing"); setActiveVideoCall({ callerName: "Video Call" }); }}
                onVideoCallEnded={endVideoCall}
                endVideoCall={endVideoCall}
               onInitiateTransfer={(memberId, memberName) => {
@@ -919,27 +881,45 @@ export default function HubSpotActivityLog() {
         )}
 
         {/* Minimized video call indicator - positioned to not conflict with chat bubble (bottom-4 right-4) */}
-         {activeVideoCall && !isVideoWindowOpen && (
-           <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
-             <button
-               onClick={() => setIsVideoWindowOpen(true)}
-               className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-colors"
-               title="Restore video call"
-             >
-               📞 Return to Call
-             </button>
-             <button
-               onClick={() => endVideoCall("user_ended")}
-               className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg transition-colors"
-               title="End call"
-             >
-               ✕ End Call
-             </button>
-           </div>
-         )}
+        {activeVideoCall && !isVideoWindowOpen && (
+          <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
+            <button
+              onClick={() => setIsVideoWindowOpen(true)}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-colors"
+              title="Restore video call"
+            >
+              📞 Return to Call
+            </button>
+            <button
+              onClick={() => endVideoCall("user_ended")}
+              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg transition-colors"
+              title="End call"
+            >
+              ✕ End Call
+            </button>
+          </div>
+        )}
 
-        {/* Chat bubble - show when no call OR when call is minimized */}
-         {(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen)) && (
+        {/* Call State Badge */}
+        <CallStateBadge
+          role="Sales Rep"
+          callStatus={callStatus}
+          isInLiveCall={isInLiveCall}
+          isVideoWindowOpen={isVideoWindowOpen}
+          activeVideoCall={activeVideoCall}
+          incomingVideoCall={incomingVideoCall}
+          lastCallEvent={lastCallEvent}
+        />
+
+        {/* Bubble Debug Badge */}
+        <div style={{ position: 'fixed', bottom: 90, right: 20, fontSize: '11px', padding: '8px', background: '#333', color: '#fff', zIndex: 999, borderRadius: '4px' }}>
+          <div>callStatus: {callStatus}</div>
+          <div>unread: {String(hasUnreadNotification)}</div>
+          <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
+        </div>
+
+        {/* Chat bubble - hidden during live call or if has unread notifications, disabled when video call active */}
+         {((callStatus === 'idle') || hasUnreadNotification) && (
            <FloatingChatBubble
              currentUserId={user?.id}
              currentUserName={user?.full_name}
@@ -961,19 +941,6 @@ export default function HubSpotActivityLog() {
              }}
            />
          )}
-
-        {/* Call State Badge */}
-        <CallStateBadge
-          role="Sales Rep"
-          callStatus={callStatus}
-          isInLiveCall={isInLiveCall}
-          isVideoWindowOpen={isVideoWindowOpen}
-          activeVideoCall={activeVideoCall}
-          incomingVideoCall={incomingVideoCall}
-          lastCallEvent={lastCallEvent}
-        />
-
-
 
       </div>
     </div>

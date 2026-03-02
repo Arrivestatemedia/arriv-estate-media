@@ -565,6 +565,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             setTimeout(() => setVideoCallError(null), 3000);
                             return;
                           }
+                          // Set call state immediately when user initiates
+                          if (onVideoCallStarted) onVideoCallStarted('dialing');
                           try {
                             const res = await base44.functions.invoke('initiateVideoCall', {
                               salesMemberId: currentUserId,
@@ -572,16 +574,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                               callerName: currentUserName
                             });
                             if (res.data?.success) {
-                              // Pass full call data up to parent
-                              if (onVideoCallStarted) {
-                                onVideoCallStarted({
-                                  status: 'connected',
-                                  roomName: res.data.roomName,
-                                  token: res.data.token,
-                                  recipientName: chatName,
-                                  isIncoming: false
-                                });
-                              }
+                              setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
+                              setShowVideoCall(true);
                             } else {
                               setVideoCallError('Failed to start video call');
                               if (onVideoCallEnded) onVideoCallEnded('failed');
@@ -881,6 +875,24 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           </div>
         )}
 
+        {/* Outgoing video call */}
+        {showVideoCall && !acceptedIncomingCall && outgoingCallData && (
+           <VideoCallPanelV2
+             recipientName={outgoingCallData.recipientName}
+             callerToken={outgoingCallData.token}
+             roomName={outgoingCallData.roomName}
+             currentUserName={currentUserName}
+             autoStart={true}
+             isVideoWindowOpen={showVideoCall}
+             onMinimize={() => setShowVideoCall(false)}
+             onClose={() => {
+               setShowVideoCall(false);
+               setOutgoingCallData(null);
+               if (onVideoCallEnded) onVideoCallEnded('user_ended');
+             }}
+           />
+         )}
+
         {/* Incoming video call notification */}
         {incomingVideoCall && (
           <IncomingVideoCallModal
@@ -889,17 +901,29 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             isProcessing={videoCallProcessing}
             onDecline={() => setIncomingVideoCall(null)}
             onAccept={() => {
-              // Pass full call data up to parent
-              if (onVideoCallStarted) {
-                onVideoCallStarted({
-                  status: 'connected',
-                  roomName: incomingVideoCall.roomName,
-                  token: incomingVideoCall.recipientToken,
-                  recipientName: incomingVideoCall.callerName,
-                  isIncoming: true
-                });
-              }
+              if (onVideoCallStarted) onVideoCallStarted('accepting');
+              setAcceptedIncomingCall(incomingVideoCall);
               setIncomingVideoCall(null);
+              setShowVideoCall(true);
+            }}
+          />
+        )}
+
+        {/* Accepted incoming call */}
+        {showVideoCall && acceptedIncomingCall && (
+          <VideoCallPanelV2
+            recipientName={acceptedIncomingCall.callerName}
+            callerToken={acceptedIncomingCall.recipientToken}
+            roomName={acceptedIncomingCall.roomName}
+            currentUserName={currentUserName}
+            isIncoming={true}
+            autoStart={true}
+            isVideoWindowOpen={showVideoCall}
+            onMinimize={() => setShowVideoCall(false)}
+            onClose={() => {
+              setShowVideoCall(false);
+              setAcceptedIncomingCall(null);
+              if (onVideoCallEnded) onVideoCallEnded('user_ended');
             }}
           />
         )}
