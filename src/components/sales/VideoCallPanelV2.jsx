@@ -418,8 +418,10 @@ export default function VideoCallPanelV2({
     if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = "";
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
-    onClose();
-  }, [onClose, stopBlur]);
+    setCallState("idle");
+    onCallStatusChange?.("idle");
+    onClose?.();
+  }, [onClose, onCallStatusChange, stopBlur]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   // When minimized, hide but keep mounted to maintain Twilio connection
