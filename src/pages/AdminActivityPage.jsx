@@ -200,52 +200,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     return () => { smsSub(); callSub(); };
   }, [user?.email]);
 
-  // Listen for incoming video call notifications - subscribe immediately
-  useEffect(() => {
-    const userId = user?.id;
-    if (!userId) return;
-
-    // Load existing unread incoming video calls and mark them as read immediately to prevent resurfacing
-    (async () => {
-      const existing = await base44.entities.PendingNotification.filter({
-        recipient_id: userId,
-        event_type: 'incoming_video_call',
-        is_read: false
-      });
-      if (existing?.[0]) {
-        console.log(`[ADMIN_ACTIVITY] Found existing unread incoming call notification, marking as read:`, existing[0].id);
-        // Mark as read immediately on load to prevent showing stale calls on page navigation
-        await base44.entities.PendingNotification.update(existing[0].id, { is_read: true }).catch(e => console.error('Failed to mark notification as read:', e));
-      }
-    })();
-
-    // Subscribe to new incoming video calls
-     setSubscribedToPendingNotification(false);
-     const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
-       setSubscribedToPendingNotification(true);
-       console.log(`[ADMIN_ACTIVITY] PendingNotification event received:`, {
-         type: event.type,
-         event_type: event.data?.event_type,
-         recipient_id: event.data?.recipient_id,
-         current_userId: userId,
-         matches: event.data?.recipient_id === userId
-       });
-       if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === userId) {
-         const d = event.data.event_data;
-         console.log(`[ADMIN_ACTIVITY] Incoming video call received from ${d.callerName}`);
-         setLastIncomingNotificationId(event.id);
-         setIncomingVideoCall({
-           notificationId: event.id,
-           roomName: d.roomName,
-           callerName: d.callerName,
-           callerExtension: d.callerExtension,
-           recipientToken: d.recipientToken
-         });
-       }
-     });
-     setSubscribedToPendingNotification(true);
-    return () => { videoCallSub(); };
-  }, [user?.id]);
+  // Video calls are now handled at the AdminHub level (works across all tabs)
 
   const { data: activities = [] } = useQuery({
     queryKey: ['adminActivities', user?.email],
