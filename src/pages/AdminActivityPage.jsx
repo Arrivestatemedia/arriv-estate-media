@@ -220,26 +220,6 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     }
   });
 
-  const handleAcceptVideoCall = async () => {
-    if (!incomingVideoCall) return;
-    console.log('[ADMIN_ACCEPT_CALL] Accepting call:', { notificationId: incomingVideoCall.notificationId, caller: incomingVideoCall.callerName, isVideoWindowOpen: true });
-    setVideoCallProcessing(true);
-    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
-    setIsVideoWindowOpen(true);
-    setActiveVideoCall(incomingVideoCall);
-    setHideChatBubble(true);
-    setIncomingVideoCall(null);
-    setVideoCallProcessing(false);
-    onVideoCallStateChange?.(true);
-    console.log('[ADMIN_ACCEPT_CALL] Call accepted, isVideoWindowOpen state set to TRUE');
-  };
-
-  const handleDeclineVideoCall = async () => {
-    if (!incomingVideoCall) return;
-    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
-    setIncomingVideoCall(null);
-  };
-
   const activityIcons = {
     call: <Phone className="w-4 h-4" />,
     email: <Mail className="w-4 h-4" />,
