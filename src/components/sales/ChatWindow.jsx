@@ -566,7 +566,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             return;
                           }
                           // Set call state immediately when user initiates
-                          if (onVideoCallStarted) onVideoCallStarted('dialing');
+                           window.dispatchEvent(new CustomEvent('videoCallInitiated', { detail: { status: 'dialing' } }));
+                           if (onVideoCallStarted) onVideoCallStarted('dialing');
                           try {
                             const res = await base44.functions.invoke('initiateVideoCall', {
                               salesMemberId: currentUserId,

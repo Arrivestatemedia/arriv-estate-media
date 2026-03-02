@@ -246,14 +246,20 @@ export default function HubSpotActivityLog() {
       setActiveTab("email");
     };
 
+    const handleVideoCallInitiated = (event) => {
+      setCallStatus(event.detail.status || 'dialing');
+    };
+
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openDialer', handleOpenDialer);
     window.addEventListener('openEmailComposer', handleOpenEmailComposer);
+    window.addEventListener('videoCallInitiated', handleVideoCallInitiated);
 
     return () => {
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
       window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
+      window.removeEventListener('videoCallInitiated', handleVideoCallInitiated);
     };
   }, []);
 
