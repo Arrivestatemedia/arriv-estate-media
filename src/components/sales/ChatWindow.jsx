@@ -565,6 +565,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             setTimeout(() => setVideoCallError(null), 3000);
                             return;
                           }
+                          // Dispatch event IMMEDIATELY to hide chat bubble BEFORE starting video
+                          window.dispatchEvent(new Event('videoCallStarted'));
                           // Set call state immediately when user initiates
                           if (onVideoCallStarted) onVideoCallStarted('dialing');
                           try {
