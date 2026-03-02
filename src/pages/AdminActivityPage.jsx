@@ -68,11 +68,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [incomingVideoCall, setIncomingVideoCall] = useState(null);
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
-  const [hideChatBubble, setHideChatBubble] = useState(false);
-  const [videoListenerReady, setVideoListenerReady] = useState(false);
-  const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
-  const [subscribedToPendingNotification, setSubscribedToPendingNotification] = useState(false);
-  const [testNotifLoading, setTestNotifLoading] = useState(false);
+
 
   // Initialize Twilio Video listener immediately on mount - listen for calls regardless of tab
   useEffect(() => {
