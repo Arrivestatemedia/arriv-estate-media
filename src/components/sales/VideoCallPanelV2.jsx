@@ -442,6 +442,7 @@ export default function VideoCallPanelV2({
             size="icon" 
             onClick={() => {
               if (onMinimize) onMinimize();
+              window.dispatchEvent(new Event('videoCallMinimized'));
             }}
             className="h-10 w-10 p-0 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0" 
             title="Minimize"
