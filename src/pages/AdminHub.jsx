@@ -10,12 +10,14 @@ import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 import CallStateBadge from "@/components/sales/CallStateBadge";
+import { useCallStatus } from "@/context/CallStatusContext";
 
 const AdminSalesSignup = lazy(() => import("./AdminSalesSignup"));
 const AdminSalesRepActivity = lazy(() => import("./AdminSalesRepActivity"));
 const AdminActivityPage = lazy(() => import("./AdminActivityPage"));
 
 export default function AdminHub() {
+  const { setCallStatus: setContextCallStatus } = useCallStatus();
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("team");
   const [profilePicUrl, setProfilePicUrl] = useState("");
@@ -32,6 +34,11 @@ export default function AdminHub() {
 
   // Derive isInLiveCall from callStatus (single source of truth)
   const isInLiveCall = callStatus !== 'idle';
+  
+  // Sync local callStatus to context
+  useEffect(() => {
+    setContextCallStatus(callStatus);
+  }, [callStatus, setContextCallStatus]);
 
   // Centralized idempotent call teardown
   const endVideoCall = (reason) => {
@@ -397,7 +404,6 @@ export default function AdminHub() {
           currentUserName={user.full_name}
           isVideoActive={false}
           disabled={isInLiveCall}
-          isInLiveCall={isInLiveCall}
           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;

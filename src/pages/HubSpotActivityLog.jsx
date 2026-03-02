@@ -24,8 +24,10 @@ import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 import CallStateBadge from "@/components/sales/CallStateBadge";
+import { useCallStatus } from "@/context/CallStatusContext";
 
 export default function HubSpotActivityLog() {
+  const { setCallStatus: setContextCallStatus } = useCallStatus();
   const [user, setUser] = useState(null);
   const [profilePicUrl, setProfilePicUrl] = useState(null);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
@@ -58,6 +60,11 @@ export default function HubSpotActivityLog() {
 
   // Derive isInLiveCall from callStatus (single source of truth)
   const isInLiveCall = callStatus !== 'idle';
+  
+  // Sync local callStatus to context
+  useEffect(() => {
+    setContextCallStatus(callStatus);
+  }, [callStatus, setContextCallStatus]);
 
   const [formData, setFormData] = useState({
     activity_type: "call",
@@ -926,7 +933,6 @@ export default function HubSpotActivityLog() {
               isVideoCallActive={false}
               onOpenChat={() => {}}
               disabled={isInLiveCall}
-              isInLiveCall={isInLiveCall}
               onInitiateTransfer={(memberId, memberName) => {
                base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                  const ext = members?.[0]?.extension;
