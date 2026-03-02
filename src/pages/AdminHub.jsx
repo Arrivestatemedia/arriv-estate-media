@@ -62,7 +62,9 @@ export default function AdminHub() {
 
     // Verify this user is an admin
     base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-      if (members?.[0]?.role === 'admin') {
+      console.log('[AdminHub] Filter result:', members, 'Role:', members?.[0]?.role);
+      const isAdmin = members?.[0]?.role === 'admin';
+      if (isAdmin) {
         setUser({
           id: salesMemberId,
           email: salesMemberEmail,
@@ -73,6 +75,7 @@ export default function AdminHub() {
         setProfilePicUrl(members[0]?.profile_picture_url || "");
         setTimeout(() => setShowPermissionBanner(true), 500);
       } else {
+        console.log('[AdminHub] Not an admin, member role:', members?.[0]?.role, 'Redirecting to HubSpotActivityLog');
         window.location.href = '/HubSpotActivityLog';
       }
     }).catch((err) => {
