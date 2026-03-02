@@ -292,56 +292,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
-        {/* Video Listener Status - ADMIN ONLY */}
-        {user?.role === 'admin' && (
-          <div className={`mb-4 p-3 rounded-lg border-2 ${videoListenerReady ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`} style={{ color: '#1A1A1A' }}>
-            <div className="text-xs font-mono space-y-1 mb-2">
-              <div><strong>VIDEO LISTENER STATUS:</strong></div>
-              <div>{videoListenerReady ? '✅' : '❌'} videoListenerReady: {String(videoListenerReady)}</div>
-              <div>• Admin ID: {user?.id?.slice(0, 12) || 'none'}</div>
-              <div>• Admin Email: {user?.email?.slice(0, 20) || 'none'}</div>
-              <div>• Can receive inbound calls: {videoListenerReady ? 'YES' : 'NO'}</div>
-            </div>
-            <div className="flex gap-2 mt-2">
-              <Button
-                onClick={() => setVideoListenerReady(!videoListenerReady)}
-                size="sm"
-                className={videoListenerReady ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'}
-              >
-                {videoListenerReady ? '✅ Go Unavailable' : '⏸️ Go Available for Video'}
-              </Button>
-              <button
-                onClick={async () => {
-                  setTestNotifLoading(true);
-                  try {
-                    console.log('[TEST] Sending test incoming video call (listener ready:', videoListenerReady, ')');
-                    await base44.entities.PendingNotification.create({
-                      recipient_id: user?.id,
-                      event_type: 'incoming_video_call',
-                      is_read: false,
-                      event_data: {
-                        roomName: `test-room-${Date.now()}`,
-                        callerName: 'Test Caller',
-                        callerExtension: '999',
-                        recipientToken: 'test-token-' + Date.now()
-                      }
-                    });
-                    console.log('[TEST] Test incoming call sent');
-                  } catch (err) {
-                    console.error('[TEST] Error sending test call:', err);
-                  } finally {
-                    setTestNotifLoading(false);
-                  }
-                }}
-                disabled={testNotifLoading || !videoListenerReady}
-                className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={videoListenerReady ? 'Send test incoming call' : 'Admin must be available for video'}
-              >
-                {testNotifLoading ? 'Sending...' : '🧪 Test Incoming Call'}
-              </button>
-            </div>
-            </div>
-            )}
+
 
         <div className="flex justify-between items-center mb-8">
            <div>
