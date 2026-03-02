@@ -179,12 +179,13 @@ export default function HubSpotActivityLog() {
             // ONLY handle CREATE events for incoming_video_call, and only if we haven't handled this notification before
             if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId && lastHandledNotificationId !== event.id) {
               const d = event.data.event_data;
-              console.log(`[HUBSPOT_ACTIVITY] NEW incoming video call from ${d.callerName} (notificationId: ${event.id})`);
-              setLastIncomingNotificationId(event.id);
-              setLastHandledNotificationId(event.id); // Mark as handled to prevent re-triggering
-              setIsInLiveCall(true);
-              setHasUnreadNotification(true);
-              setIncomingVideoCall({
+                console.log(`[HUBSPOT_ACTIVITY] NEW incoming video call from ${d.callerName} (notificationId: ${event.id})`);
+                setLastIncomingNotificationId(event.id);
+                setLastHandledNotificationId(event.id); // Mark as handled to prevent re-triggering
+                setCallStatus("ringing");
+                setIsInLiveCall(true);
+                setHasUnreadNotification(true);
+                setIncomingVideoCall({
                 notificationId: event.id,
                 roomName: d.roomName,
                 callerName: d.callerName,
