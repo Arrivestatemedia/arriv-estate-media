@@ -6,6 +6,7 @@ import ChatTab from "@/components/sales/ChatTab";
 export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isVideoActive, setIsVideoActive] = useState(false);
 
   const handleToggleChat = () => {
     setOpen(!open);
