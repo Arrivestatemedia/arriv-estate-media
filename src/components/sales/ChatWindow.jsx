@@ -919,6 +919,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             onClose={() => {
               setShowVideoCall(false);
               setAcceptedIncomingCall(null);
+              if (onVideoCallEnded) onVideoCallEnded();
             }}
           />
         )}
