@@ -18,12 +18,11 @@ import ChatTab from "@/components/sales/ChatTab";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 
-export default function AdminActivityPage({ user: propsUser, onVideoCallStateChange }) {
+export default function AdminActivityPage({ user: propsUser, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
   const [user, setUser] = useState(propsUser);
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
-  const [activeVideoCall, setActiveVideoCall] = useState(null);
 
   // Load user from localStorage if not provided
   useEffect(() => {
