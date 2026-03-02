@@ -69,7 +69,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [videoCallTarget, setVideoCallTarget] = useState(null);
   const [outgoingCallData, setOutgoingCallData] = useState(null);
-  const [incomingVideoCall, setIncomingVideoCall] = useState(null);
+
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [acceptedIncomingCall, setAcceptedIncomingCall] = useState(null);
   const [showConferenceScheduler, setShowConferenceScheduler] = useState(false);
