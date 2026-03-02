@@ -866,13 +866,12 @@ export default function HubSpotActivityLog() {
           />
         )}
 
-        {/* Minimized video call indicator - positioned to not conflict with chat bubble (bottom-4 right-4) */}
+        {/* Minimized video call indicator */}
         {activeVideoCall && !isVideoWindowOpen && (
-          <div className="fixed bottom-4 left-4 z-[99998] flex flex-col gap-2">
+          <div style={{ position: 'fixed', bottom: '1rem', left: '1rem', zIndex: 99998, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <button
               onClick={() => setIsVideoWindowOpen(true)}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-colors"
-              title="Restore video call"
+              style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', backgroundColor: '#2563eb', color: 'white', fontSize: '0.875rem', fontWeight: '600', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', border: 'none', cursor: 'pointer' }}
             >
               📞 Return to Call
             </button>
@@ -880,9 +879,9 @@ export default function HubSpotActivityLog() {
               onClick={() => {
                 setActiveVideoCall(null);
                 setIsVideoWindowOpen(false);
+                setHideChatBubble(false);
               }}
-              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg transition-colors"
-              title="End call"
+              style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', backgroundColor: '#dc2626', color: 'white', fontSize: '0.875rem', fontWeight: '600', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', border: 'none', cursor: 'pointer' }}
             >
               ✕ End Call
             </button>
