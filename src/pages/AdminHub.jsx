@@ -226,7 +226,21 @@ export default function AdminHub() {
   };
 
   if (!user) {
-    return <div className="p-4">Loading...</div>;
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    const salesMemberEmail = localStorage.getItem('sales_member_email');
+    
+    return (
+      <div className="min-h-screen p-4 flex flex-col items-center justify-center bg-gray-100">
+        <div className="bg-white rounded-lg shadow p-6 max-w-md text-center">
+          <p className="text-gray-600 mb-2">Initializing Admin Hub...</p>
+          <p className="text-xs text-gray-500 mb-4">
+            {salesMemberId ? '✓ User ID loaded' : '✗ No user ID'}<br/>
+            {salesMemberEmail ? '✓ Email loaded' : '✗ No email'}
+          </p>
+          <div className="w-8 h-8 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mx-auto"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
