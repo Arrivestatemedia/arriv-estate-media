@@ -20,7 +20,8 @@ export default function VideoCallPanelV2({
   onMinimize,
   onRestore,
   isVideoWindowOpen,
-  onChatOpenRequest
+  onChatOpenRequest,
+  onCallStatusChange
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -156,10 +157,19 @@ export default function VideoCallPanelV2({
       videoRoom.participants.forEach(p => attachParticipant(p));
       videoRoom.on("participantConnected", p => attachParticipant(p));
       videoRoom.on("participantDisconnected", p => detachParticipant(p));
-      videoRoom.on("disconnected", () => setCallState("idle"));
-      videoRoom.on("error", err => setError("Room error: " + err.message));
+      videoRoom.on("disconnected", () => {
+        setCallState("idle");
+        onCallStatusChange?.("idle");
+        onClose?.();
+      });
+      videoRoom.on("error", err => {
+        setError("Room error: " + err.message);
+        setCallState("idle");
+        onCallStatusChange?.("idle");
+      });
 
       setCallState("connected");
+      onCallStatusChange?.("connected");
     } catch (err) {
       console.error("Room connection error:", err);
       setError("Connection failed: " + err.message);
@@ -170,6 +180,7 @@ export default function VideoCallPanelV2({
   // ─── Start call ──────────────────────────────────────────────────────────────
   const handleStartCall = useCallback(async () => {
     setCallState("calling");
+    onCallStatusChange?.("connecting");
     setIsLoading(true);
     setError(null);
     try {
@@ -189,10 +200,11 @@ export default function VideoCallPanelV2({
       console.error("Call start error:", err);
       setError("Connection failed: " + err.message);
       setCallState("idle");
+      onCallStatusChange?.("idle");
     } finally {
       setIsLoading(false);
     }
-  }, [callerToken, roomName, currentUserName, connectToRoom]);
+  }, [callerToken, roomName, currentUserName, connectToRoom, onCallStatusChange]);
 
   // ─── Auto-start ───────────────────────────────────────────────────────────────
   useEffect(() => {
