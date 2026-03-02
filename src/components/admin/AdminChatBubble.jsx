@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "@/components/sales/ChatTab";
-import { useCallStatus } from "@/context/CallStatusContext";
+import { useCallStatus } from "@/components/CallStatusContext";
 
 export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, disabled }) {
   const { isInLiveCall } = useCallStatus();

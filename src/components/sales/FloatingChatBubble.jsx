@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "./ChatTab";
-import { useCallStatus } from "@/context/CallStatusContext";
+import { useCallStatus } from "@/components/CallStatusContext";
 
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, onOpenChat, disabled }) {
   const { isInLiveCall } = useCallStatus();

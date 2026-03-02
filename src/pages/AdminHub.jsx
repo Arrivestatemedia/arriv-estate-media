@@ -10,7 +10,7 @@ import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 import CallStateBadge from "@/components/sales/CallStateBadge";
-import { useCallStatus } from "@/context/CallStatusContext";
+import { useCallStatus } from "@/components/CallStatusContext";
 
 const AdminSalesSignup = lazy(() => import("./AdminSalesSignup"));
 const AdminSalesRepActivity = lazy(() => import("./AdminSalesRepActivity"));

@@ -24,7 +24,7 @@ import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 import CallStateBadge from "@/components/sales/CallStateBadge";
-import { useCallStatus } from "@/context/CallStatusContext";
+import { useCallStatus } from "@/components/CallStatusContext";
 
 export default function HubSpotActivityLog() {
   const { setCallStatus: setContextCallStatus } = useCallStatus();
