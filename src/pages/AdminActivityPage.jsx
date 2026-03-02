@@ -70,23 +70,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
 
 
-  // Initialize Twilio Video listener immediately on mount - listen for calls regardless of tab
-  useEffect(() => {
-   if (!user?.id) return;
 
-   console.log('[ADMIN_LISTENER] Initializing video call listener for admin:', user?.id);
-
-   // Always set listener ready - incoming calls via PendingNotification work on any tab
-   setVideoListenerReady(true);
-
-   // Load SDK in background if needed
-   if (!window.Twilio?.Video) {
-     const script = document.createElement("script");
-     script.src = "https://sdk.twilio.com/js/video/releases/2.28.0/twilio-video.min.js";
-     script.async = true;
-     document.head.appendChild(script);
-   }
-  }, [user?.id]);
 
   // ============================================================
   // ⚠️  DO NOT MODIFY THIS useEffect BLOCK ⚠️
