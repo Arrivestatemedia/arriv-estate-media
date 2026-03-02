@@ -16,7 +16,15 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
     if (!open) setUnreadCount(0);
   };
 
-
+  useEffect(() => {
+    // Listen for remoteCallLive changes
+    const interval = setInterval(() => {
+      const isLive = localStorage.getItem('remoteCallLive') === 'true';
+      setLocalRemoteCallLive(isLive);
+    }, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const userId = currentUserId || localStorage.getItem('sales_member_id');

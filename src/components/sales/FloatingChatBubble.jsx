@@ -21,6 +21,16 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   };
 
   useEffect(() => {
+    // Listen for remoteCallLive changes
+    const interval = setInterval(() => {
+      const isLive = localStorage.getItem('remoteCallLive') === 'true';
+      setLocalRemoteCallLive(isLive);
+    }, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     if (!userId) return;
 
     const loadUnread = async () => {
