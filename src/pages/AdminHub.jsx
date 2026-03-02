@@ -289,8 +289,57 @@ export default function AdminHub() {
         onClose={() => setShowEditProfile(false)}
       />
 
+      {/* Incoming video call modal */}
+      {incomingVideoCall && (
+        <IncomingVideoCallModal
+          callerName={incomingVideoCall.callerName}
+          callerExtension={incomingVideoCall.callerExtension}
+          onAccept={handleAcceptVideoCall}
+          onDecline={handleDeclineVideoCall}
+          isProcessing={videoCallProcessing}
+        />
+      )}
+
+      {/* Active video call panel */}
+      {activeVideoCall && (
+        <VideoCallPanelV2
+          recipientName={activeVideoCall.callerName}
+          callerToken={activeVideoCall.recipientToken}
+          roomName={activeVideoCall.roomName}
+          currentUserName={user?.full_name}
+          isIncoming={true}
+          autoStart={true}
+          onClose={() => {
+            setActiveVideoCall(null);
+            setIsVideoWindowOpen(false);
+            setIsVideoCallActive(false);
+          }}
+          onMinimize={() => setIsVideoWindowOpen(false)}
+          isVideoWindowOpen={isVideoWindowOpen}
+          onChatOpenRequest={() => {}}
+        />
+      )}
+
+      {/* Minimized call restore button */}
+      {activeVideoCall && !isVideoWindowOpen && (
+        <div className="fixed bottom-4 left-4 z-[99998] flex flex-col gap-2">
+          <button
+            onClick={() => setIsVideoWindowOpen(true)}
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg"
+          >
+            📞 Return to Call
+          </button>
+          <button
+            onClick={() => { setActiveVideoCall(null); setIsVideoWindowOpen(false); setIsVideoCallActive(false); }}
+            className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg"
+          >
+            ✕ End Call
+          </button>
+        </div>
+      )}
+
       {/* Admin floating chat bubble */}
-      <AdminChatBubble
+      {!activeVideoCall && <AdminChatBubble
         currentUserId={user.id}
         currentUserName={user.full_name}
         isVideoActive={isVideoCallActive}
