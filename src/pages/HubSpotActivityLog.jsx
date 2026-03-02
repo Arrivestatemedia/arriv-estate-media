@@ -906,6 +906,7 @@ export default function HubSpotActivityLog() {
             }).catch(() => {});
           }}
           isVideoCallActive={hideChatBubble && isVideoWindowOpen}
+
         />
 
       </div>
