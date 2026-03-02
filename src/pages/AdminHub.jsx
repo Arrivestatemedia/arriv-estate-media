@@ -356,7 +356,7 @@ export default function AdminHub() {
             }
           }).catch(() => {});
         }}
-      />
-    </div>
-  );
-}
+        />}
+        </div>
+        );
+        }
