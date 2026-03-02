@@ -23,6 +23,7 @@ import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
+import CallStateBadge from "@/components/sales/CallStateBadge";
 
 export default function HubSpotActivityLog() {
   const [user, setUser] = useState(null);
@@ -51,9 +52,13 @@ export default function HubSpotActivityLog() {
   const [videoListenerReady, setVideoListenerReady] = useState(false);
   const [lastIncomingNotificationId, setLastIncomingNotificationId] = useState(null);
   const [lastHandledNotificationId, setLastHandledNotificationId] = useState(null); // Dedupe prevention
-  const [isInLiveCall, setIsInLiveCall] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
   const [callStatus, setCallStatus] = useState("idle");
+  const [lastCallEvent, setLastCallEvent] = useState("");
+
+  // Derive isInLiveCall from callStatus (single source of truth)
+  const isInLiveCall = callStatus !== 'idle';
+
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
@@ -69,8 +74,7 @@ export default function HubSpotActivityLog() {
 
   // Centralized idempotent call teardown
   const endVideoCall = (reason) => {
-    console.log('[HUBSPOT_ACTIVITY] endVideoCall called:', reason);
-    setIsInLiveCall(false);
+    setLastCallEvent(reason || 'LOCAL_END');
     setCallStatus("idle");
     setIsVideoWindowOpen(false);
     setActiveVideoCall(null);
@@ -179,13 +183,12 @@ export default function HubSpotActivityLog() {
             // ONLY handle CREATE events for incoming_video_call, and only if we haven't handled this notification before
             if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId && lastHandledNotificationId !== event.id) {
               const d = event.data.event_data;
-                console.log(`[HUBSPOT_ACTIVITY] NEW incoming video call from ${d.callerName} (notificationId: ${event.id})`);
-                setLastIncomingNotificationId(event.id);
-                setLastHandledNotificationId(event.id); // Mark as handled to prevent re-triggering
-                setCallStatus("ringing");
-                setIsInLiveCall(true);
-                setHasUnreadNotification(true);
-                setIncomingVideoCall({
+              setLastIncomingNotificationId(event.id);
+              setLastHandledNotificationId(event.id); // Mark as handled to prevent re-triggering
+              setLastCallEvent('INBOUND_RECEIVED');
+              setCallStatus("ringing");
+              setHasUnreadNotification(true);
+              setIncomingVideoCall({
                 notificationId: event.id,
                 roomName: d.roomName,
                 callerName: d.callerName,
@@ -323,12 +326,11 @@ export default function HubSpotActivityLog() {
 
   const handleAcceptVideoCall = async () => {
     if (!incomingVideoCall) return;
-    console.log('[HUBSPOT_ACTIVITY] Accepting call:', { caller: incomingVideoCall.callerName });
     setVideoCallProcessing(true);
     setCallStatus("connecting");
-    setIsInLiveCall(true);
     setHasUnreadNotification(false);
     setActiveVideoCall(incomingVideoCall);
+    setLastCallEvent('ACCEPT_INBOUND');
     setCallStatus("connected");
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIsVideoWindowOpen(true);
@@ -663,7 +665,7 @@ export default function HubSpotActivityLog() {
                currentUserName={user?.full_name} 
                salesMemberId={user?.id} 
                isAdmin={user?.role === 'admin'}
-               onVideoCallStarted={(reason) => { setCallStatus(reason || "dialing"); setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
+               onVideoCallStarted={(reason) => { setLastCallEvent('OUTBOUND_START'); setCallStatus(reason || "dialing"); setActiveVideoCall({ callerName: "Video Call" }); }}
                onVideoCallEnded={endVideoCall}
                endVideoCall={endVideoCall}
               onInitiateTransfer={(memberId, memberName) => {
@@ -898,15 +900,19 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {/* Debug display */}
-        <div className="fixed top-4 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none max-w-xs">
-          <div>callStatus: {callStatus}</div>
-          <div>isInLiveCall: {String(isInLiveCall)}</div>
-          <div>hasUnreadNotif: {String(hasUnreadNotification)}</div>
-        </div>
+        {/* Call State Badge */}
+        <CallStateBadge
+          role="Sales Rep"
+          callStatus={callStatus}
+          isInLiveCall={isInLiveCall}
+          isVideoWindowOpen={isVideoWindowOpen}
+          activeVideoCall={activeVideoCall}
+          incomingVideoCall={incomingVideoCall}
+          lastCallEvent={lastCallEvent}
+        />
 
-        {/* Chat bubble - hidden during any live call */}
-        {!isInLiveCall && <FloatingChatBubble
+        {/* Chat bubble - hidden during live call or if has unread notifications */}
+        {callStatus === 'idle' || hasUnreadNotification ? <FloatingChatBubble
           currentUserId={user?.id}
           currentUserName={user?.full_name}
           isVideoCallActive={false}
