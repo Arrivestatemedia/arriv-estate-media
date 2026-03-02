@@ -33,7 +33,9 @@ export default function SalesLogin() {
         localStorage.setItem('sales_member_id', result.data.memberId);
         localStorage.setItem('sales_member_name', result.data.name);
         localStorage.setItem('sales_member_email', result.data.email);
-        navigate(createPageUrl("HubSpotActivityLog"));
+        localStorage.setItem('sales_member_role', result.data.role || 'user');
+        const isAdmin = result.data.role === 'admin';
+        navigate(createPageUrl(isAdmin ? "AdminHub" : "HubSpotActivityLog"));
       } else {
         setError(result.data?.error || "Login failed");
       }
