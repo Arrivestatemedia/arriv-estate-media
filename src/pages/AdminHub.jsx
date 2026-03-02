@@ -398,7 +398,7 @@ export default function AdminHub() {
       </div>
 
       {/* Admin floating chat bubble - hidden during live call, disabled when video call active */}
-       {((callStatus === 'idle') || hasUnreadNotification) && (
+       {callStatus === 'idle' && (
          <>
          <span className="fixed bottom-[6rem] right-4 text-[10px] bg-green-500 text-white px-1 rounded font-bold z-[8999]">CHAT_B</span>
          <AdminChatBubble
