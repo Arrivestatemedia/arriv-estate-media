@@ -105,6 +105,58 @@ export default function AdminHub() {
     };
   }, []);
 
+  // Listen for incoming video calls at the top-level (works regardless of active tab)
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Mark any stale unread notifications as read
+    base44.entities.PendingNotification.filter({
+      recipient_id: user.id,
+      event_type: 'incoming_video_call',
+      is_read: false
+    }).then(existing => {
+      if (existing?.[0]) {
+        base44.entities.PendingNotification.update(existing[0].id, { is_read: true }).catch(() => {});
+      }
+    });
+
+    const unsub = base44.entities.PendingNotification.subscribe((event) => {
+      if (
+        event.type === 'create' &&
+        event.data?.event_type === 'incoming_video_call' &&
+        event.data?.recipient_id === user.id
+      ) {
+        const d = event.data.event_data;
+        setIncomingVideoCall({
+          notificationId: event.id,
+          roomName: d.roomName,
+          callerName: d.callerName,
+          callerExtension: d.callerExtension,
+          recipientToken: d.recipientToken
+        });
+      }
+    });
+
+    return () => unsub();
+  }, [user?.id]);
+
+  const handleAcceptVideoCall = async () => {
+    if (!incomingVideoCall) return;
+    setVideoCallProcessing(true);
+    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    setActiveVideoCall(incomingVideoCall);
+    setIsVideoWindowOpen(true);
+    setIsVideoCallActive(true);
+    setIncomingVideoCall(null);
+    setVideoCallProcessing(false);
+  };
+
+  const handleDeclineVideoCall = async () => {
+    if (!incomingVideoCall) return;
+    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    setIncomingVideoCall(null);
+  };
+
   // Sync chat status with calendar every 3 minutes
   useEffect(() => {
     const syncStatus = async () => {
