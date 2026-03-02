@@ -80,6 +80,7 @@ export default function HubSpotActivityLog() {
     setActiveVideoCall(null);
     setIncomingVideoCall(null);
     setHasUnreadNotification(false);
+    window.dispatchEvent(new Event('videoCallEnded'));
   };
 
 
