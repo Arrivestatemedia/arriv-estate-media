@@ -569,8 +569,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                           window.dispatchEvent(new Event('videoCallStarted'));
                           // Wait 300ms for bubble to hide, then start video
                           await new Promise(resolve => setTimeout(resolve, 300));
-                          // Set call state after bubble hides
-                          if (onVideoCallStarted) onVideoCallStarted('dialing');
                           try {
                             const res = await base44.functions.invoke('initiateVideoCall', {
                               salesMemberId: currentUserId,
@@ -580,6 +578,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             if (res.data?.success) {
                               setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
                               setShowVideoCall(true);
+                              if (onVideoCallStarted) onVideoCallStarted('dialing');
                             } else {
                               setVideoCallError('Failed to start video call');
                               if (onVideoCallEnded) onVideoCallEnded('failed');
