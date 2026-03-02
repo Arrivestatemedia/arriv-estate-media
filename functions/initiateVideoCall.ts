@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       caller_name: caller.full_name
     });
 
+    // Create notification for recipient (incoming)
     const notification = await base44.asServiceRole.entities.PendingNotification.create({
       recipient_id: recipient.id,
       event_type: 'incoming_video_call',
@@ -72,6 +73,20 @@ Deno.serve(async (req) => {
         callerId: caller.id,
         recipientToken: recipientTokenJwt,
         callerExtension: caller.extension
+      },
+      is_read: false
+    });
+
+    // Create notification for caller (outgoing)
+    await base44.asServiceRole.entities.PendingNotification.create({
+      recipient_id: caller.id,
+      event_type: 'outgoing_video_call',
+      event_data: {
+        roomName,
+        recipientName: recipient.full_name,
+        recipientId: recipient.id,
+        callerToken: callerToken.toJwt(),
+        recipientExtension: recipient.extension
       },
       is_read: false
     });

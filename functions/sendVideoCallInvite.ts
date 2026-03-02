@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     console.log(`Video call invitation sent: ${caller.full_name} → ${recipient.full_name}`);
     console.log(`Room: ${roomName}, Recipient ID: ${recipient.id}`);
 
-    // Create a pending notification for the recipient
+    // Create a pending notification for the recipient (incoming)
     const notification = await base44.asServiceRole.entities.PendingNotification.create({
       recipient_id: recipient.id,
       event_type: 'incoming_video_call',
@@ -40,6 +40,20 @@ Deno.serve(async (req) => {
         recipientToken: recipientToken,
         recipientExtension: recipient.extension,
         recipientId: recipient.id
+      },
+      is_read: false
+    });
+
+    // Create a pending notification for the caller (outgoing)
+    await base44.asServiceRole.entities.PendingNotification.create({
+      recipient_id: caller.id,
+      event_type: 'outgoing_video_call',
+      event_data: {
+        recipientId: recipient.id,
+        recipientName: recipient.full_name,
+        recipientExtension: recipient.extension,
+        roomName: roomName,
+        callerExtension: caller.extension
       },
       is_read: false
     });
