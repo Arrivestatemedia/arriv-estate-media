@@ -9,6 +9,7 @@ import PoweredByFooter from "@/components/PoweredByFooter";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
+import CallStateBadge from "@/components/sales/CallStateBadge";
 
 const AdminSalesSignup = lazy(() => import("./AdminSalesSignup"));
 const AdminSalesRepActivity = lazy(() => import("./AdminSalesRepActivity"));
@@ -25,14 +26,16 @@ export default function AdminHub() {
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const [isVideoWindowOpen, setIsVideoWindowOpen] = useState(false);
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
-  const [isInLiveCall, setIsInLiveCall] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
   const [callStatus, setCallStatus] = useState("idle");
+  const [lastCallEvent, setLastCallEvent] = useState("");
+
+  // Derive isInLiveCall from callStatus (single source of truth)
+  const isInLiveCall = callStatus !== 'idle';
 
   // Centralized idempotent call teardown
   const endVideoCall = (reason) => {
-    console.log('[ADMINHUB] endVideoCall called:', reason);
-    setIsInLiveCall(false);
+    setLastCallEvent(reason || 'LOCAL_END');
     setCallStatus("idle");
     setIsVideoWindowOpen(false);
     setActiveVideoCall(null);
@@ -43,11 +46,11 @@ export default function AdminHub() {
 
   useEffect(() => {
     // Explicit initialization on mount
-    setIsInLiveCall(false);
     setIsVideoWindowOpen(false);
     setActiveVideoCall(null);
     setIncomingVideoCall(null);
     setCallStatus("idle");
+    setLastCallEvent("");
 
     const salesMemberId = localStorage.getItem('sales_member_id');
     const salesMemberEmail = localStorage.getItem('sales_member_email');
@@ -143,14 +146,14 @@ export default function AdminHub() {
     });
 
     const unsub = base44.entities.PendingNotification.subscribe((event) => {
-      if (
-        event.type === 'create' &&
-        event.data?.event_type === 'incoming_video_call' &&
-        event.data?.recipient_id === user.id
-      ) {
-        const d = event.data.event_data;
+       if (
+         event.type === 'create' &&
+         event.data?.event_type === 'incoming_video_call' &&
+         event.data?.recipient_id === user.id
+       ) {
+         const d = event.data.event_data;
+         setLastCallEvent('INBOUND_RECEIVED');
          setCallStatus("ringing");
-         setIsInLiveCall(true);
          setHasUnreadNotification(true);
          setIncomingVideoCall({
            notificationId: event.id,
@@ -159,8 +162,8 @@ export default function AdminHub() {
            callerExtension: d.callerExtension,
            recipientToken: d.recipientToken
          });
-        }
-        });
+         }
+         });
 
         return () => unsub();
         }, [user?.id]);
@@ -169,10 +172,10 @@ export default function AdminHub() {
     if (!incomingVideoCall) return;
     setVideoCallProcessing(true);
     setCallStatus("connecting");
-    setIsInLiveCall(true);
     setHasUnreadNotification(false);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setActiveVideoCall(incomingVideoCall);
+    setLastCallEvent('ACCEPT_INBOUND');
     setCallStatus("connected");
     setIsVideoWindowOpen(true);
     setIsVideoCallActive(true);
@@ -307,7 +310,7 @@ export default function AdminHub() {
               <AdminActivityPage 
                 user={user} 
                 onVideoCallStateChange={setIsVideoCallActive}
-                onVideoCallStarted={(reason) => { setCallStatus(reason || "dialing"); setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
+                onVideoCallStarted={(reason) => { setLastCallEvent('OUTBOUND_START'); setCallStatus(reason || "dialing"); setActiveVideoCall({ callerName: "Video Call" }); }}
                   onVideoCallEnded={endVideoCall}
                   endVideoCall={endVideoCall}
               />
@@ -369,15 +372,19 @@ export default function AdminHub() {
         </div>
       )}
 
-      {/* Debug display */}
-      <div className="fixed top-20 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none max-w-xs">
-        <div>callStatus: {callStatus}</div>
-        <div>isInLiveCall: {String(isInLiveCall)}</div>
-        <div>hasUnreadNotif: {String(hasUnreadNotification)}</div>
-      </div>
+      {/* Call State Badge */}
+      <CallStateBadge
+       role="Sales Rep Admin"
+       callStatus={callStatus}
+       isInLiveCall={isInLiveCall}
+       isVideoWindowOpen={isVideoWindowOpen}
+       activeVideoCall={activeVideoCall}
+       incomingVideoCall={incomingVideoCall}
+       lastCallEvent={lastCallEvent}
+      />
 
-      {/* Admin floating chat bubble - hidden during active video call */}
-      {!isInLiveCall && (
+      {/* Admin floating chat bubble - hidden during live call */}
+      {callStatus === 'idle' || hasUnreadNotification ? (
         <AdminChatBubble
           currentUserId={user.id}
           currentUserName={user.full_name}
