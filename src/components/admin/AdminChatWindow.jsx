@@ -284,20 +284,24 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
         {selectedRepId && (
           <div className="flex items-center gap-1">
             <button
-              onClick={() => {
-                const rep = salesReps.find(r => r.id === selectedRepId);
-                if (!rep?.extension) {
-                  setVideoCallError('No extension found for video call');
-                  setTimeout(() => setVideoCallError(null), 3000);
-                  return;
-                }
-                setShowVideoCall(true);
-              }}
-              className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
-              title="Video Call"
-            >
-              <Video className="w-4 h-4" />
-            </button>
+               onClick={async () => {
+                 const rep = salesReps.find(r => r.id === selectedRepId);
+                 if (!rep?.extension) {
+                   setVideoCallError('No extension found for video call');
+                   setTimeout(() => setVideoCallError(null), 3000);
+                   return;
+                 }
+                 // Dispatch event IMMEDIATELY to hide chat bubble BEFORE starting video
+                 window.dispatchEvent(new Event('videoCallStarted'));
+                 // Wait 300ms for bubble to hide, then start video
+                 await new Promise(resolve => setTimeout(resolve, 300));
+                 setShowVideoCall(true);
+               }}
+               className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+               title="Video Call"
+             >
+               <Video className="w-4 h-4" />
+             </button>
             <button
               onClick={() => setShowConferenceScheduler(true)}
               className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
