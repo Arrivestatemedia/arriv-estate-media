@@ -27,8 +27,28 @@ export default function AdminHub() {
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [isInLiveCall, setIsInLiveCall] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
+  const [callStatus, setCallStatus] = useState("idle");
+
+  // Centralized idempotent call teardown
+  const endVideoCall = (reason) => {
+    console.log('[ADMINHUB] endVideoCall called:', reason);
+    setIsInLiveCall(false);
+    setCallStatus("idle");
+    setIsVideoWindowOpen(false);
+    setActiveVideoCall(null);
+    setIncomingVideoCall(null);
+    setHasUnreadNotification(false);
+    setIsVideoCallActive(false);
+  };
 
   useEffect(() => {
+    // Explicit initialization on mount
+    setIsInLiveCall(false);
+    setIsVideoWindowOpen(false);
+    setActiveVideoCall(null);
+    setIncomingVideoCall(null);
+    setCallStatus("idle");
+
     const salesMemberId = localStorage.getItem('sales_member_id');
     const salesMemberEmail = localStorage.getItem('sales_member_email');
     
@@ -324,11 +344,7 @@ export default function AdminHub() {
           currentUserName={user?.full_name}
           isIncoming={true}
           autoStart={true}
-          onClose={() => {
-            setActiveVideoCall(null);
-            setIsVideoWindowOpen(false);
-            setIsVideoCallActive(false);
-          }}
+          onClose={() => endVideoCall("user_ended")}
           onMinimize={() => setIsVideoWindowOpen(false)}
           isVideoWindowOpen={isVideoWindowOpen}
           onChatOpenRequest={() => {}}
@@ -345,7 +361,7 @@ export default function AdminHub() {
             📞 Return to Call
           </button>
           <button
-            onClick={() => { setActiveVideoCall(null); setIsVideoWindowOpen(false); setIsVideoCallActive(false); }}
+            onClick={() => endVideoCall("user_ended")}
             className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg"
           >
             ✕ End Call
