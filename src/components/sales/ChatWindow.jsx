@@ -567,7 +567,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                           }
                           // Dispatch event IMMEDIATELY to hide chat bubble BEFORE starting video
                           window.dispatchEvent(new Event('videoCallStarted'));
-                          // Set call state immediately when user initiates
+                          // Wait 300ms for bubble to hide, then start video
+                          await new Promise(resolve => setTimeout(resolve, 300));
+                          // Set call state after bubble hides
                           if (onVideoCallStarted) onVideoCallStarted('dialing');
                           try {
                             const res = await base44.functions.invoke('initiateVideoCall', {
