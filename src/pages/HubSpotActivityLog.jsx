@@ -911,8 +911,15 @@ export default function HubSpotActivityLog() {
           lastCallEvent={lastCallEvent}
         />
 
+        {/* Bubble Debug Badge */}
+        <div style={{ position: 'fixed', bottom: 90, right: 20, fontSize: '11px', padding: '8px', background: '#333', color: '#fff', zIndex: 999, borderRadius: '4px' }}>
+          <div>callStatus: {callStatus}</div>
+          <div>unread: {String(hasUnreadNotification)}</div>
+          <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
+        </div>
+
         {/* Chat bubble - hidden during live call or if has unread notifications */}
-        {callStatus === 'idle' || hasUnreadNotification && (
+        {((callStatus === 'idle') || hasUnreadNotification) && (
           <FloatingChatBubble
             currentUserId={user?.id}
             currentUserName={user?.full_name}
