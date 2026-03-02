@@ -7,7 +7,10 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-
+  const handleToggleChat = () => {
+    setOpen(!open);
+    if (!open) setUnreadCount(0);
+  };
 
   useEffect(() => {
     if (!currentUserId) return;
