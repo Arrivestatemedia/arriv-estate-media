@@ -295,7 +295,23 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
                  window.dispatchEvent(new Event('videoCallStarted'));
                  // Wait 300ms for bubble to hide, then start video
                  await new Promise(resolve => setTimeout(resolve, 300));
-                 setShowVideoCall(true);
+                 try {
+                   const res = await base44.functions.invoke('initiateVideoCall', {
+                     salesMemberId: currentUserId,
+                     recipientExtension: String(rep.extension),
+                     callerName: currentUserName
+                   });
+                   if (res.data?.success) {
+                     setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: selectedRepName });
+                     setShowVideoCall(true);
+                   } else {
+                     setVideoCallError('Failed to start video call');
+                     setTimeout(() => setVideoCallError(null), 3000);
+                   }
+                 } catch (err) {
+                   setVideoCallError('Failed to start video call: ' + err.message);
+                   setTimeout(() => setVideoCallError(null), 4000);
+                 }
                }}
                className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
                title="Video Call"
