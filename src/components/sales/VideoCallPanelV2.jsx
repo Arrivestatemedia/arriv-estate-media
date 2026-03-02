@@ -414,7 +414,7 @@ export default function VideoCallPanelV2({
   if (!isVideoWindowOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col z-[9000]">
+    <div className="fixed inset-0 bg-black flex flex-col z-[99999]">
 
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700">

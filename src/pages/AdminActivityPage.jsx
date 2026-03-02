@@ -914,7 +914,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
 
         {/* Minimized video call indicator */}
         {activeVideoCall && !isVideoWindowOpen && (
-          <div className="fixed bottom-4 right-4 z-[249] flex flex-col gap-2">
+         <div className="fixed bottom-4 left-4 z-[99998] flex flex-col gap-2">
             <button
               onClick={() => setIsVideoWindowOpen(true)}
               className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-colors"
