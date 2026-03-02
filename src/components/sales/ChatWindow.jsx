@@ -566,6 +566,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             return;
                           }
                           try {
+                            if (onVideoCallStarted) onVideoCallStarted();
                             const res = await base44.functions.invoke('initiateVideoCall', {
                               salesMemberId: currentUserId,
                               recipientExtension: String(ext),
@@ -574,13 +575,14 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             if (res.data?.success) {
                               setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
                               setShowVideoCall(true);
-                              if (onVideoCallStarted) onVideoCallStarted();
                             } else {
                               setVideoCallError('Failed to start video call');
+                              if (onVideoCallEnded) onVideoCallEnded();
                               setTimeout(() => setVideoCallError(null), 3000);
                             }
                           } catch (err) {
                             setVideoCallError('Failed to start video call: ' + err.message);
+                            if (onVideoCallEnded) onVideoCallEnded();
                             setTimeout(() => setVideoCallError(null), 4000);
                           }
                         }}
@@ -898,6 +900,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             isProcessing={videoCallProcessing}
             onDecline={() => setIncomingVideoCall(null)}
             onAccept={() => {
+              if (onVideoCallStarted) onVideoCallStarted();
               setAcceptedIncomingCall(incomingVideoCall);
               setIncomingVideoCall(null);
               setShowVideoCall(true);
