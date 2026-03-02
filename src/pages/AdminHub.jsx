@@ -360,7 +360,10 @@ export default function AdminHub() {
       {activeVideoCall && !isVideoWindowOpen && (
         <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
           <button
-            onClick={() => setIsVideoWindowOpen(true)}
+            onClick={() => {
+              setIsVideoWindowOpen(true);
+              window.dispatchEvent(new Event('videoCallRestored'));
+            }}
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg"
           >
             📞 Return to Call
