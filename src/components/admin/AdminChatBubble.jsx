@@ -32,7 +32,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
     // Subscribe to new DMs
     const unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
       if (event.type === "create" && event.data?.recipient_id === userId) {
-        setUnreadCount(prev => prev + 1);
+        setUnreadCount((prev) => prev + 1);
       }
       if (event.type === "update" && event.data?.recipient_id === userId && event.data?.read) {
         loadUnread();
@@ -49,11 +49,11 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
   return (
     <div>
       {/* Floating Chat Panel */}
-      {open && (
-        <div
-          className="fixed bottom-20 right-4 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
-          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 9000 }}
-        >
+      {open &&
+      <div
+        className="fixed bottom-20 right-4 w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden"
+        style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 9000 }}>
+
           <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
             <span className="text-sm font-semibold text-white">Team Chat</span>
             <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white">
@@ -62,31 +62,31 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
           </div>
           <div style={{ height: 'calc(100% - 40px)' }}>
             <ChatTab
-              currentUserId={currentUserId}
-              currentUserName={currentUserName}
-              isAdmin={true}
-              onInitiateTransfer={onInitiateTransfer}
-            />
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            isAdmin={true}
+            onInitiateTransfer={onInitiateTransfer} />
+
           </div>
         </div>
-      )}
+      }
 
       {/* Bubble Button */}
-      <button
-        onClick={handleToggleChat}
-        className="fixed bottom-4 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto', cursor: disabled ? 'not-allowed' : 'pointer' }}
-      >
-        <MessageSquare className="w-6 h-6 text-white" />
-        {displayCount > 0 && (
-          <span
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style={{ backgroundColor: '#ef4444', minWidth: '1.25rem' }}
-          >
-            {displayCount > 9 ? '9+' : displayCount}
-          </span>
-        )}
-      </button>
-    </div>
-  );
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>);
+
 }
