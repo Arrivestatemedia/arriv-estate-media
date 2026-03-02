@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, BarChart3 } from "lucide-react";
@@ -7,6 +7,8 @@ import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
+import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
+import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 
 const AdminSalesSignup = lazy(() => import("./AdminSalesSignup"));
 const AdminSalesRepActivity = lazy(() => import("./AdminSalesRepActivity"));
