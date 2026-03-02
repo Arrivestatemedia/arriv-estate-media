@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import ChatSidebar from "./ChatSidebar";
 import ChatWindow from "./ChatWindow";
 
-export default function ChatTab({ currentUserId, currentUserName, salesMemberId, isAdmin, onInitiateTransfer }) {
+export default function ChatTab({ currentUserId, currentUserName, salesMemberId, isAdmin, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded }) {
   const [selectedChat, setSelectedChat] = useState(null);
   const [memberProfiles, setMemberProfiles] = useState({});
   const [memberStatuses, setMemberStatuses] = useState({});
@@ -73,16 +73,18 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
       />
       <div className="flex-1">
         {selectedChat ? (
-          <ChatWindow
-            chatType={selectedChat.type}
-            chatId={selectedChat.id}
-            chatName={selectedChat.name}
-            currentUserId={currentUserId}
-            currentUserName={currentUserName}
-            memberProfiles={memberProfiles}
-            memberStatuses={memberStatuses}
-            onInitiateTransfer={onInitiateTransfer}
-          />
+           <ChatWindow
+             chatType={selectedChat.type}
+             chatId={selectedChat.id}
+             chatName={selectedChat.name}
+             currentUserId={currentUserId}
+             currentUserName={currentUserName}
+             memberProfiles={memberProfiles}
+             memberStatuses={memberStatuses}
+             onInitiateTransfer={onInitiateTransfer}
+             onVideoCallStarted={onVideoCallStarted}
+             onVideoCallEnded={onVideoCallEnded}
+           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
             Select a channel or conversation to start
