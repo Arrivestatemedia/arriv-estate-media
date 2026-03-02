@@ -393,22 +393,46 @@ export default function AdminHub() {
       )}
 
       {/* Minimized call restore button - always visible when call is minimized */}
-      {activeVideoCall && !isVideoWindowOpen && (
-        <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
-          <button
-            onClick={() => setIsVideoWindowOpen(true)}
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg"
-          >
-            📞 Return to Call
-          </button>
-          <button
-            onClick={() => endVideoCall("user_ended")}
-            className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg"
-          >
-            ✕ End Call
-          </button>
-        </div>
-      )}
+       {activeVideoCall && !isVideoWindowOpen && (
+         <div className="fixed bottom-4 left-4 z-[99999] flex flex-col gap-2">
+           <button
+             onClick={() => setIsVideoWindowOpen(true)}
+             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg"
+           >
+             📞 Return to Call
+           </button>
+           <button
+             onClick={() => endVideoCall("user_ended")}
+             className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg"
+           >
+             ✕ End Call
+           </button>
+         </div>
+       )}
+
+       {/* Chat bubble - show when no call OR when call is minimized */}
+       {(callStatus === 'idle' || (activeVideoCall && !isVideoWindowOpen)) && (
+         <FloatingChatBubble
+           currentUserId={user.id}
+           currentUserName={user.full_name}
+           isVideoCallActive={false}
+           onOpenChat={() => {}}
+           disabled={isInLiveCall}
+           onInitiateTransfer={(memberId, memberName) => {
+             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+               const ext = members?.[0]?.extension;
+               if (ext) {
+                 setActiveTab("activity");
+                 setTimeout(() => {
+                   window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                     detail: { extension: String(ext), name: memberName || members[0].full_name }
+                   }));
+                 }, 150);
+               }
+             }).catch(() => {});
+           }}
+         />
+       )}
 
       {/* Call State Badge */}
       <CallStateBadge
