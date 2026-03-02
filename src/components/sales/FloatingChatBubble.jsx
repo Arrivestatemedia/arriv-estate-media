@@ -7,17 +7,21 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Always resolve userId — currentUserId may be undefined on first render while user state loads
+  const userId = currentUserId || localStorage.getItem('sales_member_id');
+  const userName = currentUserName || localStorage.getItem('sales_member_name');
+
   const handleToggleChat = () => {
     setOpen(!open);
     if (!open) setUnreadCount(0);
   };
 
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!userId) return;
 
     const loadUnread = async () => {
       const msgs = await base44.entities.DirectMessage.filter({
-        recipient_id: currentUserId,
+        recipient_id: userId,
         read: false
       });
       setUnreadCount(msgs?.length || 0);
@@ -27,16 +31,16 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
     // Subscribe to new DMs
     const unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
-      if (event.type === "create" && event.data?.recipient_id === currentUserId) {
+      if (event.type === "create" && event.data?.recipient_id === userId) {
         setUnreadCount(prev => prev + 1);
       }
-      if (event.type === "update" && event.data?.recipient_id === currentUserId && event.data?.read) {
+      if (event.type === "update" && event.data?.recipient_id === userId && event.data?.read) {
         loadUnread();
       }
     });
 
     return unsubscribe;
-  }, [currentUserId]);
+  }, [userId]);
 
   // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
