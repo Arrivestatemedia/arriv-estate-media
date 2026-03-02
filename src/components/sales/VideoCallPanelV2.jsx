@@ -20,8 +20,7 @@ export default function VideoCallPanelV2({
   onMinimize,
   onRestore,
   isVideoWindowOpen,
-  onChatOpenRequest,
-  onCallStatusChange
+  onChatOpenRequest
 }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -157,19 +156,10 @@ export default function VideoCallPanelV2({
       videoRoom.participants.forEach(p => attachParticipant(p));
       videoRoom.on("participantConnected", p => attachParticipant(p));
       videoRoom.on("participantDisconnected", p => detachParticipant(p));
-      videoRoom.on("disconnected", () => {
-        setCallState("idle");
-        onCallStatusChange?.("idle");
-        onClose?.();
-      });
-      videoRoom.on("error", err => {
-        setError("Room error: " + err.message);
-        setCallState("idle");
-        onCallStatusChange?.("idle");
-      });
+      videoRoom.on("disconnected", () => setCallState("idle"));
+      videoRoom.on("error", err => setError("Room error: " + err.message));
 
       setCallState("connected");
-      onCallStatusChange?.("connected");
     } catch (err) {
       console.error("Room connection error:", err);
       setError("Connection failed: " + err.message);
@@ -180,7 +170,6 @@ export default function VideoCallPanelV2({
   // ─── Start call ──────────────────────────────────────────────────────────────
   const handleStartCall = useCallback(async () => {
     setCallState("calling");
-    onCallStatusChange?.("connecting");
     setIsLoading(true);
     setError(null);
     try {
@@ -200,11 +189,10 @@ export default function VideoCallPanelV2({
       console.error("Call start error:", err);
       setError("Connection failed: " + err.message);
       setCallState("idle");
-      onCallStatusChange?.("idle");
     } finally {
       setIsLoading(false);
     }
-  }, [callerToken, roomName, currentUserName, connectToRoom, onCallStatusChange]);
+  }, [callerToken, roomName, currentUserName, connectToRoom]);
 
   // ─── Auto-start ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -418,10 +406,8 @@ export default function VideoCallPanelV2({
     if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = "";
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
-    setCallState("idle");
-    onCallStatusChange?.("idle");
-    onClose?.();
-  }, [onClose, onCallStatusChange, stopBlur]);
+    onClose();
+  }, [onClose, stopBlur]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   // When minimized, hide but keep mounted to maintain Twilio connection

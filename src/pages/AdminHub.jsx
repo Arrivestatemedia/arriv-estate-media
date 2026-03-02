@@ -27,65 +27,34 @@ export default function AdminHub() {
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [isInLiveCall, setIsInLiveCall] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
-  const [callStatus, setCallStatus] = useState("idle");
-
-  // Centralized cleanup function - idempotent
-  const endVideoCall = useCallback((reason = "user_ended") => {
-    console.log(`[ADMINHUB] Cleaning up call (reason: ${reason})`);
-    setCallStatus("idle");
-    setIsInLiveCall(false);
-    setIsVideoWindowOpen(false);
-    setIncomingVideoCall(null);
-    setActiveVideoCall(null);
-    setIsVideoCallActive(false);
-    setHasUnreadNotification(false);
-  }, []);
-
-  // Initialize call state on mount
-  useEffect(() => {
-    setCallStatus("idle");
-    setIsInLiveCall(false);
-    setIsVideoWindowOpen(false);
-    setIncomingVideoCall(null);
-    setActiveVideoCall(null);
-  }, []);
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
     const salesMemberEmail = localStorage.getItem('sales_member_email');
-    const salesMemberName = localStorage.getItem('sales_member_name');
-    const salesMemberRole = localStorage.getItem('sales_member_role');
     
     if (!salesMemberId || !salesMemberEmail) {
       window.location.href = '/SalesLogin';
       return;
     }
 
-    if (salesMemberRole !== 'admin') {
-      window.location.href = '/HubSpotActivityLog';
-      return;
-    }
-
-    // Fetch full member details for profile picture
+    // Verify this user is an admin
     base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-      setUser({
-        id: salesMemberId,
-        email: salesMemberEmail,
-        full_name: salesMemberName || members[0]?.full_name || 'Admin',
-        role: 'admin',
-        profile_picture_url: members[0]?.profile_picture_url
-      });
-      setProfilePicUrl(members[0]?.profile_picture_url || "");
-      setTimeout(() => setShowPermissionBanner(true), 500);
-    }).catch((err) => {
-      console.error('AdminHub fetch error:', err);
-      // Still set user with basic info if fetch fails
-      setUser({
-        id: salesMemberId,
-        email: salesMemberEmail,
-        full_name: salesMemberName || 'Admin',
-        role: 'admin'
-      });
+      if (members?.[0]?.role === 'admin') {
+        setUser({
+          id: salesMemberId,
+          email: salesMemberEmail,
+          full_name: localStorage.getItem('sales_member_name'),
+          role: 'admin',
+          profile_picture_url: members[0].profile_picture_url
+        });
+        setProfilePicUrl(members[0].profile_picture_url || "");
+        setTimeout(() => setShowPermissionBanner(true), 500);
+      } else {
+        // Not an admin, redirect to activity log
+        window.location.href = '/HubSpotActivityLog';
+      }
+    }).catch(() => {
+      window.location.href = '/SalesLogin';
     });
   }, []);
 
@@ -178,7 +147,6 @@ export default function AdminHub() {
   const handleAcceptVideoCall = async () => {
     if (!incomingVideoCall) return;
     setVideoCallProcessing(true);
-    setCallStatus("ringing");
     setIsInLiveCall(true);
     setHasUnreadNotification(false);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
@@ -192,7 +160,7 @@ export default function AdminHub() {
   const handleDeclineVideoCall = async () => {
     if (!incomingVideoCall) return;
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
-    endVideoCall("declined");
+    setIncomingVideoCall(null);
   };
 
   // Sync chat status with calendar every 3 minutes
@@ -235,21 +203,7 @@ export default function AdminHub() {
   };
 
   if (!user) {
-    const salesMemberId = localStorage.getItem('sales_member_id');
-    const salesMemberEmail = localStorage.getItem('sales_member_email');
-    
-    return (
-      <div className="min-h-screen p-4 flex flex-col items-center justify-center bg-gray-100">
-        <div className="bg-white rounded-lg shadow p-6 max-w-md text-center">
-          <p className="text-gray-600 mb-2">Initializing Admin Hub...</p>
-          <p className="text-xs text-gray-500 mb-4">
-            {salesMemberId ? '✓ User ID loaded' : '✗ No user ID'}<br/>
-            {salesMemberEmail ? '✓ Email loaded' : '✗ No email'}
-          </p>
-          <div className="w-8 h-8 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mx-auto"></div>
-        </div>
-      </div>
-    );
+    return <div className="p-4">Loading...</div>;
   }
 
   return (
@@ -366,11 +320,14 @@ export default function AdminHub() {
           currentUserName={user?.full_name}
           isIncoming={true}
           autoStart={true}
-          onClose={() => { endVideoCall("user_ended"); }}
+          onClose={() => {
+            setActiveVideoCall(null);
+            setIsVideoWindowOpen(false);
+            setIsVideoCallActive(false);
+          }}
           onMinimize={() => setIsVideoWindowOpen(false)}
           isVideoWindowOpen={isVideoWindowOpen}
           onChatOpenRequest={() => {}}
-          onCallStatusChange={setCallStatus}
         />
       )}
 
@@ -384,7 +341,7 @@ export default function AdminHub() {
             📞 Return to Call
           </button>
           <button
-            onClick={() => { endVideoCall("user_ended_minimized"); }}
+            onClick={() => { setActiveVideoCall(null); setIsVideoWindowOpen(false); setIsVideoCallActive(false); }}
             className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg"
           >
             ✕ End Call
@@ -394,7 +351,6 @@ export default function AdminHub() {
 
       {/* Debug display */}
       <div className="fixed top-20 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none">
-        <div>callStatus: {callStatus}</div>
         <div>isInLiveCall: {String(isInLiveCall)}</div>
         <div>hasUnreadNotif: {String(hasUnreadNotification)}</div>
       </div>
