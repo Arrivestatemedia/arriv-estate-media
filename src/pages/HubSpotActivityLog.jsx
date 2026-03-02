@@ -890,27 +890,82 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {/* Chat bubble */}
-        <FloatingChatBubble
-          currentUserId={user?.id}
-          currentUserName={user?.full_name}
-          onOpenChat={() => {}}
-          onInitiateTransfer={(memberId, memberName) => {
-            base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-              const ext = members?.[0]?.extension;
-              if (ext) {
-                setActiveTab("call");
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                    detail: { extension: String(ext), name: memberName || members[0].full_name }
-                  }));
-                }, 150);
-              }
-            }).catch(() => {});
-          }}
-        />
-
       </div>
     </div>
+
+    {/* === PORTALED OUTSIDE CONTAINER to avoid stacking context issues === */}
+
+    {/* Incoming video call notification */}
+    {incomingVideoCall && (
+      <IncomingVideoCallModal
+        callerName={incomingVideoCall.callerName}
+        callerExtension={incomingVideoCall.callerExtension}
+        onAccept={handleAcceptVideoCall}
+        onDecline={handleDeclineVideoCall}
+        isProcessing={videoCallProcessing}
+      />
+    )}
+
+    {/* Active video call panel */}
+    {activeVideoCall && (
+      <VideoCallPanelV2
+        recipientName={activeVideoCall.callerName}
+        callerToken={activeVideoCall.recipientToken}
+        roomName={activeVideoCall.roomName}
+        currentUserName={user?.full_name}
+        currentUserId={user?.id}
+        isIncoming={true}
+        autoStart={true}
+        onClose={() => {
+          setActiveVideoCall(null);
+          setIncomingVideoCall(null);
+          setIsVideoWindowOpen(false);
+          if (activeVideoCall?.notificationId) {
+            base44.entities.PendingNotification.update(activeVideoCall.notificationId, { is_read: true }).catch(() => {});
+          }
+        }}
+        onMinimize={() => setIsVideoWindowOpen(false)}
+        isVideoWindowOpen={isVideoWindowOpen}
+        onChatOpenRequest={() => {}}
+      />
+    )}
+
+    {/* Return to Call button - minimized state */}
+    {activeVideoCall && !isVideoWindowOpen && (
+      <div className="fixed bottom-4 left-4 z-[99998] flex flex-col gap-2">
+        <button
+          onClick={() => setIsVideoWindowOpen(true)}
+          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-colors"
+        >
+          📞 Return to Call
+        </button>
+        <button
+          onClick={() => { setActiveVideoCall(null); setIsVideoWindowOpen(false); }}
+          className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg transition-colors"
+        >
+          ✕ End Call
+        </button>
+      </div>
+    )}
+
+    {/* Chat bubble */}
+    <FloatingChatBubble
+      currentUserId={user?.id}
+      currentUserName={user?.full_name}
+      onOpenChat={() => {}}
+      onInitiateTransfer={(memberId, memberName) => {
+        base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+          const ext = members?.[0]?.extension;
+          if (ext) {
+            setActiveTab("call");
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                detail: { extension: String(ext), name: memberName || members[0].full_name }
+              }));
+            }, 150);
+          }
+        }).catch(() => {});
+      }}
+    />
   );
 }
