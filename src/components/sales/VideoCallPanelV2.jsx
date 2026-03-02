@@ -18,6 +18,7 @@ export default function VideoCallPanelV2({
   isIncoming = false,
   autoStart = false,
   onMinimize,
+  onRestore,
   isVideoWindowOpen,
   onChatOpenRequest
 }) {
@@ -410,20 +411,10 @@ export default function VideoCallPanelV2({
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   // When minimized, hide but keep mounted to maintain Twilio connection
-  if (!isVideoWindowOpen) return (
-    <div className="fixed bottom-4 right-4 z-[150]">
-      <Button
-        onClick={() => onMinimize?.()}
-        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
-        title="Restore video call"
-      >
-        <Phone className="w-5 h-5" />
-      </Button>
-    </div>
-  );
+  if (!isVideoWindowOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col z-[200]">
+    <div className="fixed inset-0 bg-black flex flex-col z-[9000]">
 
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700">
