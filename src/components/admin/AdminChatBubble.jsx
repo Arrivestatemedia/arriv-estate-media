@@ -4,8 +4,7 @@ import { MessageSquare, X } from "lucide-react";
 import ChatTab from "@/components/sales/ChatTab";
 import { useCallStatus } from "@/components/CallStatusContext";
 
-export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, disabled }) {
-  const { isInLiveCall } = useCallStatus();
+export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, disabled, isInLiveCall }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 

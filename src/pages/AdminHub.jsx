@@ -398,13 +398,14 @@ export default function AdminHub() {
       </div>
 
       {/* Admin floating chat bubble - hidden during live call, disabled when video call active */}
-      {((callStatus === 'idle') || hasUnreadNotification) && (
-        <AdminChatBubble
-          currentUserId={user.id}
-          currentUserName={user.full_name}
-          isVideoActive={false}
-          disabled={isInLiveCall}
-          onInitiateTransfer={(memberId, memberName) => {
+       {((callStatus === 'idle') || hasUnreadNotification) && (
+         <AdminChatBubble
+           currentUserId={user.id}
+           currentUserName={user.full_name}
+           isVideoActive={false}
+           disabled={isInLiveCall}
+           isInLiveCall={isInLiveCall}
+           onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;
               if (ext) {

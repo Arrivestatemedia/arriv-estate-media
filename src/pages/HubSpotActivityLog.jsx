@@ -933,6 +933,7 @@ export default function HubSpotActivityLog() {
               isVideoCallActive={false}
               onOpenChat={() => {}}
               disabled={isInLiveCall}
+              isInLiveCall={isInLiveCall}
               onInitiateTransfer={(memberId, memberName) => {
                base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                  const ext = members?.[0]?.extension;
