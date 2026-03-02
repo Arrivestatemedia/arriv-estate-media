@@ -9,8 +9,6 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [localRemoteCallLive, setLocalRemoteCallLive] = useState(localStorage.getItem('remoteCallLive') === 'true');
-  const [hasVideoStream, setHasVideoStream] = useState(false);
-  const [isDarkBg, setIsDarkBg] = useState(false);
 
   // Resolve from localStorage immediately so we don't wait for async prop
   const userId = currentUserId || localStorage.getItem('sales_member_id');
@@ -23,19 +21,10 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   };
 
   useEffect(() => {
-    // Listen for remoteCallLive changes and video streams
+    // Listen for remoteCallLive changes
     const interval = setInterval(() => {
       const isLive = localStorage.getItem('remoteCallLive') === 'true';
       setLocalRemoteCallLive(isLive);
-      
-      // Detect video stream - check for video elements with src or stream
-      const hasVideo = !!document.querySelector('video[src], video[srcObject]');
-      setHasVideoStream(hasVideo);
-      
-      // Detect dark background
-      const bgColor = window.getComputedStyle(document.body).backgroundColor;
-      const isDark = bgColor === 'rgb(10, 10, 10)' || bgColor === 'rgb(26, 26, 26)' || bgColor.includes('0, 0, 0');
-      setIsDarkBg(isDark);
     }, 100);
     
     return () => clearInterval(interval);
@@ -98,10 +87,10 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       )}
 
       {/* Bubble Button */}
-       <button
-         onClick={handleToggleChat}
-         className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-         style={{ bottom: (isInLiveCall || localRemoteCallLive || hasVideoStream || isDarkBg) ? '1rem' : '1rem', right: (hasVideoStream || isDarkBg) ? 'calc(-100% - 1rem)' : '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: (disabled || isInLiveCall || isVideoWindowOpen) ? 0.5 : 1, pointerEvents: (disabled || isInLiveCall || isVideoWindowOpen) ? 'none' : 'auto', cursor: (disabled || isInLiveCall || isVideoWindowOpen) ? 'not-allowed' : 'pointer', transition: 'right 0.3s ease-in-out' }}
+      <button
+        onClick={handleToggleChat}
+        className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
+        style={{ bottom: (isInLiveCall || localRemoteCallLive) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: (disabled || isInLiveCall || isVideoWindowOpen) ? 0.5 : 1, pointerEvents: (disabled || isInLiveCall || isVideoWindowOpen) ? 'none' : 'auto', cursor: (disabled || isInLiveCall || isVideoWindowOpen) ? 'not-allowed' : 'pointer' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         <span className="absolute -top-6 -left-2 text-[10px] bg-red-500 text-white px-1 rounded font-bold">CHAT_A</span>
