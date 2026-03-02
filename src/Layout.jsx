@@ -11,8 +11,7 @@ import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
 import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
 import TrackLink from "@/pages/TrackLink";
-import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContext";
-import VideoCallBlocker from "@/components/layout/VideoCallBlocker";
+import { CallStatusProvider } from "@/components/CallStatusContext";
 
       export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -345,7 +344,6 @@ import VideoCallBlocker from "@/components/layout/VideoCallBlocker";
                 {children}
               </PageTransition>
             </MediaPartnerGate>
-            <VideoCallBlocker />
           </CallStatusProvider>
         )}
       </main>
