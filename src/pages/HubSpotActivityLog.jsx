@@ -827,69 +827,6 @@ export default function HubSpotActivityLog() {
 
         <PoweredByFooter />
 
-        {/* Incoming video call notification */}
-        {incomingVideoCall && (
-          <IncomingVideoCallModal
-            callerName={incomingVideoCall.callerName}
-            callerExtension={incomingVideoCall.callerExtension}
-            onAccept={handleAcceptVideoCall}
-            onDecline={handleDeclineVideoCall}
-            isProcessing={videoCallProcessing}
-          />
-        )}
-
-        {/* Active video call panel - always render if call active, but VideoCallPanelV2 handles visibility */}
-        {activeVideoCall && (
-          <VideoCallPanelV2
-            recipientName={activeVideoCall.callerName}
-            callerToken={activeVideoCall.recipientToken}
-            roomName={activeVideoCall.roomName}
-            currentUserName={user?.full_name}
-            currentUserId={user?.id}
-            isIncoming={true}
-            autoStart={true}
-            onClose={() => {
-              console.log('[HUBSPOT_ACTIVITY] Call ended, clearing states');
-              // Clear all call-related state on hangup
-              setActiveVideoCall(null);
-              setIncomingVideoCall(null);
-              setIsVideoWindowOpen(false);
-              // Mark notification as read so we don't accidentally re-trigger it
-              if (activeVideoCall?.notificationId) {
-                base44.entities.PendingNotification.update(activeVideoCall.notificationId, { is_read: true }).catch(() => {});
-              }
-            }}
-            onMinimize={() => {
-              setIsVideoWindowOpen(false);
-            }}
-            isVideoWindowOpen={isVideoWindowOpen}
-            onChatOpenRequest={() => {}}
-          />
-        )}
-
-        {/* Minimized video call indicator - positioned to not conflict with chat bubble (bottom-4 right-4) */}
-        {activeVideoCall && !isVideoWindowOpen && (
-          <div className="fixed bottom-4 left-4 z-[99998] flex flex-col gap-2">
-            <button
-              onClick={() => setIsVideoWindowOpen(true)}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-colors"
-              title="Restore video call"
-            >
-              📞 Return to Call
-            </button>
-            <button
-              onClick={() => {
-                setActiveVideoCall(null);
-                setIsVideoWindowOpen(false);
-              }}
-              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg transition-colors"
-              title="End call"
-            >
-              ✕ End Call
-            </button>
-          </div>
-        )}
-
       </div>
     </div>
 
