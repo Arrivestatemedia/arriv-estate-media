@@ -860,6 +860,7 @@ export default function HubSpotActivityLog() {
               setIsVideoWindowOpen(false);
               setHideChatBubble(false);
             }}
+
             isVideoWindowOpen={isVideoWindowOpen}
             onChatOpenRequest={() => {}}
           />
