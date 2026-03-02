@@ -565,8 +565,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             setTimeout(() => setVideoCallError(null), 3000);
                             return;
                           }
+                          // Set call state immediately when user initiates
+                          if (onVideoCallStarted) onVideoCallStarted('dialing');
                           try {
-                            if (onVideoCallStarted) onVideoCallStarted();
                             const res = await base44.functions.invoke('initiateVideoCall', {
                               salesMemberId: currentUserId,
                               recipientExtension: String(ext),
@@ -577,12 +578,12 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                               setShowVideoCall(true);
                             } else {
                               setVideoCallError('Failed to start video call');
-                              if (onVideoCallEnded) onVideoCallEnded();
+                              if (onVideoCallEnded) onVideoCallEnded('failed');
                               setTimeout(() => setVideoCallError(null), 3000);
                             }
                           } catch (err) {
                             setVideoCallError('Failed to start video call: ' + err.message);
-                            if (onVideoCallEnded) onVideoCallEnded();
+                            if (onVideoCallEnded) onVideoCallEnded('error');
                             setTimeout(() => setVideoCallError(null), 4000);
                           }
                         }}
@@ -887,7 +888,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
              onClose={() => {
                setShowVideoCall(false);
                setOutgoingCallData(null);
-               if (onVideoCallEnded) onVideoCallEnded();
+               if (onVideoCallEnded) onVideoCallEnded('user_ended');
              }}
            />
          )}
@@ -900,7 +901,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             isProcessing={videoCallProcessing}
             onDecline={() => setIncomingVideoCall(null)}
             onAccept={() => {
-              if (onVideoCallStarted) onVideoCallStarted();
+              if (onVideoCallStarted) onVideoCallStarted('accepting');
               setAcceptedIncomingCall(incomingVideoCall);
               setIncomingVideoCall(null);
               setShowVideoCall(true);
@@ -922,7 +923,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             onClose={() => {
               setShowVideoCall(false);
               setAcceptedIncomingCall(null);
-              if (onVideoCallEnded) onVideoCallEnded();
+              if (onVideoCallEnded) onVideoCallEnded('user_ended');
             }}
           />
         )}
