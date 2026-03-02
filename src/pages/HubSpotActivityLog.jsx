@@ -82,16 +82,6 @@ export default function HubSpotActivityLog() {
     setHasUnreadNotification(false);
   };
 
-  // Listen for direct video call initiation events from ChatWindow
-  useEffect(() => {
-    const handleVideoCallInitiated = (e) => {
-      setCallStatus(e.detail?.status || 'dialing');
-      setLastCallEvent('OUTBOUND_START');
-    };
-    window.addEventListener('videoCallInitiated', handleVideoCallInitiated);
-    return () => window.removeEventListener('videoCallInitiated', handleVideoCallInitiated);
-  }, []);
-
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
@@ -928,28 +918,28 @@ export default function HubSpotActivityLog() {
           <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
         </div>
 
-        {/* Chat bubble - never show during live call; show only when idle and no active call */}
-         {callStatus === 'idle' && (
-            <FloatingChatBubble
-              currentUserId={user?.id}
-              currentUserName={user?.full_name}
-              isVideoCallActive={false}
-              onOpenChat={() => {}}
-              disabled={false}
-              onInitiateTransfer={(memberId, memberName) => {
-                base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                  const ext = members?.[0]?.extension;
-                  if (ext) {
-                    setActiveTab("call");
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                        detail: { extension: String(ext), name: memberName || members[0].full_name }
-                      }));
-                    }, 150);
-                  }
-                }).catch(() => {});
-              }}
-            />
+        {/* Chat bubble - hidden during live call or if has unread notifications, disabled when video call active */}
+         {((callStatus === 'idle') || hasUnreadNotification) && (
+           <FloatingChatBubble
+             currentUserId={user?.id}
+             currentUserName={user?.full_name}
+             isVideoCallActive={false}
+             onOpenChat={() => {}}
+             disabled={isInLiveCall}
+             onInitiateTransfer={(memberId, memberName) => {
+               base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                 const ext = members?.[0]?.extension;
+                 if (ext) {
+                   setActiveTab("call");
+                   setTimeout(() => {
+                     window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                       detail: { extension: String(ext), name: memberName || members[0].full_name }
+                     }));
+                   }, 150);
+                 }
+               }).catch(() => {});
+             }}
+           />
          )}
 
       </div>
