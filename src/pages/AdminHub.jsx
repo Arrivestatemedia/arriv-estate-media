@@ -27,6 +27,28 @@ export default function AdminHub() {
   const [videoCallProcessing, setVideoCallProcessing] = useState(false);
   const [isInLiveCall, setIsInLiveCall] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
+  const [callStatus, setCallStatus] = useState("idle");
+
+  // Centralized cleanup function - idempotent
+  const endVideoCall = useCallback((reason = "user_ended") => {
+    console.log(`[ADMINHUB] Cleaning up call (reason: ${reason})`);
+    setCallStatus("idle");
+    setIsInLiveCall(false);
+    setIsVideoWindowOpen(false);
+    setIncomingVideoCall(null);
+    setActiveVideoCall(null);
+    setIsVideoCallActive(false);
+    setHasUnreadNotification(false);
+  }, []);
+
+  // Initialize call state on mount
+  useEffect(() => {
+    setCallStatus("idle");
+    setIsInLiveCall(false);
+    setIsVideoWindowOpen(false);
+    setIncomingVideoCall(null);
+    setActiveVideoCall(null);
+  }, []);
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
@@ -147,6 +169,7 @@ export default function AdminHub() {
   const handleAcceptVideoCall = async () => {
     if (!incomingVideoCall) return;
     setVideoCallProcessing(true);
+    setCallStatus("ringing");
     setIsInLiveCall(true);
     setHasUnreadNotification(false);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
@@ -160,7 +183,7 @@ export default function AdminHub() {
   const handleDeclineVideoCall = async () => {
     if (!incomingVideoCall) return;
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
-    setIncomingVideoCall(null);
+    endVideoCall("declined");
   };
 
   // Sync chat status with calendar every 3 minutes
@@ -320,14 +343,11 @@ export default function AdminHub() {
           currentUserName={user?.full_name}
           isIncoming={true}
           autoStart={true}
-          onClose={() => {
-            setActiveVideoCall(null);
-            setIsVideoWindowOpen(false);
-            setIsVideoCallActive(false);
-          }}
+          onClose={() => { endVideoCall("user_ended"); }}
           onMinimize={() => setIsVideoWindowOpen(false)}
           isVideoWindowOpen={isVideoWindowOpen}
           onChatOpenRequest={() => {}}
+          onCallStatusChange={setCallStatus}
         />
       )}
 
@@ -341,7 +361,7 @@ export default function AdminHub() {
             📞 Return to Call
           </button>
           <button
-            onClick={() => { setActiveVideoCall(null); setIsVideoWindowOpen(false); setIsVideoCallActive(false); }}
+            onClick={() => { endVideoCall("user_ended_minimized"); }}
             className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg"
           >
             ✕ End Call
@@ -351,6 +371,7 @@ export default function AdminHub() {
 
       {/* Debug display */}
       <div className="fixed top-20 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none">
+        <div>callStatus: {callStatus}</div>
         <div>isInLiveCall: {String(isInLiveCall)}</div>
         <div>hasUnreadNotif: {String(hasUnreadNotification)}</div>
       </div>
