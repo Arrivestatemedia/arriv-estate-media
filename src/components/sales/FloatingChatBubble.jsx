@@ -15,7 +15,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const userName = currentUserName || localStorage.getItem('sales_member_name');
 
   const handleToggleChat = () => {
-    if (disabled) return;
+    if (disabled || isInLiveCall || isVideoWindowOpen) return;
     setOpen(!open);
     if (!open) setUnreadCount(0);
   };
@@ -90,7 +90,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       <button
         onClick={handleToggleChat}
         className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ bottom: (isInLiveCall || localRemoteCallLive) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto', cursor: disabled ? 'not-allowed' : 'pointer' }}
+        style={{ bottom: (isInLiveCall || localRemoteCallLive) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: (disabled || isInLiveCall || isVideoWindowOpen) ? 0.5 : 1, pointerEvents: (disabled || isInLiveCall || isVideoWindowOpen) ? 'none' : 'auto', cursor: (disabled || isInLiveCall || isVideoWindowOpen) ? 'not-allowed' : 'pointer' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
         {displayCount > 0 && (
