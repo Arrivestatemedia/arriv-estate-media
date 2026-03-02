@@ -42,6 +42,7 @@ export default function AdminHub() {
     setIncomingVideoCall(null);
     setHasUnreadNotification(false);
     setIsVideoCallActive(false);
+    window.dispatchEvent(new Event('videoCallEnded'));
   };
 
   useEffect(() => {
