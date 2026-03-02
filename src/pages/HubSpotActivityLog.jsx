@@ -336,6 +336,7 @@ export default function HubSpotActivityLog() {
     setIsVideoWindowOpen(true);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
+    window.dispatchEvent(new Event('videoCallStarted'));
   };
 
   const handleDeclineVideoCall = async () => {
