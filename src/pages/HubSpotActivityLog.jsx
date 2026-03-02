@@ -53,6 +53,7 @@ export default function HubSpotActivityLog() {
   const [lastHandledNotificationId, setLastHandledNotificationId] = useState(null); // Dedupe prevention
   const [isInLiveCall, setIsInLiveCall] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
+  const [callStatus, setCallStatus] = useState("idle");
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
@@ -66,6 +67,16 @@ export default function HubSpotActivityLog() {
 
   const queryClient = useQueryClient();
 
+  // Centralized idempotent call teardown
+  const endVideoCall = (reason) => {
+    console.log('[HUBSPOT_ACTIVITY] endVideoCall called:', reason);
+    setIsInLiveCall(false);
+    setCallStatus("idle");
+    setIsVideoWindowOpen(false);
+    setActiveVideoCall(null);
+    setIncomingVideoCall(null);
+    setHasUnreadNotification(false);
+  };
 
 
   useEffect(() => {
@@ -313,9 +324,11 @@ export default function HubSpotActivityLog() {
     if (!incomingVideoCall) return;
     console.log('[HUBSPOT_ACTIVITY] Accepting call:', { caller: incomingVideoCall.callerName });
     setVideoCallProcessing(true);
+    setCallStatus("connecting");
     setIsInLiveCall(true);
     setHasUnreadNotification(false);
     setActiveVideoCall(incomingVideoCall);
+    setCallStatus("connected");
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIsVideoWindowOpen(true);
     setIncomingVideoCall(null);
@@ -649,8 +662,9 @@ export default function HubSpotActivityLog() {
                currentUserName={user?.full_name} 
                salesMemberId={user?.id} 
                isAdmin={user?.role === 'admin'}
-               onVideoCallStarted={() => { setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
-               onVideoCallEnded={() => { setIsInLiveCall(false); setActiveVideoCall(null); }}
+               onVideoCallStarted={() => { setCallStatus("dialing"); setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
+               onVideoCallEnded={endVideoCall}
+               endVideoCall={endVideoCall}
               onInitiateTransfer={(memberId, memberName) => {
                 base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                   const ext = members?.[0]?.extension;
@@ -856,20 +870,8 @@ export default function HubSpotActivityLog() {
             currentUserId={user?.id}
             isIncoming={true}
             autoStart={true}
-            onClose={() => {
-              console.log('[HUBSPOT_ACTIVITY] Call ended, clearing states');
-              // Clear all call-related state on hangup
-              setActiveVideoCall(null);
-              setIncomingVideoCall(null);
-              setIsVideoWindowOpen(false);
-              // Mark notification as read so we don't accidentally re-trigger it
-              if (activeVideoCall?.notificationId) {
-                base44.entities.PendingNotification.update(activeVideoCall.notificationId, { is_read: true }).catch(() => {});
-              }
-            }}
-            onMinimize={() => {
-              setIsVideoWindowOpen(false);
-            }}
+            onClose={() => endVideoCall("user_ended")}
+            onMinimize={() => setIsVideoWindowOpen(false)}
             isVideoWindowOpen={isVideoWindowOpen}
             onChatOpenRequest={() => {}}
           />
@@ -886,10 +888,7 @@ export default function HubSpotActivityLog() {
               📞 Return to Call
             </button>
             <button
-              onClick={() => {
-                setActiveVideoCall(null);
-                setIsVideoWindowOpen(false);
-              }}
+              onClick={() => endVideoCall("user_ended")}
               className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg transition-colors"
               title="End call"
             >
@@ -899,7 +898,8 @@ export default function HubSpotActivityLog() {
         )}
 
         {/* Debug display */}
-        <div className="fixed top-4 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none">
+        <div className="fixed top-4 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none max-w-xs">
+          <div>callStatus: {callStatus}</div>
           <div>isInLiveCall: {String(isInLiveCall)}</div>
           <div>hasUnreadNotif: {String(hasUnreadNotification)}</div>
         </div>
