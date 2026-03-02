@@ -347,6 +347,14 @@ import { CallStatusProvider } from "@/components/CallStatusContext";
           </CallStatusProvider>
         )}
       </main>
+      
+      {/* Call State Diagnostic Badge */}
+      {typeof window !== 'undefined' && currentPageName !== "SignIn" && currentPageName !== "SalesLogin" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && (
+        <div className="fixed top-4 left-4 bg-gray-900 border border-gray-700 rounded-lg p-3 z-[50000] text-white text-xs font-mono space-y-1">
+          <div>Role: {user?.user_type === 'media_partner' ? 'Media Partner' : localStorage.getItem('sales_member_id') ? 'Sales Rep' : 'User'}</div>
+          <div>isVideoOpen: {typeof isVideoOpen === 'boolean' ? String(isVideoOpen) : 'N/A'}</div>
+        </div>
+      )}
 
       {/* Mobile Bottom Tabs */}
       <MobileBottomTabs user={user} />

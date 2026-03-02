@@ -564,18 +564,19 @@ export default function VideoCallPanelV2({
         )}
 
         <div className="flex-1 flex items-center justify-center gap-3">
-          <VideoControls
-            isMuted={isMuted}
-            isVideoOn={isVideoOn}
-            isScreenSharing={isScreenSharing}
-            canScreenShare={callState === "connected"}
-            onToggleMic={toggleMic}
-            onToggleVideo={toggleVideo}
-            onToggleScreenShare={toggleScreenShare}
-            onEndCall={handleEndCall}
-            onSettings={() => setIsSettingsOpen(true)}
-          />
-        </div>
+           <VideoControls
+             isMuted={isMuted}
+             isVideoOn={isVideoOn}
+             isScreenSharing={isScreenSharing}
+             canScreenShare={callState === "connected"}
+             onToggleMic={toggleMic}
+             onToggleVideo={toggleVideo}
+             onToggleScreenShare={toggleScreenShare}
+             onEndCall={handleEndCall}
+             onSettings={() => setIsSettingsOpen(true)}
+           />
+           <span className="text-[10px] bg-cyan-500 text-white px-1 rounded font-bold">CHAT_CALL</span>
+         </div>
       </div>
 
       {/* Chat sidebar — overlays video area */}

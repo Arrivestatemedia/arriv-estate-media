@@ -927,6 +927,8 @@ export default function HubSpotActivityLog() {
 
         {/* Chat bubble - hidden during live call or if has unread notifications, disabled when video call active */}
          {((callStatus === 'idle') || hasUnreadNotification) && (
+            <>
+            <span className="fixed bottom-[6rem] right-4 text-[10px] bg-purple-500 text-white px-1 rounded font-bold z-[8999]">CHAT_C</span>
             <FloatingChatBubble
               currentUserId={user?.id}
               currentUserName={user?.full_name}
