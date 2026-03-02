@@ -14,7 +14,7 @@ import TrackLink from "@/pages/TrackLink";
 import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContext";
 
 function LayoutContent({ children, currentPageName }) {
-  const { isCallInitiator } = useCallStatus();
+  const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -351,7 +351,9 @@ function LayoutContent({ children, currentPageName }) {
       {typeof window !== 'undefined' && currentPageName !== "SignIn" && currentPageName !== "SalesLogin" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && (
         <div className="fixed top-4 left-4 bg-gray-900 border border-gray-700 rounded-lg p-3 z-[50000] text-white text-xs font-mono space-y-1">
           <div>Role: {user?.user_type === 'media_partner' ? 'Media Partner' : localStorage.getItem('sales_member_id') ? 'Sales Rep' : 'User'}</div>
-          <div>isVideoOpen: {typeof isVideoOpen === 'boolean' ? String(isVideoOpen) : 'N/A'}</div>
+          <div>callStatus: {callStatus}</div>
+          <div>isInLiveCall: {String(isInLiveCall)}</div>
+          <div>isCallInitiator: {String(isCallInitiator)}</div>
         </div>
       )}
 
