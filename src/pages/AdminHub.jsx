@@ -129,6 +129,7 @@ export default function AdminHub() {
         event.data?.recipient_id === user.id
       ) {
         const d = event.data.event_data;
+         setCallStatus("ringing");
          setIsInLiveCall(true);
          setHasUnreadNotification(true);
          setIncomingVideoCall({
@@ -147,10 +148,12 @@ export default function AdminHub() {
   const handleAcceptVideoCall = async () => {
     if (!incomingVideoCall) return;
     setVideoCallProcessing(true);
+    setCallStatus("connecting");
     setIsInLiveCall(true);
     setHasUnreadNotification(false);
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setActiveVideoCall(incomingVideoCall);
+    setCallStatus("connected");
     setIsVideoWindowOpen(true);
     setIsVideoCallActive(true);
     setIncomingVideoCall(null);
@@ -284,8 +287,9 @@ export default function AdminHub() {
               <AdminActivityPage 
                 user={user} 
                 onVideoCallStateChange={setIsVideoCallActive}
-                onVideoCallStarted={() => { setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
-                onVideoCallEnded={() => { setIsInLiveCall(false); setActiveVideoCall(null); }}
+                onVideoCallStarted={() => { setCallStatus("dialing"); setIsInLiveCall(true); setActiveVideoCall({ callerName: "Video Call" }); }}
+                onVideoCallEnded={endVideoCall}
+                endVideoCall={endVideoCall}
               />
             </Suspense>
           </TabsContent>
@@ -350,7 +354,8 @@ export default function AdminHub() {
       )}
 
       {/* Debug display */}
-      <div className="fixed top-20 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none">
+      <div className="fixed top-20 left-4 bg-yellow-100 border border-yellow-400 rounded p-2 text-xs font-mono z-50 pointer-events-none max-w-xs">
+        <div>callStatus: {callStatus}</div>
         <div>isInLiveCall: {String(isInLiveCall)}</div>
         <div>hasUnreadNotif: {String(hasUnreadNotification)}</div>
       </div>
