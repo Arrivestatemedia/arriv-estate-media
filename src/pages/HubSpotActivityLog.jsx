@@ -852,6 +852,29 @@ export default function HubSpotActivityLog() {
 
         <PoweredByFooter />
 
+        {/* Chat bubble - render always but behind video during calls */}
+        {((callStatus === 'idle') || hasUnreadNotification) && (
+          <FloatingChatBubble
+            currentUserId={user?.id}
+            currentUserName={user?.full_name}
+            isVideoCallActive={false}
+            onOpenChat={() => {}}
+            onInitiateTransfer={(memberId, memberName) => {
+              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
+                const ext = members?.[0]?.extension;
+                if (ext) {
+                  setActiveTab("call");
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
+                      detail: { extension: String(ext), name: memberName || members[0].full_name }
+                    }));
+                  }, 150);
+                }
+              }).catch(() => {});
+            }}
+          />
+        )}
+
         {/* Incoming video call notification */}
         {incomingVideoCall && (
           <IncomingVideoCallModal
@@ -917,29 +940,6 @@ export default function HubSpotActivityLog() {
           <div>unread: {String(hasUnreadNotification)}</div>
           <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
         </div>
-
-        {/* Chat bubble - hidden during live call or if has unread notifications */}
-        {((callStatus === 'idle') || hasUnreadNotification) && (
-          <FloatingChatBubble
-            currentUserId={user?.id}
-            currentUserName={user?.full_name}
-            isVideoCallActive={false}
-            onOpenChat={() => {}}
-            onInitiateTransfer={(memberId, memberName) => {
-              base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
-                const ext = members?.[0]?.extension;
-                if (ext) {
-                  setActiveTab("call");
-                  setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('initiateTransfer', {
-                      detail: { extension: String(ext), name: memberName || members[0].full_name }
-                    }));
-                  }, 150);
-                }
-              }).catch(() => {});
-            }}
-          />
-        )}
 
       </div>
     </div>
