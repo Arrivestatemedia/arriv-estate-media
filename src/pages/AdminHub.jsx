@@ -153,6 +153,13 @@ export default function AdminHub() {
     });
 
     const unsub = base44.entities.PendingNotification.subscribe((event) => {
+       // When we initiated an outgoing call, hide the chat bubble immediately
+       if (event.type === 'create' && event.data?.event_type === 'outgoing_video_call' && event.data?.recipient_id === user.id) {
+         setCallStatus("calling");
+         setLastCallEvent('OUTBOUND_INITIATED');
+         return;
+       }
+
        if (
          event.type === 'create' &&
          event.data?.event_type === 'incoming_video_call' &&
