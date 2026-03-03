@@ -356,6 +356,8 @@ export default function HubSpotActivityLog() {
     if (!incomingVideoCall) return;
     await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
     setIncomingVideoCall(null);
+    setCallStatus("idle");
+    setHasUnreadNotification(false);
   };
 
   const activityIcons = {
