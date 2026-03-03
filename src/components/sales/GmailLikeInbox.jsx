@@ -321,7 +321,7 @@ ${fullContent || email.snippet || ""}`;
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>To</label>
                 <Input type="email" value={replyFormData.to} onChange={e => setReplyFormData(f => ({ ...f, to: e.target.value }))} className="text-sm" />
               </div>
-              {replyMode === "replyAll" && (
+              {(replyMode === "replyAll" || replyMode === "forward") && (
                 <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>CC</label>
                   <Input type="email" placeholder="Optional" value={replyFormData.cc} onChange={e => setReplyFormData(f => ({ ...f, cc: e.target.value }))} className="text-sm" />
