@@ -311,6 +311,9 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
         <button onClick={() => setTab("outbox")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "outbox" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "outbox" ? '#B8956A' : 'transparent' }}>
           <SendHorizontal className="w-4 h-4" /> Outbox
         </button>
+        <button onClick={() => setTab("drafts")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "drafts" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "drafts" ? '#B8956A' : 'transparent' }}>
+          <PenLine className="w-4 h-4" /> Drafts
+        </button>
       </div>
 
       {/* COMPOSE */}
