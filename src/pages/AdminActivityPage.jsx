@@ -273,8 +273,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     : null;
 
   const handleSubmit = () => {
-    if (!formData.contact_name && !formData.contact_phone) {
-      alert("Please enter a contact name or phone number");
+    if (!selectedContact) {
+      alert("Please select a contact");
       return;
     }
     if (!formData.notes.trim()) {
@@ -354,42 +354,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                       </Select>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Contact Name *</label>
-                      <Input
-                        placeholder="e.g., John Doe"
-                        value={formData.contact_name}
-                        onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
-                      />
-                    </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Phone Number *</label>
-                      <Input
-                        placeholder="e.g., (555) 123-4567"
-                        value={formData.contact_phone}
-                        onChange={(e) => setFormData({...formData, contact_phone: e.target.value})}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Contact Email</label>
-                      <Input
-                        type="email"
-                        placeholder="john@example.com"
-                        value={formData.contact_email}
-                        onChange={(e) => setFormData({...formData, contact_email: e.target.value})}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Company Name</label>
-                      <Input
-                        placeholder="e.g., Acme Inc"
-                        value={formData.company_name}
-                        onChange={(e) => setFormData({...formData, company_name: e.target.value})}
-                      />
-                    </div>
 
                     <div>
                       <label className="block text-sm font-medium mb-1">Date & Time</label>
