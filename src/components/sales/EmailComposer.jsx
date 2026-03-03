@@ -160,9 +160,10 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   const loadSentEmails = async () => {
     setLoadingSent(true);
     try {
+      const emailToFilter = fromEmail || salesMember?.company_email || salesMember?.email;
       const emails = await base44.entities.MessageLog.filter({ 
         message_type: "email", 
-        sales_member_email: salesMember?.email || localStorage.getItem("sales_member_email")
+        sales_member_email: emailToFilter
       });
       setSentEmails(emails.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
     } catch (e) {
