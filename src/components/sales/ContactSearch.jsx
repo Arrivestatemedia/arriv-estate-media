@@ -120,6 +120,7 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
   const [deleting, setDeleting] = useState(false);
   const [activities, setActivities] = useState({});
   const [loadingActivities, setLoadingActivities] = useState({});
+  const [logActivityContact, setLogActivityContact] = useState(null);
 
   // Activities shown below the search box (for both regular search results and new contact auto-search)
   const [inlineActivities, setInlineActivities] = useState(null);
