@@ -92,7 +92,7 @@ export default function VideoChat({ isOpen, onClose, currentUserName, roomName, 
           messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUserId ? "items-end" : "items-start"}`}>
               <span className="text-gray-400 text-[10px] mb-0.5 px-1">
-                {msg.sender_id === currentUserId ? "You" : msg.sender_name} · {format(msg.created_date, "h:mm a")}
+                {msg.sender_id === currentUserId ? "You" : msg.sender_name} · {msg.created_date ? format(new Date(msg.created_date), "h:mm a") : ""}
               </span>
               <div className={`max-w-[200px] rounded-lg px-3 py-2 text-sm break-words ${
                 msg.sender_id === currentUserId ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-100"
