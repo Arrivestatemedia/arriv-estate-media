@@ -104,6 +104,23 @@ ${fullContent || email.snippet || ""}`;
     setReplyFormData({ to: fromEmail_clean, cc: "", subject, body: originalMessage });
   };
 
+  const handleForward = () => {
+    const subject = email.subject?.startsWith('Fwd:') ? email.subject : `Fwd: ${email.subject || '(no subject)'}`;
+    
+    // Include original message as quoted text
+    const originalMessage = `
+---
+Forwarded message:
+From: ${fromName} <${fromEmail}>
+Subject: ${email.subject || '(no subject)'}
+Date: ${format(new Date(email.date || email.created_date), "PPP p")}
+
+${fullContent || email.snippet || ""}`;
+    
+    setReplyMode("forward");
+    setReplyFormData({ to: "", cc: "", subject, body: originalMessage });
+  };
+
   const handleSendReply = async () => {
     if (!replyFormData.to || !replyFormData.subject || !replyFormData.body) {
       alert("Please fill in all fields");
