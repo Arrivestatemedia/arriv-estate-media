@@ -29,6 +29,16 @@ import { useCallStatus } from "@/components/CallStatusContext";
 export default function HubSpotActivityLog() {
   const { setCallStatus: setContextCallStatus } = useCallStatus();
   const [user, setUser] = useState(null);
+  const [formData, setFormData] = useState({
+    activity_type: "call",
+    contact_email: "",
+    contact_name: "",
+    contact_phone: "",
+    company_name: "",
+    activity_date: new Date().toISOString().slice(0, 16),
+    notes: "",
+    duration_minutes: 0
+  });
   const [profilePicUrl, setProfilePicUrl] = useState(null);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
   const [activeTab, setActiveTab] = useState("activity");
@@ -67,17 +77,6 @@ export default function HubSpotActivityLog() {
   useEffect(() => {
     setContextCallStatus(callStatus);
   }, [callStatus, setContextCallStatus]);
-
-  const [formData, setFormData] = useState({
-    activity_type: "call",
-    contact_email: "",
-    contact_name: "",
-    contact_phone: "",
-    company_name: "",
-    activity_date: new Date().toISOString().slice(0, 16),
-    notes: "",
-    duration_minutes: 0
-  });
 
   const queryClient = useQueryClient();
 
