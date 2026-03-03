@@ -86,6 +86,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [prefilledContactData, setPrefilledContactData] = useState(null);
   const [unreadSmsCount, setUnreadSmsCount] = useState(0);
   const [missedCallsCount, setMissedCallsCount] = useState(0);
+  const [editingActivity, setEditingActivity] = useState(null);
+  const [editFormData, setEditFormData] = useState(null);
 
 
 
@@ -303,6 +305,27 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
       } catch (error) {
         alert("Failed to delete activity: " + error.message);
       }
+    }
+  };
+
+  const handleEditActivity = (activity) => {
+    setEditingActivity(activity.id);
+    setEditFormData(activity);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editFormData?.notes.trim()) {
+      alert("Please add notes about the activity");
+      return;
+    }
+    try {
+      await base44.entities.ActivityLog.update(editFormData.id, editFormData);
+      queryClient.invalidateQueries({ queryKey: ['adminActivities'] });
+      setSelectedActivity(editFormData);
+      setEditingActivity(null);
+      setEditFormData(null);
+    } catch (error) {
+      alert("Failed to save activity: " + error.message);
     }
   };
 
@@ -679,23 +702,32 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
         )}
 
         {/* Activity Detail Modal */}
-         <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) setSelectedActivity(null); }}>
+         <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) { setSelectedActivity(null); setEditingActivity(null); } }}>
            <DialogContent className="max-w-2xl">
              <DialogHeader>
                <div className="flex justify-between items-center">
                  <DialogTitle>Activity Details</DialogTitle>
-                 {selectedActivity && (
-                   <Button
-                     variant="destructive"
-                     size="sm"
-                     onClick={() => handleDeleteActivity(selectedActivity)}
-                   >
-                     Delete
-                   </Button>
+                 {selectedActivity && !editingActivity && (
+                   <div className="flex gap-2">
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => handleEditActivity(selectedActivity)}
+                     >
+                       Edit
+                     </Button>
+                     <Button
+                       variant="destructive"
+                       size="sm"
+                       onClick={() => handleDeleteActivity(selectedActivity)}
+                     >
+                       Delete
+                     </Button>
+                   </div>
                  )}
                </div>
              </DialogHeader>
-             {selectedActivity && (
+             {selectedActivity && !editingActivity && (
                <div className="space-y-6">
                  <div>
                    <h3 className="font-semibold mb-3">Activity</h3>
@@ -723,6 +755,72 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                      {selectedActivity.contact_phone && <p><span className="font-medium">Phone:</span> {selectedActivity.contact_phone}</p>}
                      {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
                    </div>
+                 </div>
+               </div>
+             )}
+             {editingActivity && editFormData && (
+               <div className="space-y-4">
+                 <div>
+                   <label className="block text-sm font-medium mb-1">Activity Type</label>
+                   <Select value={editFormData.activity_type} onValueChange={(val) => setEditFormData({...editFormData, activity_type: val})}>
+                     <SelectTrigger>
+                       <SelectValue />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="call">Call</SelectItem>
+                       <SelectItem value="email">Email</SelectItem>
+                       <SelectItem value="meeting">Meeting</SelectItem>
+                     </SelectContent>
+                   </Select>
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium mb-1">Date & Time</label>
+                   <Input
+                     type="datetime-local"
+                     value={editFormData.activity_date}
+                     onChange={(e) => setEditFormData({...editFormData, activity_date: e.target.value})}
+                   />
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
+                   <Input
+                     type="number"
+                     placeholder="0"
+                     value={editFormData.duration_minutes}
+                     onChange={(e) => setEditFormData({...editFormData, duration_minutes: parseInt(e.target.value) || 0})}
+                   />
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium mb-1">Notes</label>
+                   <Textarea
+                     placeholder="Summary of the activity..."
+                     value={editFormData.notes}
+                     onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})}
+                     rows={4}
+                   />
+                 </div>
+
+                 <div className="flex gap-2">
+                   <Button
+                     variant="outline"
+                     onClick={() => {
+                       setEditingActivity(null);
+                       setEditFormData(null);
+                     }}
+                     className="flex-1"
+                   >
+                     Cancel
+                   </Button>
+                   <Button
+                     onClick={handleSaveEdit}
+                     className="flex-1"
+                     style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                   >
+                     Save Changes
+                   </Button>
                  </div>
                </div>
              )}
