@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Sparkles, Send, Plus, Trash2, Loader2, MessageSquare, Edit3 } from "lucide-react";
+import { Sparkles, Send, Plus, Trash2, Loader2, MessageSquare, Edit3, Paperclip, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 
