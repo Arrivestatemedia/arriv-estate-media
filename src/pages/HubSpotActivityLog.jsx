@@ -57,6 +57,8 @@ export default function HubSpotActivityLog() {
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
   const [callStatus, setCallStatus] = useState("idle");
   const [lastCallEvent, setLastCallEvent] = useState("");
+  const [editingActivity, setEditingActivity] = useState(null);
+  const [editFormData, setEditFormData] = useState(null);
 
   // Derive isInLiveCall from callStatus (single source of truth)
   const isInLiveCall = callStatus !== 'idle';
@@ -402,6 +404,39 @@ export default function HubSpotActivityLog() {
         }
       } catch (error) {
         console.error('Error searching contact:', error);
+      }
+    }
+  };
+
+  const handleEditActivity = (activity) => {
+    setEditingActivity(activity.id);
+    setEditFormData(activity);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editFormData?.notes.trim()) {
+      alert("Please add notes about the activity");
+      return;
+    }
+    try {
+      await base44.entities.ActivityLog.update(editFormData.id, editFormData);
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+      setSelectedActivity(editFormData);
+      setEditingActivity(null);
+      setEditFormData(null);
+    } catch (error) {
+      alert("Failed to save activity: " + error.message);
+    }
+  };
+
+  const handleDeleteActivity = async (activity) => {
+    if (window.confirm("Are you sure you want to delete this activity?")) {
+      try {
+        await base44.entities.ActivityLog.delete(activity.id);
+        queryClient.invalidateQueries({ queryKey: ['activities'] });
+        setSelectedActivity(null);
+      } catch (error) {
+        alert("Failed to delete activity: " + error.message);
       }
     }
   };
@@ -805,66 +840,152 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) setSelectedActivity(null); }}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Activity Details</DialogTitle>
-            </DialogHeader>
-            {selectedActivity && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-3">Activity</h3>
-                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                    <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
-                    <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                    <p><span className="font-medium">Notes:</span> {selectedActivity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
-                    {selectedActivity.duration_minutes > 0 && (
-                      <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-3">Contact Information</h3>
-                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                    {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
-                    {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
-                    {selectedActivity.contact_phone && <p><span className="font-medium">Phone:</span> {selectedActivity.contact_phone}</p>}
-                    {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-3">Actions</h3>
-                  <div className="flex gap-2 flex-wrap">
-                    {(selectedActivity.contact_phone || selectedActivity.contact_name) && (
-                      <Button size="sm" className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }} onClick={() => { setActiveTab("call"); setSelectedActivity(null); }}>
-                        <Phone className="w-4 h-4" /> Call
-                      </Button>
-                    )}
-                    {selectedActivity.contact_email && (
-                      <Button variant="outline" size="sm" className="gap-2" onClick={() => { setActiveTab("email"); setSelectedActivity(null); }}>
-                        <Mail className="w-4 h-4" /> Email
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm" className="gap-2" onClick={() => {
-                      setPrefilledContactData({
-                        firstName: selectedActivity.contact_name?.split(' ')[0] || '',
-                        lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
-                        email: selectedActivity.contact_email || '',
-                        phone: selectedActivity.contact_phone || '',
-                        company: selectedActivity.company_name || ''
-                      });
-                      setOpenNewContactForm(true);
-                      setActiveTab("contacts");
-                      setSelectedActivity(null);
-                    }}>
-                      <Plus className="w-4 h-4" /> Add Contact Info
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) { setSelectedActivity(null); setEditingActivity(null); } }}>
+           <DialogContent className="max-w-2xl">
+             <DialogHeader>
+               <div className="flex justify-between items-center">
+                 <DialogTitle>Activity Details</DialogTitle>
+                 {selectedActivity && !editingActivity && (
+                   <div className="flex gap-2">
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => handleEditActivity(selectedActivity)}
+                     >
+                       Edit
+                     </Button>
+                     <Button
+                       variant="destructive"
+                       size="sm"
+                       onClick={() => handleDeleteActivity(selectedActivity)}
+                     >
+                       Delete
+                     </Button>
+                   </div>
+                 )}
+               </div>
+             </DialogHeader>
+             {selectedActivity && !editingActivity && (
+               <div className="space-y-6">
+                 <div>
+                   <h3 className="font-semibold mb-3">Activity</h3>
+                   <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                     <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
+                     <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
+                     <p><span className="font-medium">Notes:</span> {selectedActivity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
+                     {selectedActivity.duration_minutes > 0 && (
+                       <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
+                     )}
+                   </div>
+                 </div>
+                 <div>
+                   <h3 className="font-semibold mb-3">Contact Information</h3>
+                   <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                     {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
+                     {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
+                     {selectedActivity.contact_phone && <p><span className="font-medium">Phone:</span> {selectedActivity.contact_phone}</p>}
+                     {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
+                   </div>
+                 </div>
+                 <div>
+                   <h3 className="font-semibold mb-3">Actions</h3>
+                   <div className="flex gap-2 flex-wrap">
+                     {(selectedActivity.contact_phone || selectedActivity.contact_name) && (
+                       <Button size="sm" className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }} onClick={() => { setActiveTab("call"); setSelectedActivity(null); }}>
+                         <Phone className="w-4 h-4" /> Call
+                       </Button>
+                     )}
+                     {selectedActivity.contact_email && (
+                       <Button variant="outline" size="sm" className="gap-2" onClick={() => { setActiveTab("email"); setSelectedActivity(null); }}>
+                         <Mail className="w-4 h-4" /> Email
+                       </Button>
+                     )}
+                     <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                       setPrefilledContactData({
+                         firstName: selectedActivity.contact_name?.split(' ')[0] || '',
+                         lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
+                         email: selectedActivity.contact_email || '',
+                         phone: selectedActivity.contact_phone || '',
+                         company: selectedActivity.company_name || ''
+                       });
+                       setOpenNewContactForm(true);
+                       setActiveTab("contacts");
+                       setSelectedActivity(null);
+                     }}>
+                       <Plus className="w-4 h-4" /> Add Contact Info
+                     </Button>
+                   </div>
+                 </div>
+               </div>
+             )}
+             {editingActivity && editFormData && (
+               <div className="space-y-4">
+                 <div>
+                   <label className="block text-sm font-medium mb-1">Activity Type</label>
+                   <Select value={editFormData.activity_type} onValueChange={(val) => setEditFormData({...editFormData, activity_type: val})}>
+                     <SelectTrigger>
+                       <SelectValue />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="call">Call</SelectItem>
+                       <SelectItem value="email">Email</SelectItem>
+                       <SelectItem value="meeting">Meeting</SelectItem>
+                     </SelectContent>
+                   </Select>
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium mb-1">Date & Time</label>
+                   <Input
+                     type="datetime-local"
+                     value={editFormData.activity_date}
+                     onChange={(e) => setEditFormData({...editFormData, activity_date: e.target.value})}
+                   />
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
+                   <Input
+                     type="number"
+                     placeholder="0"
+                     value={editFormData.duration_minutes}
+                     onChange={(e) => setEditFormData({...editFormData, duration_minutes: parseInt(e.target.value) || 0})}
+                   />
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium mb-1">Notes</label>
+                   <Textarea
+                     placeholder="Summary of the activity..."
+                     value={editFormData.notes}
+                     onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})}
+                     rows={4}
+                   />
+                 </div>
+
+                 <div className="flex gap-2">
+                   <Button
+                     variant="outline"
+                     onClick={() => {
+                       setEditingActivity(null);
+                       setEditFormData(null);
+                     }}
+                     className="flex-1"
+                   >
+                     Cancel
+                   </Button>
+                   <Button
+                     onClick={handleSaveEdit}
+                     className="flex-1"
+                     style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                   >
+                     Save Changes
+                   </Button>
+                 </div>
+               </div>
+             )}
+           </DialogContent>
+         </Dialog>
 
         <EditMyProfileModal
           salesMemberId={user?.id}
