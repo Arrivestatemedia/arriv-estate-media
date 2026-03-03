@@ -91,13 +91,15 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   }, []);
 
   useEffect(() => {
-    if (!salesMemberId || !salesMember?.company_email) return;
+    if (!salesMemberId) return;
+    const emailToUse = fromEmail || salesMember?.company_email || salesMember?.email;
+    if (!emailToUse) return;
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
     const checkInbox = async () => {
       try {
-        const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: fromEmail || salesMember?.company_email });
+        const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: emailToUse });
         const threads = res.data?.threads || [];
         if (lastInboxCountRef.current !== null && threads.length > lastInboxCountRef.current) {
           const newCount = threads.length - lastInboxCountRef.current;
@@ -126,7 +128,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     };
     const interval = setInterval(checkInbox, 60000);
     return () => clearInterval(interval);
-  }, [salesMemberId, fromEmail, salesMember?.company_email]);
+  }, [salesMemberId, fromEmail, salesMember?.company_email, salesMember?.email]);
 
   const loadScheduledEmails = async () => {
     setLoadingScheduled(true);
@@ -148,7 +150,8 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   const loadReplies = async () => {
     setLoadingReplies(true);
     try {
-      const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: fromEmail || salesMember?.company_email });
+      const emailToUse = fromEmail || salesMember?.company_email || salesMember?.email;
+      const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: emailToUse });
       setReplies(res.data?.threads || []);
     } catch (e) {
       console.error(e);
