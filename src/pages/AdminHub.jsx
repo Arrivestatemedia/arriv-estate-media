@@ -324,7 +324,18 @@ export default function AdminHub() {
               <AdminActivityPage 
                 user={user} 
                 onVideoCallStateChange={setIsVideoCallActive}
-                onVideoCallStarted={(reason) => { setLastCallEvent('OUTBOUND_START'); setCallStatus(reason || "dialing"); setActiveVideoCall({ callerName: "Video Call" }); }}
+                onVideoCallStarted={(data) => {
+                  if (data && typeof data === 'object' && data.roomName) {
+                    setLastCallEvent('OUTBOUND_START');
+                    setCallStatus("calling");
+                    setActiveVideoCall({ callerName: data.recipientName || "Video Call", roomName: data.roomName, recipientToken: data.token });
+                    setIsVideoWindowOpen(true);
+                  } else {
+                    setLastCallEvent('OUTBOUND_START');
+                    setCallStatus(data || "dialing");
+                    setActiveVideoCall({ callerName: "Video Call" });
+                  }
+                }}
                   onVideoCallEnded={endVideoCall}
                   endVideoCall={endVideoCall}
               />
