@@ -94,7 +94,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
         style={{ bottom: (isInLiveCall || localRemoteCallLive) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: (disabled || isInLiveCall || isVideoWindowOpen) ? 0.5 : 1, pointerEvents: (disabled || isInLiveCall || isVideoWindowOpen) ? 'none' : 'auto', cursor: (disabled || isInLiveCall || isVideoWindowOpen) ? 'not-allowed' : 'pointer' }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
-        <span className="absolute -top-6 -left-2 text-[10px] bg-red-500 text-white px-1 rounded font-bold">CHAT_A</span>
+
         {displayCount > 0 && (
           <span
             className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
