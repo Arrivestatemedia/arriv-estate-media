@@ -57,19 +57,44 @@ export default function VideoChat({ isOpen, onClose, currentUserName, roomName, 
   }, [messages]);
 
   const handleSend = async () => {
-    if (!message.trim() || !roomName) return;
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    if (!roomName) {
+      setSendError("No room name — cannot send");
+      return;
+    }
+    if (!userId) {
+      setSendError("Not logged in — cannot send");
+      return;
+    }
 
+    setSendError(null);
     setLoading(true);
+    // Optimistic update so the sender sees it immediately
+    const optimistic = {
+      id: `opt-${Date.now()}`,
+      room_name: roomName,
+      sender_id: userId,
+      sender_name: userName,
+      content: trimmed,
+      created_date: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, optimistic]);
+    setMessage("");
+
     try {
       await base44.entities.VideoCallMessage.create({
         room_name: roomName,
-        sender_id: currentUserId,
-        sender_name: currentUserName,
-        content: message.trim()
+        sender_id: userId,
+        sender_name: userName,
+        content: trimmed
       });
-      setMessage("");
     } catch (err) {
       console.error('Error sending message:', err);
+      setSendError("Failed to send");
+      // Remove optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id));
+      setMessage(trimmed);
     } finally {
       setLoading(false);
     }
