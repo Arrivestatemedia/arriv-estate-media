@@ -387,12 +387,15 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
       )}
 
       {showVideoCall && !acceptedIncomingCall && selectedRepId && (
-        <VideoCallPanel
+        <VideoCallPanelV2
           recipientName={selectedRepName}
           recipientExtension={salesReps.find(r => r.id === selectedRepId)?.extension}
           callerToken={null}
           roomName={null}
           currentUserName={currentUserName}
+          isVideoWindowOpen={true}
+          onMinimize={() => setShowVideoCall(false)}
+          onChatOpenRequest={() => {}}
           onClose={() => setShowVideoCall(false)}
         />
       )}
