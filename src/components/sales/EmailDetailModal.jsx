@@ -19,29 +19,27 @@ export default function EmailDetailModal({ email, open, onClose, type = "inbox" 
           let content = email.message_content || email.body || email.snippet || "";
           let attachmentList = [];
 
-          // Extract attachments from email if they exist
-          if (email.attachments && Array.isArray(email.attachments)) {
-            attachmentList = email.attachments;
-          }
-          
-          // If we have attachment metadata but no URLs, fetch the actual attachments
+          // If we have full email parts (images and attachments), fetch them
           if (email.parts && Array.isArray(email.parts)) {
-            const attachmentParts = email.parts.filter(part => 
-              part.filename && (part.mimeType?.includes('image') || part.mimeType?.includes('application'))
+            const imageParts = email.parts.filter(part => 
+              part.mimeType?.startsWith('image/') || (part.filename && part.mimeType?.includes('image'))
             );
+            const attachmentParts = email.parts.filter(part => 
+              part.filename && part.mimeType?.includes('application')
+            );
+            const allRelevantParts = [...imageParts, ...attachmentParts];
             
-            if (attachmentParts.length > 0) {
+            if (allRelevantParts.length > 0) {
               try {
                 const attachRes = await base44.functions.invoke('getGmailAttachments', {
                   messageId: email.id,
-                  partIds: attachmentParts.map(p => p.partId)
+                  parts: allRelevantParts
                 });
                 if (attachRes.data?.attachments) {
                   attachmentList = attachRes.data.attachments;
                 }
               } catch (e) {
                 console.error("Failed to fetch attachments:", e);
-                attachmentList = attachmentParts;
               }
             }
           }
