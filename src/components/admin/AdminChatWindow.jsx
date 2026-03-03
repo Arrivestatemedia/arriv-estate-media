@@ -417,13 +417,16 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
       )}
 
       {showVideoCall && acceptedIncomingCall && (
-        <VideoCallPanel
+        <VideoCallPanelV2
           recipientName={acceptedIncomingCall.callerName}
-          recipientExtension={acceptedIncomingCall.callerExtension}
           callerToken={acceptedIncomingCall.recipientToken}
           roomName={acceptedIncomingCall.roomName}
           currentUserName={currentUserName}
           isIncoming={true}
+          autoStart={true}
+          isVideoWindowOpen={true}
+          onMinimize={() => setShowVideoCall(false)}
+          onChatOpenRequest={() => {}}
           onClose={() => {
             setShowVideoCall(false);
             setAcceptedIncomingCall(null);
