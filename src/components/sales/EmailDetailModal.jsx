@@ -12,27 +12,51 @@ export default function EmailDetailModal({ email, open, onClose, type = "inbox" 
   useEffect(() => {
     if (open && email) {
       setLoading(true);
-      try {
-        // Parse email content
-        let content = email.message_content || email.body || email.snippet || "";
-        let attachmentList = [];
+      const loadEmailContent = async () => {
+        try {
+          // Parse email content
+          let content = email.message_content || email.body || email.snippet || "";
+          let attachmentList = [];
 
-        // Extract attachments from email if they exist
-        if (email.attachments && Array.isArray(email.attachments)) {
-          attachmentList = email.attachments;
+          // Extract attachments from email if they exist
+          if (email.attachments && Array.isArray(email.attachments)) {
+            attachmentList = email.attachments;
+          }
+          
+          // If we have attachment metadata but no URLs, fetch the actual attachments
+          if (email.parts && Array.isArray(email.parts)) {
+            const attachmentParts = email.parts.filter(part => 
+              part.filename && (part.mimeType?.includes('image') || part.mimeType?.includes('application'))
+            );
+            
+            if (attachmentParts.length > 0) {
+              try {
+                const attachRes = await base44.functions.invoke('getGmailAttachments', {
+                  messageId: email.id,
+                  partIds: attachmentParts.map(p => p.partId)
+                });
+                if (attachRes.data?.attachments) {
+                  attachmentList = attachRes.data.attachments;
+                }
+              } catch (e) {
+                console.error("Failed to fetch attachments:", e);
+                attachmentList = attachmentParts;
+              }
+            }
+          }
+          
+          setFullContent(content);
+          setAttachments(attachmentList);
+        } catch (e) {
+          console.error(e);
+          setFullContent(email.message_content || email.body || email.snippet || "");
+          setAttachments([]);
+        } finally {
+          setLoading(false);
         }
-        // Look for URLs in content that might be attachments
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const urls = content.match(urlRegex) || [];
-        
-        setFullContent(content);
-        setAttachments(attachmentList.length > 0 ? attachmentList : urls.map(url => ({ url, filename: url.split('/').pop() })));
-      } catch (e) {
-        console.error(e);
-        setFullContent(email.message_content || email.body || email.snippet || "");
-      } finally {
-        setLoading(false);
-      }
+      };
+      
+      loadEmailContent();
     }
   }, [open, email]);
 
