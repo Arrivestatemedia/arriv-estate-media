@@ -679,7 +679,18 @@ export default function HubSpotActivityLog() {
                currentUserName={user?.full_name} 
                salesMemberId={user?.id} 
                isAdmin={user?.role === 'admin'}
-               onVideoCallStarted={(reason) => { setLastCallEvent('OUTBOUND_START'); setCallStatus(reason || "dialing"); setActiveVideoCall({ callerName: "Video Call" }); }}
+               onVideoCallStarted={(data) => {
+                 if (data && typeof data === 'object' && data.roomName) {
+                   setLastCallEvent('OUTBOUND_START');
+                   setCallStatus("calling");
+                   setActiveVideoCall({ callerName: data.recipientName || "Video Call", roomName: data.roomName, recipientToken: data.token });
+                   setIsVideoWindowOpen(true);
+                 } else {
+                   setLastCallEvent('OUTBOUND_START');
+                   setCallStatus(data || "dialing");
+                   setActiveVideoCall({ callerName: "Video Call" });
+                 }
+               }}
                onVideoCallEnded={endVideoCall}
                endVideoCall={endVideoCall}
               onInitiateTransfer={(memberId, memberName) => {
