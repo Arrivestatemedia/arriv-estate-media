@@ -1,7 +1,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Clock, User, Building2, Phone, Mail, FileText, Timer } from "lucide-react";
+import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image } from "lucide-react";
 
 export default function ActivityDetailModal({ activity, onClose }) {
   if (!activity) return null;
