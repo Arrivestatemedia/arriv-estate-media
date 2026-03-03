@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing messageId or parts' }, { status: 400 });
     }
 
-    const { accessToken } = await base44.connectors.getConnection('gmail');
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
 
     const attachments = [];
 
