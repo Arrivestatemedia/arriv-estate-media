@@ -30,17 +30,21 @@ Deno.serve(async (req) => {
     const searchData = await searchRes.json();
     const messages = searchData.messages || [];
 
-    // Fetch snippet + headers for each message
+    // Fetch full message (including payload with parts) for each message
     const threads = await Promise.all(
       messages.slice(0, 20).map(async (msg) => {
         const msgRes = await fetch(
-          `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&metadataHeaders=Message-ID&metadataHeaders=References`,
+          `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         if (!msgRes.ok) return null;
         const msgData = await msgRes.json();
         const headers = msgData.payload?.headers || [];
         const get = (name) => headers.find(h => h.name === name)?.value || '';
+        
+        // Extract all parts (including inline images and attachments)
+        const parts = msgData.payload?.parts || [];
+        
         return {
           id: msg.id,
           from: get('From'),
@@ -49,6 +53,8 @@ Deno.serve(async (req) => {
           snippet: msgData.snippet || '',
           messageId: get('Message-ID'),
           references: get('References'),
+          parts: parts, // Include full parts for attachment/image extraction
+          payload: msgData.payload, // Include payload for body extraction
         };
       })
     );
