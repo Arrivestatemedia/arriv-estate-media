@@ -13,6 +13,8 @@ export default function GmailLikeInbox({ email, onClose, salesMember, salesMembe
   const [replyMode, setReplyMode] = useState(null);
   const [replyFormData, setReplyFormData] = useState({ to: "", cc: "", subject: "", body: "" });
   const [sending, setSending] = useState(false);
+  const [includeAttachments, setIncludeAttachments] = useState(true);
+  const [attachmentsToSend, setAttachmentsToSend] = useState([]);
 
   useEffect(() => {
     if (email) {
