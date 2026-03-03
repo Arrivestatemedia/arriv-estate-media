@@ -93,24 +93,41 @@ export default function GmailLikeInbox({ email, onClose, salesMember, salesMembe
   }, [email]);
 
   const handleReply = (isReplyAll = false) => {
+    if (attachments.length > 0) {
+      setPendingReplyType(isReplyAll ? "replyAll" : "reply");
+      setShowAttachmentDialog(true);
+    } else {
+      proceedWithReply(isReplyAll ? "replyAll" : "reply");
+    }
+  };
+
+  const handleForward = () => {
+    if (attachments.length > 0) {
+      setPendingReplyType("forward");
+      setShowAttachmentDialog(true);
+    } else {
+      proceedWithForward();
+    }
+  };
+
+  const proceedWithReply = (type) => {
     const subject = email.subject?.startsWith('Re:') ? email.subject : `Re: ${email.subject || '(no subject)'}`;
     const fromEmail_clean = email.from?.match(/<(.+?)>/)?.[1] || email.from;
     
-    // Include original message as quoted text
     const originalMessage = `
 ---
 On ${format(new Date(email.date || email.created_date), "PPP p")}, ${fromName} <${fromEmail}> wrote:
 
 ${fullContent || email.snippet || ""}`;
     
-    setReplyMode(isReplyAll ? "replyAll" : "reply");
+    setReplyMode(type);
     setReplyFormData({ to: fromEmail_clean, cc: "", subject, body: originalMessage });
+    setShowAttachmentDialog(false);
   };
 
-  const handleForward = () => {
+  const proceedWithForward = () => {
     const subject = email.subject?.startsWith('Fwd:') ? email.subject : `Fwd: ${email.subject || '(no subject)'}`;
     
-    // Include original message as quoted text
     const originalMessage = `
 ---
 Forwarded message:
@@ -122,6 +139,7 @@ ${fullContent || email.snippet || ""}`;
     
     setReplyMode("forward");
     setReplyFormData({ to: "", cc: "", subject, body: originalMessage });
+    setShowAttachmentDialog(false);
   };
 
   const handleSendReply = async () => {
