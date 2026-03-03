@@ -164,6 +164,8 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
                 <SelectItem value="call">📞 Call</SelectItem>
                 <SelectItem value="email">✉️ Email</SelectItem>
                 <SelectItem value="meeting">🤝 Meeting</SelectItem>
+                <SelectItem value="task">✓ Task</SelectItem>
+                <SelectItem value="note">📝 Note</SelectItem>
               </SelectContent>
             </Select>
           </div>
