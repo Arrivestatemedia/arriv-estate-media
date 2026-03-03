@@ -77,12 +77,15 @@ export default function Conference() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFBF5' }}>
-      <VideoCallPanel
+      <VideoCallPanelV2
         roomName={roomName}
         currentUserName={user?.full_name || 'Guest'}
         recipientName="Conference"
         onClose={() => window.history.back()}
         autoStart={autoStart}
+        isVideoWindowOpen={true}
+        onMinimize={() => {}}
+        onChatOpenRequest={() => {}}
       />
     </div>
   );
