@@ -47,6 +47,29 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
       }
     }
   }, [propsUser]);
+
+  // Load contacts when modal opens
+  React.useEffect(() => {
+    if (!showForm || !user?.email) return;
+    setLoadingContacts(true);
+    base44.entities.ActivityLog.filter({ sales_member_email: user.email }, '-activity_date', 100)
+      .then(logs => {
+        const uniqueContacts = {};
+        logs?.forEach(log => {
+          if (log.contact_email && !uniqueContacts[log.contact_email]) {
+            uniqueContacts[log.contact_email] = {
+              email: log.contact_email,
+              name: log.contact_name,
+              company: log.company_name
+            };
+          }
+        });
+        setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+      })
+      .catch(() => setContacts([]))
+      .finally(() => setLoadingContacts(false));
+  }, [showForm, user?.email]);
+
   const [formData, setFormData] = useState({
     activity_type: "call",
     contact_email: "",
