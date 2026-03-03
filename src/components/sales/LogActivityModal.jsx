@@ -51,8 +51,12 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
       .finally(() => setLoadingContacts(false));
   }, [open, salesMemberId, contact]);
 
-  const contactName = contact
-    ? [contact.firstname, contact.lastname].filter(Boolean).join(" ") || contact.name || ""
+  const selectedContactObj = selectedContact 
+    ? contacts.find(c => c.email === selectedContact) || contact
+    : contact;
+
+  const contactName = selectedContactObj
+    ? [selectedContactObj.firstname, selectedContactObj.lastname].filter(Boolean).join(" ") || selectedContactObj.name || ""
     : "";
 
   const handleFileChange = async (e) => {
