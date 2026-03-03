@@ -582,8 +582,9 @@ export default function VideoCallPanelV2({
              onToggleScreenShare={toggleScreenShare}
              onEndCall={handleEndCall}
              onSettings={() => setIsSettingsOpen(true)}
+             onToggleChat={() => setIsChatOpen(prev => !prev)}
+             isChatOpen={isChatOpen}
            />
-           <span className="text-[10px] bg-cyan-500 text-white px-1 rounded font-bold">CHAT_CALL</span>
          </div>
       </div>
 
