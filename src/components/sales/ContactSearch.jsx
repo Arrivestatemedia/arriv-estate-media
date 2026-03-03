@@ -515,6 +515,20 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
 
       <ActivityDetailModal activity={selectedActivity} onClose={() => setSelectedActivity(null)} />
 
+      <LogActivityModal
+        open={!!logActivityContact}
+        onClose={() => setLogActivityContact(null)}
+        contact={logActivityContact}
+        salesMemberId={salesMemberId}
+        salesMemberEmail={localStorage.getItem("sales_member_email") || ""}
+        onLogged={() => {
+          // Refresh activities for this contact
+          if (logActivityContact) {
+            fetchActivitiesForContact(logActivityContact);
+          }
+        }}
+      />
+
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
