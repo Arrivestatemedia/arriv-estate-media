@@ -663,16 +663,52 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           </div>
           )}
 
+          {/* DRAFTS */}
+          {tab === "drafts" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Unsent draft emails saved locally</p>
+              </div>
 
-                {/* Gmail-Like Inbox View */}
-                {emailModalOpen && (
-                  <GmailLikeInbox
-                    email={selectedEmail}
-                    onClose={() => setEmailModalOpen(false)}
-                    salesMember={salesMember}
-                    salesMemberId={salesMemberId}
-                  />
-                )}
+              {drafts.length === 0 ? (
+                <div className="text-center py-12" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                  <PenLine className="w-8 h-8 mx-auto mb-3 opacity-40" />
+                  <p>No drafts yet</p>
+                </div>
+              ) : (
+                drafts.map(draft => (
+                  <div key={draft.id} className="rounded-lg border p-4 flex items-start justify-between gap-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#888' }}>draft</span>
+                        <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>{format(new Date(draft.savedAt), "MMM d, yyyy h:mm a")}</span>
+                      </div>
+                      <p className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>To: {draft.to}</p>
+                      <p className="text-sm truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{draft.subject || '(no subject)'}</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" onClick={() => { setFormData({ to: draft.to, subject: draft.subject, body: draft.body }); setTab("compose"); }} style={{ backgroundColor: '#B8956A', color: '#fff' }} className="gap-1">
+                        <PenLine className="w-3 h-3" /> Edit
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setDrafts(prev => prev.filter(d => d.id !== draft.id))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+               {/* Gmail-Like Inbox View */}
+               {emailModalOpen && (
+                 <GmailLikeInbox
+                   email={selectedEmail}
+                   onClose={() => setEmailModalOpen(false)}
+                   salesMember={salesMember}
+                   salesMemberId={salesMemberId}
+                 />
+               )}
               </div>
             );
           }
