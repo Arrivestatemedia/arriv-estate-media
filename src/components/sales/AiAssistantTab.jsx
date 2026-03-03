@@ -357,13 +357,50 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
         {/* Input area */}
         <div className="px-4 pb-5 pt-2" style={{ backgroundColor: '#ffffff' }}>
           <div className="max-w-3xl mx-auto">
+            {/* Image previews */}
+            {attachedImages.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2 px-1">
+                {attachedImages.map((img, i) => (
+                  <div key={i} className="relative group">
+                    <img src={img.url} alt={img.name} className="rounded-lg object-cover" style={{ width: 72, height: 56 }} />
+                    <button
+                      onClick={() => removeImage(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div
               className="flex items-end gap-2 rounded-2xl px-4 py-3"
               style={{ backgroundColor: '#f4f4f4', border: '1px solid #e5e5e5' }}
             >
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              {/* Attach button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition hover:bg-gray-200 disabled:opacity-40"
+                style={{ color: 'rgba(0,0,0,0.4)' }}
+                title="Attach screenshot"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+              </button>
+
               <Textarea
                 ref={textareaRef}
-                placeholder="Message AI Assistant..."
+                placeholder="Message AI Assistant... or attach a screenshot"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -373,15 +410,15 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
               />
               <button
                 onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
+                disabled={(!input.trim() && attachedImages.length === 0) || loading}
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition disabled:opacity-30"
-                style={{ backgroundColor: input.trim() && !loading ? '#B8956A' : '#d0d0d0' }}
+                style={{ backgroundColor: (input.trim() || attachedImages.length > 0) && !loading ? '#B8956A' : '#d0d0d0' }}
               >
                 {loading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Send className="w-4 h-4 text-white" />}
               </button>
             </div>
             <p className="text-center text-xs mt-2" style={{ color: 'rgba(0,0,0,0.25)' }}>
-              Press Enter to send · Shift+Enter for new line
+              Press Enter to send · Shift+Enter for new line · 📎 Attach screenshots for AI analysis
             </p>
           </div>
         </div>
