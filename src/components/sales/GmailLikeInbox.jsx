@@ -135,6 +135,7 @@ ${fullContent || email.snippet || ""}`;
     setSending(true);
     try {
       const emailToUse = salesMember?.company_email || salesMember?.email;
+      const attachmentsToInclude = includeAttachments ? attachmentsToSend : [];
       await base44.functions.invoke('sendEmailViaGmail', {
         to: replyFormData.to,
         cc: replyFormData.cc || undefined,
@@ -145,10 +146,13 @@ ${fullContent || email.snippet || ""}`;
         salesMemberId: salesMemberId || undefined,
         inReplyTo: email?.messageId,
         references: email?.references ? `${email.references} ${email.messageId}` : email?.messageId,
+        attachments: attachmentsToInclude.length > 0 ? attachmentsToInclude : undefined,
       });
       alert("Reply sent successfully!");
       setReplyMode(null);
       setReplyFormData({ to: "", cc: "", subject: "", body: "" });
+      setAttachmentsToSend([]);
+      setIncludeAttachments(true);
     } catch (error) {
       alert("Failed to send reply: " + error.message);
     } finally {
