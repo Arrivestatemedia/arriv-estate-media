@@ -34,8 +34,11 @@ export default function AiAssistantTab({ repName }) {
   });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attachedImages, setAttachedImages] = useState([]); // [{url, name}]
+  const [uploading, setUploading] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const activeSession = sessions.find(s => s.id === activeSessionId) || null;
 
