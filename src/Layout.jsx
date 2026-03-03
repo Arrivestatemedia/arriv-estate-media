@@ -347,23 +347,12 @@ function LayoutContent({ children, currentPageName }) {
         )}
       </main>
       
-      {/* Call State Diagnostic Badge */}
-      {typeof window !== 'undefined' && currentPageName !== "SignIn" && currentPageName !== "SalesLogin" && currentPageName !== "ClientSignup" && currentPageName !== "MediaPartnerSignup" && (
-        <div className="fixed top-4 left-4 bg-gray-900 border border-gray-700 rounded-lg p-3 z-[50000] text-white text-xs font-mono space-y-1">
-          <div>Role: {user?.user_type === 'media_partner' ? 'Media Partner' : localStorage.getItem('sales_member_id') ? 'Sales Rep' : 'User'}</div>
-          <div>callStatus: {callStatus}</div>
-          <div>isInLiveCall: {String(isInLiveCall)}</div>
-          <div>isCallInitiator: {String(isCallInitiator)}</div>
-        </div>
-      )}
+
 
       {/* Mobile Bottom Tabs */}
       <MobileBottomTabs user={user} />
 
-      {/* Build Version Footer */}
-      <div className="fixed bottom-0 right-0 text-[0.65rem] font-mono text-gray-500/40 pointer-events-none p-2">
-        Build: {new Date().toISOString().split('T')[0]} | Deploy Check
-      </div>
+
 
       {/* Video Call Overlay — blocks right bottom area (initiator only) */}
       {isCallInitiator && (
