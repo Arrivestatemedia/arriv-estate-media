@@ -4,7 +4,7 @@ import { MessageSquare, X } from "lucide-react";
 import ChatTab from "./ChatTab";
 import { useCallStatus } from "@/components/CallStatusContext";
 
-export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, onOpenChat, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
+export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, onVideoCallStarted, isVideoCallActive, onOpenChat, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
   const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
