@@ -746,6 +746,10 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           )}
           </div>
           )}
-          </div>
-          );
+
+
+                {/* Email Detail Modal */}
+                <EmailDetailModal email={selectedEmail} open={emailModalOpen} onClose={() => setEmailModalOpen(false)} type={emailModalType} />
+              </div>
+            );
           }
