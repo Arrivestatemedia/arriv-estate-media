@@ -294,6 +294,18 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     setSelectedActivity(activity);
   };
 
+  const handleDeleteActivity = async (activity) => {
+    if (window.confirm("Are you sure you want to delete this activity?")) {
+      try {
+        await base44.entities.ActivityLog.delete(activity.id);
+        queryClient.invalidateQueries({ queryKey: ['adminActivities'] });
+        setSelectedActivity(null);
+      } catch (error) {
+        alert("Failed to delete activity: " + error.message);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
@@ -577,36 +589,41 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                   <Badge variant="secondary">{upcomingActivities.length}</Badge>
                 </div>
                 <div className="space-y-3">
-                  {upcomingActivities.map((activity) => (
-                    <Card key={activity.id} style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184, 149, 106, 0.1)' }}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)' }}>
-                              {activityIcons[activity.activity_type]}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
-                                <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
-                                <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
-                                  {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
-                                </span>
-                              </div>
-                              <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                              {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                              {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
-                              <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
-                              {activity.picture_url && (
-                                <img src={activity.picture_url} alt="Activity" className="mt-2 rounded-lg max-h-32 w-auto" />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                   {upcomingActivities.map((activity) => (
+                     <Card 
+                       key={activity.id} 
+                       style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184, 149, 106, 0.1)' }}
+                       className="cursor-pointer hover:shadow-md transition"
+                       onClick={() => handleActivityClick(activity)}
+                     >
+                       <CardContent className="pt-6">
+                         <div className="flex items-start justify-between gap-4">
+                           <div className="flex items-start gap-3 flex-1">
+                             <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)' }}>
+                               {activityIcons[activity.activity_type]}
+                             </div>
+                             <div className="flex-1">
+                               <div className="flex items-center gap-2">
+                                 <Badge variant="outline" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
+                                 <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
+                                 <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
+                                   {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
+                                 </span>
+                               </div>
+                               <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                               {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                               {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                               <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                               {activity.picture_url && (
+                                 <img src={activity.picture_url} alt="Activity" className="mt-2 rounded-lg max-h-32 w-auto" />
+                               )}
+                             </div>
+                           </div>
+                         </div>
+                       </CardContent>
+                     </Card>
+                   ))}
+                 </div>
               </div>
             )}
 
@@ -662,44 +679,55 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
         )}
 
         {/* Activity Detail Modal */}
-        <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) setSelectedActivity(null); }}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Activity Details</DialogTitle>
-            </DialogHeader>
-            {selectedActivity && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-3">Activity</h3>
-                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                    <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
-                    <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                    <p><span className="font-medium">Notes:</span> {selectedActivity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
-                    {selectedActivity.duration_minutes > 0 && (
-                      <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
-                    )}
-                    {selectedActivity.picture_url && (
-                      <div>
-                        <p className="font-medium mb-2">Picture:</p>
-                        <img src={selectedActivity.picture_url} alt="Activity" className="rounded-lg max-h-48 w-auto" />
-                      </div>
-                    )}
-                  </div>
-                </div>
+         <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) setSelectedActivity(null); }}>
+           <DialogContent className="max-w-2xl">
+             <DialogHeader>
+               <div className="flex justify-between items-center">
+                 <DialogTitle>Activity Details</DialogTitle>
+                 {selectedActivity && (
+                   <Button
+                     variant="destructive"
+                     size="sm"
+                     onClick={() => handleDeleteActivity(selectedActivity)}
+                   >
+                     Delete
+                   </Button>
+                 )}
+               </div>
+             </DialogHeader>
+             {selectedActivity && (
+               <div className="space-y-6">
+                 <div>
+                   <h3 className="font-semibold mb-3">Activity</h3>
+                   <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                     <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
+                     <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
+                     <p><span className="font-medium">Notes:</span> {selectedActivity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
+                     {selectedActivity.duration_minutes > 0 && (
+                       <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
+                     )}
+                     {selectedActivity.picture_url && (
+                       <div>
+                         <p className="font-medium mb-2">Picture:</p>
+                         <img src={selectedActivity.picture_url} alt="Activity" className="rounded-lg max-h-48 w-auto" />
+                       </div>
+                     )}
+                   </div>
+                 </div>
 
-                <div>
-                  <h3 className="font-semibold mb-3">Contact Information</h3>
-                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                    {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
-                    {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
-                    {selectedActivity.contact_phone && <p><span className="font-medium">Phone:</span> {selectedActivity.contact_phone}</p>}
-                    {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+                 <div>
+                   <h3 className="font-semibold mb-3">Contact Information</h3>
+                   <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                     {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
+                     {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
+                     {selectedActivity.contact_phone && <p><span className="font-medium">Phone:</span> {selectedActivity.contact_phone}</p>}
+                     {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
+                   </div>
+                 </div>
+               </div>
+             )}
+           </DialogContent>
+         </Dialog>
 
 
 
