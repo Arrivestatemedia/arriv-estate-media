@@ -136,6 +136,11 @@ export default function VideoChat({ isOpen, onClose, currentUserName, roomName, 
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Send error */}
+      {sendError && (
+        <div className="px-3 py-1 bg-red-900/50 text-red-300 text-xs flex-shrink-0">{sendError}</div>
+      )}
+
       {/* Input */}
       <div className="flex-shrink-0 p-3 border-t border-gray-700 flex gap-2">
         <Input
