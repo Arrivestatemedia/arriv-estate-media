@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ChevronLeft, Reply, ReplyAll, Archive, Trash2, Image as ImageIcon, Download, FileText } from "lucide-react";
+import { Loader2, ChevronLeft, Reply, ReplyAll, Share2, Archive, Trash2, Image as ImageIcon, Download, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 export default function GmailLikeInbox({ email, onClose, salesMember, salesMemberId }) {
