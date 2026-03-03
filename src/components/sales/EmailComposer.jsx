@@ -637,23 +637,17 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
               const isReplyingToThis = replyingTo?.id === reply.id;
               return (
                 <div key={reply.id} className="rounded-lg border overflow-hidden" style={{ borderColor: isExpanded ? '#B8956A' : 'rgba(184,149,106,0.2)', backgroundColor: isExpanded ? 'rgba(184,149,106,0.05)' : '#fff' }}>
-                  <button onClick={() => setExpandedReply(isExpanded ? null : reply.id)} className="w-full text-left p-4 hover:opacity-80 transition">
+                  <button onClick={() => { setSelectedEmail(reply); setEmailModalOpen(true); setEmailModalType("inbox"); }} className="w-full text-left p-4 hover:opacity-80 transition">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{reply.from}</p>
                         <p className="text-sm truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{reply.subject || '(no subject)'}</p>
-                        {!isExpanded && <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26,26,26,0.5)' }}>{reply.snippet}</p>}
+                        <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26,26,26,0.5)' }}>{reply.snippet}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>{reply.date ? format(new Date(reply.date), "MMM d") : ''}</span>
-                        {isExpanded ? <ChevronUp className="w-4 h-4 opacity-40" /> : <ChevronDown className="w-4 h-4 opacity-40" />}
                       </div>
                     </div>
-                    {isExpanded && (
-                      <div className="mt-3 pt-3 text-sm border-t" style={{ borderColor: 'rgba(184,149,106,0.2)', color: '#1A1A1A' }}>
-                        {reply.snippet}
-                      </div>
-                    )}
                   </button>
 
                   {isExpanded && !isReplyingToThis && (
