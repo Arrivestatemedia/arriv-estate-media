@@ -229,12 +229,13 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     }
     setSending(true);
     try {
+      const emailToUse = fromEmail || salesMember?.company_email || salesMember?.email;
       await base44.functions.invoke('sendEmailViaGmail', {
         ...formData,
         cc: ccRecipients.join(", ") || undefined,
         bcc: bccRecipients.join(", ") || undefined,
         contactEmail: selectedContact?.email,
-        fromEmail: fromEmail || undefined,
+        fromEmail: emailToUse || undefined,
         fromName: salesMember?.full_name || undefined,
         salesMemberId: salesMemberId || undefined,
         contactName: selectedContact ? `${selectedContact.firstname || ''} ${selectedContact.lastname || ''}`.trim() : undefined,
@@ -303,12 +304,13 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     }
     setSending(true);
     try {
+      const emailToUse = fromEmail || salesMember?.company_email || salesMember?.email;
       await base44.functions.invoke('sendEmailViaGmail', {
         to: replyFormData.to,
         cc: replyFormData.cc || undefined,
         subject: replyFormData.subject,
         body: replyFormData.body,
-        fromEmail: fromEmail || undefined,
+        fromEmail: emailToUse || undefined,
         fromName: salesMember?.full_name || undefined,
         salesMemberId: salesMemberId || undefined,
         inReplyTo: replyingTo?.messageId,
