@@ -342,10 +342,38 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
         {/* Input area */}
         <div className="px-4 pb-5 pt-2" style={{ backgroundColor: '#ffffff' }}>
           <div className="max-w-3xl mx-auto">
+            {/* Attached file chips */}
+            {attachedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {attachedFiles.map((f, i) => (
+                  <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs" style={{ backgroundColor: '#f0e8df', color: '#7a5c3a', border: '1px solid #dbc9b0' }}>
+                    <Paperclip className="w-3 h-3 flex-shrink-0" />
+                    <span className="max-w-[140px] truncate">{f.name}</span>
+                    <button onClick={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-red-500 ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div
               className="flex items-end gap-2 rounded-2xl px-4 py-3"
               style={{ backgroundColor: '#f4f4f4', border: '1px solid #e5e5e5' }}
             >
+              {/* Hidden file input */}
+              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
+
+              {/* Attach button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || loading}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition hover:opacity-70 disabled:opacity-30"
+                title="Attach file"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#B8956A' }} /> : <Paperclip className="w-4 h-4" style={{ color: 'rgba(0,0,0,0.4)' }} />}
+              </button>
+
               <Textarea
                 ref={textareaRef}
                 placeholder="Message AI Assistant..."
@@ -358,9 +386,9 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
               />
               <button
                 onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
+                disabled={(!input.trim() && attachedFiles.length === 0) || loading || uploading}
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition disabled:opacity-30"
-                style={{ backgroundColor: input.trim() && !loading ? '#B8956A' : '#d0d0d0' }}
+                style={{ backgroundColor: (input.trim() || attachedFiles.length > 0) && !loading ? '#B8956A' : '#d0d0d0' }}
               >
                 {loading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Send className="w-4 h-4 text-white" />}
               </button>
