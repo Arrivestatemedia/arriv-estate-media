@@ -321,8 +321,27 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                     <DialogTitle>Log New Activity</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Activity Type</label>
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Contact</label>
+                       <Select value={selectedContact || ""} onValueChange={setSelectedContact} disabled={loadingContacts}>
+                         <SelectTrigger>
+                           <SelectValue placeholder={loadingContacts ? "Loading contacts..." : "Select or create contact"} />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {contacts.length === 0 && !loadingContacts && (
+                             <SelectItem value={null} disabled>No previous contacts found</SelectItem>
+                           )}
+                           {contacts.map((c) => (
+                             <SelectItem key={c.email} value={c.email}>
+                               {c.name} {c.company ? `(${c.company})` : ""}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Activity Type</label>
                       <Select value={formData.activity_type} onValueChange={(val) => setFormData({...formData, activity_type: val})}>
                         <SelectTrigger>
                           <SelectValue />
