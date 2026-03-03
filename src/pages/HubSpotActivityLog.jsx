@@ -969,6 +969,13 @@ export default function HubSpotActivityLog() {
                    />
                  </div>
 
+                 {editFormData.picture_url && (
+                   <div>
+                     <label className="block text-sm font-medium mb-2">Picture</label>
+                     <img src={editFormData.picture_url} alt="Activity" className="rounded-lg max-h-48 w-auto" />
+                   </div>
+                 )}
+
                  <div className="flex gap-2">
                    <Button
                      variant="outline"
@@ -988,8 +995,8 @@ export default function HubSpotActivityLog() {
                      Save Changes
                    </Button>
                  </div>
-               </div>
-             )}
+                 </div>
+                 )}
            </DialogContent>
          </Dialog>
 
