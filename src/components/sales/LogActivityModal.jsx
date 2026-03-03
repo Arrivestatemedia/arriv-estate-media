@@ -90,9 +90,9 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
 
       await base44.entities.ActivityLog.create({
         activity_type: activityType,
-        contact_email: contact?.email || "",
+        contact_email: selectedContactObj?.email || "",
         contact_name: contactName,
-        company_name: contact?.company || "",
+        company_name: selectedContactObj?.company || "",
         activity_date: new Date(activityDate).toISOString(),
         notes: fullNotes,
         duration_minutes: duration ? Number(duration) : 0,
