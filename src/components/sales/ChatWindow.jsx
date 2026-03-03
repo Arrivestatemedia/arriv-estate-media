@@ -565,8 +565,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             setTimeout(() => setVideoCallError(null), 3000);
                             return;
                           }
-                          // Set call state immediately when user initiates
-                          if (onVideoCallStarted) onVideoCallStarted('dialing');
                           try {
                             const res = await base44.functions.invoke('initiateVideoCall', {
                               salesMemberId: currentUserId,
@@ -574,8 +572,15 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                               callerName: currentUserName
                             });
                             if (res.data?.success) {
-                              setOutgoingCallData({ roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName });
-                              setShowVideoCall(true);
+                              const callData = { roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName };
+                              if (onVideoCallStarted) {
+                                // Pass full data to parent so it renders the panel at page level (survives chat bubble hiding)
+                                onVideoCallStarted(callData);
+                              } else {
+                                // Fallback: render locally if no parent handler
+                                setOutgoingCallData(callData);
+                                setShowVideoCall(true);
+                              }
                             } else {
                               setVideoCallError('Failed to start video call');
                               if (onVideoCallEnded) onVideoCallEnded('failed');
