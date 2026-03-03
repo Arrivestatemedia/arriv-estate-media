@@ -301,38 +301,38 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                         ))}
                       </div>
                     )}
-                  <div
-                    className="text-sm leading-relaxed w-full"
-                    style={{
-                      backgroundColor: msg.role === "user" ? '#1a1a1a' : 'transparent',
-                      color: msg.role === "user" ? '#fff' : '#1a1a1a',
-                      borderRadius: msg.role === "user" ? '18px' : '0',
-                      padding: msg.role === "user" ? '10px 16px' : '0',
-                    }}
-                  >
-                    {msg.role === "assistant" ? (
-                      <ReactMarkdown
-                        className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                        components={{
-                          p: ({ children }) => <p className="my-1.5 leading-relaxed">{children}</p>,
-                          ul: ({ children }) => <ul className="my-2 ml-4 list-disc space-y-1">{children}</ul>,
-                          ol: ({ children }) => <ol className="my-2 ml-4 list-decimal space-y-1">{children}</ol>,
-                          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                          h1: ({ children }) => <h1 className="text-lg font-semibold mt-3 mb-1">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-base font-semibold mt-3 mb-1">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1">{children}</h3>,
-                          code: ({ inline, children }) => inline
-                            ? <code className="px-1 py-0.5 rounded text-xs" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>{children}</code>
-                            : <pre className="p-3 rounded-lg text-xs overflow-x-auto my-2" style={{ backgroundColor: '#f4f4f4' }}><code>{children}</code></pre>,
-                        }}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
-                    ) : (
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
-                    )}
-                  </div>
+                    <div
+                      className="text-sm leading-relaxed w-full"
+                      style={{
+                        backgroundColor: msg.role === "user" ? '#1a1a1a' : 'transparent',
+                        color: msg.role === "user" ? '#fff' : '#1a1a1a',
+                        borderRadius: msg.role === "user" ? '18px' : '0',
+                        padding: msg.role === "user" ? '10px 16px' : '0',
+                      }}
+                    >
+                      {msg.role === "assistant" ? (
+                        <ReactMarkdown
+                          className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                          components={{
+                            p: ({ children }) => <p className="my-1.5 leading-relaxed">{children}</p>,
+                            ul: ({ children }) => <ul className="my-2 ml-4 list-disc space-y-1">{children}</ul>,
+                            ol: ({ children }) => <ol className="my-2 ml-4 list-decimal space-y-1">{children}</ol>,
+                            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                            h1: ({ children }) => <h1 className="text-lg font-semibold mt-3 mb-1">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-base font-semibold mt-3 mb-1">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1">{children}</h3>,
+                            code: ({ inline, children }) => inline
+                              ? <code className="px-1 py-0.5 rounded text-xs" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>{children}</code>
+                              : <pre className="p-3 rounded-lg text-xs overflow-x-auto my-2" style={{ backgroundColor: '#f4f4f4' }}><code>{children}</code></pre>,
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
