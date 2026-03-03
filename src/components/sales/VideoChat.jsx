@@ -155,7 +155,7 @@ export default function VideoChat({ isOpen, onClose, currentUserName, roomName, 
         <Button
           size="icon"
           onClick={handleSend}
-          disabled={!message.trim() || loading}
+          disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 h-8 w-8 flex-shrink-0"
         >
           <Send className="w-3 h-3" />
