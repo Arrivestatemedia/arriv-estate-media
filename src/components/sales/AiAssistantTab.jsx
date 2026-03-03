@@ -80,13 +80,15 @@ export default function AiAssistantTab({ repName }) {
 
   const sendMessage = async (messageText) => {
     const text = (messageText || input).trim();
-    if (!text || loading) return;
+    const images = messageText ? [] : attachedImages; // starter prompts have no images
+    if (!text && images.length === 0) return;
+    if (loading) return;
 
     let session = activeSession;
     if (!session) {
       session = {
         id: Date.now().toString(),
-        title: text.slice(0, 40),
+        title: text.slice(0, 40) || "Screenshot analysis",
         messages: [],
         createdAt: new Date().toISOString(),
       };
@@ -98,15 +100,21 @@ export default function AiAssistantTab({ repName }) {
       setActiveSessionId(session.id);
     }
 
-    const userMsg = { role: "user", content: text, id: Date.now() };
+    const userMsg = {
+      role: "user",
+      content: text || "(screenshot attached)",
+      images: images.map(i => i.url),
+      id: Date.now()
+    };
     const updatedMessages = [...(session.messages || []), userMsg];
     const updatedSession = {
       ...session,
       messages: updatedMessages,
-      title: session.messages.length === 0 ? text.slice(0, 45) : session.title,
+      title: session.messages.length === 0 ? (text || "Screenshot analysis").slice(0, 45) : session.title,
     };
     updateSession(updatedSession);
     setInput("");
+    setAttachedImages([]);
     setLoading(true);
 
     try {
@@ -115,9 +123,14 @@ export default function AiAssistantTab({ repName }) {
         .map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
         .join("\n");
 
+      const imageUrls = images.map(i => i.url);
+      const imageNote = imageUrls.length > 0
+        ? `\n\nThe user has also attached ${imageUrls.length} screenshot(s) of their text message conversation with a client. Please analyze the conversation in the screenshots and provide specific feedback, ideas, or recommended next steps.`
+        : "";
+
       const prompt = `You are an AI sales assistant for Arriv, a real estate media company offering professional photography, videography, MLS walkthroughs, and cinematic video packages to real estate agents.
 
-You help sales reps with: email drafting, call scripts, objection handling, follow-up strategies, pricing questions, negotiation tips, and general sales advice.
+You help sales reps with: email drafting, call scripts, objection handling, follow-up strategies, pricing questions, negotiation tips, and general sales advice.${imageNote}
 
 Sales rep name: ${repName || "the rep"}
 
@@ -126,7 +139,10 @@ ${historyText}
 
 Please respond helpfully and concisely. Use markdown formatting where appropriate (bullet points, bold text, etc.).`;
 
-      const res = await base44.integrations.Core.InvokeLLM({ prompt });
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        ...(imageUrls.length > 0 ? { file_urls: imageUrls } : {})
+      });
       const aiText = typeof res === "string" ? res : res?.text || String(res);
 
       const aiMsg = { role: "assistant", content: aiText, id: Date.now() + 1 };
