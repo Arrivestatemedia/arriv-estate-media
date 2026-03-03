@@ -337,6 +337,12 @@ ${fullContent || email.snippet || ""}`;
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Subject</label>
                 <Input value={replyFormData.subject} onChange={e => setReplyFormData(f => ({ ...f, subject: e.target.value }))} className="text-sm" />
               </div>
+              {attachmentsToSend.length > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer p-3 rounded-lg border transition" style={{ borderColor: includeAttachments ? '#B8956A' : 'rgba(184,149,106,0.2)', backgroundColor: includeAttachments ? 'rgba(184,149,106,0.08)' : 'transparent' }}>
+                  <input type="checkbox" checked={includeAttachments} onChange={(e) => setIncludeAttachments(e.target.checked)} className="accent-[#B8956A]" />
+                  <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>Include {attachmentsToSend.length} attachment{attachmentsToSend.length > 1 ? 's' : ''}</span>
+                </label>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A1A' }}>Message</label>
                 <Textarea value={replyFormData.body} onChange={e => setReplyFormData(f => ({ ...f, body: e.target.value }))} rows={8} className="text-sm" />
