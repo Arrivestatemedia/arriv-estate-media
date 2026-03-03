@@ -36,10 +36,14 @@ export default function VideoChat({ isOpen, onClose, currentUserName, roomName, 
 
     loadMessages();
 
-    // Subscribe to new messages
+    // Subscribe to new messages (skip duplicates from optimistic updates)
     const unsubscribe = base44.entities.VideoCallMessage.subscribe((event) => {
       if (event.type === 'create' && event.data?.room_name === roomName) {
-        setMessages(prev => [...prev, event.data]);
+        setMessages(prev => {
+          // Remove matching optimistic entry, then add the real one
+          const filtered = prev.filter(m => !m.id?.startsWith('opt-') || m.content !== event.data.content || m.sender_id !== event.data.sender_id);
+          return [...filtered, event.data];
+        });
       }
     });
 
