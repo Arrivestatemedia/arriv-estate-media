@@ -462,11 +462,6 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {/* Video System Status Indicator */}
-        <div className="mb-4 p-2 rounded-lg bg-gray-100 border border-gray-300 text-xs font-mono" style={{ color: '#1A1A1A' }}>
-          <div>videoListenerReady: {String(videoListenerReady)} | activeCall: {String(!!activeVideoCall)} | windowOpen: {String(isVideoWindowOpen)} | lastNotif: {lastIncomingNotificationId?.slice(0, 8) || 'none'}</div>
-        </div>
-
         <div className="flex justify-between items-center mb-8">
            <div className="flex items-center gap-4">
              {user?.type === 'sales' && (
@@ -927,28 +922,8 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {/* Call State Badge */}
-        <CallStateBadge
-          role="Sales Rep"
-          callStatus={callStatus}
-          isInLiveCall={isInLiveCall}
-          isVideoWindowOpen={isVideoWindowOpen}
-          activeVideoCall={activeVideoCall}
-          incomingVideoCall={incomingVideoCall}
-          lastCallEvent={lastCallEvent}
-        />
-
-        {/* Bubble Debug Badge */}
-        <div style={{ position: 'fixed', bottom: 90, right: 20, fontSize: '11px', padding: '8px', background: '#333', color: '#fff', zIndex: 999, borderRadius: '4px' }}>
-          <div>callStatus: {callStatus}</div>
-          <div>unread: {String(hasUnreadNotification)}</div>
-          <div>show: {String((callStatus === 'idle') || hasUnreadNotification)}</div>
-        </div>
-
-        {/* Chat bubble - hidden during live call or if has unread notifications, disabled when video call active */}
+        {/* Chat bubble - hidden during live call, disabled when video call active */}
          {((callStatus === 'idle') || hasUnreadNotification) && (
-            <>
-            <span className="fixed bottom-[6rem] right-4 text-[10px] bg-purple-500 text-white px-1 rounded font-bold z-[8999]">CHAT_C</span>
             <FloatingChatBubble
               currentUserId={user?.id}
               currentUserName={user?.full_name}
@@ -980,7 +955,6 @@ export default function HubSpotActivityLog() {
                }).catch(() => {});
              }}
            />
-            </>
            )}
 
            </div>
