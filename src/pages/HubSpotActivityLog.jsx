@@ -956,6 +956,14 @@ export default function HubSpotActivityLog() {
               isInLiveCall={isInLiveCall}
               activeVideoCall={activeVideoCall}
               isVideoWindowOpen={isVideoWindowOpen}
+              onVideoCallStarted={(data) => {
+                if (data && typeof data === 'object' && data.roomName) {
+                  setLastCallEvent('OUTBOUND_START');
+                  setCallStatus("calling");
+                  setActiveVideoCall({ callerName: data.recipientName || "Video Call", roomName: data.roomName, recipientToken: data.token });
+                  setIsVideoWindowOpen(true);
+                }
+              }}
               onInitiateTransfer={(memberId, memberName) => {
                base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
                  const ext = members?.[0]?.extension;
