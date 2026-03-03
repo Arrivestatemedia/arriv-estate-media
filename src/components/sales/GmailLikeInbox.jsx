@@ -22,27 +22,29 @@ export default function GmailLikeInbox({ email, onClose, salesMember, salesMembe
           let content = email.message_content || email.body || email.snippet || "";
           let attachmentList = [];
 
-          if (email.parts && Array.isArray(email.parts)) {
-            const imageParts = email.parts.filter(part => 
-              part.mimeType?.startsWith('image/') || (part.filename && part.mimeType?.includes('image'))
-            );
-            const attachmentParts = email.parts.filter(part => 
-              part.filename && part.mimeType?.includes('application')
-            );
-            const allRelevantParts = [...imageParts, ...attachmentParts];
-            
-            if (allRelevantParts.length > 0) {
-              try {
+          // Try to fetch attachments from Gmail
+          if (email.id && email.parts && Array.isArray(email.parts) && email.parts.length > 0) {
+            try {
+              // Include all parts that might have data (images, files, etc)
+              const partsWithData = email.parts.filter(part => 
+                part.partId && (
+                  part.mimeType?.startsWith('image/') ||
+                  part.mimeType?.startsWith('application/') ||
+                  part.filename
+                )
+              );
+              
+              if (partsWithData.length > 0) {
                 const attachRes = await base44.functions.invoke('getGmailAttachments', {
                   messageId: email.id,
-                  parts: allRelevantParts
+                  parts: partsWithData
                 });
-                if (attachRes.data?.attachments) {
+                if (attachRes.data?.attachments && Array.isArray(attachRes.data.attachments)) {
                   attachmentList = attachRes.data.attachments;
                 }
-              } catch (e) {
-                console.error("Failed to fetch attachments:", e);
               }
+            } catch (e) {
+              console.error("Failed to fetch attachments:", e);
             }
           }
           
