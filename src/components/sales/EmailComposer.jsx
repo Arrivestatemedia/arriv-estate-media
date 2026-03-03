@@ -290,45 +290,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     }
   };
 
-  const handleReply = (reply, isReplyAll = false) => {
-    const subject = reply.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply.subject || '(no subject)'}`;
-    const fromEmail_clean = reply.from.match(/<(.+?)>/)?.[1] || reply.from;
-    setReplyingTo(reply);
-    setReplyMode(isReplyAll ? "replyAll" : "reply");
-    setReplyFormData({ to: fromEmail_clean, cc: "", subject, body: "" });
-    setExpandedReply(reply.id);
-  };
 
-  const handleSendReply = async () => {
-    if (!replyFormData.to || !replyFormData.subject || !replyFormData.body) {
-      alert("Please fill in all fields");
-      return;
-    }
-    setSending(true);
-    try {
-      const emailToUse = fromEmail || salesMember?.company_email || salesMember?.email;
-      await base44.functions.invoke('sendEmailViaGmail', {
-        to: replyFormData.to,
-        cc: replyFormData.cc || undefined,
-        subject: replyFormData.subject,
-        body: replyFormData.body,
-        fromEmail: emailToUse || undefined,
-        fromName: salesMember?.full_name || undefined,
-        salesMemberId: salesMemberId || undefined,
-        inReplyTo: replyingTo?.messageId,
-        references: replyingTo?.references ? `${replyingTo.references} ${replyingTo.messageId}` : replyingTo?.messageId,
-      });
-      setSent(true);
-      setReplyingTo(null);
-      setReplyMode(null);
-      setReplyFormData({ to: "", cc: "", subject: "", body: "" });
-      setTimeout(() => setSent(false), 3000);
-    } catch (error) {
-      alert("Failed to send reply: " + error.message);
-    } finally {
-      setSending(false);
-    }
-  };
 
   const statusColor = { pending: '#B8956A', sent: '#22c55e', failed: '#ef4444' };
   const fromOptions = salesMember?.company_email ? [{ label: salesMember.company_email, value: salesMember.company_email }] : [];
