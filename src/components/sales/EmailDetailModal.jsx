@@ -92,27 +92,15 @@ export default function EmailDetailModal({ email, open, onClose, type = "inbox" 
               <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#B8956A' }} />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="prose prose-sm max-w-none break-words" style={{ color: '#1A1A1A' }}>
+              {/* HTML email or plain text */}
               {fullContent && fullContent.includes('<') && fullContent.includes('>') ? (
-                <div dangerouslySetInnerHTML={{ __html: fullContent }} className="text-sm leading-relaxed bg-white p-4 rounded-lg border prose prose-sm max-w-none" style={{ borderColor: 'rgba(184,149,106,0.2)' }} />
+                <div dangerouslySetInnerHTML={{ __html: fullContent }} className="whitespace-pre-wrap text-sm leading-relaxed" />
               ) : (
                 <div className="whitespace-pre-wrap text-sm leading-relaxed bg-white p-4 rounded-lg border" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
                   {fullContent}
                 </div>
               )}
-              
-              {/* Display inline images from parts if available */}
-              {email.parts && Array.isArray(email.parts) && email.parts.map((part, idx) => {
-                if (part.mimeType && part.mimeType.startsWith('image/') && part.body && part.body.data) {
-                  const imageData = `data:${part.mimeType};base64,${part.body.data}`;
-                  return (
-                    <div key={idx} className="rounded-lg overflow-hidden border" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-                      <img src={imageData} alt={part.filename || `image-${idx}`} className="max-w-full h-auto" />
-                    </div>
-                  );
-                }
-                return null;
-              })}
             </div>
           )}
 
