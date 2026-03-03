@@ -22,10 +22,36 @@ export default function GmailLikeInbox({ email, onClose, salesMember, salesMembe
           let content = email.message_content || email.body || email.snippet || "";
           let attachmentList = [];
 
-          // Try to fetch attachments from Gmail
+          // Extract body from payload if not already present
+          if (!content && email.payload) {
+            try {
+              const extractBody = (payload) => {
+                if (payload.parts) {
+                  for (const part of payload.parts) {
+                    if (part.mimeType === 'text/plain' || part.mimeType === 'text/html') {
+                      if (part.body?.data) {
+                        const decoded = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+                        return decoded;
+                      }
+                    }
+                    const nested = extractBody(part);
+                    if (nested) return nested;
+                  }
+                } else if (payload.body?.data) {
+                  const decoded = atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+                  return decoded;
+                }
+                return '';
+              };
+              content = extractBody(email.payload) || content;
+            } catch (e) {
+              console.error("Failed to extract body from payload:", e);
+            }
+          }
+
+          // Fetch attachments from Gmail
           if (email.id && email.parts && Array.isArray(email.parts) && email.parts.length > 0) {
             try {
-              // Include all parts that might have data (images, files, etc)
               const partsWithData = email.parts.filter(part => 
                 part.partId && (
                   part.mimeType?.startsWith('image/') ||
