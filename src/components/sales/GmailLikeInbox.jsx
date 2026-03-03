@@ -355,7 +355,7 @@ ${fullContent || email.snippet || ""}`;
                 <Button onClick={handleSendReply} disabled={sending} className="px-6" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
                   {sending ? "Sending..." : "Send"}
                 </Button>
-                <Button onClick={() => { setReplyMode(null); setReplyFormData({ to: "", cc: "", subject: "", body: "" }); }} variant="outline" className="px-6" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+                <Button onClick={() => { setReplyMode(null); setReplyFormData({ to: "", cc: "", subject: "", body: "" }); setAttachmentsToSend([]); setIncludeAttachments(true); }} variant="outline" className="px-6" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
                   Cancel
                 </Button>
               </div>
