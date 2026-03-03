@@ -81,6 +81,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
               currentUserId={userId} 
               currentUserName={userName}
               onInitiateTransfer={onInitiateTransfer}
+              onVideoCallStarted={onVideoCallStarted}
             />
           </div>
         </div>
