@@ -141,7 +141,7 @@ export default function AiAssistantTab({ repName }) {
     try {
       const historyText = updatedMessages
         .slice(-10)
-        .map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+        .map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}${m.file_names?.length ? ` [Attached: ${m.file_names.join(", ")}]` : ""}`)
         .join("\n");
 
       const prompt = `You are an AI sales assistant for Arriv, a real estate media company offering professional photography, videography, MLS walkthroughs, and cinematic video packages to real estate agents.
@@ -155,7 +155,10 @@ ${historyText}
 
 Please respond helpfully and concisely. Use markdown formatting where appropriate (bullet points, bold text, etc.).`;
 
-      const res = await base44.integrations.Core.InvokeLLM({ prompt });
+      const latestUserMsg = updatedMessages[updatedMessages.length - 1];
+      const fileUrls = latestUserMsg?.file_urls?.length ? latestUserMsg.file_urls : undefined;
+
+      const res = await base44.integrations.Core.InvokeLLM({ prompt, file_urls: fileUrls });
       const aiText = typeof res === "string" ? res : res?.text || String(res);
 
       const aiMsg = { role: "assistant", content: aiText, id: Date.now() + 1 };
