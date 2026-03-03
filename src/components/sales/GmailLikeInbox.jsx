@@ -295,7 +295,7 @@ ${fullContent || email.snippet || ""}`;
           </div>
         )}
 
-        {/* Reply/Reply All Buttons */}
+        {/* Reply/Reply All/Forward Buttons */}
         {!replyMode && (
           <div className="flex gap-2 mb-8">
             <Button onClick={() => handleReply(false)} className="gap-2" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
@@ -303,6 +303,9 @@ ${fullContent || email.snippet || ""}`;
             </Button>
             <Button onClick={() => handleReply(true)} variant="outline" className="gap-2" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
               <ReplyAll className="w-4 h-4" /> Reply All
+            </Button>
+            <Button onClick={handleForward} variant="outline" className="gap-2" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+              <Share2 className="w-4 h-4" /> Forward
             </Button>
           </div>
         )}
