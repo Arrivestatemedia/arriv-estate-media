@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar, SendHorizontal } from "lucide-react";
 import AiAssistButton from "./AiAssistButton";
+import EmailDetailModal from "./EmailDetailModal";
 import { format } from "date-fns";
 
 export default function EmailComposer({ salesMemberId, isAdmin = false }) {
@@ -42,6 +43,10 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
 
   const [sentEmails, setSentEmails] = useState([]);
   const [loadingSent, setLoadingSent] = useState(false);
+
+  const [selectedEmail, setSelectedEmail] = useState(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailModalType, setEmailModalType] = useState("inbox");
 
   const lastInboxCountRef = React.useRef(null);
 
