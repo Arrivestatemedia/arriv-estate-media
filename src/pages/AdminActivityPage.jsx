@@ -268,6 +268,10 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     }
   };
 
+  const selectedContactObj = selectedContact 
+    ? contacts.find(c => c.email === selectedContact)
+    : null;
+
   const handleSubmit = () => {
     if (!formData.contact_name && !formData.contact_phone) {
       alert("Please enter a contact name or phone number");
@@ -279,6 +283,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     }
     createActivityMutation.mutate({
       ...formData,
+      contact_name: selectedContactObj?.name || formData.contact_name,
+      contact_email: selectedContactObj?.email || formData.contact_email,
+      company_name: selectedContactObj?.company || formData.company_name,
       sales_member_email: user?.email,
       sales_member_id: user?.id
     });
