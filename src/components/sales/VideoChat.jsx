@@ -9,8 +9,13 @@ export default function VideoChat({ isOpen, onClose, currentUserName, roomName, 
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Resolve identity from props or localStorage fallback
+  const userId = currentUserId || localStorage.getItem('sales_member_id');
+  const userName = currentUserName || localStorage.getItem('sales_member_name') || "Unknown";
 
   // Load messages from database
   useEffect(() => {
