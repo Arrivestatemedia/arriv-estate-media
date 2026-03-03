@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, AlertCircle } from "lucide-react";
-import VideoCallPanel from "@/components/sales/VideoCallPanel";
+import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 
 export default function Conference() {
   const [roomName, setRoomName] = useState(null);
