@@ -23,6 +23,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [activeTab, setActiveTab] = useState("activity");
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [contacts, setContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
 
   // Load user from localStorage if not provided
   useEffect(() => {
