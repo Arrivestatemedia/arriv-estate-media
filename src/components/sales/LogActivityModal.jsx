@@ -20,7 +20,36 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
   const [screenshots, setScreenshots] = useState([]); // { name, url }
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contacts, setContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Load contacts when modal opens
+  React.useEffect(() => {
+    if (!open) return;
+    setLoadingContacts(true);
+    const memberId = salesMemberId || localStorage.getItem('sales_member_id');
+    base44.entities.ActivityLog.filter({ sales_member_id: memberId }, '-activity_date', 100)
+      .then(logs => {
+        const uniqueContacts = {};
+        logs?.forEach(log => {
+          if (log.contact_email && !uniqueContacts[log.contact_email]) {
+            uniqueContacts[log.contact_email] = {
+              email: log.contact_email,
+              name: log.contact_name,
+              company: log.company_name
+            };
+          }
+        });
+        setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+        if (contact) {
+          setSelectedContact(contact.email || contact.id);
+        }
+      })
+      .catch(() => setContacts([]))
+      .finally(() => setLoadingContacts(false));
+  }, [open, salesMemberId, contact]);
 
   const contactName = contact
     ? [contact.firstname, contact.lastname].filter(Boolean).join(" ") || contact.name || ""
