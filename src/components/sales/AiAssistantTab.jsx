@@ -119,15 +119,23 @@ export default function AiAssistantTab({ repName }) {
       setActiveSessionId(session.id);
     }
 
-    const userMsg = { role: "user", content: text, id: Date.now() };
+    const filesToSend = [...attachedFiles];
+    const userMsg = {
+      role: "user",
+      content: text,
+      file_urls: filesToSend.map(f => f.url),
+      file_names: filesToSend.map(f => f.name),
+      id: Date.now()
+    };
     const updatedMessages = [...(session.messages || []), userMsg];
     const updatedSession = {
       ...session,
       messages: updatedMessages,
-      title: session.messages.length === 0 ? text.slice(0, 45) : session.title,
+      title: session.messages.length === 0 ? (text || filesToSend[0]?.name || "Chat").slice(0, 45) : session.title,
     };
     updateSession(updatedSession);
     setInput("");
+    setAttachedFiles([]);
     setLoading(true);
 
     try {
