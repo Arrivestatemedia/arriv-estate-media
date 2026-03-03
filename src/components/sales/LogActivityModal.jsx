@@ -77,6 +77,10 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
   };
 
   const handleSave = async () => {
+    if (!selectedContact) {
+      toast.error("Please select a contact.");
+      return;
+    }
     if (!notes.trim()) {
       toast.error("Please add some notes before saving.");
       return;
