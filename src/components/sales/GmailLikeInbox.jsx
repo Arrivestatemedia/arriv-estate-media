@@ -66,8 +66,16 @@ export default function GmailLikeInbox({ email, onClose, salesMember, salesMembe
   const handleReply = (isReplyAll = false) => {
     const subject = email.subject?.startsWith('Re:') ? email.subject : `Re: ${email.subject || '(no subject)'}`;
     const fromEmail_clean = email.from?.match(/<(.+?)>/)?.[1] || email.from;
+    
+    // Include original message as quoted text
+    const originalMessage = `
+---
+On ${format(new Date(email.date || email.created_date), "PPP p")}, ${fromName} <${fromEmail}> wrote:
+
+${fullContent || email.snippet || ""}`;
+    
     setReplyMode(isReplyAll ? "replyAll" : "reply");
-    setReplyFormData({ to: fromEmail_clean, cc: "", subject, body: "" });
+    setReplyFormData({ to: fromEmail_clean, cc: "", subject, body: originalMessage });
   };
 
   const handleSendReply = async () => {
