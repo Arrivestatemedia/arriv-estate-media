@@ -452,6 +452,17 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                     {/* Activity History */}
                     <ActivityList activities={activities[contact.id]} loading={loadingActivities[contact.id]} onSelect={setSelectedActivity} />
 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 w-full"
+                      style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                      onClick={() => setLogActivityContact(contact)}
+                    >
+                      <PenLine className="w-4 h-4" />
+                      Log Activity / Attach Screenshot
+                    </Button>
+
                     <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Edit Contact</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {FIELDS.map(({ key, label, type, options }) => (
