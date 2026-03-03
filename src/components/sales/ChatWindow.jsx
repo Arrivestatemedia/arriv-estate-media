@@ -541,6 +541,23 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               {transferTargets.find(m => m.id === chatId)?.extension && (
                     <>
                       <button
+                       onClick={() => {
+                         const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                         if (ext) {
+                           if (onInitiateTransfer) {
+                             onInitiateTransfer(chatId, chatName);
+                           } else {
+                             localStorage.setItem('dialerPhone', String(ext));
+                             window.dispatchEvent(new Event('dialerCardReady'));
+                           }
+                         }
+                       }}
+                       className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+                       title="Call"
+                      >
+                       <Phone className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={async () => {
                           const ext = transferTargets.find(m => m.id === chatId)?.extension;
                           if (!ext) {
