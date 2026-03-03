@@ -17,18 +17,14 @@ Deno.serve(async (req) => {
 
     const attachments = [];
 
-    // Process all parts that have attachments or are images
+    // Process all parts
     for (const part of parts) {
       try {
-        const { mimeType, filename, partId, headers } = part;
+        const { mimeType, filename, partId } = part;
         
-        // Check for attachments and inline images
-        const isAttachment = part.filename && part.filename.length > 0;
-        const isImage = mimeType && mimeType.startsWith('image/');
+        if (!partId) continue;
         
-        if (!isAttachment && !isImage) continue;
-        
-        // Fetch the attachment data
+        // Fetch the attachment data from Gmail API
         const response = await fetch(
           `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${partId}`,
           {
@@ -39,38 +35,43 @@ Deno.serve(async (req) => {
         );
 
         if (!response.ok) {
-          console.error(`Failed to fetch part ${partId}:`, response.status);
+          console.error(`Failed to fetch part ${partId}: ${response.status}`);
           continue;
         }
 
-        const data = await response.json();
-        const { data: attachmentData, size } = data;
+        const attachmentResponse = await response.json();
+        const attachmentData = attachmentResponse.data;
+        const size = attachmentResponse.size;
 
-        // Only process if we have actual data
-        if (attachmentData) {
-          // Decode base64url to actual base64
-          const base64Data = attachmentData.replace(/-/g, '+').replace(/_/g, '/');
-          
-          // Get filename
-          let fname = filename || `image-${attachments.length + 1}`;
-          
-          // For inline images without filename, create one
-          if (!filename && isImage) {
-            const ext = mimeType.split('/')[1] || 'jpg';
-            fname = `image-${attachments.length + 1}.${ext}`;
-          }
-          
-          attachments.push({
-            filename: fname,
-            mimeType,
-            dataUrl: isImage ? `data:${mimeType};base64,${base64Data}` : null,
-            data: base64Data,
-            size,
-            isInline: !isAttachment && isImage,
-          });
+        if (!attachmentData) {
+          console.log(`No data for part ${partId}`);
+          continue;
         }
+
+        // Decode base64url to base64
+        const base64Data = attachmentData.replace(/-/g, '+').replace(/_/g, '/');
+        
+        // Determine filename
+        let fname = filename;
+        if (!fname && mimeType?.startsWith('image/')) {
+          const ext = mimeType.split('/')[1] || 'jpg';
+          fname = `image-${attachments.length + 1}.${ext}`;
+        } else if (!fname) {
+          fname = `attachment-${attachments.length + 1}`;
+        }
+        
+        const isImage = mimeType?.startsWith('image/');
+        
+        attachments.push({
+          filename: fname,
+          mimeType: mimeType || 'application/octet-stream',
+          dataUrl: isImage ? `data:${mimeType};base64,${base64Data}` : null,
+          data: base64Data,
+          size,
+          isInline: !filename && isImage,
+        });
       } catch (e) {
-        console.error(`Error fetching part:`, e.message);
+        console.error(`Error fetching part ${part.partId}:`, e.message);
       }
     }
 
