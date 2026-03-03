@@ -128,9 +128,29 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
         </DialogHeader>
 
         <div className="space-y-4 pt-1">
-          {/* Type */}
-          <div className="space-y-1">
-            <Label>Activity Type</Label>
+           {/* Contact */}
+           <div className="space-y-1">
+             <Label>Contact</Label>
+             <Select value={selectedContact || ""} onValueChange={setSelectedContact} disabled={loadingContacts}>
+               <SelectTrigger>
+                 <SelectValue placeholder={loadingContacts ? "Loading contacts..." : "Select or create contact"} />
+               </SelectTrigger>
+               <SelectContent>
+                 {contacts.length === 0 && !loadingContacts && (
+                   <SelectItem value={null} disabled>No previous contacts found</SelectItem>
+                 )}
+                 {contacts.map((c) => (
+                   <SelectItem key={c.email} value={c.email}>
+                     {c.name} {c.company ? `(${c.company})` : ""}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
+           </div>
+
+           {/* Type */}
+           <div className="space-y-1">
+             <Label>Activity Type</Label>
             <Select value={activityType} onValueChange={setActivityType}>
               <SelectTrigger>
                 <SelectValue />
