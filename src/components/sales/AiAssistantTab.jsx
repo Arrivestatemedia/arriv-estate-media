@@ -292,10 +292,18 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                       <Sparkles className="w-4 h-4 text-white" />
                     </div>
                   )}
+                  <div className="flex flex-col items-end gap-1" style={{ maxWidth: msg.role === "user" ? '70%' : '85%' }}>
+                    {/* Attached images in message */}
+                    {msg.images?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 justify-end mb-1">
+                        {msg.images.map((url, i) => (
+                          <img key={i} src={url} alt="attachment" className="rounded-lg object-cover" style={{ width: 120, height: 80 }} />
+                        ))}
+                      </div>
+                    )}
                   <div
-                    className="text-sm leading-relaxed"
+                    className="text-sm leading-relaxed w-full"
                     style={{
-                      maxWidth: msg.role === "user" ? '70%' : '85%',
                       backgroundColor: msg.role === "user" ? '#1a1a1a' : 'transparent',
                       color: msg.role === "user" ? '#fff' : '#1a1a1a',
                       borderRadius: msg.role === "user" ? '18px' : '0',
