@@ -54,6 +54,18 @@ export default function VideoControls({
         {isScreenSharing ? <MonitorOff className="w-5 h-5 text-white" /> : <Monitor className="w-5 h-5 text-white" />}
       </Button>
 
+      {/* Chat */}
+      {onToggleChat && (
+        <Button
+          size="icon"
+          onClick={onToggleChat}
+          title={isChatOpen ? "Close chat" : "Open chat"}
+          className={`h-10 w-10 rounded-full ${isChatOpen ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"}`}
+        >
+          <MessageCircle className="w-5 h-5 text-white" />
+        </Button>
+      )}
+
       {/* Settings */}
       <Button
         size="icon"
