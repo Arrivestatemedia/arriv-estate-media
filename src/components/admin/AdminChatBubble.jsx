@@ -5,7 +5,8 @@ import ChatTab from "@/components/sales/ChatTab";
 import { useCallStatus } from "@/components/CallStatusContext";
 
 export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
-  const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
+  const { isInLiveCall: contextIsInLiveCall, remoteCallLive, isCallInitiator } = useCallStatus();
+  const shouldHide = contextIsInLiveCall && isCallInitiator;
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [localRemoteCallLive, setLocalRemoteCallLive] = useState(localStorage.getItem('remoteCallLive') === 'true');
