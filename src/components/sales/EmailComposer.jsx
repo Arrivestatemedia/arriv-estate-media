@@ -42,7 +42,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
 
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [emailModalType, setEmailModalType] = useState("inbox");
+  const [drafts, setDrafts] = useState([]);
 
   const lastInboxCountRef = React.useRef(null);
 
