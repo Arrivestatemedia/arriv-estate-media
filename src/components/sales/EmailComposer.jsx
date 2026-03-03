@@ -646,8 +646,15 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           )}
 
 
-                {/* Email Detail Modal */}
-                <EmailDetailModal email={selectedEmail} open={emailModalOpen} onClose={() => setEmailModalOpen(false)} type={emailModalType} />
+                {/* Gmail-Like Inbox View */}
+                {emailModalOpen && (
+                  <GmailLikeInbox
+                    email={selectedEmail}
+                    onClose={() => setEmailModalOpen(false)}
+                    salesMember={salesMember}
+                    salesMemberId={salesMemberId}
+                  />
+                )}
               </div>
             );
           }
