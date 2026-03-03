@@ -134,41 +134,93 @@ export default function EmailDetailModal({ email, open, onClose, type = "inbox" 
               <h3 className="font-semibold text-sm mb-3" style={{ color: '#1A1A1A' }}>
                 Attachments ({attachments.length})
               </h3>
-              <div className="grid gap-2">
-                {attachments.map((attachment, idx) => {
-                  const filename = attachment.filename || attachment.name || attachment.url?.split('/').pop() || `attachment-${idx + 1}`;
-                  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(filename);
-                  const isPdf = /\.pdf$/i.test(filename);
+              <div className="space-y-3">
+                {/* Image Previews */}
+                <div className="grid grid-cols-2 gap-3">
+                  {attachments
+                    .filter(att => {
+                      const filename = att.filename || att.name || "";
+                      return /\.(png|jpg|jpeg|gif|webp)$/i.test(filename);
+                    })
+                    .map((attachment, idx) => {
+                      const filename = attachment.filename || attachment.name || `image-${idx + 1}`;
+                      const dataUrl = attachment.dataUrl || attachment.data;
+                      return (
+                        <div key={idx} className="rounded-lg border overflow-hidden bg-gray-100" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                          {dataUrl ? (
+                            <a href={dataUrl} download={filename} className="block w-full h-40 overflow-hidden hover:opacity-80 transition">
+                              <img
+                                src={dataUrl}
+                                alt={filename}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center"><p class="text-xs text-gray-500 text-center px-2">${filename}</p></div>`;
+                                }}
+                              />
+                            </a>
+                          ) : (
+                            <div className="w-full h-40 flex items-center justify-center">
+                              <p className="text-xs text-gray-500 text-center px-2">{filename}</p>
+                            </div>
+                          )}
+                          <div className="p-2 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                            <p className="text-xs truncate text-gray-700 mb-2">{filename}</p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDownload(attachment)}
+                              className="w-full gap-1 text-xs"
+                              style={{ color: '#B8956A' }}
+                            >
+                              <Download className="w-3 h-3" />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
 
-                  return (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition"
-                      style={{ borderColor: 'rgba(184,149,106,0.2)' }}
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {isImage ? (
-                          <ImageIcon className="w-4 h-4 text-blue-500 shrink-0" />
-                        ) : isPdf ? (
-                          <FileText className="w-4 h-4 text-red-500 shrink-0" />
-                        ) : (
-                          <FileText className="w-4 h-4 text-gray-500 shrink-0" />
-                        )}
-                        <span className="text-sm truncate text-gray-700">{filename}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDownload(attachment)}
-                        className="gap-1 shrink-0"
-                        style={{ color: '#B8956A' }}
-                      >
-                        <Download className="w-4 h-4" />
-                        Download
-                      </Button>
-                    </div>
-                  );
-                })}
+                {/* Other Files */}
+                <div className="grid gap-2">
+                  {attachments
+                    .filter(att => {
+                      const filename = att.filename || att.name || "";
+                      return !/\.(png|jpg|jpeg|gif|webp)$/i.test(filename);
+                    })
+                    .map((attachment, idx) => {
+                      const filename = attachment.filename || attachment.name || `attachment-${idx + 1}`;
+                      const isPdf = /\.pdf$/i.test(filename);
+
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition"
+                          style={{ borderColor: 'rgba(184,149,106,0.2)' }}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {isPdf ? (
+                              <FileText className="w-4 h-4 text-red-500 shrink-0" />
+                            ) : (
+                              <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+                            )}
+                            <span className="text-sm truncate text-gray-700">{filename}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDownload(attachment)}
+                            className="gap-1 shrink-0"
+                            style={{ color: '#B8956A' }}
+                          >
+                            <Download className="w-4 h-4" />
+                            Download
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
             </div>
           )}
