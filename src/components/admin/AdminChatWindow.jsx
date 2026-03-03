@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Video, AlertCircle, Calendar } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import VideoCallPanel from "@/components/sales/VideoCallPanel";
+import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import ConferenceScheduler from "@/components/chat/ConferenceScheduler";
 
