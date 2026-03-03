@@ -255,16 +255,15 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   };
 
   const handlePictureChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPictureFile(file);
-      // Upload to get URL
-      try {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    try {
+      for (const file of files) {
         const { data } = await base44.integrations.Core.UploadFile({ file });
         setFormData({ ...formData, picture_url: data.file_url });
-      } catch (error) {
-        console.error('Picture upload error:', error);
       }
+    } catch (error) {
+      console.error('Picture upload error:', error);
     }
   };
 
@@ -376,10 +375,11 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Add Picture</label>
+                      <label className="block text-sm font-medium mb-1">Add Pictures</label>
                       <Input
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handlePictureChange}
                       />
                       {formData.picture_url && (
