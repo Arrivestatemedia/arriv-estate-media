@@ -78,9 +78,30 @@ export default function AiAssistantTab({ repName }) {
     });
   };
 
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const uploaded = await Promise.all(
+        files.map(async (file) => {
+          const res = await base44.integrations.Core.UploadFile({ file });
+          return { name: file.name, url: res.file_url };
+        })
+      );
+      setAttachedFiles(prev => [...prev, ...uploaded]);
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
   const sendMessage = async (messageText) => {
     const text = (messageText || input).trim();
-    if (!text || loading) return;
+    if (!text && attachedFiles.length === 0) return;
+    if (loading) return;
 
     let session = activeSession;
     if (!session) {
