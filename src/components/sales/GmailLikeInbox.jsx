@@ -13,9 +13,6 @@ export default function GmailLikeInbox({ email, onClose, salesMember, salesMembe
   const [replyMode, setReplyMode] = useState(null);
   const [replyFormData, setReplyFormData] = useState({ to: "", cc: "", subject: "", body: "" });
   const [sending, setSending] = useState(false);
-  const [showAttachmentDialog, setShowAttachmentDialog] = useState(false);
-  const [includeAttachments, setIncludeAttachments] = useState(true);
-  const [pendingReplyType, setPendingReplyType] = useState(null);
 
   useEffect(() => {
     if (email) {
@@ -93,41 +90,24 @@ export default function GmailLikeInbox({ email, onClose, salesMember, salesMembe
   }, [email]);
 
   const handleReply = (isReplyAll = false) => {
-    if (attachments.length > 0) {
-      setPendingReplyType(isReplyAll ? "replyAll" : "reply");
-      setShowAttachmentDialog(true);
-    } else {
-      proceedWithReply(isReplyAll ? "replyAll" : "reply");
-    }
-  };
-
-  const handleForward = () => {
-    if (attachments.length > 0) {
-      setPendingReplyType("forward");
-      setShowAttachmentDialog(true);
-    } else {
-      proceedWithForward();
-    }
-  };
-
-  const proceedWithReply = (type) => {
     const subject = email.subject?.startsWith('Re:') ? email.subject : `Re: ${email.subject || '(no subject)'}`;
     const fromEmail_clean = email.from?.match(/<(.+?)>/)?.[1] || email.from;
     
+    // Include original message as quoted text
     const originalMessage = `
 ---
 On ${format(new Date(email.date || email.created_date), "PPP p")}, ${fromName} <${fromEmail}> wrote:
 
 ${fullContent || email.snippet || ""}`;
     
-    setReplyMode(type);
+    setReplyMode(isReplyAll ? "replyAll" : "reply");
     setReplyFormData({ to: fromEmail_clean, cc: "", subject, body: originalMessage });
-    setShowAttachmentDialog(false);
   };
 
-  const proceedWithForward = () => {
+  const handleForward = () => {
     const subject = email.subject?.startsWith('Fwd:') ? email.subject : `Fwd: ${email.subject || '(no subject)'}`;
     
+    // Include original message as quoted text
     const originalMessage = `
 ---
 Forwarded message:
@@ -139,7 +119,6 @@ ${fullContent || email.snippet || ""}`;
     
     setReplyMode("forward");
     setReplyFormData({ to: "", cc: "", subject, body: originalMessage });
-    setShowAttachmentDialog(false);
   };
 
   const handleSendReply = async () => {
