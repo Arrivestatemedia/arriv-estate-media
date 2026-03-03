@@ -15,6 +15,38 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
 
+    // First, fetch the full message to get attachmentIds
+    const messageResponse = await fetch(
+      `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!messageResponse.ok) {
+      return Response.json({ error: 'Failed to fetch message' }, { status: messageResponse.status });
+    }
+
+    const messageData = await messageResponse.json();
+    const payload = messageData.payload || {};
+    
+    // Build a map of partId -> attachmentId from the payload
+    const getAttachmentIdMap = (part) => {
+      const map = {};
+      if (part.body?.attachmentId) {
+        map[part.partId || ''] = part.body.attachmentId;
+      }
+      if (part.parts) {
+        for (const subPart of part.parts) {
+          Object.assign(map, getAttachmentIdMap(subPart));
+        }
+      }
+      return map;
+    };
+
+    const attachmentIdMap = getAttachmentIdMap(payload);
     const attachments = [];
 
     // Process all parts
@@ -24,9 +56,15 @@ Deno.serve(async (req) => {
         
         if (!partId) continue;
         
+        const attachmentId = attachmentIdMap[partId];
+        if (!attachmentId) {
+          console.log(`No attachmentId found for partId ${partId}`);
+          continue;
+        }
+        
         // Fetch the attachment data from Gmail API
         const response = await fetch(
-          `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${partId}`,
+          `https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -35,7 +73,7 @@ Deno.serve(async (req) => {
         );
 
         if (!response.ok) {
-          console.error(`Failed to fetch part ${partId}: ${response.status}`);
+          console.error(`Failed to fetch attachment ${attachmentId}: ${response.status}`);
           continue;
         }
 
