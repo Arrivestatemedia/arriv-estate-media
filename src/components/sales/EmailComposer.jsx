@@ -697,8 +697,49 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
               );
             })
           )}
-        </div>
-      )}
-    </div>
-  );
-}
+          </div>
+          )}
+
+          {/* OUTBOX */}
+          {tab === "outbox" && (
+          <div className="space-y-3">
+          <div className="flex items-center justify-between">
+           <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>All emails you've sent through this system</p>
+           <Button size="sm" variant="outline" onClick={loadSentEmails} disabled={loadingSent} style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+             {loadingSent ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Refresh'}
+           </Button>
+          </div>
+
+          {loadingSent ? (
+           <div className="flex items-center justify-center py-12">
+             <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#B8956A' }} />
+           </div>
+          ) : sentEmails.length === 0 ? (
+           <div className="text-center py-12" style={{ color: 'rgba(26,26,26,0.4)' }}>
+             <SendHorizontal className="w-8 h-8 mx-auto mb-3 opacity-40" />
+             <p>No sent emails yet</p>
+           </div>
+          ) : (
+           sentEmails.map(email => (
+             <div key={email.id} className="rounded-lg border p-4 flex items-start justify-between gap-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+               <div className="flex-1 min-w-0">
+                 <div className="flex items-center gap-2 mb-1">
+                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: email.status === 'success' ? '#22c55e' : email.status === 'failed' ? '#ef4444' : '#888' }}>
+                     {email.status || 'sent'}
+                   </span>
+                   <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                     {email.created_date ? format(new Date(email.created_date), "MMM d, yyyy h:mm a") : ''}
+                   </span>
+                 </div>
+                 <p className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>To: {email.recipient_email}</p>
+                 <p className="text-sm truncate" style={{ color: 'rgba(26,26,26,0.7)' }}>{email.subject || '(no subject)'}</p>
+                 {email.error_message && <p className="text-xs text-red-500 mt-1">{email.error_message}</p>}
+               </div>
+             </div>
+           ))
+          )}
+          </div>
+          )}
+          </div>
+          );
+          }
