@@ -187,6 +187,13 @@ export default function HubSpotActivityLog() {
               current_userId: salesMemberId,
               matches: event.data?.recipient_id === salesMemberId && event.type === 'create'
             });
+            // When we initiated an outgoing call, hide the chat bubble immediately
+            if (event.type === 'create' && event.data?.event_type === 'outgoing_video_call' && event.data?.recipient_id === salesMemberId) {
+              setCallStatus("calling");
+              setLastCallEvent('OUTBOUND_INITIATED');
+              return;
+            }
+
             // ONLY handle CREATE events for incoming_video_call, and only if we haven't handled this notification before
             if (event.type === 'create' && event.data?.event_type === 'incoming_video_call' && event.data?.recipient_id === salesMemberId && lastHandledNotificationId !== event.id) {
               const d = event.data.event_data;
