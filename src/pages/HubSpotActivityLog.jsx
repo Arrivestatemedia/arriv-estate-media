@@ -882,8 +882,18 @@ export default function HubSpotActivityLog() {
                      {selectedActivity.duration_minutes > 0 && (
                        <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
                      )}
-                   </div>
-                 </div>
+                     {selectedActivity.picture_urls && selectedActivity.picture_urls.length > 0 && (
+                       <div>
+                         <p className="font-medium mb-2">Pictures:</p>
+                         <div className="flex flex-wrap gap-2">
+                           {selectedActivity.picture_urls.map((url, idx) => (
+                             <img key={idx} src={url} alt={`Activity ${idx + 1}`} className="rounded-lg max-h-48 w-auto" />
+                           ))}
+                         </div>
+                       </div>
+                     )}
+                     </div>
+                     </div>
                  <div>
                    <h3 className="font-semibold mb-3">Contact Information</h3>
                    <div className="bg-slate-50 p-4 rounded-lg space-y-2">
@@ -969,10 +979,14 @@ export default function HubSpotActivityLog() {
                    />
                  </div>
 
-                 {editFormData.picture_url && (
+                 {editFormData.picture_urls && editFormData.picture_urls.length > 0 && (
                    <div>
-                     <label className="block text-sm font-medium mb-2">Picture</label>
-                     <img src={editFormData.picture_url} alt="Activity" className="rounded-lg max-h-48 w-auto" />
+                     <label className="block text-sm font-medium mb-2">Pictures</label>
+                     <div className="flex flex-wrap gap-2">
+                       {editFormData.picture_urls.map((url, idx) => (
+                         <img key={idx} src={url} alt={`Activity ${idx + 1}`} className="rounded-lg max-h-48 w-auto" />
+                       ))}
+                     </div>
                    </div>
                  )}
 

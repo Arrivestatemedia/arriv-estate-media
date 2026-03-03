@@ -738,10 +738,14 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                      {selectedActivity.duration_minutes > 0 && (
                        <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
                      )}
-                     {selectedActivity.picture_url && (
+                     {selectedActivity.picture_urls && selectedActivity.picture_urls.length > 0 && (
                        <div>
-                         <p className="font-medium mb-2">Picture:</p>
-                         <img src={selectedActivity.picture_url} alt="Activity" className="rounded-lg max-h-48 w-auto" />
+                         <p className="font-medium mb-2">Pictures:</p>
+                         <div className="flex flex-wrap gap-2">
+                           {selectedActivity.picture_urls.map((url, idx) => (
+                             <img key={idx} src={url} alt={`Activity ${idx + 1}`} className="rounded-lg max-h-48 w-auto" />
+                           ))}
+                         </div>
                        </div>
                      )}
                    </div>
@@ -803,10 +807,14 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                    />
                  </div>
 
-                 {editFormData.picture_url && (
+                 {editFormData.picture_urls && editFormData.picture_urls.length > 0 && (
                    <div>
-                     <label className="block text-sm font-medium mb-2">Picture</label>
-                     <img src={editFormData.picture_url} alt="Activity" className="rounded-lg max-h-48 w-auto" />
+                     <label className="block text-sm font-medium mb-2">Pictures</label>
+                     <div className="flex flex-wrap gap-2">
+                       {editFormData.picture_urls.map((url, idx) => (
+                         <img key={idx} src={url} alt={`Activity ${idx + 1}`} className="rounded-lg max-h-48 w-auto" />
+                       ))}
+                     </div>
                    </div>
                  )}
 
