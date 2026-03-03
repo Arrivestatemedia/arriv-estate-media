@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, PhoneOff, Settings } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, PhoneOff, Settings, MessageCircle } from "lucide-react";
 
 export default function VideoControls({
   isMuted,
@@ -11,7 +11,9 @@ export default function VideoControls({
   onToggleVideo,
   onToggleScreenShare,
   onEndCall,
-  onSettings
+  onSettings,
+  onToggleChat,
+  isChatOpen
 }) {
   return (
     <div className="flex items-center justify-center gap-2">
