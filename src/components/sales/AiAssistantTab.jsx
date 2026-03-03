@@ -146,6 +146,28 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
     }
   };
 
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const uploaded = await Promise.all(files.map(async (file) => {
+        const result = await base44.integrations.Core.UploadFile({ file });
+        return { url: result.file_url, name: file.name };
+      }));
+      setAttachedImages(prev => [...prev, ...uploaded]);
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeImage = (idx) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== idx));
+  };
+
   return (
     <div className="flex rounded-xl overflow-hidden border" style={{ height: '700px', borderColor: 'rgba(0,0,0,0.1)', backgroundColor: '#fff' }}>
 
