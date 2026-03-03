@@ -104,6 +104,8 @@ ${fullContent || email.snippet || ""}`;
     
     setReplyMode(isReplyAll ? "replyAll" : "reply");
     setReplyFormData({ to: fromEmail_clean, cc: "", subject, body: originalMessage });
+    setIncludeAttachments(true);
+    setAttachmentsToSend(attachments);
   };
 
   const handleForward = () => {
