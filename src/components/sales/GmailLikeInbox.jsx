@@ -123,6 +123,8 @@ ${fullContent || email.snippet || ""}`;
     
     setReplyMode("forward");
     setReplyFormData({ to: "", cc: "", subject, body: originalMessage });
+    setIncludeAttachments(true);
+    setAttachmentsToSend(attachments);
   };
 
   const handleSendReply = async () => {
