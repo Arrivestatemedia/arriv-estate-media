@@ -42,8 +42,29 @@ Deno.serve(async (req) => {
         const headers = msgData.payload?.headers || [];
         const get = (name) => headers.find(h => h.name === name)?.value || '';
         
-        // Extract all parts (including inline images and attachments)
-        const parts = msgData.payload?.parts || [];
+        // Extract all parts with proper partId structure for attachment/image extraction
+        const extractParts = (payload, parentPartId = '') => {
+          const result = [];
+          if (!payload) return result;
+          
+          if (payload.parts && Array.isArray(payload.parts)) {
+            payload.parts.forEach((part, index) => {
+              const partId = parentPartId ? `${parentPartId}.${index}` : String(index);
+              result.push({
+                partId,
+                mimeType: part.mimeType,
+                filename: part.filename,
+              });
+              // Recursively extract nested parts
+              if (part.parts) {
+                result.push(...extractParts(part, partId));
+              }
+            });
+          }
+          return result;
+        };
+        
+        const parts = extractParts(msgData.payload);
         
         return {
           id: msg.id,
@@ -53,7 +74,7 @@ Deno.serve(async (req) => {
           snippet: msgData.snippet || '',
           messageId: get('Message-ID'),
           references: get('References'),
-          parts: parts, // Include full parts for attachment/image extraction
+          parts: parts, // Include parts with proper partIds
           payload: msgData.payload, // Include payload for body extraction
         };
       })
