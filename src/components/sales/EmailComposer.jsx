@@ -205,17 +205,18 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     }
     if (scheduleMode && scheduledFor) {
       try {
+        const emailToUse = fromEmail || salesMember?.company_email || salesMember?.email;
         await base44.entities.ScheduledEmail.create({
-          sales_member_id: salesMemberId,
-          sales_member_email: salesMember?.email,
-          to: formData.to,
-          subject: formData.subject,
-          body: formData.body,
-          from_email: fromEmail || undefined,
-          from_name: salesMember?.full_name || undefined,
-          scheduled_for: new Date(scheduledFor).toISOString(),
-          status: "pending"
-        });
+           sales_member_id: salesMemberId,
+           sales_member_email: emailToUse,
+           to: formData.to,
+           subject: formData.subject,
+           body: formData.body,
+           from_email: emailToUse || undefined,
+           from_name: salesMember?.full_name || undefined,
+           scheduled_for: new Date(scheduledFor).toISOString(),
+           status: "pending"
+         });
         setSent(true);
         setFormData({ to: "", subject: "", body: "" });
         setSelectedContact(null);
