@@ -314,7 +314,7 @@ ${fullContent || email.snippet || ""}`;
         {replyMode && (
           <div className="border-t pt-8" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
             <h3 className="font-semibold mb-4" style={{ color: '#1A1A1A' }}>
-              {replyMode === "replyAll" ? "Reply All" : "Reply"}
+              {replyMode === "replyAll" ? "Reply All" : replyMode === "forward" ? "Forward" : "Reply"}
             </h3>
             <div className="space-y-4">
               <div>
