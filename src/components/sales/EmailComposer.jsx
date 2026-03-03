@@ -437,14 +437,29 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           )}
 
           <div className="flex gap-2">
-            <Button onClick={handleSendEmail} disabled={sending || sent || (scheduleMode && !scheduledFor)} className="flex-1 gap-2" style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}>
-              {scheduleMode ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-              {sending ? "Sending..." : sent ? (scheduleMode ? "Scheduled!" : "Sent!") : scheduleMode ? "Schedule Email" : "Send Email"}
-            </Button>
-            <Button onClick={() => setScheduleMeetingMode(!scheduleMeetingMode)} variant="outline" className="gap-2" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
-              <Calendar className="w-4 h-4" />
-              Schedule Meeting
-            </Button>
+           <Button onClick={handleSendEmail} disabled={sending || sent || (scheduleMode && !scheduledFor)} className="flex-1 gap-2" style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}>
+             {scheduleMode ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+             {sending ? "Sending..." : sent ? (scheduleMode ? "Scheduled!" : "Sent!") : scheduleMode ? "Schedule Email" : "Send Email"}
+           </Button>
+           <Button 
+             onClick={() => {
+               const draft = { to: formData.to, subject: formData.subject, body: formData.body, id: Date.now().toString(), savedAt: new Date().toISOString() };
+               setDrafts(prev => [...prev, draft]);
+               setFormData({ to: "", subject: "", body: "" });
+               setSelectedContact(null);
+               alert("Draft saved!");
+             }} 
+             variant="outline" 
+             className="gap-2" 
+             style={{ borderColor: '#B8956A', color: '#B8956A' }}
+           >
+             <PenLine className="w-4 h-4" />
+             Save Draft
+           </Button>
+           <Button onClick={() => setScheduleMeetingMode(!scheduleMeetingMode)} variant="outline" className="gap-2" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+             <Calendar className="w-4 h-4" />
+             Schedule Meeting
+           </Button>
           </div>
 
           {scheduleMeetingMode && !selectedContact && (
