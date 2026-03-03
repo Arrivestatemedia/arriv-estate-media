@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar } from "lucide-react";
+import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar, SendHorizontal } from "lucide-react";
 import AiAssistButton from "./AiAssistButton";
 import { format } from "date-fns";
 
@@ -40,6 +40,9 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   const [replyMode, setReplyMode] = useState(null);
   const [replyFormData, setReplyFormData] = useState({ to: "", cc: "", subject: "", body: "" });
 
+  const [sentEmails, setSentEmails] = useState([]);
+  const [loadingSent, setLoadingSent] = useState(false);
+
   const lastInboxCountRef = React.useRef(null);
 
   useEffect(() => {
@@ -69,6 +72,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   useEffect(() => {
     if (tab === "replies" && salesMember) loadReplies();
     if (tab === "scheduled") loadScheduledEmails();
+    if (tab === "outbox") loadSentEmails();
   }, [tab, salesMember]);
 
   // ⚠️ DO NOT REMOVE — reads '_emailTo' from localStorage set by HubSpotActivityLog
@@ -150,6 +154,21 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
       console.error(e);
     } finally {
       setLoadingReplies(false);
+    }
+  };
+
+  const loadSentEmails = async () => {
+    setLoadingSent(true);
+    try {
+      const emails = await base44.entities.MessageLog.filter({ 
+        message_type: "email", 
+        sales_member_email: salesMember?.email || localStorage.getItem("sales_member_email")
+      });
+      setSentEmails(emails.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingSent(false);
     }
   };
 
