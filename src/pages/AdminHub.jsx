@@ -420,14 +420,22 @@ export default function AdminHub() {
          <>
          <span className="fixed bottom-[6rem] right-4 text-[10px] bg-green-500 text-white px-1 rounded font-bold z-[8999]">CHAT_B</span>
          <AdminChatBubble
-           currentUserId={user.id}
-           currentUserName={user.full_name}
-           isVideoActive={false}
-           disabled={isInLiveCall}
-           isInLiveCall={isInLiveCall}
-           activeVideoCall={activeVideoCall}
-           isVideoWindowOpen={isVideoWindowOpen}
-           onInitiateTransfer={(memberId, memberName) => {
+         currentUserId={user.id}
+         currentUserName={user.full_name}
+         isVideoActive={false}
+         disabled={isInLiveCall}
+         isInLiveCall={isInLiveCall}
+         activeVideoCall={activeVideoCall}
+         isVideoWindowOpen={isVideoWindowOpen}
+         onVideoCallStarted={(data) => {
+           if (data && typeof data === 'object' && data.roomName) {
+             setLastCallEvent('OUTBOUND_START');
+             setCallStatus("calling");
+             setActiveVideoCall({ callerName: data.recipientName || "Video Call", roomName: data.roomName, recipientToken: data.token });
+             setIsVideoWindowOpen(true);
+           }
+         }}
+         onInitiateTransfer={(memberId, memberName) => {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;
               if (ext) {

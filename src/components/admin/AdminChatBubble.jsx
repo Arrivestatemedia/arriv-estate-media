@@ -4,7 +4,7 @@ import { MessageSquare, X } from "lucide-react";
 import ChatTab from "@/components/sales/ChatTab";
 import { useCallStatus } from "@/components/CallStatusContext";
 
-export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, isVideoCallActive, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
+export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, onVideoCallStarted, isVideoCallActive, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
   const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -77,6 +77,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
               currentUserName={currentUserName}
               isAdmin={true}
               onInitiateTransfer={onInitiateTransfer}
+              onVideoCallStarted={onVideoCallStarted}
             />
           </div>
         </div>
