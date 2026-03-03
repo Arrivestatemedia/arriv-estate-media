@@ -374,8 +374,8 @@ export default function HubSpotActivityLog() {
   };
 
   const handleSubmit = () => {
-    if (!formData.contact_name && !formData.contact_phone) {
-      alert("Please enter a contact name or phone number");
+    if (!formData.contact_name && !formData.contact_phone && !formData.contact_email) {
+      alert("Please enter a contact name, phone, or email");
       return;
     }
     if (!formData.notes.trim()) {
