@@ -333,6 +333,7 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     )}
                   </div>
+                  </div>
                 </div>
               ))}
 
