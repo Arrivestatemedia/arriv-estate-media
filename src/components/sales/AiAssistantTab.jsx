@@ -286,10 +286,28 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                       <Sparkles className="w-4 h-4 text-white" />
                     </div>
                   )}
+                  <div className="flex flex-col gap-1" style={{ maxWidth: msg.role === "user" ? '70%' : '85%', alignItems: msg.role === "user" ? 'flex-end' : 'flex-start' }}>
+                    {/* File attachments */}
+                    {msg.file_names?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {msg.file_names.map((name, fi) => (
+                          <a
+                            key={fi}
+                            href={msg.file_urls?.[fi]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs no-underline"
+                            style={{ backgroundColor: '#f0e8df', color: '#7a5c3a', border: '1px solid #dbc9b0' }}
+                          >
+                            <Paperclip className="w-3 h-3 flex-shrink-0" />
+                            <span className="max-w-[140px] truncate">{name}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   <div
                     className="text-sm leading-relaxed"
                     style={{
-                      maxWidth: msg.role === "user" ? '70%' : '85%',
                       backgroundColor: msg.role === "user" ? '#1a1a1a' : 'transparent',
                       color: msg.role === "user" ? '#fff' : '#1a1a1a',
                       borderRadius: msg.role === "user" ? '18px' : '0',
