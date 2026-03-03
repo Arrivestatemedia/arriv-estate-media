@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Sparkles, Send, Plus, Trash2, Loader2, MessageSquare, Edit3, Paperclip, X } from "lucide-react";
+import { Sparkles, Send, Plus, Trash2, Loader2, MessageSquare, Edit3 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 
@@ -34,11 +34,8 @@ export default function AiAssistantTab({ repName }) {
   });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState([]); // [{name, url}]
-  const [uploading, setUploading] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   const activeSession = sessions.find(s => s.id === activeSessionId) || null;
 
@@ -78,30 +75,9 @@ export default function AiAssistantTab({ repName }) {
     });
   };
 
-  const handleFileSelect = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    setUploading(true);
-    try {
-      const uploaded = await Promise.all(
-        files.map(async (file) => {
-          const res = await base44.integrations.Core.UploadFile({ file });
-          return { name: file.name, url: res.file_url };
-        })
-      );
-      setAttachedFiles(prev => [...prev, ...uploaded]);
-    } catch (err) {
-      console.error("Upload failed", err);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
-
   const sendMessage = async (messageText) => {
     const text = (messageText || input).trim();
-    if (!text && attachedFiles.length === 0) return;
-    if (loading) return;
+    if (!text || loading) return;
 
     let session = activeSession;
     if (!session) {
@@ -119,29 +95,21 @@ export default function AiAssistantTab({ repName }) {
       setActiveSessionId(session.id);
     }
 
-    const filesToSend = [...attachedFiles];
-    const userMsg = {
-      role: "user",
-      content: text,
-      file_urls: filesToSend.map(f => f.url),
-      file_names: filesToSend.map(f => f.name),
-      id: Date.now()
-    };
+    const userMsg = { role: "user", content: text, id: Date.now() };
     const updatedMessages = [...(session.messages || []), userMsg];
     const updatedSession = {
       ...session,
       messages: updatedMessages,
-      title: session.messages.length === 0 ? (text || filesToSend[0]?.name || "Chat").slice(0, 45) : session.title,
+      title: session.messages.length === 0 ? text.slice(0, 45) : session.title,
     };
     updateSession(updatedSession);
     setInput("");
-    setAttachedFiles([]);
     setLoading(true);
 
     try {
       const historyText = updatedMessages
         .slice(-10)
-        .map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}${m.file_names?.length ? ` [Attached: ${m.file_names.join(", ")}]` : ""}`)
+        .map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
         .join("\n");
 
       const prompt = `You are an AI sales assistant for Arriv, a real estate media company offering professional photography, videography, MLS walkthroughs, and cinematic video packages to real estate agents.
@@ -155,10 +123,7 @@ ${historyText}
 
 Please respond helpfully and concisely. Use markdown formatting where appropriate (bullet points, bold text, etc.).`;
 
-      const latestUserMsg = updatedMessages[updatedMessages.length - 1];
-      const fileUrls = latestUserMsg?.file_urls?.length ? latestUserMsg.file_urls : undefined;
-
-      const res = await base44.integrations.Core.InvokeLLM({ prompt, file_urls: fileUrls });
+      const res = await base44.integrations.Core.InvokeLLM({ prompt });
       const aiText = typeof res === "string" ? res : res?.text || String(res);
 
       const aiMsg = { role: "assistant", content: aiText, id: Date.now() + 1 };
@@ -286,28 +251,10 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
                       <Sparkles className="w-4 h-4 text-white" />
                     </div>
                   )}
-                  <div className="flex flex-col gap-1" style={{ maxWidth: msg.role === "user" ? '70%' : '85%', alignItems: msg.role === "user" ? 'flex-end' : 'flex-start' }}>
-                    {/* File attachments */}
-                    {msg.file_names?.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {msg.file_names.map((name, fi) => (
-                          <a
-                            key={fi}
-                            href={msg.file_urls?.[fi]}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs no-underline"
-                            style={{ backgroundColor: '#f0e8df', color: '#7a5c3a', border: '1px solid #dbc9b0' }}
-                          >
-                            <Paperclip className="w-3 h-3 flex-shrink-0" />
-                            <span className="max-w-[140px] truncate">{name}</span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
                   <div
                     className="text-sm leading-relaxed"
                     style={{
+                      maxWidth: msg.role === "user" ? '70%' : '85%',
                       backgroundColor: msg.role === "user" ? '#1a1a1a' : 'transparent',
                       color: msg.role === "user" ? '#fff' : '#1a1a1a',
                       borderRadius: msg.role === "user" ? '18px' : '0',
@@ -360,38 +307,10 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
         {/* Input area */}
         <div className="px-4 pb-5 pt-2" style={{ backgroundColor: '#ffffff' }}>
           <div className="max-w-3xl mx-auto">
-            {/* Attached file chips */}
-            {attachedFiles.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {attachedFiles.map((f, i) => (
-                  <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs" style={{ backgroundColor: '#f0e8df', color: '#7a5c3a', border: '1px solid #dbc9b0' }}>
-                    <Paperclip className="w-3 h-3 flex-shrink-0" />
-                    <span className="max-w-[140px] truncate">{f.name}</span>
-                    <button onClick={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-red-500 ml-0.5">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
             <div
               className="flex items-end gap-2 rounded-2xl px-4 py-3"
               style={{ backgroundColor: '#f4f4f4', border: '1px solid #e5e5e5' }}
             >
-              {/* Hidden file input */}
-              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
-
-              {/* Attach button */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading || loading}
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition hover:opacity-70 disabled:opacity-30"
-                title="Attach file"
-              >
-                {uploading ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#B8956A' }} /> : <Paperclip className="w-4 h-4" style={{ color: 'rgba(0,0,0,0.4)' }} />}
-              </button>
-
               <Textarea
                 ref={textareaRef}
                 placeholder="Message AI Assistant..."
@@ -404,9 +323,9 @@ Please respond helpfully and concisely. Use markdown formatting where appropriat
               />
               <button
                 onClick={() => sendMessage()}
-                disabled={(!input.trim() && attachedFiles.length === 0) || loading || uploading}
+                disabled={!input.trim() || loading}
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition disabled:opacity-30"
-                style={{ backgroundColor: (input.trim() || attachedFiles.length > 0) && !loading ? '#B8956A' : '#d0d0d0' }}
+                style={{ backgroundColor: input.trim() && !loading ? '#B8956A' : '#d0d0d0' }}
               >
                 {loading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Send className="w-4 h-4 text-white" />}
               </button>
