@@ -753,7 +753,12 @@ export default function HubSpotActivityLog() {
                 </div>
                 <div className="space-y-3">
                   {upcomingActivities.map((activity) => (
-                    <Card key={activity.id} style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.1)' }}>
+                    <Card 
+                      key={activity.id} 
+                      style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.1)' }}
+                      className="cursor-pointer hover:shadow-md transition"
+                      onClick={() => handleActivityClick(activity)}
+                    >
                       <CardContent className="pt-6">
                         <div className="flex items-start gap-3">
                           <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
@@ -765,7 +770,8 @@ export default function HubSpotActivityLog() {
                               <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
                               <span className="text-sm font-medium" style={{ color: '#B8956A' }}>{format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}</span>
                             </div>
-                            <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={() => {
+                            <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={(e) => {
+                              e.stopPropagation();
                               setPrefilledContactData({
                                 firstName: activity.contact_name?.split(' ')[0] || '',
                                 lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '',
