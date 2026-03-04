@@ -12,6 +12,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
 import TrackLink from "@/pages/TrackLink";
 import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContext";
+import NotificationPanel from "@/components/sales/NotificationPanel";
 
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
