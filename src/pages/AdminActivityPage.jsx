@@ -718,7 +718,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
         {zoomedImage && createPortal(
           <div
             style={{ position: 'fixed', inset: 0, zIndex: 999999, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', pointerEvents: 'all' }}
-            onClick={() => setZoomedImage(null)}
+            onClick={(e) => { e.stopPropagation(); setZoomedImage(null); }}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <div style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
               <button
