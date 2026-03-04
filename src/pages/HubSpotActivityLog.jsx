@@ -905,6 +905,24 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
+        {/* Success Dialog */}
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent className="max-w-sm text-center">
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl">✅ Activity Logged!</DialogTitle>
+            </DialogHeader>
+            <p className="text-gray-600 mt-2">Your activity has been saved successfully.</p>
+            <Button className="mt-4 w-full" style={{ backgroundColor: '#B8956A', color: '#fff' }} onClick={() => setShowSuccessDialog(false)}>Done</Button>
+          </DialogContent>
+        </Dialog>
+
+        {/* Image Zoom Overlay */}
+        {zoomedImage && (
+          <div className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center p-4" onClick={() => setZoomedImage(null)}>
+            <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-full rounded-xl shadow-2xl" />
+          </div>
+        )}
+
         <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open) { setSelectedActivity(null); setEditingActivity(null); } }}>
            <DialogContent className="max-w-2xl">
              <DialogHeader>
