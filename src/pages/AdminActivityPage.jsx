@@ -246,7 +246,13 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     try {
       for (const file of files) {
         const result = await base44.integrations.Core.UploadFile({ file });
-        setFormData(prev => ({ ...prev, picture_url: result.file_url }));
+        const url = result?.file_url || result?.data?.file_url;
+        if (url) {
+          setFormData(prev => ({
+            ...prev,
+            picture_urls: [...(prev.picture_urls || []), url]
+          }));
+        }
       }
     } catch (error) {
       console.error('Picture upload error:', error);
