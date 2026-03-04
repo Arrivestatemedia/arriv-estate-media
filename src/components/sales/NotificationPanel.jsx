@@ -83,19 +83,19 @@ export default function NotificationPanel({ userEmail }) {
                 key={task.id}
                 className="p-3 rounded-lg border transition hover:shadow-sm"
                 style={{
-                  borderColor: '#B8956A',
-                  backgroundColor: isToday(new Date(task.activity_date)) ? '#B8956A/20' : '#1A1A1A'
+                  borderColor: '#FFFBF5',
+                  backgroundColor: '#FFFBF5'
                 }}>
 
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm" style={{ color: '#B8956A' }}>
+                        <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>
                           {task.contact_name || task.company_name || 'Unnamed'}
                         </p>
-                        <p className="text-xs mt-1" style={{ color: '#B8956A/70' }}>
+                        <p className="text-xs mt-1" style={{ color: '#1A1A1A' }}>
                           {format(new Date(task.activity_date), "MMM d 'at' h:mm a")}
                         </p>
-                        <p className="text-xs mt-1 truncate" style={{ color: '#B8956A/60' }}>
+                        <p className="text-xs mt-1 truncate" style={{ color: '#1A1A1A' }}>
                           {task.notes}
                         </p>
                         {isToday(new Date(task.activity_date)) &&
@@ -106,7 +106,7 @@ export default function NotificationPanel({ userEmail }) {
                           </div>
                     }
                       </div>
-                      <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: '#B8956A' }} />
+                      <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: '#1A1A1A' }} />
                     </div>
                   </div>
               )}
