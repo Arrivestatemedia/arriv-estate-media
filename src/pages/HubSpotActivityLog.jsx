@@ -922,12 +922,15 @@ export default function HubSpotActivityLog() {
           <div
             className="fixed inset-0 flex items-center justify-center p-4"
             style={{ zIndex: 99999, backgroundColor: 'rgba(0,0,0,0.85)' }}
+            onClick={() => setZoomedImage(null)}
           >
-            <button
-              className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold"
-              onClick={() => setZoomedImage(null)}
-            >✕</button>
-            <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-full rounded-xl shadow-2xl" />
+            <div className="relative inline-block" onClick={e => e.stopPropagation()}>
+              <button
+                className="absolute -top-3 -right-3 text-white bg-black/70 hover:bg-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold z-10 shadow-lg"
+                onClick={() => setZoomedImage(null)}
+              >✕</button>
+              <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl block" />
+            </div>
           </div>,
           document.body
         )}
