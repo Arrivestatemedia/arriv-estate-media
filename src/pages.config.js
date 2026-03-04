@@ -48,10 +48,8 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AccountSettings from './pages/AccountSettings';
-import AdminActivityPage from './pages/AdminActivityPage';
 import AdminBookings from './pages/AdminBookings';
 import AdminClientTerms from './pages/AdminClientTerms';
-import AdminHub from './pages/AdminHub';
 import AdminInvite from './pages/AdminInvite';
 import AdminLogin from './pages/AdminLogin';
 import AdminPaymentStatements from './pages/AdminPaymentStatements';
@@ -71,7 +69,6 @@ import Dashboard from './pages/Dashboard';
 import DeleteAccountRequest from './pages/DeleteAccountRequest';
 import ForgotEmail from './pages/ForgotEmail';
 import ForgotPassword from './pages/ForgotPassword';
-import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import JobApplication from './pages/JobApplication';
 import JobBoard from './pages/JobBoard';
 import ManualClosingInvoice from './pages/ManualClosingInvoice';
@@ -86,22 +83,23 @@ import OrientationVideo from './pages/OrientationVideo';
 import PasswordSetup from './pages/PasswordSetup';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicAccountSettings from './pages/PublicAccountSettings';
-import SalesLogin from './pages/SalesLogin';
 import SalesRepGmailAuthCallback from './pages/SalesRepGmailAuthCallback';
 import SignIn from './pages/SignIn';
 import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
+import AdminActivityPage from './pages/AdminActivityPage';
+import SalesLogin from './pages/SalesLogin';
+import AdminHub from './pages/AdminHub';
+import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AccountSettings": AccountSettings,
-    "AdminActivityPage": AdminActivityPage,
     "AdminBookings": AdminBookings,
     "AdminClientTerms": AdminClientTerms,
-    "AdminHub": AdminHub,
     "AdminInvite": AdminInvite,
     "AdminLogin": AdminLogin,
     "AdminPaymentStatements": AdminPaymentStatements,
@@ -121,7 +119,6 @@ export const PAGES = {
     "DeleteAccountRequest": DeleteAccountRequest,
     "ForgotEmail": ForgotEmail,
     "ForgotPassword": ForgotPassword,
-    "HubSpotActivityLog": HubSpotActivityLog,
     "JobApplication": JobApplication,
     "JobBoard": JobBoard,
     "ManualClosingInvoice": ManualClosingInvoice,
@@ -136,13 +133,16 @@ export const PAGES = {
     "PasswordSetup": PasswordSetup,
     "PrivacyPolicy": PrivacyPolicy,
     "PublicAccountSettings": PublicAccountSettings,
-    "SalesLogin": SalesLogin,
     "SalesRepGmailAuthCallback": SalesRepGmailAuthCallback,
     "SignIn": SignIn,
     "SupraAccess": SupraAccess,
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
+    "AdminActivityPage": AdminActivityPage,
+    "SalesLogin": SalesLogin,
+    "AdminHub": AdminHub,
+    "HubSpotActivityLog": HubSpotActivityLog,
 }
 
 export const pagesConfig = {
