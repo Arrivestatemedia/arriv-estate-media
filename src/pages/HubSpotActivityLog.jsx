@@ -65,6 +65,9 @@ export default function HubSpotActivityLog() {
   const [lastCallEvent, setLastCallEvent] = useState("");
   const [editingActivity, setEditingActivity] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
+  const [contacts, setContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
 
   // Derive isInLiveCall from callStatus (single source of truth)
   const isInLiveCall = callStatus !== 'idle';
