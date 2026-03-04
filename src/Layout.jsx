@@ -337,6 +337,7 @@ function LayoutContent({ children, currentPageName }) {
       </header>
 
       <main>
+        {isSalesTeam && <NotificationPanel userEmail={user?.email} />}
         {currentPageName === "TrackLink" ? (
           <TrackLink />
         ) : (
