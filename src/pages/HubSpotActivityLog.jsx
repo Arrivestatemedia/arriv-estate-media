@@ -315,9 +315,9 @@ export default function HubSpotActivityLog() {
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5);
 
-  const pastActivities = activities
+  const pastActivities = [...activities]
     .filter(a => new Date(a.activity_date) <= new Date())
-    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+    .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date));
 
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
@@ -328,7 +328,9 @@ export default function HubSpotActivityLog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] });
       setShowForm(false);
+      setShowSuccessDialog(true);
       setSelectedContact(null);
+      setFormPictureUrls([]);
       setFormData({
         activity_type: "call",
         activity_date: new Date().toISOString().slice(0, 16),
@@ -396,7 +398,9 @@ export default function HubSpotActivityLog() {
   const activityLabels = {
     call: "Call",
     email: "Email",
-    meeting: "Meeting"
+    meeting: "Meeting",
+    task: "Task",
+    note: "Note"
   };
 
   const handleSubmit = () => {
