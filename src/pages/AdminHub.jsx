@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
-import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, BarChart3 } from "lucide-react";
@@ -7,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
-import TaskNotificationPanel from "@/components/sales/TaskNotificationPanel";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
@@ -65,34 +63,28 @@ export default function AdminHub() {
     const salesMemberEmail = localStorage.getItem('sales_member_email');
     
     if (!salesMemberId || !salesMemberEmail) {
-      window.location.replace(createPageUrl('SalesLogin'));
+      window.location.href = '/SalesLogin';
       return;
     }
 
-    // Verify this user is actually an admin first
+    // Verify this user is an admin
     base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-      const member = members?.[0];
-      if (!member) {
-        localStorage.clear();
-        window.location.replace(createPageUrl('SalesLogin'));
-        return;
+      if (members?.[0]?.role === 'admin') {
+        setUser({
+          id: salesMemberId,
+          email: salesMemberEmail,
+          full_name: localStorage.getItem('sales_member_name'),
+          role: 'admin',
+          profile_picture_url: members[0].profile_picture_url
+        });
+        setProfilePicUrl(members[0].profile_picture_url || "");
+        setTimeout(() => setShowPermissionBanner(true), 500);
+      } else {
+        // Not an admin, redirect to activity log
+        window.location.href = '/HubSpotActivityLog';
       }
-      if (member.role !== 'admin') {
-        window.location.replace(createPageUrl('HubSpotActivityLog'));
-        return;
-      }
-      // User is verified as admin - set state and show page
-      setUser({
-        id: salesMemberId,
-        email: salesMemberEmail,
-        full_name: localStorage.getItem('sales_member_name'),
-        role: 'admin',
-        profile_picture_url: member.profile_picture_url
-      });
-      setProfilePicUrl(member.profile_picture_url || "");
-      setTimeout(() => setShowPermissionBanner(true), 500);
     }).catch(() => {
-      window.location.replace(createPageUrl('SalesLogin'));
+      window.location.href = '/SalesLogin';
     });
   }, []);
 
@@ -352,7 +344,6 @@ export default function AdminHub() {
         </Tabs>
 
         <PoweredByFooter />
-        <TaskNotificationPanel salesMemberId={user?.id} />
       </div>
 
       <EditMyProfileModal
