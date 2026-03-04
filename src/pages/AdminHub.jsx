@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
+import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, BarChart3 } from "lucide-react";
