@@ -229,8 +229,8 @@ export default function HubSpotActivityLog() {
                 callerExtension: d.callerExtension,
                 recipientToken: d.recipientToken
               });
-              }
-              });
+            }
+          });
 
       return () => { smsSub(); callSub(); videoCallSub(); };
   }, []);
