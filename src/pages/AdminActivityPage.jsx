@@ -242,9 +242,12 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     meeting: "Meeting"
   };
 
+  const [uploadingPictures, setUploadingPictures] = useState(false);
+
   const handlePictureChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    setUploadingPictures(true);
     try {
       for (const file of files) {
         const result = await base44.integrations.Core.UploadFile({ file });
@@ -258,6 +261,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
       }
     } catch (error) {
       console.error('Picture upload error:', error);
+    } finally {
+      setUploadingPictures(false);
     }
   };
 
