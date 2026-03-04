@@ -718,11 +718,13 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
           <div
             className="fixed inset-0 bg-black/80 flex items-center justify-center p-4"
             style={{ zIndex: 99999 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+            onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
           >
             <button
               className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold"
-              onClick={() => setZoomedImage(null)}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setZoomedImage(null); }}
+              onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
             >✕</button>
             <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-full rounded-xl shadow-2xl" />
           </div>
