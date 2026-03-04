@@ -167,13 +167,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     if (!user?.email) return;
     const loadDialerBadge = async () => {
       try {
-        // Get admin's Twilio number from environment
-        const adminTwilioNumber = localStorage.getItem('admin_twilio_number') || Deno?.env.get('TWILIO_CALLING_PHONE_NUMBER');
-        if (!adminTwilioNumber) {
-          setUnreadSmsCount(0);
-          return;
-        }
-        const convos = await base44.entities.SmsConversation.filter({ from_number: adminTwilioNumber });
+        const convos = await base44.entities.SmsConversation.list();
         const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
         setUnreadSmsCount(total);
       } catch (err) {
