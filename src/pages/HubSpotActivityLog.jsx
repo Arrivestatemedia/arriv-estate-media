@@ -935,8 +935,8 @@ export default function HubSpotActivityLog() {
           document.body
         )}
 
-        <Dialog open={!!selectedActivity} modal={!zoomedImage} onOpenChange={(open) => { if (!open && !zoomedImage) { setSelectedActivity(null); setEditingActivity(null); } }}>
-           <DialogContent className="max-w-2xl">
+        <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open && !zoomedImage) { setSelectedActivity(null); setEditingActivity(null); } }}>
+           <DialogContent className="max-w-2xl" onInteractOutside={(e) => { if (zoomedImage) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (zoomedImage) e.preventDefault(); }}>
              <DialogHeader>
                <div className="flex justify-between items-center">
                  <DialogTitle>Activity Details</DialogTitle>
