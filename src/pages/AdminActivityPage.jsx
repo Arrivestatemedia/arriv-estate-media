@@ -72,10 +72,6 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
 
   const [formData, setFormData] = useState({
     activity_type: "call",
-    contact_email: "",
-    contact_name: "",
-    contact_phone: "",
-    company_name: "",
     activity_date: new Date().toISOString().slice(0, 16),
     notes: "",
     duration_minutes: 0,
@@ -230,12 +226,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
       queryClient.invalidateQueries({ queryKey: ['adminActivities'] });
       setShowForm(false);
       setPictureFile(null);
+      setSelectedContact(null);
       setFormData({
         activity_type: "call",
-        contact_email: "",
-        contact_name: "",
-        contact_phone: "",
-        company_name: "",
         activity_date: new Date().toISOString().slice(0, 16),
         notes: "",
         duration_minutes: 0,
@@ -274,19 +267,15 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     : null;
 
   const handleSubmit = () => {
-    if (!selectedContact) {
-      alert("Please select a contact");
-      return;
-    }
     if (!formData.notes.trim()) {
       alert("Please add notes about the activity");
       return;
     }
     createActivityMutation.mutate({
       ...formData,
-      contact_name: selectedContactObj?.name || formData.contact_name,
-      contact_email: selectedContactObj?.email || formData.contact_email,
-      company_name: selectedContactObj?.company || formData.company_name,
+      contact_name: selectedContactObj?.name || "",
+      contact_email: selectedContactObj?.email || "",
+      company_name: selectedContactObj?.company || "",
       sales_member_email: user?.email,
       sales_member_id: user?.id
     });
