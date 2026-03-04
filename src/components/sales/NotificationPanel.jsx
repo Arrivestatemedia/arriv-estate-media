@@ -127,10 +127,10 @@ export default function NotificationPanel({ userEmail }) {
           }}
           title="Tasks"
         >
-          <div className="space-y-1.5">
-            <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
-            <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
-            <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
+          <div className="space-y-1">
+            <div className="w-5 h-px" style={{ backgroundColor: '#B8956A' }}></div>
+            <div className="w-5 h-px" style={{ backgroundColor: '#B8956A' }}></div>
+            <div className="w-5 h-px" style={{ backgroundColor: '#B8956A' }}></div>
           </div>
           {upcomingTasks.length > 0 && (
             <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></div>
