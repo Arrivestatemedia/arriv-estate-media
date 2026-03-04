@@ -91,54 +91,53 @@ export default function NotificationPanel({ userEmail }) {
 
         {/* Content */}
         <div className="p-4">
-            {loading ? (
-              <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Loading...</p>
-            ) : upcomingTasks.length === 0 ? (
-              <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>No upcoming tasks</p>
-            ) : (
-              <div className="space-y-3">
-                {upcomingTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="p-3 rounded-lg border transition hover:shadow-sm"
-                    style={{
-                      borderColor: '#B8956A/30',
-                      backgroundColor: isToday(new Date(task.activity_date)) ? 'rgba(184, 149, 106, 0.1)' : '#FFFFFF'
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>
-                          {task.contact_name || task.company_name || 'Unnamed'}
-                        </p>
-                        <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                          {format(new Date(task.activity_date), "MMM d 'at' h:mm a")}
-                        </p>
-                        <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26, 26, 26, 0.5)' }}>
-                          {task.notes}
-                        </p>
-                        {isToday(new Date(task.activity_date)) && (
-                          <div className="mt-2">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
-                              Today
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: '#B8956A' }} />
+          {loading ? (
+            <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Loading...</p>
+          ) : upcomingTasks.length === 0 ? (
+            <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>No upcoming tasks</p>
+          ) : (
+            <div className="space-y-3">
+              {upcomingTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="p-3 rounded-lg border transition hover:shadow-sm"
+                  style={{
+                    borderColor: '#B8956A/30',
+                    backgroundColor: isToday(new Date(task.activity_date)) ? 'rgba(184, 149, 106, 0.1)' : '#FFFFFF'
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>
+                        {task.contact_name || task.company_name || 'Unnamed'}
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                        {format(new Date(task.activity_date), "MMM d 'at' h:mm a")}
+                      </p>
+                      <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26, 26, 26, 0.5)' }}>
+                        {task.notes}
+                      </p>
+                      {isToday(new Date(task.activity_date)) && (
+                        <div className="mt-2">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
+                            Today
+                          </span>
+                        </div>
+                      )}
                     </div>
+                    <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: '#B8956A' }} />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-30"
           style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
           onClick={() => setIsOpen(false)}
         ></div>
