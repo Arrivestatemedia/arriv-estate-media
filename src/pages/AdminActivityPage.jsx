@@ -348,14 +348,11 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                            <SelectValue placeholder={loadingContacts ? "Loading contacts..." : "Select or create contact"} />
                          </SelectTrigger>
                          <SelectContent>
-                           {contacts.length === 0 && !loadingContacts && (
-                             <SelectItem value="__none__" disabled>No previous contacts found</SelectItem>
-                           )}
-                           {contacts.map((c) => (
-                             <SelectItem key={c.email} value={c.email}>
-                               {c.name} {c.company ? `(${c.company})` : ""}
-                             </SelectItem>
-                           ))}
+                          {contacts.map((c) => (
+                            <SelectItem key={c.email} value={c.email}>
+                              {c.name} {c.company ? `(${c.company})` : ""}
+                            </SelectItem>
+                          ))}
                          </SelectContent>
                        </Select>
                      </div>
