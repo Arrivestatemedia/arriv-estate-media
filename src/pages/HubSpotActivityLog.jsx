@@ -271,6 +271,32 @@ export default function HubSpotActivityLog() {
     };
   }, []);
 
+  // Load contacts when form opens
+  useEffect(() => {
+    if (!showForm || !user?.id) return;
+    setLoadingContacts(true);
+    base44.entities.ActivityLog.filter({ sales_member_id: user.id }, '-activity_date', 100)
+      .then(logs => {
+        const uniqueContacts = {};
+        logs?.forEach(log => {
+          if (log.contact_email && !uniqueContacts[log.contact_email]) {
+            uniqueContacts[log.contact_email] = {
+              email: log.contact_email,
+              name: log.contact_name,
+              company: log.company_name
+            };
+          }
+        });
+        setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+      })
+      .catch(() => setContacts([]))
+      .finally(() => setLoadingContacts(false));
+  }, [showForm, user?.id]);
+
+  const selectedContactObj = selectedContact
+    ? contacts.find(c => c.email === selectedContact)
+    : null;
+
   const { data: activities = [] } = useQuery({
     queryKey: ['activities', user?.email],
     queryFn: async () => {
