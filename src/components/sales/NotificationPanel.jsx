@@ -129,7 +129,7 @@ export default function NotificationPanel({ userEmail }) {
           }}
           title="Tasks"
         >
-          <div className="space-y-0.5 flex flex-col">
+          <div className="space-y-0.5 flex flex-col items-end">
             <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
             <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
             <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
