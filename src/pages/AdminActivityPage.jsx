@@ -352,7 +352,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                          </SelectTrigger>
                          <SelectContent>
                            {contacts.length === 0 && !loadingContacts && (
-                             <SelectItem value={null} disabled>No previous contacts found</SelectItem>
+                             <SelectItem value="__none__" disabled>No previous contacts found</SelectItem>
                            )}
                            {contacts.map((c) => (
                              <SelectItem key={c.email} value={c.email}>
