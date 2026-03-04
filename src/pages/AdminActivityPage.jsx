@@ -18,7 +18,6 @@ import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
-import UpcomingTasksNotifications from "@/components/sales/UpcomingTasksNotifications";
 
 export default function AdminActivityPage({ user: propsUser, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
   const [user, setUser] = useState(propsUser);
@@ -331,7 +330,6 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
 
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
-      <UpcomingTasksNotifications userEmail={user?.email} />
       <div className="max-w-4xl mx-auto">
 
 
