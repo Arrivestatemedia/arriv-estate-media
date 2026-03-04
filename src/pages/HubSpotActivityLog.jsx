@@ -232,17 +232,6 @@ export default function HubSpotActivityLog() {
               });
 
       return () => { smsSub(); callSub(); videoCallSub(); };
-    } else {
-      base44.auth.me().then((adminUser) => {
-        if (adminUser && adminUser.role === 'admin') {
-          setUser(adminUser);
-        } else {
-          window.location.href = '/SalesLogin';
-        }
-      }).catch(() => {
-        window.location.href = '/SalesLogin';
-      });
-    }
   }, []);
 
   // ============================================================
