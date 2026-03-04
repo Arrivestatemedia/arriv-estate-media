@@ -918,12 +918,16 @@ export default function HubSpotActivityLog() {
 
         {/* Image Zoom Overlay */}
         {zoomedImage && (
-          <div className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center p-4" onClick={() => setZoomedImage(null)}>
+          <div
+            className="fixed inset-0 bg-black/80 flex items-center justify-center p-4"
+            style={{ zIndex: 99999 }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
-              className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold z-10"
-              onClick={(e) => { e.stopPropagation(); setZoomedImage(null); }}
+              className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold"
+              onClick={() => setZoomedImage(null)}
             >✕</button>
-            <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-full rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+            <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-full rounded-xl shadow-2xl" />
           </div>
         )}
 
