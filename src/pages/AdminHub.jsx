@@ -345,6 +345,7 @@ export default function AdminHub() {
         </Tabs>
 
         <PoweredByFooter />
+        <TaskNotificationPanel salesMemberId={user?.id} />
       </div>
 
       <EditMyProfileModal

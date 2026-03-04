@@ -1113,6 +1113,7 @@ export default function HubSpotActivityLog() {
         />
 
         <PoweredByFooter />
+        <TaskNotificationPanel salesMemberId={user?.id} />
 
         {/* Incoming video call notification */}
         {incomingVideoCall && (
