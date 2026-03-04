@@ -324,6 +324,7 @@ export default function HubSpotActivityLog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] });
       setShowForm(false);
+      setSelectedContact(null);
       setFormData({
         activity_type: "call",
         activity_date: new Date().toISOString().slice(0, 16),
