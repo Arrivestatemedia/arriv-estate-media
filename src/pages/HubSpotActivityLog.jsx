@@ -938,7 +938,7 @@ export default function HubSpotActivityLog() {
         <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open && !zoomedImage) { setSelectedActivity(null); setEditingActivity(null); } }}>
            <DialogContent className="max-w-2xl" onInteractOutside={(e) => { if (zoomedImage) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (zoomedImage) e.preventDefault(); }}>
              <DialogHeader>
-               <div className="flex justify-between items-center">
+               <div className="flex justify-between items-center pr-6">
                  <DialogTitle>Activity Details</DialogTitle>
                  {selectedActivity && !editingActivity && (
                    <div className="flex gap-2">
