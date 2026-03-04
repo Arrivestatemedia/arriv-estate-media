@@ -404,8 +404,12 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                         multiple
                         onChange={handlePictureChange}
                       />
-                      {formData.picture_url && (
-                        <img src={formData.picture_url} alt="Activity" className="mt-2 rounded-lg max-h-32 w-auto" />
+                      {formData.picture_urls?.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.picture_urls.map((url, i) => (
+                            <img key={i} src={url} alt="Activity" className="rounded-lg max-h-32 w-auto" />
+                          ))}
+                        </div>
                       )}
                     </div>
 
