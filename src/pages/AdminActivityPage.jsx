@@ -714,19 +714,18 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
           </DialogContent>
         </Dialog>
 
-        {/* Image Zoom Overlay - rendered in portal to escape Dialog stacking context */}
+        {/* Image Zoom Overlay - rendered in portal above ALL Radix dialogs */}
         {zoomedImage && createPortal(
           <div
-            className="fixed inset-0 flex items-center justify-center p-4"
-            style={{ zIndex: 99999, backgroundColor: 'rgba(0,0,0,0.85)' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 999999, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', pointerEvents: 'all' }}
             onClick={() => setZoomedImage(null)}
           >
-            <div className="relative inline-block" onClick={e => e.stopPropagation()}>
+            <div style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
               <button
-                className="absolute -top-3 -right-3 text-white bg-black/70 hover:bg-black rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold z-10 shadow-lg"
+                style={{ position: 'absolute', top: '-12px', right: '-12px', background: 'rgba(0,0,0,0.8)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 onClick={() => setZoomedImage(null)}
               >✕</button>
-              <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl block" />
+              <img src={zoomedImage} alt="Zoomed" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '12px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', display: 'block' }} />
             </div>
           </div>,
           document.body
