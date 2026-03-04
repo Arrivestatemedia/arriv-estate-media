@@ -565,6 +565,19 @@ export default function HubSpotActivityLog() {
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
+                      <label className="block text-sm font-medium mb-1">Contact</label>
+                      <Select value={selectedContact || ""} onValueChange={setSelectedContact} disabled={loadingContacts}>
+                        <SelectTrigger><SelectValue placeholder={loadingContacts ? "Loading contacts..." : "Select a contact (optional)"} /></SelectTrigger>
+                        <SelectContent>
+                          {contacts.map((c) => (
+                            <SelectItem key={c.email} value={c.email}>
+                              {c.name} {c.company ? `(${c.company})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium mb-1">Activity Type</label>
                       <Select value={formData.activity_type} onValueChange={(val) => setFormData({...formData, activity_type: val})}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
