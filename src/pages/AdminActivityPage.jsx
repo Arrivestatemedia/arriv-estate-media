@@ -430,10 +430,10 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
 
                     <Button
                       onClick={handleSubmit}
-                      disabled={createActivityMutation.isPending}
+                      disabled={createActivityMutation.isPending || uploadingPictures}
                       className="w-full"
                     >
-                      {createActivityMutation.isPending ? "Logging..." : "Log Activity"}
+                      {uploadingPictures ? "Uploading pictures..." : createActivityMutation.isPending ? "Logging..." : "Log Activity"}
                     </Button>
                   </div>
                 </DialogContent>
