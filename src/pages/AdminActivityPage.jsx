@@ -224,14 +224,12 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminActivities'] });
       setShowForm(false);
-      setPictureFile(null);
       setSelectedContact(null);
       setFormData({
         activity_type: "call",
         activity_date: new Date().toISOString().slice(0, 16),
         notes: "",
-        duration_minutes: 0,
-        picture_url: null
+        duration_minutes: 0
       });
     }
   });
