@@ -139,7 +139,6 @@ export default function NotificationPanel({ userEmail }) {
           )}
         </button>
       </div>
-      </div>
 
       {/* Overlay */}
       {isOpen && (
