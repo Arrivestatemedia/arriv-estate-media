@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
+import TaskNotificationPanel from "@/components/sales/TaskNotificationPanel";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
