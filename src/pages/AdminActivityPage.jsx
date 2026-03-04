@@ -239,7 +239,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const activityLabels = {
     call: "Call",
     email: "Email",
-    meeting: "Meeting"
+    meeting: "Meeting",
+    task: "Task",
+    note: "Note"
   };
 
   const [uploadingPictures, setUploadingPictures] = useState(false);
