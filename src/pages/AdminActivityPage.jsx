@@ -714,21 +714,19 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
           </DialogContent>
         </Dialog>
 
-        {/* Image Zoom Overlay */}
-        {zoomedImage && (
+        {/* Image Zoom Overlay - rendered in portal to escape Dialog stacking context */}
+        {zoomedImage && createPortal(
           <div
-            className="fixed inset-0 bg-black/80 flex items-center justify-center p-4"
-            style={{ zIndex: 99999 }}
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-            onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+            className="fixed inset-0 flex items-center justify-center p-4"
+            style={{ zIndex: 99999, backgroundColor: 'rgba(0,0,0,0.85)' }}
           >
             <button
               className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setZoomedImage(null); }}
-              onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+              onClick={() => setZoomedImage(null)}
             >✕</button>
             <img src={zoomedImage} alt="Zoomed" className="max-w-full max-h-full rounded-xl shadow-2xl" />
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Activity Detail Modal */}
