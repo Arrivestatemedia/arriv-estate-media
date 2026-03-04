@@ -122,10 +122,10 @@ export default function NotificationPanel({ userEmail }) {
           style={{
             backgroundColor: '#1A1A1A',
             color: '#B8956A',
-            borderTopLeftRadius: '16px',
-            borderBottomLeftRadius: '16px',
-            borderTopRightRadius: '4px',
-            borderBottomRightRadius: '4px'
+            borderTopLeftRadius: '12px',
+            borderBottomLeftRadius: '12px',
+            borderTopRightRadius: '0',
+            borderBottomRightRadius: '0'
           }}
           title="Tasks"
         >
