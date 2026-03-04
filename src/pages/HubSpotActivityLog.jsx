@@ -401,6 +401,9 @@ export default function HubSpotActivityLog() {
     }
     createActivityMutation.mutate({
       ...formData,
+      contact_name: selectedContactObj?.name || "",
+      contact_email: selectedContactObj?.email || "",
+      company_name: selectedContactObj?.company || "",
       sales_member_email: user?.email,
       sales_member_id: user?.id
     });
