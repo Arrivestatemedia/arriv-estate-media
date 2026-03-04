@@ -118,17 +118,15 @@ export default function NotificationPanel({ userEmail }) {
         {/* Burger Button - attached to panel edge */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="absolute left-full top-1/2 transform -translate-y-1/2 p-2 transition"
+          className="absolute left-full top-1/2 transform -translate-y-1/2 px-3 py-6 transition"
           style={{
             backgroundColor: '#1A1A1A',
             color: '#B8956A',
-            borderTopRightRadius: '8px',
-            borderBottomRightRadius: '8px'
+            borderRadius: '12px'
           }}
           title="Tasks"
         >
-          <div className="space-y-0.5">
-            <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
+          <div className="space-y-0.5 flex flex-col">
             <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
             <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
             <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
