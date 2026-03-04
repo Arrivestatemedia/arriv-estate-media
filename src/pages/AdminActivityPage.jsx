@@ -224,7 +224,8 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
         activity_type: "call",
         activity_date: new Date().toISOString().slice(0, 16),
         notes: "",
-        duration_minutes: 0
+        duration_minutes: 0,
+        picture_urls: []
       });
     }
   });
