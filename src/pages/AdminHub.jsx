@@ -69,16 +69,7 @@ export default function AdminHub() {
       return;
     }
 
-    // Set user from localStorage immediately so page renders
-    setUser({
-      id: salesMemberId,
-      email: salesMemberEmail,
-      full_name: localStorage.getItem('sales_member_name'),
-      role: 'admin'
-    });
-    setTimeout(() => setShowPermissionBanner(true), 500);
-
-    // Verify this user is actually an admin
+    // Verify this user is actually an admin first
     base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
       const member = members?.[0];
       if (!member) {
@@ -90,8 +81,16 @@ export default function AdminHub() {
         window.location.replace(createPageUrl('HubSpotActivityLog'));
         return;
       }
+      // User is verified as admin - set state and show page
+      setUser({
+        id: salesMemberId,
+        email: salesMemberEmail,
+        full_name: localStorage.getItem('sales_member_name'),
+        role: 'admin',
+        profile_picture_url: member.profile_picture_url
+      });
       setProfilePicUrl(member.profile_picture_url || "");
-      setUser(prev => ({ ...prev, profile_picture_url: member.profile_picture_url }));
+      setTimeout(() => setShowPermissionBanner(true), 500);
     }).catch(() => {
       window.location.replace(createPageUrl('SalesLogin'));
     });
