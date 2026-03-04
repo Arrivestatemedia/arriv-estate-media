@@ -100,9 +100,6 @@ export default function HubSpotActivityLog() {
     const salesMemberId = localStorage.getItem('sales_member_id');
     if (salesMemberId) {
       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-        if (members?.[0]?.role === 'admin' && !window.location.pathname.includes('HubSpotActivityLog')) {
-          return;
-        }
         const u = {
           id: salesMemberId,
           full_name: localStorage.getItem('sales_member_name'),
