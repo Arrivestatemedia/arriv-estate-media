@@ -124,8 +124,7 @@ export default function NotificationPanel({ userEmail }) {
             backgroundColor: '#1A1A1A',
             color: '#B8956A',
             borderTopRightRadius: '8px',
-            borderBottomRightRadius: '8px',
-            border: '1px solid #B8956A'
+            borderBottomRightRadius: '8px'
           }}
           title="Tasks"
         >
