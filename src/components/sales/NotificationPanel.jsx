@@ -48,54 +48,36 @@ export default function NotificationPanel({ userEmail }) {
 
   return (
     <>
-      {/* Burger Menu Button - attached to panel */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed left-0 z-50 p-3 hover:bg-gray-200/30 transition rounded-r-lg"
-        style={{
-          color: '#B8956A',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          backgroundColor: '#FFFFFF',
-          borderTopRightRadius: '8px',
-          borderBottomRightRadius: '8px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}
-        title="Notifications"
-      >
-        <div className="space-y-1.5">
-          <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
-          <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
-          <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
-        </div>
-        {upcomingTasks.length > 0 && (
-          <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></div>
-        )}
-      </button>
-
-      {/* Notification Panel - slides from left */}
+      {/* Sliding Panel Container with Burger Button */}
       <div
-        className="fixed left-0 top-0 h-screen w-80 bg-white border-r overflow-y-auto z-40 shadow-lg transition-transform duration-300"
+        className="fixed left-0 top-0 h-screen z-50 transition-transform duration-300"
         style={{
-          borderColor: '#B8956A/20',
-          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)'
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          width: '320px'
         }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: '#B8956A/20', backgroundColor: '#FFFBF5' }}>
-          <div className="flex items-center gap-2">
-            <Bell className="w-5 h-5" style={{ color: '#B8956A' }} />
-            <h2 className="font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
+        {/* Notification Panel */}
+        <div
+          className="h-screen w-full bg-[#1A1A1A] border-r overflow-y-auto shadow-lg flex flex-col"
+          style={{ borderColor: '#B8956A' }}
+        >
+          {/* Header */}
+          <div className="p-4 border-b flex-shrink-0" style={{ borderColor: '#B8956A' }}>
+            <div className="flex items-center gap-2">
+              <Bell className="w-5 h-5" style={{ color: '#B8956A' }} />
+              <h2 className="font-semibold" style={{ color: '#B8956A' }}>Tasks</h2>
+            </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="p-4">
-          {loading ? (
-            <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Loading...</p>
-          ) : upcomingTasks.length === 0 ? (
-            <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>No upcoming tasks</p>
-          ) : (
+          {/* Content */}
+          <div className="p-4 flex-1 flex flex-col">
+            {loading ? (
+              <p className="text-sm" style={{ color: '#B8956A' }}>Loading...</p>
+            ) : upcomingTasks.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-center" style={{ color: '#B8956A' }}>No upcoming tasks</p>
+              </div>
+            ) : (
             <div className="space-y-3">
               {upcomingTasks.map((task) => (
                 <div
