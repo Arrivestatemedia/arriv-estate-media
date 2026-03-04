@@ -98,27 +98,38 @@ export default function HubSpotActivityLog() {
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
-    if (salesMemberId) {
-      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-        const member = members?.[0];
-        // If admin, redirect to AdminHub (not back to this page)
-        if (member?.role === 'admin') {
-          window.location.replace('/AdminHub');
-          return;
-        }
-        const u = {
-          id: salesMemberId,
-          full_name: localStorage.getItem('sales_member_name'),
-          email: localStorage.getItem('sales_member_email'),
-          type: 'sales'
-        };
-        setUser(u);
-        if (member?.profile_picture_url) {
-          setProfilePicUrl(member.profile_picture_url);
-        }
-      }).catch(() => {});
+    if (!salesMemberId) {
+      window.location.replace(createPageUrl('SalesLogin'));
+      return;
+    }
 
-      setTimeout(() => setShowPermissionBanner(true), 500);
+    // Set user immediately from localStorage so page renders while we verify
+    setUser({
+      id: salesMemberId,
+      full_name: localStorage.getItem('sales_member_name'),
+      email: localStorage.getItem('sales_member_email'),
+      type: 'sales'
+    });
+
+    base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+      const member = members?.[0];
+      if (!member) {
+        // Member not found, clear and redirect
+        localStorage.clear();
+        window.location.replace(createPageUrl('SalesLogin'));
+        return;
+      }
+      // If admin, redirect to AdminHub
+      if (member?.role === 'admin') {
+        window.location.replace(createPageUrl('AdminHub'));
+        return;
+      }
+      if (member?.profile_picture_url) {
+        setProfilePicUrl(member.profile_picture_url);
+      }
+    }).catch(() => {});
+
+    setTimeout(() => setShowPermissionBanner(true), 500);
 
       // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
       const loadDialerBadge = () => {
