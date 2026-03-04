@@ -129,10 +129,11 @@ export default function NotificationPanel({ userEmail }) {
           }}
           title="Tasks"
         >
-          <div className="space-y-0.5 flex flex-col items-end">
-            <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
-            <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
-            <div className="w-6 h-px" style={{ backgroundColor: '#B8956A' }}></div>
+          <div className="flex flex-col items-end gap-1">
+            <div className="w-3 h-px" style={{ backgroundColor: '#B8956A' }}></div>
+            <div className="w-3 h-px" style={{ backgroundColor: '#B8956A' }}></div>
+            <div className="w-3 h-px" style={{ backgroundColor: '#B8956A' }}></div>
+            <p className="text-xs font-semibold mt-2" style={{ color: '#B8956A', writingMode: 'vertical-rl', transform: 'rotate(180deg)', letterSpacing: '0.05em' }}>TASKS</p>
           </div>
           {upcomingTasks.length > 0 && (
             <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></div>
