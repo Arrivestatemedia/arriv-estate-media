@@ -58,8 +58,7 @@ export default function NotificationPanel({ userEmail }) {
       >
         {/* Notification Panel */}
         <div
-          className="h-screen w-full bg-[#1A1A1A] border-r overflow-y-auto shadow-lg flex flex-col"
-          style={{ borderColor: '#B8956A' }}
+          className="h-screen w-full bg-[#1A1A1A] overflow-y-auto shadow-lg flex flex-col"
         >
           {/* Header */}
           <div className="p-4 border-b flex-shrink-0" style={{ borderColor: '#B8956A' }}>
