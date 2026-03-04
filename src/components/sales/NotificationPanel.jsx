@@ -78,48 +78,72 @@ export default function NotificationPanel({ userEmail }) {
                 <p className="text-center" style={{ color: '#B8956A' }}>No upcoming tasks</p>
               </div>
             ) : (
-            <div className="space-y-3">
-              {upcomingTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="p-3 rounded-lg border transition hover:shadow-sm"
-                  style={{
-                    borderColor: '#B8956A/30',
-                    backgroundColor: isToday(new Date(task.activity_date)) ? 'rgba(184, 149, 106, 0.1)' : '#FFFFFF'
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>
-                        {task.contact_name || task.company_name || 'Unnamed'}
-                      </p>
-                      <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                        {format(new Date(task.activity_date), "MMM d 'at' h:mm a")}
-                      </p>
-                      <p className="text-xs mt-1 truncate" style={{ color: 'rgba(26, 26, 26, 0.5)' }}>
-                        {task.notes}
-                      </p>
-                      {isToday(new Date(task.activity_date)) && (
-                        <div className="mt-2">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
-                            Today
-                          </span>
-                        </div>
-                      )}
+              <div className="space-y-3">
+                {upcomingTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="p-3 rounded-lg border transition hover:shadow-sm"
+                    style={{
+                      borderColor: '#B8956A',
+                      backgroundColor: isToday(new Date(task.activity_date)) ? '#B8956A/20' : '#1A1A1A'
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm" style={{ color: '#B8956A' }}>
+                          {task.contact_name || task.company_name || 'Unnamed'}
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: '#B8956A/70' }}>
+                          {format(new Date(task.activity_date), "MMM d 'at' h:mm a")}
+                        </p>
+                        <p className="text-xs mt-1 truncate" style={{ color: '#B8956A/60' }}>
+                          {task.notes}
+                        </p>
+                        {isToday(new Date(task.activity_date)) && (
+                          <div className="mt-2">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
+                              Today
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: '#B8956A' }} />
                     </div>
-                    <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: '#B8956A' }} />
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Burger Button - attached to panel edge */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="absolute left-full top-1/2 transform -translate-y-1/2 p-3 transition"
+          style={{
+            backgroundColor: '#1A1A1A',
+            color: '#B8956A',
+            borderTopRightRadius: '8px',
+            borderBottomRightRadius: '8px',
+            border: '1px solid #B8956A'
+          }}
+          title="Tasks"
+        >
+          <div className="space-y-1.5">
+            <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
+            <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
+            <div className="w-5 h-0.5" style={{ backgroundColor: '#B8956A' }}></div>
+          </div>
+          {upcomingTasks.length > 0 && (
+            <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></div>
+          )}
+        </button>
       </div>
 
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-30"
+          className="fixed inset-0 z-40"
           style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
           onClick={() => setIsOpen(false)}
         ></div>
