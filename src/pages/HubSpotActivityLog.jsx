@@ -104,31 +104,32 @@ export default function HubSpotActivityLog() {
       return;
     }
 
-    // Set user immediately from localStorage so page renders while we verify
-    setUser({
-      id: salesMemberId,
-      full_name: localStorage.getItem('sales_member_name'),
-      email: localStorage.getItem('sales_member_email'),
-      type: 'sales'
-    });
-
+    // Verify role first BEFORE setting user
     base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
       const member = members?.[0];
       if (!member) {
-        // Member not found, clear and redirect
         localStorage.clear();
         window.location.replace(createPageUrl('SalesLogin'));
         return;
       }
-      // If admin, redirect to AdminHub
+      // If admin, redirect to AdminHub (don't render this page)
       if (member?.role === 'admin') {
         window.location.replace(createPageUrl('AdminHub'));
         return;
       }
+      // User is verified as non-admin sales member - set state and show page
+      setUser({
+        id: salesMemberId,
+        full_name: localStorage.getItem('sales_member_name'),
+        email: localStorage.getItem('sales_member_email'),
+        type: 'sales'
+      });
       if (member?.profile_picture_url) {
         setProfilePicUrl(member.profile_picture_url);
       }
-    }).catch(() => {});
+    }).catch(() => {
+      window.location.replace(createPageUrl('SalesLogin'));
+    });
 
     setTimeout(() => setShowPermissionBanner(true), 500);
 
