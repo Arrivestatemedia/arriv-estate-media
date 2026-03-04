@@ -403,6 +403,24 @@ export default function HubSpotActivityLog() {
     note: "Note"
   };
 
+  const handlePictureChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingPictures(true);
+    try {
+      for (const file of files) {
+        const result = await base44.integrations.Core.UploadFile({ file });
+        const url = result?.file_url || result?.data?.file_url;
+        if (url) setFormPictureUrls(prev => [...prev, url]);
+      }
+    } catch (error) {
+      console.error('Picture upload error:', error);
+    } finally {
+      setUploadingPictures(false);
+      e.target.value = "";
+    }
+  };
+
   const handleSubmit = () => {
     if (!formData.notes.trim()) {
       alert("Please add notes about the activity");
@@ -410,6 +428,7 @@ export default function HubSpotActivityLog() {
     }
     createActivityMutation.mutate({
       ...formData,
+      picture_urls: formPictureUrls,
       contact_name: selectedContactObj?.name || "",
       contact_email: selectedContactObj?.email || "",
       company_name: selectedContactObj?.company || "",
