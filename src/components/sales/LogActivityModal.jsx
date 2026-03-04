@@ -142,7 +142,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
                </SelectTrigger>
                <SelectContent>
                  {contacts.length === 0 && !loadingContacts && (
-                   <SelectItem value={null} disabled>No previous contacts found</SelectItem>
+                   <SelectItem value="__none__" disabled>No previous contacts found</SelectItem>
                  )}
                  {contacts.map((c) => (
                    <SelectItem key={c.email} value={c.email}>
