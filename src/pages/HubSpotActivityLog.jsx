@@ -100,6 +100,12 @@ export default function HubSpotActivityLog() {
     const salesMemberId = localStorage.getItem('sales_member_id');
     if (salesMemberId) {
       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+        const member = members?.[0];
+        // If admin, redirect to AdminHub (not back to this page)
+        if (member?.role === 'admin') {
+          window.location.replace('/AdminHub');
+          return;
+        }
         const u = {
           id: salesMemberId,
           full_name: localStorage.getItem('sales_member_name'),
@@ -107,8 +113,8 @@ export default function HubSpotActivityLog() {
           type: 'sales'
         };
         setUser(u);
-        if (members?.[0]?.profile_picture_url) {
-          setProfilePicUrl(members[0].profile_picture_url);
+        if (member?.profile_picture_url) {
+          setProfilePicUrl(member.profile_picture_url);
         }
       }).catch(() => {});
 
