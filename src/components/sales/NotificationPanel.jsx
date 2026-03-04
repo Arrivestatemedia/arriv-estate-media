@@ -48,11 +48,19 @@ export default function NotificationPanel({ userEmail }) {
 
   return (
     <>
-      {/* Burger Menu Button */}
+      {/* Burger Menu Button - attached to panel */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed left-0 top-20 z-40 p-3 hover:bg-gray-200/30 transition"
-        style={{ color: '#B8956A' }}
+        className="fixed left-0 z-50 p-3 hover:bg-gray-200/30 transition rounded-r-lg"
+        style={{
+          color: '#B8956A',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          backgroundColor: '#FFFFFF',
+          borderTopRightRadius: '8px',
+          borderBottomRightRadius: '8px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        }}
         title="Notifications"
       >
         <div className="space-y-1.5">
@@ -65,12 +73,14 @@ export default function NotificationPanel({ userEmail }) {
         )}
       </button>
 
-      {/* Notification Panel */}
-      {isOpen && (
-        <div
-          className="fixed left-0 top-20 w-80 max-h-[calc(100vh-5rem)] bg-white border-r overflow-y-auto z-50 shadow-lg"
-          style={{ borderColor: '#B8956A/20' }}
-        >
+      {/* Notification Panel - slides from left */}
+      <div
+        className="fixed left-0 top-0 h-screen w-80 bg-white border-r overflow-y-auto z-40 shadow-lg transition-transform duration-300"
+        style={{
+          borderColor: '#B8956A/20',
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)'
+        }}
+      >
           {/* Header */}
           <div className="sticky top-0 flex items-center justify-between p-4 border-b" style={{ borderColor: '#B8956A/20', backgroundColor: '#FFFBF5' }}>
             <div className="flex items-center gap-2">
