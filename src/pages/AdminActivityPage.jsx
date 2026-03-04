@@ -208,9 +208,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5);
 
-  const pastActivities = activities
+  const pastActivities = [...activities]
     .filter(a => new Date(a.activity_date) <= new Date())
-    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+    .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date));
 
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
@@ -219,6 +219,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminActivities'] });
       setShowForm(false);
+      setShowSuccessDialog(true);
       setSelectedContact(null);
       setFormData({
         activity_type: "call",
