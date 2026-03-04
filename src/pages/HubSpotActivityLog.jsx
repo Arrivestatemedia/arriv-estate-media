@@ -630,8 +630,20 @@ export default function HubSpotActivityLog() {
                       <label className="block text-sm font-medium mb-1">Notes</label>
                       <Textarea placeholder="Summary of the activity..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={4} />
                     </div>
-                    <Button onClick={handleSubmit} disabled={createActivityMutation.isPending} className="w-full">
-                      {createActivityMutation.isPending ? "Logging..." : "Log Activity"}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Pictures</label>
+                      <Input type="file" accept="image/*" multiple onChange={handlePictureChange} disabled={uploadingPictures} />
+                      {uploadingPictures && <p className="text-xs text-gray-500 mt-1">Uploading pictures...</p>}
+                      {formPictureUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formPictureUrls.map((url, i) => (
+                            <img key={i} src={url} alt="Preview" className="rounded-lg max-h-20 w-auto" />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <Button onClick={handleSubmit} disabled={createActivityMutation.isPending || uploadingPictures} className="w-full">
+                      {uploadingPictures ? "Uploading pictures..." : createActivityMutation.isPending ? "Logging..." : "Log Activity"}
                     </Button>
                   </div>
                 </DialogContent>
