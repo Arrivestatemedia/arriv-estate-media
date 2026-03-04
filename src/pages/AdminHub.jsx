@@ -65,28 +65,35 @@ export default function AdminHub() {
     const salesMemberEmail = localStorage.getItem('sales_member_email');
     
     if (!salesMemberId || !salesMemberEmail) {
-      window.location.href = '/SalesLogin';
+      window.location.replace(createPageUrl('SalesLogin'));
       return;
     }
 
-    // Verify this user is an admin
+    // Set user from localStorage immediately so page renders
+    setUser({
+      id: salesMemberId,
+      email: salesMemberEmail,
+      full_name: localStorage.getItem('sales_member_name'),
+      role: 'admin'
+    });
+    setTimeout(() => setShowPermissionBanner(true), 500);
+
+    // Verify this user is actually an admin
     base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-      if (members?.[0]?.role === 'admin') {
-        setUser({
-          id: salesMemberId,
-          email: salesMemberEmail,
-          full_name: localStorage.getItem('sales_member_name'),
-          role: 'admin',
-          profile_picture_url: members[0].profile_picture_url
-        });
-        setProfilePicUrl(members[0].profile_picture_url || "");
-        setTimeout(() => setShowPermissionBanner(true), 500);
-      } else {
-        // Not an admin, redirect to activity log
-        window.location.href = '/HubSpotActivityLog';
+      const member = members?.[0];
+      if (!member) {
+        localStorage.clear();
+        window.location.replace(createPageUrl('SalesLogin'));
+        return;
       }
+      if (member.role !== 'admin') {
+        window.location.replace(createPageUrl('HubSpotActivityLog'));
+        return;
+      }
+      setProfilePicUrl(member.profile_picture_url || "");
+      setUser(prev => ({ ...prev, profile_picture_url: member.profile_picture_url }));
     }).catch(() => {
-      window.location.href = '/SalesLogin';
+      window.location.replace(createPageUrl('SalesLogin'));
     });
   }, []);
 
