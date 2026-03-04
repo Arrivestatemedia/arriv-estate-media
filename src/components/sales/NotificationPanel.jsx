@@ -81,19 +81,16 @@ export default function NotificationPanel({ userEmail }) {
           transform: isOpen ? 'translateX(0)' : 'translateX(-100%)'
         }}
       >
-          {/* Header */}
-          <div className="sticky top-0 flex items-center justify-between p-4 border-b" style={{ borderColor: '#B8956A/20', backgroundColor: '#FFFBF5' }}>
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5" style={{ color: '#B8956A' }} />
-              <h2 className="font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
-            </div>
-            <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-gray-100 rounded">
-              <X className="w-4 h-4" style={{ color: '#1A1A1A' }} />
-            </button>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: '#B8956A/20', backgroundColor: '#FFFBF5' }}>
+          <div className="flex items-center gap-2">
+            <Bell className="w-5 h-5" style={{ color: '#B8956A' }} />
+            <h2 className="font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
           </div>
+        </div>
 
-          {/* Content */}
-          <div className="p-4">
+        {/* Content */}
+        <div className="p-4">
             {loading ? (
               <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Loading...</p>
             ) : upcomingTasks.length === 0 ? (
