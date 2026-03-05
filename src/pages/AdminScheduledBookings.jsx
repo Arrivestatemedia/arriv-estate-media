@@ -455,6 +455,22 @@ export default function AdminScheduledBookings() {
                     </button>
                   ))}
                 </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="time"
+                    onChange={e => {
+                      if (!e.target.value) return;
+                      const [h, m] = e.target.value.split(':');
+                      const hour = parseInt(h);
+                      const period = hour >= 12 ? 'PM' : 'AM';
+                      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+                      setForm(p => ({...p, preferred_time: `${displayHour}:${m} ${period}`}));
+                    }}
+                    className="flex-1 text-xs border border-[#B8956A]/30 rounded-lg px-2 py-1.5 outline-none focus:border-[#B8956A]"
+                  />
+                  <span className="text-xs text-[#1A1A1A]/50">or enter custom time</span>
+                </div>
+                {form.preferred_time && <p className="text-xs text-[#B8956A] mt-1">Selected: {form.preferred_time}</p>}
               </div>
             )}
 
