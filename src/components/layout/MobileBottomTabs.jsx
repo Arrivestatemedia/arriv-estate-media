@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
-import { Briefcase, LayoutDashboard, Settings, Key } from "lucide-react";
+import { Briefcase, LayoutDashboard, Settings, Key, LogOut } from "lucide-react";
 import NewJobsBadge from "./NewJobsBadge";
 
 const SESSION_STORAGE_KEY = 'mobile_tab_scroll_positions';
