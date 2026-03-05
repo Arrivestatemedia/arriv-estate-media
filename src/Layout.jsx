@@ -195,13 +195,13 @@ function LayoutContent({ children, currentPageName }) {
                     />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3">
+                  <Link to={createPageUrl(user ? dashboardPage : "JobBoard")} className="flex items-center gap-3">
                     <img 
                       src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
                       alt="Arriv" 
                       className="h-8"
                     />
-                  </div>
+                  </Link>
                 )}
 
             <nav className="hidden md:flex items-center gap-1">

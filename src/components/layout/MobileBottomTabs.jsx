@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
-import { Briefcase, LayoutDashboard, Settings, Key, LogOut } from "lucide-react";
+import { Briefcase, LayoutDashboard, Settings, Key } from "lucide-react";
 import NewJobsBadge from "./NewJobsBadge";
 
 const SESSION_STORAGE_KEY = 'mobile_tab_scroll_positions';
@@ -17,11 +17,6 @@ export default function MobileBottomTabs({ user }) {
   const isClient = user?.user_type === "client";
   const isMediaPartner = user?.user_type === "media_partner";
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = '/SignIn';
-  };
-
   const tabs = isAdmin
     ? [
         { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
@@ -33,7 +28,6 @@ export default function MobileBottomTabs({ user }) {
         { label: "Book", page: "BookingPage", icon: Briefcase },
         { label: "Bookings", page: "ClientBookings", icon: Briefcase },
         { label: "Settings", page: "PublicAccountSettings", icon: Settings },
-        { label: "Log Out", page: null, icon: LogOut, isLogout: true },
       ]
     : isMediaPartner
     ? [
@@ -118,22 +112,6 @@ export default function MobileBottomTabs({ user }) {
           const Icon = tab.icon;
           const isActive = currentPath === `/${tab.page}`;
           
-          if (tab.isLogout) {
-            return (
-              <button
-                key="logout"
-                onClick={handleLogout}
-                className="flex flex-col items-center justify-center flex-1 h-full relative text-red-400"
-                style={{ userSelect: 'none' }}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <Icon className="w-6 h-6" />
-                  <span className="text-xs font-medium">{tab.label}</span>
-                </div>
-              </button>
-            );
-          }
-
           return (
             <Link
               key={tab.page}
