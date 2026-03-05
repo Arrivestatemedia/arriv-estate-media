@@ -17,6 +17,11 @@ export default function MobileBottomTabs({ user }) {
   const isClient = user?.user_type === "client";
   const isMediaPartner = user?.user_type === "media_partner";
 
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = '/SignIn';
+  };
+
   const tabs = isAdmin
     ? [
         { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
@@ -28,6 +33,7 @@ export default function MobileBottomTabs({ user }) {
         { label: "Book", page: "BookingPage", icon: Briefcase },
         { label: "Bookings", page: "ClientBookings", icon: Briefcase },
         { label: "Settings", page: "PublicAccountSettings", icon: Settings },
+        { label: "Log Out", page: null, icon: LogOut, isLogout: true },
       ]
     : isMediaPartner
     ? [
