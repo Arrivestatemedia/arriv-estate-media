@@ -473,7 +473,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
               borderBottomColor: activeTab === "email" ? '#B8956A' : 'transparent'
             }}
           >
-            Send Email
+            Email Hub
           </button>
           <button
             onClick={() => setActiveTab("call")}
