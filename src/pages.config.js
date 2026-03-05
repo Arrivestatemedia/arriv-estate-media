@@ -57,7 +57,6 @@ import AdminLogin from './pages/AdminLogin';
 import AdminPaymentStatements from './pages/AdminPaymentStatements';
 import AdminSalesRepActivity from './pages/AdminSalesRepActivity';
 import AdminSalesSignup from './pages/AdminSalesSignup';
-import AdminScheduledBookings from './pages/AdminScheduledBookings';
 import AdminSignedTerms from './pages/AdminSignedTerms';
 import AdminUsers from './pages/AdminUsers';
 import BookingPage from './pages/BookingPage';
@@ -94,6 +93,7 @@ import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
+import AdminScheduledBookings from './pages/AdminScheduledBookings';
 import __Layout from './Layout.jsx';
 
 
@@ -108,7 +108,6 @@ export const PAGES = {
     "AdminPaymentStatements": AdminPaymentStatements,
     "AdminSalesRepActivity": AdminSalesRepActivity,
     "AdminSalesSignup": AdminSalesSignup,
-    "AdminScheduledBookings": AdminScheduledBookings,
     "AdminSignedTerms": AdminSignedTerms,
     "AdminUsers": AdminUsers,
     "BookingPage": BookingPage,
@@ -145,6 +144,7 @@ export const PAGES = {
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
+    "AdminScheduledBookings": AdminScheduledBookings,
 }
 
 export const pagesConfig = {

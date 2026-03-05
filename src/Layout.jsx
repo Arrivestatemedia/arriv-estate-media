@@ -187,8 +187,7 @@ function LayoutContent({ children, currentPageName }) {
                     <img 
                       src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
                       alt="Arriv" 
-                      className="h-8 pointer-events-none"
-                      draggable="false"
+                      className="h-8"
                     />
                   </div>
                 ) : isSalesTeam ? (
@@ -196,8 +195,7 @@ function LayoutContent({ children, currentPageName }) {
                     <img 
                       src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
                       alt="Arriv" 
-                      className="h-8 pointer-events-none"
-                      draggable="false"
+                      className="h-8"
                     />
                   </div>
                 ) : isClient ? (
@@ -205,8 +203,7 @@ function LayoutContent({ children, currentPageName }) {
                     <img 
                       src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
                       alt="Arriv" 
-                      className="h-8 pointer-events-none"
-                      draggable="false"
+                      className="h-8"
                     />
                   </div>
                 ) : (
