@@ -18,6 +18,12 @@ Deno.serve(async (req) => {
 
     for (const sb of due) {
       try {
+        const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
+        const addOnPrices = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
+        const pkgPrice = packagePrices[sb.package_id] || 0;
+        const addOnsTotal = (sb.add_on_ids || []).reduce((sum, id) => sum + (addOnPrices[id] || 0), 0);
+        const totalPrice = pkgPrice + addOnsTotal;
+
         const bookingPayload = {
           client_name: sb.client_name,
           client_email: sb.client_email,
@@ -31,7 +37,7 @@ Deno.serve(async (req) => {
           package: sb.package_id,
           add_ons: sb.add_on_ids || [],
           request_pay_at_closing: sb.request_pay_at_closing || false,
-          total_price: 0,
+          total_price: totalPrice,
         };
 
         const res = await base44.asServiceRole.functions.invoke('handleBookingSubmission', { booking: bookingPayload });
