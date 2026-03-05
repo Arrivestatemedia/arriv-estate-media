@@ -48,12 +48,18 @@ export default function SignIn() {
         return;
       }
 
-      // Store user info in localStorage
-      localStorage.setItem('user_email', response.data.email);
-      localStorage.setItem('user_name', response.data.full_name);
-      localStorage.setItem('user_type', response.data.user_type);
-      localStorage.setItem('user_role', response.data.user_role);
-      localStorage.setItem('user_phone', response.data.phone_number);
+      // Store user info in localStorage AND sessionStorage (Safari fallback)
+      const userData = {
+        user_email: response.data.email,
+        user_name: response.data.full_name,
+        user_type: response.data.user_type,
+        user_role: response.data.user_role,
+        user_phone: response.data.phone_number,
+      };
+      Object.entries(userData).forEach(([k, v]) => {
+        localStorage.setItem(k, v);
+        sessionStorage.setItem(k, v);
+      });
 
       // Track first login for media partners
       if (response.data.user_type === 'media_partner' && !response.data.hasLoggedInBefore) {
