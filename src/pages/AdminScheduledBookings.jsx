@@ -181,6 +181,7 @@ export default function AdminScheduledBookings() {
 
   const resetForm = () => {
     setForm({ package_id: "", add_on_ids: [], request_pay_at_closing: false, client_name: "", client_email: "", client_phone: "", street_address: "", city: "", state: "", preferred_date: "", preferred_time: "", notes: "" });
+    setPackageFeatures({});
     setSelectedDate(null);
     setScheduleDate(null);
     setScheduleTime("");
