@@ -302,36 +302,14 @@ export default function AdminScheduledBookings() {
             <div>
               <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Package *</label>
               <div className="border border-[#B8956A]/30 rounded-lg overflow-hidden">
-                {packages.map((pkg) => {
-                  const isSelected = form.package_id === pkg.id;
-                  const [expanded, setExpanded] = React.useState(false);
-                  return (
-                    <div key={pkg.id} className="border-b border-[#B8956A]/10 last:border-b-0">
-                      <button type="button" onClick={() => setExpanded(e => !e)}
-                        className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${isSelected ? "bg-[#B8956A]/10" : "hover:bg-[#B8956A]/5"}`}>
-                        <div className="flex items-center gap-2">
-                          {isSelected && <Check className="w-4 h-4 text-[#B8956A]" />}
-                          <span className="font-medium text-sm text-[#1A1A1A]">{pkg.name}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-[#B8956A]">${pkg.price}</span>
-                          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </div>
-                      </button>
-                      {expanded && (
-                        <div className="px-4 pb-3 bg-[#FFFBF5]/50 space-y-1">
-                          {pkg.features.map((f, i) => (
-                            <p key={i} className="text-xs text-[#1A1A1A]/60">• {f}</p>
-                          ))}
-                          <button type="button" onClick={() => setForm(prev => ({ ...prev, package_id: isSelected ? "" : pkg.id }))}
-                            className={`mt-2 w-full py-1.5 text-xs rounded-lg border-2 font-medium transition-all ${isSelected ? "border-red-300 text-red-600 hover:bg-red-50" : "bg-[#1A1A1A] text-white border-[#1A1A1A] hover:bg-[#1A1A1A]/80"}`}>
-                            {isSelected ? "Remove" : "Select Package"}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {packages.map((pkg) => (
+                  <PackageRow
+                    key={pkg.id}
+                    pkg={pkg}
+                    isSelected={form.package_id === pkg.id}
+                    onSelect={(id) => setForm(prev => ({ ...prev, package_id: prev.package_id === id ? "" : id }))}
+                  />
+                ))}
               </div>
               {form.package_id && (
                 <p className="text-xs text-[#B8956A] mt-1">Selected: {packages.find(p => p.id === form.package_id)?.name}</p>
