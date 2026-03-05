@@ -46,7 +46,7 @@ const packages = [
     price: 675,
     features: [
       "Everything in Photo + Cinematic Walkthrough",
-      "90 Tour",
+      "3D Tour",
       "Twilight exterior edits (up to 5 photos)",
       "AI Staging (if needed)",
     ],
