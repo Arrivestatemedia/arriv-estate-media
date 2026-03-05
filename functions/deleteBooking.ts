@@ -27,6 +27,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Cancel any unpaid invoices linked to this booking so reminders don't go out
+    try {
+      const invoices = await base44.asServiceRole.entities.Invoice.filter({ booking_id: bookingId, payment_status: 'unpaid' });
+      for (const invoice of invoices || []) {
+        await base44.asServiceRole.entities.Invoice.update(invoice.id, { payment_status: 'cancelled' });
+      }
+    } catch (invoiceError) {
+      console.error('Failed to cancel invoices for booking:', invoiceError);
+    }
+
     // Then delete the booking
     try {
       await base44.asServiceRole.entities.Booking.delete(bookingId);
