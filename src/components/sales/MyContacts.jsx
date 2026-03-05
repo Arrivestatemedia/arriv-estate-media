@@ -71,7 +71,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
     if (!contactMap[key].company && a.company_name) contactMap[key].company = a.company_name;
   });
 
-  const contacts = Object.values(contactMap).sort((a, b) => {
+  const contacts = Object.values(contactMap).filter(c => c.name && c.name.trim() !== '').sort((a, b) => {
     const latestA = Math.max(...a.activities.map(x => new Date(x.activity_date)));
     const latestB = Math.max(...b.activities.map(x => new Date(x.activity_date)));
     return latestB - latestA;
