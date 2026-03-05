@@ -55,8 +55,28 @@ const statusColors = {
   failed: "bg-red-100 text-red-800",
 };
 
-function PackageRow({ pkg, isSelected, onSelect }) {
+function PackageRow({ pkg, isSelected, onSelect, activeFeatures, onFeaturesChange }) {
   const [expanded, setExpanded] = useState(false);
+  const [newFeature, setNewFeature] = useState("");
+
+  const features = activeFeatures || pkg.features;
+
+  const toggleFeature = (feature) => {
+    const current = features.includes(feature)
+      ? features.filter(f => f !== feature)
+      : [...features, feature];
+    onFeaturesChange(pkg.id, current);
+  };
+
+  const addFeature = () => {
+    if (!newFeature.trim()) return;
+    onFeaturesChange(pkg.id, [...features, newFeature.trim()]);
+    setNewFeature("");
+  };
+
+  // All known features = pkg defaults + any custom ones added
+  const allFeatures = [...new Set([...pkg.features, ...features])];
+
   return (
     <div className="border-b border-[#B8956A]/10 last:border-b-0">
       <div className={`flex items-center transition-colors ${isSelected ? "bg-[#B8956A]/10" : "hover:bg-[#B8956A]/5"}`}>
@@ -75,10 +95,34 @@ function PackageRow({ pkg, isSelected, onSelect }) {
         </div>
       </div>
       {expanded && (
-        <div className="px-4 pb-3 bg-[#FFFBF5]/50 space-y-1 border-t border-[#B8956A]/10">
-          {pkg.features.map((f, i) => (
-            <p key={i} className="text-xs text-[#1A1A1A]/60 pt-1">• {f}</p>
-          ))}
+        <div className="px-4 pb-3 bg-[#FFFBF5]/50 border-t border-[#B8956A]/10 space-y-1 pt-2">
+          <p className="text-xs text-[#1A1A1A]/40 mb-2">Toggle items to include/exclude from this package:</p>
+          {allFeatures.map((f, i) => {
+            const included = features.includes(f);
+            return (
+              <div key={i} className="flex items-center gap-2 py-0.5">
+                <button type="button" onClick={() => toggleFeature(f)}
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${included ? "bg-[#B8956A] border-[#B8956A]" : "border-gray-300"}`}>
+                  {included && <Check className="w-3 h-3 text-white" />}
+                </button>
+                <span className={`text-xs ${included ? "text-[#1A1A1A]/80" : "text-[#1A1A1A]/30 line-through"}`}>{f}</span>
+              </div>
+            );
+          })}
+          <div className="flex items-center gap-2 pt-2">
+            <input
+              type="text"
+              value={newFeature}
+              onChange={e => setNewFeature(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addFeature())}
+              placeholder="Add custom item..."
+              className="flex-1 text-xs border border-[#B8956A]/30 rounded-lg px-2 py-1.5 outline-none focus:border-[#B8956A]"
+            />
+            <button type="button" onClick={addFeature}
+              className="px-2 py-1.5 text-xs bg-[#B8956A] text-white rounded-lg hover:bg-[#A68559]">
+              Add
+            </button>
+          </div>
         </div>
       )}
     </div>
