@@ -107,12 +107,14 @@ export default function SalesLogin() {
               <label className="block text-sm font-medium mb-2">Password</label>
               <div className="relative">
                 <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
+                 type={showPassword ? "text" : "password"}
+                 name="password"
+                 autoComplete="current-password"
+                 placeholder="••••••••"
+                 value={password}
+                 onChange={(e) => setPassword(e.target.value)}
+                 disabled={loading}
+                 required
                 />
                 <button
                   type="button"
