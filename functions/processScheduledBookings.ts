@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
           preferred_time: sb.preferred_time,
           notes: sb.notes || '',
           package: sb.package_id,
+          package_features: sb.package_features || null,
           add_ons: sb.add_on_ids || [],
           request_pay_at_closing: sb.request_pay_at_closing || false,
           total_price: totalPrice,
