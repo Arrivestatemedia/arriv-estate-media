@@ -673,43 +673,64 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                     </CardContent>
                   </Card>
                 ) : (
-                  pastActivities.map((activity) => (
-                    <Card 
-                      key={activity.id}
-                      className="cursor-pointer hover:shadow-md transition"
-                      onClick={() => handleActivityClick(activity)}
-                    >
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
-                              {activityIcons[activity.activity_type]}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+                  <>
+                    {pastActivities.slice(0, visibleCount).map((activity) => (
+                      <Card 
+                        key={activity.id}
+                        className="cursor-pointer hover:shadow-md transition"
+                        onClick={() => handleActivityClick(activity)}
+                      >
+                        <CardContent className="pt-6">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
+                                {activityIcons[activity.activity_type]}
                               </div>
-                              <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                              {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                              {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
-                              <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
-                              {activity.duration_minutes > 0 && (
-                                <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
-                              )}
-                              {activity.picture_url && (
-                                <img src={activity.picture_url} alt="Activity" className="mt-2 rounded-lg max-h-32 w-auto" />
-                              )}
+                              <div className="flex-1">
+                                <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+                                <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                                {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                                {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                                <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
+                                {activity.duration_minutes > 0 && (
+                                  <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                              {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
                             </div>
                           </div>
-                          <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                            {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {visibleCount < pastActivities.length && (
+                      <div className="flex justify-center pt-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setVisibleCount(v => v + 5)}
+                          style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                        >
+                          Load More ({pastActivities.length - visibleCount} remaining)
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
+            </div>
+
+            {/* Archive button */}
+            <div className="flex justify-center pb-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowArchive(true)}
+                className="gap-2"
+                style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}
+              >
+                <Archive className="w-4 h-4" />
+                View Activity Archive
+              </Button>
             </div>
           </>
         )}
