@@ -26,8 +26,12 @@ export default function SalesLogin() {
     setError("");
     setLoading(true);
 
+    // Safari autofill doesn't always trigger onChange, so read directly from form
+    const formEmail = e.target.email?.value || email;
+    const formPassword = e.target.password?.value || password;
+
     try {
-      const result = await base44.functions.invoke('salesTeamLogin', { email, password });
+      const result = await base44.functions.invoke('salesTeamLogin', { email: formEmail, password: formPassword });
       
       if (result.data?.success) {
         localStorage.setItem('sales_member_id', result.data.memberId);
