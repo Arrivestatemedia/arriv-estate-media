@@ -313,9 +313,24 @@ Deno.serve(async (req) => {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80, 80, 80);
         let y = curY;
+
+        // Package name + price on first line
         doc.text(pkgNames[booking.package] || booking.package, margin, y);
         doc.text(`$${basePkgAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
-        y += 18;
+        y += 16;
+
+        // List package features as sub-items if provided
+        if (booking.package_features && booking.package_features.length > 0) {
+          doc.setFontSize(8.5);
+          doc.setTextColor(120, 120, 120);
+          for (const feature of booking.package_features) {
+            doc.text(`  • ${feature}`, margin + 8, y);
+            y += 12;
+          }
+          doc.setFontSize(10);
+          doc.setTextColor(80, 80, 80);
+        }
+        y += 4;
 
         for (const addon of addOns) {
           const price = addonPrices2[addon] || 0;
