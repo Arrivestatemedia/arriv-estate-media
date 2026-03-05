@@ -250,8 +250,9 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [uploadingPictures, setUploadingPictures] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [currentPage, setCurrentPage] = useState(1);
   const [showArchive, setShowArchive] = useState(false);
+  const ACTIVITIES_PER_PAGE = 10;
 
   const handlePictureChange = async (e) => {
     const files = Array.from(e.target.files || []);
