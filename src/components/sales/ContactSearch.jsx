@@ -432,17 +432,25 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                     <div className="p-2 rounded-full" style={{ backgroundColor: 'rgba(184,149,106,0.1)' }}>
                       <User className="w-4 h-4" style={{ color: '#B8956A' }} />
                     </div>
-                    <div>
-                      <p className="font-semibold" style={{ color: '#1A1A1A' }}>
-                        {[contact.firstname, contact.lastname].filter(Boolean).join(' ') || 'Unknown'}
-                      </p>
-                      <div className="flex flex-wrap gap-3 mt-1 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                        {contact.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{contact.email}</span>}
-                        {contact.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{contact.phone}</span>}
-                        {contact.company && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{contact.company}</span>}
+                    <div className="flex-1">
+                        <p className="font-semibold" style={{ color: '#1A1A1A' }}>
+                          {[contact.firstname, contact.lastname].filter(Boolean).join(' ') || 'Unknown'}
+                        </p>
+                        <div className="flex flex-wrap gap-3 mt-1 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                          {contact.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{contact.email}</span>}
+                          {contact.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{contact.phone}</span>}
+                          {contact.company && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{contact.company}</span>}
+                        </div>
+                        {contact.lead_status && <Badge className="mt-1 text-xs" variant="outline">{contact.lead_status}</Badge>}
+                        {/* Last contact info */}
+                        {activities[contact.id] && activities[contact.id].length > 0 && (
+                          <div className="mt-2 pt-2 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)', color: 'rgba(26,26,26,0.6)' }}>
+                            <p className="text-xs">
+                              <span className="font-medium">Last contacted:</span> {new Date(activities[contact.id][0].activity_date).toLocaleDateString()} by {activities[contact.id][0].sales_member_email || 'unknown'}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      {contact.lead_status && <Badge className="mt-1 text-xs" variant="outline">{contact.lead_status}</Badge>}
-                    </div>
                   </div>
                   {isExpanded ? <ChevronUp className="w-4 h-4 mt-1 shrink-0" /> : <ChevronDown className="w-4 h-4 mt-1 shrink-0" />}
                 </button>
