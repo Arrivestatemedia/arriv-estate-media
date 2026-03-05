@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Mail, Calendar, Building2, User, Plus, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { createPageUrl } from "@/utils";
 
 export default function MyContacts({ salesMemberId, salesMemberEmail }) {
   const [activities, setActivities] = useState([]);
