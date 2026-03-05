@@ -93,6 +93,8 @@ export default function SalesLogin() {
               <label className="block text-sm font-medium mb-2">Email</label>
               <Input
                 type="email"
+                name="email"
+                autoComplete="email"
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
