@@ -315,7 +315,7 @@ export default function AdminScheduledBookings() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={handleShootDateSelect}
-                disabled={(d) => d < new Date()}
+                disabled={(d) => { const today = new Date(); today.setHours(0,0,0,0); return d < today; }}
                 className="border border-[#B8956A]/20 rounded-lg p-2"
               />
             </div>
