@@ -927,6 +927,19 @@ export default function HubSpotActivityLog() {
                 )}
               </div>
             </div>
+
+            {/* Archive button */}
+            <div className="flex justify-center pb-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowArchive(true)}
+                className="gap-2"
+                style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}
+              >
+                <Archive className="w-4 h-4" />
+                View Activity Archive
+              </Button>
+            </div>
           </div>
         )}
 
