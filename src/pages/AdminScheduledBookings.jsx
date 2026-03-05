@@ -257,7 +257,7 @@ export default function AdminScheduledBookings() {
               <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Package *</label>
               <Select value={form.package_id} onValueChange={(v) => setForm(prev => ({ ...prev, package_id: v }))}>
                 <SelectTrigger className="border-[#B8956A]/30"><SelectValue placeholder="Select a package" /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   {packages.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — ${p.price}</SelectItem>)}
                 </SelectContent>
               </Select>
