@@ -220,7 +220,10 @@ export default function AdminScheduledBookings() {
     if (period === 'AM' && hours === 12) hours = 0;
     const scheduled_submit_at = new Date(scheduleDate.getFullYear(), scheduleDate.getMonth(), scheduleDate.getDate(), hours, parseInt(min)).toISOString();
 
-    createMutation.mutate({ ...form, scheduled_submit_at });
+    const selectedPkg = packages.find(p => p.id === form.package_id);
+    const activeFeatures = packageFeatures[form.package_id] || selectedPkg?.features || [];
+
+    createMutation.mutate({ ...form, scheduled_submit_at, package_features: activeFeatures });
   };
 
   const availableShootSlots = form.preferred_date
