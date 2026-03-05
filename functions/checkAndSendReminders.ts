@@ -22,6 +22,15 @@ Deno.serve(async (req) => {
           continue;
         }
       }
+
+      // If booking_id exists, verify the booking still exists and is not cancelled/denied
+      if (invoice.booking_id) {
+        const booking = await base44.asServiceRole.entities.Booking.read(invoice.booking_id);
+        if (!booking || booking.status === 'cancelled' || booking.status === 'denied') {
+          // Booking was deleted or cancelled, skip this invoice reminder
+          continue;
+        }
+      }
       
       const emailSentAt = new Date(invoice.email_sent_at);
       const hoursSinceEmail = (now - emailSentAt) / (1000 * 60 * 60);
