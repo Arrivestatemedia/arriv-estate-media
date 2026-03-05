@@ -354,6 +354,8 @@ export default function AdminScheduledBookings() {
                     pkg={pkg}
                     isSelected={form.package_id === pkg.id}
                     onSelect={(id) => setForm(prev => ({ ...prev, package_id: prev.package_id === id ? "" : id }))}
+                    activeFeatures={packageFeatures[pkg.id] || pkg.features}
+                    onFeaturesChange={(pkgId, features) => setPackageFeatures(prev => ({ ...prev, [pkgId]: features }))}
                   />
                 ))}
               </div>
