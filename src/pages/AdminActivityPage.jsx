@@ -607,7 +607,15 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
           <AiAssistantTab repName={user?.full_name} />
         )}
 
-        {activeTab === "activity" && (
+        {activeTab === "activity" && showArchive && (
+          <ActivityArchive
+            salesMemberId={user?.id}
+            salesMemberEmail={user?.email}
+            onClose={() => setShowArchive(false)}
+          />
+        )}
+
+        {activeTab === "activity" && !showArchive && (
           <>
             {upcomingActivities.length > 0 && (
               <div className="mb-8">
