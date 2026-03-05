@@ -34,9 +34,15 @@ export default function SalesLogin() {
       const result = await base44.functions.invoke('salesTeamLogin', { email: formEmail, password: formPassword });
       
       if (result.data?.success) {
-        localStorage.setItem('sales_member_id', result.data.memberId);
-        localStorage.setItem('sales_member_name', result.data.name);
-        localStorage.setItem('sales_member_email', result.data.email);
+        const salesData = {
+          sales_member_id: result.data.memberId,
+          sales_member_name: result.data.name,
+          sales_member_email: result.data.email,
+        };
+        Object.entries(salesData).forEach(([k, v]) => {
+          localStorage.setItem(k, v);
+          sessionStorage.setItem(k, v);
+        });
         navigate(createPageUrl("HubSpotActivityLog"));
       } else {
         setError(result.data?.error || "Login failed");
