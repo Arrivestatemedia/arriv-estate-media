@@ -198,7 +198,7 @@ function LayoutContent({ children, currentPageName }) {
                       className="h-8"
                     />
                   </div>
-                ) : isClient || ["BookingPage", "ClientBookings"].includes(currentPageName) ? (
+                ) : isClient || (!isAdmin && !isMediaPartner && !isSalesTeam) || ["BookingPage", "ClientBookings"].includes(currentPageName) ? (
                   <div className="flex items-center gap-3">
                     <img 
                       src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
