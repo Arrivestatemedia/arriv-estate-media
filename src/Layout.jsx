@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
