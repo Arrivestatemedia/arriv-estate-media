@@ -164,15 +164,19 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
 
           return (
             <Card
-              key={contact.key}
-              style={{ borderColor: contact.upcoming.length > 0 ? '#B8956A' : 'rgba(184,149,106,0.2)', borderWidth: contact.upcoming.length > 0 ? '1.5px' : '1px' }}
-            >
-              <CardContent className="pt-4 pb-4">
-                {/* Header row */}
-                <button
-                  className="w-full text-left flex items-start justify-between gap-3"
-                  onClick={() => setExpandedContact(isExpanded ? null : contact.key)}
-                >
+               key={contact.key}
+               style={{ borderColor: contact.upcoming.length > 0 ? '#B8956A' : 'rgba(184,149,106,0.2)', borderWidth: contact.upcoming.length > 0 ? '1.5px' : '1px' }}
+               className="cursor-pointer hover:shadow-md transition"
+             >
+               <CardContent className="pt-4 pb-4">
+                 {/* Header row */}
+                 <button
+                   className="w-full text-left flex items-start justify-between gap-3"
+                   onClick={() => {
+                     // Navigate to contact detail page
+                     window.location.href = createPageUrl(`ContactDetailPage?contact=${encodeURIComponent(contact.key)}`);
+                   }}
+                 >
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="p-2 rounded-full shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.12)' }}>
                       <User className="w-4 h-4" style={{ color: '#B8956A' }} />
