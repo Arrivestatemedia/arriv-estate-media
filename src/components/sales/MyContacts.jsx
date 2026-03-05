@@ -71,7 +71,15 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
     if (!contactMap[key].company && a.company_name) contactMap[key].company = a.company_name;
   });
 
-  const contacts = Object.values(contactMap).filter(c => c.name && c.name.trim() !== '').sort((a, b) => {
+  const contacts = Object.values(contactMap).filter(c => {
+    const name = c.name && c.name.trim();
+    if (!name) return false;
+    // Exclude phone numbers (start with + or are all digits/dashes)
+    if (/^\+?\d[\d\s\-().]+$/.test(name)) return false;
+    // Exclude pure numeric strings (e.g. extensions like "101", "100")
+    if (/^\d+$/.test(name)) return false;
+    return true;
+  }).sort((a, b) => {
     const latestA = Math.max(...a.activities.map(x => new Date(x.activity_date)));
     const latestB = Math.max(...b.activities.map(x => new Date(x.activity_date)));
     return latestB - latestA;
