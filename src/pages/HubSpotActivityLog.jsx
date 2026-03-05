@@ -805,7 +805,15 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        {activeTab === "activity" && (
+        {activeTab === "activity" && showArchive && (
+          <ActivityArchive
+            salesMemberId={user?.id}
+            salesMemberEmail={user?.email}
+            onClose={() => setShowArchive(false)}
+          />
+        )}
+
+        {activeTab === "activity" && !showArchive && (
           <div>
             {upcomingActivities.length > 0 && (
               <div className="mb-8">
