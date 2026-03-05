@@ -59,26 +59,26 @@ function PackageRow({ pkg, isSelected, onSelect }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="border-b border-[#B8956A]/10 last:border-b-0">
-      <button type="button" onClick={() => setExpanded(e => !e)}
-        className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${isSelected ? "bg-[#B8956A]/10" : "hover:bg-[#B8956A]/5"}`}>
-        <div className="flex items-center gap-2">
-          {isSelected && <Check className="w-4 h-4 text-[#B8956A]" />}
+      <div className={`flex items-center transition-colors ${isSelected ? "bg-[#B8956A]/10" : "hover:bg-[#B8956A]/5"}`}>
+        <button type="button" onClick={() => onSelect(pkg.id)}
+          className="flex-1 px-4 py-3 flex items-center gap-2 text-left">
+          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? "bg-[#B8956A] border-[#B8956A]" : "border-[#B8956A]/40"}`}>
+            {isSelected && <Check className="w-3 h-3 text-white" />}
+          </div>
           <span className="font-medium text-sm text-[#1A1A1A]">{pkg.name}</span>
-        </div>
-        <div className="flex items-center gap-3">
+        </button>
+        <div className="flex items-center gap-2 pr-4">
           <span className="font-bold text-[#B8956A]">${pkg.price}</span>
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </div>
-      </button>
-      {expanded && (
-        <div className="px-4 pb-3 bg-[#FFFBF5]/50 space-y-1">
-          {pkg.features.map((f, i) => (
-            <p key={i} className="text-xs text-[#1A1A1A]/60">• {f}</p>
-          ))}
-          <button type="button" onClick={() => onSelect(pkg.id)}
-            className={`mt-2 w-full py-1.5 text-xs rounded-lg border-2 font-medium transition-all ${isSelected ? "border-red-300 text-red-600 hover:bg-red-50" : "bg-[#1A1A1A] text-white border-[#1A1A1A] hover:bg-[#1A1A1A]/80"}`}>
-            {isSelected ? "Remove" : "Select Package"}
+          <button type="button" onClick={() => setExpanded(e => !e)} className="p-1 rounded hover:bg-black/5">
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
+        </div>
+      </div>
+      {expanded && (
+        <div className="px-4 pb-3 bg-[#FFFBF5]/50 space-y-1 border-t border-[#B8956A]/10">
+          {pkg.features.map((f, i) => (
+            <p key={i} className="text-xs text-[#1A1A1A]/60 pt-1">• {f}</p>
+          ))}
         </div>
       )}
     </div>
