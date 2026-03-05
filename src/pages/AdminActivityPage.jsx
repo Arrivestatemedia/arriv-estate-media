@@ -731,23 +731,37 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                       ) : null;
                     })()}
 
-                    {/* Next Page button - go to next 10 activities */}
+                    {/* Previous/Next Page buttons */}
                     {(() => {
                       const startIdx = currentPage === 1 ? 0 : 5 + (currentPage - 2) * ACTIVITIES_PER_PAGE;
                       const hasNextPage = startIdx + ACTIVITIES_PER_PAGE < pastActivities.length;
 
-                      return showFullPage && hasNextPage ? (
-                        <div className="flex justify-center pt-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setCurrentPage(currentPage + 1);
-                              setShowFullPage(false);
-                            }}
-                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                          >
-                            Next Page
-                          </Button>
+                      return showFullPage ? (
+                        <div className="flex justify-center gap-2 pt-2">
+                          {currentPage > 1 && (
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setCurrentPage(currentPage - 1);
+                                setShowFullPage(false);
+                              }}
+                              style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                            >
+                              Previous Page
+                            </Button>
+                          )}
+                          {hasNextPage && (
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setCurrentPage(currentPage + 1);
+                                setShowFullPage(false);
+                              }}
+                              style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                            >
+                              Next Page
+                            </Button>
+                          )}
                         </div>
                       ) : null;
                     })()}
