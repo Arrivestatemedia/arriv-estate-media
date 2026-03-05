@@ -85,6 +85,18 @@ export default function ContactDetailPage() {
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => window.location.href = createPageUrl("HubSpotActivityLog?tab=mycontacts")}
+          className="mb-4 gap-2"
+          style={{ color: '#B8956A' }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to My Contacts
+        </Button>
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-start gap-4">
