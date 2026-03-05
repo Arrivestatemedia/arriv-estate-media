@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Phone, Mail, Calendar, Clock, Zap, MessageSquare, Sparkles } from "lucide-react";
+import { Plus, Phone, Mail, Calendar, Clock, Zap, MessageSquare, Sparkles, Archive } from "lucide-react";
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
 import IphoneDialer from "@/components/sales/IphoneDialer";
