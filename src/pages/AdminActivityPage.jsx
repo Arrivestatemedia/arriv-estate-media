@@ -676,13 +676,11 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                   </Card>
                 ) : (
                   <>
-                    {/* Display current page of activities (5 per page on first page, 10 on subsequent) */}
+                    {/* Current page activities */}
                     {(() => {
-                      const pageSize = currentPage === 1 ? 5 : ACTIVITIES_PER_PAGE;
                       const startIdx = currentPage === 1 ? 0 : 5 + (currentPage - 2) * ACTIVITIES_PER_PAGE;
-                      const endIdx = startIdx + pageSize;
-                      const pageActivities = pastActivities.slice(startIdx, endIdx);
-                      return pageActivities.map((activity) => (
+                      const endIdx = showFullPage ? startIdx + ACTIVITIES_PER_PAGE : startIdx + 5;
+                      return pastActivities.slice(startIdx, endIdx).map((activity) => (
                         <Card 
                           key={activity.id}
                           className="cursor-pointer hover:shadow-md transition"
@@ -714,30 +712,45 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                       ));
                     })()}
 
-                    {/* Pagination buttons */}
-                    {pastActivities.length > 5 && (
-                      <div className="flex justify-center gap-2 pt-4">
-                        <Button
-                          variant="outline"
-                          onClick={() => setCurrentPage(1)}
-                          disabled={currentPage === 1}
-                          style={{ borderColor: currentPage === 1 ? 'rgba(184,149,106,0.2)' : '#B8956A', color: currentPage === 1 ? 'rgba(184,149,106,0.4)' : '#B8956A' }}
-                        >
-                          Page 1 (1-5)
-                        </Button>
-                        {Array.from({ length: Math.ceil((pastActivities.length - 5) / ACTIVITIES_PER_PAGE) }, (_, i) => (
+                    {/* Load More button - shows 5 more on current page */}
+                    {(() => {
+                      const startIdx = currentPage === 1 ? 0 : 5 + (currentPage - 2) * ACTIVITIES_PER_PAGE;
+                      const remainingOnPage = pastActivities.slice(startIdx + 5, startIdx + ACTIVITIES_PER_PAGE).length;
+                      const hasNextPage = startIdx + ACTIVITIES_PER_PAGE < pastActivities.length;
+
+                      return !showFullPage && remainingOnPage > 0 ? (
+                        <div className="flex justify-center pt-2">
                           <Button
-                            key={i + 2}
                             variant="outline"
-                            onClick={() => setCurrentPage(i + 2)}
-                            disabled={currentPage === i + 2}
-                            style={{ borderColor: currentPage === i + 2 ? 'rgba(184,149,106,0.2)' : '#B8956A', color: currentPage === i + 2 ? 'rgba(184,149,106,0.4)' : '#B8956A' }}
+                            onClick={() => setShowFullPage(true)}
+                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
                           >
-                            Page {i + 2} ({5 + i * ACTIVITIES_PER_PAGE + 1}-{Math.min(5 + (i + 1) * ACTIVITIES_PER_PAGE, pastActivities.length)})
+                            Load More ({remainingOnPage} remaining on this page)
                           </Button>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      ) : null;
+                    })()}
+
+                    {/* Next Page button - go to next 10 activities */}
+                    {(() => {
+                      const startIdx = currentPage === 1 ? 0 : 5 + (currentPage - 2) * ACTIVITIES_PER_PAGE;
+                      const hasNextPage = startIdx + ACTIVITIES_PER_PAGE < pastActivities.length;
+
+                      return showFullPage && hasNextPage ? (
+                        <div className="flex justify-center pt-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setCurrentPage(currentPage + 1);
+                              setShowFullPage(false);
+                            }}
+                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                          >
+                            Next Page
+                          </Button>
+                        </div>
+                      ) : null;
+                    })()}
                   </>
                 )}
               </div>
