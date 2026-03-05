@@ -73,6 +73,7 @@ export default function HubSpotActivityLog() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [visibleCount, setVisibleCount] = useState(5);
+  const [showArchive, setShowArchive] = useState(false);
   const [uploadingPictures, setUploadingPictures] = useState(false);
   const [formPictureUrls, setFormPictureUrls] = useState([]);
 
