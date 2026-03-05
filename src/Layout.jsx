@@ -21,10 +21,13 @@ function LayoutContent({ children, currentPageName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
+    // Helper: read from localStorage with sessionStorage fallback (Safari ITP)
+    const getItem = (key) => localStorage.getItem(key) || sessionStorage.getItem(key);
+
     // Check for sales team member first
-    const salesMemberId = localStorage.getItem('sales_member_id');
-    const salesMemberName = localStorage.getItem('sales_member_name');
-    const salesMemberEmail = localStorage.getItem('sales_member_email');
+    const salesMemberId = getItem('sales_member_id');
+    const salesMemberName = getItem('sales_member_name');
+    const salesMemberEmail = getItem('sales_member_email');
 
     if (salesMemberId && salesMemberName) {
       setUser({
@@ -37,10 +40,10 @@ function LayoutContent({ children, currentPageName }) {
       return;
     }
 
-    const userEmail = localStorage.getItem('user_email');
-    const userName = localStorage.getItem('user_name');
-    const userType = localStorage.getItem('user_type');
-    const userRole = localStorage.getItem('user_role');
+    const userEmail = getItem('user_email');
+    const userName = getItem('user_name');
+    const userType = getItem('user_type');
+    const userRole = getItem('user_role');
     
     if (userEmail && userName && userType) {
       setUser({
