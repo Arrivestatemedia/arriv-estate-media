@@ -725,7 +725,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
                             onClick={() => setShowFullPage(true)}
                             style={{ borderColor: '#B8956A', color: '#B8956A' }}
                           >
-                            Load More ({remainingOnPage} remaining on this page)
+                            Load More
                           </Button>
                         </div>
                       ) : null;
