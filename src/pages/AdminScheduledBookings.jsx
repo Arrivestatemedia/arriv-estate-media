@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, Plus, Trash2, CalendarClock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Clock, Plus, Trash2, CalendarClock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { format, isWeekend } from "date-fns";
 
 const packages = [
