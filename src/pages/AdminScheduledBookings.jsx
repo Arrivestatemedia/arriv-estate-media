@@ -13,10 +13,26 @@ import { Clock, Plus, Trash2, CalendarClock, CheckCircle2, XCircle, Loader2 } fr
 import { format, isWeekend } from "date-fns";
 
 const packages = [
-  { id: "mls_walkthrough", name: "MLS Walkthrough", price: 100 },
-  { id: "photo_essentials", name: "Photo Essentials", price: 275 },
-  { id: "photo_cinematic", name: "Photo + Cinematic Walkthrough", price: 475 },
-  { id: "premium_bundle", name: "Premium Media Bundle", price: 675 },
+  { id: "mls_walkthrough", name: "MLS Walkthrough", price: 100, features: [
+    "2-3 minute unbranded MLS-ready walkthrough",
+    "Bonus vertical social clip",
+  ]},
+  { id: "photo_essentials", name: "Photo Essentials", price: 275, features: [
+    "50-150 edited photos (interior + exterior)",
+    "True-to-life color + straight verticals",
+    "1 vertical teaser (9:16, 30-45 sec)",
+  ]},
+  { id: "photo_cinematic", name: "Photo + Cinematic Walkthrough", price: 475, features: [
+    "Everything in Photo Essentials",
+    "2-3 Minute walkthrough video",
+    "2 vertical reels",
+  ]},
+  { id: "premium_bundle", name: "Premium Media Bundle", price: 675, features: [
+    "Everything in Photo + Cinematic Walkthrough",
+    "3D Tour",
+    "Twilight exterior edits (up to 5 photos)",
+    "AI Staging (if needed)",
+  ]},
 ];
 
 const addOns = [
