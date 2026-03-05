@@ -271,24 +271,62 @@ export default function AdminScheduledBookings() {
             {/* Package */}
             <div>
               <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Package *</label>
-              <Select value={form.package_id} onValueChange={(v) => setForm(prev => ({ ...prev, package_id: v }))}>
-                <SelectTrigger className="border-[#B8956A]/30"><SelectValue placeholder="Select a package" /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  {packages.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — ${p.price}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="border border-[#B8956A]/30 rounded-lg overflow-hidden">
+                {packages.map((pkg) => {
+                  const isSelected = form.package_id === pkg.id;
+                  const [expanded, setExpanded] = React.useState(false);
+                  return (
+                    <div key={pkg.id} className="border-b border-[#B8956A]/10 last:border-b-0">
+                      <button type="button" onClick={() => setExpanded(e => !e)}
+                        className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${isSelected ? "bg-[#B8956A]/10" : "hover:bg-[#B8956A]/5"}`}>
+                        <div className="flex items-center gap-2">
+                          {isSelected && <Check className="w-4 h-4 text-[#B8956A]" />}
+                          <span className="font-medium text-sm text-[#1A1A1A]">{pkg.name}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-[#B8956A]">${pkg.price}</span>
+                          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </div>
+                      </button>
+                      {expanded && (
+                        <div className="px-4 pb-3 bg-[#FFFBF5]/50 space-y-1">
+                          {pkg.features.map((f, i) => (
+                            <p key={i} className="text-xs text-[#1A1A1A]/60">• {f}</p>
+                          ))}
+                          <button type="button" onClick={() => setForm(prev => ({ ...prev, package_id: isSelected ? "" : pkg.id }))}
+                            className={`mt-2 w-full py-1.5 text-xs rounded-lg border-2 font-medium transition-all ${isSelected ? "border-red-300 text-red-600 hover:bg-red-50" : "bg-[#1A1A1A] text-white border-[#1A1A1A] hover:bg-[#1A1A1A]/80"}`}>
+                            {isSelected ? "Remove" : "Select Package"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {form.package_id && (
+                <p className="text-xs text-[#B8956A] mt-1">Selected: {packages.find(p => p.id === form.package_id)?.name}</p>
+              )}
             </div>
 
             {/* Add-ons */}
             <div>
               <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Add-ons</label>
-              <div className="flex flex-wrap gap-2">
-                {addOns.map(a => (
-                  <button key={a.id} type="button" onClick={() => toggleAddOn(a.id)}
-                    className={`px-3 py-1.5 text-xs rounded-full border-2 transition-all ${form.add_on_ids.includes(a.id) ? "bg-[#B8956A] text-white border-[#B8956A]" : "border-[#B8956A]/30 text-[#1A1A1A] hover:border-[#B8956A]"}`}>
-                    {a.name} (+${a.price})
-                  </button>
-                ))}
+              <div className="border border-[#B8956A]/30 rounded-lg overflow-hidden divide-y divide-[#B8956A]/10">
+                {addOns.map(a => {
+                  const isSelected = form.add_on_ids.includes(a.id);
+                  return (
+                    <div key={a.id} className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-sm text-[#1A1A1A]/80">{a.name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-[#1A1A1A]">+${a.price}</span>
+                        <button type="button" onClick={() => toggleAddOn(a.id)}
+                          className={`px-3 py-1 text-xs rounded-lg border-2 font-medium transition-all ${isSelected ? "border-red-300 text-red-600 hover:bg-red-50" : "border-[#B8956A]/40 text-[#1A1A1A] hover:border-[#B8956A]"}`}>
+                          {isSelected ? "Remove" : "Add"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
