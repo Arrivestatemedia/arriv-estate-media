@@ -251,6 +251,7 @@ export default function AdminActivityPage({ user: propsUser, onVideoCallStateCha
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showFullPage, setShowFullPage] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const ACTIVITIES_PER_PAGE = 10;
 
