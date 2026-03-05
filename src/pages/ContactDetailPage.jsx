@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Mail, Building2, User, Clock, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Phone, Mail, Building2, User, Clock, ChevronDown, ChevronUp, X, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { createPortal } from "react-dom";
+import { createPageUrl } from "@/utils";
 
 export default function ContactDetailPage() {
   const location = useLocation();
