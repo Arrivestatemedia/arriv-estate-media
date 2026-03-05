@@ -55,6 +55,36 @@ const statusColors = {
   failed: "bg-red-100 text-red-800",
 };
 
+function PackageRow({ pkg, isSelected, onSelect }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="border-b border-[#B8956A]/10 last:border-b-0">
+      <button type="button" onClick={() => setExpanded(e => !e)}
+        className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${isSelected ? "bg-[#B8956A]/10" : "hover:bg-[#B8956A]/5"}`}>
+        <div className="flex items-center gap-2">
+          {isSelected && <Check className="w-4 h-4 text-[#B8956A]" />}
+          <span className="font-medium text-sm text-[#1A1A1A]">{pkg.name}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-[#B8956A]">${pkg.price}</span>
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
+      </button>
+      {expanded && (
+        <div className="px-4 pb-3 bg-[#FFFBF5]/50 space-y-1">
+          {pkg.features.map((f, i) => (
+            <p key={i} className="text-xs text-[#1A1A1A]/60">• {f}</p>
+          ))}
+          <button type="button" onClick={() => onSelect(pkg.id)}
+            className={`mt-2 w-full py-1.5 text-xs rounded-lg border-2 font-medium transition-all ${isSelected ? "border-red-300 text-red-600 hover:bg-red-50" : "bg-[#1A1A1A] text-white border-[#1A1A1A] hover:bg-[#1A1A1A]/80"}`}>
+            {isSelected ? "Remove" : "Select Package"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminScheduledBookings() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
