@@ -149,6 +149,7 @@ export default function AdminScheduledBookings() {
     preferred_time: "",
     notes: "",
   });
+  const [packageFeatures, setPackageFeatures] = useState({});
 
   // Verify admin
   const [isAdmin, setIsAdmin] = useState(false);
