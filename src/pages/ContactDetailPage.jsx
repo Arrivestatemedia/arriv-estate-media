@@ -89,7 +89,7 @@ export default function ContactDetailPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => window.location.href = createPageUrl("HubSpotActivityLog?tab=mycontacts")}
+          onClick={() => window.history.back()}
           className="mb-4 gap-2"
           style={{ color: '#B8956A' }}
         >
