@@ -694,6 +694,7 @@ export default function HubSpotActivityLog() {
             { id: "email", label: "Send Email" },
             { id: "contacts", label: "Contacts" },
             { id: "mycontacts", label: "My Contacts" },
+            { id: "queue", label: "Call Queue" },
             { id: "calendar", label: "Calendar" },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
