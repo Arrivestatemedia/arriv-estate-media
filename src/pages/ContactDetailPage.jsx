@@ -146,6 +146,63 @@ export default function ContactDetailPage() {
               </p>
             </div>
           </div>
+
+          {/* Follow-up button / form */}
+          <div className="mt-4">
+            {showFollowUpForm ? (
+              <div className="space-y-3 p-4 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.3)' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>Schedule Follow-up</p>
+                <Select value={followUpData.activity_type} onValueChange={v => setFollowUpData(p => ({ ...p, activity_type: v }))}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="call">Call</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="meeting">Meeting</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="datetime-local"
+                  value={followUpData.activity_date}
+                  onChange={e => setFollowUpData(p => ({ ...p, activity_date: e.target.value }))}
+                  className="h-9 text-sm"
+                />
+                <Textarea
+                  placeholder="What's the plan for this follow-up?"
+                  value={followUpData.notes}
+                  onChange={e => setFollowUpData(p => ({ ...p, notes: e.target.value }))}
+                  rows={2}
+                  className="text-sm"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleLogFollowUp}
+                    disabled={saving || !followUpData.notes || !followUpData.activity_date}
+                    style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                  >
+                    {saving ? 'Saving...' : 'Save Follow-up'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowFollowUpForm(false)}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                onClick={() => {
+                  setShowFollowUpForm(true);
+                  setFollowUpData({ notes: "", activity_date: "", activity_type: "call" });
+                }}
+              >
+                <Plus className="w-4 h-4" />
+                Schedule Follow-up
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Activities */}
