@@ -19,6 +19,7 @@ import ChatTab from "@/components/sales/ChatTab";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import ActivityArchive from "@/components/sales/ActivityArchive";
+import DailyCallQueue from "@/components/sales/DailyCallQueue";
 
 export default function AdminActivityPage({ user: propsUser, initialSubTab, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
   const [user, setUser] = useState(propsUser);
@@ -512,6 +513,16 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
             My Contacts
           </button>
           <button
+            onClick={() => setActiveTab("queue")}
+            className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap"
+            style={{
+              color: activeTab === "queue" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "queue" ? '#B8956A' : 'transparent'
+            }}
+          >
+            Call Queue
+          </button>
+          <button
             onClick={() => setActiveTab("chat")}
             className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap"
             style={{
@@ -574,10 +585,18 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
         )}
 
         {activeTab === "mycontacts" && (
-          <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
-        )}
+           <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
+         )}
 
-        {activeTab === "chat" && (
+         {activeTab === "queue" && (
+           <DailyCallQueue
+             salesMemberId={user?.id}
+             salesMemberEmail={user?.email}
+             repName={user?.full_name}
+           />
+         )}
+
+         {activeTab === "chat" && (
           <ChatTab 
             currentUserId={user?.id} 
             currentUserName={user?.full_name} 
