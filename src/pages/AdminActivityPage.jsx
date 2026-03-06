@@ -251,8 +251,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   const [uploadingPictures, setUploadingPictures] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showFullPage, setShowFullPage] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [visibleOnCurrentPage, setVisibleOnCurrentPage] = useState(5);
   const [showArchive, setShowArchive] = useState(false);
   const ACTIVITIES_PER_PAGE = 10;
 
@@ -695,10 +695,9 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                   </Card>
                 ) : (
                   <>
-                    {/* Current page activities */}
                     {(() => {
-                      const startIdx = currentPage === 1 ? 0 : 5 + (currentPage - 2) * ACTIVITIES_PER_PAGE;
-                      const endIdx = showFullPage ? startIdx + ACTIVITIES_PER_PAGE : startIdx + 5;
+                      const startIdx = currentPage * ACTIVITIES_PER_PAGE;
+                      const endIdx = startIdx + visibleOnCurrentPage;
                       return pastActivities.slice(startIdx, endIdx).map((activity) => (
                         <Card 
                           key={activity.id}
@@ -728,62 +727,47 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                             </div>
                           </CardContent>
                         </Card>
-                      ));
-                    })()}
-
-                    {/* Load More button - shows 5 more on current page */}
-                    {(() => {
-                      const startIdx = currentPage === 1 ? 0 : 5 + (currentPage - 2) * ACTIVITIES_PER_PAGE;
-                      const remainingOnPage = pastActivities.slice(startIdx + 5, startIdx + ACTIVITIES_PER_PAGE).length;
-                      const hasNextPage = startIdx + ACTIVITIES_PER_PAGE < pastActivities.length;
-
-                      return !showFullPage && remainingOnPage > 0 ? (
-                        <div className="flex justify-center pt-2">
+                      ))}
+                      <div className="flex justify-center gap-2 pt-4 flex-wrap">
+                      {visibleOnCurrentPage < ACTIVITIES_PER_PAGE && endIdx < pastActivities.length && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setVisibleOnCurrentPage(v => Math.min(ACTIVITIES_PER_PAGE, v + 5))}
+                          style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                        >
+                          Load More
+                        </Button>
+                      )}
+                      {totalPages > 1 && (
+                        <>
                           <Button
                             variant="outline"
-                            onClick={() => setShowFullPage(true)}
+                            onClick={() => {
+                              setCurrentPage(p => Math.max(0, p - 1));
+                              setVisibleOnCurrentPage(5);
+                            }}
+                            disabled={currentPage === 0}
                             style={{ borderColor: '#B8956A', color: '#B8956A' }}
                           >
-                            Load More
+                            ← Back
                           </Button>
-                        </div>
-                      ) : null;
-                    })()}
-
-                    {/* Previous/Next Page buttons */}
-                    {(() => {
-                      const startIdx = currentPage === 1 ? 0 : 5 + (currentPage - 2) * ACTIVITIES_PER_PAGE;
-                      const hasNextPage = startIdx + ACTIVITIES_PER_PAGE < pastActivities.length;
-
-                      return showFullPage ? (
-                        <div className="flex justify-center gap-2 pt-2">
-                          {currentPage > 1 && (
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setCurrentPage(currentPage - 1);
-                                setShowFullPage(false);
-                              }}
-                              style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                            >
-                              Previous Page
-                            </Button>
-                          )}
-                          {hasNextPage && (
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setCurrentPage(currentPage + 1);
-                                setShowFullPage(false);
-                              }}
-                              style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                            >
-                              Next Page
-                            </Button>
-                          )}
-                        </div>
-                      ) : null;
-                    })()}
+                          <span className="px-3 py-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                            Page {currentPage + 1} of {totalPages}
+                          </span>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setCurrentPage(p => Math.min(totalPages - 1, p + 1));
+                              setVisibleOnCurrentPage(5);
+                            }}
+                            disabled={currentPage === totalPages - 1}
+                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                          >
+                            Next →
+                          </Button>
+                        </>
+                      )}
+                      </div>
                   </>
                 )}
               </div>
