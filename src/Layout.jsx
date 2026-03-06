@@ -254,7 +254,7 @@ function LayoutContent({ children, currentPageName }) {
               </nav>
 
             <div className="flex items-center gap-3">
-              {user && (
+              {user && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName) && (
                 <div className="hidden md:flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-sm font-medium text-[#FFFBF5]">{user.full_name}</p>
