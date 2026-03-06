@@ -20,11 +20,7 @@ export default function SalesLogin() {
       navigate(createPageUrl("HubSpotActivityLog"), { replace: true });
       return;
     }
-    // Clear any Base44 platform session so media partner/client accounts don't bleed in
-    // Do NOT redirect back to this page on logout (that causes an infinite loop)
-    base44.auth.isAuthenticated().then(isAuth => {
-      if (isAuth) base44.auth.logout();
-    }).catch(() => {});
+    // Don't touch Base44 auth here — just show the login form
   }, []);
 
   const [email, setEmail] = useState("");
