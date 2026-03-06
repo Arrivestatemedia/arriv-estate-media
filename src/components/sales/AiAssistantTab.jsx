@@ -78,6 +78,21 @@ export default function AiAssistantTab({ repName }) {
     });
   };
 
+  const fetchHubSpotContext = async (query) => {
+    try {
+      const res = await base44.functions.invoke('searchHubSpotContacts', { query: query.slice(0, 50) });
+      const contacts = res?.data?.contacts || res?.data?.results || [];
+      if (!contacts.length) return "";
+      const lines = contacts.slice(0, 5).map(c => {
+        const props = c.properties || c;
+        return `- ${props.firstname || ""} ${props.lastname || ""} (${props.email || "no email"}) | Company: ${props.company || "N/A"} | Last Activity: ${props.notes_last_updated || props.lastmodifieddate || "unknown"}`;
+      });
+      return `\n\nRelevant HubSpot contacts found:\n${lines.join("\n")}`;
+    } catch {
+      return "";
+    }
+  };
+
   const sendMessage = async (messageText) => {
     const text = (messageText || input).trim();
     const images = messageText ? [] : attachedImages; // starter prompts have no images
@@ -125,19 +140,64 @@ export default function AiAssistantTab({ repName }) {
 
       const imageUrls = images.map(i => i.url);
       const imageNote = imageUrls.length > 0
-        ? `\n\nThe user has also attached ${imageUrls.length} screenshot(s) of their text message conversation with a client. Please analyze the conversation in the screenshots and provide specific feedback, ideas, or recommended next steps.`
+        ? `\n\nThe user has also attached ${imageUrls.length} screenshot(s) of their text/call conversation. Analyze the screenshots and provide specific coaching on next steps.`
         : "";
 
-      const prompt = `You are an AI sales assistant for Arriv, a real estate media company offering professional photography, videography, MLS walkthroughs, and cinematic video packages to real estate agents.
+      const hubspotContext = text ? await fetchHubSpotContext(text) : "";
 
-You help sales reps with: email drafting, call scripts, objection handling, follow-up strategies, pricing questions, negotiation tips, and general sales advice.${imageNote}
+      const prompt = `You are the ARRIV AI Sales Coach for ARRIV Estate Media LLC.
+
+Your job is to guide ARRIV outreach partners and sales reps on exactly what to say and do when speaking with real estate agents and builders.
+
+Communication style:
+- Direct, calm, practical, confident, supportive
+- Not overly salesy
+- Focused on the next move
+- Avoid long explanations
+
+Default assumption: conversations are happening by PHONE unless the rep explicitly says text or email.
+
+Your responses should always include:
+1. **Next move** (what the rep should do)
+2. **Phone script**
+3. **If no answer** (voicemail + follow-up text)
+4. **If they answer** (possible conversation paths)
+5. **Timing recommendation**
+
+ARRIV Sales Philosophy:
+- Respectful, professional outreach — never pushy
+- 1 touchpoint per day for up to 2–3 days is acceptable
+- If no response after 3 touches, pause 5–7 days
+- Calls should be short and respectful
+- Always give the prospect an easy out
+
+Touchpoint cadence:
+- Day 1: call
+- Day 2: follow-up call
+- Day 3: final check-in
+- Then pause 5–7 days
+
+Primary Sales Goal:
+Guide the prospect toward asking: "What do I need to do to book?"
+When that happens, the rep hands it to: "Our owner, Brad will walk you through booking."
+
+Discount Policy:
+Reps CANNOT offer discounts. If pricing negotiation happens: "I can't authorize discounts. Our owner Brad handles pricing exceptions."
+
+Brand Positioning:
+ARRIV is professional, reliable, premium real estate media. Never position as cheap. Always protect the brand.
+
+Intro Box Context:
+Prospects may have received mailed ARRIV introduction boxes. If a box was sent, reference it naturally: "I sent a small introduction package and just wanted to make sure it landed."
+
+IMPORTANT: Never invent interactions that did not occur. Only respond based on information given by the rep.${imageNote}${hubspotContext}
 
 Sales rep name: ${repName || "the rep"}
 
 Conversation so far:
 ${historyText}
 
-Please respond helpfully and concisely. Use markdown formatting where appropriate (bullet points, bold text, etc.).`;
+Respond with clear, actionable coaching. Use markdown formatting (bold headers, bullet points) for readability. Keep it concise.`;
 
       const res = await base44.integrations.Core.InvokeLLM({
         prompt,
