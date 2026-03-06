@@ -267,17 +267,9 @@ function LayoutContent({ children, currentPageName }) {
                     size="sm"
                     className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
                     onClick={() => {
-                      if (isSalesTeam) {
-                        localStorage.removeItem('sales_member_id');
-                        localStorage.removeItem('sales_member_name');
-                        localStorage.removeItem('sales_member_email');
-                        sessionStorage.removeItem('sales_member_id');
-                        sessionStorage.removeItem('sales_member_name');
-                        sessionStorage.removeItem('sales_member_email');
-                        window.location.replace('/SalesLogin');
-                      } else {
-                        base44.auth.logout(createPageUrl("SignIn"));
-                      }
+                      localStorage.clear();
+                      sessionStorage.clear();
+                      window.location.replace(isSalesTeam ? '/SalesLogin' : createPageUrl("SignIn"));
                     }}
                   >
                     <LogOut className="w-4 h-4 mr-2" />
