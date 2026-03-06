@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Sparkles, Send, Plus, Trash2, Loader2, MessageSquare, Edit3, Paperclip, X, Image } from "lucide-react";
+import { Sparkles, Send, Trash2, Loader2, MessageSquare, Edit3, Paperclip, X, Phone, User, Clock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
+import { formatDistanceToNow } from "date-fns";
 
 const STORAGE_KEY = "ai_assistant_sessions";
 
