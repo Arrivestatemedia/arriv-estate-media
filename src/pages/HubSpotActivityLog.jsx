@@ -21,7 +21,6 @@ import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import ActivityArchive from "@/components/sales/ActivityArchive";
-import AdminActivityLogView from "@/components/sales/AdminActivityLogView";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
