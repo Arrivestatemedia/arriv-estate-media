@@ -125,7 +125,7 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
                 <Clock className="w-8 h-8 opacity-30" style={{ color: '#B8956A' }} />
                 <p className="text-sm" style={{ color: 'rgba(255,251,245,0.5)' }}>No upcoming tasks</p>
                 <button
-                  onClick={() => { setIsOpen(false); window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue'; }}
+                   onClick={() => { setIsOpen(false); window.location.href = queueLink; }}
                   className="text-xs underline mt-1"
                   style={{ color: '#B8956A' }}
                 >
