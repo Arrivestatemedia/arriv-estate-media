@@ -173,7 +173,9 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                  <button
                    className="w-full text-left flex items-start justify-between gap-3"
                    onClick={() => {
-                     // Navigate to contact detail page
+                     // Push current URL with tab param so back button returns to My Contacts
+                     const currentUrl = window.location.pathname + '?tab=mycontacts';
+                     window.history.pushState(null, '', currentUrl);
                      window.location.href = createPageUrl(`ContactDetailPage?contact=${encodeURIComponent(contact.key)}`);
                    }}
                  >
