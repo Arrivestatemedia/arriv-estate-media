@@ -326,7 +326,7 @@ Respond with clear, actionable coaching. Use markdown formatting (bold headers, 
                   <Sparkles className="w-7 h-7 text-white" />
                 </div>
                 <h2 className="text-2xl font-semibold mb-2" style={{ color: '#1a1a1a' }}>How can I help you today?</h2>
-                <p className="text-sm" style={{ color: 'rgba(0,0,0,0.45)' }}>Your AI sales assistant for Arriv — emails, scripts, objections & more.</p>
+                <p className="text-sm" style={{ color: 'rgba(0,0,0,0.45)' }}>ARRIV Sales Coach — scripts, objections, follow-ups & live HubSpot context.</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
                 {STARTER_PROMPTS.map((p, i) => (
