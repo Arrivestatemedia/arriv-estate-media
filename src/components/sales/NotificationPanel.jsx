@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ChevronRight, X, Bell } from 'lucide-react';
-import { format, isToday } from 'date-fns';
+import { ChevronRight, Bell, Phone, Mail, Calendar, Clock } from 'lucide-react';
+import { format, isToday, isPast } from 'date-fns';
+import { createPageUrl } from '@/utils';
 
 export default function NotificationPanel({ userEmail }) {
   const [isOpen, setIsOpen] = useState(false);
