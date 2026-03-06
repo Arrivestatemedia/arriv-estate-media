@@ -13,11 +13,17 @@ export default function SalesLogin() {
   const navigate = useNavigate();
 
   // If already logged in as sales member, redirect immediately
-  React.useEffect(() => {
+  // Also log out of any Base44 session to avoid conflicting identities in the header
+  useEffect(() => {
     const salesId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
     if (salesId) {
       navigate(createPageUrl("HubSpotActivityLog"), { replace: true });
+      return;
     }
+    // Clear any Base44 platform session so media partner/client accounts don't bleed in
+    base44.auth.isAuthenticated().then(isAuth => {
+      if (isAuth) base44.auth.logout(window.location.href);
+    }).catch(() => {});
   }, []);
 
   const [email, setEmail] = useState("");
