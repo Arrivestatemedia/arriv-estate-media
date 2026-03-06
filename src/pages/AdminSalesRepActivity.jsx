@@ -65,7 +65,7 @@ export default function AdminSalesRepActivity() {
 
   const TABS = [
     { id: "activity", label: "Activity Log" },
-    { id: "email", label: "Send Email" },
+    { id: "email", label: "Email Hub" },
     { id: "contacts", label: "Contacts" },
     { id: "mycontacts", label: "My Contacts" },
     { id: "queue", label: "Call Queue" },

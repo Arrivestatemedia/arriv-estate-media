@@ -691,7 +691,7 @@ export default function HubSpotActivityLog() {
         <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20">
           {[
             { id: "activity", label: "Activity Log" },
-            { id: "email", label: "Send Email" },
+            { id: "email", label: "Email Hub" },
             { id: "contacts", label: "Contacts" },
             { id: "mycontacts", label: "My Contacts" },
             { id: "queue", label: "Call Queue" },
