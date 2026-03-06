@@ -4,6 +4,50 @@ import { ChevronRight, Bell, Phone, Mail, Calendar, Clock } from 'lucide-react';
 import { format, isToday, isPast } from 'date-fns';
 import { createPageUrl } from '@/utils';
 
+const activityIcons = {
+  call: <Phone className="w-3 h-3" />,
+  email: <Mail className="w-3 h-3" />,
+  meeting: <Calendar className="w-3 h-3" />,
+  task: <Clock className="w-3 h-3" />,
+};
+
+function TaskItem({ task, today, overdue, onClose }) {
+  const handleClick = () => {
+    onClose();
+    window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue';
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className="w-full text-left p-3 rounded-lg transition hover:opacity-90"
+      style={{
+        backgroundColor: overdue ? 'rgba(239,68,68,0.12)' : today ? 'rgba(184,149,106,0.15)' : '#FFFBF5',
+        border: `1px solid ${overdue ? 'rgba(239,68,68,0.3)' : today ? 'rgba(184,149,106,0.4)' : 'rgba(0,0,0,0.08)'}`,
+      }}
+    >
+      <div className="flex items-start gap-2">
+        <div
+          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+          style={{ backgroundColor: overdue ? 'rgba(239,68,68,0.2)' : 'rgba(184,149,106,0.2)', color: overdue ? '#ef4444' : '#B8956A' }}
+        >
+          {activityIcons[task.activity_type] || <Clock className="w-3 h-3" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-xs leading-tight" style={{ color: '#1A1A1A' }}>
+            {task.contact_name || task.company_name || 'Follow-up'}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: overdue ? '#ef4444' : 'rgba(26,26,26,0.55)' }}>
+            {overdue ? '⚠ ' : ''}{format(new Date(task.activity_date), "MMM d 'at' h:mm a")}
+          </p>
+          <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(26,26,26,0.6)' }}>{task.notes}</p>
+        </div>
+        <ChevronRight className="w-3 h-3 shrink-0 mt-1" style={{ color: 'rgba(26,26,26,0.3)' }} />
+      </div>
+    </button>
+  );
+}
+
 export default function NotificationPanel({ userEmail }) {
   const [isOpen, setIsOpen] = useState(false);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
