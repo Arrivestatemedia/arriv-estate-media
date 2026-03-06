@@ -70,49 +70,69 @@ export default function NotificationPanel({ userEmail }) {
           </div>
 
           {/* Content */}
-          <div className="p-4 flex-1 flex flex-col">
-            {loading ?
-            <p className="text-sm" style={{ color: '#B8956A' }}>Loading...</p> :
-            upcomingTasks.length === 0 ?
-            <div className="flex-1 flex items-center justify-center">
-                <p className="text-center" style={{ color: '#B8956A' }}>No upcoming tasks</p>
-              </div> :
-
-            <div className="space-y-3">
-                {upcomingTasks.map((task) =>
-              <div
-                key={task.id}
-                className="p-3 rounded-lg border transition hover:shadow-sm"
-                style={{
-                  borderColor: '#FFFBF5',
-                  backgroundColor: '#FFFBF5'
-                }}>
-
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>
-                          {task.contact_name || task.company_name || 'Unnamed'}
-                        </p>
-                        <p className="text-xs mt-1" style={{ color: '#1A1A1A' }}>
-                          {format(new Date(task.activity_date), "MMM d 'at' h:mm a")}
-                        </p>
-                        <p className="text-xs mt-1 truncate" style={{ color: '#1A1A1A' }}>
-                          {task.notes}
-                        </p>
-                        {isToday(new Date(task.activity_date)) &&
-                    <div className="mt-2">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
-                              Today
-                            </span>
-                          </div>
-                    }
-                      </div>
-                      <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: '#1A1A1A' }} />
+          <div className="p-4 flex-1 flex flex-col gap-4 overflow-y-auto">
+            {loading ? (
+              <p className="text-sm" style={{ color: '#B8956A' }}>Loading...</p>
+            ) : upcomingTasks.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
+                <Clock className="w-8 h-8 opacity-30" style={{ color: '#B8956A' }} />
+                <p className="text-sm" style={{ color: 'rgba(255,251,245,0.5)' }}>No upcoming tasks</p>
+                <button
+                  onClick={() => { setIsOpen(false); window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue'; }}
+                  className="text-xs underline mt-1"
+                  style={{ color: '#B8956A' }}
+                >
+                  Open Call Queue →
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Overdue section */}
+                {upcomingTasks.filter(t => isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#ef4444' }}>Overdue</p>
+                    <div className="space-y-2">
+                      {upcomingTasks.filter(t => isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).map(task => (
+                        <TaskItem key={task.id} task={task} overdue onClose={() => setIsOpen(false)} />
+                      ))}
                     </div>
                   </div>
-              )}
-              </div>
-            }
+                )}
+
+                {/* Today section */}
+                {upcomingTasks.filter(t => isToday(new Date(t.activity_date))).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#B8956A' }}>Today</p>
+                    <div className="space-y-2">
+                      {upcomingTasks.filter(t => isToday(new Date(t.activity_date))).map(task => (
+                        <TaskItem key={task.id} task={task} today onClose={() => setIsOpen(false)} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upcoming section */}
+                {upcomingTasks.filter(t => !isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'rgba(255,251,245,0.4)' }}>Upcoming</p>
+                    <div className="space-y-2">
+                      {upcomingTasks.filter(t => !isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).slice(0, 5).map(task => (
+                        <TaskItem key={task.id} task={task} onClose={() => setIsOpen(false)} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* CTA to open queue */}
+                <button
+                  onClick={() => { setIsOpen(false); window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue'; }}
+                  className="w-full mt-2 py-2 rounded-lg text-sm font-medium transition"
+                  style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
+                >
+                  Open Full Call Queue →
+                </button>
+              </>
+            )}
           </div>
         </div>
 
