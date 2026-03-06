@@ -332,9 +332,11 @@ function LayoutContent({ children, currentPageName }) {
                 <>
                   <button
                   onClick={() => {
+                    window._loggingOut = true;
                     localStorage.clear();
+                    sessionStorage.clear();
                     if (isSalesTeam) {
-                      window.location.href = createPageUrl("SalesLogin");
+                      window.location.replace(createPageUrl("SalesLogin"));
                     } else {
                       base44.auth.logout(createPageUrl("SignIn"));
                     }
