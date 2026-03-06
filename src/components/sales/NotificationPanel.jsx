@@ -70,8 +70,8 @@ export default function NotificationPanel({ userEmail }) {
         setUpcomingTasks(upcoming);
 
         // Auto-open if there's a task today
-        const hasTaskToday = upcoming.some((t) => isToday(new Date(t.activity_date)));
-        if (hasTaskToday) {
+        // Auto-open on first load if any upcoming tasks exist
+        if (upcoming.length > 0) {
           setIsOpen(true);
         }
       } catch (error) {
