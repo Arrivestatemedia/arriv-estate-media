@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+import { CallStatusProvider } from "@/components/CallStatusContext";
 
 export default function ContactDetailPage() {
   const location = useLocation();
