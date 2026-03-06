@@ -225,14 +225,18 @@ export default function HubSpotActivityLog() {
 
       return () => { smsSub(); callSub(); videoCallSub(); };
     } else {
+      // Check if we're already navigating away (e.g. logout in progress)
+      if (window._loggingOut) return;
       base44.auth.me().then((adminUser) => {
         if (adminUser && adminUser.role === 'admin') {
           setUser(adminUser);
         } else {
-          window.location.href = '/SalesLogin';
+          window._loggingOut = true;
+          window.location.replace('/SalesLogin');
         }
       }).catch(() => {
-        window.location.href = '/SalesLogin';
+        window._loggingOut = true;
+        window.location.replace('/SalesLogin');
       });
     }
   }, []);
