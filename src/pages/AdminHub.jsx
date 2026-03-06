@@ -329,7 +329,8 @@ export default function AdminHub() {
           <TabsContent value="activity" className="mt-6">
             <Suspense fallback={<div className="p-4">Loading...</div>}>
               <AdminActivityPage 
-                user={user} 
+                user={user}
+                initialSubTab={initialSubTab}
                 onVideoCallStateChange={setIsVideoCallActive}
                 onVideoCallStarted={(data) => {
                   if (data && typeof data === 'object' && data.roomName) {
