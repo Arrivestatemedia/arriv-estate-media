@@ -76,7 +76,7 @@ export default function HubSpotActivityLog() {
   const [selectedContact, setSelectedContact] = useState(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(10);
   const [showArchive, setShowArchive] = useState(false);
   const [uploadingPictures, setUploadingPictures] = useState(false);
   const [formPictureUrls, setFormPictureUrls] = useState([]);
@@ -916,12 +916,12 @@ export default function HubSpotActivityLog() {
                     {visibleCount < pastActivities.length && (
                       <div className="flex justify-center pt-2">
                         <Button
-                          variant="outline"
-                          onClick={() => setVisibleCount(v => v + 5)}
-                          style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                        >
-                          Load More ({pastActivities.length - visibleCount} remaining)
-                        </Button>
+                            variant="outline"
+                            onClick={() => setVisibleCount(v => v + 10)}
+                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                          >
+                            Load More ({pastActivities.length - visibleCount} remaining)
+                          </Button>
                       </div>
                     )}
                   </>
