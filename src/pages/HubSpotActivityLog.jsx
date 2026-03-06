@@ -18,6 +18,7 @@ import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
+import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import ActivityArchive from "@/components/sales/ActivityArchive";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
