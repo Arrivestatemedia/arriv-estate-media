@@ -44,12 +44,73 @@ function getPriorityLabel(score) {
   return { label: "Paused", color: "#9ca3af", bg: "rgba(156,163,175,0.08)" };
 }
 
+// Realtor availability windows (industry standard):
+// GOOD: 8-9 AM (before showings), 12-1 PM (lunch break), 5-7 PM (after showings)
+// DEAD: 10 AM-12 PM and 2-5 PM (actively showing properties)
+// Best days: Tue/Wed. Worst: Fri PM, weekends (open houses)
+
+const REALTOR_WINDOWS = [
+  { label: "8:00–9:00 AM", hour: 8, score: 90 },
+  { label: "12:00–1:00 PM", hour: 12, score: 85 },
+  { label: "5:00–7:00 PM", hour: 17, score: 95 }, // highest — after showings wrap
+  { label: "9:00–10:00 AM", hour: 9, score: 60 },
+  { label: "1:00–2:00 PM", hour: 13, score: 50 },
+];
+
 function getBestTime(contact) {
   const notes = contact.activities.map(a => (a.notes || "").toLowerCase()).join(" ");
-  if (notes.includes("morning") || notes.includes("9am") || notes.includes("early")) return "9:00–11:00 AM";
-  if (notes.includes("afternoon") || notes.includes("2pm") || notes.includes("3pm")) return "2:00–4:00 PM";
-  if (notes.includes("evening") || notes.includes("5pm") || notes.includes("after 4")) return "5:00–6:00 PM";
-  return "4:00–5:00 PM"; // default best time for agents
+
+  // Layer 1: explicit keyword hints from rep notes (override everything)
+  if (notes.includes("morning") || notes.includes("9am") || notes.includes("8am") || notes.includes("early")) return "8:00–9:00 AM";
+  if (notes.includes("lunch") || notes.includes("noon") || notes.includes("12pm") || notes.includes("midday")) return "12:00–1:00 PM";
+  if (notes.includes("evening") || notes.includes("5pm") || notes.includes("6pm") || notes.includes("after showing") || notes.includes("after 4") || notes.includes("after 5")) return "5:00–7:00 PM";
+  if (notes.includes("afternoon") || notes.includes("2pm") || notes.includes("3pm")) return "1:00–2:00 PM";
+
+  // Layer 2: learn from successful call times in this contact's history
+  // A "successful" call = one that was followed by another activity with the same contact (they engaged)
+  const callActivities = contact.past.filter(a => a.activity_type === "call" && a.activity_date);
+  if (callActivities.length >= 2) {
+    // Find which hour had the most calls that led to follow-up conversations
+    const successfulHours = {};
+    callActivities.forEach((call, idx) => {
+      const hour = new Date(call.activity_date).getHours();
+      // If there's a subsequent activity within 48h, it was likely a successful touch
+      const nextActivity = callActivities[idx - 1]; // sorted desc, so prev index = later date
+      const isSuccess = nextActivity &&
+        (new Date(nextActivity.activity_date) - new Date(call.activity_date)) < 48 * 60 * 60 * 1000;
+      if (!successfulHours[hour]) successfulHours[hour] = { success: 0, total: 0 };
+      successfulHours[hour].total++;
+      if (isSuccess) successfulHours[hour].success++;
+    });
+
+    // Find the realtor window that matches best successful hours
+    let bestWindow = null;
+    let bestScore = -1;
+    REALTOR_WINDOWS.forEach(window => {
+      const windowData = successfulHours[window.hour] || successfulHours[window.hour + 1];
+      if (windowData && windowData.total > 0) {
+        const successRate = windowData.success / windowData.total;
+        const combinedScore = window.score * 0.4 + successRate * 100 * 0.6; // 60% weight to actual data
+        if (combinedScore > bestScore) {
+          bestScore = combinedScore;
+          bestWindow = window;
+        }
+      }
+    });
+    if (bestWindow) return bestWindow.label;
+  }
+
+  // Layer 3: day-of-week awareness — if today is bad, suggest best window for tomorrow
+  const today = new Date().getDay(); // 0=Sun, 6=Sat
+  const isWeekend = today === 0 || today === 6;
+  const isFriday = today === 5;
+
+  if (isWeekend || isFriday) {
+    return "Mon–Wed 8:00–9:00 AM"; // push to better days
+  }
+
+  // Layer 4: default to industry best window — 5-7 PM (highest realtor availability)
+  return "5:00–7:00 PM";
 }
 
 function getWhyReason(contact) {
