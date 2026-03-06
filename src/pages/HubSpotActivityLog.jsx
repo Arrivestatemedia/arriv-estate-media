@@ -76,7 +76,8 @@ export default function HubSpotActivityLog() {
   const [selectedContact, setSelectedContact] = useState(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [visibleOnCurrentPage, setVisibleOnCurrentPage] = useState(5);
   const [showArchive, setShowArchive] = useState(false);
   const [uploadingPictures, setUploadingPictures] = useState(false);
   const [formPictureUrls, setFormPictureUrls] = useState([]);
@@ -318,6 +319,12 @@ export default function HubSpotActivityLog() {
   const pastActivities = [...activities]
     .filter(a => new Date(a.activity_date) <= new Date())
     .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date));
+
+  const itemsPerPage = 10;
+  const startIdx = currentPage * itemsPerPage;
+  const endIdx = startIdx + visibleOnCurrentPage;
+  const currentPageActivities = pastActivities.slice(startIdx, endIdx);
+  const totalPages = Math.ceil(pastActivities.length / itemsPerPage);
 
 
 
@@ -879,7 +886,7 @@ export default function HubSpotActivityLog() {
                   </Card>
                 ) : (
                   <>
-                    {pastActivities.slice(0, visibleCount).map((activity) => (
+                    {currentPageActivities.map((activity) => (
                       <Card key={activity.id} className="cursor-pointer hover:shadow-md transition" onClick={() => handleActivityClick(activity)}>
                         <CardContent className="pt-6">
                           <div className="flex items-start justify-between gap-4">
@@ -915,17 +922,46 @@ export default function HubSpotActivityLog() {
                         </CardContent>
                       </Card>
                     ))}
-                    {visibleCount < pastActivities.length && (
-                      <div className="flex justify-center pt-2">
+                    <div className="flex justify-center gap-2 pt-4 flex-wrap">
+                      {visibleOnCurrentPage < itemsPerPage && endIdx < pastActivities.length && (
                         <Button
                           variant="outline"
-                          onClick={() => setVisibleCount(v => v + 5)}
+                          onClick={() => setVisibleOnCurrentPage(v => Math.min(itemsPerPage, v + 5))}
                           style={{ borderColor: '#B8956A', color: '#B8956A' }}
                         >
-                          Load More ({pastActivities.length - visibleCount} remaining)
+                          Load More
                         </Button>
-                      </div>
-                    )}
+                      )}
+                      {totalPages > 1 && (
+                        <>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setCurrentPage(p => Math.max(0, p - 1));
+                              setVisibleOnCurrentPage(5);
+                            }}
+                            disabled={currentPage === 0}
+                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                          >
+                            ← Back
+                          </Button>
+                          <span className="px-3 py-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                            Page {currentPage + 1} of {totalPages}
+                          </span>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setCurrentPage(p => Math.min(totalPages - 1, p + 1));
+                              setVisibleOnCurrentPage(5);
+                            }}
+                            disabled={currentPage === totalPages - 1}
+                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                          >
+                            Next →
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
