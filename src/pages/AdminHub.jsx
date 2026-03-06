@@ -19,7 +19,14 @@ const AdminActivityPage = lazy(() => import("./AdminActivityPage"));
 export default function AdminHub() {
   const { setCallStatus: setContextCallStatus } = useCallStatus();
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("team");
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tab") || "team";
+  });
+  const [initialSubTab, setInitialSubTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("subtab") || null;
+  });
   const [profilePicUrl, setProfilePicUrl] = useState("");
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);

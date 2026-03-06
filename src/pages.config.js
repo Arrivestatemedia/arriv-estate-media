@@ -66,6 +66,7 @@ import ClientSignup from './pages/ClientSignup';
 import ClientTermsConditions from './pages/ClientTermsConditions';
 import Conference from './pages/Conference';
 import ConfirmDeleteAccount from './pages/ConfirmDeleteAccount';
+import ContactDetailPage from './pages/ContactDetailPage';
 import ContractorDashboard from './pages/ContractorDashboard';
 import ContractorSignup from './pages/ContractorSignup';
 import Dashboard from './pages/Dashboard';
@@ -94,7 +95,6 @@ import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
-import ContactDetailPage from './pages/ContactDetailPage';
 import __Layout from './Layout.jsx';
 
 
@@ -118,6 +118,7 @@ export const PAGES = {
     "ClientTermsConditions": ClientTermsConditions,
     "Conference": Conference,
     "ConfirmDeleteAccount": ConfirmDeleteAccount,
+    "ContactDetailPage": ContactDetailPage,
     "ContractorDashboard": ContractorDashboard,
     "ContractorSignup": ContractorSignup,
     "Dashboard": Dashboard,
@@ -146,7 +147,6 @@ export const PAGES = {
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
-    "ContactDetailPage": ContactDetailPage,
 }
 
 export const pagesConfig = {
