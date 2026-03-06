@@ -728,7 +728,6 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                           </CardContent>
                         </Card>
                       ))}
-                      })}
                       <div className="flex justify-center gap-2 pt-4 flex-wrap">
                       {visibleOnCurrentPage < ACTIVITIES_PER_PAGE && endIdx < pastActivities.length && (
                         <Button
