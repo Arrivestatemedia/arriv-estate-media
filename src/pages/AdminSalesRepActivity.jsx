@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Phone } from "lucide-react";
-import ActivityLogView from "@/components/sales/AdminActivityLogView";
+import ActivityLogView from "@/components/sales/AdminActivityLogView.jsx";
 import EmailComposer from "@/components/sales/EmailComposer";
 import ContactSearch from "@/components/sales/ContactSearch";
 import MyContacts from "@/components/sales/MyContacts";
