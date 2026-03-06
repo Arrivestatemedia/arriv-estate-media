@@ -267,11 +267,14 @@ function LayoutContent({ children, currentPageName }) {
                     size="sm"
                     className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
                     onClick={() => {
-                      window._loggingOut = true;
-                      localStorage.clear();
-                      sessionStorage.clear();
                       if (isSalesTeam) {
-                        window.location.replace(createPageUrl("SalesLogin"));
+                        localStorage.removeItem('sales_member_id');
+                        localStorage.removeItem('sales_member_name');
+                        localStorage.removeItem('sales_member_email');
+                        sessionStorage.removeItem('sales_member_id');
+                        sessionStorage.removeItem('sales_member_name');
+                        sessionStorage.removeItem('sales_member_email');
+                        window.location.replace('/SalesLogin');
                       } else {
                         base44.auth.logout(createPageUrl("SignIn"));
                       }
