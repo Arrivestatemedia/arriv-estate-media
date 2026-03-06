@@ -11,6 +11,15 @@ import PoweredByFooter from "@/components/PoweredByFooter";
 
 export default function SalesLogin() {
   const navigate = useNavigate();
+
+  // If already logged in as sales member, redirect immediately
+  React.useEffect(() => {
+    const salesId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+    if (salesId) {
+      navigate(createPageUrl("HubSpotActivityLog"), { replace: true });
+    }
+  }, []);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
