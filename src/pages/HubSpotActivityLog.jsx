@@ -752,6 +752,10 @@ export default function HubSpotActivityLog() {
           <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
         )}
 
+        {activeTab === "queue" && (
+          <DailyCallQueue salesMemberId={user?.id} salesMemberEmail={user?.email} repName={user?.full_name} />
+        )}
+
         {activeTab === "calendar" && (
           <Card style={{ backgroundColor: '#FFFFFF' }}>
             <CardContent className="pt-6">
