@@ -39,7 +39,10 @@ export default function HubSpotActivityLog() {
   });
   const [profilePicUrl, setProfilePicUrl] = useState(null);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
-  const [activeTab, setActiveTab] = useState("activity");
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tab") || "activity";
+  });
   const [showForm, setShowForm] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
