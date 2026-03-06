@@ -7,11 +7,11 @@ import ReactMarkdown from "react-markdown";
 const STORAGE_KEY = "ai_assistant_sessions";
 
 const STARTER_PROMPTS = [
-  "Write me a cold outreach email for a real estate agent",
-  "What are the best objection handling techniques for real estate media sales?",
-  "Give me 5 follow-up strategies for prospects who went cold",
-  "Write a call script to pitch Arriv's photo + video package",
-  "How do I handle a prospect who says they already have a photographer?",
+  "I just sent a prospect an intro box but we've never spoken — what do I do next?",
+  "The agent said they already have someone cheaper — how do I respond?",
+  "I texted yesterday and called today — am I pestering them?",
+  "The agent asked about pricing — what do I say?",
+  "Write me a voicemail script for a cold prospect",
 ];
 
 function loadSessions() {
