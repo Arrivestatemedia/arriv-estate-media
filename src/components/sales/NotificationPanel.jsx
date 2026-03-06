@@ -140,7 +140,7 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
                     <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#ef4444' }}>Overdue</p>
                     <div className="space-y-2">
                       {upcomingTasks.filter(t => isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).map(task => (
-                        <TaskItem key={task.id} task={task} overdue onClose={() => setIsOpen(false)} />
+                        <TaskItem key={task.id} task={task} overdue onClose={() => setIsOpen(false)} queueUrl={queueLink} />
                       ))}
                     </div>
                   </div>
