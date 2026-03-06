@@ -292,7 +292,9 @@ export default function ContactDetailPage() {
       </Dialog>
 
       {/* Floating Chat Bubble */}
-      <FloatingChatBubble />
+      <CallStatusProvider>
+        <FloatingChatBubble />
+      </CallStatusProvider>
 
       {/* Image Zoom Overlay */}
       {zoomedImage && createPortal(
