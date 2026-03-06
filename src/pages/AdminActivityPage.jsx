@@ -769,8 +769,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                         </>
                       )}
                       </div>
-                  </>
-                )}
+                      </>
+                      )}
               </div>
             </div>
 
