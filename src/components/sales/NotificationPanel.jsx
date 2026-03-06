@@ -152,7 +152,7 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
                     <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#B8956A' }}>Today</p>
                     <div className="space-y-2">
                       {upcomingTasks.filter(t => isToday(new Date(t.activity_date))).map(task => (
-                        <TaskItem key={task.id} task={task} today onClose={() => setIsOpen(false)} />
+                        <TaskItem key={task.id} task={task} today onClose={() => setIsOpen(false)} queueUrl={queueLink} />
                       ))}
                     </div>
                   </div>
