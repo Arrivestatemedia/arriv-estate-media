@@ -11,10 +11,10 @@ const activityIcons = {
   task: <Clock className="w-3 h-3" />,
 };
 
-function TaskItem({ task, today, overdue, onClose }) {
+function TaskItem({ task, today, overdue, onClose, queueUrl }) {
   const handleClick = () => {
     onClose();
-    window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue';
+    window.location.href = queueUrl;
   };
 
   return (
