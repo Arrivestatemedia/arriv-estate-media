@@ -48,10 +48,13 @@ function TaskItem({ task, today, overdue, onClose, queueUrl }) {
   );
 }
 
-export default function NotificationPanel({ userEmail }) {
+export default function NotificationPanel({ userEmail, queueUrl }) {
   const [isOpen, setIsOpen] = useState(false);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // Default to HubSpotActivityLog if queueUrl not provided
+  const queueLink = queueUrl || (createPageUrl('HubSpotActivityLog') + '?tab=queue');
 
   useEffect(() => {
     if (!userEmail) return;
