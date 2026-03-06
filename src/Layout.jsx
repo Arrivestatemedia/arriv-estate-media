@@ -327,14 +327,9 @@ function LayoutContent({ children, currentPageName }) {
                 <>
                   <button
                   onClick={() => {
-                    window._loggingOut = true;
                     localStorage.clear();
                     sessionStorage.clear();
-                    if (isSalesTeam) {
-                      window.location.replace(createPageUrl("SalesLogin"));
-                    } else {
-                      base44.auth.logout(createPageUrl("SignIn"));
-                    }
+                    window.location.replace(isSalesTeam ? '/SalesLogin' : createPageUrl("SignIn"));
                   }}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full"
                 >
