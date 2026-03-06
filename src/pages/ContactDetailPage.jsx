@@ -32,6 +32,32 @@ export default function ContactDetailPage() {
     loadActivities();
   }, [contactKey]);
 
+  const handleLogFollowUp = async () => {
+    if (!followUpData.notes || !followUpData.activity_date) return;
+    setSaving(true);
+    try {
+      const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+      const salesMemberEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email');
+      await base44.entities.ActivityLog.create({
+        activity_type: followUpData.activity_type,
+        contact_name: contact?.name || contactKey,
+        contact_email: contact?.email || '',
+        company_name: contact?.company || '',
+        activity_date: new Date(followUpData.activity_date).toISOString(),
+        notes: followUpData.notes,
+        sales_member_id: salesMemberId,
+        sales_member_email: salesMemberEmail,
+      });
+      setShowFollowUpForm(false);
+      setFollowUpData({ notes: "", activity_date: "", activity_type: "call" });
+      await loadActivities();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const loadActivities = async () => {
     setLoading(true);
     try {
