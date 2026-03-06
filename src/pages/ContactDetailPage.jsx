@@ -24,6 +24,9 @@ export default function ContactDetailPage() {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [showFollowUpForm, setShowFollowUpForm] = useState(false);
+  const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadActivities();
