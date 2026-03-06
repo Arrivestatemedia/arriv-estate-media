@@ -344,7 +344,6 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
              <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>
                <span style={{ fontStyle: 'italic' }}>My</span> <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>Activity</span>
              </h1>
-             <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>Manage your sales activities</p>
            </div>
           <div className="flex gap-2 items-center">
             {activeTab === "activity" && (
