@@ -290,6 +290,9 @@ export default function ContactDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Floating Chat Bubble */}
+      <FloatingChatBubble />
+
       {/* Image Zoom Overlay */}
       {zoomedImage && createPortal(
         <div
