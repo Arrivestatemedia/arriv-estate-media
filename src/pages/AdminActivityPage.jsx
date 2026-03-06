@@ -20,9 +20,9 @@ import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import ActivityArchive from "@/components/sales/ActivityArchive";
 
-export default function AdminActivityPage({ user: propsUser, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
+export default function AdminActivityPage({ user: propsUser, initialSubTab, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
   const [user, setUser] = useState(propsUser);
-  const [activeTab, setActiveTab] = useState("activity");
+  const [activeTab, setActiveTab] = useState(initialSubTab || "activity");
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [contacts, setContacts] = useState([]);
