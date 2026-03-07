@@ -51,22 +51,26 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
 
   const navigateToQueue = () => {
     setIsOpen(false);
-    // Navigate to the HubSpotActivityLog page with tab=queue param
-    const targetUrl = queueUrl || createPageUrl('HubSpotActivityLog') + '?tab=queue';
-    // Use navigate for SPA routing, then dispatch event in case already on page
-    navigate(targetUrl.replace(window.location.origin, ''));
-    setTimeout(() => {
+    // If already on the activity log page, just dispatch the event
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('HubSpotActivityLog')) {
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
-    }, 100);
+    } else {
+      // Store intent in localStorage so the page picks it up on mount
+      localStorage.setItem('_navToTab', 'queue');
+      navigate(createPageUrl('HubSpotActivityLog'));
+    }
   };
 
   const navigateToTask = (task) => {
     setIsOpen(false);
-    const targetUrl = queueUrl || createPageUrl('HubSpotActivityLog') + '?tab=queue';
-    navigate(targetUrl.replace(window.location.origin, ''));
-    setTimeout(() => {
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('HubSpotActivityLog')) {
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
-    }, 100);
+    } else {
+      localStorage.setItem('_navToTab', 'queue');
+      navigate(createPageUrl('HubSpotActivityLog'));
+    }
   };
 
   const formatTaskDate = (dateStr) => {
