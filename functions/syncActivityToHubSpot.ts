@@ -24,9 +24,9 @@ Deno.serve(async (req) => {
     // Get HubSpot token
     const hsToken = await base44.asServiceRole.connectors.getAccessToken('hubspot');
 
-    // Find or create contact
+    // Find existing contact by email (DO NOT CREATE)
     let contactId = null;
-    if (activity.contact_email || activity.contact_name) {
+    if (activity.contact_email) {
       const searchRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${hsToken}`, 'Content-Type': 'application/json' },
@@ -35,37 +35,40 @@ Deno.serve(async (req) => {
             filters: [{
               propertyName: 'email',
               operator: 'EQ',
-              value: activity.contact_email || 'unknown@example.com'
+              value: activity.contact_email
             }]
           }],
           limit: 1
         })
       });
       const searchData = await searchRes.json();
-      
       if (searchData.results && searchData.results.length > 0) {
         contactId = searchData.results[0].id;
-      } else {
-        // Create new contact
-        const createRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${hsToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            properties: {
-              firstname: activity.contact_name ? activity.contact_name.split(' ')[0] : 'Unknown',
-              lastname: activity.contact_name ? activity.contact_name.split(' ').slice(1).join(' ') : '',
-              email: activity.contact_email || ''
-            }
-          })
-        });
-        const createData = await createRes.json();
-        if (createData.id) {
-          contactId = createData.id;
-        }
+      }
+    }
+    // If no email match and contact_name provided, try phone match
+    if (!contactId && activity.contact_phone) {
+      const searchRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${hsToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filterGroups: [{
+            filters: [{
+              propertyName: 'phone',
+              operator: 'EQ',
+              value: activity.contact_phone
+            }]
+          }],
+          limit: 1
+        })
+      });
+      const searchData = await searchRes.json();
+      if (searchData.results && searchData.results.length > 0) {
+        contactId = searchData.results[0].id;
       }
     }
 
-    // Find or create company
+    // Find existing company by name (DO NOT CREATE)
     let companyId = null;
     if (activity.company_name) {
       const searchRes = await fetch('https://api.hubapi.com/crm/v3/objects/companies/search', {
@@ -83,24 +86,8 @@ Deno.serve(async (req) => {
         })
       });
       const searchData = await searchRes.json();
-      
       if (searchData.results && searchData.results.length > 0) {
         companyId = searchData.results[0].id;
-      } else {
-        // Create new company
-        const createRes = await fetch('https://api.hubapi.com/crm/v3/objects/companies', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${hsToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            properties: {
-              name: activity.company_name
-            }
-          })
-        });
-        const createData = await createRes.json();
-        if (createData.id) {
-          companyId = createData.id;
-        }
       }
     }
 
