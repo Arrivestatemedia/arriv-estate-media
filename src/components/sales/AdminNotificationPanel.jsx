@@ -200,9 +200,9 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                           {task.notes.replace(/^\[AI Scheduled\]\s*/, '').slice(0, 60)}
                         </p>
                       )}
-                    </div>
-                  </div>
-                ))
+                      </div>
+                      </button>
+                      ))
               )}
             </div>
 
