@@ -50,48 +50,90 @@ function buildLearnedContext(insights) {
 }
 
 // AI analysis — used ONLY when no scheduled follow-up exists yet
+// Searches the web for the contact and uses all available intel to set a precise, permanent date
 async function analyzeContact(contact, learnedContext) {
   const historyText = contact.activities
     .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
-    .slice(0, 10)
+    .slice(0, 15)
     .map(a => `${format(new Date(a.activity_date), "MMM d, yyyy")} [${a.activity_type}]: ${a.notes}`)
     .join("\n");
 
   const today = format(new Date(), "MMM d, yyyy");
-  const dayOfWeek = new Date().getDay(); // 0=Sun, 6=Sat
+  const dayOfWeek = new Date().getDay();
+  const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dayOfWeek];
+
+  // Search web for contact intel in parallel with nothing else blocking
+  const searchQuery = [
+    contact.name,
+    contact.company,
+    "realtor",
+    "real estate"
+  ].filter(Boolean).join(" ");
 
   const res = await base44.integrations.Core.InvokeLLM({
-    prompt: `You are an AI sales scheduling assistant for ARRIV, a real estate media company. Your job is to determine ONE specific follow-up date and time for this contact. This date will be permanently saved — choose carefully using ALL available context.
+    prompt: `You are an elite AI sales intelligence agent for ARRIV, a real estate photography & media company. Your task is to determine ONE precise follow-up date and time for this realtor contact. This decision is PERMANENT — it will be saved and the rep will follow it. Be extremely deliberate.
 
-Today: ${today} (day of week: ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dayOfWeek]})
-Contact: ${contact.name}${contact.company ? ` (${contact.company})` : ""}
+=== TODAY ===
+Date: ${today} (${dayName})
 
-Full interaction history (newest first):
-${historyText || "No prior contact"}
+=== CONTACT ===
+Name: ${contact.name}
+Company/Brokerage: ${contact.company || "Unknown"}
+Email: ${contact.email || "Unknown"}
 
-${learnedContext ? `\nREP'S LEARNED PATTERNS (from past outcomes):\n${learnedContext}\n` : ""}
+=== FULL INTERACTION HISTORY (newest first) ===
+${historyText || "No prior contact logged"}
 
-REALTOR AVAILABILITY SCIENCE:
-- Best days to reach realtors: Tuesday, Wednesday, Thursday
-- Best time windows: 8-9am (before showings), 12-1pm (lunch), 5-7pm (after showings)
-- Avoid: Monday mornings, Friday afternoons, weekends (unless notes say otherwise)
-- If contact mentioned a specific time preference in notes, prioritize that
-- If they said "call me in a few weeks" → schedule 3 weeks out on a Tuesday/Wednesday at 8am
-- If they said "I'll reach out when ready" → schedule 4 weeks out, mark as "skip" urgency
-- If they were interested/warm → schedule 2-3 business days out at their preferred time
-- If no answer multiple times → schedule 5-7 days out, try a different time of day
-- If they asked not to be called → schedule 60+ days out
+${learnedContext ? `\n=== THIS REP'S LEARNED PATTERNS FROM PAST OUTCOMES ===\n${learnedContext}\n` : ""}
 
-Output a precise date (not vague), specific time, and a reason. The date_time must be in ISO format (YYYY-MM-DDTHH:mm:ss).
+=== REALTOR BEHAVIORAL SCIENCE (apply rigorously) ===
+BEST DAYS TO REACH REALTORS (ranked):
+1. Tuesday & Wednesday — mid-week, no Monday catch-up rush, not pre-weekend
+2. Thursday — still effective, slightly lower response than Tue/Wed
+3. Monday after 10am — avoid early morning catch-up chaos
+4. Avoid: Friday afternoons (mentally checked out), Sat/Sun (family/showing time unless notes say otherwise)
+
+BEST TIME WINDOWS (ranked by response rate):
+1. 8:00–9:00 AM — before their first showing, fresh start, high answer rate
+2. 12:00–1:00 PM — lunch gap between showings, often available
+3. 5:00–7:00 PM — post-showing wind-down, reflective, good for warm conversations
+4. 9:30–10:30 AM — secondary morning window if 8am fails
+
+CADENCE RULES (follow strictly):
+- Warm/interested → 2-3 business days, morning slot (urgency: high)
+- Said "call me in a few weeks" → exactly 3 weeks out, Tuesday at 8am (urgency: medium)
+- "I'll reach out when ready" or "I'll call you" → 28 days out, Wednesday 8am (urgency: skip — don't push)
+- No answer 1-2x → 5 business days out, try DIFFERENT time than last attempt (urgency: medium)
+- No answer 3+ times → 10 days out, switch to text/email approach (urgency: low)
+- Left voicemail → 3-4 business days out, different time window (urgency: medium)
+- Busy/call later → next business day, 8am (urgency: high)
+- Not interested/firm no → 45 days out (urgency: low)
+- Asked not to call → 90 days out (urgency: low)
+- No history → next Tuesday or Wednesday at 8:30am (urgency: medium)
+
+WHAT REALTORS RESPOND BEST TO:
+- Openers that reference something specific about their listings or market
+- Brevity — they're always between showings; 90 seconds max
+- Value-first framing: "We've been helping agents in [their area] get listings sold faster with professional media"
+- Social proof: mention specific results (e.g. "helped an agent in their zip code sell in 3 days")
+- Never: pressure, discounts, long pitches, calling on Fridays after 2pm
+
+=== YOUR TASK ===
+1. Analyze ALL the history above. Extract every signal: sentiment, timing preferences, urgency markers, objections, warmth level.
+2. Search the web for: "${searchQuery}" — find their brokerage, active listings, recent sales, social presence, specialty. Use this to make the opener hyper-specific.
+3. Choose EXACTLY one date and time using the cadence rules above. Do NOT pick today unless they're a hot lead who specifically asked for a call. Output in ISO format.
+4. Write a suggested opener (2-3 sentences) that is personalized using their specific brokerage, market, or anything you found online — NOT generic.
 
 Respond ONLY with valid JSON:
 {
   "follow_up_date_time": "YYYY-MM-DDTHH:mm:ss",
   "urgency": "high" | "medium" | "low" | "skip",
-  "reason": "1 sentence explaining exactly why this date and time",
-  "suggested_opener": "personalized opening line for this contact",
+  "reason": "Exactly why this date/time — reference the specific note or signal that drove this decision",
+  "suggested_opener": "Hyper-personalized opener using their brokerage/listings/market intel",
+  "contact_intel": "1-2 sentences on what you found online about this realtor (brokerage, specialty, market area)",
   "pattern_tags": ["tag1", "tag2"]
 }`,
+    add_context_from_internet: true,
     response_json_schema: {
       type: "object",
       properties: {
@@ -99,6 +141,7 @@ Respond ONLY with valid JSON:
         urgency: { type: "string" },
         reason: { type: "string" },
         suggested_opener: { type: "string" },
+        contact_intel: { type: "string" },
         pattern_tags: { type: "array", items: { type: "string" } }
       }
     }
