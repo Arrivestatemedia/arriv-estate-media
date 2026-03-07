@@ -199,23 +199,49 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
       ).join("\n");
 
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are the ARRIV AI Sales Coach. Generate a personalized call opener.
+        prompt: `You are the ARRIV AI Sales Coach and a master of persuasion science. Generate a complete, battle-tested call script for this rep. Use proven psychological sales techniques to hit an 85-100% close rate.
 
 Rep name: ${repName || "Brad"}
 Contact: ${contact.name}${contact.company ? `, ${contact.company}` : ""}
 AI insight: ${reason || "follow up"}
 Urgency: ${urgency || "medium"}
 Best call time: ${bestTime}
+Contact intel: ${contactIntel || "Not available"}
 
 Recent activity history:
 ${historySnippet || "No prior contact logged"}
 
-Output ONLY:
-1. **Opener** (exact first thing to say — 2-3 sentences, natural, not salesy)
-2. **If no answer** — voicemail (1-2 sentences) + follow-up text (1 sentence)
-3. **If they answer** — 2-3 possible conversation paths and how to handle each
+=== PERSUASION SCIENCE TO APPLY ===
+1. PATTERN INTERRUPT — open with something unexpected that breaks their autopilot "not interested" reflex. Never start with "How are you?" or "I was just calling to..."
+2. SOCIAL PROOF + SPECIFICITY — use a real-sounding, hyper-local reference ("We just shot a listing for an agent in [their market] and it went under contract in 4 days")
+3. LOSS AVERSION — subtly frame not using ARRIV as leaving money on the table ("listings with professional media sell 32% faster and for 5-11% more")
+4. RECIPROCITY — offer something valuable upfront with no ask (a tip, a stat, a market insight)
+5. CURIOSITY GAP — end your opener with a question that makes them want to keep talking, not close them down
+6. MIRRORING — instruct the rep to repeat the last 2-3 words the realtor says as a question (builds rapport instantly)
+7. THE "FEEL, FELT, FOUND" METHOD — for objections: "I understand how you feel, other agents felt the same way, but what they found was..."
+8. COMMITMENT & CONSISTENCY — get small "yes" responses early ("Are you still doing listings in [area]?")
+9. SCARCITY (honest) — if they're on the fence, mention real availability constraints ("We're booking up fast for spring listings")
+10. THE COLUMBO CLOSE — "Just one more thing..." right before hanging up can surface hidden interest
 
-Keep it short, direct, ARRIV-branded. Never offer discounts. If they want to book, say "I'll connect you with our owner Brad."`,
+Output a structured script:
+
+**OPENER** (exact words, pattern interrupt style — 2-3 sentences max)
+
+**IF THEY ENGAGE** — The next 60 seconds (value pitch using loss aversion + social proof, end with curiosity question)
+
+**OBJECTION HANDLERS:**
+- "I already have a photographer" → (Feel/Felt/Found + differentiator)
+- "I'm not interested" → (Pattern interrupt + curiosity question, don't fold)
+- "Send me an email" → (Agree + commitment/consistency micro-close)
+- "Too expensive" → (Reframe ROI with specifics)
+- "I'll think about it" → (Columbo close)
+
+**IF NO ANSWER** — Voicemail (15 seconds max, curiosity-gap ending) + follow-up text (1 sentence, same curiosity gap)
+
+**CLOSING LINE** (when they show interest — hand off to Brad naturally)
+
+Keep language conversational, never robotic. ARRIV-branded. Rep should sound like a trusted advisor, not a salesperson.`,
+        add_context_from_internet: true,
       });
       setScript(typeof res === "string" ? res : res?.text || String(res));
     } catch {
