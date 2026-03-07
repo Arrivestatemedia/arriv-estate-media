@@ -120,13 +120,19 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       if (phone) {
         setActiveTab('call');
         localStorage.removeItem('dialerPhone');
-        // After switching to call tab and dialer mounts, dispatch initiateTransfer
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('initiateTransfer', {
             detail: { extension: phone, name: '' }
           }));
         }, 400);
       }
+    };
+
+    // Handle openDialer event from LeadCard phone number clicks
+    const handleOpenDialer = (event) => {
+      const { phone } = event.detail;
+      if (phone) localStorage.setItem('_dialerPhone', phone);
+      setActiveTab('call');
     };
 
     const handleEmailCardReady = () => {
