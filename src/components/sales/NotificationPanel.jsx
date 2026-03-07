@@ -49,29 +49,21 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
     }
   };
 
-  const navigateToQueue = () => {
+  const goToQueue = () => {
     setIsOpen(false);
-    // If already on the activity log page, dispatch event directly
-    const currentPath = window.location.pathname + window.location.hash;
+    const currentPath = window.location.pathname;
     if (currentPath.includes('HubSpotActivityLog') || currentPath.includes('AdminActivityPage')) {
+      // Already on the page — dispatch event directly
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
     } else {
-      // Full navigation with ?tab=queue so the destination page can read it
-      const targetUrl = queueUrl || (createPageUrl('HubSpotActivityLog') + '?tab=queue');
-      window.location.href = targetUrl;
+      // Store in sessionStorage so the destination page fires it after mounting
+      sessionStorage.setItem('_pendingTabSwitch', 'queue');
+      navigate(createPageUrl('HubSpotActivityLog'));
     }
   };
 
-  const navigateToTask = (task) => {
-    setIsOpen(false);
-    const currentPath = window.location.pathname + window.location.hash;
-    if (currentPath.includes('HubSpotActivityLog') || currentPath.includes('AdminActivityPage')) {
-      window.dispatchEvent(new CustomEvent('switchToQueueTab'));
-    } else {
-      const targetUrl = queueUrl || (createPageUrl('HubSpotActivityLog') + '?tab=queue');
-      window.location.href = targetUrl;
-    }
-  };
+  const navigateToQueue = goToQueue;
+  const navigateToTask = () => goToQueue();
 
   const formatTaskDate = (dateStr) => {
     const d = new Date(dateStr);
