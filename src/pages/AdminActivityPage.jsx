@@ -260,7 +260,6 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   const [currentPage, setCurrentPage] = useState(0);
   const [visibleOnCurrentPage, setVisibleOnCurrentPage] = useState(5);
   const [showArchive, setShowArchive] = useState(false);
-  const ACTIVITIES_PER_PAGE = 10;
 
   const handlePictureChange = async (e) => {
     const files = Array.from(e.target.files || []);
