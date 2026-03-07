@@ -26,23 +26,19 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   const location = useLocation();
   const [user, setUser] = useState(propsUser);
   
-  // Initialize activeTab from URL or sessionStorage — NO flicker
-  const getInitialTab = () => {
-    const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
-    if (tabParam === 'queue') {
-      sessionStorage.removeItem('_pendingTabSwitch'); // clear if it exists
-      return 'queue';
-    }
+  const [activeTab, setActiveTab] = useState(initialSubTab || "activity");
+  
+  // If pending queue switch, route through Activity first then to Queue
+  useEffect(() => {
     const pending = sessionStorage.getItem('_pendingTabSwitch');
     if (pending === 'queue') {
       sessionStorage.removeItem('_pendingTabSwitch');
-      return 'queue';
+      // Show Activity tab briefly, then switch to Queue
+      setTimeout(() => {
+        setActiveTab('queue');
+      }, 100);
     }
-    return initialSubTab || "activity";
-  };
-  
-  const [activeTab, setActiveTab] = useState(getInitialTab());
+  }, []);
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [contacts, setContacts] = useState([]);
