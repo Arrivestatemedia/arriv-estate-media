@@ -11,6 +11,7 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
   const [salesMember, setSalesMember] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const currentPath = location.pathname;
 
   // No-op: tab switching is handled entirely by the destination page reading sessionStorage on mount
 
