@@ -967,6 +967,62 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                      {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
                    </div>
                  </div>
+
+                 <div>
+                   <h3 className="font-semibold mb-3">Actions</h3>
+                   <div className="flex gap-2 flex-wrap">
+                     {selectedActivity.contact_phone && (
+                       <Button 
+                         size="sm" 
+                         className="gap-2"
+                         style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                         onClick={() => {
+                           setActiveTab("call");
+                           localStorage.setItem('_dialerPhone', selectedActivity.contact_phone);
+                           setSelectedActivity(null);
+                         }}
+                       >
+                         <Phone className="w-4 h-4" />
+                         Call
+                       </Button>
+                     )}
+                     {selectedActivity.contact_email && (
+                       <Button 
+                         size="sm" 
+                         className="gap-2"
+                         variant="outline"
+                         onClick={() => {
+                           setActiveTab("email");
+                           localStorage.setItem('_emailTo', selectedActivity.contact_email);
+                           setSelectedActivity(null);
+                         }}
+                       >
+                         <Mail className="w-4 h-4" />
+                         Email
+                       </Button>
+                     )}
+                     <Button 
+                       size="sm" 
+                       className="gap-2"
+                       variant="outline"
+                       onClick={() => {
+                         setActiveTab("contacts");
+                         setPrefilledContactData({
+                           firstName: selectedActivity.contact_name?.split(' ')[0] || '',
+                           lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
+                           email: selectedActivity.contact_email || '',
+                           phone: selectedActivity.contact_phone || '',
+                           company: selectedActivity.company_name || ''
+                         });
+                         setTimeout(() => setOpenNewContactForm(true), 50);
+                         setSelectedActivity(null);
+                       }}
+                     >
+                       <Plus className="w-4 h-4" />
+                       Add Contact Info
+                     </Button>
+                   </div>
+                 </div>
                </div>
              )}
              {editingActivity && editFormData && (
