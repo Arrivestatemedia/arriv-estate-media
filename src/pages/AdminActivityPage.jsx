@@ -701,45 +701,41 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                   </Card>
                 ) : (
                   <>
-                    {(() => {
-                      const startIdx = currentPage * ACTIVITIES_PER_PAGE;
-                      const endIdx = startIdx + visibleOnCurrentPage;
-                      return pastActivities.slice(startIdx, endIdx).map((activity) => (
-                        <Card 
-                          key={activity.id}
-                          className="cursor-pointer hover:shadow-md transition"
-                          onClick={() => handleActivityClick(activity)}
-                        >
-                          <CardContent className="pt-6">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-start gap-3 flex-1">
-                                <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
-                                  {activityIcons[activity.activity_type]}
-                                </div>
-                                <div className="flex-1">
-                                  <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
-                                  <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                                  {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                                  {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
-                                  <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
-                                  {activity.duration_minutes > 0 && (
-                                    <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
-                                  )}
-                                </div>
+                    {currentPageActivities.map((activity) => (
+                      <Card
+                        key={activity.id}
+                        className="cursor-pointer hover:shadow-md transition"
+                        onClick={() => handleActivityClick(activity)}
+                      >
+                        <CardContent className="pt-6">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.15)' }}>
+                                {activityIcons[activity.activity_type]}
                               </div>
-                              <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                                {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
+                              <div className="flex-1">
+                                <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+                                <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                                {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                                {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                                <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
+                                {activity.duration_minutes > 0 && (
+                                  <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
+                                )}
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                      </div>
-                      <div className="flex justify-center gap-2 pt-4 flex-wrap">
-                      {visibleOnCurrentPage < ACTIVITIES_PER_PAGE && endIdx < pastActivities.length && (
+                            <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                              {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    <div className="flex justify-center gap-2 pt-4 flex-wrap">
+                      {visibleOnCurrentPage < itemsPerPage && endIdx < pastActivities.length && (
                         <Button
                           variant="outline"
-                          onClick={() => setVisibleOnCurrentPage(v => Math.min(ACTIVITIES_PER_PAGE, v + 5))}
+                          onClick={() => setVisibleOnCurrentPage(v => Math.min(itemsPerPage, v + 5))}
                           style={{ borderColor: '#B8956A', color: '#B8956A' }}
                         >
                           Load More
@@ -774,9 +770,9 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                           </Button>
                         </>
                       )}
-                      </div>
-                      </>
-                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
