@@ -900,10 +900,13 @@ export default function HubSpotActivityLog() {
                              }}>{activity.contact_name || activity.company_name}</p>
                              {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
                              {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.company_name}</p>}
-                             {displayPhone && (
+                             {displayPhone ? (
                                <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', displayPhone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
-                                 <Phone className="w-3 h-3" />{displayPhone}
+                                 <Phone className="w-3 h-3" />
+                                 <span>{displayPhone}</span>
                                </button>
+                             ) : (
+                               <span className="text-xs font-medium mt-0.5" style={{ color: 'rgba(26,26,26,0.4)' }}>No phone on file</span>
                              )}
                              <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
                           </div>
