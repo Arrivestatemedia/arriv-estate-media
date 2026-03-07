@@ -790,7 +790,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           </>
         )}
 
-        {/* Success Dialog */}
+        {/* Activity Success Dialog */}
         <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
           <DialogContent className="max-w-sm text-center">
             <DialogHeader>
