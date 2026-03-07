@@ -146,7 +146,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+            <div className="flex items-center justify-between px-4 py-4 border-b pointer-events-auto" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4" style={{ color: '#B8956A' }} />
                 <span className="font-semibold text-sm" style={{ color: '#FFFBF5' }}>Tasks</span>
@@ -156,7 +156,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                   </span>
                 )}
               </div>
-              <button onClick={() => setIsOpen(false)} style={{ color: 'rgba(255,251,245,0.5)' }}>
+              <button onClick={() => setIsOpen(false)} className="pointer-events-auto" style={{ color: 'rgba(255,251,245,0.5)' }}>
                 <X className="w-4 h-4" />
               </button>
             </div>
