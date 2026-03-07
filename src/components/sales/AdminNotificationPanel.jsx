@@ -2,14 +2,12 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Bell, Phone, ChevronRight, X } from "lucide-react";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+
 
 export default function AdminNotificationPanel({ userEmail, queueUrl }) {
   const [isOpen, setIsOpen] = useState(false);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [salesMember, setSalesMember] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!userEmail) return;
@@ -82,12 +80,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
     }
   };
 
-  const goToQueue = () => {
-    setIsOpen(false);
-    // Admin: set sessionStorage flag and navigate using React Router
-    sessionStorage.setItem('_switchToQueueSubTab', 'true');
-    navigate(createPageUrl('AdminActivityPage'));
-  };
+
 
   const formatTaskDate = (dateStr) => {
     const d = new Date(dateStr);
@@ -176,10 +169,9 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                 </div>
               ) : (
                 upcomingTasks.map(task => (
-                  <button
+                  <div
                     key={task.id}
-                    onClick={goToQueue}
-                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3 transition-colors hover:bg-white/5"
+                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3"
                     style={{ borderColor: 'rgba(255,251,245,0.06)' }}
                   >
                     <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
@@ -201,22 +193,12 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                         </p>
                       )}
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 mt-1 shrink-0" style={{ color: 'rgba(255,251,245,0.3)' }} />
-                  </button>
+                  </div>
                 ))
               )}
             </div>
 
-            {/* Footer button */}
-            <div className="p-4 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-              <button
-                onClick={goToQueue}
-                className="w-full py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-              >
-                Open Full Call Queue →
-              </button>
-            </div>
+
           </div>
         </>
       )}
