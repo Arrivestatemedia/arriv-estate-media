@@ -173,13 +173,6 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     window.addEventListener('switchToQueueTab', handleSwitchToQueue);
     window.addEventListener('openDialer', handleOpenDialer);
 
-    // Check if NotificationPanel stored a pending tab switch
-    const pending = sessionStorage.getItem('_pendingTabSwitch');
-    if (pending === 'queue') {
-      sessionStorage.removeItem('_pendingTabSwitch');
-      setActiveTab('queue');
-    }
-
     return () => {
       window.removeEventListener('contactCardReady', handleContactCardReady);
       window.removeEventListener('dialerCardReady', handleDialerCardReady);
