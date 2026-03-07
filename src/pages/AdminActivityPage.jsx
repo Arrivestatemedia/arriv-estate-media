@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +23,7 @@ import ActivityArchive from "@/components/sales/ActivityArchive";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
 
 export default function AdminActivityPage({ user: propsUser, initialSubTab, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
+  const location = useLocation();
   const [user, setUser] = useState(propsUser);
   const [activeTab, setActiveTab] = useState(initialSubTab || "activity");
   const [showForm, setShowForm] = useState(false);
@@ -50,6 +52,15 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       }
     }
   }, [propsUser]);
+
+  // Read tab from URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
 
   // Load contacts when modal opens
   React.useEffect(() => {
