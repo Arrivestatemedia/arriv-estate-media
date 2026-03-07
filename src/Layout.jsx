@@ -345,6 +345,7 @@ function LayoutContent({ children, currentPageName }) {
       <main>
         {isSalesTeam && <NotificationPanel 
           userEmail={user?.email} 
+          isAdmin={isAdmin}
           queueUrl={isAdmin ? createPageUrl('AdminActivityPage') + '?tab=queue' : createPageUrl('HubSpotActivityLog') + '?tab=queue'}
         />}
         {currentPageName === "TrackLink" ? (

@@ -5,7 +5,7 @@ import { format, isToday, isTomorrow, isPast } from "date-fns";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function NotificationPanel({ userEmail, queueUrl }) {
+export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
   const [isOpen, setIsOpen] = useState(false);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [salesMember, setSalesMember] = useState(null);
@@ -93,8 +93,9 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
       // Already on the page — dispatch event directly
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
     } else {
-      // Navigate to the page with tab=queue URL param
-      window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue';
+      // Navigate to the appropriate page with tab=queue URL param
+      const targetPage = isAdmin ? 'AdminActivityPage' : 'HubSpotActivityLog';
+      window.location.href = createPageUrl(targetPage) + '?tab=queue';
     }
   };
 
