@@ -51,25 +51,25 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
 
   const navigateToQueue = () => {
     setIsOpen(false);
-    // If already on the activity log page, just dispatch the event
-    const currentPath = window.location.pathname;
-    if (currentPath.includes('HubSpotActivityLog')) {
+    // If already on the activity log page, dispatch event directly
+    const currentPath = window.location.pathname + window.location.hash;
+    if (currentPath.includes('HubSpotActivityLog') || currentPath.includes('AdminActivityPage')) {
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
     } else {
-      // Store intent in localStorage so the page picks it up on mount
-      localStorage.setItem('_navToTab', 'queue');
-      navigate(createPageUrl('HubSpotActivityLog'));
+      // Full navigation with ?tab=queue so the destination page can read it
+      const targetUrl = queueUrl || (createPageUrl('HubSpotActivityLog') + '?tab=queue');
+      window.location.href = targetUrl;
     }
   };
 
   const navigateToTask = (task) => {
     setIsOpen(false);
-    const currentPath = window.location.pathname;
-    if (currentPath.includes('HubSpotActivityLog')) {
+    const currentPath = window.location.pathname + window.location.hash;
+    if (currentPath.includes('HubSpotActivityLog') || currentPath.includes('AdminActivityPage')) {
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
     } else {
-      localStorage.setItem('_navToTab', 'queue');
-      navigate(createPageUrl('HubSpotActivityLog'));
+      const targetUrl = queueUrl || (createPageUrl('HubSpotActivityLog') + '?tab=queue');
+      window.location.href = targetUrl;
     }
   };
 
