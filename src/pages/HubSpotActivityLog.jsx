@@ -639,11 +639,20 @@ export default function HubSpotActivityLog() {
                         <SelectContent>
                           {contacts.map((c) => (
                             <SelectItem key={c.email} value={c.email}>
-                              {c.name} {c.company ? `(${c.company})` : ""}
+                              {c.name} {c.company ? `(${c.company})` : ""} {c.phone ? `${c.phone}` : ""}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Phone (optional)</label>
+                      <Input 
+                        type="tel" 
+                        placeholder="Contact phone number" 
+                        value={formData.contact_phone || ""} 
+                        onChange={(e) => setFormData({...formData, contact_phone: e.target.value})}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Activity Type</label>
