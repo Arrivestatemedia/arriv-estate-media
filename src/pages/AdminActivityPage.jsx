@@ -58,7 +58,9 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
     if (tabParam === 'queue') {
-      setActiveTab('queue');
+      setActiveTab('activity');
+      // Use sessionStorage as a flag to switch to queue sub-tab after tab changes
+      sessionStorage.setItem('_switchToQueueSubTab', 'true');
     }
   }, [location.search]);
 
