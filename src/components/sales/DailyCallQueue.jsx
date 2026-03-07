@@ -235,8 +235,11 @@ FORMAT:
 
 **If no answer** → voicemail (15 sec max) + one follow-up text
 
-**When they want to move forward** → hand to Brad naturally`,
+**When they want to move forward** → hand to Brad naturally
+
+${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past activities — screenshots of conversations, texts, or notes. READ THEM to understand the full context of what was discussed before writing this guide.` : ""}`,
         add_context_from_internet: true,
+        file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
       });
       setScript(typeof res === "string" ? res : res?.text || String(res));
     } catch {
