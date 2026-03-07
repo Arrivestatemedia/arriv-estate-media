@@ -70,14 +70,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     }
   }, [propsUser]);
 
-  // Read tab from URL query parameter
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
-    if (tabParam === 'queue') {
-      setActiveTab('queue');
-    }
-  }, [location.search]);
+
 
   // Load contacts when modal opens
   React.useEffect(() => {
