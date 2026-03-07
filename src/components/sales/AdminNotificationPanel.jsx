@@ -92,6 +92,13 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
   const overdueCount = upcomingTasks.filter(t => isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).length;
   const totalCount = upcomingTasks.length;
 
+  const handleTaskClick = () => {
+    // Close the panel
+    setIsOpen(false);
+    // Dispatch event to navigate to My Activity → Call Queue
+    window.dispatchEvent(new CustomEvent('adminNavigateToQueue'));
+  };
+
   return (
     <>
       {/* Vertical tab on left side */}
