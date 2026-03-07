@@ -71,66 +71,43 @@ async function analyzeContact(contact, learnedContext) {
   ].filter(Boolean).join(" ");
 
   const res = await base44.integrations.Core.InvokeLLM({
-    prompt: `You are an elite AI sales intelligence agent for ARRIV, a real estate photography & media company. Your task is to determine ONE precise follow-up date and time for this realtor contact. This decision is PERMANENT — it will be saved and the rep will follow it. Be extremely deliberate.
+    prompt: `You are a sharp sales intelligence agent for ARRIV, a real estate photography company. Decide ONE follow-up date for this realtor. This gets saved permanently — be deliberate.
 
-=== TODAY ===
-Date: ${today} (${dayName})
+TODAY: ${today} (${dayName})
 
-=== CONTACT ===
-Name: ${contact.name}
-Company/Brokerage: ${contact.company || "Unknown"}
-Email: ${contact.email || "Unknown"}
+CONTACT: ${contact.name} | ${contact.company || "Unknown brokerage"}
 
-=== FULL INTERACTION HISTORY (newest first) ===
-${historyText || "No prior contact logged"}
+FULL HISTORY (newest first):
+${historyText || "No prior contact"}
 
-${learnedContext ? `\n=== THIS REP'S LEARNED PATTERNS FROM PAST OUTCOMES ===\n${learnedContext}\n` : ""}
+${learnedContext ? `LEARNED PATTERNS:\n${learnedContext}\n` : ""}
 
-=== REALTOR BEHAVIORAL SCIENCE (apply rigorously) ===
-BEST DAYS TO REACH REALTORS (ranked):
-1. Tuesday & Wednesday — mid-week, no Monday catch-up rush, not pre-weekend
-2. Thursday — still effective, slightly lower response than Tue/Wed
-3. Monday after 10am — avoid early morning catch-up chaos
-4. Avoid: Friday afternoons (mentally checked out), Sat/Sun (family/showing time unless notes say otherwise)
+=== CRITICAL RULES — READ CAREFULLY ===
 
-BEST TIME WINDOWS (ranked by response rate):
-1. 8:00–9:00 AM — before their first showing, fresh start, high answer rate
-2. 12:00–1:00 PM — lunch gap between showings, often available
-3. 5:00–7:00 PM — post-showing wind-down, reflective, good for warm conversations
-4. 9:30–10:30 AM — secondary morning window if 8am fails
+RESPECT THEIR STATED PREFERENCE ABOVE ALL ELSE:
+- If they said "I'll reach out when ready", "I'll call you", "I'll get back to you", or anything indicating THEY will initiate → set 45 days out. Do NOT reach out sooner. Urgency: skip (show in "coming up" only, don't surface as due today)
+- If they have listings currently active on the market and we haven't shot them yet → this IS urgent. Override to high urgency, 1-2 business days.
+- If they said "call me in X weeks/days" → respect that exact timeframe to the day.
+- "Not interested" or firm no → 45 days. Urgency: low.
+- "Busy, call me later/tomorrow" → next business day 8am. Urgency: high.
+- Warm/showed interest → 2-3 business days, morning. Urgency: high.
+- No answer 1-2x → 4 business days, different time than last. Urgency: medium.
+- No answer 3+ times → 14 days, switch to text. Urgency: low.
+- Left voicemail → 4 business days, different time. Urgency: medium.
+- No history at all → next Tuesday or Wednesday 8:30am. Urgency: medium.
 
-CADENCE RULES (follow strictly):
-- Warm/interested → 2-3 business days, morning slot (urgency: high)
-- Said "call me in a few weeks" → exactly 3 weeks out, Tuesday at 8am (urgency: medium)
-- "I'll reach out when ready" or "I'll call you" → 28 days out, Wednesday 8am (urgency: skip — don't push)
-- No answer 1-2x → 5 business days out, try DIFFERENT time than last attempt (urgency: medium)
-- No answer 3+ times → 10 days out, switch to text/email approach (urgency: low)
-- Left voicemail → 3-4 business days out, different time window (urgency: medium)
-- Busy/call later → next business day, 8am (urgency: high)
-- Not interested/firm no → 45 days out (urgency: low)
-- Asked not to call → 90 days out (urgency: low)
-- No history → next Tuesday or Wednesday at 8:30am (urgency: medium)
+BEST DAYS: Tuesday > Wednesday > Thursday > Monday after 10am. Avoid Friday PM and weekends.
+BEST TIMES: 8–9am > 12–1pm > 5–7pm > 9:30–10:30am.
 
-WHAT REALTORS RESPOND BEST TO:
-- Openers that reference something specific about their listings or market
-- Brevity — they're always between showings; 90 seconds max
-- Value-first framing: "We've been helping agents in [their area] get listings sold faster with professional media"
-- Social proof: mention specific results (e.g. "helped an agent in their zip code sell in 3 days")
-- Never: pressure, discounts, long pitches, calling on Fridays after 2pm
+SEARCH: Look up "${searchQuery}" — find active listings, brokerage, market area. If they have an active listing we haven't shot, flag urgency: high.
 
-=== YOUR TASK ===
-1. Analyze ALL the history above. Extract every signal: sentiment, timing preferences, urgency markers, objections, warmth level.
-2. Search the web for: "${searchQuery}" — find their brokerage, active listings, recent sales, social presence, specialty. Use this to make the opener hyper-specific.
-3. Choose EXACTLY one date and time using the cadence rules above. Do NOT pick today unless they're a hot lead who specifically asked for a call. Output in ISO format.
-4. Write a suggested opener (2-3 sentences) that is personalized using their specific brokerage, market, or anything you found online — NOT generic.
-
-Respond ONLY with valid JSON:
+OUTPUT valid JSON only:
 {
   "follow_up_date_time": "YYYY-MM-DDTHH:mm:ss",
   "urgency": "high" | "medium" | "low" | "skip",
-  "reason": "Exactly why this date/time — reference the specific note or signal that drove this decision",
-  "suggested_opener": "Hyper-personalized opener using their brokerage/listings/market intel",
-  "contact_intel": "1-2 sentences on what you found online about this realtor (brokerage, specialty, market area)",
+  "reason": "Short, plain-English reason referencing the specific signal",
+  "suggested_opener": "A casual, natural 1-2 sentence opener — sounds like a real person talking, not a script",
+  "contact_intel": "1-2 sentences on what you found about this realtor online",
   "pattern_tags": ["tag1", "tag2"]
 }`,
     add_context_from_internet: true,
