@@ -400,6 +400,19 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
                   </Badge>
                   {saved && <Badge style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10b981', border: 'none', fontSize: '11px' }}>✓ Logged</Badge>}
                 </div>
+                {contact.phone && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }));
+                    }}
+                    className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity"
+                    style={{ color: '#B8956A' }}
+                  >
+                    <Phone className="w-3 h-3" />
+                    {contact.phone}
+                  </button>
+                )}
                 <div className="flex flex-wrap gap-3 mt-1 text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
                   <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Best time: {bestTime}</span>
                   {lastActivity && <span>Last touch: {formatDistanceToNow(new Date(lastActivity.activity_date), { addSuffix: true })}</span>}
