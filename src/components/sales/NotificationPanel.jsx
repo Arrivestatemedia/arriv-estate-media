@@ -88,19 +88,18 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
 
   const goToQueue = () => {
     setIsOpen(false);
-    const currentPath = window.location.pathname;
     if (currentPath.includes('HubSpotActivityLog') || currentPath.includes('AdminActivityPage')) {
       // Already on the page — dispatch event directly
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
     } else {
-      // Navigate to the appropriate page
+      // Navigate without full refresh
       if (isAdmin) {
-        // For admin, set sessionStorage signal and navigate
+        // For admin, set sessionStorage signal and use navigate (no full refresh)
         sessionStorage.setItem('_pendingTabSwitch', 'queue');
-        window.location.href = createPageUrl('AdminActivityPage');
+        navigate('/AdminActivityPage');
       } else {
-        // For sales rep, use URL param
-        window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue';
+        // For sales rep, use navigate with URL param (no full refresh)
+        navigate('/HubSpotActivityLog?tab=queue');
       }
     }
   };
