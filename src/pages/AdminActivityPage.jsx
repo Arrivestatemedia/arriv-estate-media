@@ -172,6 +172,15 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       setActiveTab('queue');
     }
 
+    // Check if we need to switch to queue sub-tab (from URL param tab=queue)
+    const switchToQueue = sessionStorage.getItem('_switchToQueueSubTab');
+    if (switchToQueue) {
+      sessionStorage.removeItem('_switchToQueueSubTab');
+      setTimeout(() => {
+        setActiveTab('queue');
+      }, 50);
+    }
+
     return () => {
       window.removeEventListener('contactCardReady', handleContactCardReady);
       window.removeEventListener('dialerCardReady', handleDialerCardReady);
