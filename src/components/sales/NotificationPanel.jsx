@@ -38,13 +38,28 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
         50
       );
 
+      // Build phone lookup from all logs
+      const phoneLookup = {};
+      logs.forEach(a => {
+        if (a.contact_email && a.contact_phone && !phoneLookup[a.contact_email]) {
+          phoneLookup[a.contact_email] = a.contact_phone;
+        }
+        if (a.contact_name && a.contact_phone && !phoneLookup[a.contact_name]) {
+          phoneLookup[a.contact_name] = a.contact_phone;
+        }
+      });
+
       const upcoming = logs
         .filter(a => {
           const d = new Date(a.activity_date);
           return d >= now && d <= in7Days;
         })
         .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
-        .slice(0, 10);
+        .slice(0, 10)
+        .map(a => ({
+          ...a,
+          contact_phone: a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || ''
+        }));
 
       setUpcomingTasks(upcoming);
     } catch (e) {
