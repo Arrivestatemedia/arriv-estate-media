@@ -88,9 +88,8 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
       // Already on the page — dispatch event directly
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
     } else {
-      // Navigate to the appropriate page with tab=queue URL param
-      const targetPage = isAdmin ? 'AdminActivityPage' : 'HubSpotActivityLog';
-      window.location.href = createPageUrl(targetPage) + '?tab=queue';
+      // All sales team members (including admins) use HubSpotActivityLog for the queue
+      window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue';
     }
   };
 
