@@ -96,6 +96,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
         activity_type: activityType,
         contact_email: selectedContactObj?.email || "",
         contact_name: contactName,
+        contact_phone: selectedContactObj?.phone || contact?.phone || "",
         company_name: selectedContactObj?.company || "",
         activity_date: new Date(activityDate).toISOString(),
         notes: notes.trim(),

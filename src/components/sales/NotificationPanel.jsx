@@ -30,7 +30,6 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
       setSalesMember(member);
 
       const now = new Date();
-      const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
       // Fetch all logs to build comprehensive phone lookup
       const allLogs = await base44.entities.ActivityLog.filter(
@@ -50,11 +49,11 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
         }
       });
 
-      // Get upcoming activities from recent logs
+      // Get upcoming activities (any future date, not just 7 days)
       let upcoming = allLogs
         .filter(a => {
           const d = new Date(a.activity_date);
-          return d >= now && d <= in7Days;
+          return d >= now;
         })
         .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
         .slice(0, 10);
