@@ -185,9 +185,15 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
     setGeneratingScript(true);
     setScript(null);
     try {
-      const historySnippet = contact.past.slice(0, 4).map(a =>
-        `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 120)}`
-      ).join("\n");
+      const historySnippet = contact.past.slice(0, 4).map(a => {
+        const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
+        return `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 120)}${pics}`;
+      }).join("\n");
+
+      const scriptPictureUrls = contact.past
+        .slice(0, 6)
+        .flatMap(a => a.picture_urls || [])
+        .slice(0, 6);
 
       const res = await base44.integrations.Core.InvokeLLM({
         prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a natural, human conversation guide — NOT a formal script. This should sound like a real person who knows them, not a salesperson reading off a sheet.
