@@ -367,6 +367,11 @@ Keep it short, direct, ARRIV-branded. Never offer discounts. If they want to boo
                     {reason}
                   </p>
                 )}
+                {contactIntel && (
+                  <p className="text-xs mt-0.5 flex items-start gap-1" style={{ color: 'rgba(26,26,26,0.45)' }}>
+                    🔍 {contactIntel}
+                  </p>
+                )}
               </div>
             </div>
             {expanded ? <ChevronUp className="w-4 h-4 mt-1 shrink-0 opacity-40" /> : <ChevronDown className="w-4 h-4 mt-1 shrink-0 opacity-40" />}
