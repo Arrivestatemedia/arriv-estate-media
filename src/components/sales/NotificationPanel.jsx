@@ -10,6 +10,21 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [salesMember, setSalesMember] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // After navigating to the activity log page, fire the switchToQueueTab event
+  useEffect(() => {
+    const pending = sessionStorage.getItem('_pendingTabSwitch');
+    if (!pending) return;
+    const path = location.pathname;
+    if (path.includes('HubSpotActivityLog') || path.includes('AdminActivityPage')) {
+      sessionStorage.removeItem('_pendingTabSwitch');
+      // Give the page time to mount and register its event listeners
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('switchToQueueTab'));
+      }, 300);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!userEmail) return;
