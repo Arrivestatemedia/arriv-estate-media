@@ -782,6 +782,8 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                 salesMemberId={sid}
                 scheduledFollowUp={scheduledMap[contact.key]}
                 urgency={meta.urgency}
+                channel={meta.channel || "call"}
+                channelReason={meta.channelReason || ""}
                 reason={meta.reason}
                 suggestedOpener={meta.suggestedOpener}
                 contactIntel={meta.contactIntel}
