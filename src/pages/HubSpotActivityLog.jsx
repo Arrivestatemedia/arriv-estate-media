@@ -322,25 +322,26 @@ export default function HubSpotActivityLog() {
     enabled: !!user,
   });
 
-  // Build a phone lookup from past activities — contact email → phone
+  // Build a phone lookup from entire history
   const phoneLookup = {};
   activities.forEach(a => {
-    if (a.contact_email && a.contact_phone && !phoneLookup[a.contact_email]) {
+    if (a.contact_email && a.contact_phone) {
       phoneLookup[a.contact_email] = a.contact_phone;
     }
-    if (a.contact_name && a.contact_phone && !phoneLookup[a.contact_name]) {
+    if (a.contact_name && a.contact_phone) {
       phoneLookup[a.contact_name] = a.contact_phone;
     }
   });
 
+  // Enrich upcoming activities with phone from history lookup
   const upcomingActivities = activities
     .filter(a => new Date(a.activity_date) > new Date())
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5)
-    .map(a => ({
-      ...a,
-      contact_phone: a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || ''
-    }));
+    .map(a => {
+      const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
+      return { ...a, contact_phone: phone };
+    });
 
   const pastActivities = [...activities]
     .filter(a => new Date(a.activity_date) <= new Date())
