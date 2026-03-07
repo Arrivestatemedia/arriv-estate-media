@@ -280,18 +280,18 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     .filter(a => new Date(a.activity_date) > new Date())
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5)
-    .map(a => ({
-      ...a,
-      contact_phone: a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || ''
-    }));
+    .map(a => {
+      const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
+      return { ...a, contact_phone: phone };
+    });
 
   const pastActivities = [...activities]
     .filter(a => new Date(a.activity_date) <= new Date())
     .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date))
-    .map(a => ({
-      ...a,
-      contact_phone: a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || ''
-    }));
+    .map(a => {
+      const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
+      return { ...a, contact_phone: phone };
+    });
 
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
