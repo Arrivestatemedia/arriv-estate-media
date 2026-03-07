@@ -51,17 +51,34 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
       });
 
       // Get upcoming activities from recent logs
-      const upcoming = allLogs
+      let upcoming = allLogs
         .filter(a => {
           const d = new Date(a.activity_date);
           return d >= now && d <= in7Days;
         })
         .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
-        .slice(0, 10)
-        .map(a => ({
-          ...a,
-          contact_phone: a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || ''
-        }));
+        .slice(0, 10);
+
+      // Enrich with HubSpot phone numbers for activities missing phone data
+      upcoming = await Promise.all(upcoming.map(async (a) => {
+        let phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
+        
+        // If still no phone, look up in HubSpot
+        if (!phone && (a.contact_email || a.contact_name)) {
+          try {
+            const res = await base44.functions.invoke('searchHubSpotContacts', {
+              query: a.contact_email || a.contact_name
+            });
+            if (res.data?.contacts?.[0]?.phone) {
+              phone = res.data.contacts[0].phone;
+            }
+          } catch (e) {
+            // Silently fail HubSpot lookup
+          }
+        }
+        
+        return { ...a, contact_phone: phone };
+      }));
 
       setUpcomingTasks(upcoming);
     } catch (e) {
