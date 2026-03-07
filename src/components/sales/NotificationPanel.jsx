@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Bell, Phone, ChevronRight, X } from "lucide-react";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function NotificationPanel({ userEmail, queueUrl }) {
