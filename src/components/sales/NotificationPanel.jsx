@@ -66,15 +66,19 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
           sales_member_email: userEmail
         }, '-activity_date', 100);
 
-        const upcoming = activities.
-        filter((a) => new Date(a.activity_date) > new Date()).
-        sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date));
+        // Include today's tasks and future tasks (anything from start of today onward)
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const upcoming = activities
+          .filter((a) => new Date(a.activity_date) >= startOfToday)
+          .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date));
 
         setUpcomingTasks(upcoming);
 
-        // Auto-open if there's a task today
-        // Auto-open on first load if any upcoming tasks exist
-        if (upcoming.length > 0) {
+        // Auto-open ONLY if there's a task due today or overdue
+        const hasTodayOrOverdue = upcoming.some(a => isToday(new Date(a.activity_date)));
+        if (hasTodayOrOverdue) {
           setIsOpen(true);
         }
       } catch (error) {
