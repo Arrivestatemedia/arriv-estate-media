@@ -1,227 +1,200 @@
-import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { ChevronRight, Bell, Phone, Mail, Calendar, Clock } from 'lucide-react';
-import { format, isToday, isPast } from 'date-fns';
-import { createPageUrl } from '@/utils';
-
-const activityIcons = {
-  call: <Phone className="w-3 h-3" />,
-  email: <Mail className="w-3 h-3" />,
-  meeting: <Calendar className="w-3 h-3" />,
-  task: <Clock className="w-3 h-3" />,
-};
-
-function TaskItem({ task, today, overdue, onClose, queueUrl }) {
-  const handleClick = () => {
-    onClose();
-    // Try to switch tab in-page first (no reload), fall back to navigation
-    window.dispatchEvent(new CustomEvent('switchToQueueTab'));
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className="w-full text-left p-3 rounded-lg transition hover:opacity-90"
-      style={{
-        backgroundColor: overdue ? 'rgba(239,68,68,0.12)' : today ? 'rgba(184,149,106,0.15)' : '#FFFBF5',
-        border: `1px solid ${overdue ? 'rgba(239,68,68,0.3)' : today ? 'rgba(184,149,106,0.4)' : 'rgba(0,0,0,0.08)'}`,
-      }}
-    >
-      <div className="flex items-start gap-2">
-        <div
-          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-          style={{ backgroundColor: overdue ? 'rgba(239,68,68,0.2)' : 'rgba(184,149,106,0.2)', color: overdue ? '#ef4444' : '#B8956A' }}
-        >
-          {activityIcons[task.activity_type] || <Clock className="w-3 h-3" />}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-xs leading-tight" style={{ color: '#1A1A1A' }}>
-            {task.contact_name || task.company_name || 'Follow-up'}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: overdue ? '#ef4444' : 'rgba(26,26,26,0.55)' }}>
-            {overdue ? '⚠ ' : ''}{format(new Date(task.activity_date), "MMM d 'at' h:mm a")}
-          </p>
-          <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(26,26,26,0.6)' }}>{task.notes}</p>
-        </div>
-        <ChevronRight className="w-3 h-3 shrink-0 mt-1" style={{ color: 'rgba(26,26,26,0.3)' }} />
-      </div>
-    </button>
-  );
-}
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { Bell, Phone, ChevronRight, X } from "lucide-react";
+import { format, isToday, isTomorrow, isPast } from "date-fns";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function NotificationPanel({ userEmail, queueUrl }) {
   const [isOpen, setIsOpen] = useState(false);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  
-  // Default to HubSpotActivityLog if queueUrl not provided
-  const queueLink = queueUrl || (createPageUrl('HubSpotActivityLog') + '?tab=queue');
+  const [salesMember, setSalesMember] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!userEmail) return;
-
-    const loadUpcomingTasks = async () => {
-      setLoading(true);
-      try {
-        const activities = await base44.entities.ActivityLog.filter({
-          sales_member_email: userEmail
-        }, '-activity_date', 100);
-
-        // Include today's tasks and future tasks (anything from start of today onward)
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-
-        const upcoming = activities
-          .filter((a) => new Date(a.activity_date) >= startOfToday)
-          .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date));
-
-        setUpcomingTasks(upcoming);
-
-        // Auto-open ONLY if there's a task due today or overdue
-        const hasTodayOrOverdue = upcoming.some(a => isToday(new Date(a.activity_date)));
-        if (hasTodayOrOverdue) {
-          setIsOpen(true);
-        }
-      } catch (error) {
-        console.error('Failed to load upcoming tasks:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUpcomingTasks();
-
-    // Subscribe to real-time updates
-    const unsubscribe = base44.entities.ActivityLog.subscribe(() => {
-      loadUpcomingTasks();
-    });
-
-    return unsubscribe;
+    loadData();
+    const interval = setInterval(loadData, 60000);
+    return () => clearInterval(interval);
   }, [userEmail]);
+
+  const loadData = async () => {
+    if (!userEmail) return;
+    try {
+      const members = await base44.entities.SalesTeamMember.filter({ email: userEmail });
+      const member = members?.[0];
+      if (!member) return;
+      setSalesMember(member);
+
+      const now = new Date();
+      const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      const logs = await base44.entities.ActivityLog.filter(
+        { sales_member_id: member.id },
+        'activity_date',
+        50
+      );
+
+      const upcoming = logs
+        .filter(a => {
+          const d = new Date(a.activity_date);
+          return d >= now && d <= in7Days;
+        })
+        .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
+        .slice(0, 10);
+
+      setUpcomingTasks(upcoming);
+    } catch (e) {
+      // silent
+    }
+  };
+
+  const navigateToQueue = () => {
+    setIsOpen(false);
+    // Navigate to the HubSpotActivityLog page with tab=queue param
+    const targetUrl = queueUrl || createPageUrl('HubSpotActivityLog') + '?tab=queue';
+    // Use navigate for SPA routing, then dispatch event in case already on page
+    navigate(targetUrl.replace(window.location.origin, ''));
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('switchToQueueTab'));
+    }, 100);
+  };
+
+  const navigateToTask = (task) => {
+    setIsOpen(false);
+    const targetUrl = queueUrl || createPageUrl('HubSpotActivityLog') + '?tab=queue';
+    navigate(targetUrl.replace(window.location.origin, ''));
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('switchToQueueTab'));
+    }, 100);
+  };
+
+  const formatTaskDate = (dateStr) => {
+    const d = new Date(dateStr);
+    if (isToday(d)) return `Today at ${format(d, "h:mm a")}`;
+    if (isTomorrow(d)) return `Tomorrow at ${format(d, "h:mm a")}`;
+    return format(d, "MMM d 'at' h:mm a");
+  };
+
+  const overdueCount = upcomingTasks.filter(t => isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).length;
+  const totalCount = upcomingTasks.length;
 
   return (
     <>
-      {/* Sliding Panel Container with Burger Button */}
+      {/* Vertical tab on left side */}
       <div
-        className="fixed left-0 top-0 h-screen z-50 transition-transform duration-300"
-        style={{
-          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
-          width: '320px'
-        }}>
-
-        {/* Notification Panel */}
-        <div
-          className="h-screen w-full bg-[#1A1A1A] overflow-y-auto shadow-lg flex flex-col">
-
-          {/* Header */}
-          <div className="p-4 border-b flex-shrink-0" style={{ borderColor: '#B8956A' }}>
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5" style={{ color: '#B8956A' }} />
-              <h2 className="font-semibold" style={{ color: '#B8956A' }}>Tasks</h2>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-4 flex-1 flex flex-col gap-4 overflow-y-auto">
-            {loading ? (
-              <p className="text-sm" style={{ color: '#B8956A' }}>Loading...</p>
-            ) : upcomingTasks.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
-                <Clock className="w-8 h-8 opacity-30" style={{ color: '#B8956A' }} />
-                <p className="text-sm" style={{ color: 'rgba(255,251,245,0.5)' }}>No upcoming tasks</p>
-                <button
-                  onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('switchToQueueTab')); }}
-                 className="text-xs underline mt-1"
-                 style={{ color: '#B8956A' }}
-                >
-                 Open Call Queue →
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* Overdue section */}
-                {upcomingTasks.filter(t => isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#ef4444' }}>Overdue</p>
-                    <div className="space-y-2">
-                      {upcomingTasks.filter(t => isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).map(task => (
-                        <TaskItem key={task.id} task={task} overdue onClose={() => setIsOpen(false)} queueUrl={queueLink} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Today section */}
-                {upcomingTasks.filter(t => isToday(new Date(t.activity_date))).length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#B8956A' }}>Today</p>
-                    <div className="space-y-2">
-                      {upcomingTasks.filter(t => isToday(new Date(t.activity_date))).map(task => (
-                        <TaskItem key={task.id} task={task} today onClose={() => setIsOpen(false)} queueUrl={queueLink} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Upcoming section */}
-                {upcomingTasks.filter(t => !isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'rgba(255,251,245,0.4)' }}>Upcoming</p>
-                    <div className="space-y-2">
-                      {upcomingTasks.filter(t => !isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).slice(0, 5).map(task => (
-                        <TaskItem key={task.id} task={task} onClose={() => setIsOpen(false)} queueUrl={queueLink} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* CTA to open queue */}
-                 <button
-                   onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('switchToQueueTab')); }}
-                   className="w-full mt-2 py-2 rounded-lg text-sm font-medium transition"
-                   style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
-                 >
-                   Open Full Call Queue →
-                 </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Burger Button - attached to panel edge */}
+        className="fixed left-0 top-1/2 -translate-y-1/2 z-[9990]"
+        style={{ writingMode: 'vertical-rl' }}
+      >
         <button
-          onClick={() => setIsOpen(!isOpen)} className="my-3 py-8 rounded absolute left-full top-1/2 transform -translate-y-1/2 transition"
-
+          onClick={() => setIsOpen(true)}
+          className="flex items-center gap-2 px-2 py-4 rounded-r-lg text-xs font-semibold tracking-widest uppercase transition-all"
           style={{
             backgroundColor: '#1A1A1A',
             color: '#B8956A',
-            borderTopLeftRadius: '0',
-            borderBottomLeftRadius: '0',
-            borderTopRightRadius: '20px',
-            borderBottomRightRadius: '20px'
+            border: '1px solid rgba(184,149,106,0.3)',
+            borderLeft: 'none',
           }}
-          title="Tasks">
-
-          <div className="flex flex-col items-end gap-1">
-            <div className="w-3 h-px" style={{ backgroundColor: '#B8956A' }}></div>
-            <div className="w-3 h-px" style={{ backgroundColor: '#B8956A' }}></div>
-            <div className="w-3 h-px" style={{ backgroundColor: '#B8956A' }}></div>
-            <p className="text-xs font-semibold mt-2" style={{ color: '#B8956A', writingMode: 'vertical-rl', transform: 'rotate(180deg)', letterSpacing: '0.05em' }}>TASKS</p>
-          </div>
-          {upcomingTasks.length > 0 &&
-          <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></div>
-          }
+        >
+          {totalCount > 0 && (
+            <span className="w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold" style={{ backgroundColor: '#B8956A', color: '#1A1A1A', writingMode: 'horizontal-tb' }}>
+              {totalCount}
+            </span>
+          )}
+          Tasks
+          <Bell className="w-3 h-3" style={{ writingMode: 'horizontal-tb' }} />
         </button>
       </div>
 
-      {/* Overlay */}
-      {isOpen &&
-      <div
-        className="fixed inset-0 z-40"
-        style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
-        onClick={() => setIsOpen(false)}>
-      </div>
-      }
-    </>);
+      {/* Slide-out panel */}
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[9991]"
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+            onClick={() => setIsOpen(false)}
+          />
 
+          {/* Panel */}
+          <div
+            className="fixed left-0 top-0 bottom-0 z-[9992] flex flex-col"
+            style={{
+              width: '320px',
+              backgroundColor: '#1A1A1A',
+              borderRight: '1px solid rgba(184,149,106,0.3)',
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4" style={{ color: '#B8956A' }} />
+                <span className="font-semibold text-sm" style={{ color: '#FFFBF5' }}>Tasks</span>
+                {totalCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: 'rgba(184,149,106,0.2)', color: '#B8956A' }}>
+                    {totalCount}
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setIsOpen(false)} style={{ color: 'rgba(255,251,245,0.5)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Section label */}
+            {upcomingTasks.length > 0 && (
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,251,245,0.4)' }}>UPCOMING</p>
+              </div>
+            )}
+
+            {/* Task list */}
+            <div className="flex-1 overflow-y-auto">
+              {upcomingTasks.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-sm" style={{ color: 'rgba(255,251,245,0.4)' }}>No upcoming tasks</p>
+                </div>
+              ) : (
+                upcomingTasks.map(task => (
+                  <button
+                    key={task.id}
+                    onClick={() => navigateToTask(task)}
+                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3 transition-colors hover:bg-white/5"
+                    style={{ borderColor: 'rgba(255,251,245,0.06)' }}
+                  >
+                    <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
+                      <Phone className="w-3 h-3" style={{ color: '#B8956A' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: '#FFFBF5' }}>
+                        {task.contact_name || task.company_name || "Unknown"}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#B8956A' }}>{formatTaskDate(task.activity_date)}</p>
+                      {task.notes && (
+                        <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,251,245,0.4)' }}>
+                          {task.notes.replace(/^\[AI Scheduled\]\s*/, '').slice(0, 60)}
+                        </p>
+                      )}
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 mt-1 shrink-0" style={{ color: 'rgba(255,251,245,0.3)' }} />
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Footer button */}
+            <div className="p-4 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+              <button
+                onClick={navigateToQueue}
+                className="w-full py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+              >
+                Open Full Call Queue →
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
 }
