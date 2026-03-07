@@ -215,12 +215,6 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     .filter(a => new Date(a.activity_date) <= new Date())
     .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date));
 
-  const itemsPerPage = 10;
-  const startIdx = currentPage * itemsPerPage;
-  const endIdx = startIdx + visibleOnCurrentPage;
-  const currentPageActivities = pastActivities.slice(startIdx, endIdx);
-  const totalPages = Math.ceil(pastActivities.length / itemsPerPage);
-
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
       return await base44.entities.ActivityLog.create(data);
@@ -260,6 +254,12 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   const [currentPage, setCurrentPage] = useState(0);
   const [visibleOnCurrentPage, setVisibleOnCurrentPage] = useState(5);
   const [showArchive, setShowArchive] = useState(false);
+
+  const itemsPerPage = 10;
+  const startIdx = currentPage * itemsPerPage;
+  const endIdx = startIdx + visibleOnCurrentPage;
+  const currentPageActivities = pastActivities.slice(startIdx, endIdx);
+  const totalPages = Math.ceil(pastActivities.length / itemsPerPage);
 
   const handlePictureChange = async (e) => {
     const files = Array.from(e.target.files || []);
