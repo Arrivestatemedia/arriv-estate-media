@@ -906,7 +906,6 @@ export default function HubSpotActivityLog() {
                                </button>
                              )}
                              <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
-                            <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
                           </div>
                         </div>
                       </CardContent>
