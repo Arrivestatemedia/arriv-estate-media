@@ -50,8 +50,14 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
         }
       });
 
-      // Get upcoming activities from recent logs (most recent = most relevant for follow-up)
-      let upcoming = allLogs.slice(0, 10);
+      // Get upcoming activities from recent logs
+      let upcoming = allLogs
+        .filter(a => {
+          const d = new Date(a.activity_date);
+          return d >= now && d <= in7Days;
+        })
+        .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
+        .slice(0, 10);
 
       // Enrich with HubSpot phone numbers for activities missing phone data
       upcoming = await Promise.all(upcoming.map(async (a) => {
@@ -63,12 +69,11 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
             const res = await base44.functions.invoke('searchHubSpotContacts', {
               query: a.contact_email || a.contact_name
             });
-            const contacts = res.data?.contacts || [];
-            if (contacts.length > 0 && contacts[0].phone) {
-              phone = contacts[0].phone;
+            if (res.data?.contacts?.[0]?.phone) {
+              phone = res.data.contacts[0].phone;
             }
           } catch (e) {
-            console.error('HubSpot lookup failed:', e);
+            // Silently fail HubSpot lookup
           }
         }
         
@@ -88,8 +93,9 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
       // Already on the page — dispatch event directly
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
     } else {
-      // All sales team members (including admins) use HubSpotActivityLog for the queue
-      window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=queue';
+      // Navigate to the appropriate page with tab=queue URL param
+      const targetPage = isAdmin ? 'AdminActivityPage' : 'HubSpotActivityLog';
+      window.location.href = createPageUrl(targetPage) + '?tab=queue';
     }
   };
 
