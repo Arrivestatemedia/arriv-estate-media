@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { createPageUrl } from "@/utils";
 import { Bell, Phone, ChevronRight, X } from "lucide-react";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
 
@@ -8,6 +10,14 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
   const [isOpen, setIsOpen] = useState(false);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [salesMember, setSalesMember] = useState(null);
+  const navigate = useNavigate();
+
+  const goToCallQueue = () => {
+    setIsOpen(false);
+    // Navigate to AdminActivityPage with queue tab
+    sessionStorage.setItem('_switchToQueueSubTab', 'true');
+    navigate(createPageUrl('AdminActivityPage'));
+  };
 
   useEffect(() => {
     if (!userEmail) return;
@@ -169,9 +179,10 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                 </div>
               ) : (
                 upcomingTasks.map(task => (
-                  <div
+                  <button
                     key={task.id}
-                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3"
+                    onClick={goToCallQueue}
+                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3 transition-colors hover:bg-white/5"
                     style={{ borderColor: 'rgba(255,251,245,0.06)' }}
                   >
                     <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
@@ -193,7 +204,8 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                         </p>
                       )}
                     </div>
-                  </div>
+                    <ChevronRight className="w-3.5 h-3.5 mt-1 shrink-0" style={{ color: 'rgba(255,251,245,0.3)' }} />
+                  </button>
                 ))
               )}
             </div>
