@@ -171,7 +171,13 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
   return record;
 }
 
-function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, urgency, reason, suggestedOpener, contactIntel, patternTags, onOutcomeLogged }) {
+const channelConfig = {
+  call: { label: "Call", icon: "📞", color: "#B8956A" },
+  text: { label: "Text", icon: "💬", color: "#3B82F6" },
+  email: { label: "Email", icon: "✉️", color: "#8B5CF6" },
+};
+
+function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, urgency, channel, channelReason, reason, suggestedOpener, contactIntel, patternTags, onOutcomeLogged }) {
   const [expanded, setExpanded] = useState(false);
   const [generatingScript, setGeneratingScript] = useState(false);
   const [script, setScript] = useState(suggestedOpener || null);
