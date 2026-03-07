@@ -484,21 +484,38 @@ export default function HubSpotActivityLog() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.notes.trim()) {
       alert("Please add notes about the activity");
       return;
     }
-    createActivityMutation.mutate({
+    
+    const contactData = {
       ...formData,
       picture_urls: formPictureUrls,
       contact_name: selectedContactObj?.name || "",
       contact_email: selectedContactObj?.email || "",
-      contact_phone: selectedContactObj?.phone || "",
+      contact_phone: selectedContactObj?.phone || formData.contact_phone || "",
       company_name: selectedContactObj?.company || "",
       sales_member_email: user?.email,
       sales_member_id: user?.id
-    });
+    };
+    
+    // If contact has email and isn't from dropdown (i.e., new contact), sync to HubSpot
+    if (contactData.contact_email && !selectedContactObj?.email) {
+      try {
+        await base44.functions.invoke('updateHubSpotContact', {
+          email: contactData.contact_email,
+          firstName: contactData.contact_name?.split(' ')[0] || '',
+          lastName: contactData.contact_name?.split(' ').slice(1).join(' ') || '',
+          phone: contactData.contact_phone || ''
+        });
+      } catch (error) {
+        console.error('Failed to sync contact to HubSpot:', error);
+      }
+    }
+    
+    createActivityMutation.mutate(contactData);
   };
 
   const handleActivityClick = async (activity) => {
