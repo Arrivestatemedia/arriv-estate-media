@@ -265,14 +265,18 @@ export default function HubSpotActivityLog() {
       setActiveTab("email");
     };
 
+    const handleSwitchToQueue = () => setActiveTab("queue");
+
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openDialer', handleOpenDialer);
     window.addEventListener('openEmailComposer', handleOpenEmailComposer);
+    window.addEventListener('switchToQueueTab', handleSwitchToQueue);
 
     return () => {
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
       window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
+      window.removeEventListener('switchToQueueTab', handleSwitchToQueue);
     };
   }, []);
 
