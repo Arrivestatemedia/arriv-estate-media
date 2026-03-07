@@ -74,8 +74,8 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
       // Already on the page — dispatch event directly
       window.dispatchEvent(new CustomEvent('switchToQueueTab'));
     } else {
-      // Store in sessionStorage so the destination page fires it after mounting
-      sessionStorage.setItem('_pendingTabSwitch', 'queue');
+      // Navigate and store flag for immediate switch on mount
+      sessionStorage.setItem('_switchToQueue', 'true');
       navigate(createPageUrl('HubSpotActivityLog'));
     }
   };
