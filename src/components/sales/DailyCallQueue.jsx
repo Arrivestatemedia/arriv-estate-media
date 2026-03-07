@@ -713,6 +713,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                 urgency={meta.urgency}
                 reason={meta.reason}
                 suggestedOpener={meta.suggestedOpener}
+                contactIntel={meta.contactIntel}
                 patternTags={meta.patternTags}
                 onOutcomeLogged={() => setRefreshKey(k => k + 1)}
               />
