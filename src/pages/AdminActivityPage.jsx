@@ -159,11 +159,16 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
 
     const handleSwitchToQueue = () => setActiveTab("queue");
 
+    const handleAdminNavigateToQueue = () => {
+      setActiveTab("queue");
+    };
+
     window.addEventListener('contactCardReady', handleContactCardReady);
     window.addEventListener('dialerCardReady', handleDialerCardReady);
     window.addEventListener('emailCardReady', handleEmailCardReady);
     window.addEventListener('switchToQueueTab', handleSwitchToQueue);
     window.addEventListener('openDialer', handleOpenDialer);
+    window.addEventListener('adminNavigateToQueue', handleAdminNavigateToQueue);
 
     // Check if NotificationPanel stored a pending tab switch
     const pending = sessionStorage.getItem('_pendingTabSwitch');
