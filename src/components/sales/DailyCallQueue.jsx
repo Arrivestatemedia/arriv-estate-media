@@ -109,14 +109,23 @@ RESPECT THEIR STATED PREFERENCE ABOVE ALL ELSE:
 BEST DAYS: Tuesday > Wednesday > Thursday > Monday after 10am. Avoid Friday PM and weekends.
 BEST TIMES: 8–9am > 12–1pm > 5–7pm > 9:30–10:30am.
 
+CHANNEL SELECTION — pick the best outreach method based on history:
+- Default: call
+- Switch to TEXT if: they've responded positively to texts in history, they said "text me", 3+ no-answer calls in a row, or they seem to prefer async communication
+- Switch to EMAIL if: they're a heavy email communicator based on history, they asked to be emailed, or it's a formal/complex follow-up that needs written detail
+- If unsure: call is safest for first contact; text is great for warm leads who aren't picking up; email for detailed proposals
+- Note: "no_answer 3+ times" → switch to text as primary
+
 SEARCH: Look up "${searchQuery}" — find active listings, brokerage, market area. If they have an active listing we haven't shot, flag urgency: high.
 
-${allPictureUrls.length > 0 ? `\nATTACHED IMAGES: There are ${allPictureUrls.length} image(s) attached from past activities (e.g. screenshots of conversations, texts, emails). READ THEM. They may contain context about what was discussed, agreements made, or what the contact said — treat this as primary evidence when deciding timing.` : ""}
+${allPictureUrls.length > 0 ? `\nATTACHED IMAGES: There are ${allPictureUrls.length} image(s) attached from past activities (e.g. screenshots of conversations, texts, emails). READ THEM. They may contain context about what was discussed, agreements made, or what the contact said — treat this as primary evidence when deciding timing and channel.` : ""}
 
 OUTPUT valid JSON only:
 {
   "follow_up_date_time": "YYYY-MM-DDTHH:mm:ss",
   "urgency": "high" | "medium" | "low" | "skip",
+  "channel": "call" | "text" | "email",
+  "channel_reason": "One sentence on why this channel was chosen",
   "reason": "Short, plain-English reason referencing the specific signal",
   "suggested_opener": "A casual, natural 1-2 sentence opener — sounds like a real person talking, not a script",
   "contact_intel": "1-2 sentences on what you found about this realtor online",
