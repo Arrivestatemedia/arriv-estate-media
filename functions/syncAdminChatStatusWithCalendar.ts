@@ -4,21 +4,13 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Get the admin email from env (set as a secret)
+    // Get Google Calendar access token
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
+
     const adminEmail = Deno.env.get('ADMIN_EMAIL');
     if (!adminEmail) {
       return Response.json({ error: 'ADMIN_EMAIL secret not set' }, { status: 500 });
     }
-
-    // Find the admin user by email
-    const users = await base44.asServiceRole.entities.User.filter({ email: adminEmail });
-    const adminUser = users[0];
-    if (!adminUser) {
-      return Response.json({ error: 'Admin user not found' }, { status: 404 });
-    }
-
-    // Get Google Calendar access token
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
 
     const now = new Date();
     const timeMin = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
@@ -48,7 +40,11 @@ Deno.serve(async (req) => {
     const hasActiveEvent = relevantEvents.length > 0;
     const newStatus = hasActiveEvent ? 'in_meeting' : 'available';
 
-    await base44.asServiceRole.entities.User.update(adminUser.id, { chat_status: newStatus });
+    // Find admin SalesTeamMember by email and update their chat_status
+    const adminMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: adminEmail });
+    if (adminMembers && adminMembers.length > 0) {
+      await base44.asServiceRole.entities.SalesTeamMember.update(adminMembers[0].id, { chat_status: newStatus });
+    }
 
     return Response.json({ status: newStatus, hasActiveEvent });
   } catch (error) {
