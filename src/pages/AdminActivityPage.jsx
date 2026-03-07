@@ -741,6 +741,11 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                                 <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
                                 {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
                                 {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                                {activity.contact_phone && (
+                                  <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', activity.contact_phone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
+                                    <Phone className="w-3 h-3" />{activity.contact_phone}
+                                  </button>
+                                )}
                                 <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
                                 {activity.duration_minutes > 0 && (
                                   <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
