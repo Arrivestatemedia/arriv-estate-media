@@ -111,6 +111,8 @@ BEST TIMES: 8–9am > 12–1pm > 5–7pm > 9:30–10:30am.
 
 SEARCH: Look up "${searchQuery}" — find active listings, brokerage, market area. If they have an active listing we haven't shot, flag urgency: high.
 
+${allPictureUrls.length > 0 ? `\nATTACHED IMAGES: There are ${allPictureUrls.length} image(s) attached from past activities (e.g. screenshots of conversations, texts, emails). READ THEM. They may contain context about what was discussed, agreements made, or what the contact said — treat this as primary evidence when deciding timing.` : ""}
+
 OUTPUT valid JSON only:
 {
   "follow_up_date_time": "YYYY-MM-DDTHH:mm:ss",
@@ -121,6 +123,7 @@ OUTPUT valid JSON only:
   "pattern_tags": ["tag1", "tag2"]
 }`,
     add_context_from_internet: true,
+    file_urls: allPictureUrls.length > 0 ? allPictureUrls : undefined,
     response_json_schema: {
       type: "object",
       properties: {
