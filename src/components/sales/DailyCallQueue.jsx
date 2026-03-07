@@ -138,6 +138,8 @@ OUTPUT valid JSON only:
       properties: {
         follow_up_date_time: { type: "string" },
         urgency: { type: "string" },
+        channel: { type: "string" },
+        channel_reason: { type: "string" },
         reason: { type: "string" },
         suggested_opener: { type: "string" },
         contact_intel: { type: "string" },
