@@ -138,14 +138,25 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       }
     };
 
+    const handleSwitchToQueue = () => setActiveTab("queue");
+
     window.addEventListener('contactCardReady', handleContactCardReady);
     window.addEventListener('dialerCardReady', handleDialerCardReady);
     window.addEventListener('emailCardReady', handleEmailCardReady);
+    window.addEventListener('switchToQueueTab', handleSwitchToQueue);
+
+    // Check if NotificationPanel stored a pending tab switch
+    const pending = sessionStorage.getItem('_pendingTabSwitch');
+    if (pending === 'queue') {
+      sessionStorage.removeItem('_pendingTabSwitch');
+      setActiveTab('queue');
+    }
 
     return () => {
       window.removeEventListener('contactCardReady', handleContactCardReady);
       window.removeEventListener('dialerCardReady', handleDialerCardReady);
       window.removeEventListener('emailCardReady', handleEmailCardReady);
+      window.removeEventListener('switchToQueueTab', handleSwitchToQueue);
     };
   }, []);
 
