@@ -57,8 +57,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam) {
-      setActiveTab(tabParam);
+    if (tabParam === 'queue') {
+      setActiveTab('queue');
     }
   }, [location.search]);
 

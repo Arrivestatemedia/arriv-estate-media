@@ -78,6 +78,14 @@ export default function IphoneDialer({ salesMemberId }) {
       setError('Unable to verify account');
     });
     
+    // Check for pre-loaded phone number from dialer click
+    const dialerPhone = localStorage.getItem('_dialerPhone');
+    if (dialerPhone) {
+      setKeypadInput(dialerPhone);
+      setActiveTab(TABS.KEYPAD);
+      localStorage.removeItem('_dialerPhone');
+    }
+    
     setTimeout(() => {
       loadCallLogs().catch(() => {});
       loadConversations().catch(() => {});
