@@ -272,6 +272,13 @@ export default function HubSpotActivityLog() {
     window.addEventListener('openEmailComposer', handleOpenEmailComposer);
     window.addEventListener('switchToQueueTab', handleSwitchToQueue);
 
+    // Check if NotificationPanel stored a pending tab switch
+    const pending = sessionStorage.getItem('_pendingTabSwitch');
+    if (pending === 'queue') {
+      sessionStorage.removeItem('_pendingTabSwitch');
+      setActiveTab('queue');
+    }
+
     return () => {
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
