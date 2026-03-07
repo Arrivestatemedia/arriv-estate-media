@@ -421,6 +421,11 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
                     {reason}
                   </p>
                 )}
+                {channelReason && (
+                  <p className="text-xs mt-0.5 flex items-start gap-1" style={{ color: channelConfig[channel]?.color || 'rgba(26,26,26,0.45)' }}>
+                    {channelConfig[channel]?.icon} {channelReason}
+                  </p>
+                )}
                 {contactIntel && (
                   <p className="text-xs mt-0.5 flex items-start gap-1" style={{ color: 'rgba(26,26,26,0.45)' }}>
                     🔍 {contactIntel}
