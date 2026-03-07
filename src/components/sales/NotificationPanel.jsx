@@ -177,7 +177,7 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
 
                 {/* CTA to open queue */}
                  <button
-                   onClick={() => { setIsOpen(false); window.location.href = queueLink; }}
+                   onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('switchToQueueTab')); }}
                    className="w-full mt-2 py-2 rounded-lg text-sm font-medium transition"
                    style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
                  >
