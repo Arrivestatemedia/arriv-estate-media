@@ -912,7 +912,7 @@ export default function HubSpotActivityLog() {
                               </div>
                               <div className="flex-1">
                                 <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
-                                <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={() => {
+                                 <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={() => {
                                   setPrefilledContactData({
                                     firstName: activity.contact_name?.split(' ')[0] || '',
                                     lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '',
@@ -925,6 +925,11 @@ export default function HubSpotActivityLog() {
                                 }}>{activity.contact_name || activity.company_name}</p>
                                 {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
                                 {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.company_name}</p>}
+                                {activity.contact_phone && (
+                                  <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', activity.contact_phone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
+                                    <Phone className="w-3 h-3" />{activity.contact_phone}
+                                  </button>
+                                )}
                                 <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
                                 {activity.duration_minutes > 0 && (
                                   <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.duration_minutes} minutes</p>
