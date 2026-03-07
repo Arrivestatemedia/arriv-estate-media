@@ -138,7 +138,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
 
           {/* Panel */}
           <div
-            className="fixed left-0 top-0 bottom-0 z-[9992] flex flex-col"
+            className="fixed left-0 top-0 bottom-0 z-[9992] flex flex-col pointer-events-none"
             style={{
               width: '320px',
               backgroundColor: '#1A1A1A',
