@@ -161,6 +161,7 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
     scheduledFollowUp ? format(new Date(scheduledFollowUp.activity_date), "yyyy-MM-dd'T'HH:mm") : ""
   );
   const [savingDate, setSavingDate] = useState(false);
+  const [deletingFollowUp, setDeletingFollowUp] = useState(false);
 
   const priority = getPriorityLabel(urgency || "medium");
   const bestTime = getBestTime(contact);
