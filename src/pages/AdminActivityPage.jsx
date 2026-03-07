@@ -25,24 +25,7 @@ import DailyCallQueue from "@/components/sales/DailyCallQueue";
 export default function AdminActivityPage({ user: propsUser, initialSubTab, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
   const location = useLocation();
   const [user, setUser] = useState(propsUser);
-  
-  // Initialize activeTab from URL or sessionStorage — NO flicker
-  const getInitialTab = () => {
-    const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
-    if (tabParam === 'queue') {
-      sessionStorage.removeItem('_pendingTabSwitch'); // clear if it exists
-      return 'queue';
-    }
-    const pending = sessionStorage.getItem('_pendingTabSwitch');
-    if (pending === 'queue') {
-      sessionStorage.removeItem('_pendingTabSwitch');
-      return 'queue';
-    }
-    return initialSubTab || "activity";
-  };
-  
-  const [activeTab, setActiveTab] = useState(getInitialTab());
+  const [activeTab, setActiveTab] = useState(initialSubTab || "activity");
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [contacts, setContacts] = useState([]);
@@ -70,7 +53,14 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     }
   }, [propsUser]);
 
-
+  // Read tab from URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'queue') {
+      setActiveTab('queue');
+    }
+  }, [location.search]);
 
   // Load contacts when modal opens
   React.useEffect(() => {
@@ -172,6 +162,13 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     window.addEventListener('emailCardReady', handleEmailCardReady);
     window.addEventListener('switchToQueueTab', handleSwitchToQueue);
     window.addEventListener('openDialer', handleOpenDialer);
+
+    // Check if NotificationPanel stored a pending tab switch
+    const pending = sessionStorage.getItem('_pendingTabSwitch');
+    if (pending === 'queue') {
+      sessionStorage.removeItem('_pendingTabSwitch');
+      setActiveTab('queue');
+    }
 
     return () => {
       window.removeEventListener('contactCardReady', handleContactCardReady);
