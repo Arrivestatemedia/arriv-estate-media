@@ -179,7 +179,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                    <button
                      key={task.id}
                      onClick={handleTaskClick}
-                     className="w-full text-left px-4 py-3 border-b flex items-start gap-3 hover:bg-white/5 transition-colors"
+                     className="w-full text-left px-4 py-3 border-b flex items-start gap-3 hover:bg-white/5 transition-colors pointer-events-auto"
                      style={{ borderColor: 'rgba(255,251,245,0.06)' }}
                    >
                     <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
