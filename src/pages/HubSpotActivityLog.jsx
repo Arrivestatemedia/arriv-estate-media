@@ -953,6 +953,9 @@ export default function HubSpotActivityLog() {
                                 )}
                                 <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
                                 {activity.duration_minutes > 0 && (
+                                  <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.duration_minutes} min</p>
+                                )}
+                                {activity.duration_minutes > 0 && (
                                   <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.duration_minutes} minutes</p>
                                 )}
                               </div>
