@@ -1,54 +1,55 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const adminUser = await base44.auth.me();
-    
-    if (!adminUser) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Get the admin email from env (set as a secret)
+    const adminEmail = Deno.env.get('ADMIN_EMAIL');
+    if (!adminEmail) {
+      return Response.json({ error: 'ADMIN_EMAIL secret not set' }, { status: 500 });
     }
 
-    const adminEmail = adminUser.email;
-    
+    // Find the admin user by email
+    const users = await base44.asServiceRole.entities.User.filter({ email: adminEmail });
+    const adminUser = users[0];
+    if (!adminUser) {
+      return Response.json({ error: 'Admin user not found' }, { status: 404 });
+    }
+
     // Get Google Calendar access token
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
-    
-    // Fetch events for the admin's email with time range (current time ± 1 hour to catch active meetings)
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlecalendar');
+
     const now = new Date();
-    const timeMin = new Date(now.getTime() - 60 * 60 * 1000).toISOString(); // 1 hour ago
-    const timeMax = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1 hour from now
-    
+    const timeMin = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+    const timeMax = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+
     const calResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
       {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
     );
-    
+
     const calData = await calResponse.json();
-    
-    // Only count events that are currently ongoing AND include the admin's email
+
     const relevantEvents = (calData.items || []).filter(event => {
       const organizerEmail = (event.organizer?.email || '').toLowerCase();
       const attendeeEmails = (event.attendees || []).map(a => (a.email || '').toLowerCase());
       const includesAdmin = organizerEmail === adminEmail.toLowerCase() || attendeeEmails.includes(adminEmail.toLowerCase());
-      
-      // Check if event is currently ongoing
+
       const startTime = new Date(event.start?.dateTime || event.start?.date);
       const endTime = new Date(event.end?.dateTime || event.end?.date);
-      // Consider event ended if it's within 30 seconds of end time (handles sync delays)
       const isOngoing = startTime <= now && endTime > new Date(now.getTime() + 30000);
-      
+
       return includesAdmin && isOngoing;
     });
-    
+
     const hasActiveEvent = relevantEvents.length > 0;
     const newStatus = hasActiveEvent ? 'in_meeting' : 'available';
-    
-    // Update admin's chat status via service role since automation can't use updateMe
+
     await base44.asServiceRole.entities.User.update(adminUser.id, { chat_status: newStatus });
-    
+
     return Response.json({ status: newStatus, hasActiveEvent });
   } catch (error) {
     console.error('Admin calendar sync error:', error);
