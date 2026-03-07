@@ -397,9 +397,14 @@ FORMAT:
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>Scheduled Follow-up</p>
                   {!editingDate && (
-                    <button onClick={() => setEditingDate(true)} className="flex items-center gap-1 text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                      <Pencil className="w-3 h-3" /> Edit
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setEditingDate(true)} className="flex items-center gap-1 text-xs" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                        <Pencil className="w-3 h-3" /> Edit
+                      </button>
+                      <button onClick={deleteFollowUp} disabled={deletingFollowUp} className="flex items-center gap-1 text-xs" style={{ color: '#ef4444' }}>
+                        <Trash2 className="w-3 h-3" /> {deletingFollowUp ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
                   )}
                 </div>
                 {editingDate ? (
