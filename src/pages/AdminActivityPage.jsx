@@ -225,16 +225,45 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     enabled: !!user,
   });
 
-  // Build phone lookup from all activities
-  const phoneLookup = {};
-  activities.forEach(a => {
-    if (a.contact_email && a.contact_phone && !phoneLookup[a.contact_email]) {
-      phoneLookup[a.contact_email] = a.contact_phone;
-    }
-    if (a.contact_name && a.contact_phone && !phoneLookup[a.contact_name]) {
-      phoneLookup[a.contact_name] = a.contact_phone;
-    }
-  });
+  // Build phone lookup from all activities + HubSpot enrichment
+  const [phoneLookup, setPhoneLookup] = React.useState({});
+
+  React.useEffect(() => {
+    const buildLookup = async () => {
+      const lookup = {};
+      
+      // First pass: collect from existing activity records
+      activities.forEach(a => {
+        if (a.contact_email && a.contact_phone && !lookup[a.contact_email]) {
+          lookup[a.contact_email] = a.contact_phone;
+        }
+        if (a.contact_name && a.contact_phone && !lookup[a.contact_name]) {
+          lookup[a.contact_name] = a.contact_phone;
+        }
+      });
+
+      // Second pass: enrich missing phones from HubSpot
+      const missingPhoneEmails = activities
+        .filter(a => a.contact_email && !lookup[a.contact_email])
+        .map(a => a.contact_email)
+        .filter((v, i, a) => a.indexOf(v) === i); // dedupe
+
+      for (const email of missingPhoneEmails) {
+        try {
+          const res = await base44.functions.invoke('searchHubSpotContacts', { query: email });
+          if (res.data?.contacts?.[0]?.phone) {
+            lookup[email] = res.data.contacts[0].phone;
+          }
+        } catch (err) {
+          // Silent fail — contact just won't have phone
+        }
+      }
+
+      setPhoneLookup(lookup);
+    };
+
+    buildLookup();
+  }, [activities]);
 
   const upcomingActivities = activities
     .filter(a => new Date(a.activity_date) > new Date())
