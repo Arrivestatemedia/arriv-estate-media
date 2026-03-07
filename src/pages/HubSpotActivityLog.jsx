@@ -865,7 +865,7 @@ export default function HubSpotActivityLog() {
                     // Ensure phone is always present (from activity record, lookup, or will be fetched on demand)
                     const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
                     return (
-                    <Card 
+                      <Card 
                       key={activity.id} 
                       style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.1)' }}
                       className="cursor-pointer hover:shadow-md transition"
