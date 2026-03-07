@@ -563,18 +563,23 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
 
       setContacts(filtered);
 
-      // Build scheduledMap: for each contact, find their earliest future ActivityLog that is AI-scheduled
-      // An AI-scheduled follow-up has notes starting with "[AI Scheduled]" or "[Queue Call]" follow-ups
+      // Build scheduledMap: for each contact, keep ONLY the earliest upcoming scheduled call.
+      // Delete any duplicates (extra AI-scheduled records) automatically.
       const newScheduledMap = {};
+      const deletePromises = [];
       filtered.forEach(contact => {
-        // Find the earliest upcoming scheduled call for this contact
         const upcoming = contact.upcoming
           .filter(a => a.activity_type === "call" || a.activity_type === "task")
           .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date));
         if (upcoming.length > 0) {
           newScheduledMap[contact.key] = upcoming[0];
+          // Delete any extras silently
+          upcoming.slice(1).forEach(dupe => {
+            deletePromises.push(base44.entities.ActivityLog.delete(dupe.id).catch(() => {}));
+          });
         }
       });
+      if (deletePromises.length > 0) Promise.all(deletePromises);
       setScheduledMap(newScheduledMap);
 
       setLoading(false);
