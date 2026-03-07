@@ -170,7 +170,7 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
   return record;
 }
 
-function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, urgency, reason, suggestedOpener, patternTags, onOutcomeLogged }) {
+function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, urgency, reason, suggestedOpener, contactIntel, patternTags, onOutcomeLogged }) {
   const [expanded, setExpanded] = useState(false);
   const [generatingScript, setGeneratingScript] = useState(false);
   const [script, setScript] = useState(suggestedOpener || null);
