@@ -596,6 +596,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                 urgency: analysis.urgency,
                 reason: analysis.reason,
                 suggestedOpener: analysis.suggested_opener,
+                contactIntel: analysis.contact_intel || "",
                 patternTags: analysis.pattern_tags || []
               };
             } catch (e) {
