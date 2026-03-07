@@ -206,8 +206,24 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
               )}
             </div>
 
+            {/* Footer with Open Full Call Queue button */}
+            <div className="px-4 py-3 border-t pointer-events-auto" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+              <button
+                onClick={() => {
+                  window.location.href = queueUrl;
+                }}
+                className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 hover:opacity-90"
+                style={{
+                  backgroundColor: '#B8956A',
+                  color: '#1A1A1A'
+                }}
+              >
+                Open Full Call Queue
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
 
-          </div>
+            </div>
         </>
       )}
     </>
