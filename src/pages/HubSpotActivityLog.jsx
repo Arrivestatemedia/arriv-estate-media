@@ -370,7 +370,7 @@ export default function HubSpotActivityLog() {
     .filter(a => new Date(a.activity_date) <= new Date())
     .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date))
     .map(a => {
-      const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
+      const phone = a.contact_phone || hubspotPhoneLookup[a.contact_email] || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
       return { ...a, contact_phone: phone };
     });
 
