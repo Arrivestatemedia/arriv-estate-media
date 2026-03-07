@@ -333,13 +333,36 @@ export default function HubSpotActivityLog() {
     }
   });
 
-  // Enrich upcoming activities with phone from history lookup
+  // Enrich upcoming activities with phone from HubSpot or history
+  const [hubspotPhoneLookup, setHubspotPhoneLookup] = useState({});
+  
+  useEffect(() => {
+    const upcomingEmails = activities
+      .filter(a => new Date(a.activity_date) > new Date() && a.contact_email && !a.contact_phone)
+      .map(a => a.contact_email)
+      .filter((v, i, a) => a.indexOf(v) === i); // unique emails
+
+    if (upcomingEmails.length > 0) {
+      Promise.all(upcomingEmails.map(email =>
+        base44.functions.invoke('searchHubSpotContacts', { query: email })
+          .then(res => ({ email, phone: res.data?.contacts?.[0]?.phone || '' }))
+          .catch(() => ({ email, phone: '' }))
+      )).then(results => {
+        const lookup = {};
+        results.forEach(({ email, phone }) => {
+          if (phone) lookup[email] = phone;
+        });
+        setHubspotPhoneLookup(lookup);
+      });
+    }
+  }, [activities]);
+
   const upcomingActivities = activities
     .filter(a => new Date(a.activity_date) > new Date())
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5)
     .map(a => {
-      const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
+      const phone = a.contact_phone || hubspotPhoneLookup[a.contact_email] || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
       return { ...a, contact_phone: phone };
     });
 
