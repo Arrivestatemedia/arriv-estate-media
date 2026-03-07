@@ -345,7 +345,11 @@ export default function HubSpotActivityLog() {
 
   const pastActivities = [...activities]
     .filter(a => new Date(a.activity_date) <= new Date())
-    .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date));
+    .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date))
+    .map(a => {
+      const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
+      return { ...a, contact_phone: phone };
+    });
 
   const itemsPerPage = 10;
   const startIdx = currentPage * itemsPerPage;
@@ -952,9 +956,6 @@ export default function HubSpotActivityLog() {
                                   </button>
                                 )}
                                 <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes.replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '')}</p>
-                                {activity.duration_minutes > 0 && (
-                                  <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.duration_minutes} min</p>
-                                )}
                                 {activity.duration_minutes > 0 && (
                                   <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.duration_minutes} minutes</p>
                                 )}
