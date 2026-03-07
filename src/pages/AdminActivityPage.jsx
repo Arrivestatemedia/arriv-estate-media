@@ -25,7 +25,24 @@ import DailyCallQueue from "@/components/sales/DailyCallQueue";
 export default function AdminActivityPage({ user: propsUser, initialSubTab, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
   const location = useLocation();
   const [user, setUser] = useState(propsUser);
-  const [activeTab, setActiveTab] = useState(initialSubTab || "activity");
+  
+  // Initialize activeTab from URL param, sessionStorage, or default to "activity"
+  const [activeTab, setActiveTab] = useState(() => {
+    // Check URL param first (highest priority)
+    const params = new URLSearchParams(location.search);
+    if (params.get('tab') === 'queue') {
+      return 'queue';
+    }
+    // Check sessionStorage for pending switch
+    const pending = sessionStorage.getItem('_pendingTabSwitch');
+    if (pending === 'queue') {
+      sessionStorage.removeItem('_pendingTabSwitch');
+      return 'queue';
+    }
+    // Fall back to initialSubTab or default
+    return initialSubTab || "activity";
+  });
+  
   const [showForm, setShowForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [contacts, setContacts] = useState([]);
