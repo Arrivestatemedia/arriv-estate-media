@@ -161,6 +161,7 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
     activity_type: "call",
     contact_name: contact.name,
     contact_email: contact.email,
+    contact_phone: contact.phone || "",
     company_name: contact.company,
     activity_date: followUpDate.toISOString(),
     notes: `[AI Scheduled] ${analysis.reason || "Follow-up call"} | Opener: ${analysis.suggested_opener || ""}`,
