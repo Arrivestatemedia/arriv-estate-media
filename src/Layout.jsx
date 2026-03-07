@@ -13,6 +13,7 @@ import MediaPartnerGate from "@/components/orientation/MediaPartnerGate";
 import TrackLink from "@/pages/TrackLink";
 import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContext";
 import NotificationPanel from "@/components/sales/NotificationPanel";
+import AdminNotificationPanel from "@/components/sales/AdminNotificationPanel";
 
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
