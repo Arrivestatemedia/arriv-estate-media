@@ -24,17 +24,12 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
   const loadData = async () => {
     if (!userEmail) return;
     try {
-      const members = await base44.entities.SalesTeamMember.filter({ email: userEmail });
-      const member = members?.[0];
-      if (!member) return;
-      setSalesMember(member);
-
       const now = new Date();
       const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-      // Fetch all logs to build comprehensive phone lookup
+      // Fetch all logs by email (works for both sales reps and admins)
       const allLogs = await base44.entities.ActivityLog.filter(
-        { sales_member_id: member.id },
+        { sales_member_email: userEmail },
         '-activity_date',
         200
       );

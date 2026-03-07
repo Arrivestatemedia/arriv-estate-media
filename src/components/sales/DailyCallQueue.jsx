@@ -593,19 +593,15 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
     setLoading(true);
 
     try {
-      const [all, pastInsights] = await Promise.all([
-        base44.entities.ActivityLog.list('-activity_date', 500),
+      const [allByEmail, pastInsights] = await Promise.all([
+        sem ? base44.entities.ActivityLog.filter({ sales_member_email: sem }, '-activity_date', 500) : Promise.resolve([]),
         sid ? base44.entities.QueueInsight.filter({ sales_member_id: sid }, '-logged_at', 200) : Promise.resolve([])
       ]);
 
       setInsightCount(pastInsights.length);
       const learnedContext = buildLearnedContext(pastInsights);
 
-      const mine = all.filter(a =>
-        a.sales_member_id === sid ||
-        a.sales_member_email === sem ||
-        a.created_by === sem
-      );
+      const mine = allByEmail;
 
       const now = new Date();
       const startOfToday = startOfDay(now);
