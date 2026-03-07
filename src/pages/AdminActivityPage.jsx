@@ -225,14 +225,33 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     enabled: !!user,
   });
 
+  // Build phone lookup from all activities
+  const phoneLookup = {};
+  activities.forEach(a => {
+    if (a.contact_email && a.contact_phone && !phoneLookup[a.contact_email]) {
+      phoneLookup[a.contact_email] = a.contact_phone;
+    }
+    if (a.contact_name && a.contact_phone && !phoneLookup[a.contact_name]) {
+      phoneLookup[a.contact_name] = a.contact_phone;
+    }
+  });
+
   const upcomingActivities = activities
     .filter(a => new Date(a.activity_date) > new Date())
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(a => ({
+      ...a,
+      contact_phone: a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || ''
+    }));
 
   const pastActivities = [...activities]
     .filter(a => new Date(a.activity_date) <= new Date())
-    .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date));
+    .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date))
+    .map(a => ({
+      ...a,
+      contact_phone: a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || ''
+    }));
 
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
@@ -315,6 +334,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       ...formData,
       contact_name: selectedContactObj?.name || "",
       contact_email: selectedContactObj?.email || "",
+      contact_phone: selectedContactObj?.phone || "",
       company_name: selectedContactObj?.company || "",
       sales_member_email: user?.email,
       sales_member_id: user?.id
