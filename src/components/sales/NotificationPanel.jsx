@@ -32,24 +32,26 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
       const now = new Date();
       const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-      const logs = await base44.entities.ActivityLog.filter(
+      // Fetch all logs to build comprehensive phone lookup
+      const allLogs = await base44.entities.ActivityLog.filter(
         { sales_member_id: member.id },
-        'activity_date',
-        50
+        '-activity_date',
+        200
       );
 
-      // Build phone lookup from all logs
+      // Build aggressive phone lookup from entire history
       const phoneLookup = {};
-      logs.forEach(a => {
-        if (a.contact_email && a.contact_phone && !phoneLookup[a.contact_email]) {
+      allLogs.forEach(a => {
+        if (a.contact_email && a.contact_phone) {
           phoneLookup[a.contact_email] = a.contact_phone;
         }
-        if (a.contact_name && a.contact_phone && !phoneLookup[a.contact_name]) {
+        if (a.contact_name && a.contact_phone) {
           phoneLookup[a.contact_name] = a.contact_phone;
         }
       });
 
-      const upcoming = logs
+      // Get upcoming activities from recent logs
+      const upcoming = allLogs
         .filter(a => {
           const d = new Date(a.activity_date);
           return d >= now && d <= in7Days;
