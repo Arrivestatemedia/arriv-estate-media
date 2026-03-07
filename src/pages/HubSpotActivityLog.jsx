@@ -905,7 +905,7 @@ export default function HubSpotActivityLog() {
                           </div>
                         </div>
                       </CardContent>
-                    </Card>
+                      </Card>
                     );
                   })}
                 </div>
