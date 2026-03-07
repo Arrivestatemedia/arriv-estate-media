@@ -227,6 +227,14 @@ FORMAT:
     }
   };
 
+  const deleteFollowUp = async () => {
+    if (!scheduledFollowUp) return;
+    setDeletingFollowUp(true);
+    await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
+    setDeletingFollowUp(false);
+    if (onOutcomeLogged) onOutcomeLogged();
+  };
+
   const saveEditedDate = async () => {
     if (!scheduledFollowUp || !editDateValue) return;
     setSavingDate(true);
