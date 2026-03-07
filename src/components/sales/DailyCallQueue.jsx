@@ -647,6 +647,8 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
               newScheduledMap[contact.key] = savedRecord;
               newMeta[contact.key] = {
                 urgency: analysis.urgency,
+                channel: analysis.channel || "call",
+                channelReason: analysis.channel_reason || "",
                 reason: analysis.reason,
                 suggestedOpener: analysis.suggested_opener,
                 contactIntel: analysis.contact_intel || "",
