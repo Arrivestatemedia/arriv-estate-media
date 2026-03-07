@@ -604,7 +604,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         const key = a.contact_email || a.contact_name;
         if (!key) return;
         if (!contactMap[key]) {
-          contactMap[key] = { key, name: a.contact_name || '', email: a.contact_email || '', company: a.company_name || '', activities: [], past: [], upcoming: [] };
+          contactMap[key] = { key, name: a.contact_name || '', email: a.contact_email || '', company: a.company_name || '', phone: '', activities: [], past: [], upcoming: [] };
         }
         contactMap[key].activities.push(a);
         if (new Date(a.activity_date) >= startOfToday) {
@@ -614,6 +614,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         }
         if (!contactMap[key].name && a.contact_name) contactMap[key].name = a.contact_name;
         if (!contactMap[key].company && a.company_name) contactMap[key].company = a.company_name;
+        if (!contactMap[key].phone && a.contact_phone) contactMap[key].phone = a.contact_phone;
       });
 
       const filtered = Object.values(contactMap).filter(c => {
