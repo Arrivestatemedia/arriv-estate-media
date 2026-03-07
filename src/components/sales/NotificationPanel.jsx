@@ -14,7 +14,8 @@ const activityIcons = {
 function TaskItem({ task, today, overdue, onClose, queueUrl }) {
   const handleClick = () => {
     onClose();
-    window.location.href = queueUrl;
+    // Try to switch tab in-page first (no reload), fall back to navigation
+    window.dispatchEvent(new CustomEvent('switchToQueueTab'));
   };
 
   return (
