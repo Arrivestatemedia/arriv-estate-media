@@ -184,6 +184,11 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
                         {task.contact_name || task.company_name || "Unknown"}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: '#B8956A' }}>{formatTaskDate(task.activity_date)}</p>
+                      {task.contact_phone && (
+                        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,251,245,0.6)' }}>
+                          📞 {task.contact_phone}
+                        </p>
+                      )}
                       {task.notes && (
                         <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,251,245,0.4)' }}>
                           {task.notes.replace(/^\[AI Scheduled\]\s*/, '').slice(0, 60)}
