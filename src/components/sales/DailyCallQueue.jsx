@@ -409,6 +409,11 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
                       Scheduled: {format(followUpDate, "MMM d 'at' h:mm a")}
                     </span>
                   )}
+                  {channel && channel !== "call" && (
+                    <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${channelConfig[channel]?.color}18`, color: channelConfig[channel]?.color }}>
+                      {channelConfig[channel]?.icon} via {channelConfig[channel]?.label}
+                    </span>
+                  )}
                 </div>
                 {reason && (
                   <p className="text-xs mt-1 italic flex items-start gap-1" style={{ color: 'rgba(26,26,26,0.55)' }}>
