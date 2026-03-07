@@ -176,11 +176,12 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                 </div>
               ) : (
                 upcomingTasks.map(task => (
-                  <div
-                    key={task.id}
-                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3"
-                    style={{ borderColor: 'rgba(255,251,245,0.06)' }}
-                  >
+                   <button
+                     key={task.id}
+                     onClick={handleTaskClick}
+                     className="w-full text-left px-4 py-3 border-b flex items-start gap-3 hover:bg-white/5 transition-colors"
+                     style={{ borderColor: 'rgba(255,251,245,0.06)' }}
+                   >
                     <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
                       <Phone className="w-3 h-3" style={{ color: '#B8956A' }} />
                     </div>
