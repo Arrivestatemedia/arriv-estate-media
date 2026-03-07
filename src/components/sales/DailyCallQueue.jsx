@@ -5,148 +5,102 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
-import { format, formatDistanceToNow, differenceInDays } from "date-fns";
+import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain } from "lucide-react";
+import { format, formatDistanceToNow, differenceInDays, addDays, isBefore, isAfter, startOfDay } from "date-fns";
 
-function scoreContact(contact) {
-  let score = 0;
-  const notes = contact.activities.map(a => (a.notes || "").toLowerCase()).join(" ");
-  const lastActivity = contact.past[0];
-  const daysSinceContact = lastActivity
-    ? differenceInDays(new Date(), new Date(lastActivity.activity_date))
-    : 999;
-
-  // Positive signals
-  if (contact.past.length > 1) score += 30; // previous conversations
-  if (notes.includes("interest") || notes.includes("interested") || notes.includes("want") || notes.includes("yes")) score += 25;
-  if (notes.includes("pric") || notes.includes("book") || notes.includes("how much") || notes.includes("cost")) score += 25;
-  if (notes.includes("listing") || notes.includes("upcoming") || notes.includes("next week")) score += 20;
-  if (notes.includes("box") || notes.includes("package") || notes.includes("intro")) score += 15;
-  if (notes.includes("referral") || notes.includes("referred") || notes.includes("previous client")) score += 10;
-  if (contact.upcoming.length > 0) score += 20; // has a scheduled follow-up due
-
-  // Negative signals
-  if (daysSinceContact === 0 || daysSinceContact === 1) score -= 15; // touched yesterday
-  if (notes.includes("not interested") || notes.includes("no thanks") || notes.includes("remove")) score -= 25;
-  if (daysSinceContact > 60 && !notes.includes("interest")) score -= 30;
-
-  // Boost for overdue follow-ups
-  const overdueFollowup = contact.upcoming.find(a => new Date(a.activity_date) < new Date());
-  if (overdueFollowup) score += 35;
-
-  return score;
-}
-
-function getPriorityLabel(score) {
-  if (score >= 50) return { label: "High", color: "#ef4444", bg: "rgba(239,68,68,0.1)" };
-  if (score >= 20) return { label: "Medium", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" };
-  if (score >= 0) return { label: "Low", color: "#6b7280", bg: "rgba(107,114,128,0.1)" };
-  return { label: "Paused", color: "#9ca3af", bg: "rgba(156,163,175,0.08)" };
-}
-
-// Realtor availability windows (industry standard):
-// GOOD: 8-9 AM (before showings), 12-1 PM (lunch break), 5-7 PM (after showings)
-// DEAD: 10 AM-12 PM and 2-5 PM (actively showing properties)
-// Best days: Tue/Wed. Worst: Fri PM, weekends (open houses)
-
+// Realtor availability windows
 const REALTOR_WINDOWS = [
   { label: "8:00–9:00 AM", hour: 8, score: 90 },
   { label: "12:00–1:00 PM", hour: 12, score: 85 },
-  { label: "5:00–7:00 PM", hour: 17, score: 95 }, // highest — after showings wrap
+  { label: "5:00–7:00 PM", hour: 17, score: 95 },
   { label: "9:00–10:00 AM", hour: 9, score: 60 },
   { label: "1:00–2:00 PM", hour: 13, score: 50 },
 ];
 
 function getBestTime(contact) {
   const notes = contact.activities.map(a => (a.notes || "").toLowerCase()).join(" ");
-
-  // Layer 1: explicit keyword hints from rep notes (override everything)
   if (notes.includes("morning") || notes.includes("9am") || notes.includes("8am") || notes.includes("early")) return "8:00–9:00 AM";
   if (notes.includes("lunch") || notes.includes("noon") || notes.includes("12pm") || notes.includes("midday")) return "12:00–1:00 PM";
   if (notes.includes("evening") || notes.includes("5pm") || notes.includes("6pm") || notes.includes("after showing") || notes.includes("after 4") || notes.includes("after 5")) return "5:00–7:00 PM";
   if (notes.includes("afternoon") || notes.includes("2pm") || notes.includes("3pm")) return "1:00–2:00 PM";
-
-  // Layer 2: learn from successful call times in this contact's history
-  // A "successful" call = one that was followed by another activity with the same contact (they engaged)
-  const callActivities = contact.past.filter(a => a.activity_type === "call" && a.activity_date);
-  if (callActivities.length >= 2) {
-    // Find which hour had the most calls that led to follow-up conversations
-    const successfulHours = {};
-    callActivities.forEach((call, idx) => {
-      const hour = new Date(call.activity_date).getHours();
-      // If there's a subsequent activity within 48h, it was likely a successful touch
-      const nextActivity = callActivities[idx - 1]; // sorted desc, so prev index = later date
-      const isSuccess = nextActivity &&
-        (new Date(nextActivity.activity_date) - new Date(call.activity_date)) < 48 * 60 * 60 * 1000;
-      if (!successfulHours[hour]) successfulHours[hour] = { success: 0, total: 0 };
-      successfulHours[hour].total++;
-      if (isSuccess) successfulHours[hour].success++;
-    });
-
-    // Find the realtor window that matches best successful hours
-    let bestWindow = null;
-    let bestScore = -1;
-    REALTOR_WINDOWS.forEach(window => {
-      const windowData = successfulHours[window.hour] || successfulHours[window.hour + 1];
-      if (windowData && windowData.total > 0) {
-        const successRate = windowData.success / windowData.total;
-        const combinedScore = window.score * 0.4 + successRate * 100 * 0.6; // 60% weight to actual data
-        if (combinedScore > bestScore) {
-          bestScore = combinedScore;
-          bestWindow = window;
-        }
-      }
-    });
-    if (bestWindow) return bestWindow.label;
-  }
-
-  // Layer 3: day-of-week awareness — if today is bad, suggest best window for tomorrow
-  const today = new Date().getDay(); // 0=Sun, 6=Sat
-  const isWeekend = today === 0 || today === 6;
-  const isFriday = today === 5;
-
-  if (isWeekend || isFriday) {
-    return "Mon–Wed 8:00–9:00 AM"; // push to better days
-  }
-
-  // Layer 4: default to industry best window — 5-7 PM (highest realtor availability)
+  const today = new Date().getDay();
+  if (today === 0 || today === 6 || today === 5) return "Mon–Wed 8:00–9:00 AM";
   return "5:00–7:00 PM";
 }
 
-function getWhyReason(contact) {
-  const notes = contact.activities.map(a => (a.notes || "").toLowerCase()).join(" ");
-  const reasons = [];
-  if (contact.past.length > 1) reasons.push("previous conversations");
-  if (notes.includes("box") || notes.includes("package")) reasons.push("intro box sent");
-  if (notes.includes("pric") || notes.includes("book")) reasons.push("pricing/booking interest shown");
-  if (notes.includes("listing") || notes.includes("upcoming")) reasons.push("active/upcoming listing");
-  if (notes.includes("interest")) reasons.push("showed interest");
-  const overdueFollowup = contact.upcoming.find(a => new Date(a.activity_date) < new Date());
-  if (overdueFollowup) reasons.push("overdue follow-up");
-  return reasons.length > 0 ? reasons.join(", ") : "in your pipeline";
+function getPriorityLabel(urgency) {
+  if (urgency === "high") return { label: "High", color: "#ef4444", bg: "rgba(239,68,68,0.1)" };
+  if (urgency === "medium") return { label: "Medium", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" };
+  if (urgency === "low") return { label: "Low", color: "#6b7280", bg: "rgba(107,114,128,0.1)" };
+  return { label: "Paused", color: "#9ca3af", bg: "rgba(156,163,175,0.08)" };
 }
 
-function LeadCard({ contact, rank, repName }) {
+// AI-powered analysis of a contact's full history
+async function analyzeContact(contact) {
+  const historyText = contact.activities
+    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+    .slice(0, 10)
+    .map(a => `${format(new Date(a.activity_date), "MMM d, yyyy")} [${a.activity_type}]: ${a.notes}`)
+    .join("\n");
+
+  const today = format(new Date(), "MMM d, yyyy");
+
+  const res = await base44.integrations.Core.InvokeLLM({
+    prompt: `You are an AI sales intelligence assistant for ARRIV, a real estate media company. Analyze this contact's full interaction history and determine when the rep should next reach out.
+
+Today's date: ${today}
+Contact: ${contact.name}${contact.company ? ` (${contact.company})` : ""}
+
+Full interaction history (newest first):
+${historyText || "No prior contact"}
+
+Based on the notes, determine:
+1. The appropriate next contact date (be smart — if they said "call me in a few weeks", "I'll reach out when ready", or any warm/positive sentiment, give them space. If they're cold/no answer, re-contact sooner. If they asked not to be called, pause for 60+ days.)
+2. The urgency level: "high" (overdue or hot lead), "medium" (due soon, warm), "low" (cool, not urgent), "skip" (not appropriate to call now)
+3. A brief reason explaining your recommendation (1 sentence)
+4. A suggested call opener tailored to the context
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "next_contact_date": "YYYY-MM-DD",
+  "urgency": "high" | "medium" | "low" | "skip",
+  "reason": "string",
+  "suggested_opener": "string"
+}`,
+    response_json_schema: {
+      type: "object",
+      properties: {
+        next_contact_date: { type: "string" },
+        urgency: { type: "string" },
+        reason: { type: "string" },
+        suggested_opener: { type: "string" }
+      }
+    }
+  });
+
+  return res;
+}
+
+function LeadCard({ contact, rank, repName, aiAnalysis }) {
   const [expanded, setExpanded] = useState(false);
   const [generatingScript, setGeneratingScript] = useState(false);
-  const [script, setScript] = useState(null);
+  const [script, setScript] = useState(aiAnalysis?.suggested_opener || null);
   const [loggingOutcome, setLoggingOutcome] = useState(false);
   const [outcome, setOutcome] = useState("");
   const [outcomeNotes, setOutcomeNotes] = useState("");
   const [saved, setSaved] = useState(false);
 
-  const score = scoreContact(contact);
-  const priority = getPriorityLabel(score);
+  const priority = getPriorityLabel(aiAnalysis?.urgency || "medium");
   const bestTime = getBestTime(contact);
-  const whyReason = getWhyReason(contact);
   const lastActivity = contact.past[0];
+  const nextContactDate = aiAnalysis?.next_contact_date ? new Date(aiAnalysis.next_contact_date) : null;
 
   const generateScript = async () => {
     setGeneratingScript(true);
     setScript(null);
     try {
-      const historySnippet = contact.past.slice(0, 3).map(a =>
-        `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 100)}`
+      const historySnippet = contact.past.slice(0, 4).map(a =>
+        `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 120)}`
       ).join("\n");
 
       const res = await base44.integrations.Core.InvokeLLM({
@@ -154,8 +108,8 @@ function LeadCard({ contact, rank, repName }) {
 
 Rep name: ${repName || "Brad"}
 Contact: ${contact.name}${contact.company ? `, ${contact.company}` : ""}
-Why calling: ${whyReason}
-Priority score: ${score} (${priority.label})
+AI recommendation: ${aiAnalysis?.reason || "follow up"}
+Urgency: ${aiAnalysis?.urgency || "medium"}
 Best call time: ${bestTime}
 
 Recent activity history:
@@ -184,27 +138,31 @@ Keep it short, direct, and ARRIV-branded. Never offer discounts. If they ask to 
     const salesMemberId = localStorage.getItem('sales_member_id');
     const salesMemberEmail = localStorage.getItem('sales_member_email');
 
-    // Determine next follow-up based on outcome
     let nextFollowUp = null;
     let nextNotes = "";
     const now = new Date();
 
     if (outcome === "no_answer") {
-      nextFollowUp = new Date(now.getTime() + 3 * 60 * 60 * 1000); // +3 hours for text
+      nextFollowUp = new Date(now.getTime() + 3 * 60 * 60 * 1000);
       nextNotes = `Follow-up text after missed call to ${contact.name}`;
     } else if (outcome === "call_later") {
-      nextFollowUp = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +1 day
+      nextFollowUp = addDays(now, 1);
       nextNotes = `Follow-up call to ${contact.name} — asked to call back`;
     } else if (outcome === "interested") {
-      nextFollowUp = new Date(now.getTime() + 2 * 60 * 60 * 1000); // +2 hours — notify Brad
+      nextFollowUp = new Date(now.getTime() + 2 * 60 * 60 * 1000);
       nextNotes = `WARM LEAD — ${contact.name} showed interest. Notify Brad for handoff.`;
     } else if (outcome === "not_interested") {
-      nextFollowUp = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // +30 days pause
+      nextFollowUp = addDays(now, 30);
       nextNotes = `30-day pause. ${contact.name} not interested at this time.`;
+    } else if (outcome === "warm_waiting") {
+      nextFollowUp = addDays(now, 21);
+      nextNotes = `Warm lead — ${contact.name} will reach out when ready. Check back in 3 weeks.`;
+    } else if (outcome === "left_voicemail") {
+      nextFollowUp = addDays(now, 3);
+      nextNotes = `Left voicemail for ${contact.name}. Follow up in 3 days.`;
     }
 
     try {
-      // Log the call outcome
       await base44.entities.ActivityLog.create({
         activity_type: "call",
         contact_name: contact.name,
@@ -216,7 +174,6 @@ Keep it short, direct, and ARRIV-branded. Never offer discounts. If they ask to 
         sales_member_email: salesMemberEmail,
       });
 
-      // Schedule auto next-step
       if (nextFollowUp) {
         await base44.entities.ActivityLog.create({
           activity_type: outcome === "no_answer" ? "task" : "call",
@@ -242,7 +199,6 @@ Keep it short, direct, and ARRIV-branded. Never offer discounts. If they ask to 
   return (
     <Card style={{ borderColor: rank === 1 ? '#B8956A' : 'rgba(184,149,106,0.2)', borderWidth: rank === 1 ? '2px' : '1px' }}>
       <CardContent className="pt-4 pb-4">
-        {/* Header */}
         <button className="w-full text-left" onClick={() => setExpanded(!expanded)}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -264,37 +220,44 @@ Keep it short, direct, and ARRIV-branded. Never offer discounts. If they ask to 
                 <div className="flex flex-wrap gap-3 mt-1 text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
                   <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Best time: {bestTime}</span>
                   {lastActivity && <span>Last touch: {formatDistanceToNow(new Date(lastActivity.activity_date), { addSuffix: true })}</span>}
+                  {nextContactDate && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Suggested: {format(nextContactDate, "MMM d")}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs mt-1 italic" style={{ color: 'rgba(26,26,26,0.55)' }}>Why: {whyReason}</p>
+                {aiAnalysis?.reason && (
+                  <p className="text-xs mt-1 italic flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.55)' }}>
+                    <Brain className="w-3 h-3 shrink-0" style={{ color: '#B8956A' }} />
+                    {aiAnalysis.reason}
+                  </p>
+                )}
               </div>
             </div>
             {expanded ? <ChevronUp className="w-4 h-4 mt-1 shrink-0 opacity-40" /> : <ChevronDown className="w-4 h-4 mt-1 shrink-0 opacity-40" />}
           </div>
         </button>
 
-        {/* Expanded */}
         {expanded && (
           <div className="mt-4 pt-4 border-t space-y-4" style={{ borderColor: 'rgba(184,149,106,0.15)' }}>
-
-            {/* Recent history */}
             {contact.past.length > 0 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'rgba(26,26,26,0.4)' }}>Recent History</p>
                 <div className="space-y-1">
-                  {contact.past.slice(0, 3).map(a => (
+                  {contact.past.slice(0, 4).map(a => (
                     <div key={a.id} className="text-xs p-2 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.03)' }}>
                       <span className="font-medium capitalize">{a.activity_type}</span>
                       <span className="mx-1" style={{ color: 'rgba(26,26,26,0.4)' }}>·</span>
                       <span style={{ color: 'rgba(26,26,26,0.5)' }}>{format(new Date(a.activity_date), "MMM d")}</span>
                       <span className="mx-1" style={{ color: 'rgba(26,26,26,0.4)' }}>·</span>
-                      <span style={{ color: '#1A1A1A' }}>{a.notes.slice(0, 80)}{a.notes.length > 80 ? "..." : ""}</span>
+                      <span style={{ color: '#1A1A1A' }}>{a.notes.slice(0, 100)}{a.notes.length > 100 ? "..." : ""}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Script generator */}
             <div>
               {!script && (
                 <Button
@@ -323,7 +286,6 @@ Keep it short, direct, and ARRIV-branded. Never offer discounts. If they ask to 
               )}
             </div>
 
-            {/* Log outcome */}
             {!saved ? (
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.4)' }}>Log Outcome</p>
@@ -335,8 +297,9 @@ Keep it short, direct, and ARRIV-branded. Never offer discounts. If they ask to 
                     <SelectItem value="no_answer">No answer (schedule text)</SelectItem>
                     <SelectItem value="call_later">Busy — call back tomorrow</SelectItem>
                     <SelectItem value="interested">Interested — notify Brad</SelectItem>
+                    <SelectItem value="warm_waiting">Warm — they'll reach out when ready (3 weeks)</SelectItem>
                     <SelectItem value="not_interested">Not interested — pause 30 days</SelectItem>
-                    <SelectItem value="left_voicemail">Left voicemail</SelectItem>
+                    <SelectItem value="left_voicemail">Left voicemail (follow up in 3 days)</SelectItem>
                   </SelectContent>
                 </Select>
                 {outcome && (
@@ -375,7 +338,9 @@ Keep it short, direct, and ARRIV-branded. Never offer discounts. If they ask to 
 
 export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repName }) {
   const [contacts, setContacts] = useState([]);
+  const [aiAnalyses, setAiAnalyses] = useState({});
   const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -384,6 +349,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
 
   const loadQueue = async () => {
     setLoading(true);
+    setAiAnalyses({});
     try {
       const all = await base44.entities.ActivityLog.list('-activity_date', 500);
       const mine = all.filter(a =>
@@ -392,7 +358,6 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         a.created_by === salesMemberEmail
       );
 
-      // Group by contact
       const contactMap = {};
       mine.forEach(a => {
         const key = a.contact_email || a.contact_name;
@@ -418,25 +383,74 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         if (!contactMap[key].company && a.company_name) contactMap[key].company = a.company_name;
       });
 
-      const scored = Object.values(contactMap)
-        .filter(c => {
-          const name = c.name?.trim();
-          if (!name) return false;
-          if (/^\+?\d[\d\s\-().]+$/.test(name)) return false;
-          if (/^\d+$/.test(name)) return false;
-          return true;
-        })
-        .map(c => ({ ...c, score: scoreContact(c) }))
-        .filter(c => c.score > -25) // exclude explicitly paused
-        .sort((a, b) => b.score - a.score);
+      const filtered = Object.values(contactMap).filter(c => {
+        const name = c.name?.trim();
+        if (!name) return false;
+        if (/^\+?\d[\d\s\-().]+$/.test(name)) return false;
+        if (/^\d+$/.test(name)) return false;
+        return c.past.length > 0; // must have at least one past interaction
+      });
 
-      setContacts(scored);
+      setContacts(filtered);
+      setLoading(false);
+
+      // Now run AI analysis on all contacts in parallel (batched)
+      setAnalyzing(true);
+      const analyses = {};
+      await Promise.all(
+        filtered.map(async (contact) => {
+          try {
+            const result = await analyzeContact(contact);
+            analyses[contact.key] = result;
+          } catch (e) {
+            console.error(`Failed to analyze ${contact.name}`, e);
+          }
+        })
+      );
+      setAiAnalyses(analyses);
+      setAnalyzing(false);
+
     } catch (e) {
       console.error(e);
-    } finally {
       setLoading(false);
+      setAnalyzing(false);
     }
   };
+
+  // Filter to only contacts that are due today or overdue (AI said so), then sort by urgency
+  const today = startOfDay(new Date());
+  const dueContacts = contacts
+    .filter(c => {
+      const analysis = aiAnalyses[c.key];
+      if (!analysis) return false; // wait for analysis
+      if (analysis.urgency === "skip") return false;
+      const nextDate = analysis.next_contact_date ? startOfDay(new Date(analysis.next_contact_date)) : null;
+      if (!nextDate) return true;
+      return !isAfter(nextDate, today); // only show if next_contact_date is today or in the past
+    })
+    .sort((a, b) => {
+      const urgencyOrder = { high: 0, medium: 1, low: 2 };
+      const ua = urgencyOrder[aiAnalyses[a.key]?.urgency] ?? 3;
+      const ub = urgencyOrder[aiAnalyses[b.key]?.urgency] ?? 3;
+      return ua - ub;
+    });
+
+  // Upcoming contacts (not due yet but worth showing context)
+  const upcomingContacts = contacts
+    .filter(c => {
+      const analysis = aiAnalyses[c.key];
+      if (!analysis || analysis.urgency === "skip") return false;
+      const nextDate = analysis.next_contact_date ? startOfDay(new Date(analysis.next_contact_date)) : null;
+      return nextDate && isAfter(nextDate, today);
+    })
+    .sort((a, b) => {
+      const da = new Date(aiAnalyses[a.key]?.next_contact_date);
+      const db = new Date(aiAnalyses[b.key]?.next_contact_date);
+      return da - db;
+    })
+    .slice(0, 5);
+
+  const todayLabel = format(new Date(), "EEEE, MMMM d");
 
   if (loading) {
     return (
@@ -446,14 +460,34 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
     );
   }
 
-  const today = format(new Date(), "EEEE, MMMM d");
+  // Show a loading state while AI is still analyzing
+  if (analyzing && Object.keys(aiAnalyses).length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold" style={{ color: '#1A1A1A' }}>Smart Call Queue</h2>
+            <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{todayLabel}</p>
+          </div>
+        </div>
+        <div className="p-6 rounded-xl text-center" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.2)' }}>
+          <Brain className="w-8 h-8 mx-auto mb-3 animate-pulse" style={{ color: '#B8956A' }} />
+          <p className="font-medium" style={{ color: '#1A1A1A' }}>AI is analyzing your contacts...</p>
+          <p className="text-sm mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>Reading notes, sentiment, and timing to build your smart queue.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold" style={{ color: '#1A1A1A' }}>Daily Call Queue</h2>
-          <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{today} · {contacts.length} leads prioritized</p>
+          <h2 className="text-lg font-semibold" style={{ color: '#1A1A1A' }}>Smart Call Queue</h2>
+          <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>
+            {todayLabel} · {dueContacts.length} due today
+            {analyzing && <span className="ml-2 text-xs" style={{ color: '#B8956A' }}>· AI analyzing...</span>}
+          </p>
         </div>
         <Button
           size="sm"
@@ -467,26 +501,66 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         </Button>
       </div>
 
-      {contacts.length === 0 ? (
+      {/* Today's queue */}
+      {dueContacts.length === 0 ? (
         <Card>
           <CardContent className="pt-8 pb-8 text-center">
             <Phone className="w-8 h-8 mx-auto mb-3 opacity-30" />
-            <p className="font-medium" style={{ color: 'rgba(26,26,26,0.5)' }}>No leads to call today</p>
-            <p className="text-sm mt-1" style={{ color: 'rgba(26,26,26,0.4)' }}>Log activities to build your call queue.</p>
+            <p className="font-medium" style={{ color: 'rgba(26,26,26,0.5)' }}>No contacts due today</p>
+            <p className="text-sm mt-1" style={{ color: 'rgba(26,26,26,0.4)' }}>The AI has determined all your contacts are best reached on future dates.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
           <div className="p-3 rounded-xl text-sm" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.2)' }}>
             <p style={{ color: 'rgba(26,26,26,0.6)' }}>
-              <span className="font-semibold" style={{ color: '#1A1A1A' }}>Today's priority:</span>{" "}
-              Start with <span className="font-semibold" style={{ color: '#B8956A' }}>{contacts[0]?.name}</span>.
-              {contacts[0] && ` Best time: ${getBestTime(contacts[0])}.`}
+              <span className="font-semibold" style={{ color: '#1A1A1A' }}>Start with:</span>{" "}
+              <span className="font-semibold" style={{ color: '#B8956A' }}>{dueContacts[0]?.name}</span>.
+              {dueContacts[0] && ` Best time: ${getBestTime(dueContacts[0])}.`}
             </p>
           </div>
-          {contacts.map((contact, idx) => (
-            <LeadCard key={contact.key} contact={contact} rank={idx + 1} repName={repName} />
+          {dueContacts.map((contact, idx) => (
+            <LeadCard
+              key={contact.key}
+              contact={contact}
+              rank={idx + 1}
+              repName={repName}
+              aiAnalysis={aiAnalyses[contact.key]}
+            />
           ))}
+        </div>
+      )}
+
+      {/* Upcoming contacts preview */}
+      {upcomingContacts.length > 0 && (
+        <div className="mt-6">
+          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'rgba(26,26,26,0.4)' }}>Coming Up</p>
+          <div className="space-y-2">
+            {upcomingContacts.map(contact => {
+              const analysis = aiAnalyses[contact.key];
+              const nextDate = analysis?.next_contact_date ? new Date(analysis.next_contact_date) : null;
+              const priority = getPriorityLabel(analysis?.urgency || "low");
+              return (
+                <div key={contact.key} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: priority.color }} />
+                    <span className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{contact.name}</span>
+                    {contact.company && <span className="text-xs truncate" style={{ color: 'rgba(26,26,26,0.4)' }}>{contact.company}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {nextDate && (
+                      <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                        {format(nextDate, "MMM d")}
+                      </span>
+                    )}
+                    <Badge style={{ backgroundColor: priority.bg, color: priority.color, border: 'none', fontSize: '10px' }}>
+                      {priority.label}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
