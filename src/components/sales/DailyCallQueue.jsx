@@ -55,8 +55,18 @@ async function analyzeContact(contact, learnedContext) {
   const historyText = contact.activities
     .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
     .slice(0, 15)
-    .map(a => `${format(new Date(a.activity_date), "MMM d, yyyy")} [${a.activity_type}]: ${a.notes}`)
+    .map(a => {
+      const pics = a.picture_urls?.length ? ` [has ${a.picture_urls.length} attached image(s)]` : "";
+      return `${format(new Date(a.activity_date), "MMM d, yyyy")} [${a.activity_type}]: ${a.notes}${pics}`;
+    })
     .join("\n");
+
+  // Collect all picture URLs from recent activities so the AI can actually read them
+  const allPictureUrls = contact.activities
+    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+    .slice(0, 15)
+    .flatMap(a => a.picture_urls || [])
+    .slice(0, 6); // cap at 6 images to avoid overloading
 
   const today = format(new Date(), "MMM d, yyyy");
   const dayOfWeek = new Date().getDay();
