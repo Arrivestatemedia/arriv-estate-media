@@ -861,7 +861,10 @@ export default function HubSpotActivityLog() {
                   <Badge variant="secondary">{upcomingActivities.length}</Badge>
                 </div>
                 <div className="space-y-3">
-                  {upcomingActivities.map((activity) => (
+                  {upcomingActivities.map((activity) => {
+                    // Ensure phone is always present (from activity record, lookup, or will be fetched on demand)
+                    const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
+                    return (
                     <Card 
                       key={activity.id} 
                       style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.1)' }}
