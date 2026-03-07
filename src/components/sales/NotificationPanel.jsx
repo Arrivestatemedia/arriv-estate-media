@@ -50,14 +50,8 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
         }
       });
 
-      // Get upcoming activities from recent logs
-      let upcoming = allLogs
-        .filter(a => {
-          const d = new Date(a.activity_date);
-          return d >= now && d <= in7Days;
-        })
-        .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
-        .slice(0, 10);
+      // Get upcoming activities from recent logs (most recent = most relevant for follow-up)
+      let upcoming = allLogs.slice(0, 10);
 
       // Enrich with HubSpot phone numbers for activities missing phone data
       upcoming = await Promise.all(upcoming.map(async (a) => {
@@ -69,11 +63,12 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
             const res = await base44.functions.invoke('searchHubSpotContacts', {
               query: a.contact_email || a.contact_name
             });
-            if (res.data?.contacts?.[0]?.phone) {
-              phone = res.data.contacts[0].phone;
+            const contacts = res.data?.contacts || [];
+            if (contacts.length > 0 && contacts[0].phone) {
+              phone = contacts[0].phone;
             }
           } catch (e) {
-            // Silently fail HubSpot lookup
+            console.error('HubSpot lookup failed:', e);
           }
         }
         
