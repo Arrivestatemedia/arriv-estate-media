@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 Deno.serve(async (req) => {
   try {
@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'properties required' }, { status: 400 });
     }
 
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('hubspot');
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('hubspot');
 
     let result;
 
