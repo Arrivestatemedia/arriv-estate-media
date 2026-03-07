@@ -58,7 +58,7 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
         .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
         .slice(0, 10);
 
-      // Enrich with HubSpot phone numbers for activities missing phone data
+      // Enrich with phone numbers from activity history AND HubSpot
       upcoming = await Promise.all(upcoming.map(async (a) => {
         let phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
         
@@ -68,11 +68,11 @@ export default function NotificationPanel({ userEmail, isAdmin, queueUrl }) {
             const res = await base44.functions.invoke('searchHubSpotContacts', {
               query: a.contact_email || a.contact_name
             });
-            if (res.data?.contacts?.[0]?.phone) {
-              phone = res.data.contacts[0].phone;
+            if (res.data?.contacts?.[0]) {
+              phone = res.data.contacts[0].phone || '';
             }
           } catch (e) {
-            // Silently fail HubSpot lookup
+            console.error('HubSpot phone lookup failed:', e);
           }
         }
         
