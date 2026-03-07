@@ -12,19 +12,7 @@ export default function NotificationPanel({ userEmail, queueUrl }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // After navigating to the activity log page, fire the switchToQueueTab event
-  useEffect(() => {
-    const pending = sessionStorage.getItem('_pendingTabSwitch');
-    if (!pending) return;
-    const path = location.pathname;
-    if (path.includes('HubSpotActivityLog') || path.includes('AdminActivityPage')) {
-      sessionStorage.removeItem('_pendingTabSwitch');
-      // Give the page time to mount and register its event listeners
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('switchToQueueTab'));
-      }, 300);
-    }
-  }, [location.pathname]);
+  // No-op: tab switching is handled entirely by the destination page reading sessionStorage on mount
 
   useEffect(() => {
     if (!userEmail) return;
