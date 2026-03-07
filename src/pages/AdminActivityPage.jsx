@@ -192,6 +192,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       window.removeEventListener('emailCardReady', handleEmailCardReady);
       window.removeEventListener('switchToQueueTab', handleSwitchToQueue);
       window.removeEventListener('openDialer', handleOpenDialer);
+      window.removeEventListener('adminNavigateToQueue', handleAdminNavigateToQueue);
     };
   }, []);
 
