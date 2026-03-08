@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-export default function CallMapModal({ contact, script, onClose, onRegenerate, regenerating }) {
+export default function CallMapModal({ contact, script, onClose, onRegenerate, regenerating, open = true }) {
   const [showContextBox, setShowContextBox] = useState(false);
   const [context, setContext] = useState("");
 
@@ -16,8 +16,8 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-lg">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
