@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Phone, RefreshCw, Mail } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating }) {
+export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating, contactPhone, contactEmail, onCall, onEmail }) {
   if (!callMap) return null;
 
   return (
