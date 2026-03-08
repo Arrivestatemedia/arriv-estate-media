@@ -78,7 +78,11 @@ function LayoutContent({ children, currentPageName }) {
 
   const isSalesTeam = localStorage.getItem('sales_member_id');
 
-  const navItems = isAdmin
+  const navItems = isSalesTeam
+      ? [
+          { label: "Activity Log", page: "HubSpotActivityLog", icon: Briefcase },
+        ]
+      : isAdmin
         ? [
             { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
             { label: "Job Board", page: "JobBoard", icon: Briefcase },
