@@ -710,6 +710,47 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         setScheduling(false);
       }
 
+      // Generate call maps for all scheduled activities that don't have one yet
+      const needsCallMap = filtered.filter(c => {
+        const scheduled = newScheduledMap[c.key];
+        return scheduled && !scheduled.call_map;
+      });
+
+      if (needsCallMap.length > 0) {
+        console.log(`[DailyCallQueue loadQueue] Generating call maps for ${needsCallMap.length} contacts...`);
+        await Promise.all(
+          needsCallMap.map(async (contact) => {
+            try {
+              const scheduled = newScheduledMap[contact.key];
+              console.log(`[DailyCallQueue loadQueue] Generating call map for ${contact.name}`);
+              const callMapRes = await base44.functions.invoke('regenerateCallMap', {
+                contactName: contact.name,
+                contactEmail: contact.email,
+                companyName: contact.company,
+                contactPhone: contact.phone,
+              });
+
+              console.log(`[DailyCallQueue loadQueue] callMapRes for ${contact.name}:`, callMapRes?.data);
+
+              if (callMapRes?.data?.call_map) {
+                const generatedCallMap = callMapRes.data.call_map;
+                console.log(`[DailyCallQueue loadQueue] Updating ActivityLog ${scheduled.id} with call_map, length: ${generatedCallMap.length}`);
+                await base44.entities.ActivityLog.update(scheduled.id, {
+                  call_map: generatedCallMap
+                });
+                // Update local state with the new call_map
+                newScheduledMap[contact.key] = { ...scheduled, call_map: generatedCallMap };
+              } else {
+                console.log(`[DailyCallQueue loadQueue] No call_map in response for ${contact.name}`);
+              }
+            } catch (e) {
+              console.error(`[DailyCallQueue loadQueue] Failed to generate call map for ${contact.name}:`, e);
+            }
+          })
+        );
+        setScheduledMap({ ...newScheduledMap });
+      }
+
     } catch (e) {
       console.error(e);
       setLoading(false);
