@@ -1340,15 +1340,25 @@ export default function HubSpotActivityLog() {
           const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
 
           const handleRegenerate = async (extraContext) => {
-             setRegeneratingCallMap(true);
-             try {
-               // Fetch activity history + SMS + HubSpot data + web search
-               const history = activities
-                 .filter(a => a.contact_email === callMapActivity.contact_email && a.id !== callMapActivity.id)
-                 .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
-                 .slice(0, 10)
-                 .map(a => `${a.activity_type} on ${new Date(a.activity_date).toLocaleDateString()}: ${(a.notes || '').slice(0, 300)}`)
-                 .join('\n');
+              setRegeneratingCallMap(true);
+              try {
+                // Fetch activity history + SMS + HubSpot data + web search
+                const priorActivities = activities
+                  .filter(a => a.contact_email === callMapActivity.contact_email && a.id !== callMapActivity.id)
+                  .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+                  .slice(0, 10);
+
+                const history = priorActivities
+                  .map(a => `${a.activity_type} on ${new Date(a.activity_date).toLocaleDateString()}: ${(a.notes || '').slice(0, 300)}`)
+                  .join('\n');
+
+                // Collect attachment URLs from previous activities for LLM analysis
+                const attachmentUrls = [];
+                priorActivities.forEach(a => {
+                  if (a.picture_urls && Array.isArray(a.picture_urls)) {
+                    attachmentUrls.push(...a.picture_urls);
+                  }
+                });
 
                // Fetch SMS conversation history
                let smsContext = '';
