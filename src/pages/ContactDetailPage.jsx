@@ -250,11 +250,12 @@ export default function ContactDetailPage() {
                         <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
                         {(() => {
                          const raw = (activity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
+                         const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
                          const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
                          return (
                            <div className="mt-2 flex items-start gap-2 flex-wrap">
                              {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 100)}{shortNote.length > 100 ? '...' : ''}</p>}
-                             {activity.call_map && (
+                             {hasCallMap && (
                                <button
                                  onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
                                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
@@ -296,24 +297,25 @@ export default function ContactDetailPage() {
                   <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
                   <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
                   {(() => {
-                    const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
-                    const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
-                    return (
-                      <>
-                        <p><span className="font-medium">Notes:</span> {shortNote}</p>
-                        {selectedActivity.call_map && (
-                          <div className="pt-2">
-                            <button
-                              onClick={() => { setCallMapActivity(selectedActivity); setSelectedActivity(null); }}
-                              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
-                              style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
-                            >
-                              📋 View Call Map
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    );
+                  const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
+                  const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                  const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                  return (
+                  <>
+                  <p><span className="font-medium">Notes:</span> {shortNote}</p>
+                  {hasCallMap && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => { setCallMapActivity(selectedActivity); setSelectedActivity(null); }}
+                        className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
+                      >
+                        📋 View Call Map
+                      </button>
+                    </div>
+                  )}
+                  </>
+                  );
                   })()}
                   {selectedActivity.duration_minutes > 0 && (
                     <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
