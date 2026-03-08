@@ -393,7 +393,8 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
         logged_at: new Date().toISOString(),
       });
 
-      // Auto-generate call map for the newly scheduled follow-up
+      // Auto-generate call map for the newly scheduled follow-up AND save it to the notes
+      let generatedCallMap = "";
       try {
         const historySnippet = contact.past.slice(0, 4).map(a => {
           const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
@@ -470,8 +471,17 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
           file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
         });
 
-        setScript(typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes));
-      } catch {
+        generatedCallMap = typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes);
+        setScript(generatedCallMap);
+
+        // Update the scheduled follow-up record to include the full call map
+        if (nextFollowUpDate) {
+          await base44.entities.ActivityLog.update(savedRecord.id, { 
+            notes: `${nextNotes}\n\n--- CALL MAP ---\n${generatedCallMap}` 
+          });
+        }
+      } catch (e) {
+        console.error('Call map generation failed:', e);
         // If auto-generation fails, just continue without it
       }
 
