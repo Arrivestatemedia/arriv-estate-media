@@ -58,9 +58,9 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
         )}
 
         {onRegenerate && (
-          <div className="shrink-0 rounded-xl border" style={{ borderColor: 'rgba(184,149,106,0.3)', backgroundColor: 'rgba(184,149,106,0.04)' }}>
+          <div className="px-6 py-3 border-b border-gray-100 shrink-0 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.04)' }}>
             <button
-              className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium"
+              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium hover:opacity-70 transition-opacity"
               style={{ color: '#B8956A' }}
               onClick={() => setShowContextBox(v => !v)}
             >
@@ -71,14 +71,13 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
               {showContextBox ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             {showContextBox && (
-              <div className="px-4 pb-3 space-y-2">
+              <div className="px-3 pb-3 space-y-2 mt-2">
                 <Textarea
-                  placeholder="Add context to improve the call map… e.g. 'She mentioned she was moving offices next month' or 'I already sent the portfolio link twice'"
+                  placeholder="Add context to improve the call map…"
                   value={context}
                   onChange={e => setContext(e.target.value)}
                   rows={3}
                   className="text-sm resize-none"
-                  style={{ borderColor: 'rgba(184,149,106,0.3)' }}
                 />
                 <Button
                   size="sm"
@@ -95,13 +94,9 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto mt-2">
-          <div
-            className="rounded-xl p-4"
-            style={{ backgroundColor: 'rgba(184,149,106,0.05)', border: '1px solid rgba(184,149,106,0.2)' }}
-          >
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="prose prose-sm max-w-none text-sm leading-relaxed">
             <ReactMarkdown
-              className="prose prose-sm max-w-none text-sm leading-relaxed"
               components={{
                 h3: ({ children }) => (
                   <h3 className="text-sm font-bold mt-4 mb-1.5 first:mt-0" style={{ color: '#1A1A1A' }}>{children}</h3>
@@ -123,11 +118,11 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
                 ),
               }}
             >
-              {callMap}
+              {script}
             </ReactMarkdown>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
