@@ -1349,6 +1349,14 @@ export default function HubSpotActivityLog() {
           const callMap = mapMatch ? mapMatch[1].trim() : raw;
           const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
 
+          const handleSaveCallMapEdit = async (editedText) => {
+            const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
+            const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
+            await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+            setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
+            queryClient.invalidateQueries({ queryKey: ['activities'] });
+          };
+
           const handleRegenerate = async (extraContext) => {
               setRegeneratingCallMap(true);
               try {
