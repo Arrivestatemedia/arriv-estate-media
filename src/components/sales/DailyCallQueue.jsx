@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2 } from "lucide-react";
+import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2, Eye } from "lucide-react";
 import { format, formatDistanceToNow, addDays, isAfter, startOfDay, parseISO } from "date-fns";
+import CallMapModal from "@/components/sales/CallMapModal";
 
 function getBestTime(contact) {
   const notes = contact.activities.map(a => (a.notes || "").toLowerCase()).join(" ");
