@@ -40,12 +40,14 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
 
   const contactName = activity?.contact_name || "Contact";
 
-  // Parse call_map JSON if it's a string
+  // Try to parse call_map as JSON; if it fails, treat as markdown text
   const parseCallMap = () => {
     if (!callMap) return null;
     try {
-      return typeof callMap === 'string' ? JSON.parse(callMap) : callMap;
+      const parsed = typeof callMap === 'string' ? JSON.parse(callMap) : callMap;
+      return typeof parsed === 'object' && parsed !== null ? parsed : null;
     } catch {
+      // Not JSON — it's markdown/text format, return null so we render as markdown
       return null;
     }
   };
