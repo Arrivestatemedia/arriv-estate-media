@@ -326,6 +326,19 @@ export default function HubSpotActivityLog() {
     enabled: !!user,
   });
 
+  // Subscribe to ActivityLog changes for real-time call map updates
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
+      if (event.data?.sales_member_id === user.id) {
+        queryClient.invalidateQueries({ queryKey: ['activities', user?.email] });
+      }
+    });
+    
+    return unsubscribe;
+  }, [user?.id, user?.email, queryClient]);
+
   // Build a phone lookup from entire history
   const phoneLookup = {};
   activities.forEach(a => {

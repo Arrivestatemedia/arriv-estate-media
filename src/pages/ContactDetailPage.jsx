@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,8 +33,23 @@ export default function ContactDetailPage() {
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [saving, setSaving] = useState(false);
 
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     loadActivities();
+  }, [contactKey]);
+
+  // Subscribe to ActivityLog changes for real-time call map updates
+  useEffect(() => {
+    if (!contactKey) return;
+    
+    const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
+      if (event.data?.contact_email === contactKey || event.data?.contact_name === contactKey) {
+        loadActivities();
+      }
+    });
+    
+    return unsubscribe;
   }, [contactKey]);
 
   const handleLogFollowUp = async () => {
