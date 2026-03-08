@@ -158,6 +158,25 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
     ? new Date(analysis.follow_up_date_time)
     : addDays(new Date(), 7);
 
+  let initialNotes = `[AI Scheduled] ${analysis.reason || "Follow-up call"} | Opener: ${analysis.suggested_opener || ""}`;
+  
+  // Generate call map immediately
+  try {
+    const callMapRes = await base44.functions.invoke('regenerateCallMap', {
+      contactName: contact.name,
+      contactEmail: contact.email,
+      companyName: contact.company,
+      contactPhone: contact.phone,
+    });
+
+    const callMapData = callMapRes?.data?.call_map;
+    if (callMapData && typeof callMapData === 'string' && callMapData.trim().length > 0) {
+      initialNotes += `\n\n--- CALL MAP ---\n${callMapData}`;
+    }
+  } catch (error) {
+    console.error('[saveScheduledFollowUp] Failed to generate call map:', error);
+  }
+
   const record = await base44.entities.ActivityLog.create({
     activity_type: "call",
     contact_name: contact.name,
@@ -165,7 +184,7 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
     contact_phone: contact.phone || "",
     company_name: contact.company,
     activity_date: followUpDate.toISOString(),
-    notes: `[AI Scheduled] ${analysis.reason || "Follow-up call"} | Opener: ${analysis.suggested_opener || ""}`,
+    notes: initialNotes,
     sales_member_id: sid,
     sales_member_email: sem,
   });
