@@ -908,17 +908,6 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                           {format(new Date(scheduled.activity_date), "MMM d 'at' h:mm a")}
                         </span>
                       )}
-                      {scheduled?.call_map && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-xs gap-1"
-                          style={{ color: '#B8956A', backgroundColor: 'rgba(184,149,106,0.15)' }}
-                          onClick={() => setViewMapOpenKey(contact.key)}
-                        >
-                          📋 View Call Map
-                        </Button>
-                      )}
                     </div>
                   </div>
                   {scheduled && (
