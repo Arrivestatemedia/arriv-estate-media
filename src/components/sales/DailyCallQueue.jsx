@@ -325,6 +325,11 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .slice(0, 6)
         .flatMap(a => a.picture_urls || [])
         .slice(0, 6);
+      
+      // Include pattern tags and metadata for long-term learning
+      const patternTagsText = patternTags && patternTags.length > 0 
+        ? `\n\nRecurring patterns: ${patternTags.join(", ")}`
+        : "";
 
       const res = await base44.integrations.Core.InvokeLLM({
         prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
