@@ -15,6 +15,7 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
     setDeleting(true);
     try {
       await base44.entities.ActivityLog.delete(activity.id);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Allow DB to sync
       onDelete?.(activity.id);
       onClose();
     } catch (err) {
