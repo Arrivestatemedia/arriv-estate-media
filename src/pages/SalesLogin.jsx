@@ -92,9 +92,9 @@ export default function SalesLogin() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ backgroundColor: '#FFFBF5' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="flex-1 flex items-center justify-center w-full">
-        <Card className="w-full max-w-md" style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(184,149,106,0.3)' }}>
+        <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Sales Team Login</CardTitle>
           <CardDescription>Sign in to access the activity log</CardDescription>

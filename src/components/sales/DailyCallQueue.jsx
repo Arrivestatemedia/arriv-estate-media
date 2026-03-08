@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2, Eye } from "lucide-react";
+import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2 } from "lucide-react";
 import { format, formatDistanceToNow, addDays, isAfter, startOfDay, parseISO } from "date-fns";
-import CallMapModal from "@/components/sales/CallMapModal";
 
 function getBestTime(contact) {
   const notes = contact.activities.map(a => (a.notes || "").toLowerCase()).join(" ");
@@ -51,8 +50,8 @@ function buildLearnedContext(insights) {
 }
 
 // AI analysis — used ONLY when no scheduled follow-up exists yet
-// Searches the web for the contact, sets follow-up date, AND generates full call map
-async function analyzeContact(contact, learnedContext, repName) {
+// Searches the web for the contact and uses all available intel to set a precise, permanent date
+async function analyzeContact(contact, learnedContext) {
   const historyText = contact.activities
     .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
     .slice(0, 15)
@@ -81,8 +80,7 @@ async function analyzeContact(contact, learnedContext, repName) {
     "real estate"
   ].filter(Boolean).join(" ");
 
-  // STEP 1: Get follow-up scheduling decision
-  const analysisRes = await base44.integrations.Core.InvokeLLM({
+  const res = await base44.integrations.Core.InvokeLLM({
     prompt: `You are a sharp sales intelligence agent for ARRIV, a real estate photography company. Decide ONE follow-up date for this realtor. This gets saved permanently — be deliberate.
 
 TODAY: ${today} (${dayName})
@@ -150,92 +148,7 @@ OUTPUT valid JSON only:
     }
   });
 
-  // STEP 2: Generate FULL call map with the same context
-  const historySnippet = contact.activities
-    .slice(0, 4)
-    .map(a => {
-      const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
-      return `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 120)}${pics}`;
-    })
-    .join("\n");
-
-  const callMapRes = await base44.integrations.Core.InvokeLLM({
-    prompt: `You are generating a hyper-personalized, research-backed COMPLETE CALL MAP for ${repName || "the sales rep"}, a sales representative for ARRIV Estate Media LLC (real estate photography, video, drone).
-
-**CRITICAL: GENERATE EVERY SINGLE SECTION BELOW IN FULL. NO SKIPPING. NO PARTIAL SCRIPTS. THIS MUST BE A COMPLETE CONVERSATION GUIDE WITH EVERY BRANCH OUTCOME.**
-
-## CONTACT INFO
-- Name: ${contact.name || 'the contact'}
-- Company: ${contact.company || 'their brokerage'}
-- Contact intel: ${analysisRes.contact_intel || "not available"}
-- Why calling now: ${analysisRes.reason || "routine follow-up"}
-- Urgency: ${analysisRes.urgency || "medium"}
-
-## INTERACTION HISTORY
-${historySnippet || 'no prior contact'}
-
----
-
-## TONE & APPROACH
-- Write exactly like humans talk (short sentences, contractions, natural pauses)
-- NO buzzwords like "leverage," "synergy," "value proposition"
-- Open with something unexpected to break auto-reject
-- Reference their specific market, listings, or situation
-- Confident but relaxed — like a colleague you know
-- If they push back, acknowledge genuinely first
-
----
-
-## OUTPUT AS MARKDOWN (NOT JSON)
-Generate the sections below using markdown formatting. Each section should be complete, full scripts (not abbreviated).
-
-### 📞 Opening Line
-(2-3 sentences verbatim for what the rep should say when they pick up)
-
-### 🔀 If They're Interested / Ask Questions
-(3-4 sentences: acknowledge interest, reference their specific situation, explain value, ask availability)
-
-### 🔀 If They Say "I Already Have a Photographer"
-(3-4 sentences: acknowledge, don't argue, explain ARRIV difference, plant seed without being pushy)
-
-### 🔀 If They Say "Not Interested Right Now"
-(3-4 sentences: thank them, respect timeline, explain you're not a bother, offer to circle back in 4-6 weeks)
-
-### 🔀 If They Say "Just Send Me an Email"
-(3-4 sentences: agree to email BUT lock in follow-up call for 1 week, make them expect your call)
-
-### 🔀 If They Ask "What's Your Pricing?"
-(3-4 sentences: value-first answer, depends on needs, offer to discuss on call, redirect to booking time)
-
-### 🔀 If They Say "I'm Busy / Bad Time to Talk"
-(3-4 sentences: respect time completely, ask when next week is better, lock in specific callback time)
-
-### 🔀 If They're Cold / One-Word Answers / Not Engaging
-(2-3 sentences: graceful exit, NO hard sell, positive impression, offer to check back in weeks)
-
-### 📵 Voicemail Script
-(Word-for-word what rep should say if voicemail picks up. UNDER 20 seconds when spoken. Include callback number.)
-
-### 📱 Follow-Up Text
-(Short SMS 2-3 sentences max. Send immediately after voicemail. Casual, friendly, not salesy.)
-
-### 🏁 Closing / Natural Handoff
-(2-3 sentences: how rep closes if lead says yes or asks for more. Natural handoff with next steps clear.)
-
----
-
-${allPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}
-
-**GENERATE ALL 11 SECTIONS ABOVE. DO NOT ABBREVIATE. EACH SECTION MUST BE COMPLETE WITH FULL SENTENCES.**`,
-    add_context_from_internet: true,
-    file_urls: allPictureUrls.length > 0 ? allPictureUrls : undefined,
-  });
-
-  // Return both the analysis metadata and the full call map
-  return {
-    ...analysisRes,
-    call_map: typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes)
-  };
+  return res;
 }
 
 // Save the AI's decision as a permanent ActivityLog record
@@ -254,7 +167,6 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
     notes: `[AI Scheduled] ${analysis.reason || "Follow-up call"} | Opener: ${analysis.suggested_opener || ""}`,
     sales_member_id: sid,
     sales_member_email: sem,
-    call_map: analysis.call_map || "", // Store the full call map
   });
 
   return record;
@@ -269,8 +181,7 @@ const channelConfig = {
 function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, urgency, channel, channelReason, reason, suggestedOpener, contactIntel, patternTags, onOutcomeLogged }) {
   const [expanded, setExpanded] = useState(false);
   const [generatingScript, setGeneratingScript] = useState(false);
-  const [script, setScript] = useState(scheduledFollowUp?.call_map || null);
-  const [showCallMapModal, setShowCallMapModal] = useState(false);
+  const [script, setScript] = useState(suggestedOpener || null);
   const [loggingOutcome, setLoggingOutcome] = useState(false);
   const [outcome, setOutcome] = useState("");
   const [outcomeNotes, setOutcomeNotes] = useState("");
@@ -282,24 +193,14 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
   );
   const [savingDate, setSavingDate] = useState(false);
   const [deletingFollowUp, setDeletingFollowUp] = useState(false);
-  const [regeneratingScript, setRegeneratingScript] = useState(false);
-
-  // Auto-generate call map if scheduled follow-up exists but has no call_map
-  useEffect(() => {
-    if (scheduledFollowUp && !script && !generatingScript) {
-      generateScript();
-    }
-  }, [scheduledFollowUp?.id]);
 
   const priority = getPriorityLabel(urgency || "medium");
   const bestTime = getBestTime(contact);
   const lastActivity = contact.past[0];
   const followUpDate = scheduledFollowUp ? new Date(scheduledFollowUp.activity_date) : null;
 
-  const generateScript = async (additionalContext) => {
-    const isRegenerate = !!additionalContext;
-    const stateSetter = isRegenerate ? setRegeneratingScript : setGeneratingScript;
-    stateSetter(true);
+  const generateScript = async () => {
+    setGeneratingScript(true);
     setScript(null);
     try {
       const historySnippet = contact.past.slice(0, 4).map(a => {
@@ -312,107 +213,84 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .flatMap(a => a.picture_urls || [])
         .slice(0, 6);
 
-      const contextAddendum = additionalContext ? `\n\n## ADDITIONAL CONTEXT FROM REP\n${additionalContext}` : "";
-
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are generating a hyper-personalized, research-backed COMPLETE CALL MAP for ${repName || "Brad"}, a sales representative for ARRIV Estate Media LLC (real estate photography, video, drone).
+        prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — every branch of the conversation covered. This should sound like a real person who knows them, not a salesperson reading off a sheet.
 
-**CRITICAL: GENERATE EVERY SINGLE SECTION BELOW. NO SKIPPING. NO PARTIAL SCRIPTS. THIS IS NOT A SIMPLE OPENER — IT'S A FULL CONVERSATION GUIDE WITH EVERY BRANCH OUTCOME.**
-
-## CONTACT INFO
-- Name: ${contact.name || 'the contact'}
-- Company: ${contact.company || 'their brokerage'}
+What we know:
+- Rep: ${repName || "the rep"}
 - Contact intel: ${contactIntel || "not available"}
 - Why calling now: ${reason || "routine follow-up"}
 - Urgency: ${urgency || "medium"}
+- History: ${historySnippet || "no prior contact"}
 
-## INTERACTION HISTORY
-${historySnippet || 'no prior contact'}
+TONE RULES (critical):
+- Write like a human talks, not how a textbook describes sales
+- Short sentences. Contractions. Natural pauses built in.
+- No buzzwords like "leverage", "synergy", "value proposition"
+- The opener should NOT start with "Hi, this is [name] from ARRIV" — they can see the number
+- Use what you know about them specifically — generic lines get hung up on
+- Confident but relaxed — like calling a colleague you've met before
 
----
+PERSUASION PRINCIPLES (weave in naturally, don't label them):
+- Say something unexpected first to break the auto-reject mode
+- Reference something specific about their market or listings
+- One genuine stat if it fits: listings with pro media sell 32% faster, 5-11% more
+- Ask one question that makes them curious rather than defensive
+- If they push back, acknowledge it genuinely before responding — don't steamroll
+- Mirror their language if they say something interesting
 
-## TONE & APPROACH
-- Write exactly like humans talk (short sentences, contractions, natural pauses)
-- NO buzzwords like "leverage," "synergy," "value proposition"
-- Open with something unexpected to break auto-reject
-- Reference their specific market, listings, or situation
-- Confident but relaxed — like a colleague you know
-- If they push back, acknowledge genuinely first
+FORMAT — cover EVERY section:
 
----
+📞 **Opening** (1-2 sentences, casual, specific to this person — not a generic intro)
 
-## OUTPUT AS MARKDOWN (NOT JSON)
-Generate the sections below using markdown formatting. Each section should be complete, full scripts (not abbreviated).
+🔀 **If they're open / interested:**
+[Keep it under 60 seconds — the key points to hit, in plain language. Guide toward booking.]
 
-### 📞 Opening Line
-(2-3 sentences verbatim for what the rep should say when they pick up)
+🔀 **If they object — "I already have a photographer":**
+[Exact response — acknowledge, don't argue, plant a seed]
 
-### 🔀 If They're Interested / Ask Questions
-(3-4 sentences: acknowledge interest, reference their specific situation, explain value, ask availability)
+🔀 **If they object — "Not interested right now":**
+[Exact response — graceful, leaves door open]
 
-### 🔀 If They Say "I Already Have a Photographer"
-(3-4 sentences: acknowledge, don't argue, explain ARRIV difference, plant seed without being pushy)
+🔀 **If they object — "Send me an email":**
+[Exact response — agree, but lock in a brief follow-up call too]
 
-### 🔀 If They Say "Not Interested Right Now"
-(3-4 sentences: thank them, respect timeline, explain you're not a bother, offer to circle back in 4-6 weeks)
+🔀 **If they object — "Too expensive":**
+[Exact response — value-first, never discount. Redirect pricing to Brad.]
 
-### 🔀 If They Say "Just Send Me an Email"
-(3-4 sentences: agree to email BUT lock in follow-up call for 1 week, make them expect your call)
+🔀 **If they're cold / one-word answers / not engaging:**
+[Short, graceful exit that leaves the door open]
 
-### 🔀 If They Ask "What's Your Pricing?"
-(3-4 sentences: value-first answer, depends on needs, offer to discuss on call, redirect to booking time)
+🔀 **If they're busy / bad time:**
+[Exact response — respect their time, lock in a specific callback time]
 
-### 🔀 If They Say "I'm Busy / Bad Time to Talk"
-(3-4 sentences: respect time completely, ask when next week is better, lock in specific callback time)
+📵 **If no answer — voicemail** (15 sec max when spoken aloud):
+[Word-for-word voicemail]
 
-### 🔀 If They're Cold / One-Word Answers / Not Engaging
-(2-3 sentences: graceful exit, NO hard sell, positive impression, offer to check back in weeks)
+📱 **Follow-up text** (send immediately after voicemail):
+[Short, casual text to send right after]
 
-### 📵 Voicemail Script
-(Word-for-word what rep should say if voicemail picks up. UNDER 20 seconds when spoken. Include callback number.)
+🏁 **Closing / ready to move forward:**
+[Exact lines — hand off to Brad naturally: "Our owner Brad will walk you through the rest."]
 
-### 📱 Follow-Up Text
-(Short SMS 2-3 sentences max. Send immediately after voicemail. Casual, friendly, not salesy.)
-
-### 🏁 Closing / Natural Handoff
-(2-3 sentences: how rep closes if lead says yes or asks for more. Natural handoff with next steps clear.)
-
----
-
-**GENERATE ALL 11 SECTIONS ABOVE. DO NOT ABBREVIATE. EACH SECTION MUST BE COMPLETE WITH FULL SENTENCES.**
-
-${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}${contextAddendum}`,
+${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past activities — screenshots of conversations, texts, or notes. READ THEM to understand the full context of what was discussed before writing this guide.` : ""}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
       });
-      const generatedScript = typeof res === "string" ? res : res?.text || String(res);
-      setScript(generatedScript);
-
-      // If regenerating, save the new script back to the scheduled follow-up
-      if (isRegenerate && scheduledFollowUp) {
-        await base44.entities.ActivityLog.update(scheduledFollowUp.id, {
-          call_map: generatedScript
-        });
-      }
+      setScript(typeof res === "string" ? res : res?.text || String(res));
     } catch {
       setScript("Failed to generate script. Try again.");
     } finally {
-      stateSetter(false);
+      setGeneratingScript(false);
     }
   };
 
   const deleteFollowUp = async () => {
     if (!scheduledFollowUp) return;
     setDeletingFollowUp(true);
-    try {
-      await base44.entities.ActivityLog.delete(scheduledFollowUp.id);
-      await new Promise(resolve => setTimeout(resolve, 500)); // Allow DB sync
-      if (onOutcomeLogged) onOutcomeLogged();
-    } catch (e) {
-      console.error('Failed to delete follow-up:', e);
-    } finally {
-      setDeletingFollowUp(false);
-    }
+    await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
+    setDeletingFollowUp(false);
+    if (onOutcomeLogged) onOutcomeLogged();
   };
 
   const saveEditedDate = async () => {
@@ -651,33 +529,23 @@ ${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAt
             )}
 
             <div>
-              {script ? (
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowCallMapModal(true)} 
-                  className="w-full gap-2" 
-                  style={{ backgroundColor: '#B8956A', color: '#fff' }}
-                >
-                  <Eye className="w-4 h-4" />
-                  View Call Map
-                </Button>
-              ) : (
+              {!script ? (
                 <Button size="sm" onClick={generateScript} disabled={generatingScript} className="w-full gap-2" style={{ backgroundColor: '#1A1A1A', color: '#fff' }}>
                   {generatingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   {generatingScript ? "Generating call map..." : "Generate call map"}
                 </Button>
+              ) : (
+                <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>ARRIV Coach</p>
+                    <button onClick={generateScript} className="text-xs flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                      <RefreshCw className="w-3 h-3" /> Regenerate
+                    </button>
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#1A1A1A' }}>{script}</div>
+                </div>
               )}
             </div>
-
-            {showCallMapModal && script && (
-              <CallMapModal 
-                contact={contact} 
-                script={script}
-                onClose={() => setShowCallMapModal(false)}
-                onRegenerate={generateScript}
-                regenerating={regeneratingScript}
-              />
-            )}
 
             {!saved ? (
               <div className="space-y-2">
@@ -824,7 +692,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         await Promise.all(
           needsScheduling.map(async (contact) => {
             try {
-              const analysis = await analyzeContact(contact, learnedContext, repName);
+              const analysis = await analyzeContact(contact, learnedContext);
               // Save as permanent ActivityLog record
               const savedRecord = await saveScheduledFollowUp(contact, analysis, sid, sem);
               newScheduledMap[contact.key] = savedRecord;
