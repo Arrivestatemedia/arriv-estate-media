@@ -159,38 +159,65 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
     ? new Date(analysis.follow_up_date_time)
     : addDays(new Date(), 7);
 
-  // Bradley-specific availability windows (only for Brad Burke)
+  // Bradley-specific availability windows (ONLY for Brad Burke)
   if (sem === 'bradley@arrivestatemedia.com' || sem?.toLowerCase().includes('bradley') || sem?.toLowerCase().includes('brad')) {
-    const isBradley = true;
-    if (isBradley) {
-      // Adjust to next available time in Bradley's windows: 6:30am-8:10am, 10:15am-10:38am, 2:15pm+
-      const windows = [
-        { start: 6.5, end: 8.167 },   // 6:30am - 8:10am
-        { start: 10.25, end: 10.633 }, // 10:15am - 10:38am
-        { start: 14.25, end: 24 }      // 2:15pm - midnight
-      ];
+    // Adjust to next available time in Bradley's windows: 6:30am-8:10am, 10:15am-10:38am, 2:15pm+
+    const windows = [
+      { start: 6.5, end: 8.167 },   // 6:30am - 8:10am
+      { start: 10.25, end: 10.633 }, // 10:15am - 10:38am
+      { start: 14.25, end: 24 }      // 2:15pm - midnight
+    ];
 
-      let adjusted = new Date(followUpDate);
-      let found = false;
+    let adjusted = new Date(followUpDate);
+    let found = false;
 
-      // Try current day first, then next days
-      for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
-        adjusted = new Date(followUpDate);
-        adjusted.setDate(adjusted.getDate() + dayOffset);
-        adjusted.setHours(0, 0, 0, 0);
+    // Try current day first, then next days
+    for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+      adjusted = new Date(followUpDate);
+      adjusted.setDate(adjusted.getDate() + dayOffset);
+      adjusted.setHours(0, 0, 0, 0);
 
-        for (const window of windows) {
-          const testTime = new Date(adjusted);
-          testTime.setHours(Math.floor(window.start), Math.round((window.start % 1) * 60), 0, 0);
+      for (const window of windows) {
+        const testTime = new Date(adjusted);
+        testTime.setHours(Math.floor(window.start), Math.round((window.start % 1) * 60), 0, 0);
 
-          if (testTime > new Date()) {
-            followUpDate = testTime;
-            found = true;
-            break;
-          }
+        if (testTime > new Date()) {
+          followUpDate = testTime;
+          found = true;
+          break;
         }
-        if (found) break;
       }
+      if (found) break;
+    }
+  } else {
+    // For all other reps: smart scheduling based on realtor industry best practices
+    // Best times to reach realtors: 9am-11am (before showings), 1pm-3pm (lunch/admin time), 4pm-5pm (end of day)
+    const optimalWindows = [
+      { start: 9, end: 11 },      // Morning window
+      { start: 13, end: 15 },     // Early afternoon
+      { start: 16, end: 17 }      // Late afternoon
+    ];
+
+    let adjusted = new Date(followUpDate);
+    let found = false;
+
+    for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+      adjusted = new Date(followUpDate);
+      adjusted.setDate(adjusted.getDate() + dayOffset);
+      adjusted.setHours(0, 0, 0, 0);
+
+      // Prefer first window (9-11am)
+      for (const window of optimalWindows) {
+        const testTime = new Date(adjusted);
+        testTime.setHours(window.start, 0, 0, 0);
+
+        if (testTime > new Date()) {
+          followUpDate = testTime;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
     }
   }
 
