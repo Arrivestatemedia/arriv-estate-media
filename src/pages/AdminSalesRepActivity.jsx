@@ -17,7 +17,7 @@ import ChatTab from "@/components/sales/ChatTab";
 export default function AdminSalesRepActivity() {
   const [user, setUser] = useState(null);
   const [selectedRep, setSelectedRep] = useState(null);
-  const [activeTab, setActiveTab] = useState("activity");
+  const [activeTab, setActiveTab] = useState("team");
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
