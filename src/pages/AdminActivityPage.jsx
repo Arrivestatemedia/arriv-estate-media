@@ -966,140 +966,21 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
         )}
 
         {/* Activity Detail Modal */}
-         <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open && !zoomedImage) { setSelectedActivity(null); setEditingActivity(null); } }}>
+        <ActivityDetailModal 
+         activity={selectedActivity}
+         onClose={() => setSelectedActivity(null)}
+         onDelete={(id) => {
+           queryClient.invalidateQueries({ queryKey: ['adminActivities'] });
+         }}
+        />
+
+         <Dialog open={!!selectedActivity && editingActivity} onOpenChange={(open) => { if (!open && !zoomedImage) { setEditingActivity(null); } }}>
            <DialogContent className="max-w-2xl">
              <DialogHeader>
                <div className="flex justify-between items-center pr-6">
-                 <DialogTitle>Activity Details</DialogTitle>
-                 {selectedActivity && !editingActivity && (
-                   <div className="flex gap-2">
-                     <Button
-                       variant="outline"
-                       size="sm"
-                       onClick={() => handleEditActivity(selectedActivity)}
-                     >
-                       Edit
-                     </Button>
-                     <Button
-                       variant="destructive"
-                       size="sm"
-                       onClick={() => handleDeleteActivity(selectedActivity)}
-                     >
-                       Delete
-                     </Button>
-                   </div>
-                 )}
+                 <DialogTitle>Edit Activity</DialogTitle>
                </div>
              </DialogHeader>
-             {selectedActivity && !editingActivity && (
-               <div className="space-y-6">
-                 <div>
-                   <h3 className="font-semibold mb-3">Activity</h3>
-                   <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                     <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
-                     <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                     {(() => {
-                       const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
-                       const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
-                       const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
-                       return (
-                         <>
-                           <p><span className="font-medium">Notes:</span> {shortNote}</p>
-                           {hasCallMap && (
-                             <button
-                               onClick={() => { setSelectedActivity(null); setCallMapActivity(selectedActivity); }}
-                               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full mt-1 transition-opacity hover:opacity-80"
-                               style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
-                             >
-                               📋 View Call Map
-                             </button>
-                           )}
-                         </>
-                       );
-                     })()}
-                     {selectedActivity.duration_minutes > 0 && (
-                       <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
-                     )}
-                     {selectedActivity.picture_urls && selectedActivity.picture_urls.length > 0 && (
-                      <div>
-                        <p className="font-medium mb-2">Pictures:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedActivity.picture_urls.map((url, idx) => (
-                            <img key={idx} src={url} alt={`Activity ${idx + 1}`} className="rounded-lg max-h-48 w-auto cursor-zoom-in hover:opacity-90 transition" onClick={() => setZoomedImage(url)} />
-                          ))}
-                        </div>
-                      </div>
-                     )}
-                   </div>
-                 </div>
-
-                 <div>
-                   <h3 className="font-semibold mb-3">Contact Information</h3>
-                   <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                     {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
-                     {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
-                     {selectedActivity.contact_phone && <p><span className="font-medium">Phone:</span> {selectedActivity.contact_phone}</p>}
-                     {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
-                   </div>
-                 </div>
-
-                 <div>
-                   <h3 className="font-semibold mb-3">Actions</h3>
-                   <div className="flex gap-2 flex-wrap">
-                     {selectedActivity.contact_phone && (
-                       <Button 
-                         size="sm" 
-                         className="gap-2"
-                         style={{ backgroundColor: '#B8956A', color: '#fff' }}
-                         onClick={() => {
-                           setActiveTab("call");
-                           localStorage.setItem('_dialerPhone', selectedActivity.contact_phone);
-                           setSelectedActivity(null);
-                         }}
-                       >
-                         <Phone className="w-4 h-4" />
-                         Call
-                       </Button>
-                     )}
-                     {selectedActivity.contact_email && (
-                       <Button 
-                         size="sm" 
-                         className="gap-2"
-                         variant="outline"
-                         onClick={() => {
-                           setActiveTab("email");
-                           localStorage.setItem('_emailTo', selectedActivity.contact_email);
-                           setSelectedActivity(null);
-                         }}
-                       >
-                         <Mail className="w-4 h-4" />
-                         Email
-                       </Button>
-                     )}
-                     <Button 
-                       size="sm" 
-                       className="gap-2"
-                       variant="outline"
-                       onClick={() => {
-                         setActiveTab("contacts");
-                         setPrefilledContactData({
-                           firstName: selectedActivity.contact_name?.split(' ')[0] || '',
-                           lastName: selectedActivity.contact_name?.split(' ').slice(1).join(' ') || '',
-                           email: selectedActivity.contact_email || '',
-                           phone: selectedActivity.contact_phone || '',
-                           company: selectedActivity.company_name || ''
-                         });
-                         setTimeout(() => setOpenNewContactForm(true), 50);
-                         setSelectedActivity(null);
-                       }}
-                     >
-                       <Plus className="w-4 h-4" />
-                       Add Contact Info
-                     </Button>
-                   </div>
-                 </div>
-               </div>
-             )}
              {editingActivity && editFormData && (
                <div className="space-y-4">
                  <div>
