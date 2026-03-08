@@ -1,10 +1,29 @@
-import React from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image, Trash2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 
-export default function ActivityDetailModal({ activity, onClose }) {
+export default function ActivityDetailModal({ activity, onClose, onDelete }) {
+  const [deleting, setDeleting] = useState(false);
+  
   if (!activity) return null;
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this activity?')) return;
+    setDeleting(true);
+    try {
+      await base44.entities.ActivityLog.delete(activity.id);
+      onDelete?.(activity.id);
+      onClose();
+    } catch (err) {
+      console.error('Failed to delete activity:', err);
+      alert('Failed to delete activity');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const typeColors = {
     call: "bg-blue-100 text-blue-800",
