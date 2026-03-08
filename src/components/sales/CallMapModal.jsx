@@ -10,6 +10,7 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
   const [context, setContext] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editedCallMap, setEditedCallMap] = useState(callMap);
+  const [isSaving, setIsSaving] = useState(false);
 
   if (!callMap) return null;
 
@@ -19,8 +20,13 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
 
   const handleSaveEdit = async () => {
     if (onSaveEdit) {
-      await onSaveEdit(editedCallMap);
-      setIsEditing(false);
+      setIsSaving(true);
+      try {
+        await onSaveEdit(editedCallMap);
+        setIsEditing(false);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
