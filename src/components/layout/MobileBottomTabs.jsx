@@ -13,6 +13,7 @@ export default function MobileBottomTabs({ user }) {
   const scrollPositions = useRef({});
   const isRestoringScroll = useRef(false);
 
+  const isSalesTeam = !!localStorage.getItem('sales_member_id');
   const isAdmin = user?.role === "admin";
   const isClient = user?.user_type === "client";
   const isMediaPartner = user?.user_type === "media_partner";
