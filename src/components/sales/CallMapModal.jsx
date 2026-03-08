@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-export default function CallMapModal({ contact, script, onClose, onRegenerate, regenerating, open = true }) {
+export default function CallMapModal({ contact, script, onClose, onRegenerate, regenerating }) {
   const [showContextBox, setShowContextBox] = useState(false);
   const [context, setContext] = useState("");
 
@@ -16,14 +16,19 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Phone className="w-4 h-4" style={{ color: '#B8956A' }} />
-            Call Map — {contact?.name}
-          </DialogTitle>
-        </DialogHeader>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-lg">
+        <div className="px-6 py-4 border-b border-gray-200 shrink-0">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <Phone className="w-4 h-4" style={{ color: '#B8956A' }} />
+              Call Map — {contact?.name}
+            </h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              ✕
+            </button>
+          </div>
+        </div>
 
         {(contact?.phone || contact?.email) && (
           <div className="flex gap-2 px-6 py-3 border-b border-gray-100 shrink-0">
@@ -89,7 +94,7 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-2 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="prose prose-sm max-w-none text-sm leading-relaxed">
             <ReactMarkdown
               components={{
@@ -117,7 +122,7 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
             </ReactMarkdown>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
