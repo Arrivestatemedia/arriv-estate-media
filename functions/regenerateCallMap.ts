@@ -102,6 +102,26 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
       return `${dateStr} (${a.activity_type}): ${a.notes.slice(0, 100)}${pics}`;
     }).join("\n");
 
+    // Build learned context from past outcomes
+    let learnedContext = "";
+    if (pastInsights.length > 0) {
+      const outcomeGroups = {};
+      pastInsights.forEach(insight => {
+        if (!outcomeGroups[insight.outcome]) outcomeGroups[insight.outcome] = [];
+        outcomeGroups[insight.outcome].push(insight);
+      });
+      
+      const learnedLines = ["WHAT WE LEARNED FROM PAST INTERACTIONS WITH THIS CONTACT:"];
+      if (outcomeGroups.warm_waiting?.length) learnedLines.push(`- They said they'll reach out when ready (${outcomeGroups.warm_waiting.length}x) → give them space, follow up in 3+ weeks`);
+      if (outcomeGroups.interested?.length) learnedLines.push(`- They've shown interest before (${outcomeGroups.interested.length}x) → they're a warm lead, reference previous positive signals`);
+      if (outcomeGroups.not_interested?.length) learnedLines.push(`- They've said not interested (${outcomeGroups.not_interested.length}x) → re-qualify carefully, mention any new market info`);
+      if (outcomeGroups.no_answer?.length) learnedLines.push(`- They don't answer calls often (${outcomeGroups.no_answer.length}x) → consider text as primary channel`);
+      if (outcomeGroups.left_voicemail?.length) learnedLines.push(`- Voicemails have been left (${outcomeGroups.left_voicemail.length}x) → voicemails rarely convert, prefer text follow-ups`);
+      if (outcomeGroups.call_later?.length) learnedLines.push(`- They've asked to call back later (${outcomeGroups.call_later.length}x) → respect their time constraints, lock in callback time`);
+      
+      learnedContext = learnedLines.join("\n");
+    }
+
     // Collect all picture URLs for LLM analysis
     const pictureUrls = pastActivities
       .flatMap(a => a.picture_urls || [])
