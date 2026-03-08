@@ -1195,12 +1195,22 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
             setRegeneratingCallMap(true);
             try {
               // Fetch activity history + SMS + HubSpot data + web search
-              const history = activities
+              const priorActivities = activities
                 .filter(a => a.contact_email === callMapActivity.contact_email && a.id !== callMapActivity.id)
                 .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
-                .slice(0, 10)
+                .slice(0, 10);
+
+              const history = priorActivities
                 .map(a => `${a.activity_type} on ${new Date(a.activity_date).toLocaleDateString()}: ${(a.notes || '').slice(0, 300)}`)
                 .join('\n');
+
+              // Collect attachment URLs from previous activities for LLM analysis
+              const attachmentUrls = [];
+              priorActivities.forEach(a => {
+                if (a.picture_urls && Array.isArray(a.picture_urls) && a.picture_urls.length > 0) {
+                  attachmentUrls.push(...a.picture_urls);
+                }
+              });
 
               // Fetch SMS conversation history
               let smsContext = '';
@@ -1270,118 +1280,131 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           ## RECENT ACTIVITY HISTORY
           ${history || 'No prior history'}
 
+          ## 🎯 CRITICAL: VISUAL CONTEXT REQUIREMENT
+          **YOU MUST analyze the attached images and reference them explicitly in the call map.**
+          If images are attached below, you MUST:
+          1. Identify what properties/features were shown
+          2. Note what Brad emphasized visually
+          3. Reference these in the script with specific details (e.g., "the drone footage we looked at," "those kitchen renovations I showed you," "the walkthrough I sent")
+          4. Use visual memory to build rapport ("You remember how the master suite looked in that video?")
+
+          ${attachmentUrls.length > 0 ? `\n## IMAGES FROM PREVIOUS INTERACTIONS\nAttached images from calls with ${callMapActivity.contact_name}:\n${attachmentUrls.map((url, i) => `[Image ${i + 1}]: ${url}`).join('\n')}\n\n**ANALYZE THESE IMAGES AND WEAVE THEIR SPECIFIC DETAILS INTO EVERY RELEVANT SECTION OF THE CALL MAP.**` : 'NOTE: No images attached for this contact yet.'}
+
           ${extraContext ? `## ADDITIONAL INPUT FROM BRAD (REAL-TIME UPDATE)\n${extraContext}` : ''}
 
----
+          ---
 
-## CLOSING STRATEGIES (Based on Agent/Market Research)
-Use the HubSpot and web research above to tailor your approach:
-- **High-volume agents**: Emphasize efficiency ("2–3 min videos, drop-and-go")
-- **Boutique/niche agents**: Emphasize premium positioning ("cinematic production for luxury listings")
-- **Newer agents**: Emphasize ROI + proof ("video listings sell 30% faster")
-- **Relocation specialists**: Emphasize buyer familiarity ("virtual walkthrough reduces showings")
-- **Market conditions**: In hot markets, emphasize speed; in slower markets, emphasize closing power
+          ## CLOSING STRATEGIES (Based on Agent/Market Research)
+          Use the HubSpot and web research above to tailor your approach:
+          - **High-volume agents**: Emphasize efficiency ("2–3 min videos, drop-and-go")
+          - **Boutique/niche agents**: Emphasize premium positioning ("cinematic production for luxury listings")
+          - **Newer agents**: Emphasize ROI + proof ("video listings sell 30% faster")
+          - **Relocation specialists**: Emphasize buyer familiarity ("virtual walkthrough reduces showings")
+          - **Market conditions**: In hot markets, emphasize speed; in slower markets, emphasize closing power
 
----
+          ---
 
-## BRAD'S PROVEN SCRIPT STYLE (use this tone and structure + personalization)
+          ## BRAD'S PROVEN SCRIPT STYLE (use this tone and structure + personalization)
 
-**Cold/first call opener:**
-"Hi [Name], this is ${salesRepName} — I'm a local real estate media creator.${isWarmContact ? '' : ' Do you have a moment?'} I came across your [listing/property/recent deal] and [specific observation based on their speciality/market]. I just wanted to see if [video/photography] was something you were considering — especially given [market insight or their transaction volume]."
+          **Cold/first call opener:**
+          "Hi [Name], this is ${salesRepName} — I'm a local real estate media creator.${isWarmContact ? '' : ' Do you have a moment?'} I came across your [listing/property/recent deal] and [specific observation based on their speciality/market]. I just wanted to see if [video/photography] was something you were considering — especially given [market insight or their transaction volume]."
 
-**Follow-up opener (2nd–3rd calls, keep rapport-building):**
-"Hi [Name], this is ${salesRepName}. Quick question — how are you doing? Do you have a moment?"
+          **Follow-up opener (2nd–3rd calls, keep rapport-building):**
+          "Hi [Name], this is ${salesRepName}. Quick question — how are you doing? Do you have a moment?"
 
-**Warm contact opener (5+ calls):**
-"Hey [Name], it's ${salesRepName} — quick call, I won't keep you long. [Specific reason tied to their recent deals or market]."
+          **Warm contact opener (5+ calls):**
+          "Hey [Name], it's ${salesRepName} — quick call, I won't keep you long. [Specific reason tied to their recent deals or market]."
 
-**If they already have a photographer:**
-"Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource — especially for [their specialty market]."
+          **If they already have a photographer:**
+          "Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource — especially for [their specialty market]."
 
-**Close-ready pitch (when they're engaged):**
-"Great. So here's what I'm thinking: a [2–3 minute cinematic walkthrough / series of property photos] that we can get you by [specific date]. You can drop it straight into [MLS/listing portal]. What's your schedule looking like this [week/next week]?"
+          **Close-ready pitch (when they're engaged):**
+          "Great. So here's what I'm thinking: a [2–3 minute cinematic walkthrough / series of property photos] that we can get you by [specific date]. You can drop it straight into [MLS/listing portal]. What's your schedule looking like this [week/next week]?"
 
-**Value props (pick the most relevant based on their profile):**
-- "Clean, MLS-ready videos that help buyers understand layout before showings"
-- "A 2–3 minute video you can just drop into the listing"
-- "Helps get it to the closing table — video listings typically sell [faster/at higher prices in your market]"
-- "Full-service — photography, video, and drone"
-- "[For high-volume agents] Bulk pricing for your portfolio"
+          **Value props (pick the most relevant based on their profile):**
+          - "Clean, MLS-ready videos that help buyers understand layout before showings"
+          - "A 2–3 minute video you can just drop into the listing"
+          - "Helps get it to the closing table — video listings typically sell [faster/at higher prices in your market]"
+          - "Full-service — photography, video, and drone"
+          - "[For high-volume agents] Bulk pricing for your portfolio"
 
----
+          ---
 
-## CRITICAL INSTRUCTIONS FOR THIS CALL MAP
+          ## CRITICAL INSTRUCTIONS FOR THIS CALL MAP
 
-1. **Use all research data above**: Reference their market position, recent deals, specialties, transaction volume, etc.
-2. **Tailor the closing strategy**: Match your approach to whether they're high-volume, boutique, newer agent, or specialist.
-3. **Personalize every section**: NO generic scripts. Every objection handler and close reference their specific situation.
-4. **Reference specifics**: If you have recent listing data, SMS history, or HubSpot notes — weave them in naturally.
-5. **Respect touch sequence**: Calls 1–3 always ask "do you have a moment?" and "how are you doing?" Calls 5+ can skip it.
-6. **Make it closeable**: Every path should lead to a specific ask — date/time booking, callback, email follow-up, etc.
+          1. **Use all research data above**: Reference their market position, recent deals, specialties, transaction volume, etc.
+          2. **Tailor the closing strategy**: Match your approach to whether they're high-volume, boutique, newer agent, or specialist.
+          3. **Personalize every section**: NO generic scripts. Every objection handler and close reference their specific situation.
+          4. **Reference specifics**: If you have recent listing data, SMS history, or HubSpot notes — weave them in naturally.
+          5. **Respect touch sequence**: Calls 1–3 always ask "do you have a moment?" and "how are you doing?" Calls 5+ can skip it.
+          6. **Make it closeable**: Every path should lead to a specific ask — date/time booking, callback, email follow-up, etc.
 
----
+          ---
 
-## GENERATE THIS COMPLETE CALL MAP:
+          ## GENERATE THIS COMPLETE CALL MAP:
 
-### 📞 Opening Line
-(word-for-word, use Brad's style — personalized with research from above)
-${!isWarmContact ? '(MUST include: "Do you have a moment?" + "How are you doing?")'  : '(Skip "do you have a moment?" — jump straight to reason)'}
+          ### 📞 Opening Line
+          (word-for-word, use Brad's style — personalized with research from above)
+          ${!isWarmContact ? '(MUST include: "Do you have a moment?" + "How are you doing?")'  : '(Skip "do you have a moment?" — jump straight to reason)'}
 
----
+          ---
 
-### 🔀 If Interested / Open
-(guide toward booking, reference their specific listings/market, ask about schedule, mention cadence/timeline)
+          ### 🔀 If Interested / Open
+          (guide toward booking, reference their specific listings/market, ask about schedule, mention cadence/timeline)
 
----
+          ---
 
-### 🔀 If They Already Have Someone
-(use the "backup resource" line tailored to their specialty/market — plant a seed, don't push)
+          ### 🔀 If They Already Have Someone
+          (use the "backup resource" line tailored to their specialty/market — plant a seed, don't push)
 
----
+          ---
 
-### 🔀 If Busy / Bad Time
-(respect it, lock in a specific callback time — reference their transaction volume/listing pipeline if known)
+          ### 🔀 If Busy / Bad Time
+          (respect it, lock in a specific callback time — reference their transaction volume/listing pipeline if known)
 
----
+          ---
 
-### 🔀 If They Ask About Pricing
-(value-first answer tied to their market/agent type, "Brad handles the specifics" — never quote a number)
+          ### 🔀 If They Ask About Pricing
+          (value-first answer tied to their market/agent type, "Brad handles the specifics" — never quote a number)
 
----
+          ---
 
-### 🔀 If They Ask About Timeline
-(reference how fast Brad works, give realistic turnaround, tie to their listing schedule)
+          ### 🔀 If They Ask About Timeline
+          (reference how fast Brad works, give realistic turnaround, tie to their listing schedule)
 
----
+          ---
 
-### 🔀 If They Ask About Portfolio / Previous Work
-(reference specific real estate verticals or market conditions Brad has worked in — specificity wins)
+          ### 🔀 If They Ask About Portfolio / Previous Work
+          (reference specific real estate verticals or market conditions Brad has worked in — specificity wins)
 
----
+          ---
 
-### 🔀 If Cold / Not Engaging
-(short graceful exit that leaves door open — reference you can help with their future listings/pipeline)
+          ### 🔀 If Cold / Not Engaging
+          (short graceful exit that leaves door open — reference you can help with their future listings/pipeline)
 
----
+          ---
 
-### 📵 Voicemail Script
-(word-for-word, UNDER 15 seconds when spoken out loud, casual, specific — reference something about their business or market)
+          ### 📵 Voicemail Script
+          (word-for-word, UNDER 15 seconds when spoken out loud, casual, specific — reference something about their business or market)
 
----
+          ---
 
-### 📱 Follow-Up Text
-(short text to send immediately after leaving voicemail — conversational, not salesy, reference the reason for the call)
+          ### 📱 Follow-Up Text
+          (short text to send immediately after leaving voicemail — conversational, not salesy, reference the reason for the call)
 
----
+          ---
 
-### 🏁 Closing / Next Steps
-(exact closing line + confirm the next step — email, callback date, or direct booking)
+          ### 🏁 Closing / Next Steps
+          (exact closing line + confirm the next step — email, callback date, or direct booking)
 
----
+          ---
 
-Keep every section short and conversational. Brad is calling directly — write it ONLY in his voice, using the research you've gathered.`;
+          Keep every section short and conversational. Brad is calling directly — write it ONLY in his voice, using the research you've gathered.`;
 
-              const result = await base44.integrations.Core.InvokeLLM({ prompt });
+              const result = await base44.integrations.Core.InvokeLLM({ 
+                prompt,
+                ...(attachmentUrls.length > 0 && { file_urls: attachmentUrls })
+              });
               const newCallMap = typeof result === 'string' ? result : result?.text || result?.content || '';
               const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
               const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${newCallMap}`;
