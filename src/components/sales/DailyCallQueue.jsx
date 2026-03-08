@@ -532,7 +532,7 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
               {!script ? (
                 <Button size="sm" onClick={generateScript} disabled={generatingScript} className="w-full gap-2" style={{ backgroundColor: '#1A1A1A', color: '#fff' }}>
                   {generatingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {generatingScript ? "Generating opener..." : "Generate opener"}
+                  {generatingScript ? "Generating call map..." : "Generate call map"}
                 </Button>
               ) : (
                 <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
