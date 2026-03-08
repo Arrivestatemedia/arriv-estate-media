@@ -56,7 +56,7 @@ export default function SalesLogin() {
           localStorage.setItem(k, v);
           sessionStorage.setItem(k, v);
         });
-        navigate(createPageUrl("HubSpotActivityLog"));
+        navigate(createPageUrl(result.data.role === 'admin' ? "AdminActivityPage" : "HubSpotActivityLog"));
       } else {
         setError(result.data?.error || "Login failed");
       }
