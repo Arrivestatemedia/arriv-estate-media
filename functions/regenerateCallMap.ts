@@ -159,8 +159,6 @@ TONE RULES:
 - Specific to THEM, not generic
 - Confident but relaxed
 
-⚠️ CRITICAL: You MUST output EVERY single section below. None optional. This is a complete call map, not just an opener.
-
 FORMAT — cover EVERY path:
 
 📞 **Opening** (1-2 sentences, casual, specific to this person — reference something real from their history or market)
