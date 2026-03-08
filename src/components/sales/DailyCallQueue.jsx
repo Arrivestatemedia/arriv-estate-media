@@ -468,7 +468,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
             console.error('[DailyCallQueue logOutcome] Call map generation error:', error);
           }
 
-          const savedActivity = await base44.entities.ActivityLog.create({
+          await base44.entities.ActivityLog.create({
             activity_type: "call",
             contact_name: contact.name,
             contact_email: contact.email,
@@ -479,7 +479,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
             sales_member_id: sid,
             sales_member_email: sem,
           });
-        }
+       }
 
       // Save insight so the AI learns
       await base44.entities.QueueInsight.create({
