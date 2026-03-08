@@ -5,17 +5,8 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { activityId, contactName, contactEmail, companyName, contactPhone } = await req.json();
 
-    // If activityId provided, fetch it; otherwise it's a pre-creation scenario
-    let activity = null;
-    if (activityId) {
-      activity = await base44.entities.ActivityLog.get(activityId);
-      if (!activity) {
-        return Response.json({ error: 'Activity not found' }, { status: 404 });
-      }
-    }
-
     // Fetch past activities for this contact
-    const pastActivities = await base44.entities.ActivityLog.filter({
+    const pastActivities = await base44.asServiceRole.entities.ActivityLog.filter({
       contact_email: contactEmail,
     }, '-activity_date', 15);
 
@@ -23,12 +14,12 @@ Deno.serve(async (req) => {
     let smsHistory = "";
     if (contactPhone) {
       try {
-        const smsConversation = await base44.entities.SmsConversation.filter({
+        const smsConversation = await base44.asServiceRole.entities.SmsConversation.filter({
           from_number: contactPhone,
         }, '-last_message_at', 1);
         
         if (smsConversation.length > 0) {
-          const messages = await base44.entities.SmsMessage.filter({
+          const messages = await base44.asServiceRole.entities.SmsMessage.filter({
             conversation_id: smsConversation[0].id,
           }, '-created_date', 20);
           
