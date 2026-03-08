@@ -377,7 +377,8 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
              }
            });
 
-           callMapContent = typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes);
+           const callMapData = typeof callMapRes === "string" ? (typeof callMapRes === "object" ? callMapRes : JSON.parse(callMapRes)) : callMapRes;
+           callMapContent = `📞 **Opening**\n${callMapData.opening}\n\n🔀 **If they're interested**\n${callMapData.if_interested}\n\n🔀 **If they say "I already have a photographer"**\n${callMapData.if_has_photographer}\n\n🔀 **If they say "Not interested right now"**\n${callMapData.if_not_interested}\n\n🔀 **If they say "Send me an email"**\n${callMapData.if_send_email}\n\n🔀 **If they say "Too expensive"**\n${callMapData.if_too_expensive}\n\n🔀 **If they're cold / one-word answers**\n${callMapData.if_cold_unengaged}\n\n🔀 **If they're busy / bad time**\n${callMapData.if_busy_bad_time}\n\n📵 **If no answer — voicemail**\n${callMapData.if_no_answer_voicemail}\n\n📱 **Follow-up text**\n${callMapData.follow_up_text}`;
          } catch (e) {
            console.error('Call map generation failed:', e);
          }
