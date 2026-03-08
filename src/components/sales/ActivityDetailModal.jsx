@@ -107,46 +107,27 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
           {/* Notes / Content */}
           {activity.notes && (
             <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <FileText className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Notes / Content</p>
-              </div>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'rgba(26,26,26,0.5)' }}>Notes</p>
               {(() => {
                 const raw = activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
-                const screenshotMarker = '\n\n[Screenshots]\n';
                 const markerIdx = raw?.indexOf('[Screenshots]\n');
                 if (markerIdx !== undefined && markerIdx >= 0) {
                   const notesOnly = raw.slice(0, raw.indexOf('\n\n[Screenshots]')).trim();
                   const screenshotUrls = raw.slice(markerIdx + '[Screenshots]\n'.length).trim().split('\n').filter(Boolean);
                   return (
                     <>
-                      <div className="bg-white border rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-2" style={{ borderColor: 'rgba(184,149,106,0.3)' }}>
-                        {notesOnly}
+                      <div className="bg-white border rounded p-2 text-xs text-gray-700 leading-relaxed mb-2" style={{ borderColor: 'rgba(184,149,106,0.3)' }}>
+                        {notesOnly.slice(0, 150)}{notesOnly.length > 150 ? '...' : ''}
                       </div>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Image className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
-                          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Attachments ({screenshotUrls.length})</p>
-                        </div>
-                        {screenshotUrls.map((url, i) => {
-                          const isImage = /\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(url);
-                          return isImage ? (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                              <img src={url} alt={`attachment-${i+1}`} className="max-w-full max-h-48 rounded-lg border border-gray-200 hover:opacity-90 transition" />
-                            </a>
-                          ) : (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block text-sm text-[#B8956A] underline">
-                              📎 Attachment {i + 1}
-                            </a>
-                          );
-                        })}
-                      </div>
+                      {screenshotUrls.length > 0 && (
+                        <p className="text-xs text-gray-500">+{screenshotUrls.length} attachments</p>
+                      )}
                     </>
                   );
                 }
                 return (
-                  <div className="bg-white border rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed" style={{ borderColor: 'rgba(184,149,106,0.3)' }}>
-                    {raw}
+                  <div className="bg-white border rounded p-2 text-xs text-gray-700 leading-relaxed" style={{ borderColor: 'rgba(184,149,106,0.3)' }}>
+                    {raw.slice(0, 150)}{raw.length > 150 ? '...' : ''}
                   </div>
                 );
               })()}
