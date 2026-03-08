@@ -18,17 +18,12 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <div className="px-6 py-4 border-b border-gray-200 shrink-0">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Phone className="w-4 h-4" style={{ color: '#B8956A' }} />
-              Call Map — {contact?.name}
-            </h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              ✕
-            </button>
-          </div>
-        </div>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Phone className="w-4 h-4" style={{ color: '#B8956A' }} />
+            Call Map — {contact?.name}
+          </DialogTitle>
+        </DialogHeader>
 
         {(contact?.phone || contact?.email) && (
           <div className="flex gap-2 px-6 py-3 border-b border-gray-100 shrink-0">
