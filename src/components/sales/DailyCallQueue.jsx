@@ -161,19 +161,49 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
 
   let initialNotes = `[AI Scheduled] ${analysis.reason || "Follow-up call"} | Opener: ${analysis.suggested_opener || ""}`;
   
-  // Generate call map immediately
+  // Generate formatted call map immediately
   try {
-    const callMapRes = await base44.functions.invoke('regenerateCallMap', {
-      contactName: contact.name,
-      contactEmail: contact.email,
-      companyName: contact.company,
-      contactPhone: contact.phone,
-    });
+    const historySnippet = contact.activities.slice(0, 4).map(a => {
+      const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
+      return `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 120)}${pics}`;
+    }).join("\n");
 
-    const callMapData = callMapRes?.data?.call_map;
-    if (callMapData && typeof callMapData === 'string' && callMapData.trim().length > 0) {
-      initialNotes += `\n\n--- CALL MAP ---\n${callMapData}`;
-    }
+    const scriptPictureUrls = contact.activities
+      .slice(0, 6)
+      .flatMap(a => a.picture_urls || [])
+      .slice(0, 6);
+
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
+
+History: ${historySnippet || "no prior contact"}
+
+Output JSON with ALL 10 sections. Every field required and must be filled with full content.
+
+${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
+      add_context_from_internet: true,
+      file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          opening: { type: "string", description: "2 sentences, casual, specific. NOT 'Hi this is X from ARRIV'" },
+          if_interested: { type: "string", description: "Full 60-second pitch, key points, guide to booking" },
+          if_has_photographer: { type: "string", description: "Acknowledge, don't argue, plant seed for future" },
+          if_not_interested: { type: "string", description: "Graceful response, leaves door open, mention follow-up" },
+          if_send_email: { type: "string", description: "Agree to email but GET COMMITMENT for a call too" },
+          if_too_expensive: { type: "string", description: "Value frame, never discount, redirect to Brad for pricing" },
+          if_cold_unengaged: { type: "string", description: "Short graceful exit that doesn't burn the bridge" },
+          if_busy_bad_time: { type: "string", description: "Acknowledge, lock in specific callback time, end on good note" },
+          if_no_answer_voicemail: { type: "string", description: "15 seconds max, word-for-word, conversational" },
+          follow_up_text: { type: "string", description: "Send right after voicemail if no answer — short, casual, natural" }
+        },
+        required: ["opening", "if_interested", "if_has_photographer", "if_not_interested", "if_send_email", "if_too_expensive", "if_cold_unengaged", "if_busy_bad_time", "if_no_answer_voicemail", "follow_up_text"]
+      }
+    });
+    
+    const callMapData = typeof res === "string" ? JSON.parse(res) : res;
+    const formatted = `📞 **Opening**\n${callMapData.opening}\n\n🔀 **If they're interested**\n${callMapData.if_interested}\n\n🔀 **If they say "I already have a photographer"**\n${callMapData.if_has_photographer}\n\n🔀 **If they say "Not interested right now"**\n${callMapData.if_not_interested}\n\n🔀 **If they say "Send me an email"**\n${callMapData.if_send_email}\n\n🔀 **If they say "Too expensive"**\n${callMapData.if_too_expensive}\n\n🔀 **If they're cold / one-word answers**\n${callMapData.if_cold_unengaged}\n\n🔀 **If they're busy / bad time**\n${callMapData.if_busy_bad_time}\n\n📵 **If no answer — voicemail**\n${callMapData.if_no_answer_voicemail}\n\n📱 **Follow-up text**\n${callMapData.follow_up_text}`;
+    initialNotes += `\n\n--- CALL MAP ---\n${formatted}`;
   } catch (error) {
     console.error('[saveScheduledFollowUp] Failed to generate call map:', error);
   }
