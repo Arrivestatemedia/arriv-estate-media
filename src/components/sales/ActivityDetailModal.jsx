@@ -154,7 +154,16 @@ export default function ActivityDetailModal({ activity, onClose }) {
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+        </DialogContent>
+
+        {/* Call Map Modal */}
+        {showCallMap && activity.call_map && (
+        <ViewCallMapModal
+          activity={activity}
+          isOpen={showCallMap}
+          onClose={() => setShowCallMap(false)}
+        />
+        )}
+        </Dialog>
+        );
+        }
