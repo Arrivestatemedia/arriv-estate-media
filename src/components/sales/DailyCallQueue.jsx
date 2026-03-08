@@ -326,25 +326,15 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .flatMap(a => a.picture_urls || [])
         .slice(0, 6);
 
-      // Fetch insights for this contact to learn from past outcomes
-      const insights = await base44.entities.QueueInsight.filter({ 
-        contact_key: contact.key,
-        sales_member_id: salesMemberId 
-      }, '-logged_at', 20).catch(() => []);
-
-      const learnedContext = buildLearnedContext(insights);
-
       const res = await base44.integrations.Core.InvokeLLM({
         prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
 
-      Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}
-      History: ${historySnippet || "no prior contact"}
+Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}
+History: ${historySnippet || "no prior contact"}
 
-      ${learnedContext ? `LEARNED PATTERNS FROM PAST OUTCOMES:\n${learnedContext}\n` : ""}
+Output JSON with ALL 10 sections. Every field required and must be filled with full content.
 
-      Output JSON with ALL 10 sections. Every field required and must be filled with full content.
-
-      ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
+${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
         response_json_schema: {
@@ -458,28 +448,13 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
        if (nextFollowUpDate) {
           let generatedCallMap = "";
 
-          // Generate call map via backend function with learned context
+          // Generate call map via backend function
           try {
-            // Get QueueInsights for this contact to learn from past outcomes
-            const insights = await base44.entities.QueueInsight.filter({ 
-              contact_key: contact.key,
-              sales_member_id: sid 
-            }, '-logged_at', 20).catch(() => []);
-
-            const learnedContext = buildLearnedContext(insights);
-            const historyText = contact.activities
-              .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
-              .slice(0, 15)
-              .map(a => `${format(new Date(a.activity_date), "MMM d, yyyy")} [${a.activity_type}]: ${a.notes.slice(0, 150)}`)
-              .join("\n");
-
             const callMapRes = await base44.functions.invoke('regenerateCallMap', {
               contactName: contact.name,
               contactEmail: contact.email,
               companyName: contact.company,
               contactPhone: contact.phone,
-              activityHistory: historyText,
-              learnedContext: learnedContext,
             });
 
             const callMapData = callMapRes?.data?.call_map;
