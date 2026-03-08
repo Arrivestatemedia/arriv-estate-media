@@ -78,6 +78,7 @@ export default function HubSpotActivityLog() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [callMapActivity, setCallMapActivity] = useState(null); // activity whose call map to show
+  const [regeneratingCallMap, setRegeneratingCallMap] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [visibleOnCurrentPage, setVisibleOnCurrentPage] = useState(5);
   const [showArchive, setShowArchive] = useState(false);
