@@ -330,23 +330,18 @@ export default function ContactDetailPage() {
       </Dialog>
 
       {/* Call Map Modal */}
-      {callMapActivity && (() => {
-        const raw = callMapActivity.notes || '';
-        const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
-        const callMap = mapMatch ? mapMatch[1].trim() : raw;
-        return (
-          <CallMapModal
-            open={!!callMapActivity}
-            onClose={() => setCallMapActivity(null)}
-            contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
-            callMap={callMap}
-            contactPhone={callMapActivity.contact_phone || ''}
-            contactEmail={callMapActivity.contact_email || ''}
-            onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone } })); }}
-            onEmail={(email) => { localStorage.setItem('_emailTo', email); window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email } })); }}
-          />
-        );
-      })()}
+      {callMapActivity && (
+        <CallMapModal
+          open={!!callMapActivity}
+          onClose={() => setCallMapActivity(null)}
+          contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
+          callMap={callMapActivity.call_map || ''}
+          contactPhone={callMapActivity.contact_phone || ''}
+          contactEmail={callMapActivity.contact_email || ''}
+          onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone } })); }}
+          onEmail={(email) => { localStorage.setItem('_emailTo', email); window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email } })); }}
+        />
+      )}
 
       {/* Floating Chat Bubble */}
       <CallStatusProvider>
