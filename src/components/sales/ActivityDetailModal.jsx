@@ -98,7 +98,7 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
           </div>
 
           {/* Call Map (if present) */}
-          {script && (
+          {activity.call_map && (
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Phone className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
@@ -112,22 +112,6 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
               >
                 <Eye className="w-4 h-4" />
                 View Full Call Map
-              </Button>
-            </div>
-          )}
-
-          {/* Generate Call Map Button (if not present) */}
-          {!script && activity.activity_type === "call" && (
-            <div>
-              <Button 
-                onClick={generateCallMap}
-                disabled={generatingScript}
-                className="w-full gap-2"
-                style={{ backgroundColor: '#1A1A1A', color: '#fff' }}
-                size="sm"
-              >
-                {generatingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {generatingScript ? "Generating call map..." : "Generate Call Map"}
               </Button>
             </div>
           )}
