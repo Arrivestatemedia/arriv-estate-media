@@ -1191,6 +1191,22 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           const callMap = mapMatch ? mapMatch[1].trim() : raw;
           const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
 
+          const handleSaveCallMapEdit = async (editedText) => {
+            try {
+              const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
+              const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
+              await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+              console.log('[AdminActivity] Call map edit saved successfully');
+              setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
+              queryClient.invalidateQueries({ queryKey: ['adminActivities'] });
+              return Promise.resolve();
+            } catch (error) {
+              console.error('[AdminActivity] Failed to save call map edit:', error);
+              alert('Failed to save call map changes: ' + error.message);
+              return Promise.reject(error);
+            }
+          };
+
           const handleRegenerate = async (extraContext) => {
             setRegeneratingCallMap(true);
             try {
