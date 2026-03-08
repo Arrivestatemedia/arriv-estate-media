@@ -296,10 +296,10 @@ Generate the sections below using markdown formatting. Each section should be co
           </div>
 
           {/* Call Map Modal */}
-          {showCallMap && activity.call_map && (
+          {showCallMap && script && (
           <CallMapModal
             contact={{ name: activity.contact_name, phone: activity.contact_phone, email: activity.contact_email }}
-            script={activity.call_map}
+            script={script}
             onClose={() => setShowCallMap(false)}
           />
           )}
