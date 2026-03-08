@@ -14,18 +14,25 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
     setRegenerating(true);
     try {
       const res = await base44.functions.invoke('regenerateCallMap', {
-        activityId: activity.id,
         contactName: activity.contact_name,
         contactEmail: activity.contact_email,
         companyName: activity.company_name,
+        contactPhone: activity.contact_phone,
       });
       
-      const newCallMap = res.data?.call_map || "";
+      const newCallMap = res.data?.call_map;
+      if (!newCallMap || typeof newCallMap !== 'string' || newCallMap.trim().length === 0) {
+        console.error('Invalid call map response:', res.data);
+        setCallMap("");
+        return;
+      }
+      
       setCallMap(newCallMap);
       await base44.entities.ActivityLog.update(activity.id, { call_map: newCallMap });
       setShowRegenerateOptions(false);
     } catch (e) {
       console.error('Regenerate failed:', e);
+      setCallMap("");
     } finally {
       setRegenerating(false);
     }
