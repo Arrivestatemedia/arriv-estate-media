@@ -525,15 +525,31 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
                   {generatingScript ? "Generating call map..." : "Generate call map"}
                 </Button>
               ) : (
-                <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>ARRIV Coach</p>
-                    <button onClick={generateScript} className="text-xs flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                      <RefreshCw className="w-3 h-3" /> Regenerate
-                    </button>
+                <>
+                  <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>ARRIV Coach</p>
+                      <button onClick={generateScript} className="text-xs flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                        <RefreshCw className="w-3 h-3" /> Regenerate
+                      </button>
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#1A1A1A' }}>{script}</div>
                   </div>
-                  <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#1A1A1A' }}>{script}</div>
-                </div>
+                  {scheduledFollowUp?.call_map && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full gap-2"
+                      onClick={() => {
+                        // Pass the scheduled follow-up to a modal for viewing
+                        window.dispatchEvent(new CustomEvent('openCallMapModal', { detail: { activity: scheduledFollowUp } }));
+                      }}
+                      style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                    >
+                      📋 View Full Call Map
+                    </Button>
+                  )}
+                </>
               )}
             </div>
 
