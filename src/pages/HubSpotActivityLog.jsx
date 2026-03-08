@@ -1350,7 +1350,7 @@ export default function HubSpotActivityLog() {
                 .join('\n');
 
               const callCount = activities.filter(a => a.contact_email === callMapActivity.contact_email).length;
-              const isWarmContact = callCount >= 3;
+              const isWarmContact = callCount >= 5;
 
               const prompt = `You are generating a personalized call map for Brad Burke, owner of ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
 
