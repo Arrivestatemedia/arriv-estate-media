@@ -282,6 +282,7 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
   );
   const [savingDate, setSavingDate] = useState(false);
   const [deletingFollowUp, setDeletingFollowUp] = useState(false);
+  const [regeneratingScript, setRegeneratingScript] = useState(false);
 
   const priority = getPriorityLabel(urgency || "medium");
   const bestTime = getBestTime(contact);
