@@ -448,13 +448,24 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
        if (nextFollowUpDate) {
           let generatedCallMap = "";
 
-          // Generate call map via backend function
+          // Generate call map via backend function with full historical context
           try {
+            const meta = metaMap[contact.key] || {};
+            const recentHistory = contact.activities
+              .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+              .slice(0, 15)
+              .map(a => `${format(new Date(a.activity_date), "MMM d, yyyy")}: [${a.activity_type}] ${a.notes?.slice(0, 150)}`)
+              .join("\n");
+
             const callMapRes = await base44.functions.invoke('regenerateCallMap', {
               contactName: contact.name,
               contactEmail: contact.email,
               companyName: contact.company,
               contactPhone: contact.phone,
+              activityHistory: recentHistory,
+              patternTags: meta.patternTags || [],
+              reason: meta.reason || "",
+              contactIntel: meta.contactIntel || "",
             });
 
             const callMapData = callMapRes?.data?.call_map;
