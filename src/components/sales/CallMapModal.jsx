@@ -29,27 +29,27 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
         </div>
 
         {(contact?.phone || contact?.email) && (
-          <div className="flex gap-2 px-6 py-3 border-b border-gray-100 shrink-0">
+          <div className="flex gap-2 px-5 py-2.5 border-b border-gray-100 shrink-0">
             {contact?.phone && (
               <Button
                 size="sm"
-                className="gap-2"
+                className="gap-2 h-8 text-xs"
                 style={{ backgroundColor: '#B8956A', color: '#fff' }}
                 onClick={() => {
                   onClose();
                   window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }));
                 }}
               >
-                <Phone className="w-4 h-4" /> Call
+                <Phone className="w-3.5 h-3.5" /> Call
               </Button>
             )}
             {contact?.email && (
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-2"
+                className="gap-2 h-8 text-xs"
               >
-                <Mail className="w-4 h-4" /> Email
+                <Mail className="w-3.5 h-3.5" /> Email
               </Button>
             )}
           </div>
