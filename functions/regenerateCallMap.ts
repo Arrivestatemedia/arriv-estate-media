@@ -155,9 +155,9 @@ ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interaction
       }
     });
 
-    console.log('[regenerateCallMap] Raw LLM response:', JSON.stringify(callMapRes).slice(0, 500));
-    const newCallMap = JSON.stringify(callMapRes);
-    console.log('[regenerateCallMap] Final newCallMap:', newCallMap.slice(0, 500));
+    // callMapRes is already parsed JSON object from LLM
+    const newCallMap = typeof callMapRes === "string" ? callMapRes : JSON.stringify(callMapRes);
+    console.log('[regenerateCallMap] Generated call map, length:', newCallMap.length);
 
     return Response.json({ call_map: newCallMap });
   } catch (error) {
