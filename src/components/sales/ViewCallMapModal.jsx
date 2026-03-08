@@ -33,6 +33,18 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
 
   const contactName = activity?.contact_name || "Contact";
 
+  // Parse call_map JSON if it's a string
+  const parseCallMap = () => {
+    if (!callMap) return null;
+    try {
+      return typeof callMap === 'string' ? JSON.parse(callMap) : callMap;
+    } catch {
+      return null;
+    }
+  };
+
+  const callMapData = parseCallMap();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" style={{ backgroundColor: '#FFFFFF' }}>
