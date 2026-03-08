@@ -2,39 +2,17 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp, Paperclip, X } from "lucide-react";
+import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { Input } from "@/components/ui/input";
 
 export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating, contactPhone, contactEmail, onCall, onEmail }) {
   const [showContextBox, setShowContextBox] = useState(false);
   const [context, setContext] = useState("");
-  const [attachmentFiles, setAttachmentFiles] = useState([]);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   if (!callMap) return null;
 
-  const handleFileChange = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    setUploadingFiles(true);
-    const base44 = await import("@/api/base44Client").then(m => m.base44);
-    try {
-      for (const file of files) {
-        const result = await base44.integrations.Core.UploadFile({ file });
-        const url = result?.file_url || result?.data?.file_url;
-        if (url) setAttachmentFiles(prev => [...prev, { name: file.name, url }]);
-      }
-    } catch (error) {
-      console.error('File upload error:', error);
-    } finally {
-      setUploadingFiles(false);
-      e.target.value = "";
-    }
-  };
-
   const handleRegenerate = () => {
-    if (onRegenerate) onRegenerate(context, attachmentFiles);
+    if (onRegenerate) onRegenerate(context);
   };
 
   return (
