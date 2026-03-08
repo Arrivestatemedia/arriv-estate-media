@@ -326,6 +326,10 @@ export default function ContactDetailPage() {
             onClose={() => setCallMapActivity(null)}
             contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
             callMap={callMap}
+            contactPhone={callMapActivity.contact_phone || ''}
+            contactEmail={callMapActivity.contact_email || ''}
+            onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone } })); }}
+            onEmail={(email) => { localStorage.setItem('_emailTo', email); window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email } })); }}
           />
         );
       })()}
