@@ -17,17 +17,15 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-lg">
-        <div className="px-6 py-4 border-b border-gray-200 shrink-0">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Phone className="w-4 h-4" style={{ color: '#B8956A' }} />
-              Call Map — {contact?.name}
-            </h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              ✕
-            </button>
-          </div>
+      <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col shadow-xl">
+        <div className="px-5 py-3 border-b border-gray-200 shrink-0 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            <Phone className="w-4 h-4" style={{ color: '#B8956A' }} />
+            Call Script — {contact?.name}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">
+            ✕
+          </button>
         </div>
 
         {(contact?.phone || contact?.email) && (
