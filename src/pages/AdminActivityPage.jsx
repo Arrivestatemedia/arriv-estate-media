@@ -1197,6 +1197,20 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
               const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
               await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
               console.log('[AdminActivity] Call map edit saved successfully');
+
+              // Trigger style learning from this edit
+              try {
+                await base44.functions.invoke('analyzeCallMapEdit', {
+                  salesMemberId: user?.id,
+                  salesMemberEmail: user?.email,
+                  originalCallMap: callMap,
+                  editedCallMap: editedText
+                });
+                console.log('[AdminActivity] Style learning triggered');
+              } catch (e) {
+                console.warn('[AdminActivity] Style learning failed (non-critical):', e);
+              }
+
               setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
               queryClient.invalidateQueries({ queryKey: ['adminActivities'] });
               return Promise.resolve();
@@ -1271,10 +1285,21 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
               const callCount = activities.filter(a => a.contact_email === callMapActivity.contact_email).length;
               const isWarmContact = callCount >= 5;
 
+              // Fetch the sales rep's learned style profile
+              let learnedStyleContext = '';
+              try {
+                const styleProfiles = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ sales_member_id: user?.id });
+                if (styleProfiles?.[0]?.learned_preferences) {
+                  learnedStyleContext = `\n\n## LEARNED STYLE FROM BRAD'S EDITS\n${styleProfiles[0].learned_preferences}`;
+                }
+              } catch (e) {
+                console.warn('Failed to fetch style profile (non-critical):', e);
+              }
+
               const salesRepName = localStorage.getItem('sales_member_name') || 'the sales rep';
               const prompt = `You are generating a hyper-personalized, research-backed call map for ${salesRepName}, a sales representative for ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
 
-          ## CONTACT INFO
+              ## CONTACT INFO
           - Name: ${callMapActivity.contact_name || 'the contact'}
           - Company: ${callMapActivity.company_name || 'their brokerage'}
           - Email: ${callMapActivity.contact_email || ''}
@@ -1310,6 +1335,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           ${attachmentUrls.length > 0 ? `\n## IMAGES FROM PREVIOUS INTERACTIONS\nAttached images from calls with ${callMapActivity.contact_name}:\n${attachmentUrls.map((url, i) => `[Image ${i + 1}]: ${url}`).join('\n')}\n\n**ANALYZE THESE IMAGES AND WEAVE THEIR SPECIFIC DETAILS INTO EVERY RELEVANT SECTION OF THE CALL MAP.**` : 'NOTE: No images attached for this contact yet.'}
 
           ${extraContext ? `## ADDITIONAL INPUT FROM BRAD (REAL-TIME UPDATE)\n${extraContext}` : ''}
+
+          ${learnedStyleContext}
 
           ---
 
