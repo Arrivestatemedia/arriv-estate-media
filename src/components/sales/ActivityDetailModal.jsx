@@ -8,6 +8,7 @@ import CallMapModal from "./CallMapModal";
 
 export default function ActivityDetailModal({ activity, onClose, onDelete }) {
   const [deleting, setDeleting] = useState(false);
+  const [showCallMap, setShowCallMap] = useState(false);
   
   if (!activity) return null;
 
