@@ -178,24 +178,39 @@ Write only the reply message. Keep it short, clear, and professional (1-3 senten
 function buildCallPrompt({ contactName, contactCompany, callHistory, repName }) {
   return `You are a sales coach at Arriv, a real estate media company offering photography, videography, MLS walkthroughs, and cinematic video packages.
 
-Generate a concise outbound call script AND 5 key talking points for this call:
+Generate a COMPLETE call map (not just an opener) for this outbound call:
 - Contact: ${contactName || "a prospect"}${contactCompany ? ` at ${contactCompany}` : ""}
 - Sales rep: ${repName || "the rep"}
 ${callHistory ? `- Previous interactions: ${callHistory}` : "- This is a first-time outreach call"}
 
-Format your response as:
-OPENING SCRIPT:
-[2-3 sentence opener the rep says when they pick up]
+Format your response EXACTLY as follows:
 
-KEY TALKING POINTS:
-1. [Point 1]
-2. [Point 2]
-3. [Point 3]
-4. [Point 4]
-5. [Point 5]
+📞 OPENING (when they answer):
+[Exact word-for-word opener — warm, confident, 2-3 sentences]
 
-OBJECTION HANDLING:
-[1-2 common objections and brief responses]
+🔀 IF THEY SEEM INTERESTED / OPEN:
+[What to say next — guide the conversation toward booking. Include 2-3 lines of dialogue.]
 
-Keep it natural, confident, and focused on the value Arriv provides to real estate agents.`;
+🔀 IF THEY SAY "I ALREADY HAVE SOMEONE":
+[Exact response — acknowledge, don't argue, plant a seed for the future]
+
+🔀 IF THEY SAY "I'M BUSY / BAD TIME":
+[Exact response — respect their time, lock in a callback]
+
+🔀 IF THEY ASK ABOUT PRICING:
+[Exact response — give a value-first answer, redirect to Brad for specifics. Never quote a discount.]
+
+🔀 IF THEY'RE COLD / NOT ENGAGING:
+[Exact response — short, graceful exit that leaves the door open]
+
+📵 IF NO ANSWER — VOICEMAIL:
+[Word-for-word voicemail script, under 20 seconds when spoken]
+
+📱 FOLLOW-UP TEXT (send immediately after voicemail):
+[Short follow-up text to send right after leaving voicemail]
+
+🏁 CLOSING (when ready to wrap up the call):
+[Exact closing lines — confirm next step or hand-off to Brad]
+
+Keep every line natural, confident, and true to the Arriv brand. Never offer discounts — escalate pricing to Brad.`;
 }
