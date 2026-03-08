@@ -104,37 +104,81 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto mt-2">
-          <div
-            className="rounded-xl p-4"
-            style={{ backgroundColor: 'rgba(184,149,106,0.05)', border: '1px solid rgba(184,149,106,0.2)' }}
-          >
-            <ReactMarkdown
-              className="prose prose-sm max-w-none text-sm leading-relaxed"
-              components={{
-                h3: ({ children }) => (
-                  <h3 className="text-sm font-bold mt-4 mb-1.5 first:mt-0" style={{ color: '#1A1A1A' }}>{children}</h3>
-                ),
-                p: ({ children }) => (
-                  <p className="my-1.5 leading-relaxed" style={{ color: '#1A1A1A' }}>{children}</p>
-                ),
-                strong: ({ children }) => (
-                  <strong className="font-semibold" style={{ color: '#1A1A1A' }}>{children}</strong>
-                ),
-                hr: () => (
-                  <hr className="my-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }} />
-                ),
-                ul: ({ children }) => (
-                  <ul className="my-1.5 ml-4 list-disc space-y-0.5">{children}</ul>
-                ),
-                li: ({ children }) => (
-                  <li className="text-sm" style={{ color: '#1A1A1A' }}>{children}</li>
-                ),
-              }}
+        <div className="flex-1 overflow-y-auto mt-2 flex flex-col gap-2">
+          {!isEditing && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 self-end"
+              onClick={() => { setEditedCallMap(callMap); setIsEditing(true); }}
+              style={{ borderColor: 'rgba(184,149,106,0.3)', color: '#B8956A' }}
             >
-              {callMap}
-            </ReactMarkdown>
-          </div>
+              <Edit2 className="w-3.5 h-3.5" />
+              Edit
+            </Button>
+          )}
+          
+          {isEditing ? (
+            <div className="flex flex-col gap-2">
+              <Textarea
+                value={editedCallMap}
+                onChange={(e) => setEditedCallMap(e.target.value)}
+                className="text-sm resize-none flex-1 font-mono"
+                style={{ minHeight: '300px' }}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  className="gap-1.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveEdit}
+                  className="gap-1.5"
+                  style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="rounded-xl p-4"
+              style={{ backgroundColor: 'rgba(184,149,106,0.05)', border: '1px solid rgba(184,149,106,0.2)' }}
+            >
+              <ReactMarkdown
+                className="prose prose-sm max-w-none text-sm leading-relaxed"
+                components={{
+                  h3: ({ children }) => (
+                    <h3 className="text-sm font-bold mt-4 mb-1.5 first:mt-0" style={{ color: '#1A1A1A' }}>{children}</h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="my-1.5 leading-relaxed" style={{ color: '#1A1A1A' }}>{children}</p>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold" style={{ color: '#1A1A1A' }}>{children}</strong>
+                  ),
+                  hr: () => (
+                    <hr className="my-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }} />
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="my-1.5 ml-4 list-disc space-y-0.5">{children}</ul>
+                  ),
+                  li: ({ children }) => (
+                    <li className="text-sm" style={{ color: '#1A1A1A' }}>{children}</li>
+                  ),
+                }}
+              >
+                {editedCallMap}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
