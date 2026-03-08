@@ -1337,12 +1337,60 @@ export default function HubSpotActivityLog() {
           const raw = callMapActivity.notes || '';
           const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
           const callMap = mapMatch ? mapMatch[1].trim() : raw;
+          const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+
+          const handleRegenerate = async (extraContext) => {
+            setRegeneratingCallMap(true);
+            try {
+              const history = activities
+                .filter(a => a.contact_email === callMapActivity.contact_email && a.id !== callMapActivity.id)
+                .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+                .slice(0, 5)
+                .map(a => `${a.activity_type} on ${new Date(a.activity_date).toLocaleDateString()}: ${(a.notes || '').slice(0, 200)}`)
+                .join('\n');
+
+              const prompt = `You are a sales coach for ARRIV, a real estate media company. Generate a detailed, personalized call map for Brad Burke (the owner/sales rep at ARRIV) calling ${callMapActivity.contact_name || 'this contact'} at ${callMapActivity.company_name || 'their company'}.
+
+Contact: ${callMapActivity.contact_name || ''}
+Company: ${callMapActivity.company_name || ''}
+Email: ${callMapActivity.contact_email || ''}
+
+Previous context: ${shortNote}
+
+Recent activity history:
+${history || 'No prior history'}
+
+${extraContext ? `Additional context from rep: ${extraContext}` : ''}
+
+Generate a comprehensive call map with:
+- A natural, non-salesy opening line
+- Branches for interested, not interested, objections (has photographer, too expensive, send email, bad time)
+- A voicemail script (15 sec max)
+- A follow-up text to send after voicemail
+- A closing/next steps script
+
+Format with ### headers, emojis, and --- dividers between sections. Write it so Brad is the one calling directly (not on behalf of someone else).`;
+
+              const result = await base44.integrations.Core.InvokeLLM({ prompt });
+              const newCallMap = typeof result === 'string' ? result : result?.text || result?.content || '';
+              const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
+              const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${newCallMap}`;
+              await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+              setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
+              queryClient.invalidateQueries({ queryKey: ['activities'] });
+            } finally {
+              setRegeneratingCallMap(false);
+            }
+          };
+
           return (
             <CallMapModal
               open={!!callMapActivity}
               onClose={() => setCallMapActivity(null)}
               contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
               callMap={callMap}
+              onRegenerate={handleRegenerate}
+              regenerating={regeneratingCallMap}
               contactPhone={callMapActivity.contact_phone || phoneLookup[callMapActivity.contact_email] || phoneLookup[callMapActivity.contact_name] || ''}
               contactEmail={callMapActivity.contact_email || ''}
               onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); setActiveTab("call"); }}
