@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import { CallStatusProvider } from "@/components/CallStatusContext";
+import CallMapModal from "@/components/sales/CallMapModal";
 
 export default function ContactDetailPage() {
   const location = useLocation();
@@ -27,6 +28,7 @@ export default function ContactDetailPage() {
   const [editingActivity, setEditingActivity] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
+  const [callMapActivity, setCallMapActivity] = useState(null);
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [saving, setSaving] = useState(false);
 
