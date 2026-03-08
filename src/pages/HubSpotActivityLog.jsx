@@ -1355,10 +1355,11 @@ export default function HubSpotActivityLog() {
                 // Collect attachment URLs from previous activities for LLM analysis
                 const attachmentUrls = [];
                 priorActivities.forEach(a => {
-                  if (a.picture_urls && Array.isArray(a.picture_urls)) {
+                  if (a.picture_urls && Array.isArray(a.picture_urls) && a.picture_urls.length > 0) {
                     attachmentUrls.push(...a.picture_urls);
                   }
                 });
+                console.log('Attachment URLs for LLM:', attachmentUrls);
 
                // Fetch SMS conversation history
                let smsContext = '';
