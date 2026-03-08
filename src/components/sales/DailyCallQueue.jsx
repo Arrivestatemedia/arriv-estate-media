@@ -353,58 +353,36 @@ ${scriptPictureUrls.length > 0 ? `\nRead attached images for full context before
              .slice(0, 6);
 
            const callMapRes = await base44.integrations.Core.InvokeLLM({
-             prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — EVERY branch of the conversation covered, from opening to closing.
+             prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
 
-           What we know:
-           - Rep: ${repName || "the rep"}
-           - Contact intel: ${reason || "routine follow-up"}
-           - Why calling now: Follow-up based on prior activity
-           - History: ${historySnippet || "no prior contact"}
+           Rep: ${repName || "the rep"} | Why: Follow-up based on prior activity
+           History: ${historySnippet || "no prior contact"}
 
-           CRITICAL: MUST INCLUDE EVERY SECTION BELOW. Do NOT skip any. Do NOT just give the opener.
+           You MUST output ALL 10 sections below in order. Do not skip. Do not abbreviate. Every section gets full treatment.
 
-           TONE RULES:
-           - Write like a human talks, not how a textbook describes sales
-           - Short sentences. Contractions. Natural pauses built in.
-           - No buzzwords like "leverage", "synergy", "value proposition"
-           - Use what you know about them specifically — generic lines get hung up on
-           - Confident but relaxed
+           1. OPENING (2 sentences max, casual, specific — NOT generic "Hi this is X from ARRIV")
 
-           REQUIRED FORMAT — INCLUDE ALL THESE SECTIONS:
+           2. IF THEY'RE INTERESTED (full 60-second pitch with key points to hit, guide to booking)
 
-           📞 **Opening** (1-2 sentences, casual, specific)
+           3. IF THEY SAY "I ALREADY HAVE A PHOTOGRAPHER" (acknowledge, don't argue, plant a seed about future)
 
-           🔀 **If they're open / interested:**
-           Keep it under 60 seconds — key points to hit. Guide toward booking.
+           4. IF THEY SAY "NOT INTERESTED RIGHT NOW" (graceful, leaves door open, set a follow-up)
 
-           🔀 **If they object — "I already have a photographer":**
-           Acknowledge, don't argue. Plant a seed.
+           5. IF THEY SAY "SEND ME AN EMAIL" (agree to email, but GET A COMMITMENT for a call too)
 
-           🔀 **If they object — "Not interested right now":**
-           Graceful response that leaves door open.
+           6. IF THEY SAY "TOO EXPENSIVE" (value frame — never discount, redirect to Brad for pricing)
 
-           🔀 **If they object — "Send me an email":**
-           Agree, but lock in a brief follow-up call too.
+           7. IF THEY'RE COLD / ONE-WORD ANSWERS (short, graceful exit that doesn't burn the bridge)
 
-           🔀 **If they object — "Too expensive":**
-           Value-first, never discount. Redirect pricing to Brad.
+           8. IF THEY'RE BUSY / BAD TIME (acknowledge, lock in specific callback time, end on good note)
 
-           🔀 **If they're cold / one-word answers / not engaging:**
-           Short, graceful exit that leaves the door open.
+           9. IF NO ANSWER — VOICEMAIL (15 seconds max, word-for-word, conversational)
 
-           🔀 **If they're busy / bad time:**
-           Respect their time, lock in a specific callback time.
+           10. FOLLOW-UP TEXT (send right after voicemail if no answer — short, casual, natural)
 
-           📵 **If no answer — voicemail** (15 sec max when spoken aloud):
-           Word-for-word voicemail script.
-
-           📱 **Follow-up text** (send immediately after voicemail):
-           Short, casual text to send right after.
-
-           🏁 **Closing / ready to move forward:**
-           Hand off to Brad naturally: "Our owner Brad will walk you through the rest."
-
-           ${pictureUrls.length > 0 ? `\nNOTE: Attached images from past activities. READ THEM to understand full context.` : ""}`,
+           Tone: Human, conversational, natural pauses. No jargon. Confident but relaxed.
+           Stats okay if they fit naturally: "Photos sell 32% faster, 5-11% higher price."
+           ${pictureUrls.length > 0 ? `\nRead attached images for full context before writing.` : ""}`,
              add_context_from_internet: true,
              file_urls: pictureUrls.length > 0 ? pictureUrls : undefined,
            });
