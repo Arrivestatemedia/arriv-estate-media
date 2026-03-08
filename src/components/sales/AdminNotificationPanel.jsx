@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Bell, Phone, ChevronRight, X } from "lucide-react";
-import { format, isToday, isTomorrow, isPast } from "date-fns";
-
+import { Bell, Phone, X } from "lucide-react";
+import { format, isToday, isTomorrow } from "date-fns";
 
 export default function AdminNotificationPanel({ userEmail, queueUrl }) {
   const [isOpen, setIsOpen] = useState(false);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
-  const [salesMember, setSalesMember] = useState(null);
 
   useEffect(() => {
     if (!userEmail) return;
@@ -22,10 +20,8 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
       const members = await base44.entities.SalesTeamMember.filter({ email: userEmail });
       const member = members?.[0];
       if (!member) return;
-      setSalesMember(member);
 
       const now = new Date();
-
       const allLogs = await base44.entities.ActivityLog.filter(
         { sales_member_id: member.id },
         '-activity_date',
@@ -34,12 +30,8 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
 
       const phoneLookup = {};
       allLogs.forEach(a => {
-        if (a.contact_email && a.contact_phone) {
-          phoneLookup[a.contact_email] = a.contact_phone;
-        }
-        if (a.contact_name && a.contact_phone) {
-          phoneLookup[a.contact_name] = a.contact_phone;
-        }
+        if (a.contact_email && a.contact_phone) phoneLookup[a.contact_email] = a.contact_phone;
+        if (a.contact_name && a.contact_phone) phoneLookup[a.contact_name] = a.contact_phone;
       });
 
       let upcoming = allLogs
@@ -54,9 +46,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
             const res = await base44.functions.invoke('searchHubSpotContacts', {
               query: a.contact_email || a.contact_name
             });
-            if (res.data?.contacts?.[0]) {
-              phone = res.data.contacts[0].phone || '';
-            }
+            if (res.data?.contacts?.[0]) phone = res.data.contacts[0].phone || '';
           } catch (e) {}
         }
         return { ...a, contact_phone: phone };
@@ -71,6 +61,11 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
     if (isToday(d)) return `Today at ${format(d, "h:mm a")}`;
     if (isTomorrow(d)) return `Tomorrow at ${format(d, "h:mm a")}`;
     return format(d, "MMM d 'at' h:mm a");
+  };
+
+  const openQueue = () => {
+    setIsOpen(false);
+    window.dispatchEvent(new CustomEvent('adminOpenCallQueue'));
   };
 
   const totalCount = upcomingTasks.length;
@@ -93,7 +88,10 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
           }}
         >
           {totalCount > 0 && (
-            <span className="w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold" style={{ backgroundColor: '#B8956A', color: '#1A1A1A', writingMode: 'horizontal-tb' }}>
+            <span
+              className="w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold"
+              style={{ backgroundColor: '#B8956A', color: '#1A1A1A', writingMode: 'horizontal-tb' }}
+            >
               {totalCount}
             </span>
           )}
@@ -115,11 +113,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
           {/* Panel */}
           <div
             className="fixed left-0 top-0 bottom-0 z-[9992] flex flex-col"
-            style={{
-              width: '320px',
-              backgroundColor: '#1A1A1A',
-              borderRight: '1px solid rgba(184,149,106,0.3)',
-            }}
+            style={{ width: '320px', backgroundColor: '#1A1A1A', borderRight: '1px solid rgba(184,149,106,0.3)' }}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
@@ -154,7 +148,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                 upcomingTasks.map(task => (
                   <button
                     key={task.id}
-                    onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('adminOpenCallQueue')); }}
+                    onClick={openQueue}
                     className="w-full text-left px-4 py-3 border-b flex items-start gap-3 transition-colors hover:bg-white/5"
                     style={{ borderColor: 'rgba(255,251,245,0.06)' }}
                   >
@@ -185,7 +179,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
             {/* Footer button */}
             <div className="p-4 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
               <button
-                onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('adminOpenCallQueue')); }}
+                onClick={openQueue}
                 className="w-full py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90"
                 style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
               >
