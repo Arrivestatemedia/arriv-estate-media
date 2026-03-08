@@ -312,9 +312,15 @@ ${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAt
   const deleteFollowUp = async () => {
     if (!scheduledFollowUp) return;
     setDeletingFollowUp(true);
-    await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
-    setDeletingFollowUp(false);
-    if (onOutcomeLogged) onOutcomeLogged();
+    try {
+      await base44.entities.ActivityLog.delete(scheduledFollowUp.id);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Allow DB sync
+      if (onOutcomeLogged) onOutcomeLogged();
+    } catch (e) {
+      console.error('Failed to delete follow-up:', e);
+    } finally {
+      setDeletingFollowUp(false);
+    }
   };
 
   const saveEditedDate = async () => {
