@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw, Phone, Mail, ChevronDown } from 'lucide-react';
@@ -9,6 +9,12 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
   const [callMap, setCallMap] = useState(activity?.call_map || "");
   const [regenerating, setRegenerating] = useState(false);
   const [showRegenerateOptions, setShowRegenerateOptions] = useState(false);
+
+  useEffect(() => {
+    if (open && activity?.call_map) {
+      setCallMap(activity.call_map);
+    }
+  }, [open, activity?.call_map]);
 
   const regenerateCallMap = async () => {
     setRegenerating(true);
