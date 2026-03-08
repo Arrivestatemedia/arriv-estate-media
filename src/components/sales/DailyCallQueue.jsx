@@ -304,6 +304,8 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
       const res = await base44.integrations.Core.InvokeLLM({
         prompt: `You are generating a hyper-personalized, research-backed COMPLETE CALL MAP for ${repName || "Brad"}, a sales representative for ARRIV Estate Media LLC (real estate photography, video, drone).
 
+**CRITICAL: GENERATE EVERY SINGLE SECTION BELOW. NO SKIPPING. NO PARTIAL SCRIPTS. THIS IS NOT A SIMPLE OPENER — IT'S A FULL CONVERSATION GUIDE WITH EVERY BRANCH OUTCOME.**
+
 ## CONTACT INFO
 - Name: ${contact.name || 'the contact'}
 - Company: ${contact.company || 'their brokerage'}
@@ -326,64 +328,44 @@ ${historySnippet || 'no prior contact'}
 
 ---
 
-## GENERATE EVERY SINGLE SECTION (no skipping):
+## GENERATE EVERY SINGLE SECTION (COMPLETE, FULL SCRIPTS):
 
 ### 📞 Opening Line
-(1-2 sentences, casual, specific to them, NOT "Hi this is Brad from ARRIV")
+Write 2-3 sentences the rep should say verbatim when the call connects. Make it casual, specific to this person's market/company, NOT a generic intro.
 
----
+### 🔀 If They're Interested / Ask Questions
+Write 3-4 sentences: acknowledge their interest, reference their specific situation (listings, brokerage, market), explain value, ask about availability. Make it conversational.
 
-### 🔀 If Interested / Open
-(guide toward booking, reference their specific situation, ask about schedule)
-
----
-
-### 🔀 If They Already Have a Photographer
-(use the "backup resource" line — acknowledge, don't argue, plant a seed)
-
----
+### 🔀 If They Say "I Already Have a Photographer"
+Write 3-4 sentences: acknowledge, don't argue, explain why ARRIV is different (backup, faster turnaround, drone, premium edits), plant a seed without being pushy.
 
 ### 🔀 If They Say "Not Interested Right Now"
-(graceful, leaves door open, respects their timeline)
+Write 3-4 sentences: thank them, respect the timeline, explain you're not a bother, offer to circle back in 4-6 weeks when they might need us, leave door open.
 
----
+### 🔀 If They Say "Just Send Me an Email"
+Write 3-4 sentences: agree to email BUT lock in a follow-up call for 1 week out so it's not just static. Make them expect your call.
 
-### 🔀 If They Say "Send Me an Email"
-(agree, but lock in a brief follow-up call too)
+### 🔀 If They Ask "What's Your Pricing?"
+Write 3-4 sentences: value-first answer (don't quote yet), explain it depends on their needs, offer to discuss details on a call, redirect to booking a time to talk specifics.
 
----
+### 🔀 If They Say "I'm Busy / Bad Time to Talk"
+Write 3-4 sentences: respect their time completely, ask when NEXT WEEK is better (specific day/time), lock in a callback time, keep it brief.
 
-### 🔀 If They Ask About Pricing
-(value-first answer, never quote a number, redirect to Brad)
-
----
-
-### 🔀 If They're Busy / Bad Time
-(respect their time, lock in a specific callback time)
-
----
-
-### 🔀 If Cold / One-Word Answers / Not Engaging
-(short, graceful exit that leaves door open for future)
-
----
+### 🔀 If They're Cold / One-Word Answers / Not Engaging
+Write 2-3 sentences: graceful exit, NO hard sell, leave them with a positive impression, offer to check back in a few weeks, end call naturally.
 
 ### 📵 Voicemail Script
-(word-for-word, UNDER 15 seconds when spoken, casual, specific to their business)
-
----
+Write word-for-word what the rep should say if voicemail picks up. MUST be under 20 seconds when spoken. Casual, specific to their business, include a callback number.
 
 ### 📱 Follow-Up Text
-(short, conversational text to send immediately after voicemail)
+Write a short SMS (2-3 sentences max) the rep should send immediately after leaving a voicemail. Keep it casual, friendly, not salesy.
+
+### 🏁 Closing / Natural Handoff
+Write 2-3 sentences for how the rep closes the conversation if the lead says yes or asks for more info. Make it a natural handoff with next steps clear.
 
 ---
 
-### 🏁 Closing / Next Steps
-(exact closing line — hand off to Brad naturally)
-
----
-
-Keep every section short and conversational. Write ONLY in Brad's voice using the research and context above. EVERY SECTION MUST BE INCLUDED.
+**WRITE COMPLETE, FULL SENTENCES FOR EVERY SECTION. Do NOT use parenthetical notes or abbreviations. Each section should be a complete, ready-to-use script that the rep can reference during the call.**
 
 ${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}`,
         add_context_from_internet: true,
