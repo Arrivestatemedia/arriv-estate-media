@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Sales team login error:', error);
-    return Response.json({ error: error.message || 'Login failed' }, { status: 500 });
+    console.error('Sales team login error:', error.message, error.stack);
+    return Response.json({ success: false, error: error.message || 'Login failed' }, { status: 500 });
   }
 });
