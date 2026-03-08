@@ -668,6 +668,7 @@ ${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAt
                 script={script}
                 onClose={() => setShowCallMapModal(false)}
                 onRegenerate={generateScript}
+                regenerating={regeneratingScript}
               />
             )}
 
