@@ -20,6 +20,7 @@ import ChatTab from "@/components/sales/ChatTab";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import ActivityArchive from "@/components/sales/ActivityArchive";
+import ActivityDetailModal from "@/components/sales/ActivityDetailModal";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import CallMapModal from "@/components/sales/CallMapModal";
 
