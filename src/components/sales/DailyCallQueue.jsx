@@ -214,66 +214,90 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .slice(0, 6);
 
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — every branch of the conversation covered. This should sound like a real person who knows them, not a salesperson reading off a sheet.
+        prompt: `You are generating a hyper-personalized, research-backed COMPLETE CALL MAP for ${repName || "Brad"}, a sales representative for ARRIV Estate Media LLC (real estate photography, video, drone).
 
-What we know:
-- Rep: ${repName || "the rep"}
+## CONTACT INFO
+- Name: ${contact.name || 'the contact'}
+- Company: ${contact.company || 'their brokerage'}
 - Contact intel: ${contactIntel || "not available"}
 - Why calling now: ${reason || "routine follow-up"}
 - Urgency: ${urgency || "medium"}
-- History: ${historySnippet || "no prior contact"}
 
-TONE RULES (critical):
-- Write like a human talks, not how a textbook describes sales
-- Short sentences. Contractions. Natural pauses built in.
-- No buzzwords like "leverage", "synergy", "value proposition"
-- The opener should NOT start with "Hi, this is [name] from ARRIV" — they can see the number
-- Use what you know about them specifically — generic lines get hung up on
-- Confident but relaxed — like calling a colleague you've met before
+## INTERACTION HISTORY
+${historySnippet || 'no prior contact'}
 
-PERSUASION PRINCIPLES (weave in naturally, don't label them):
-- Say something unexpected first to break the auto-reject mode
-- Reference something specific about their market or listings
-- One genuine stat if it fits: listings with pro media sell 32% faster, 5-11% more
-- Ask one question that makes them curious rather than defensive
-- If they push back, acknowledge it genuinely before responding — don't steamroll
-- Mirror their language if they say something interesting
+---
 
-FORMAT — cover EVERY section:
+## TONE & APPROACH
+- Write exactly like humans talk (short sentences, contractions, natural pauses)
+- NO buzzwords like "leverage," "synergy," "value proposition"
+- Open with something unexpected to break auto-reject
+- Reference their specific market, listings, or situation
+- Confident but relaxed — like a colleague you know
+- If they push back, acknowledge genuinely first
 
-📞 **Opening** (1-2 sentences, casual, specific to this person — not a generic intro)
+---
 
-🔀 **If they're open / interested:**
-[Keep it under 60 seconds — the key points to hit, in plain language. Guide toward booking.]
+## GENERATE EVERY SINGLE SECTION (no skipping):
 
-🔀 **If they object — "I already have a photographer":**
-[Exact response — acknowledge, don't argue, plant a seed]
+### 📞 Opening Line
+(1-2 sentences, casual, specific to them, NOT "Hi this is Brad from ARRIV")
 
-🔀 **If they object — "Not interested right now":**
-[Exact response — graceful, leaves door open]
+---
 
-🔀 **If they object — "Send me an email":**
-[Exact response — agree, but lock in a brief follow-up call too]
+### 🔀 If Interested / Open
+(guide toward booking, reference their specific situation, ask about schedule)
 
-🔀 **If they object — "Too expensive":**
-[Exact response — value-first, never discount. Redirect pricing to Brad.]
+---
 
-🔀 **If they're cold / one-word answers / not engaging:**
-[Short, graceful exit that leaves the door open]
+### 🔀 If They Already Have a Photographer
+(use the "backup resource" line — acknowledge, don't argue, plant a seed)
 
-🔀 **If they're busy / bad time:**
-[Exact response — respect their time, lock in a specific callback time]
+---
 
-📵 **If no answer — voicemail** (15 sec max when spoken aloud):
-[Word-for-word voicemail]
+### 🔀 If They Say "Not Interested Right Now"
+(graceful, leaves door open, respects their timeline)
 
-📱 **Follow-up text** (send immediately after voicemail):
-[Short, casual text to send right after]
+---
 
-🏁 **Closing / ready to move forward:**
-[Exact lines — hand off to Brad naturally: "Our owner Brad will walk you through the rest."]
+### 🔀 If They Say "Send Me an Email"
+(agree, but lock in a brief follow-up call too)
 
-${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past activities — screenshots of conversations, texts, or notes. READ THEM to understand the full context of what was discussed before writing this guide.` : ""}`,
+---
+
+### 🔀 If They Ask About Pricing
+(value-first answer, never quote a number, redirect to Brad)
+
+---
+
+### 🔀 If They're Busy / Bad Time
+(respect their time, lock in a specific callback time)
+
+---
+
+### 🔀 If Cold / One-Word Answers / Not Engaging
+(short, graceful exit that leaves door open for future)
+
+---
+
+### 📵 Voicemail Script
+(word-for-word, UNDER 15 seconds when spoken, casual, specific to their business)
+
+---
+
+### 📱 Follow-Up Text
+(short, conversational text to send immediately after voicemail)
+
+---
+
+### 🏁 Closing / Next Steps
+(exact closing line — hand off to Brad naturally)
+
+---
+
+Keep every section short and conversational. Write ONLY in Brad's voice using the research and context above. EVERY SECTION MUST BE INCLUDED.
+
+${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
       });
