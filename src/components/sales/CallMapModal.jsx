@@ -19,14 +19,19 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
   };
 
   const handleSaveEdit = async () => {
-    if (onSaveEdit) {
-      setIsSaving(true);
-      try {
-        await onSaveEdit(editedCallMap);
-        setIsEditing(false);
-      } finally {
-        setIsSaving(false);
-      }
+    if (!onSaveEdit) {
+      console.error('onSaveEdit callback not provided');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSaveEdit(editedCallMap);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving edit:', error);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
