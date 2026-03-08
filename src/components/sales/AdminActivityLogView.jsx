@@ -27,6 +27,7 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
   const [visibleCount, setVisibleCount] = useState(10);
   const [showArchive, setShowArchive] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [viewMapActivity, setViewMapActivity] = useState(null);
 
   const { data: activities = [] } = useQuery({
     queryKey: ['adminRepActivities', salesMemberId],
