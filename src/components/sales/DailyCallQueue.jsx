@@ -829,7 +829,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         await Promise.all(
           needsScheduling.map(async (contact) => {
             try {
-              const analysis = await analyzeContact(contact, learnedContext);
+              const analysis = await analyzeContact(contact, learnedContext, repName);
               // Save as permanent ActivityLog record
               const savedRecord = await saveScheduledFollowUp(contact, analysis, sid, sem);
               newScheduledMap[contact.key] = savedRecord;
