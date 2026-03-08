@@ -1366,6 +1366,20 @@ export default function HubSpotActivityLog() {
                   .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
                   .slice(0, 10);
 
+                // Extract manual edits from prior activities for LLM learning
+                const manualEdits = priorActivities
+                  .filter(a => {
+                    const raw = a.notes || '';
+                    return raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                  })
+                  .map(a => {
+                    const raw = a.notes || '';
+                    const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
+                    const callMap = mapMatch ? mapMatch[1].trim() : '';
+                    return `[Manually edited on ${new Date(a.activity_date).toLocaleDateString()}]\n${callMap.slice(0, 500)}...`;
+                  })
+                  .join('\n\n');
+
                 const history = priorActivities
                   .map(a => `${a.activity_type} on ${new Date(a.activity_date).toLocaleDateString()}: ${(a.notes || '').slice(0, 300)}`)
                   .join('\n');
