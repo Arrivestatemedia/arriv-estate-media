@@ -693,6 +693,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
   const [loading, setLoading] = useState(true);
   const [scheduling, setScheduling] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [viewMapOpenKey, setViewMapOpenKey] = useState(null);
 
   const sid = salesMemberId || localStorage.getItem('sales_member_id');
   const sem = salesMemberEmail || localStorage.getItem('sales_member_email');
