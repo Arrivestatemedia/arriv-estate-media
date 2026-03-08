@@ -1,11 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Phone, RefreshCw, Mail } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating, contactPhone, contactEmail, onCall, onEmail }) {
+  const [showContextBox, setShowContextBox] = useState(false);
+  const [context, setContext] = useState("");
+
   if (!callMap) return null;
+
+  const handleRegenerate = () => {
+    if (onRegenerate) onRegenerate(context);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -16,19 +24,6 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
               <Phone className="w-4 h-4" style={{ color: '#B8956A' }} />
               Call Map — {contactName}
             </DialogTitle>
-            {onRegenerate && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onRegenerate}
-                disabled={regenerating}
-                className="gap-1 text-xs"
-                style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}
-              >
-                <RefreshCw className={`w-3 h-3 ${regenerating ? 'animate-spin' : ''}`} />
-                {regenerating ? "Regenerating..." : "Regenerate"}
-              </Button>
-            )}
           </div>
         </DialogHeader>
 
@@ -53,6 +48,44 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
               >
                 <Mail className="w-4 h-4" /> Email
               </Button>
+            )}
+          </div>
+        )}
+
+        {onRegenerate && (
+          <div className="shrink-0 rounded-xl border" style={{ borderColor: 'rgba(184,149,106,0.3)', backgroundColor: 'rgba(184,149,106,0.04)' }}>
+            <button
+              className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium"
+              style={{ color: '#B8956A' }}
+              onClick={() => setShowContextBox(v => !v)}
+            >
+              <span className="flex items-center gap-2">
+                <RefreshCw className="w-3.5 h-3.5" />
+                Regenerate Call Map
+              </span>
+              {showContextBox ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            {showContextBox && (
+              <div className="px-4 pb-3 space-y-2">
+                <Textarea
+                  placeholder="Add context to improve the call map… e.g. 'She mentioned she was moving offices next month' or 'I already sent the portfolio link twice'"
+                  value={context}
+                  onChange={e => setContext(e.target.value)}
+                  rows={3}
+                  className="text-sm resize-none"
+                  style={{ borderColor: 'rgba(184,149,106,0.3)' }}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleRegenerate}
+                  disabled={regenerating}
+                  className="gap-1.5"
+                  style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${regenerating ? 'animate-spin' : ''}`} />
+                  {regenerating ? "Regenerating..." : "Regenerate"}
+                </Button>
+              </div>
             )}
           </div>
         )}
