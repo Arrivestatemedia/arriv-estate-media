@@ -106,6 +106,7 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
     const webResearch = await base44.integrations.Core.InvokeLLM({
       prompt: `Quickly research: ${contactName}${companyName ? ` at ${companyName}` : ""}. Find: their recent listings, market trends in their area, company size, specialties. Be concise.`,
       add_context_from_internet: true,
+      model: "gemini_3_flash",
     });
 
     const marketIntel = typeof webResearch === "string" ? webResearch : webResearch?.text || "";
@@ -135,7 +136,7 @@ BRAD'S PROVEN CLOSING FRAMEWORK:
 Fill in each JSON field with natural, conversational scripts (multiple sentences where appropriate). Reference specific details from their history or market.
 
 ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interactions. Analyze them to understand what was actually discussed. Reference specific details if visible.` : ""}`,
-      add_context_from_internet: false,
+      model: "gemini_3_flash",
       file_urls: pictureUrls.length > 0 ? pictureUrls : undefined,
       response_json_schema: {
         type: "object",
