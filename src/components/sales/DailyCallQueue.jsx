@@ -332,14 +332,14 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         : "";
 
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
+       prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
 
-Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}
-History: ${historySnippet || "no prior contact"}
+      Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}${patternTagsText}
+      History: ${historySnippet || "no prior contact"}
 
-Output JSON with ALL 10 sections. Every field required and must be filled with full content.
+      Output JSON with ALL 10 sections. Every field required and must be filled with full content.
 
-${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
+      ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
         response_json_schema: {
