@@ -26,14 +26,12 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
 
       const now = new Date();
 
-      // Fetch all logs to build comprehensive phone lookup
       const allLogs = await base44.entities.ActivityLog.filter(
         { sales_member_id: member.id },
         '-activity_date',
         200
       );
 
-      // Build aggressive phone lookup from entire history
       const phoneLookup = {};
       allLogs.forEach(a => {
         if (a.contact_email && a.contact_phone) {
@@ -44,20 +42,13 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
         }
       });
 
-      // Get upcoming activities (any future date, not just 7 days)
       let upcoming = allLogs
-        .filter(a => {
-          const d = new Date(a.activity_date);
-          return d >= now;
-        })
+        .filter(a => new Date(a.activity_date) >= now)
         .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
         .slice(0, 10);
 
-      // Enrich with phone numbers from activity history AND HubSpot
       upcoming = await Promise.all(upcoming.map(async (a) => {
         let phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
-        
-        // If still no phone, look up in HubSpot
         if (!phone && (a.contact_email || a.contact_name)) {
           try {
             const res = await base44.functions.invoke('searchHubSpotContacts', {
@@ -66,21 +57,14 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
             if (res.data?.contacts?.[0]) {
               phone = res.data.contacts[0].phone || '';
             }
-          } catch (e) {
-            console.error('HubSpot phone lookup failed:', e);
-          }
+          } catch (e) {}
         }
-        
         return { ...a, contact_phone: phone };
       }));
 
       setUpcomingTasks(upcoming);
-    } catch (e) {
-      // silent
-    }
+    } catch (e) {}
   };
-
-
 
   const formatTaskDate = (dateStr) => {
     const d = new Date(dateStr);
@@ -89,15 +73,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
     return format(d, "MMM d 'at' h:mm a");
   };
 
-  const overdueCount = upcomingTasks.filter(t => isPast(new Date(t.activity_date)) && !isToday(new Date(t.activity_date))).length;
   const totalCount = upcomingTasks.length;
-
-  const handleTaskClick = () => {
-    // Close the panel
-    setIsOpen(false);
-    // Dispatch event to navigate to My Activity → Call Queue
-    window.dispatchEvent(new CustomEvent('adminNavigateToQueue'));
-  };
 
   return (
     <>
@@ -138,7 +114,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
 
           {/* Panel */}
           <div
-            className="fixed left-0 top-0 bottom-0 z-[9992] flex flex-col pointer-events-none"
+            className="fixed left-0 top-0 bottom-0 z-[9992] flex flex-col"
             style={{
               width: '320px',
               backgroundColor: '#1A1A1A',
@@ -146,7 +122,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b pointer-events-auto" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+            <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4" style={{ color: '#B8956A' }} />
                 <span className="font-semibold text-sm" style={{ color: '#FFFBF5' }}>Tasks</span>
@@ -156,7 +132,7 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                   </span>
                 )}
               </div>
-              <button onClick={() => setIsOpen(false)} className="pointer-events-auto" style={{ color: 'rgba(255,251,245,0.5)' }}>
+              <button onClick={() => setIsOpen(false)} style={{ color: 'rgba(255,251,245,0.5)' }}>
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -176,12 +152,11 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                 </div>
               ) : (
                 upcomingTasks.map(task => (
-                   <button
-                     key={task.id}
-                     onClick={handleTaskClick}
-                     className="w-full text-left px-4 py-3 border-b flex items-start gap-3 hover:bg-white/5 transition-colors pointer-events-auto"
-                     style={{ borderColor: 'rgba(255,251,245,0.06)' }}
-                   >
+                  <div
+                    key={task.id}
+                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3"
+                    style={{ borderColor: 'rgba(255,251,245,0.06)' }}
+                  >
                     <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
                       <Phone className="w-3 h-3" style={{ color: '#B8956A' }} />
                     </div>
@@ -200,31 +175,12 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                           {task.notes.replace(/^\[AI Scheduled\]\s*/, '').slice(0, 60)}
                         </p>
                       )}
-                      </div>
-                      </button>
-                      ))
+                    </div>
+                  </div>
+                ))
               )}
             </div>
-
-            {/* Footer with Open Full Call Queue button */}
-            <div className="px-4 py-3 border-t pointer-events-auto" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  window.dispatchEvent(new CustomEvent('adminNavigateToQueue'));
-                }}
-                className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 hover:opacity-90"
-                style={{
-                  backgroundColor: '#B8956A',
-                  color: '#1A1A1A'
-                }}
-              >
-                Open Full Call Queue
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            </div>
+          </div>
         </>
       )}
     </>
