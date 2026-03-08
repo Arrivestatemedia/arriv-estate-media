@@ -167,9 +167,9 @@ Brad's scripts that have actually landed him work:
 "Hey [Name], it's Brad — quick call, I won't keep you long. I figured it'd be easier to get on each other's calendars over the phone. I'm finalizing my schedule for the rest of the week and wanted to see if [specific ask]."
 
 **"Do you have a moment?" rule:**
-- Call 1 and 2: ALWAYS ask "do you have a moment?"
-- Call 3+: Drop "do you have a moment?" — they know you, just get to it
-- Follow-up calls for existing clients: Skip it entirely — "Hey [Name], it's Brad — quick call..."
+- Calls 1–3: ALWAYS ask "do you have a moment?" + "how are you doing?"
+- Calls 4–5: Still ask but can be briefer — "quick question, do you have a moment?"
+- Calls 6+: Skip it — "Hey [Name], it's Brad — quick call, I won't keep you long..."
 
 **If they already have a photographer:**
 "Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource."
