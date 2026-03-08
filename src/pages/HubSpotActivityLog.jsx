@@ -911,10 +911,11 @@ export default function HubSpotActivityLog() {
                     >
                       <CardContent className="pt-6">
                         <div className="flex items-start gap-3 justify-between">
-                          <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
-                            {activityIcons[activity.activity_type]}
-                          </div>
-                          <div className="flex-1">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
+                              {activityIcons[activity.activity_type]}
+                            </div>
+                            <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" style={{ backgroundColor: 'rgba(184,149,106,0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
                               <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
