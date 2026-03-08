@@ -163,7 +163,10 @@ Brad's scripts that have actually landed him work:
 **Cold call (no intro package):**
 "Hi [Name], this is Brad Burke — I'm a local real estate media creator. Do you have a moment? I came across your listing on [Property Address] and noticed there isn't a public video walkthrough yet. I create clean, MLS-ready videos that help buyers understand layout before showings. I just wanted to see if video was something you were considering for this listing or future ones."
 
-**Follow-up call (already spoken 1-2 times):**
+**Follow-up call (2nd–3rd calls):**
+"Hi [Name], this is Brad Burke. Quick question — how are you doing? Do you have a moment?"
+
+**Warm contact call (4th+ calls):**
 "Hey [Name], it's Brad — quick call, I won't keep you long. I figured it'd be easier to get on each other's calendars over the phone. I'm finalizing my schedule for the rest of the week and wanted to see if [specific ask]."
 
 **"Do you have a moment?" rule:**
