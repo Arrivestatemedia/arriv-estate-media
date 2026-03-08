@@ -1539,8 +1539,11 @@ ${!isWarmContact ? '(MUST include: "Do you have a moment?" + "How are you doing?
 
 Keep every section short and conversational. Brad is calling directly — write it ONLY in his voice, using the research you've gathered.`;
 
-              const result = await base44.integrations.Core.InvokeLLM({ prompt });
-              const newCallMap = typeof result === 'string' ? result : result?.text || result?.content || '';
+              const result = await base44.integrations.Core.InvokeLLM({ 
+                prompt,
+                file_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined
+              });
+               const newCallMap = typeof result === 'string' ? result : result?.text || result?.content || '';
               const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
               const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${newCallMap}`;
               await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
