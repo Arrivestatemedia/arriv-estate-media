@@ -126,14 +126,7 @@ function LayoutContent({ children, currentPageName }) {
       ]
     : [];
 
-  const dashboardPage = isSalesTeam && isAdmin ? "Dashboard" : isAdmin ? "Dashboard" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
-
-  // Redirect sales team admins to Dashboard (Admin Hub) on app load
-  useEffect(() => {
-    if (isSalesTeam && isAdmin && currentPageName === "AdminSalesSignup") {
-      window.location.href = createPageUrl("Dashboard");
-    }
-  }, [isSalesTeam, isAdmin, currentPageName]);
+  const dashboardPage = isAdmin ? "Dashboard" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
   // Determine if current page is a primary route (shows bottom tabs)
   const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess"];
