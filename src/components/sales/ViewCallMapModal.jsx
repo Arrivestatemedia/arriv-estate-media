@@ -87,23 +87,116 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
 
           {/* Call map content */}
           {callMap ? (
-            <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(184,149,106,0.05)' }}>
-              <ReactMarkdown
-                components={{
-                  p: ({ children }) => <p className="mb-3 text-sm" style={{ color: '#1A1A1A' }}>{children}</p>,
-                  h3: ({ children }) => (
-                    <h3 className="text-sm font-semibold mt-4 mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
-                      <span style={{ color: '#B8956A' }}>📋</span>
-                      {children}
-                    </h3>
-                  ),
-                  ul: ({ children }) => <ul className="list-disc list-inside mb-3 space-y-1" style={{ color: '#1A1A1A' }}>{children}</ul>,
-                  li: ({ children }) => <li className="text-sm">{children}</li>,
-                  strong: ({ children }) => <strong className="font-semibold" style={{ color: '#1A1A1A' }}>{children}</strong>,
-                }}
-              >
-                {callMap}
-              </ReactMarkdown>
+            <div className="rounded-lg p-4 space-y-4" style={{ backgroundColor: 'rgba(184,149,106,0.05)' }}>
+              {callMapData ? (
+                <div className="space-y-4">
+                  {callMapData.opening_script && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>📞</span> Opening
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.opening_script}</p>
+                    </div>
+                  )}
+                  {callMapData.if_interested_open && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>🟢</span> If interested
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_interested_open}</p>
+                    </div>
+                  )}
+                  {callMapData.if_they_already_have_someone && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>🔄</span> Already has photographer
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_they_already_have_someone}</p>
+                    </div>
+                  )}
+                  {callMapData.if_not_interested_right_now && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>⏸️</span> Not interested now
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_not_interested_right_now}</p>
+                    </div>
+                  )}
+                  {callMapData.if_send_me_email && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>📧</span> Send email
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_send_me_email}</p>
+                    </div>
+                  )}
+                  {callMapData.if_too_expensive && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>💰</span> Too expensive
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_too_expensive}</p>
+                    </div>
+                  )}
+                  {callMapData.if_cold_one_word_answers && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>❄️</span> Cold/unresponsive
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_cold_one_word_answers}</p>
+                    </div>
+                  )}
+                  {callMapData.if_busy_bad_timing && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>⏰</span> Busy/bad timing
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_busy_bad_timing}</p>
+                    </div>
+                  )}
+                  {callMapData.voicemail && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>📵</span> Voicemail
+                      </h3>
+                      <p className="text-sm leading-relaxed italic" style={{ color: '#1A1A1A' }}>{callMapData.voicemail}</p>
+                    </div>
+                  )}
+                  {callMapData.follow_up_text && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>📱</span> Follow-up text
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.follow_up_text}</p>
+                    </div>
+                  )}
+                  {callMapData.closing_next_steps && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span>🏁</span> Closing/ready to move
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.closing_next_steps}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-3 text-sm" style={{ color: '#1A1A1A' }}>{children}</p>,
+                    h3: ({ children }) => (
+                      <h3 className="text-sm font-semibold mt-4 mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
+                        <span style={{ color: '#B8956A' }}>📋</span>
+                        {children}
+                      </h3>
+                    ),
+                    ul: ({ children }) => <ul className="list-disc list-inside mb-3 space-y-1" style={{ color: '#1A1A1A' }}>{children}</ul>,
+                    li: ({ children }) => <li className="text-sm">{children}</li>,
+                    strong: ({ children }) => <strong className="font-semibold" style={{ color: '#1A1A1A' }}>{children}</strong>,
+                  }}
+                >
+                  {callMap}
+                </ReactMarkdown>
+              )}
             </div>
           ) : (
             <div className="py-8 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>
