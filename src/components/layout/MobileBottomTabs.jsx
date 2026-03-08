@@ -99,7 +99,7 @@ export default function MobileBottomTabs({ user }) {
     }
   };
 
-  if (!user || tabs.length === 0) return null;
+  if (!user || tabs.length === 0 || isSalesTeam) return null;
 
   return (
     <div 
