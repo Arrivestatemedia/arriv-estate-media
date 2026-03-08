@@ -730,14 +730,14 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                 contactPhone: contact.phone,
               });
 
-              console.log(`[DailyCallQueue loadQueue] callMapRes for ${contact.name}:`, callMapRes?.data);
+              const callMap = callMapRes?.data?.call_map;
+                 console.log(`[DailyCallQueue loadQueue] Got call_map for ${contact.name}, length: ${callMap?.length || 0}`);
 
-              if (callMapRes?.data?.call_map) {
-                const generatedCallMap = callMapRes.data.call_map;
-                console.log(`[DailyCallQueue loadQueue] Updating ActivityLog ${scheduled.id} with call_map, length: ${generatedCallMap.length}`);
-                await base44.entities.ActivityLog.update(scheduled.id, {
-                  call_map: generatedCallMap
-                });
+                 if (callMap) {
+                   console.log(`[DailyCallQueue loadQueue] Updating ActivityLog ${scheduled.id} with call_map`);
+                   await base44.entities.ActivityLog.update(scheduled.id, {
+                     call_map: callMap
+                   });
                 // Update local state with the new call_map
                 newScheduledMap[contact.key] = { ...scheduled, call_map: generatedCallMap };
               } else {
