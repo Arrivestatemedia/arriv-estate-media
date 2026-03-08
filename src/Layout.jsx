@@ -78,8 +78,8 @@ function LayoutContent({ children, currentPageName }) {
 
   const isSalesTeam = localStorage.getItem('sales_member_id');
 
-  // Admin takes priority over sales team status
-  const navItems = (isAdmin && !isSalesTeam)
+  // Sales team admins get full admin nav, regular sales team gets activity log only
+  const navItems = isSalesTeam && isAdmin
       ? [
           { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
           { label: "Job Board", page: "JobBoard", icon: Briefcase },
