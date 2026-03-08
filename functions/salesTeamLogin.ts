@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20'; // v2
 
 Deno.serve(async (req) => {
   try {
@@ -15,14 +15,11 @@ Deno.serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Create base44 client with service role using app ID
-    const base44 = createClient({
-      appId: Deno.env.get('BASE44_APP_ID'),
-      serviceToken: Deno.env.get('BASE44_SERVICE_TOKEN'),
-    });
+    // Create base44 client with service role
+    const base44 = createClientFromRequest(req);
 
     // Find sales team member by email
-    const members = await base44.entities.SalesTeamMember.filter({ email });
+    const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ email });
 
     if (!members || members.length === 0) {
       return Response.json({ error: 'Invalid email or password' }, { status: 401 });
