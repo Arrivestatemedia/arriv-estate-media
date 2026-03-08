@@ -22,6 +22,7 @@ import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import CallMapModal from "@/components/sales/CallMapModal";
 import ActivityArchive from "@/components/sales/ActivityArchive";
+import ActivityDetailModal from "@/components/sales/ActivityDetailModal";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
