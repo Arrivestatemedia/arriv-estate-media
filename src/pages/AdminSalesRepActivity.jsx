@@ -64,25 +64,37 @@ export default function AdminSalesRepActivity() {
   };
 
   const TABS = [
-    { id: "activity", label: "Activity Log" },
-    { id: "email", label: "Email Hub" },
-    { id: "contacts", label: "Contacts" },
-    { id: "mycontacts", label: "My Contacts" },
-    { id: "queue", label: "Call Queue" },
-    { id: "calendar", label: "Calendar" },
-    { id: "ai", label: "AI Assistant" },
-    { id: "chat", label: "Chat" },
+    { id: "team", label: "Sales Team" },
+    { id: "activity", label: "Sales Activity" },
+    { id: "myactivity", label: "My Activity" },
   ];
 
   if (!user) return <div className="p-4">Loading...</div>;
 
-  // Rep selector screen
-  if (!selectedRep) {
+  // Team view (default)
+  if (activeTab === "team") {
     return (
       <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: '#1A1A1A' }}>Sales Rep Activity</h1>
-          <p className="mb-8 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Select a rep to view their full dashboard</p>
+          {/* Tabs */}
+          <div className="flex gap-1 mb-6 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap text-sm"
+                style={{
+                  color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)',
+                  borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <h1 className="text-3xl font-bold mb-2" style={{ color: '#1A1A1A' }}>Sales Team</h1>
+          <p className="mb-8 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Select a rep to view their activity</p>
           <div className="space-y-3">
             {salesMembers.filter(rep => rep.is_active && rep.role !== 'admin').map((rep) => {
               const stats = getRepStats(rep.email);
@@ -115,99 +127,53 @@ export default function AdminSalesRepActivity() {
     );
   }
 
-  // Full rep dashboard for selected rep (read-only context for admin)
-  return (
-    <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="sm" onClick={() => setSelectedRep(null)} className="gap-1" style={{ color: 'rgba(26,26,26,0.6)' }}>
-            <ArrowLeft className="w-4 h-4" /> All Reps
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>{selectedRep.full_name}</h1>
-            <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{selectedRep.email} · Viewing as Admin</p>
+  // Sales Activity or My Activity view
+  if (activeTab === "activity" || activeTab === "myactivity") {
+    return (
+      <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
+        <div className="max-w-4xl mx-auto">
+          {/* Tabs */}
+          <div className="flex gap-1 mb-6 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (tab.id === "team") {
+                    setSelectedRep(null);
+                  }
+                  setActiveTab(tab.id);
+                }}
+                className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap text-sm"
+                style={{
+                  color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)',
+                  borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        </div>
 
-        {/* Tabs — same as rep dashboard */}
-        <div className="flex gap-1 mb-6 border-b overflow-x-auto" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap text-sm"
-              style={{
-                color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)',
-                borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content — mirrors HubSpotActivityLog exactly */}
-        {activeTab === "activity" && (
-          <ActivityLogView
-            salesMemberId={selectedRep.id}
-            salesMemberEmail={selectedRep.email}
-            repName={selectedRep.full_name}
-            isAdminView={true}
-          />
-        )}
-
-        {activeTab === "email" && (
-          <Card style={{ backgroundColor: '#FFFFFF' }}>
-            <CardContent className="pt-6">
-              <EmailComposer salesMemberId={selectedRep.id} isAdmin={true} />
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === "contacts" && (
-          <Card style={{ backgroundColor: '#FFFFFF' }}>
-            <CardContent className="pt-6">
-              <ContactSearch salesMemberId={selectedRep.id} />
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === "mycontacts" && (
-          <MyContacts salesMemberId={selectedRep.id} salesMemberEmail={selectedRep.email} />
-        )}
-
-        {activeTab === "queue" && (
-          <DailyCallQueue
-            salesMemberId={selectedRep.id}
-            salesMemberEmail={selectedRep.email}
-            repName={selectedRep.full_name}
-          />
-        )}
-
-        {activeTab === "calendar" && (
-          <Card style={{ backgroundColor: '#FFFFFF' }}>
-            <CardContent className="pt-6">
-              <CalendarTab salesMemberId={selectedRep.id} />
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === "ai" && (
-          <AiAssistantTab repName={selectedRep.full_name} />
-        )}
-
-        {activeTab === "chat" && (
-          <div style={{ height: '600px' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-            <ChatTab
-              currentUserId={user?.id}
-              currentUserName={user?.full_name}
-              salesMemberId={selectedRep.id}
-              isAdmin={true}
+          <h1 className="text-3xl font-bold mb-2" style={{ color: '#1A1A1A' }}>
+            {activeTab === "activity" ? "Sales Activity" : "My Activity"}
+          </h1>
+          
+          {activeTab === "activity" && (
+            <ActivityLogView
+              isAdminView={true}
             />
-          </div>
-        )}
+          )}
+          
+          {activeTab === "myactivity" && (
+            <ActivityLogView
+              salesMemberId={user?.id}
+              salesMemberEmail={user?.email}
+              repName={user?.full_name}
+              isAdminView={true}
+            />
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
