@@ -91,8 +91,6 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
             { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
             { label: "Activity Log", page: "HubSpotActivityLog", icon: FileText },
-            { label: "Call Queue", page: "DailyCallQueue", icon: Briefcase },
-            { label: "Contacts", page: "ContactDetailPage", icon: Briefcase },
             { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },
             { label: "Client Terms", page: "AdminClientTerms", icon: Settings },
             { label: "Closing Invoice", page: "ManualClosingInvoice", icon: FileText },
