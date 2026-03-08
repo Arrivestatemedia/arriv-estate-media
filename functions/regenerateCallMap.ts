@@ -11,10 +11,13 @@ Deno.serve(async (req) => {
 
     const { activityId, contactName, contactEmail, companyName, contactPhone } = await req.json();
 
-    // Fetch the activity and related history
-    const activity = await base44.entities.ActivityLog.get(activityId);
-    if (!activity) {
-      return Response.json({ error: 'Activity not found' }, { status: 404 });
+    // If activityId provided, fetch it; otherwise it's a pre-creation scenario
+    let activity = null;
+    if (activityId) {
+      activity = await base44.entities.ActivityLog.get(activityId);
+      if (!activity) {
+        return Response.json({ error: 'Activity not found' }, { status: 404 });
+      }
     }
 
     // Fetch past activities for this contact
