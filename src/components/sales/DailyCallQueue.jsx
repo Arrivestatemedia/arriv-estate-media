@@ -441,6 +441,24 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
            console.error('Call map generation failed:', e);
          }
 
+         // Generate call map with full data before creating activity
+         let generatedCallMap = callMapContent;
+         if (!generatedCallMap) {
+           try {
+             const callMapRes = await base44.functions.invoke('regenerateCallMap', {
+               activityId: null,
+               contactName: contact.name,
+               contactEmail: contact.email,
+               companyName: contact.company,
+               contactPhone: contact.phone,
+             });
+             generatedCallMap = callMapRes?.data?.call_map || callMapContent;
+           } catch (error) {
+             console.error('Call map generation error:', error);
+             // Continue without call map but log the error
+           }
+         }
+
          const savedActivity = await base44.entities.ActivityLog.create({
            activity_type: "call",
            contact_name: contact.name,
@@ -449,21 +467,10 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
            company_name: contact.company,
            activity_date: nextFollowUpDate.toISOString(),
            notes: nextNotes,
-           call_map: callMapContent,
+           call_map: generatedCallMap,
            sales_member_id: sid,
            sales_member_email: sem,
          });
-
-         // If call map wasn't generated initially, trigger backend regeneration with full data
-         if (!callMapContent) {
-           base44.functions.invoke('regenerateCallMap', {
-             activityId: savedActivity.id,
-             contactName: contact.name,
-             contactEmail: contact.email,
-             companyName: contact.company,
-             contactPhone: contact.phone,
-           }).catch(() => {});
-         }
        }
 
       // Save insight so the AI learns
