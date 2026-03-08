@@ -647,12 +647,14 @@ ${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAt
               )}
             </div>
 
-            {showCallMapModal && script && (
+            {script && (
               <CallMapModal 
                 contact={contact} 
                 script={script}
+                open={showCallMapModal}
                 onClose={() => setShowCallMapModal(false)}
                 onRegenerate={generateScript}
+                regenerating={generatingScript}
               />
             )}
 
