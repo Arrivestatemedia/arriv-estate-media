@@ -127,7 +127,7 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
 
     // Generate comprehensive call map
     const callMapRes = await base44.integrations.Core.InvokeLLM({
-      prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contactName}. Write a COMPLETE CALL MAP weaving in all context. Every conversation branch covered. Sound like a real person who knows them.
+      prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contactName}. Generate a complete call map as a JSON structure with all conversation branches covered. Sound like a real person who knows them.
 
 PROFILE DATA:
 ${hubspotData}
@@ -147,58 +147,31 @@ BRAD'S PROVEN CLOSING FRAMEWORK:
 4. Close with: "Brad handles the rest" — makes transition seamless
 5. For objections: acknowledge first, then redirect
 
-MARKET-SPECIFIC STRATEGIES:
-- If high-end market: emphasize luxury presentation & MLS impact
-- If volume market: stress speed & consistency
-- If new agent: position as "competitive edge they're missing"
-- If established: "upgrade to stay ahead of competitors"
-
-TONE RULES:
-- Write like humans talk — short sentences, contractions, natural pauses
-- No buzzwords (leverage, synergy, value prop)
-- Specific to THEM, not generic
-- Confident but relaxed
-
-FORMAT — cover EVERY path:
-
-📞 **Opening** (1-2 sentences, casual, specific to this person — reference something real from their history or market)
-
-🔀 **If they're open/interested:**
-[Under 60 seconds. Key points in plain language. Guide toward booking with Brad.]
-
-🔀 **If objection — "I already have a photographer":**
-[Acknowledge. Plant seed about upgrade or backup coverage.]
-
-🔀 **If objection — "Not interested right now":**
-[Graceful. Leave door open. "When's a better time?"]
-
-🔀 **If objection — "Send me an email":**
-[Agree. Lock in brief follow-up call too: "I'll send that now. Quick call tomorrow?"]
-
-🔀 **If objection — "Too expensive":**
-[Value-first. "We're ROI-focused. Brad can discuss packages." Never discount.]
-
-🔀 **If they're cold/one-word answers:**
-[Graceful exit. "I'll follow up next quarter. Good luck with listings."]
-
-🔀 **If they're busy/bad timing:**
-[Respect time. Lock specific callback: "Thursday 2pm work better?"]
-
-📵 **Voicemail** (15 sec max, word-for-word):
-[Sound natural. Quick. Reference something specific. Leave Brad's number.]
-
-📱 **Follow-up text** (send right after voicemail):
-[2-3 sentences. Casual. Include link to portfolio or closing stat.]
-
-🏁 **Closing / Ready to move forward:**
-[Hand off to Brad smoothly: "Our owner Brad will walk you through pricing and next steps. He's expecting your call."]
+Fill in each JSON field with natural, conversational scripts (multiple sentences where appropriate). Reference specific details from their history or market.
 
 ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interactions. Analyze them to understand what was actually discussed. Reference specific details if visible.` : ""}`,
       add_context_from_internet: false,
       file_urls: pictureUrls.length > 0 ? pictureUrls : undefined,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          opening_script: { type: "string", description: "Opening 1-2 sentences, casual, specific to this person" },
+          if_interested_open: { type: "string", description: "Script if they're open/interested (under 60 sec)" },
+          if_they_already_have_someone: { type: "string", description: "Script for 'I already have a photographer' objection" },
+          if_not_interested_right_now: { type: "string", description: "Script for 'Not interested right now' objection" },
+          if_send_me_email: { type: "string", description: "Script for 'Send me an email' objection" },
+          if_too_expensive: { type: "string", description: "Script for 'Too expensive' objection" },
+          if_cold_one_word_answers: { type: "string", description: "Script for cold/one-word answers" },
+          if_busy_bad_timing: { type: "string", description: "Script for busy/bad timing objection" },
+          voicemail: { type: "string", description: "Voicemail script (15 sec max)" },
+          follow_up_text: { type: "string", description: "Follow-up text to send after voicemail" },
+          closing_next_steps: { type: "string", description: "Script for handing off to Brad" }
+        },
+        required: ["opening_script", "if_interested_open", "if_they_already_have_someone", "if_not_interested_right_now", "if_send_me_email", "if_too_expensive", "if_cold_one_word_answers", "if_busy_bad_timing", "voicemail", "follow_up_text", "closing_next_steps"]
+      }
     });
 
-    const newCallMap = typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes);
+    const newCallMap = JSON.stringify(callMapRes);
 
     return Response.json({ call_map: newCallMap });
   } catch (error) {
