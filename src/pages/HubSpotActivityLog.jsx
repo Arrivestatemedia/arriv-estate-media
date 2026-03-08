@@ -1439,7 +1439,10 @@ export default function HubSpotActivityLog() {
                const salesRepName = localStorage.getItem('sales_member_name') || 'the sales rep';
                const prompt = `You are generating a hyper-personalized, research-backed call map for ${salesRepName}, a sales representative for ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
 
-          ## CONTACT INFO
+               ## PRIOR MANUAL EDITS (LEARN FROM THESE REFINEMENTS)
+               ${manualEdits || 'No prior edits — generate from scratch based on research.'}
+
+               ## CONTACT INFO
           - Name: ${callMapActivity.contact_name || 'the contact'}
           - Company: ${callMapActivity.company_name || 'their brokerage'}
           - Email: ${callMapActivity.contact_email || ''}
