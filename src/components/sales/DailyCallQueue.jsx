@@ -220,33 +220,27 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
 Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}
 History: ${historySnippet || "no prior contact"}
 
-You MUST output ALL 10 sections below in order. Do not skip. Do not abbreviate. Every section gets full treatment.
+Output JSON with ALL 10 sections. Every field required and must be filled with full content.
 
-1. OPENING (2 sentences max, casual, specific — NOT generic "Hi this is X from ARRIV")
-
-2. IF THEY'RE INTERESTED (full 60-second pitch with key points to hit, guide to booking)
-
-3. IF THEY SAY "I ALREADY HAVE A PHOTOGRAPHER" (acknowledge, don't argue, plant a seed about future)
-
-4. IF THEY SAY "NOT INTERESTED RIGHT NOW" (graceful, leaves door open, set a follow-up)
-
-5. IF THEY SAY "SEND ME AN EMAIL" (agree to email, but GET A COMMITMENT for a call too)
-
-6. IF THEY SAY "TOO EXPENSIVE" (value frame — never discount, redirect to Brad for pricing)
-
-7. IF THEY'RE COLD / ONE-WORD ANSWERS (short, graceful exit that doesn't burn the bridge)
-
-8. IF THEY'RE BUSY / BAD TIME (acknowledge, lock in specific callback time, end on good note)
-
-9. IF NO ANSWER — VOICEMAIL (15 seconds max, word-for-word, conversational)
-
-10. FOLLOW-UP TEXT (send right after voicemail if no answer — short, casual, natural)
-
-Tone: Human, conversational, natural pauses. No jargon. Confident but relaxed.
-Stats okay if they fit naturally: "Photos sell 32% faster, 5-11% higher price."
-${scriptPictureUrls.length > 0 ? `\nRead attached images for full context before writing.` : ""}`,
+${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            opening: { type: "string", description: "2 sentences, casual, specific. NOT 'Hi this is X from ARRIV'" },
+            if_interested: { type: "string", description: "Full 60-second pitch, key points, guide to booking" },
+            if_has_photographer: { type: "string", description: "Acknowledge, don't argue, plant seed for future" },
+            if_not_interested: { type: "string", description: "Graceful response, leaves door open, mention follow-up" },
+            if_send_email: { type: "string", description: "Agree to email but GET COMMITMENT for a call too" },
+            if_too_expensive: { type: "string", description: "Value frame, never discount, redirect to Brad for pricing" },
+            if_cold_unengaged: { type: "string", description: "Short graceful exit that doesn't burn the bridge" },
+            if_busy_bad_time: { type: "string", description: "Acknowledge, lock in specific callback time, end on good note" },
+            if_no_answer_voicemail: { type: "string", description: "15 seconds max, word-for-word, conversational" },
+            follow_up_text: { type: "string", description: "Send right after voicemail if no answer — short, casual, natural" }
+          },
+          required: ["opening", "if_interested", "if_has_photographer", "if_not_interested", "if_send_email", "if_too_expensive", "if_cold_unengaged", "if_busy_bad_time", "if_no_answer_voicemail", "follow_up_text"]
+        }
       });
       setScript(typeof res === "string" ? res : res?.text || String(res));
     } catch {
