@@ -17,6 +17,18 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
     if (onRegenerate) onRegenerate(context);
   };
 
+  const handleSaveEdit = async () => {
+    if (onSaveEdit) {
+      await onSaveEdit(editedCallMap);
+      setIsEditing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedCallMap(callMap);
+    setIsEditing(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
