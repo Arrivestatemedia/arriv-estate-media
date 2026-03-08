@@ -282,8 +282,24 @@ export default function ContactDetailPage() {
                   <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
                   {(() => {
                     const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
+                    const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
                     const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
-                    return <p><span className="font-medium">Notes:</span> {shortNote}</p>;
+                    return (
+                      <>
+                        <p><span className="font-medium">Notes:</span> {shortNote}</p>
+                        {hasCallMap && (
+                          <div className="pt-2">
+                            <button
+                              onClick={() => { setCallMapActivity(selectedActivity); setSelectedActivity(null); }}
+                              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
+                              style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
+                            >
+                              📋 View Call Map
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    );
                   })()}
                   {selectedActivity.duration_minutes > 0 && (
                     <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
