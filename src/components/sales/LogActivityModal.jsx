@@ -87,6 +87,23 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     }
     setSaving(true);
     try {
+      let callMapData = "";
+
+      // Generate call_map for calls only
+      if (activityType === "call") {
+        try {
+          const callMapRes = await base44.functions.invoke('regenerateCallMap', {
+            contactName: contactName,
+            contactEmail: selectedContactObj?.email || "",
+            companyName: selectedContactObj?.company || "",
+            contactPhone: selectedContactObj?.phone || "",
+          });
+          callMapData = callMapRes?.data?.call_map || "";
+        } catch (error) {
+          console.error('Call map generation error:', error);
+        }
+      }
+
       const screenshotLinks = screenshots.map(s => s.url).join("\n");
       const fullNotes = screenshotLinks
         ? `${notes.trim()}\n\n[Screenshots]\n${screenshotLinks}`
@@ -102,6 +119,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
         notes: notes.trim(),
         duration_minutes: duration ? Number(duration) : 0,
         picture_urls: screenshots.map(s => s.url),
+        call_map: callMapData,
         sales_member_id: salesMemberId || "",
         sales_member_email: salesMemberEmail || localStorage.getItem("sales_member_email") || "",
         hubspot_synced: false,
