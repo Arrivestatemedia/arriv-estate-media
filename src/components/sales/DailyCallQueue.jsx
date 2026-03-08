@@ -760,12 +760,9 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
             }
           })
         );
-        // Explicitly merge updates to ensure React detects the state change
-        setScheduledMap(prevMap => {
-          const merged = { ...prevMap, ...newScheduledMap };
-          console.log('[DailyCallQueue loadQueue] Call map generation complete. Final scheduled:', Object.keys(merged).map(k => ({ contact: k, hasCallMap: !!merged[k].call_map })));
-          return merged;
-        });
+        // Force a complete state update to trigger re-renders
+         console.log('[DailyCallQueue loadQueue] Call map generation complete. Final scheduled:', Object.keys(newScheduledMap).map(k => ({ contact: k, hasCallMap: !!newScheduledMap[k].call_map })));
+         setScheduledMap({ ...newScheduledMap });
       }
 
     } catch (e) {
