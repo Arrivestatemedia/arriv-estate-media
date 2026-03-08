@@ -215,7 +215,7 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .slice(0, 6);
 
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — every branch of the conversation covered. This should sound like a real person who knows them, not a salesperson reading off a sheet.
+        prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — EVERY branch of the conversation covered, from opening to closing.
 
 What we know:
 - Rep: ${repName || "the rep"}
@@ -224,7 +224,9 @@ What we know:
 - Urgency: ${urgency || "medium"}
 - History: ${historySnippet || "no prior contact"}
 
-TONE RULES (critical):
+CRITICAL: MUST INCLUDE EVERY SECTION BELOW. Do NOT skip any. Do NOT just give the opener.
+
+TONE RULES:
 - Write like a human talks, not how a textbook describes sales
 - Short sentences. Contractions. Natural pauses built in.
 - No buzzwords like "leverage", "synergy", "value proposition"
@@ -232,49 +234,48 @@ TONE RULES (critical):
 - Use what you know about them specifically — generic lines get hung up on
 - Confident but relaxed — like calling a colleague you've met before
 
-PERSUASION PRINCIPLES (weave in naturally, don't label them):
+PERSUASION PRINCIPLES:
 - Say something unexpected first to break the auto-reject mode
 - Reference something specific about their market or listings
 - One genuine stat if it fits: listings with pro media sell 32% faster, 5-11% more
-- Ask one question that makes them curious rather than defensive
-- If they push back, acknowledge it genuinely before responding — don't steamroll
+- If they push back, acknowledge it genuinely before responding
 - Mirror their language if they say something interesting
 
-FORMAT — cover EVERY section:
+REQUIRED FORMAT — INCLUDE ALL THESE SECTIONS:
 
-📞 **Opening** (1-2 sentences, casual, specific to this person — not a generic intro)
+📞 **Opening** (1-2 sentences, casual, specific)
 
 🔀 **If they're open / interested:**
-[Keep it under 60 seconds — the key points to hit, in plain language. Guide toward booking.]
+Keep it under 60 seconds — key points to hit. Guide toward booking.
 
 🔀 **If they object — "I already have a photographer":**
-[Exact response — acknowledge, don't argue, plant a seed]
+Acknowledge, don't argue. Plant a seed.
 
 🔀 **If they object — "Not interested right now":**
-[Exact response — graceful, leaves door open]
+Graceful response that leaves door open.
 
 🔀 **If they object — "Send me an email":**
-[Exact response — agree, but lock in a brief follow-up call too]
+Agree, but lock in a brief follow-up call too.
 
 🔀 **If they object — "Too expensive":**
-[Exact response — value-first, never discount. Redirect pricing to Brad.]
+Value-first, never discount. Redirect pricing to Brad.
 
 🔀 **If they're cold / one-word answers / not engaging:**
-[Short, graceful exit that leaves the door open]
+Short, graceful exit that leaves the door open.
 
 🔀 **If they're busy / bad time:**
-[Exact response — respect their time, lock in a specific callback time]
+Respect their time, lock in a specific callback time.
 
 📵 **If no answer — voicemail** (15 sec max when spoken aloud):
-[Word-for-word voicemail]
+Word-for-word voicemail script.
 
 📱 **Follow-up text** (send immediately after voicemail):
-[Short, casual text to send right after]
+Short, casual text to send right after.
 
 🏁 **Closing / ready to move forward:**
-[Exact lines — hand off to Brad naturally: "Our owner Brad will walk you through the rest."]
+Hand off to Brad naturally: "Our owner Brad will walk you through the rest."
 
-${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past activities — screenshots of conversations, texts, or notes. READ THEM to understand the full context of what was discussed before writing this guide.` : ""}`,
+${scriptPictureUrls.length > 0 ? `\nNOTE: Attached images from past activities. READ THEM to understand full context.` : ""}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
       });
