@@ -1283,10 +1283,11 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           ## 🎯 CRITICAL: VISUAL CONTEXT REQUIREMENT
           **YOU MUST analyze the attached images and reference them explicitly in the call map.**
           If images are attached below, you MUST:
-          1. Identify what properties/features were shown
-          2. Note what Brad emphasized visually
-          3. Reference these in the script with specific details (e.g., "the drone footage we looked at," "those kitchen renovations I showed you," "the walkthrough I sent")
-          4. Use visual memory to build rapport ("You remember how the master suite looked in that video?")
+          1. **Check for SMS/email/conversation screenshots** — if present, read them carefully to understand the actual relationship stage, what's been discussed, and specific projects/details mentioned
+          2. Identify what properties/features were shown in photos/videos
+          3. Note what Brad emphasized visually
+          4. Reference these in the script with specific details (e.g., "the drone footage we looked at," "those kitchen renovations I showed you," "the walkthrough I sent," "like you mentioned in your text about the build across the street")
+          5. Use visual memory to build rapport ("You remember how the master suite looked in that video?" or "Following up on what we discussed about that new construction project")
 
           ${attachmentUrls.length > 0 ? `\n## IMAGES FROM PREVIOUS INTERACTIONS\nAttached images from calls with ${callMapActivity.contact_name}:\n${attachmentUrls.map((url, i) => `[Image ${i + 1}]: ${url}`).join('\n')}\n\n**ANALYZE THESE IMAGES AND WEAVE THEIR SPECIFIC DETAILS INTO EVERY RELEVANT SECTION OF THE CALL MAP.**` : 'NOTE: No images attached for this contact yet.'}
 
