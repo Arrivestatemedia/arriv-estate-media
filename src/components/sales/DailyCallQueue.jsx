@@ -153,46 +153,38 @@ OUTPUT valid JSON only:
   return res;
 }
 
+// Intelligent scheduling logic for all reps based on industry best practices
+function adjustToBusinessHours(date) {
+  const adjusted = new Date(date);
+  const hour = adjusted.getHours();
+  const dayOfWeek = adjusted.getDay();
+  
+  // Skip weekends - move to Monday morning
+  if (dayOfWeek === 0) adjusted.setDate(adjusted.getDate() + 1);
+  if (dayOfWeek === 6) adjusted.setDate(adjusted.getDate() + 2);
+  
+  // Realtor business hours: 8am-6pm, best call windows: 8-9am, 10am-12pm, 1-5pm
+  // Avoid: before 8am, 12-1pm (lunch), after 5pm
+  if (hour < 8) {
+    adjusted.setHours(8, 0, 0, 0); // Move to 8am
+  } else if (hour >= 12 && hour < 13) {
+    adjusted.setHours(13, 0, 0, 0); // Move past lunch to 1pm
+  } else if (hour >= 17) {
+    adjusted.setDate(adjusted.getDate() + 1);
+    adjusted.setHours(8, 0, 0, 0); // Move to next day 8am
+  }
+  
+  return adjusted;
+}
+
 // Save the AI's decision as a permanent ActivityLog record
 async function saveScheduledFollowUp(contact, analysis, sid, sem) {
   let followUpDate = analysis.follow_up_date_time
     ? new Date(analysis.follow_up_date_time)
     : addDays(new Date(), 7);
 
-  // Bradley-specific availability windows (only for Brad Burke)
-  if (sem === 'bradley@arrivestatemedia.com' || sem?.toLowerCase().includes('bradley') || sem?.toLowerCase().includes('brad')) {
-    const isBradley = true;
-    if (isBradley) {
-      // Adjust to next available time in Bradley's windows: 6:30am-8:10am, 10:15am-10:38am, 2:15pm+
-      const windows = [
-        { start: 6.5, end: 8.167 },   // 6:30am - 8:10am
-        { start: 10.25, end: 10.633 }, // 10:15am - 10:38am
-        { start: 14.25, end: 24 }      // 2:15pm - midnight
-      ];
-
-      let adjusted = new Date(followUpDate);
-      let found = false;
-
-      // Try current day first, then next days
-      for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
-        adjusted = new Date(followUpDate);
-        adjusted.setDate(adjusted.getDate() + dayOffset);
-        adjusted.setHours(0, 0, 0, 0);
-
-        for (const window of windows) {
-          const testTime = new Date(adjusted);
-          testTime.setHours(Math.floor(window.start), Math.round((window.start % 1) * 60), 0, 0);
-
-          if (testTime > new Date()) {
-            followUpDate = testTime;
-            found = true;
-            break;
-          }
-        }
-        if (found) break;
-      }
-    }
-  }
+  // Apply intelligent business-hour scheduling for all reps
+  followUpDate = adjustToBusinessHours(followUpDate);
 
   let initialNotes = `[AI Scheduled] ${analysis.reason || "Follow-up call"} | Opener: ${analysis.suggested_opener || ""}`;
   
