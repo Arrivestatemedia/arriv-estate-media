@@ -932,21 +932,43 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
               const scheduled = scheduledMap[contact.key];
               const meta = metaMap[contact.key] || {};
               const priority = getPriorityLabel(meta.urgency || "low");
+              const [viewMapOpen, setViewMapOpen] = useState(false);
               return (
-                <div key={contact.key} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: priority.color }} />
-                    <span className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{contact.name}</span>
-                    {contact.company && <span className="text-xs truncate" style={{ color: 'rgba(26,26,26,0.4)' }}>{contact.company}</span>}
+                <div key={contact.key}>
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: priority.color }} />
+                      <span className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{contact.name}</span>
+                      {contact.company && <span className="text-xs truncate" style={{ color: 'rgba(26,26,26,0.4)' }}>{contact.company}</span>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {scheduled && (
+                        <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                          {format(new Date(scheduled.activity_date), "MMM d 'at' h:mm a")}
+                        </span>
+                      )}
+                      {scheduled?.call_map && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs gap-1"
+                          style={{ color: '#B8956A' }}
+                          onClick={() => setViewMapOpen(true)}
+                        >
+                          <MapPin className="w-3 h-3" />
+                          View Call Map
+                        </Button>
+                      )}
+                      <Badge style={{ backgroundColor: priority.bg, color: priority.color, border: 'none', fontSize: '10px' }}>{priority.label}</Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {scheduled && (
-                      <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
-                        {format(new Date(scheduled.activity_date), "MMM d 'at' h:mm a")}
-                      </span>
-                    )}
-                    <Badge style={{ backgroundColor: priority.bg, color: priority.color, border: 'none', fontSize: '10px' }}>{priority.label}</Badge>
-                  </div>
+                  {scheduled && (
+                    <ViewCallMapModal
+                      activity={scheduled}
+                      open={viewMapOpen}
+                      onOpenChange={setViewMapOpen}
+                    />
+                  )}
                 </div>
               );
             })}
