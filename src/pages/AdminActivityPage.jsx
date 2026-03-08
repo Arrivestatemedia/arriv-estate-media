@@ -21,6 +21,7 @@ import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import ActivityArchive from "@/components/sales/ActivityArchive";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
+import CallMapModal from "@/components/sales/CallMapModal";
 
 export default function AdminActivityPage({ user: propsUser, initialSubTab, onVideoCallStateChange, onVideoCallStarted, onVideoCallEnded }) {
   const location = useLocation();
@@ -346,6 +347,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   const [uploadingPictures, setUploadingPictures] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [callMapActivity, setCallMapActivity] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [visibleOnCurrentPage, setVisibleOnCurrentPage] = useState(5);
   const [showArchive, setShowArchive] = useState(false);
@@ -776,7 +778,25 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                                    <Phone className="w-3 h-3" />{activity.contact_phone}
                                  </button>
                                )}
-                               <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                               {(() => {
+                                 const raw = activity.notes || '';
+                                 const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                                 const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                                 return (
+                                   <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                     {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 120)}{shortNote.length > 120 ? '...' : ''}</p>}
+                                     {hasCallMap && (
+                                       <button
+                                         onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
+                                         className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
+                                         style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
+                                       >
+                                         📋 View Call Map
+                                       </button>
+                                     )}
+                                   </div>
+                                 );
+                               })()}
                                {activity.picture_url && (
                                  <img src={activity.picture_url} alt="Activity" className="mt-2 rounded-lg max-h-32 w-auto" />
                                )}
@@ -1126,6 +1146,21 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
 
 
 
+
+        {/* Call Map Modal */}
+        {callMapActivity && (() => {
+          const raw = callMapActivity.notes || '';
+          const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
+          const callMap = mapMatch ? mapMatch[1].trim() : raw;
+          return (
+            <CallMapModal
+              open={!!callMapActivity}
+              onClose={() => setCallMapActivity(null)}
+              contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
+              callMap={callMap}
+            />
+          );
+        })()}
 
         </div>
         </div>
