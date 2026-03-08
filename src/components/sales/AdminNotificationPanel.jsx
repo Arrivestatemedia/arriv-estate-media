@@ -152,9 +152,10 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                 </div>
               ) : (
                 upcomingTasks.map(task => (
-                  <div
+                  <button
                     key={task.id}
-                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3"
+                    onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('adminOpenCallQueue')); }}
+                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3 transition-colors hover:bg-white/5"
                     style={{ borderColor: 'rgba(255,251,245,0.06)' }}
                   >
                     <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
