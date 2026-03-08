@@ -38,7 +38,7 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
 
   return (
     <Dialog open={!!activity} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
