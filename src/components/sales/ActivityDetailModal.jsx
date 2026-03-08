@@ -190,8 +190,17 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
               </div>
             </div>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+          </div>
+
+          {/* Call Map Modal */}
+          {showCallMap && activity.call_map && (
+          <CallMapModal
+            contact={{ name: activity.contact_name, phone: activity.contact_phone, email: activity.contact_email }}
+            script={activity.call_map}
+            onClose={() => setShowCallMap(false)}
+          />
+          )}
+          </DialogContent>
+          </Dialog>
+          );
+          }
