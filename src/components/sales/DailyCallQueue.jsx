@@ -334,71 +334,23 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
 
       // Create the new permanent follow-up WITH auto-generated call map stored
        if (nextFollowUpDate) {
-         let callMapContent = "";
+         let generatedCallMap = "";
 
-         // Auto-generate full call map for the new follow-up
+         // Generate call map via backend function
          try {
-           const historySnippet = contact.past.slice(0, 4).map(a => {
-             const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
-             return `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 120)}${pics}`;
-           }).join("\n");
-
-           const pictureUrls = contact.past
-             .slice(0, 6)
-             .flatMap(a => a.picture_urls || [])
-             .slice(0, 6);
-
-           const callMapRes = await base44.integrations.Core.InvokeLLM({
-             prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
-
-           Rep: ${repName || "the rep"} | Why: Follow-up based on prior activity
-           History: ${historySnippet || "no prior contact"}
-
-           Output JSON with ALL 10 sections. Every field required and must be filled with full content.
-
-           ${pictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
-             add_context_from_internet: true,
-             file_urls: pictureUrls.length > 0 ? pictureUrls : undefined,
-             response_json_schema: {
-               type: "object",
-               properties: {
-                 opening: { type: "string", description: "2 sentences, casual, specific. NOT 'Hi this is X from ARRIV'" },
-                 if_interested: { type: "string", description: "Full 60-second pitch, key points, guide to booking" },
-                 if_has_photographer: { type: "string", description: "Acknowledge, don't argue, plant seed for future" },
-                 if_not_interested: { type: "string", description: "Graceful response, leaves door open, mention follow-up" },
-                 if_send_email: { type: "string", description: "Agree to email but GET COMMITMENT for a call too" },
-                 if_too_expensive: { type: "string", description: "Value frame, never discount, redirect to Brad for pricing" },
-                 if_cold_unengaged: { type: "string", description: "Short graceful exit that doesn't burn the bridge" },
-                 if_busy_bad_time: { type: "string", description: "Acknowledge, lock in specific callback time, end on good note" },
-                 if_no_answer_voicemail: { type: "string", description: "15 seconds max, word-for-word, conversational" },
-                 follow_up_text: { type: "string", description: "Send right after voicemail if no answer — short, casual, natural" }
-               },
-               required: ["opening", "if_interested", "if_has_photographer", "if_not_interested", "if_send_email", "if_too_expensive", "if_cold_unengaged", "if_busy_bad_time", "if_no_answer_voicemail", "follow_up_text"]
-             }
+           const callMapRes = await base44.functions.invoke('regenerateCallMap', {
+             contactName: contact.name,
+             contactEmail: contact.email,
+             companyName: contact.company,
+             contactPhone: contact.phone,
            });
 
-           const callMapData = typeof callMapRes === "string" ? (typeof callMapRes === "object" ? callMapRes : JSON.parse(callMapRes)) : callMapRes;
-           callMapContent = `📞 **Opening**\n${callMapData.opening}\n\n🔀 **If they're interested**\n${callMapData.if_interested}\n\n🔀 **If they say "I already have a photographer"**\n${callMapData.if_has_photographer}\n\n🔀 **If they say "Not interested right now"**\n${callMapData.if_not_interested}\n\n🔀 **If they say "Send me an email"**\n${callMapData.if_send_email}\n\n🔀 **If they say "Too expensive"**\n${callMapData.if_too_expensive}\n\n🔀 **If they're cold / one-word answers**\n${callMapData.if_cold_unengaged}\n\n🔀 **If they're busy / bad time**\n${callMapData.if_busy_bad_time}\n\n📵 **If no answer — voicemail**\n${callMapData.if_no_answer_voicemail}\n\n📱 **Follow-up text**\n${callMapData.follow_up_text}`;
-         } catch (e) {
-           console.error('Call map generation failed:', e);
-         }
-
-         // Generate call map with full data before creating activity
-         let generatedCallMap = callMapContent;
-         if (!generatedCallMap) {
-           try {
-             const callMapRes = await base44.functions.invoke('regenerateCallMap', {
-               activityId: null,
-               contactName: contact.name,
-               contactEmail: contact.email,
-               companyName: contact.company,
-               contactPhone: contact.phone,
-             });
-             generatedCallMap = callMapRes?.data?.call_map || callMapContent;
-           } catch (error) {
-             console.error('Call map generation error:', error);
-             // Continue without call map but log the error
+           // callMapRes.data = {call_map: "{json string}"}
+           if (callMapRes?.data?.call_map) {
+             generatedCallMap = callMapRes.data.call_map;
            }
+         } catch (error) {
+           console.error('Call map generation error:', error);
          }
 
          const savedActivity = await base44.entities.ActivityLog.create({
@@ -409,7 +361,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
            company_name: contact.company,
            activity_date: nextFollowUpDate.toISOString(),
            notes: nextNotes,
-           call_map: generatedCallMap,
+           call_map: generatedCallMap || "",
            sales_member_id: sid,
            sales_member_email: sem,
          });
