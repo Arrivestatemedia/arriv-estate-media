@@ -89,7 +89,7 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-2 py-4">
           <div className="prose prose-sm max-w-none text-sm leading-relaxed">
             <ReactMarkdown
               components={{
@@ -117,7 +117,7 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
             </ReactMarkdown>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
