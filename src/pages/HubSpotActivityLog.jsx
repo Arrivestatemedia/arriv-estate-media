@@ -1350,11 +1350,20 @@ export default function HubSpotActivityLog() {
           const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
 
           const handleSaveCallMapEdit = async (editedText) => {
-            const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
-            const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
-            await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
-            setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
-            queryClient.invalidateQueries({ queryKey: ['activities'] });
+            try {
+              const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
+              const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
+              await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+              console.log('[HubSpot] Call map edit saved successfully');
+              setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
+              queryClient.invalidateQueries({ queryKey: ['activities'] });
+              // Return success so the modal knows to close
+              return Promise.resolve();
+            } catch (error) {
+              console.error('[HubSpot] Failed to save call map edit:', error);
+              alert('Failed to save call map changes: ' + error.message);
+              return Promise.reject(error);
+            }
           };
 
           const handleRegenerate = async (extraContext) => {
