@@ -1201,27 +1201,93 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                 .map(a => `${a.activity_type} on ${new Date(a.activity_date).toLocaleDateString()}: ${(a.notes || '').slice(0, 200)}`)
                 .join('\n');
 
-              const prompt = `You are a sales coach for ARRIV, a real estate media company. Generate a detailed, personalized call map for Brad Burke (the owner/sales rep at ARRIV) calling ${callMapActivity.contact_name || 'this contact'} at ${callMapActivity.company_name || 'their company'}.
+              const callCount = activities.filter(a => a.contact_email === callMapActivity.contact_email).length;
+              const isWarmContact = callCount >= 3;
 
-Contact: ${callMapActivity.contact_name || ''}
-Company: ${callMapActivity.company_name || ''}
-Email: ${callMapActivity.contact_email || ''}
+              const prompt = `You are generating a personalized call map for Brad Burke, owner of ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
 
-Previous context: ${shortNote}
+## CONTACT INFO
+- Name: ${callMapActivity.contact_name || 'the contact'}
+- Company: ${callMapActivity.company_name || 'their brokerage'}
+- Email: ${callMapActivity.contact_email || ''}
+- Prior touchpoints with this contact: ${callCount}
+- Warm contact (3+ prior calls): ${isWarmContact ? 'YES — skip "do you have a moment?"' : 'NO — include "do you have a moment?"'}
 
-Recent activity history:
+## CONTEXT
+${shortNote || 'No prior notes'}
+
+## RECENT ACTIVITY HISTORY
 ${history || 'No prior history'}
 
-${extraContext ? `Additional context from rep: ${extraContext}` : ''}
+${extraContext ? `## ADDITIONAL CONTEXT FROM BRAD\n${extraContext}` : ''}
 
-Generate a comprehensive call map with:
-- A natural, non-salesy opening line
-- Branches for interested, not interested, objections (has photographer, too expensive, send email, bad time)
-- A voicemail script (15 sec max)
-- A follow-up text to send after voicemail
-- A closing/next steps script
+---
 
-Format with ### headers, emojis, and --- dividers between sections. Write it so Brad is the one calling directly (not on behalf of someone else).`;
+## BRAD'S PROVEN SCRIPT STYLE (use this tone and structure)
+
+**Cold/first call opener:**
+"Hi [Name], this is Brad Burke — I'm a local real estate media creator.${isWarmContact ? '' : ' Do you have a moment?'} I came across your [listing/property] and [specific observation]. I just wanted to see if [video/photography] was something you were considering."
+
+**Follow-up opener (warm contact):**
+"Hey [Name], it's Brad — quick call, I won't keep you long. [Specific reason for calling]."
+
+**If they already have a photographer:**
+"Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource."
+
+**Value props (pick the most relevant):**
+- "Clean, MLS-ready videos that help buyers understand layout before showings"
+- "A 2–3 minute video you can just drop into the listing"
+- "Helps get it to the closing table"
+- "Full-service — photography, video, and drone"
+
+---
+
+## GENERATE THIS COMPLETE CALL MAP:
+
+### 📞 Opening Line
+(word-for-word, use Brad's style, reference the specific contact/listing context above${isWarmContact ? ', NO "do you have a moment?"' : ', ASK "do you have a moment?"'})
+
+---
+
+### 🔀 If Interested / Open
+(guide toward booking, reference specific listing, ask about schedule)
+
+---
+
+### 🔀 If They Already Have Someone
+(use the "backup resource" line — plant a seed, don't push)
+
+---
+
+### 🔀 If Busy / Bad Time
+(respect it, lock in a specific callback time)
+
+---
+
+### 🔀 If They Ask About Pricing
+(value-first answer, "Brad handles the specifics" — never quote a number or discount)
+
+---
+
+### 🔀 If Cold / Not Engaging
+(short graceful exit, leave the door open)
+
+---
+
+### 📵 Voicemail Script
+(word-for-word, UNDER 15 seconds when spoken out loud, casual, reference specific listing/context)
+
+---
+
+### 📱 Follow-Up Text
+(short text to send immediately after leaving voicemail — conversational, not salesy)
+
+---
+
+### 🏁 Closing / Next Steps
+(exact closing line and what the confirmed next step is)
+
+Keep every section short and conversational. Brad is calling directly — write it in his voice.`;
 
               const result = await base44.integrations.Core.InvokeLLM({ prompt });
               const newCallMap = typeof result === 'string' ? result : result?.text || result?.content || '';
