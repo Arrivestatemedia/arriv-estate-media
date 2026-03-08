@@ -332,27 +332,8 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
         await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
       }
 
-      // Create the new permanent follow-up WITH auto-generated call map stored
+      // Create the new permanent follow-up (no auto-generated call map for AI-scheduled items)
        if (nextFollowUpDate) {
-         let generatedCallMap = "";
-
-         // Generate call map via backend function
-         try {
-           const callMapRes = await base44.functions.invoke('regenerateCallMap', {
-             contactName: contact.name,
-             contactEmail: contact.email,
-             companyName: contact.company,
-             contactPhone: contact.phone,
-           });
-
-           // callMapRes.data = {call_map: "{json string}"}
-           if (callMapRes?.data?.call_map) {
-             generatedCallMap = callMapRes.data.call_map;
-           }
-         } catch (error) {
-           console.error('Call map generation error:', error);
-         }
-
          const savedActivity = await base44.entities.ActivityLog.create({
            activity_type: "call",
            contact_name: contact.name,
@@ -361,7 +342,6 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
            company_name: contact.company,
            activity_date: nextFollowUpDate.toISOString(),
            notes: nextNotes,
-           call_map: generatedCallMap || "",
            sales_member_id: sid,
            sales_member_email: sem,
          });
