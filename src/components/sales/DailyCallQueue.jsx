@@ -334,41 +334,40 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
 
       // Create the new permanent follow-up WITH auto-generated call map stored
        if (nextFollowUpDate) {
-         let generatedCallMap = "";
+          let generatedCallMap = "";
 
-         // Generate call map via backend function
-         try {
-           const callMapRes = await base44.functions.invoke('regenerateCallMap', {
-             contactName: contact.name,
-             contactEmail: contact.email,
-             companyName: contact.company,
-             contactPhone: contact.phone,
-           });
+          // Generate call map via backend function
+          try {
+            const callMapRes = await base44.functions.invoke('regenerateCallMap', {
+              contactName: contact.name,
+              contactEmail: contact.email,
+              companyName: contact.company,
+              contactPhone: contact.phone,
+            });
 
-           const callMapData = callMapRes?.data?.call_map;
-           if (callMapData && typeof callMapData === 'string' && callMapData.trim().length > 0) {
-             generatedCallMap = callMapData;
-             console.log('[DailyCallQueue logOutcome] Call map generated, length:', generatedCallMap.length);
-           } else {
-             console.warn('[DailyCallQueue logOutcome] Invalid call map response:', callMapRes?.data);
-           }
-         } catch (error) {
-           console.error('[DailyCallQueue logOutcome] Call map generation error:', error);
-         }
+            const callMapData = callMapRes?.data?.call_map;
+            if (callMapData && typeof callMapData === 'string' && callMapData.trim().length > 0) {
+              generatedCallMap = callMapData;
+              console.log('[DailyCallQueue logOutcome] Call map generated, length:', generatedCallMap.length);
+            } else {
+              console.warn('[DailyCallQueue logOutcome] Invalid call map response:', callMapRes?.data);
+            }
+          } catch (error) {
+            console.error('[DailyCallQueue logOutcome] Call map generation error:', error);
+          }
 
-         const savedActivity = await base44.entities.ActivityLog.create({
-           activity_type: "call",
-           contact_name: contact.name,
-           contact_email: contact.email,
-           contact_phone: contact.phone || "",
-           company_name: contact.company,
-           activity_date: nextFollowUpDate.toISOString(),
-           notes: nextNotes,
-           call_map: generatedCallMap || "",
-           sales_member_id: sid,
-           sales_member_email: sem,
-         });
-       }
+          const savedActivity = await base44.entities.ActivityLog.create({
+            activity_type: "call",
+            contact_name: contact.name,
+            contact_email: contact.email,
+            contact_phone: contact.phone || "",
+            company_name: contact.company,
+            activity_date: nextFollowUpDate.toISOString(),
+            notes: generatedCallMap ? `${nextNotes}\n\n--- CALL MAP ---\n${generatedCallMap}` : nextNotes,
+            sales_member_id: sid,
+            sales_member_email: sem,
+          });
+        }
 
       // Save insight so the AI learns
       await base44.entities.QueueInsight.create({
