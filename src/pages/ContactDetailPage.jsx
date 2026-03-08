@@ -234,12 +234,11 @@ export default function ContactDetailPage() {
                         <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
                         {(() => {
                          const raw = (activity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
-                         const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
                          const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
                          return (
                            <div className="mt-2 flex items-start gap-2 flex-wrap">
                              {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 100)}{shortNote.length > 100 ? '...' : ''}</p>}
-                             {hasCallMap && (
+                             {activity.call_map && (
                                <button
                                  onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
                                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
