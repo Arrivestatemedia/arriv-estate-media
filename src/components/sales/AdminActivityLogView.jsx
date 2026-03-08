@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +28,7 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
   const [showArchive, setShowArchive] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [viewMapActivity, setViewMapActivity] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: activities = [] } = useQuery({
     queryKey: ['adminRepActivities', salesMemberId],
@@ -35,6 +36,19 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
     enabled: !!salesMemberId,
     refetchInterval: 15000,
   });
+
+  // Subscribe to ActivityLog changes to pick up new call_map data
+  useEffect(() => {
+    if (!salesMemberId) return;
+    
+    const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
+      if (event.data?.sales_member_id === salesMemberId && event.data?.call_map) {
+        queryClient.invalidateQueries({ queryKey: ['adminRepActivities', salesMemberId] });
+      }
+    });
+    
+    return unsubscribe;
+  }, [salesMemberId, queryClient]);
 
   const upcomingActivities = activities
     .filter(a => new Date(a.activity_date) > new Date())
