@@ -365,9 +365,9 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
         await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
       }
 
-      // Create the new permanent follow-up WITH auto-generated call map
+      // Create the new permanent follow-up WITH auto-generated call map stored
        if (nextFollowUpDate) {
-         let fullCallMapNotes = nextNotes;
+         let callMapContent = "";
 
          // Auto-generate full call map for the new follow-up
          try {
@@ -436,11 +436,9 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
              file_urls: pictureUrls.length > 0 ? pictureUrls : undefined,
            });
 
-           const generatedCallMap = typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes);
-           fullCallMapNotes = `${nextNotes}\n\n--- CALL MAP ---\n${generatedCallMap}`;
+           callMapContent = typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes);
          } catch (e) {
            console.error('Call map generation failed:', e);
-           // Continue with just the notes if generation fails
          }
 
          await base44.entities.ActivityLog.create({
@@ -450,7 +448,8 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
            contact_phone: contact.phone || "",
            company_name: contact.company,
            activity_date: nextFollowUpDate.toISOString(),
-           notes: fullCallMapNotes,
+           notes: nextNotes,
+           call_map: callMapContent,
            sales_member_id: sid,
            sales_member_email: sem,
          });
