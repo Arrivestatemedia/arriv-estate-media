@@ -62,40 +62,28 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 pt-1">
-          {/* Contact Info */}
-          <div className="bg-slate-50 rounded-lg p-3 space-y-1.5 text-sm">
-            {activity.contact_name && (
-              <div className="flex items-center gap-2 text-gray-700">
-                <User className="w-3.5 h-3.5 text-gray-400" />
-                <span className="font-medium">{activity.contact_name}</span>
-              </div>
-            )}
-            {activity.contact_email && (
-              <div className="flex items-center gap-2 text-gray-700">
-                <Mail className="w-3.5 h-3.5 text-gray-400" />
-                {activity.contact_email}
-              </div>
-            )}
-            {activity.company_name && (
-              <div className="flex items-center gap-2 text-gray-700">
-                <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                {activity.company_name}
-              </div>
-            )}
-            {activity.sales_member_email && (
-              <div className="flex items-center gap-2 text-gray-500 text-xs">
-                <User className="w-3 h-3" />
-                Rep: {activity.sales_member_email}
-              </div>
-            )}
-            {activity.duration_minutes > 0 && (
-              <div className="flex items-center gap-2 text-gray-500 text-xs">
-                <Timer className="w-3 h-3" />
-                Duration: {activity.duration_minutes} min
-              </div>
-            )}
-          </div>
+        <div className="space-y-3 pt-1">
+           {/* Contact Info */}
+           <div className="bg-slate-50 rounded-lg p-2.5 space-y-1 text-xs">
+             {activity.contact_name && (
+               <div className="flex items-center gap-2 text-gray-700">
+                 <User className="w-3 h-3 text-gray-400" />
+                 <span className="font-medium">{activity.contact_name}</span>
+               </div>
+             )}
+             {activity.contact_email && (
+               <div className="flex items-center gap-2 text-gray-600">
+                 <Mail className="w-3 h-3 text-gray-400" />
+                 <span className="truncate text-xs">{activity.contact_email}</span>
+               </div>
+             )}
+             {activity.company_name && (
+               <div className="flex items-center gap-2 text-gray-600">
+                 <Building2 className="w-3 h-3 text-gray-400" />
+                 <span className="truncate text-xs">{activity.company_name}</span>
+               </div>
+             )}
+           </div>
 
           {/* Call Map (if present) */}
           {activity.call_map && (
