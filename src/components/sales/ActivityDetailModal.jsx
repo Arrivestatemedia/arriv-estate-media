@@ -97,6 +97,25 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
             )}
           </div>
 
+          {/* Call Map (if present) */}
+          {activity.call_map && (
+            <div>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Phone className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>AI Call Map</p>
+              </div>
+              <Button
+                onClick={() => setShowCallMap(true)}
+                className="w-full gap-2"
+                style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                size="sm"
+              >
+                <Eye className="w-4 h-4" />
+                View Full Call Map
+              </Button>
+            </div>
+          )}
+
           {/* Notes / Content */}
           {activity.notes && (
             <div>
