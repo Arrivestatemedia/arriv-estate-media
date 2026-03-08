@@ -329,44 +329,45 @@ ${historySnippet || 'no prior contact'}
 
 ---
 
-## GENERATE EVERY SINGLE SECTION (COMPLETE, FULL SCRIPTS):
+## OUTPUT AS MARKDOWN (NOT JSON)
+Generate the sections below using markdown formatting. Each section should be complete, full scripts (not abbreviated).
 
 ### 📞 Opening Line
-Write 2-3 sentences the rep should say verbatim when the call connects. Make it casual, specific to this person's market/company, NOT a generic intro.
+(2-3 sentences verbatim for what the rep should say when they pick up)
 
 ### 🔀 If They're Interested / Ask Questions
-Write 3-4 sentences: acknowledge their interest, reference their specific situation (listings, brokerage, market), explain value, ask about availability. Make it conversational.
+(3-4 sentences: acknowledge interest, reference their specific situation, explain value, ask availability)
 
 ### 🔀 If They Say "I Already Have a Photographer"
-Write 3-4 sentences: acknowledge, don't argue, explain why ARRIV is different (backup, faster turnaround, drone, premium edits), plant a seed without being pushy.
+(3-4 sentences: acknowledge, don't argue, explain ARRIV difference, plant seed without being pushy)
 
 ### 🔀 If They Say "Not Interested Right Now"
-Write 3-4 sentences: thank them, respect the timeline, explain you're not a bother, offer to circle back in 4-6 weeks when they might need us, leave door open.
+(3-4 sentences: thank them, respect timeline, explain you're not a bother, offer to circle back in 4-6 weeks)
 
 ### 🔀 If They Say "Just Send Me an Email"
-Write 3-4 sentences: agree to email BUT lock in a follow-up call for 1 week out so it's not just static. Make them expect your call.
+(3-4 sentences: agree to email BUT lock in follow-up call for 1 week, make them expect your call)
 
 ### 🔀 If They Ask "What's Your Pricing?"
-Write 3-4 sentences: value-first answer (don't quote yet), explain it depends on their needs, offer to discuss details on a call, redirect to booking a time to talk specifics.
+(3-4 sentences: value-first answer, depends on needs, offer to discuss on call, redirect to booking time)
 
 ### 🔀 If They Say "I'm Busy / Bad Time to Talk"
-Write 3-4 sentences: respect their time completely, ask when NEXT WEEK is better (specific day/time), lock in a callback time, keep it brief.
+(3-4 sentences: respect time completely, ask when next week is better, lock in specific callback time)
 
 ### 🔀 If They're Cold / One-Word Answers / Not Engaging
-Write 2-3 sentences: graceful exit, NO hard sell, leave them with a positive impression, offer to check back in a few weeks, end call naturally.
+(2-3 sentences: graceful exit, NO hard sell, positive impression, offer to check back in weeks)
 
 ### 📵 Voicemail Script
-Write word-for-word what the rep should say if voicemail picks up. MUST be under 20 seconds when spoken. Casual, specific to their business, include a callback number.
+(Word-for-word what rep should say if voicemail picks up. UNDER 20 seconds when spoken. Include callback number.)
 
 ### 📱 Follow-Up Text
-Write a short SMS (2-3 sentences max) the rep should send immediately after leaving a voicemail. Keep it casual, friendly, not salesy.
+(Short SMS 2-3 sentences max. Send immediately after voicemail. Casual, friendly, not salesy.)
 
 ### 🏁 Closing / Natural Handoff
-Write 2-3 sentences for how the rep closes the conversation if the lead says yes or asks for more info. Make it a natural handoff with next steps clear.
+(2-3 sentences: how rep closes if lead says yes or asks for more. Natural handoff with next steps clear.)
 
 ---
 
-**WRITE COMPLETE, FULL SENTENCES FOR EVERY SECTION. Do NOT use parenthetical notes or abbreviations. Each section should be a complete, ready-to-use script that the rep can reference during the call.**
+**GENERATE ALL 11 SECTIONS ABOVE. DO NOT ABBREVIATE. EACH SECTION MUST BE COMPLETE WITH FULL SENTENCES.**
 
 ${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}`,
         add_context_from_internet: true,
