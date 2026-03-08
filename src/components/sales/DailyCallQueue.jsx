@@ -667,23 +667,32 @@ ${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAt
             )}
 
             <div>
-              {!script ? (
+              {script ? (
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowCallMapModal(true)} 
+                  className="w-full gap-2" 
+                  style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                >
+                  <Eye className="w-4 h-4" />
+                  View Call Map
+                </Button>
+              ) : (
                 <Button size="sm" onClick={generateScript} disabled={generatingScript} className="w-full gap-2" style={{ backgroundColor: '#1A1A1A', color: '#fff' }}>
                   {generatingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   {generatingScript ? "Generating call map..." : "Generate call map"}
                 </Button>
-              ) : (
-                <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>ARRIV Coach</p>
-                    <button onClick={generateScript} className="text-xs flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                      <RefreshCw className="w-3 h-3" /> Regenerate
-                    </button>
-                  </div>
-                  <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#1A1A1A' }}>{script}</div>
-                </div>
               )}
             </div>
+
+            {showCallMapModal && script && (
+              <CallMapModal 
+                contact={contact} 
+                script={script}
+                onClose={() => setShowCallMapModal(false)}
+                onRegenerate={generateScript}
+              />
+            )}
 
             {!saved ? (
               <div className="space-y-2">
