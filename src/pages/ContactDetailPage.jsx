@@ -232,9 +232,27 @@ export default function ContactDetailPage() {
                       </div>
                       <div className="flex-1">
                         <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
-                        <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
+                        {(() => {
+                         const raw = (activity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
+                         const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                         const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                         return (
+                           <div className="mt-2 flex items-start gap-2 flex-wrap">
+                             {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 100)}{shortNote.length > 100 ? '...' : ''}</p>}
+                             {hasCallMap && (
+                               <button
+                                 onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
+                                 className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
+                                 style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
+                               >
+                                 📋 View Call Map
+                               </button>
+                             )}
+                           </div>
+                         );
+                        })()}
                         {activity.duration_minutes > 0 && (
-                          <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
+                         <p className="text-xs mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.duration_minutes} minutes</p>
                         )}
                       </div>
                     </div>
@@ -262,7 +280,11 @@ export default function ContactDetailPage() {
                 <div className="bg-slate-50 p-4 rounded-lg space-y-2">
                   <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
                   <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                  <p><span className="font-medium">Notes:</span> {selectedActivity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
+                  {(() => {
+                    const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
+                    const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                    return <p><span className="font-medium">Notes:</span> {shortNote}</p>;
+                  })()}
                   {selectedActivity.duration_minutes > 0 && (
                     <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
                   )}
@@ -292,6 +314,21 @@ export default function ContactDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Call Map Modal */}
+      {callMapActivity && (() => {
+        const raw = callMapActivity.notes || '';
+        const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
+        const callMap = mapMatch ? mapMatch[1].trim() : raw;
+        return (
+          <CallMapModal
+            open={!!callMapActivity}
+            onClose={() => setCallMapActivity(null)}
+            contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
+            callMap={callMap}
+          />
+        );
+      })()}
 
       {/* Floating Chat Bubble */}
       <CallStatusProvider>
