@@ -725,7 +725,10 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
       // Generate call maps for all scheduled activities that don't have one yet
       const needsCallMap = filtered.filter(c => {
         const scheduled = newScheduledMap[c.key];
-        return scheduled && !scheduled.call_map;
+        if (!scheduled) return false;
+        const notes = scheduled.notes || '';
+        const hasCallMap = /--- CALL MAP ---/i.test(notes);
+        return !hasCallMap;
       });
 
       if (needsCallMap.length > 0) {
