@@ -365,20 +365,96 @@ ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past acti
         await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
       }
 
-      // Create the new permanent follow-up
-      if (nextFollowUpDate) {
-        await base44.entities.ActivityLog.create({
-          activity_type: "call",
-          contact_name: contact.name,
-          contact_email: contact.email,
-          contact_phone: contact.phone || "",
-          company_name: contact.company,
-          activity_date: nextFollowUpDate.toISOString(),
-          notes: nextNotes,
-          sales_member_id: sid,
-          sales_member_email: sem,
-        });
-      }
+      // Create the new permanent follow-up WITH auto-generated call map
+       if (nextFollowUpDate) {
+         let fullCallMapNotes = nextNotes;
+
+         // Auto-generate full call map for the new follow-up
+         try {
+           const historySnippet = contact.past.slice(0, 4).map(a => {
+             const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
+             return `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 120)}${pics}`;
+           }).join("\n");
+
+           const pictureUrls = contact.past
+             .slice(0, 6)
+             .flatMap(a => a.picture_urls || [])
+             .slice(0, 6);
+
+           const callMapRes = await base44.integrations.Core.InvokeLLM({
+             prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — every branch of the conversation covered. This should sound like a real person who knows them, not a salesperson reading off a sheet.
+
+      What we know:
+      - Rep: ${repName || "the rep"}
+      - Contact intel: ${reason || "routine follow-up"}
+      - Why calling now: Follow-up based on prior activity
+      - History: ${historySnippet || "no prior contact"}
+
+      TONE RULES (critical):
+      - Write like a human talks, not how a textbook describes sales
+      - Short sentences. Contractions. Natural pauses built in.
+      - No buzzwords like "leverage", "synergy", "value proposition"
+      - Use what you know about them specifically — generic lines get hung up on
+      - Confident but relaxed
+
+      FORMAT — cover EVERY section:
+
+      📞 **Opening** (1-2 sentences, casual, specific to this person)
+
+      🔀 **If they're open / interested:**
+      [Keep it under 60 seconds — the key points to hit, in plain language. Guide toward booking.]
+
+      🔀 **If they object — "I already have a photographer":**
+      [Exact response — acknowledge, don't argue, plant a seed]
+
+      🔀 **If they object — "Not interested right now":**
+      [Exact response — graceful, leaves door open]
+
+      🔀 **If they object — "Send me an email":**
+      [Exact response — agree, but lock in a brief follow-up call too]
+
+      🔀 **If they object — "Too expensive":**
+      [Exact response — value-first, never discount. Redirect pricing to Brad.]
+
+      🔀 **If they're cold / one-word answers / not engaging:**
+      [Short, graceful exit that leaves the door open]
+
+      🔀 **If they're busy / bad time:**
+      [Exact response — respect their time, lock in a specific callback time]
+
+      📵 **If no answer — voicemail** (15 sec max when spoken aloud):
+      [Word-for-word voicemail]
+
+      📱 **Follow-up text** (send immediately after voicemail):
+      [Short, casual text to send right after]
+
+      🏁 **Closing / ready to move forward:**
+      [Exact lines — hand off to Brad naturally: "Our owner Brad will walk you through the rest."]
+
+      ${pictureUrls.length > 0 ? `NOTE: There are attached images from past activities — READ THEM to understand the full context before writing this guide.` : ""}`,
+             add_context_from_internet: true,
+             file_urls: pictureUrls.length > 0 ? pictureUrls : undefined,
+           });
+
+           const generatedCallMap = typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes);
+           fullCallMapNotes = `${nextNotes}\n\n--- CALL MAP ---\n${generatedCallMap}`;
+         } catch (e) {
+           console.error('Call map generation failed:', e);
+           // Continue with just the notes if generation fails
+         }
+
+         await base44.entities.ActivityLog.create({
+           activity_type: "call",
+           contact_name: contact.name,
+           contact_email: contact.email,
+           contact_phone: contact.phone || "",
+           company_name: contact.company,
+           activity_date: nextFollowUpDate.toISOString(),
+           notes: fullCallMapNotes,
+           sales_member_id: sid,
+           sales_member_email: sem,
+         });
+       }
 
       // Save insight so the AI learns
       await base44.entities.QueueInsight.create({
