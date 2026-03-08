@@ -37,15 +37,26 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
     <Dialog open={!!activity} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Badge className={typeColors[activity.activity_type] || "bg-gray-100 text-gray-800"}>
-              {activity.activity_type}
-            </Badge>
-            <span className="text-sm font-normal text-gray-500 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {date.toLocaleDateString()} at {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Badge className={typeColors[activity.activity_type] || "bg-gray-100 text-gray-800"}>
+                {activity.activity_type}
+              </Badge>
+              <span className="text-sm font-normal text-gray-500 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {date.toLocaleDateString()} at {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4 pt-1">
