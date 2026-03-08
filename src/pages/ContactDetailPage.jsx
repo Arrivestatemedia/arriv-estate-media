@@ -281,12 +281,11 @@ export default function ContactDetailPage() {
                   <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
                   {(() => {
                     const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
-                    const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
                     const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
                     return (
                       <>
                         <p><span className="font-medium">Notes:</span> {shortNote}</p>
-                        {hasCallMap && (
+                        {selectedActivity.call_map && (
                           <div className="pt-2">
                             <button
                               onClick={() => { setCallMapActivity(selectedActivity); setSelectedActivity(null); }}
