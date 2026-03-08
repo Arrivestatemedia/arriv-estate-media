@@ -9,8 +9,14 @@ import CallMapModal from "./CallMapModal";
 export default function ActivityDetailModal({ activity, onClose, onDelete }) {
   const [deleting, setDeleting] = useState(false);
   const [showCallMap, setShowCallMap] = useState(false);
+  const [generatingScript, setGeneratingScript] = useState(false);
+  const [script, setScript] = useState(activity?.call_map || null);
   
   if (!activity) return null;
+
+  useEffect(() => {
+    setScript(activity?.call_map || null);
+  }, [activity?.id]);
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this activity?')) return;
