@@ -143,14 +143,15 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
                   Cancel
                 </Button>
                 <Button
-                  size="sm"
-                  onClick={handleSaveEdit}
-                  className="gap-1.5"
-                  style={{ backgroundColor: '#B8956A', color: '#fff' }}
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  Save Changes
-                </Button>
+                   size="sm"
+                   onClick={handleSaveEdit}
+                   disabled={isSaving}
+                   className="gap-1.5"
+                   style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                 >
+                   <Check className={`w-3.5 h-3.5 ${isSaving ? 'animate-spin' : ''}`} />
+                   {isSaving ? "Saving..." : "Save Changes"}
+                 </Button>
               </div>
             </div>
           ) : (
