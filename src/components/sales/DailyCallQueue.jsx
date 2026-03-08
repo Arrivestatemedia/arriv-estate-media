@@ -743,7 +743,10 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
             }
           })
         );
-        setScheduledMap({ ...newScheduledMap });
+        // Force refresh after all call maps generated
+        const finalScheduledMap = { ...newScheduledMap };
+        setScheduledMap(finalScheduledMap);
+        console.log('[DailyCallQueue loadQueue] Call map generation complete. Final scheduled:', Object.keys(finalScheduledMap).map(k => ({ contact: k, hasCallMap: !!finalScheduledMap[k].call_map })));
       }
 
     } catch (e) {
