@@ -1,7 +1,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Phone, RefreshCw, X } from "lucide-react";
+import { Phone, RefreshCw, Mail } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating }) {
