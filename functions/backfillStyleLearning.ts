@@ -37,24 +37,56 @@ Deno.serve(async (req) => {
 
     const editedCallMap = callMapMatch[1].trim();
 
-    // Get the original call map - it would be the part before the edited one
-    // For simplicity, we'll ask the LLM to infer what the original might have been
-    // Or we need to store the original separately. For now, let's just analyze the edit
+    // Analyze the edited call map to extract style patterns
+    const analysisPrompt = `You are analyzing a sales call map that was manually edited to extract style and tone preferences.
 
-    // Call analyzeCallMapEdit
-    const result = await base44.functions.invoke('analyzeCallMapEdit', {
-      salesMemberId: user.id,
-      salesMemberEmail: user.email,
-      originalCallMap: `[Original call map for ${activity.contact_name} - inferred from edit]`,
-      editedCallMap: editedCallMap
+EDITED CALL MAP:
+${editedCallMap}
+
+Extract the style patterns, tone, structure, and approach evident in this call map. Be concise. Focus on:
+1. Overall tone and approach (casual vs formal, aggressive vs consultative)
+2. Structure and pacing (how sections flow, emphasis points)
+3. Language style and vocabulary preferences
+4. Key messaging priorities
+5. Unique personality or approach
+
+Format as a bullet list of 3-5 key learnings.`;
+
+    const analysisResult = await base44.integrations.Core.InvokeLLM({
+      prompt: analysisPrompt,
+      model: 'gpt_5_mini'
     });
+
+    const learnedPreferences = typeof analysisResult === 'string' ? analysisResult : analysisResult?.text || analysisResult?.content || '';
+
+    // Fetch or create the style profile
+    const profiles = await base44.entities.SalesRepStyleProfile.filter({ sales_member_id: user.id });
+    const profile = profiles?.[0];
+
+    let updatedProfile;
+    if (profile) {
+      const updatedPrefs = `${profile.learned_preferences || ''}\n\n[Backfilled from ${activity.contact_name}]\n${learnedPreferences}`;
+      updatedProfile = await base44.asServiceRole.entities.SalesRepStyleProfile.update(profile.id, {
+        learned_preferences: updatedPrefs,
+        edit_count: (profile.edit_count || 0) + 1,
+        last_updated: new Date().toISOString()
+      });
+    } else {
+      updatedProfile = await base44.asServiceRole.entities.SalesRepStyleProfile.create({
+        sales_member_id: user.id,
+        sales_member_email: user.email,
+        learned_preferences: learnedPreferences,
+        edit_count: 1,
+        last_updated: new Date().toISOString()
+      });
+    }
 
     return Response.json({
       success: true,
       contactEmail,
       contactName: activity.contact_name,
-      learned: result.learnedPreferences,
-      editCount: result.editCount
+      learned: learnedPreferences,
+      editCount: updatedProfile.edit_count
     });
   } catch (error) {
     console.error('[backfillStyleLearning] Error:', error);
