@@ -1245,7 +1245,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
               const callCount = activities.filter(a => a.contact_email === callMapActivity.contact_email).length;
               const isWarmContact = callCount >= 5;
 
-              const prompt = `You are generating a hyper-personalized, research-backed call map for Brad Burke, owner of ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
+              const salesRepName = localStorage.getItem('sales_member_name') || 'the sales rep';
+              const prompt = `You are generating a hyper-personalized, research-backed call map for ${salesRepName}, a sales representative for ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
 
           ## CONTACT INFO
           - Name: ${callMapActivity.contact_name || 'the contact'}
@@ -1286,13 +1287,13 @@ Use the HubSpot and web research above to tailor your approach:
 ## BRAD'S PROVEN SCRIPT STYLE (use this tone and structure + personalization)
 
 **Cold/first call opener:**
-"Hi [Name], this is Brad Burke — I'm a local real estate media creator.${isWarmContact ? '' : ' Do you have a moment?'} I came across your [listing/property/recent deal] and [specific observation based on their speciality/market]. I just wanted to see if [video/photography] was something you were considering — especially given [market insight or their transaction volume]."
+"Hi [Name], this is ${salesRepName} — I'm a local real estate media creator.${isWarmContact ? '' : ' Do you have a moment?'} I came across your [listing/property/recent deal] and [specific observation based on their speciality/market]. I just wanted to see if [video/photography] was something you were considering — especially given [market insight or their transaction volume]."
 
 **Follow-up opener (2nd–3rd calls, keep rapport-building):**
-"Hi [Name], this is Brad Burke. Quick question — how are you doing? Do you have a moment?"
+"Hi [Name], this is ${salesRepName}. Quick question — how are you doing? Do you have a moment?"
 
 **Warm contact opener (5+ calls):**
-"Hey [Name], it's Brad — quick call, I won't keep you long. [Specific reason tied to their recent deals or market]."
+"Hey [Name], it's ${salesRepName} — quick call, I won't keep you long. [Specific reason tied to their recent deals or market]."
 
 **If they already have a photographer:**
 "Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource — especially for [their specialty market]."

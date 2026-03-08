@@ -1393,7 +1393,8 @@ export default function HubSpotActivityLog() {
                const callCount = activities.filter(a => a.contact_email === callMapActivity.contact_email).length;
                const isWarmContact = callCount >= 5;
 
-               const prompt = `You are generating a hyper-personalized, research-backed call map for Brad Burke, owner of ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
+               const salesRepName = localStorage.getItem('sales_member_name') || 'the sales rep';
+               const prompt = `You are generating a hyper-personalized, research-backed call map for ${salesRepName}, a sales representative for ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
 
           ## CONTACT INFO
           - Name: ${callMapActivity.contact_name || 'the contact'}
