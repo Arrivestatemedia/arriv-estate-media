@@ -942,7 +942,26 @@ export default function HubSpotActivityLog() {
                              ) : (
                                <span className="text-xs font-medium mt-0.5" style={{ color: 'rgba(26,26,26,0.4)' }}>No phone on file</span>
                              )}
-                             <p className="text-sm mt-2" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                             {/* Show reason/short note, hide full call map from card */}
+                             {(() => {
+                               const raw = activity.notes || '';
+                               const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                               const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                               return (
+                                 <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                   {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 120)}{shortNote.length > 120 ? '...' : ''}</p>}
+                                   {hasCallMap && (
+                                     <button
+                                       onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
+                                       className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
+                                       style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
+                                     >
+                                       📋 View Call Map
+                                     </button>
+                                   )}
+                                 </div>
+                               );
+                             })()}
                           </div>
                         </div>
                       </CardContent>
