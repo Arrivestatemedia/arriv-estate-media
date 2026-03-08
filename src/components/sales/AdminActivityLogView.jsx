@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Mail, Calendar, Clock, Zap, Archive } from "lucide-react";
+import { Phone, Mail, Calendar, Clock, Zap, Archive, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import ActivityArchive from "@/components/sales/ActivityArchive";
+import ViewCallMapModal from "@/components/sales/ViewCallMapModal";
 
 const activityIcons = {
   call: <Phone className="w-4 h-4" />,
