@@ -210,7 +210,8 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
             <div className="px-4 py-3 border-t pointer-events-auto" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
               <button
                 onClick={() => {
-                  window.location.href = queueUrl;
+                  setIsOpen(false);
+                  window.dispatchEvent(new CustomEvent('adminNavigateToQueue'));
                 }}
                 className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 hover:opacity-90"
                 style={{
