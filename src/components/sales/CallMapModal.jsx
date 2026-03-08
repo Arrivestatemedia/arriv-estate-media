@@ -95,37 +95,32 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
         )}
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <ReactMarkdown
-            components={{
-              h1: ({ children }) => (
-                <h2 className="text-lg font-bold mt-4 mb-2 first:mt-0" style={{ color: '#B8956A' }}>{children}</h2>
-              ),
-              h2: ({ children }) => (
-                <h3 className="text-base font-bold mt-4 mb-2 first:mt-0" style={{ color: '#B8956A' }}>{children}</h3>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-sm font-bold mt-3 mb-1.5 first:mt-0" style={{ color: '#1A1A1A' }}>{children}</h3>
-              ),
-              p: ({ children }) => (
-                <p className="my-2 leading-relaxed" style={{ color: '#1A1A1A' }}>{children}</p>
-              ),
-              strong: ({ children }) => (
-                <strong className="font-semibold" style={{ color: '#1A1A1A' }}>{children}</strong>
-              ),
-              hr: () => <div className="my-3" />,
-              ul: ({ children }) => (
-                <ul className="my-2 ml-4 list-disc space-y-1">{children}</ul>
-              ),
-              li: ({ children }) => (
-                <li className="text-sm" style={{ color: '#1A1A1A' }}>{children}</li>
-              ),
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-2 pl-3 my-2 italic" style={{ borderColor: 'rgba(184,149,106,0.3)', color: 'rgba(26,26,26,0.7)' }}>{children}</blockquote>
-              ),
-            }}
-          >
-            {script}
-          </ReactMarkdown>
+          <div className="prose prose-sm max-w-none text-sm leading-relaxed">
+            <ReactMarkdown
+              components={{
+                h3: ({ children }) => (
+                  <h3 className="text-sm font-bold mt-4 mb-1.5 first:mt-0" style={{ color: '#1A1A1A' }}>{children}</h3>
+                ),
+                p: ({ children }) => (
+                  <p className="my-1.5 leading-relaxed" style={{ color: '#1A1A1A' }}>{children}</p>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-semibold" style={{ color: '#1A1A1A' }}>{children}</strong>
+                ),
+                hr: () => (
+                  <hr className="my-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }} />
+                ),
+                ul: ({ children }) => (
+                  <ul className="my-1.5 ml-4 list-disc space-y-0.5">{children}</ul>
+                ),
+                li: ({ children }) => (
+                  <li className="text-sm" style={{ color: '#1A1A1A' }}>{children}</li>
+                ),
+              }}
+            >
+              {script}
+            </ReactMarkdown>
+          </div>
         </div>
       </div>
     </div>
