@@ -136,6 +136,7 @@ Fill in each JSON field with natural, conversational scripts (multiple sentences
 
 ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interactions. Analyze them to understand what was actually discussed. Reference specific details if visible.` : ""}`,
       add_context_from_internet: false,
+      file_urls: pictureUrls.length > 0 ? pictureUrls : undefined,
       response_json_schema: {
         type: "object",
         properties: {
