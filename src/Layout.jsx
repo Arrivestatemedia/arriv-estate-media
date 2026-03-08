@@ -78,23 +78,7 @@ function LayoutContent({ children, currentPageName }) {
 
   const isSalesTeam = localStorage.getItem('sales_member_id');
 
-  // Sales team admins get full admin nav, regular sales team gets activity log only
-  const navItems = isSalesTeam && isAdmin
-      ? [
-          { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
-          { label: "Job Board", page: "JobBoard", icon: Briefcase },
-          { label: "Bookings", page: "AdminBookings", icon: Briefcase },
-          { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
-          { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
-          { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
-          { label: "Activity Log", page: "HubSpotActivityLog", icon: FileText },
-          { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },
-          { label: "Client Terms", page: "AdminClientTerms", icon: Settings },
-          { label: "Closing Invoice", page: "ManualClosingInvoice", icon: FileText },
-          { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
-          { label: "Scheduled Bookings", page: "AdminScheduledBookings", icon: CalendarClock },
-        ]
-      : isSalesTeam
+  const navItems = isSalesTeam
       ? [
           { label: "Activity Log", page: "HubSpotActivityLog", icon: Briefcase },
         ]
