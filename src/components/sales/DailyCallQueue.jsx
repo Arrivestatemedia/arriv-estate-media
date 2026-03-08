@@ -303,73 +303,44 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .slice(0, 6);
 
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are generating a hyper-personalized, research-backed COMPLETE CALL MAP for ${repName || "Brad"}, a sales representative for ARRIV Estate Media LLC (real estate photography, video, drone).
+        prompt: `Write a COMPLETE sales call script for ${repName || "Brad"} calling ${contact.name} at ${contact.company || 'their company'}.
 
-**CRITICAL: GENERATE EVERY SINGLE SECTION BELOW. NO SKIPPING. NO PARTIAL SCRIPTS. THIS IS NOT A SIMPLE OPENER — IT'S A FULL CONVERSATION GUIDE WITH EVERY BRANCH OUTCOME.**
+OUTPUT EVERY section below as FULL, READY-TO-READ scripts. Do not abbreviate.
 
-## CONTACT INFO
-- Name: ${contact.name || 'the contact'}
-- Company: ${contact.company || 'their brokerage'}
-- Contact intel: ${contactIntel || "not available"}
-- Why calling now: ${reason || "routine follow-up"}
-- Urgency: ${urgency || "medium"}
+**📞 OPENING LINE** (2-3 sentences they say when call connects):
+[WRITE FULL OPENING FOR ${contact.name}]
 
-## INTERACTION HISTORY
-${historySnippet || 'no prior contact'}
+**🔀 IF INTERESTED / ASKS QUESTIONS** (3-4 sentences):
+[WRITE FULL RESPONSE]
 
----
+**🔀 IF SAYS "I ALREADY HAVE A PHOTOGRAPHER"** (3-4 sentences):
+[WRITE FULL RESPONSE]
 
-## TONE & APPROACH
-- Write exactly like humans talk (short sentences, contractions, natural pauses)
-- NO buzzwords like "leverage," "synergy," "value proposition"
-- Open with something unexpected to break auto-reject
-- Reference their specific market, listings, or situation
-- Confident but relaxed — like a colleague you know
-- If they push back, acknowledge genuinely first
+**🔀 IF SAYS "NOT INTERESTED RIGHT NOW"** (3-4 sentences):
+[WRITE FULL RESPONSE]
 
----
+**🔀 IF SAYS "JUST SEND ME AN EMAIL"** (3-4 sentences):
+[WRITE FULL RESPONSE]
 
-## OUTPUT AS MARKDOWN (NOT JSON)
-Generate the sections below using markdown formatting. Each section should be complete, full scripts (not abbreviated).
+**🔀 IF ASKS "WHAT'S YOUR PRICING?"** (3-4 sentences):
+[WRITE FULL RESPONSE]
 
-### 📞 Opening Line
-(2-3 sentences verbatim for what the rep should say when they pick up)
+**🔀 IF SAYS "I'M BUSY"** (3-4 sentences):
+[WRITE FULL RESPONSE]
 
-### 🔀 If They're Interested / Ask Questions
-(3-4 sentences: acknowledge interest, reference their specific situation, explain value, ask availability)
+**🔀 IF COLD / NOT ENGAGING** (2-3 sentences):
+[WRITE FULL RESPONSE]
 
-### 🔀 If They Say "I Already Have a Photographer"
-(3-4 sentences: acknowledge, don't argue, explain ARRIV difference, plant seed without being pushy)
+**📵 VOICEMAIL** (under 20 seconds, word-for-word):
+[WRITE FULL VOICEMAIL]
 
-### 🔀 If They Say "Not Interested Right Now"
-(3-4 sentences: thank them, respect timeline, explain you're not a bother, offer to circle back in 4-6 weeks)
+**📱 FOLLOW-UP TEXT** (2-3 sentences):
+[WRITE FULL TEXT]
 
-### 🔀 If They Say "Just Send Me an Email"
-(3-4 sentences: agree to email BUT lock in follow-up call for 1 week, make them expect your call)
+**🏁 CLOSING** (2-3 sentences):
+[WRITE FULL CLOSING]
 
-### 🔀 If They Ask "What's Your Pricing?"
-(3-4 sentences: value-first answer, depends on needs, offer to discuss on call, redirect to booking time)
-
-### 🔀 If They Say "I'm Busy / Bad Time to Talk"
-(3-4 sentences: respect time completely, ask when next week is better, lock in specific callback time)
-
-### 🔀 If They're Cold / One-Word Answers / Not Engaging
-(2-3 sentences: graceful exit, NO hard sell, positive impression, offer to check back in weeks)
-
-### 📵 Voicemail Script
-(Word-for-word what rep should say if voicemail picks up. UNDER 20 seconds when spoken. Include callback number.)
-
-### 📱 Follow-Up Text
-(Short SMS 2-3 sentences max. Send immediately after voicemail. Casual, friendly, not salesy.)
-
-### 🏁 Closing / Natural Handoff
-(2-3 sentences: how rep closes if lead says yes or asks for more. Natural handoff with next steps clear.)
-
----
-
-**GENERATE ALL 11 SECTIONS ABOVE. DO NOT ABBREVIATE. EACH SECTION MUST BE COMPLETE WITH FULL SENTENCES.**
-
-${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}`,
+Contact: ${contact.name}, ${contact.company}. Last contact: ${lastActivity ? format(new Date(lastActivity.activity_date), 'MMM d') : 'new'}. Reason: ${reason || 'follow-up'}.`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
       });
