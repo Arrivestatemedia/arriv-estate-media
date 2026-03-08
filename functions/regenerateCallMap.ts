@@ -10,6 +10,11 @@ Deno.serve(async (req) => {
       contact_email: contactEmail,
     }, '-activity_date', 15);
 
+    // Fetch learned insights from past outcomes with this contact
+    const pastInsights = contactEmail ? await base44.asServiceRole.entities.QueueInsight.filter({
+      contact_name: contactName,
+    }, '-logged_at', 10) : [];
+
     // Fetch SMS conversation history
     let smsHistory = "";
     if (contactPhone) {
