@@ -1447,7 +1447,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
               contactEmail={callMapActivity.contact_email || ''}
               onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); setActiveTab("call"); }}
               onEmail={(email) => { localStorage.setItem('_emailTo', email); setActiveTab("email"); }}
-            />
+              onSaveEdit={handleSaveCallMapEdit}
+              />
           );
         })()}
 
