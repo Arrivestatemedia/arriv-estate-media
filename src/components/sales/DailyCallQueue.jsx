@@ -160,13 +160,13 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
     : addDays(new Date(), 7);
 
   // Bradley-specific availability windows (ONLY for Brad Burke)
-  if (sem === 'bradley@arrivestatemedia.com' || sem?.toLowerCase().includes('bradley') || sem?.toLowerCase().includes('brad')) {
-    // Adjust to next available time in Bradley's windows: 6:30am-8:10am, 10:15am-10:38am, 2:15pm+
-    const windows = [
-      { start: 6.5, end: 8.167 },   // 6:30am - 8:10am
-      { start: 10.25, end: 10.633 }, // 10:15am - 10:38am
-      { start: 14.25, end: 24 }      // 2:15pm - midnight
-    ];
+    if (sem === 'bradley@arrivestatemedia.com' || sem?.toLowerCase().includes('bradley') || sem?.toLowerCase().includes('brad')) {
+      // Adjust to next available time in Bradley's windows: 7:55am-8:10am, 10:15am-10:38am, 2:15pm+
+      const windows = [
+        { start: 7.9167, end: 8.167 },   // 7:55am - 8:10am
+        { start: 10.25, end: 10.633 }, // 10:15am - 10:38am
+        { start: 14.25, end: 24 }      // 2:15pm - midnight
+      ];
 
     let adjusted = new Date(followUpDate);
     let found = false;
