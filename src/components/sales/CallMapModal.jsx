@@ -5,11 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating, contactPhone, contactEmail, onCall, onEmail }) {
+export default function CallMapModal({ contact, script, onClose, onRegenerate, regenerating }) {
   const [showContextBox, setShowContextBox] = useState(false);
   const [context, setContext] = useState("");
 
-  if (!callMap) return null;
+  if (!script) return null;
 
   const handleRegenerate = () => {
     if (onRegenerate) onRegenerate(context);
