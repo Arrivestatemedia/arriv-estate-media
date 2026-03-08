@@ -373,8 +373,11 @@ ${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAt
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
       });
-      setScript(typeof res === "string" ? res : res?.text || String(res));
-    } catch {
+      // Extract full response text
+      const fullText = String(res?.data || res || "").trim();
+      setScript(fullText);
+    } catch (e) {
+      console.error("Script generation failed:", e);
       setScript("Failed to generate script. Try again.");
     } finally {
       setGeneratingScript(false);
