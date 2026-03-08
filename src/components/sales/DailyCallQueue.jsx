@@ -553,7 +553,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
                     </div>
                     <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#1A1A1A' }}>{script}</div>
                   </div>
-                  {scheduledFollowUp?.call_map && (
+                  {scheduledFollowUp && /--- CALL MAP ---/i.test(scheduledFollowUp.notes || '') && (
                     <Button 
                       size="sm" 
                       variant="outline" 
