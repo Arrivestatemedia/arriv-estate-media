@@ -741,22 +741,6 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
     loadQueue();
   }, [salesMemberId, salesMemberEmail, refreshKey]);
 
-  // Subscribe to ActivityLog changes to keep queue updated in real-time
-  useEffect(() => {
-    const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
-      setRefreshKey(k => k + 1);
-    });
-    return unsubscribe;
-  }, []);
-
-  // Subscribe to QueueInsight changes to update learned patterns in real-time
-  useEffect(() => {
-    const unsubscribe = base44.entities.QueueInsight.subscribe((event) => {
-      setRefreshKey(k => k + 1);
-    });
-    return unsubscribe;
-  }, []);
-
   const loadQueue = async () => {
     setLoading(true);
 
