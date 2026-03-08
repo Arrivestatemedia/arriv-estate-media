@@ -763,14 +763,14 @@ export default function IphoneDialer({ salesMemberId }) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {activeTab === TABS.RECENTS && (
-          <div className="space-y-0">
-            {callLogs.length === 0 ? (
-              <div className="text-center py-10" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                <Phone className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">No recent calls</p>
-              </div>
-            ) : (
-              callLogs.map((log) => {
+           <div className="space-y-0">
+             {callLogs.filter(log => log.direction || log.duration_minutes > 0).length === 0 ? (
+               <div className="text-center py-10" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                 <Phone className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                 <p className="text-sm">No recent calls</p>
+               </div>
+             ) : (
+               callLogs.filter(log => log.direction || log.duration_minutes > 0).map((log) => {
                 const phoneMatch = log.notes?.match(/\+?1?\d{10}/);
                 const phoneNumber = phoneMatch?.[0];
                 const isExpanded = expandedCallId === log.id;
