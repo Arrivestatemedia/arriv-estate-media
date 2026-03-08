@@ -933,7 +933,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
               const scheduled = scheduledMap[contact.key];
               const meta = metaMap[contact.key] || {};
               const priority = getPriorityLabel(meta.urgency || "low");
-              const [viewMapOpen, setViewMapOpen] = useState(false);
+              const isMapOpen = viewMapOpenKey === contact.key;
               return (
                 <div key={contact.key}>
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
@@ -954,7 +954,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                           variant="ghost"
                           className="h-7 px-2 text-xs gap-1"
                           style={{ color: '#B8956A' }}
-                          onClick={() => setViewMapOpen(true)}
+                          onClick={() => setViewMapOpenKey(contact.key)}
                         >
                           <MapPin className="w-3 h-3" />
                           View Call Map
@@ -966,8 +966,8 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                   {scheduled && (
                     <ViewCallMapModal
                       activity={scheduled}
-                      open={viewMapOpen}
-                      onOpenChange={setViewMapOpen}
+                      open={isMapOpen}
+                      onOpenChange={(open) => setViewMapOpenKey(open ? contact.key : null)}
                     />
                   )}
                 </div>
