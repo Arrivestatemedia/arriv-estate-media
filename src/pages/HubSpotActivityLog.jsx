@@ -1598,6 +1598,7 @@ Keep every section short and conversational. Brad is calling directly — write 
               contactEmail={callMapActivity.contact_email || ''}
               onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); setActiveTab("call"); }}
               onEmail={(email) => { localStorage.setItem('_emailTo', email); setActiveTab("email"); }}
+              onSaveEdit={handleSaveCallMapEdit}
             />
           );
         })()}
