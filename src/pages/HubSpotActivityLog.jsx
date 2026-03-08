@@ -1421,22 +1421,39 @@ export default function HubSpotActivityLog() {
 
 ---
 
-## BRAD'S PROVEN SCRIPT STYLE (use this tone and structure)
+## CLOSING STRATEGIES (Based on Agent/Market Research)
+Use the HubSpot and web research above to tailor your approach:
+- **High-volume agents**: Emphasize efficiency ("2–3 min videos, drop-and-go")
+- **Boutique/niche agents**: Emphasize premium positioning ("cinematic production for luxury listings")
+- **Newer agents**: Emphasize ROI + proof ("video listings sell 30% faster")
+- **Relocation specialists**: Emphasize buyer familiarity ("virtual walkthrough reduces showings")
+- **Market conditions**: In hot markets, emphasize speed; in slower markets, emphasize closing power
+
+---
+
+## BRAD'S PROVEN SCRIPT STYLE (use this tone and structure + personalization)
 
 **Cold/first call opener:**
-"Hi [Name], this is Brad Burke — I'm a local real estate media creator.${isWarmContact ? '' : ' Do you have a moment?'} I came across your [listing/property] and [specific observation]. I just wanted to see if [video/photography] was something you were considering."
+"Hi [Name], this is Brad Burke — I'm a local real estate media creator.${isWarmContact ? '' : ' Do you have a moment?'} I came across your [listing/property/recent deal] and [specific observation based on their speciality/market]. I just wanted to see if [video/photography] was something you were considering — especially given [market insight or their transaction volume]."
 
-**Follow-up opener (warm contact):**
-"Hey [Name], it's Brad — quick call, I won't keep you long. [Specific reason for calling]."
+**Follow-up opener (2nd–3rd calls, keep rapport-building):**
+"Hi [Name], this is Brad Burke. Quick question — how are you doing? Do you have a moment?"
+
+**Warm contact opener (5+ calls):**
+"Hey [Name], it's Brad — quick call, I won't keep you long. [Specific reason tied to their recent deals or market]."
 
 **If they already have a photographer:**
-"Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource."
+"Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource — especially for [their specialty market]."
 
-**Value props (pick the most relevant):**
+**Close-ready pitch (when they're engaged):**
+"Great. So here's what I'm thinking: a [2–3 minute cinematic walkthrough / series of property photos] that we can get you by [specific date]. You can drop it straight into [MLS/listing portal]. What's your schedule looking like this [week/next week]?"
+
+**Value props (pick the most relevant based on their profile):**
 - "Clean, MLS-ready videos that help buyers understand layout before showings"
 - "A 2–3 minute video you can just drop into the listing"
-- "Helps get it to the closing table"
+- "Helps get it to the closing table — video listings typically sell [faster/at higher prices in your market]"
 - "Full-service — photography, video, and drone"
+- "[For high-volume agents] Bulk pricing for your portfolio"
 
 ---
 
