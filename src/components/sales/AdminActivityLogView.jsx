@@ -83,34 +83,57 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
           </div>
           <div className="space-y-3">
             {upcomingActivities.map((activity) => (
-              <Card
-                key={activity.id}
-                style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.08)' }}
-                className="cursor-pointer hover:shadow-md transition"
-                onClick={() => setSelectedActivity(activity)}
-              >
-                <CardContent className="pt-5 pb-5">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
-                      {activityIcons[activity.activity_type]}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A' }}>
-                          {activityLabels[activity.activity_type]}
-                        </Badge>
-                        <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
-                        <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
-                          {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
-                        </span>
+              <div key={activity.id}>
+                <Card
+                  style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.08)' }}
+                  className="cursor-pointer hover:shadow-md transition"
+                  onClick={() => setSelectedActivity(activity)}
+                >
+                  <CardContent className="pt-5 pb-5">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
+                        {activityIcons[activity.activity_type]}
                       </div>
-                      <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                      {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
-                      <p className="text-sm mt-1" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A' }}>
+                            {activityLabels[activity.activity_type]}
+                          </Badge>
+                          <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
+                          <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
+                            {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
+                          </span>
+                          {activity.call_map && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs gap-1 ml-auto"
+                              style={{ color: '#B8956A' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewMapActivity(activity);
+                              }}
+                            >
+                              <MapPin className="w-3 h-3" />
+                              View Call Map
+                            </Button>
+                          )}
+                        </div>
+                        <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                        {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
+                        <p className="text-sm mt-1" style={{ color: '#1A1A1A' }}>{activity.notes}</p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+                {activity.call_map && (
+                  <ViewCallMapModal
+                    activity={activity}
+                    open={viewMapActivity?.id === activity.id}
+                    onOpenChange={(open) => !open && setViewMapActivity(null)}
+                  />
+                )}
+              </div>
             ))}
           </div>
         </div>
