@@ -1342,6 +1342,10 @@ export default function HubSpotActivityLog() {
               onClose={() => setCallMapActivity(null)}
               contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
               callMap={callMap}
+              contactPhone={callMapActivity.contact_phone || phoneLookup[callMapActivity.contact_email] || phoneLookup[callMapActivity.contact_name] || ''}
+              contactEmail={callMapActivity.contact_email || ''}
+              onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); setActiveTab("call"); }}
+              onEmail={(email) => { localStorage.setItem('_emailTo', email); setActiveTab("email"); }}
             />
           );
         })()}

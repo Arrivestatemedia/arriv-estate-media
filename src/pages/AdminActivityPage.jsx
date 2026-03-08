@@ -1194,6 +1194,10 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
               onClose={() => setCallMapActivity(null)}
               contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
               callMap={callMap}
+              contactPhone={callMapActivity.contact_phone || ''}
+              contactEmail={callMapActivity.contact_email || ''}
+              onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); setActiveTab("call"); }}
+              onEmail={(email) => { localStorage.setItem('_emailTo', email); setActiveTab("email"); }}
             />
           );
         })()}
