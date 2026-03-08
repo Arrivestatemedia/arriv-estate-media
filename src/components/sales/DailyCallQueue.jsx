@@ -345,18 +345,15 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
              contactPhone: contact.phone,
            });
 
-           console.log('[DailyCallQueue logOutcome] callMapRes:', callMapRes);
-           console.log('[DailyCallQueue logOutcome] callMapRes.data:', callMapRes?.data);
-
-           // callMapRes.data = {call_map: "{json string}"}
-           if (callMapRes?.data?.call_map) {
-             generatedCallMap = callMapRes.data.call_map;
-             console.log('[DailyCallQueue logOutcome] generatedCallMap set, length:', generatedCallMap.length);
+           const callMapData = callMapRes?.data?.call_map;
+           if (callMapData && typeof callMapData === 'string' && callMapData.trim().length > 0) {
+             generatedCallMap = callMapData;
+             console.log('[DailyCallQueue logOutcome] Call map generated, length:', generatedCallMap.length);
            } else {
-             console.log('[DailyCallQueue logOutcome] No call_map found in response');
+             console.warn('[DailyCallQueue logOutcome] Invalid call map response:', callMapRes?.data);
            }
          } catch (error) {
-           console.error('Call map generation error:', error);
+           console.error('[DailyCallQueue logOutcome] Call map generation error:', error);
          }
 
          const savedActivity = await base44.entities.ActivityLog.create({
