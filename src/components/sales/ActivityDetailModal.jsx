@@ -134,26 +134,21 @@ export default function ActivityDetailModal({ activity, onClose, onDelete }) {
             </div>
           )}
 
-          {/* Follow-ups (upcoming activities linked to same contact) */}
+          {/* Follow-ups */}
           {activity._followUps && activity._followUps.length > 0 && (
             <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Clock className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Follow-ups ({activity._followUps.length})</p>
-              </div>
-              <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'rgba(26,26,26,0.5)' }}>Follow-ups ({activity._followUps.length})</p>
+              <div className="space-y-1.5">
                 {activity._followUps.map((fu, idx) => (
-                  <div key={idx} className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <Badge className={typeColors[fu.activity_type] || "bg-gray-100 text-gray-800"} variant="outline">
+                  <div key={idx} className="bg-amber-50 border border-amber-200 rounded p-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge className={typeColors[fu.activity_type] || "bg-gray-100 text-gray-800"} variant="outline" className="text-xs h-5">
                         {fu.activity_type}
                       </Badge>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(fu.activity_date).toLocaleDateString()} {new Date(fu.activity_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <span className="text-xs text-gray-500">
+                        {new Date(fu.activity_date).toLocaleDateString()}
                       </span>
                     </div>
-                    {fu.notes && <p className="text-gray-700 text-xs">{fu.notes}</p>}
                   </div>
                 ))}
               </div>
