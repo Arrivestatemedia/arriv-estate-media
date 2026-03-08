@@ -326,15 +326,25 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .flatMap(a => a.picture_urls || [])
         .slice(0, 6);
 
+      // Fetch insights for this contact to learn from past outcomes
+      const insights = await base44.entities.QueueInsight.filter({ 
+        contact_key: contact.key,
+        sales_member_id: salesMemberId 
+      }, '-logged_at', 20).catch(() => []);
+
+      const learnedContext = buildLearnedContext(insights);
+
       const res = await base44.integrations.Core.InvokeLLM({
         prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
 
-Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}
-History: ${historySnippet || "no prior contact"}
+      Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}
+      History: ${historySnippet || "no prior contact"}
 
-Output JSON with ALL 10 sections. Every field required and must be filled with full content.
+      ${learnedContext ? `LEARNED PATTERNS FROM PAST OUTCOMES:\n${learnedContext}\n` : ""}
 
-${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
+      Output JSON with ALL 10 sections. Every field required and must be filled with full content.
+
+      ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
         response_json_schema: {
