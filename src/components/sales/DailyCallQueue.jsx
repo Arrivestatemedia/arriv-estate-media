@@ -733,15 +733,9 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                 await base44.entities.ActivityLog.update(scheduled.id, {
                   call_map: callMap
                 });
-                // Fetch fresh from DB to ensure state is correct
-                const refreshed = await base44.entities.ActivityLog.list();
-                const freshRecord = refreshed.find(a => a.id === scheduled.id);
-                if (freshRecord?.call_map) {
-                  newScheduledMap[contact.key] = freshRecord;
-                  console.log(`[DailyCallQueue loadQueue] Refreshed ActivityLog, call_map confirmed:`, !!freshRecord.call_map);
-                } else {
-                  console.warn(`[DailyCallQueue loadQueue] Refresh failed to confirm call_map for ${scheduled.id}`);
-                }
+                // Directly update local state with the call_map
+                newScheduledMap[contact.key] = { ...scheduled, call_map: callMap };
+                console.log(`[DailyCallQueue loadQueue] Updated local state with call_map for ${contact.name}`);
               } else {
                 console.warn(`[DailyCallQueue loadQueue] Invalid/missing call_map for ${contact.name}:`, callMapRes?.data);
               }
