@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch the most recent activity for this contact
-    const activities = await base44.asServiceRole.entities.ActivityLog.filter(
+    const activities = await base44.entities.ActivityLog.filter(
       { contact_email: contactEmail },
       '-activity_date',
       1
