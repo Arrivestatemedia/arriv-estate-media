@@ -133,14 +133,23 @@ export default function AdminHub() {
       }, 0);
     };
 
+    const handleOpenCallQueue = () => {
+      setActiveTab('activity');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('switchToQueueTab'));
+      }, 100);
+    };
+
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openDialer', handleOpenDialer);
     window.addEventListener('openEmailComposer', handleOpenEmailComposer);
+    window.addEventListener('adminOpenCallQueue', handleOpenCallQueue);
 
     return () => {
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openDialer', handleOpenDialer);
       window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
+      window.removeEventListener('adminOpenCallQueue', handleOpenCallQueue);
     };
   }, []);
 
