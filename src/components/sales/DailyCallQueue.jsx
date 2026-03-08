@@ -213,11 +213,16 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .flatMap(a => a.picture_urls || [])
         .slice(0, 6);
 
+      const isBrad = (repName || "").toLowerCase().includes("brad");
+      const closingLine = isBrad
+        ? `[Exact lines to close — ${repName} is the owner, so they handle pricing and booking directly.]`
+        : `[Exact lines — hand off to Brad naturally: "Our owner Brad will walk you through the rest."]`;
+
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — every branch of the conversation covered. This should sound like a real person who knows them, not a salesperson reading off a sheet.
+        prompt: `You're helping ${repName || "a sales rep"} at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — every branch of the conversation covered. This should sound like a real person who knows them, not a salesperson reading off a sheet.
 
 What we know:
-- Rep: ${repName || "the rep"}
+- Rep making the call: ${repName || "the rep"}${isBrad ? " (the owner of ARRIV — speaks with full authority on pricing, bookings, and decisions)" : ""}
 - Contact intel: ${contactIntel || "not available"}
 - Why calling now: ${reason || "routine follow-up"}
 - Urgency: ${urgency || "medium"}
@@ -230,6 +235,7 @@ TONE RULES (critical):
 - The opener should NOT start with "Hi, this is [name] from ARRIV" — they can see the number
 - Use what you know about them specifically — generic lines get hung up on
 - Confident but relaxed — like calling a colleague you've met before
+${isBrad ? "- Brad is the owner — the script should reflect that authority. No need to escalate to anyone else." : ""}
 
 PERSUASION PRINCIPLES (weave in naturally, don't label them):
 - Say something unexpected first to break the auto-reject mode
@@ -256,7 +262,7 @@ FORMAT — cover EVERY section:
 [Exact response — agree, but lock in a brief follow-up call too]
 
 🔀 **If they object — "Too expensive":**
-[Exact response — value-first, never discount. Redirect pricing to Brad.]
+[Exact response — value-first, never discount${isBrad ? ". Brad can discuss pricing directly." : ". Redirect pricing to Brad."}]
 
 🔀 **If they're cold / one-word answers / not engaging:**
 [Short, graceful exit that leaves the door open]
@@ -271,7 +277,7 @@ FORMAT — cover EVERY section:
 [Short, casual text to send right after]
 
 🏁 **Closing / ready to move forward:**
-[Exact lines — hand off to Brad naturally: "Our owner Brad will walk you through the rest."]
+${closingLine}
 
 ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past activities — screenshots of conversations, texts, or notes. READ THEM to understand the full context of what was discussed before writing this guide.` : ""}`,
         add_context_from_internet: true,
