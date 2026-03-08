@@ -90,44 +90,44 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
             <div className="rounded-lg p-4 space-y-4" style={{ backgroundColor: 'rgba(184,149,106,0.05)' }}>
               {callMapData ? (
                 <div className="space-y-4">
-                  {callMapData.opening_script && (
+                  {callMapData.opening && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
                         <span>📞</span> Opening
                       </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.opening_script}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.opening}</p>
                     </div>
                   )}
-                  {callMapData.if_interested_open && (
+                  {callMapData.if_interested && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
                         <span>🟢</span> If interested
                       </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_interested_open}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_interested}</p>
                     </div>
                   )}
-                  {callMapData.if_they_already_have_someone && (
+                  {callMapData.if_has_photographer && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
                         <span>🔄</span> Already has photographer
                       </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_they_already_have_someone}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_has_photographer}</p>
                     </div>
                   )}
-                  {callMapData.if_not_interested_right_now && (
+                  {callMapData.if_not_interested && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
                         <span>⏸️</span> Not interested now
                       </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_not_interested_right_now}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_not_interested}</p>
                     </div>
                   )}
-                  {callMapData.if_send_me_email && (
+                  {callMapData.if_send_email && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
                         <span>📧</span> Send email
                       </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_send_me_email}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_send_email}</p>
                     </div>
                   )}
                   {callMapData.if_too_expensive && (
@@ -138,28 +138,28 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
                       <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_too_expensive}</p>
                     </div>
                   )}
-                  {callMapData.if_cold_one_word_answers && (
+                  {callMapData.if_cold_unengaged && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
                         <span>❄️</span> Cold/unresponsive
                       </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_cold_one_word_answers}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_cold_unengaged}</p>
                     </div>
                   )}
-                  {callMapData.if_busy_bad_timing && (
+                  {callMapData.if_busy_bad_time && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
                         <span>⏰</span> Busy/bad timing
                       </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_busy_bad_timing}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.if_busy_bad_time}</p>
                     </div>
                   )}
-                  {callMapData.voicemail && (
+                  {callMapData.if_no_answer_voicemail && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
                         <span>📵</span> Voicemail
                       </h3>
-                      <p className="text-sm leading-relaxed italic" style={{ color: '#1A1A1A' }}>{callMapData.voicemail}</p>
+                      <p className="text-sm leading-relaxed italic" style={{ color: '#1A1A1A' }}>{callMapData.if_no_answer_voicemail}</p>
                     </div>
                   )}
                   {callMapData.follow_up_text && (
@@ -168,14 +168,6 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
                         <span>📱</span> Follow-up text
                       </h3>
                       <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.follow_up_text}</p>
-                    </div>
-                  )}
-                  {callMapData.closing_next_steps && (
-                    <div>
-                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#1A1A1A' }}>
-                        <span>🏁</span> Closing/ready to move
-                      </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: '#1A1A1A' }}>{callMapData.closing_next_steps}</p>
                     </div>
                   )}
                 </div>
