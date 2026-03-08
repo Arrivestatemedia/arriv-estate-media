@@ -67,8 +67,20 @@ export default function ActivityDetailModal({ activity, onClose }) {
             )}
           </div>
 
-          {/* Notes / Content */}
-          {activity.notes && (
+          {/* Call Map Button */}
+          {activity.call_map && activity.activity_type === 'call' && (
+            <Button 
+              variant="default"
+              className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white"
+              onClick={() => setShowCallMap(true)}
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              View Call Map
+            </Button>
+          )}
+
+           {/* Notes / Content */}
+           {activity.notes && (
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <FileText className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
