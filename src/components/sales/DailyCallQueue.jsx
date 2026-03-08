@@ -272,6 +272,7 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem) {
     notes: `[AI Scheduled] ${analysis.reason || "Follow-up call"} | Opener: ${analysis.suggested_opener || ""}`,
     sales_member_id: sid,
     sales_member_email: sem,
+    call_map: analysis.call_map || "", // Store the full call map
   });
 
   return record;
