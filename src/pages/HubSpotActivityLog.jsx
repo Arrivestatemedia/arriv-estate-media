@@ -1295,6 +1295,21 @@ export default function HubSpotActivityLog() {
 
         <PoweredByFooter />
 
+        {/* Call Map Modal */}
+        {callMapActivity && (() => {
+          const raw = callMapActivity.notes || '';
+          const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
+          const callMap = mapMatch ? mapMatch[1].trim() : raw;
+          return (
+            <CallMapModal
+              open={!!callMapActivity}
+              onClose={() => setCallMapActivity(null)}
+              contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
+              callMap={callMap}
+            />
+          );
+        })()}
+
         {/* Incoming video call notification */}
         {incomingVideoCall && (
           <IncomingVideoCallModal
