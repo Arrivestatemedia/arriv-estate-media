@@ -289,8 +289,10 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
   const lastActivity = contact.past[0];
   const followUpDate = scheduledFollowUp ? new Date(scheduledFollowUp.activity_date) : null;
 
-  const generateScript = async () => {
-    setGeneratingScript(true);
+  const generateScript = async (additionalContext) => {
+    const isRegenerate = !!additionalContext;
+    const stateSetter = isRegenerate ? setRegeneratingScript : setGeneratingScript;
+    stateSetter(true);
     setScript(null);
     try {
       const historySnippet = contact.past.slice(0, 4).map(a => {
@@ -302,6 +304,8 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .slice(0, 6)
         .flatMap(a => a.picture_urls || [])
         .slice(0, 6);
+
+      const contextAddendum = additionalContext ? `\n\n## ADDITIONAL CONTEXT FROM REP\n${additionalContext}` : "";
 
       const res = await base44.integrations.Core.InvokeLLM({
         prompt: `You are generating a hyper-personalized, research-backed COMPLETE CALL MAP for ${repName || "Brad"}, a sales representative for ARRIV Estate Media LLC (real estate photography, video, drone).
@@ -370,15 +374,23 @@ Generate the sections below using markdown formatting. Each section should be co
 
 **GENERATE ALL 11 SECTIONS ABOVE. DO NOT ABBREVIATE. EACH SECTION MUST BE COMPLETE WITH FULL SENTENCES.**
 
-${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}`,
+${scriptPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}${contextAddendum}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
       });
-      setScript(typeof res === "string" ? res : res?.text || String(res));
+      const generatedScript = typeof res === "string" ? res : res?.text || String(res);
+      setScript(generatedScript);
+
+      // If regenerating, save the new script back to the scheduled follow-up
+      if (isRegenerate && scheduledFollowUp) {
+        await base44.entities.ActivityLog.update(scheduledFollowUp.id, {
+          call_map: generatedScript
+        });
+      }
     } catch {
       setScript("Failed to generate script. Try again.");
     } finally {
-      setGeneratingScript(false);
+      stateSetter(false);
     }
   };
 
