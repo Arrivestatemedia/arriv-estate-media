@@ -1138,7 +1138,9 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
               const isWarmContact = callCount >= 5;
 
               const salesRepName = localStorage.getItem('sales_member_name') || 'the sales rep';
-              const prompt = `You are generating a hyper-personalized, research-backed call map for ${salesRepName}, a sales representative for ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
+              const prompt = `You are generating a hyper-personalized, research-backed COMPLETE CALL MAP for ${salesRepName}, a sales representative for ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
+
+              **CRITICAL: GENERATE EVERY SINGLE SECTION BELOW. NO SKIPPING. NO PARTIAL SCRIPTS.**
 
           ## CONTACT INFO
           - Name: ${callMapActivity.contact_name || 'the contact'}
