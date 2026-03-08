@@ -907,11 +907,10 @@ export default function HubSpotActivityLog() {
                       <Card 
                       key={activity.id} 
                       style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.1)' }}
-                      className="cursor-pointer hover:shadow-md transition"
-                      onClick={() => handleActivityClick(activity)}
+                      className="hover:shadow-md transition"
                     >
                       <CardContent className="pt-6">
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-3 justify-between">
                           <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
                             {activityIcons[activity.activity_type]}
                           </div>
