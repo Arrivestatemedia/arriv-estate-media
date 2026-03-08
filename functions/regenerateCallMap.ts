@@ -155,19 +155,18 @@ ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interaction
       response_json_schema: {
         type: "object",
         properties: {
-          opening_script: { type: "string", description: "Opening 1-2 sentences, casual, specific to this person" },
-          if_interested_open: { type: "string", description: "Script if they're open/interested (under 60 sec)" },
-          if_they_already_have_someone: { type: "string", description: "Script for 'I already have a photographer' objection" },
-          if_not_interested_right_now: { type: "string", description: "Script for 'Not interested right now' objection" },
-          if_send_me_email: { type: "string", description: "Script for 'Send me an email' objection" },
+          opening: { type: "string", description: "Opening 1-2 sentences, casual, specific to this person" },
+          if_interested: { type: "string", description: "Script if they're open/interested (under 60 sec)" },
+          if_has_photographer: { type: "string", description: "Script for 'I already have a photographer' objection" },
+          if_not_interested: { type: "string", description: "Script for 'Not interested right now' objection" },
+          if_send_email: { type: "string", description: "Script for 'Send me an email' objection" },
           if_too_expensive: { type: "string", description: "Script for 'Too expensive' objection" },
-          if_cold_one_word_answers: { type: "string", description: "Script for cold/one-word answers" },
-          if_busy_bad_timing: { type: "string", description: "Script for busy/bad timing objection" },
-          voicemail: { type: "string", description: "Voicemail script (15 sec max)" },
-          follow_up_text: { type: "string", description: "Follow-up text to send after voicemail" },
-          closing_next_steps: { type: "string", description: "Script for handing off to Brad" }
+          if_cold_unengaged: { type: "string", description: "Script for cold/one-word answers" },
+          if_busy_bad_time: { type: "string", description: "Script for busy/bad timing objection" },
+          if_no_answer_voicemail: { type: "string", description: "Voicemail script (15 sec max)" },
+          follow_up_text: { type: "string", description: "Follow-up text to send after voicemail" }
         },
-        required: ["opening_script", "if_interested_open", "if_they_already_have_someone", "if_not_interested_right_now", "if_send_me_email", "if_too_expensive", "if_cold_one_word_answers", "if_busy_bad_timing", "voicemail", "follow_up_text", "closing_next_steps"]
+        required: ["opening", "if_interested", "if_has_photographer", "if_not_interested", "if_send_email", "if_too_expensive", "if_cold_unengaged", "if_busy_bad_time", "if_no_answer_voicemail", "follow_up_text"]
       }
     });
 
