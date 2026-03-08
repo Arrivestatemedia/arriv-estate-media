@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp } from "lucide-react";
+import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp, Edit2, Check, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating, contactPhone, contactEmail, onCall, onEmail }) {
+export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating, contactPhone, contactEmail, onCall, onEmail, onSaveEdit }) {
   const [showContextBox, setShowContextBox] = useState(false);
   const [context, setContext] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCallMap, setEditedCallMap] = useState(callMap);
 
   if (!callMap) return null;
 
