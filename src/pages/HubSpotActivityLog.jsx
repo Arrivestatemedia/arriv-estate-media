@@ -1544,8 +1544,7 @@ Keep every section short and conversational. Brad is calling directly — write 
 
               const result = await base44.integrations.Core.InvokeLLM({ 
                  prompt,
-                 file_urls: attachmentUrls,
-                 add_context_from_internet: true
+                 ...(attachmentUrls.length > 0 && { file_urls: attachmentUrls })
                });
                const newCallMap = typeof result === 'string' ? result : result?.text || result?.content || '';
               const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
