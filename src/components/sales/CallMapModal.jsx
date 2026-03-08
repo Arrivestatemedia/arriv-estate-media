@@ -16,35 +16,40 @@ export default function CallMapModal({ contact, script, onClose, onRegenerate, r
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader className="shrink-0">
-          <div className="flex items-center justify-between pr-6">
-            <DialogTitle className="flex items-center gap-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-lg">
+        <div className="px-6 py-4 border-b border-gray-200 shrink-0">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
               <Phone className="w-4 h-4" style={{ color: '#B8956A' }} />
-              Call Map — {contactName}
-            </DialogTitle>
+              Call Map — {contact?.name}
+            </h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              ✕
+            </button>
           </div>
-        </DialogHeader>
+        </div>
 
-        {(contactPhone || contactEmail) && (
-          <div className="flex gap-2 shrink-0 mb-2">
-            {contactPhone && (
+        {(contact?.phone || contact?.email) && (
+          <div className="flex gap-2 px-6 py-3 border-b border-gray-100 shrink-0">
+            {contact?.phone && (
               <Button
                 size="sm"
                 className="gap-2"
                 style={{ backgroundColor: '#B8956A', color: '#fff' }}
-                onClick={() => { onClose(); onCall && onCall(contactPhone); }}
+                onClick={() => {
+                  onClose();
+                  window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }));
+                }}
               >
                 <Phone className="w-4 h-4" /> Call
               </Button>
             )}
-            {contactEmail && (
+            {contact?.email && (
               <Button
                 size="sm"
                 variant="outline"
                 className="gap-2"
-                onClick={() => { onClose(); onEmail && onEmail(contactEmail); }}
               >
                 <Mail className="w-4 h-4" /> Email
               </Button>
