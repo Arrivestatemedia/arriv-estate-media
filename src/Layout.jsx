@@ -31,12 +31,13 @@ function LayoutContent({ children, currentPageName }) {
     const salesMemberEmail = getItem('sales_member_email');
 
     if (salesMemberId && salesMemberName) {
+      const salesMemberRole = getItem('sales_member_role') || 'user';
       setUser({
         id: salesMemberId,
         email: salesMemberEmail,
         full_name: salesMemberName,
         user_type: 'sales',
-        role: 'user'
+        role: salesMemberRole
       });
       return;
     }
