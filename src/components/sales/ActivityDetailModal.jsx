@@ -185,7 +185,7 @@ Generate the sections below using markdown formatting. Each section should be co
           </div>
 
           {/* Call Map (if present) */}
-          {activity.call_map && (
+          {script && (
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Phone className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
@@ -199,6 +199,22 @@ Generate the sections below using markdown formatting. Each section should be co
               >
                 <Eye className="w-4 h-4" />
                 View Full Call Map
+              </Button>
+            </div>
+          )}
+
+          {/* Generate Call Map Button (if not present) */}
+          {!script && activity.activity_type === "call" && (
+            <div>
+              <Button 
+                onClick={generateCallMap}
+                disabled={generatingScript}
+                className="w-full gap-2"
+                style={{ backgroundColor: '#1A1A1A', color: '#fff' }}
+                size="sm"
+              >
+                {generatingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {generatingScript ? "Generating call map..." : "Generate Call Map"}
               </Button>
             </div>
           )}
