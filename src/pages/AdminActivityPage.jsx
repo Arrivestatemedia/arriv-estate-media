@@ -348,6 +348,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [callMapActivity, setCallMapActivity] = useState(null);
+  const [regeneratingCallMap, setRegeneratingCallMap] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [visibleOnCurrentPage, setVisibleOnCurrentPage] = useState(5);
   const [showArchive, setShowArchive] = useState(false);
