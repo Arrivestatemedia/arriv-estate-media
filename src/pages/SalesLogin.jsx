@@ -60,10 +60,10 @@ export default function SalesLogin() {
         const redirectPage = result.data.role === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
         navigate(createPageUrl(redirectPage));
       } else {
-        setError(result.data?.error || "Login failed");
+        setError("Incorrect email or password. Please try again.");
       }
     } catch (err) {
-      setError(err.message || "An error occurred during login");
+      setError("Incorrect email or password. Please try again.");
     } finally {
       setLoading(false);
     }
