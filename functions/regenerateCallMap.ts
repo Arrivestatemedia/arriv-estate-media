@@ -155,8 +155,17 @@ ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interaction
       }
     });
 
-    // callMapRes is already parsed JSON object from LLM
-    const newCallMap = typeof callMapRes === "string" ? callMapRes : JSON.stringify(callMapRes);
+    // callMapRes is already parsed JSON object from LLM — stringify it for storage
+    let newCallMap = "";
+    if (callMapRes) {
+      newCallMap = typeof callMapRes === "string" ? callMapRes : JSON.stringify(callMapRes);
+    }
+    
+    if (!newCallMap || newCallMap.length === 0) {
+      console.error('[regenerateCallMap] ERROR: Call map generation returned empty result');
+      return Response.json({ error: 'Call map generation failed', call_map: "" }, { status: 500 });
+    }
+    
     console.log('[regenerateCallMap] Generated call map, length:', newCallMap.length);
 
     return Response.json({ call_map: newCallMap });
