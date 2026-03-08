@@ -284,6 +284,13 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
   const [deletingFollowUp, setDeletingFollowUp] = useState(false);
   const [regeneratingScript, setRegeneratingScript] = useState(false);
 
+  // Auto-generate call map if scheduled follow-up exists but has no call_map
+  useEffect(() => {
+    if (scheduledFollowUp && !script && !generatingScript) {
+      generateScript();
+    }
+  }, [scheduledFollowUp?.id]);
+
   const priority = getPriorityLabel(urgency || "medium");
   const bestTime = getBestTime(contact);
   const lastActivity = contact.past[0];
