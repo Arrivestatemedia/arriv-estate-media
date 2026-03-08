@@ -111,7 +111,7 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
 
     const marketIntel = typeof webResearch === "string" ? webResearch : webResearch?.text || "";
 
-    // Generate comprehensive call map
+    // Generate comprehensive call map with learned patterns
     const callMapRes = await base44.integrations.Core.InvokeLLM({
       prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contactName}. Generate a complete call map as a JSON structure with all conversation branches covered. Sound like a real person who knows them.
 
@@ -120,6 +120,9 @@ ${hubspotData}
 
 MARKET INTEL:
 ${marketIntel}
+
+CONTEXT:
+${reason ? `Reason for call: ${reason}\n` : ""}${contactIntel ? `Rep notes on this contact: ${contactIntel}\n` : ""}${patternTags && patternTags.length > 0 ? `Recurring patterns with this contact: ${patternTags.join(", ")}\n` : ""}
 
 CALL HISTORY:
 ${historySnippet || "No prior activities"}
