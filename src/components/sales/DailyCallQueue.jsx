@@ -50,8 +50,8 @@ function buildLearnedContext(insights) {
 }
 
 // AI analysis — used ONLY when no scheduled follow-up exists yet
-// Searches the web for the contact and uses all available intel to set a precise, permanent date
-async function analyzeContact(contact, learnedContext) {
+// Searches the web for the contact, sets follow-up date, AND generates full call map
+async function analyzeContact(contact, learnedContext, repName) {
   const historyText = contact.activities
     .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
     .slice(0, 15)
@@ -80,7 +80,8 @@ async function analyzeContact(contact, learnedContext) {
     "real estate"
   ].filter(Boolean).join(" ");
 
-  const res = await base44.integrations.Core.InvokeLLM({
+  // STEP 1: Get follow-up scheduling decision
+  const analysisRes = await base44.integrations.Core.InvokeLLM({
     prompt: `You are a sharp sales intelligence agent for ARRIV, a real estate photography company. Decide ONE follow-up date for this realtor. This gets saved permanently — be deliberate.
 
 TODAY: ${today} (${dayName})
@@ -148,7 +149,111 @@ OUTPUT valid JSON only:
     }
   });
 
-  return res;
+  // STEP 2: Generate FULL call map with the same context
+  const historySnippet = contact.activities
+    .slice(0, 4)
+    .map(a => {
+      const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
+      return `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${a.notes.slice(0, 120)}${pics}`;
+    })
+    .join("\n");
+
+  const callMapRes = await base44.integrations.Core.InvokeLLM({
+    prompt: `You are generating a hyper-personalized, research-backed COMPLETE CALL MAP for ${repName || "the sales rep"}, a sales representative for ARRIV Estate Media LLC (real estate photography, video, drone).
+
+**CRITICAL: GENERATE EVERY SINGLE SECTION BELOW. NO SKIPPING. NO PARTIAL SCRIPTS.**
+
+## CONTACT INFO
+- Name: ${contact.name || 'the contact'}
+- Company: ${contact.company || 'their brokerage'}
+- Contact intel: ${analysisRes.contact_intel || "not available"}
+- Why calling now: ${analysisRes.reason || "routine follow-up"}
+- Urgency: ${analysisRes.urgency || "medium"}
+
+## INTERACTION HISTORY
+${historySnippet || 'no prior contact'}
+
+---
+
+## TONE & APPROACH
+- Write exactly like humans talk (short sentences, contractions, natural pauses)
+- NO buzzwords like "leverage," "synergy," "value proposition"
+- Open with something unexpected to break auto-reject
+- Reference their specific market, listings, or situation
+- Confident but relaxed — like a colleague you know
+- If they push back, acknowledge genuinely first
+
+---
+
+## GENERATE EVERY SINGLE SECTION (no skipping):
+
+### 📞 Opening Line
+(1-2 sentences, casual, specific to them, NOT "Hi this is [rep name] from ARRIV")
+
+---
+
+### 🔀 If Interested / Open
+(guide toward booking, reference their specific situation, ask about schedule)
+
+---
+
+### 🔀 If They Already Have a Photographer
+(use the "backup resource" line — acknowledge, don't argue, plant a seed)
+
+---
+
+### 🔀 If They Say "Not Interested Right Now"
+(graceful, leaves door open, respects their timeline)
+
+---
+
+### 🔀 If They Say "Send Me an Email"
+(agree, but lock in a brief follow-up call too)
+
+---
+
+### 🔀 If They Ask About Pricing
+(value-first answer, never quote a number, redirect to ${repName || "the rep"})
+
+---
+
+### 🔀 If They're Busy / Bad Time
+(respect their time, lock in a specific callback time)
+
+---
+
+### 🔀 If Cold / One-Word Answers / Not Engaging
+(short, graceful exit that leaves door open for future)
+
+---
+
+### 📵 Voicemail Script
+(word-for-word, UNDER 15 seconds when spoken, casual, specific to their business)
+
+---
+
+### 📱 Follow-Up Text
+(short, conversational text to send immediately after voicemail)
+
+---
+
+### 🏁 Closing / Next Steps
+(exact closing line — hand off to ${repName || "the rep"} naturally)
+
+---
+
+Keep every section short and conversational. Write ONLY in ${repName || "the rep"}'s voice using the research and context above. EVERY SECTION MUST BE INCLUDED.
+
+${allPictureUrls.length > 0 ? `\n## VISUAL CONTEXT FROM PAST INTERACTIONS\nAttached images from previous activities with ${contact.name}. Analyze them to understand what's been discussed and reference specific details from those conversations.` : ""}`,
+    add_context_from_internet: true,
+    file_urls: allPictureUrls.length > 0 ? allPictureUrls : undefined,
+  });
+
+  // Return both the analysis metadata and the full call map
+  return {
+    ...analysisRes,
+    call_map: typeof callMapRes === "string" ? callMapRes : callMapRes?.text || String(callMapRes)
+  };
 }
 
 // Save the AI's decision as a permanent ActivityLog record
