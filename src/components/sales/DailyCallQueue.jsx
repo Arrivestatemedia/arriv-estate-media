@@ -287,7 +287,8 @@ const channelConfig = {
 function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, urgency, channel, channelReason, reason, suggestedOpener, contactIntel, patternTags, onOutcomeLogged }) {
   const [expanded, setExpanded] = useState(false);
   const [generatingScript, setGeneratingScript] = useState(false);
-  const [script, setScript] = useState(suggestedOpener || null);
+  // Initialize from stored call_map in scheduledFollowUp, fallback to suggestedOpener
+  const [script, setScript] = useState(scheduledFollowUp?.call_map || suggestedOpener || null);
   const [loggingOutcome, setLoggingOutcome] = useState(false);
   const [outcome, setOutcome] = useState("");
   const [outcomeNotes, setOutcomeNotes] = useState("");
