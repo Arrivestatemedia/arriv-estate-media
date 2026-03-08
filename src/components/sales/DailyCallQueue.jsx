@@ -730,10 +730,11 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
               const callMap = callMapRes?.data?.call_map;
               if (callMap && typeof callMap === 'string' && callMap.trim().length > 0) {
                 console.log(`[DailyCallQueue loadQueue] Updating ActivityLog ${scheduled.id} with call_map, length: ${callMap.length}`);
-                await base44.entities.ActivityLog.update(scheduled.id, {
+                const updated = await base44.entities.ActivityLog.update(scheduled.id, {
                   call_map: callMap
                 });
                 newScheduledMap[contact.key] = { ...scheduled, call_map: callMap };
+                console.log(`[DailyCallQueue loadQueue] ActivityLog updated, call_map now set:`, !!newScheduledMap[contact.key].call_map);
               } else {
                 console.warn(`[DailyCallQueue loadQueue] Invalid/missing call_map for ${contact.name}:`, callMapRes?.data);
               }
