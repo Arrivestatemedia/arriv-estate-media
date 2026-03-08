@@ -214,7 +214,7 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         .slice(0, 6);
 
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a natural, human conversation guide — NOT a formal script. This should sound like a real person who knows them, not a salesperson reading off a sheet.
+        prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contact.name}${contact.company ? ` from ${contact.company}` : ""}. Write a COMPLETE CALL MAP — every branch of the conversation covered. This should sound like a real person who knows them, not a salesperson reading off a sheet.
 
 What we know:
 - Rep: ${repName || "the rep"}
@@ -237,23 +237,41 @@ PERSUASION PRINCIPLES (weave in naturally, don't label them):
 - One genuine stat if it fits: listings with pro media sell 32% faster, 5-11% more
 - Ask one question that makes them curious rather than defensive
 - If they push back, acknowledge it genuinely before responding — don't steamroll
-- Mirror their language if they say something interesting ("listings coming up" → "listings coming up — what kind of properties?")
+- Mirror their language if they say something interesting
 
-FORMAT:
-**What to say first** (1-2 sentences, casual, specific to this person)
+FORMAT — cover EVERY section:
 
-**If they bite** (keep it under 60 seconds — the key points to hit, in plain language)
+📞 **Opening** (1-2 sentences, casual, specific to this person — not a generic intro)
 
-**If they object:**
-- Already have a photographer → 
-- Not interested right now →
-- Send me an email →
-- Too expensive →
-- I'll think about it →
+🔀 **If they're open / interested:**
+[Keep it under 60 seconds — the key points to hit, in plain language. Guide toward booking.]
 
-**If no answer** → voicemail (15 sec max) + one follow-up text
+🔀 **If they object — "I already have a photographer":**
+[Exact response — acknowledge, don't argue, plant a seed]
 
-**When they want to move forward** → hand to Brad naturally
+🔀 **If they object — "Not interested right now":**
+[Exact response — graceful, leaves door open]
+
+🔀 **If they object — "Send me an email":**
+[Exact response — agree, but lock in a brief follow-up call too]
+
+🔀 **If they object — "Too expensive":**
+[Exact response — value-first, never discount. Redirect pricing to Brad.]
+
+🔀 **If they're cold / one-word answers / not engaging:**
+[Short, graceful exit that leaves the door open]
+
+🔀 **If they're busy / bad time:**
+[Exact response — respect their time, lock in a specific callback time]
+
+📵 **If no answer — voicemail** (15 sec max when spoken aloud):
+[Word-for-word voicemail]
+
+📱 **Follow-up text** (send immediately after voicemail):
+[Short, casual text to send right after]
+
+🏁 **Closing / ready to move forward:**
+[Exact lines — hand off to Brad naturally: "Our owner Brad will walk you through the rest."]
 
 ${scriptPictureUrls.length > 0 ? `NOTE: There are attached images from past activities — screenshots of conversations, texts, or notes. READ THEM to understand the full context of what was discussed before writing this guide.` : ""}`,
         add_context_from_internet: true,
