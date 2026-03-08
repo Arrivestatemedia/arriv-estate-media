@@ -50,6 +50,7 @@ export default function SalesLogin() {
           sales_member_id: result.data.memberId,
           sales_member_name: result.data.name,
           sales_member_email: result.data.email,
+          sales_member_role: result.data.role || 'user',
         };
         Object.entries(salesData).forEach(([k, v]) => {
           localStorage.setItem(k, v);
