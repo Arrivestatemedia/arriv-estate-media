@@ -32,6 +32,31 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
           </div>
         </DialogHeader>
 
+        {(contactPhone || contactEmail) && (
+          <div className="flex gap-2 shrink-0 mb-2">
+            {contactPhone && (
+              <Button
+                size="sm"
+                className="gap-2"
+                style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                onClick={() => { onClose(); onCall && onCall(contactPhone); }}
+              >
+                <Phone className="w-4 h-4" /> Call
+              </Button>
+            )}
+            {contactEmail && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => { onClose(); onEmail && onEmail(contactEmail); }}
+              >
+                <Mail className="w-4 h-4" /> Email
+              </Button>
+            )}
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto mt-2">
           <div
             className="rounded-xl p-4"
