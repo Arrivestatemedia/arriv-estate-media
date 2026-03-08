@@ -1340,34 +1340,84 @@ export default function HubSpotActivityLog() {
           const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
 
           const handleRegenerate = async (extraContext) => {
-            setRegeneratingCallMap(true);
-            try {
-              const history = activities
-                .filter(a => a.contact_email === callMapActivity.contact_email && a.id !== callMapActivity.id)
-                .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
-                .slice(0, 5)
-                .map(a => `${a.activity_type} on ${new Date(a.activity_date).toLocaleDateString()}: ${(a.notes || '').slice(0, 200)}`)
-                .join('\n');
+             setRegeneratingCallMap(true);
+             try {
+               // Fetch activity history + SMS + HubSpot data + web search
+               const history = activities
+                 .filter(a => a.contact_email === callMapActivity.contact_email && a.id !== callMapActivity.id)
+                 .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+                 .slice(0, 10)
+                 .map(a => `${a.activity_type} on ${new Date(a.activity_date).toLocaleDateString()}: ${(a.notes || '').slice(0, 300)}`)
+                 .join('\n');
 
-              const callCount = activities.filter(a => a.contact_email === callMapActivity.contact_email).length;
-              const isWarmContact = callCount >= 5;
+               // Fetch SMS conversation history
+               let smsContext = '';
+               try {
+                 const smsConvos = await base44.entities.SmsConversation.filter({ contact_name: callMapActivity.contact_name });
+                 if (smsConvos?.length > 0) {
+                   const msgs = await base44.entities.SmsMessage.filter({ conversation_id: smsConvos[0].id }, '-created_date', 20);
+                   smsContext = msgs?.map(m => `[${m.direction}] ${m.body}`).join('\n') || '';
+                 }
+               } catch (e) { console.error('SMS fetch failed:', e); }
 
-              const prompt = `You are generating a personalized call map for Brad Burke, owner of ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
+               // Fetch HubSpot contact data
+               let hubspotContext = '';
+               try {
+                 const hsRes = await base44.functions.invoke('searchHubSpotContacts', { query: callMapActivity.contact_email || callMapActivity.contact_name });
+                 const contact = hsRes.data?.contacts?.[0];
+                 if (contact) {
+                   hubspotContext = `
+          HubSpot Profile:
+          - Phone: ${contact.phone || 'N/A'}
+          - Company: ${contact.company || 'N/A'}
+          - Title: ${contact.job_title || 'N/A'}
+          - Last activity: ${contact.lastmodifieddate || 'N/A'}
+          - Notes: ${contact.notes || 'N/A'}
+          - Recent listings: ${contact.recent_listings || 'N/A'}`;
+                 }
+               } catch (e) { console.error('HubSpot fetch failed:', e); }
 
-## CONTACT INFO
-- Name: ${callMapActivity.contact_name || 'the contact'}
-- Company: ${callMapActivity.company_name || 'their brokerage'}
-- Email: ${callMapActivity.contact_email || ''}
-- Prior touchpoints with this contact: ${callCount}
-- Warm contact (3+ prior calls): ${isWarmContact ? 'YES — skip "do you have a moment?"' : 'NO — include "do you have a moment?"'}
+               // Web search for agent/company context
+               let webContext = '';
+               try {
+                 const searchQuery = callMapActivity.company_name && callMapActivity.contact_name 
+                   ? `${callMapActivity.contact_name} ${callMapActivity.company_name} real estate agent`
+                   : callMapActivity.company_name || callMapActivity.contact_name;
+                 const webRes = await base44.integrations.Core.InvokeLLM({
+                   prompt: `Search for and summarize key information about: ${searchQuery}. Focus on: years in business, transaction volume, specialties, market position, recent deals, and professional approach. Keep to 200 words max.`,
+                   add_context_from_internet: true
+                 });
+                 webContext = typeof webRes === 'string' ? webRes : webRes?.text || '';
+               } catch (e) { console.error('Web search failed:', e); }
 
-## CONTEXT
-${shortNote || 'No prior notes'}
+               const callCount = activities.filter(a => a.contact_email === callMapActivity.contact_email).length;
+               const isWarmContact = callCount >= 5;
 
-## RECENT ACTIVITY HISTORY
-${history || 'No prior history'}
+               const prompt = `You are generating a hyper-personalized, research-backed call map for Brad Burke, owner of ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
 
-${extraContext ? `## ADDITIONAL CONTEXT FROM BRAD\n${extraContext}` : ''}
+          ## CONTACT INFO
+          - Name: ${callMapActivity.contact_name || 'the contact'}
+          - Company: ${callMapActivity.company_name || 'their brokerage'}
+          - Email: ${callMapActivity.contact_email || ''}
+          - Prior touchpoints with this contact: ${callCount}
+          - Warm contact (5+ prior calls): ${isWarmContact ? 'YES — skip "do you have a moment?"' : 'NO — include "do you have a moment?"'}
+
+          ## HUBSPOT DATA
+          ${hubspotContext || 'No HubSpot data found'}
+
+          ## BACKGROUND RESEARCH (from web)
+          ${webContext || 'No web data found'}
+
+          ## SMS / MESSAGE HISTORY
+          ${smsContext || 'No SMS history'}
+
+          ## CONTEXT FROM BRAD
+          ${shortNote || 'No prior notes'}
+
+          ## RECENT ACTIVITY HISTORY
+          ${history || 'No prior history'}
+
+          ${extraContext ? `## ADDITIONAL INPUT FROM BRAD (REAL-TIME UPDATE)\n${extraContext}` : ''}
 
 ---
 
