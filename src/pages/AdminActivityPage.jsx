@@ -996,7 +996,25 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                    <div className="bg-slate-50 p-4 rounded-lg space-y-2">
                      <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
                      <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                     <p><span className="font-medium">Notes:</span> {selectedActivity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '')}</p>
+                     {(() => {
+                       const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
+                       const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                       const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                       return (
+                         <>
+                           <p><span className="font-medium">Notes:</span> {shortNote}</p>
+                           {hasCallMap && (
+                             <button
+                               onClick={() => { setSelectedActivity(null); setCallMapActivity(selectedActivity); }}
+                               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full mt-1 transition-opacity hover:opacity-80"
+                               style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
+                             >
+                               📋 View Call Map
+                             </button>
+                           )}
+                         </>
+                       );
+                     })()}
                      {selectedActivity.duration_minutes > 0 && (
                        <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
                      )}
