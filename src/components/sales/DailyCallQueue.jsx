@@ -545,15 +545,31 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
                 </Button>
               ) : (
                 <>
-                  <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>ARRIV Coach</p>
-                      <button onClick={generateScript} className="text-xs flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                        <RefreshCw className="w-3 h-3" /> Regenerate
-                      </button>
-                    </div>
-                    <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#1A1A1A' }}>{script}</div>
-                  </div>
+                   <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
+                     <div className="flex items-center justify-between">
+                       <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>ARRIV Coach</p>
+                       <button onClick={generateScript} className="text-xs flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                         <RefreshCw className="w-3 h-3" /> Regenerate
+                       </button>
+                     </div>
+                     <ReactMarkdown 
+                       className="text-sm prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                       components={{
+                         h1: ({ children }) => <h1 className="text-base font-semibold my-2" style={{ color: '#1A1A1A' }}>{children}</h1>,
+                         h2: ({ children }) => <h2 className="text-sm font-semibold my-1.5" style={{ color: '#1A1A1A' }}>{children}</h2>,
+                         h3: ({ children }) => <h3 className="text-xs font-semibold my-1" style={{ color: '#1A1A1A' }}>{children}</h3>,
+                         p: ({ children }) => <p className="text-sm my-1 leading-relaxed" style={{ color: '#1A1A1A' }}>{children}</p>,
+                         strong: ({ children }) => <strong className="font-semibold" style={{ color: '#1A1A1A' }}>{children}</strong>,
+                         em: ({ children }) => <em className="italic" style={{ color: '#1A1A1A' }}>{children}</em>,
+                         ul: ({ children }) => <ul className="list-disc list-inside my-1 ml-2 text-sm" style={{ color: '#1A1A1A' }}>{children}</ul>,
+                         ol: ({ children }) => <ol className="list-decimal list-inside my-1 ml-2 text-sm" style={{ color: '#1A1A1A' }}>{children}</ol>,
+                         li: ({ children }) => <li className="my-0.5" style={{ color: '#1A1A1A' }}>{children}</li>,
+                         blockquote: ({ children }) => <blockquote className="border-l-2 border-[#B8956A] pl-3 my-1 italic" style={{ color: '#1A1A1A' }}>{children}</blockquote>,
+                       }}
+                     >
+                       {script}
+                     </ReactMarkdown>
+                   </div>
                   {scheduledFollowUp && /--- CALL MAP ---/i.test(scheduledFollowUp.notes || '') && (
                     <Button 
                       size="sm" 
