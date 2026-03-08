@@ -56,7 +56,9 @@ export default function SalesLogin() {
           localStorage.setItem(k, v);
           sessionStorage.setItem(k, v);
         });
-        navigate(createPageUrl("HubSpotActivityLog"));
+        // Route admins to AdminHub, others to HubSpotActivityLog
+        const redirectPage = result.data.role === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
+        navigate(createPageUrl(redirectPage));
       } else {
         setError(result.data?.error || "Login failed");
       }
