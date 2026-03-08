@@ -177,9 +177,20 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                         </p>
                       )}
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
+            </div>
+
+            {/* Footer button */}
+            <div className="p-4 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+              <button
+                onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('adminOpenCallQueue')); }}
+                className="w-full py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+              >
+                Open Full Call Queue →
+              </button>
             </div>
           </div>
         </>
