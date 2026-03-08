@@ -907,32 +907,32 @@ export default function HubSpotActivityLog() {
                       <Card 
                       key={activity.id} 
                       style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.1)' }}
-                      className="hover:shadow-md transition"
+                      className="cursor-pointer hover:shadow-md transition"
+                      onClick={() => handleActivityClick(activity)}
                     >
                       <CardContent className="pt-6">
-                        <div className="flex items-start gap-3 justify-between">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
-                              {activityIcons[activity.activity_type]}
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
+                            {activityIcons[activity.activity_type]}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" style={{ backgroundColor: 'rgba(184,149,106,0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
+                              <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
+                              <span className="text-sm font-medium" style={{ color: '#B8956A' }}>{format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}</span>
                             </div>
-                            <div className="flex-1 cursor-pointer" onClick={() => handleActivityClick(activity)}>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" style={{ backgroundColor: 'rgba(184,149,106,0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
-                                <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
-                                <span className="text-sm font-medium" style={{ color: '#B8956A' }}>{format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}</span>
-                              </div>
-                              <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={(e) => {
-                                 e.stopPropagation();
-                                 setPrefilledContactData({
-                                   firstName: activity.contact_name?.split(' ')[0] || '',
-                                   lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '',
-                                   email: activity.contact_email || '',
-                                   phone: displayPhone || '',
-                                   company: activity.company_name || ''
-                                 });
-                                 setOpenNewContactForm(true);
-                                 setActiveTab("contacts");
-                               }}>{activity.contact_name || activity.company_name}</p>
+                            <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={(e) => {
+                               e.stopPropagation();
+                               setPrefilledContactData({
+                                 firstName: activity.contact_name?.split(' ')[0] || '',
+                                 lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '',
+                                 email: activity.contact_email || '',
+                                 phone: displayPhone || '',
+                                 company: activity.company_name || ''
+                               });
+                               setOpenNewContactForm(true);
+                               setActiveTab("contacts");
+                             }}>{activity.contact_name || activity.company_name}</p>
                              {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
                              {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.company_name}</p>}
                              {displayPhone ? (
@@ -1139,7 +1139,7 @@ export default function HubSpotActivityLog() {
         <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open && !zoomedImage) { setSelectedActivity(null); setEditingActivity(null); } }}>
            <DialogContent className="max-w-2xl" onInteractOutside={(e) => { if (zoomedImage) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (zoomedImage) e.preventDefault(); }}>
              <DialogHeader>
-               <div className="flex justify-between items-center">
+               <div className="flex justify-between items-center pr-6">
                  <DialogTitle>Activity Details</DialogTitle>
                  {selectedActivity && !editingActivity && (
                    <div className="flex gap-2">
