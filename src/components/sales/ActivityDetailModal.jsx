@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image } from "lucide-react";
+import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import ViewCallMapModal from "./ViewCallMapModal";
 
 export default function ActivityDetailModal({ activity, onClose }) {
+  const [showCallMap, setShowCallMap] = useState(false);
   if (!activity) return null;
 
   const typeColors = {
