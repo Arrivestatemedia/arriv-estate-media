@@ -97,11 +97,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
             { label: "Scheduled Bookings", page: "AdminScheduledBookings", icon: CalendarClock },
           ]
-      : isSalesTeam
-      ? [
-          { label: "Activity Log", page: "HubSpotActivityLog", icon: Briefcase },
-        ]
-    : isClient
+      : isClient
     ? [
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
         { label: "My Bookings", page: "ClientBookings", icon: Briefcase },
