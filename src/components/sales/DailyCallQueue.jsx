@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2, MapPin } from "lucide-react";
 import { format, formatDistanceToNow, addDays, isAfter, startOfDay, parseISO } from "date-fns";
+import ReactMarkdown from "react-markdown";
 import ViewCallMapModal from "./ViewCallMapModal";
 
 function getBestTime(contact) {
