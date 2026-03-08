@@ -1137,29 +1137,19 @@ export default function HubSpotActivityLog() {
           document.body
         )}
 
-        <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open && !zoomedImage) { setSelectedActivity(null); setEditingActivity(null); } }}>
+        <ActivityDetailModal 
+          activity={selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+          onDelete={(id) => {
+            queryClient.invalidateQueries({ queryKey: ['activities'] });
+          }}
+        />
+
+        <Dialog open={!!selectedActivity && editingActivity} onOpenChange={(open) => { if (!open && !zoomedImage) { setEditingActivity(null); } }}>
            <DialogContent className="max-w-2xl" onInteractOutside={(e) => { if (zoomedImage) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (zoomedImage) e.preventDefault(); }}>
              <DialogHeader>
                <div className="flex justify-between items-center pr-6">
-                 <DialogTitle>Activity Details</DialogTitle>
-                 {selectedActivity && !editingActivity && (
-                   <div className="flex gap-2">
-                     <Button
-                       variant="outline"
-                       size="sm"
-                       onClick={() => handleEditActivity(selectedActivity)}
-                     >
-                       Edit
-                     </Button>
-                     <Button
-                       variant="destructive"
-                       size="sm"
-                       onClick={() => handleDeleteActivity(selectedActivity)}
-                     >
-                       Delete
-                     </Button>
-                   </div>
-                 )}
+                 <DialogTitle>Edit Activity</DialogTitle>
                </div>
              </DialogHeader>
              {selectedActivity && !editingActivity && (
