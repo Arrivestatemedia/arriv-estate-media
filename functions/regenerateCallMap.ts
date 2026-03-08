@@ -149,6 +149,8 @@ ${marketIntel}
 CALL HISTORY:
 ${historySnippet || "No prior activities"}
 
+${learnedContext ? `${learnedContext}\n` : ""}
+
 ${smsHistory ? `TEXT MESSAGE HISTORY (analyze the tone, concerns, interests):\n${smsHistory}\n` : ""}
 
 BRAD'S PROVEN CLOSING FRAMEWORK:
