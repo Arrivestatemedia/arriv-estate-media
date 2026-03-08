@@ -176,32 +176,33 @@ export default function AdminNotificationPanel({ userEmail, queueUrl }) {
                 </div>
               ) : (
                 upcomingTasks.map(task => (
-                  <div
-                    key={task.id}
-                    className="w-full text-left px-4 py-3 border-b flex items-start gap-3"
-                    style={{ borderColor: 'rgba(255,251,245,0.06)' }}
-                  >
-                   <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
-                     <Phone className="w-3 h-3" style={{ color: '#B8956A' }} />
-                   </div>
-                   <div className="flex-1 min-w-0">
-                     <p className="text-sm font-medium truncate" style={{ color: '#FFFBF5' }}>
-                       {task.contact_name || task.company_name || "Unknown"}
-                     </p>
-                     <p className="text-xs mt-0.5" style={{ color: '#B8956A' }}>{formatTaskDate(task.activity_date)}</p>
-                     {task.contact_phone && (
-                       <p className="text-xs mt-0.5" style={{ color: 'rgba(255,251,245,0.6)' }}>
-                         📞 {task.contact_phone}
-                       </p>
-                     )}
-                     {task.notes && (
-                       <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,251,245,0.4)' }}>
-                         {task.notes.replace(/^\[AI Scheduled\]\s*/, '').slice(0, 60)}
-                       </p>
-                     )}
-                     </div>
-                     </div>
-                     ))
+                   <button
+                     key={task.id}
+                     onClick={handleTaskClick}
+                     className="w-full text-left px-4 py-3 border-b flex items-start gap-3 hover:bg-white/5 transition-colors pointer-events-auto"
+                     style={{ borderColor: 'rgba(255,251,245,0.06)' }}
+                   >
+                    <div className="mt-0.5 p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
+                      <Phone className="w-3 h-3" style={{ color: '#B8956A' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: '#FFFBF5' }}>
+                        {task.contact_name || task.company_name || "Unknown"}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#B8956A' }}>{formatTaskDate(task.activity_date)}</p>
+                      {task.contact_phone && (
+                        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,251,245,0.6)' }}>
+                          📞 {task.contact_phone}
+                        </p>
+                      )}
+                      {task.notes && (
+                        <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,251,245,0.4)' }}>
+                          {task.notes.replace(/^\[AI Scheduled\]\s*/, '').slice(0, 60)}
+                        </p>
+                      )}
+                      </div>
+                      </button>
+                      ))
               )}
             </div>
 
