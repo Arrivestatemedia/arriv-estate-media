@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image, Trash2, Eye } from "lucide-react";
+import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image, Trash2, Eye, Sparkles, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import CallMapModal from "./CallMapModal";
 
