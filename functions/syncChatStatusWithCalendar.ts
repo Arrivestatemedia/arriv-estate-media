@@ -30,6 +30,14 @@ Deno.serve(async (req) => {
       }
     );
 
+    if (!calResponse.ok) {
+      console.log(`Calendar fetch returned ${calResponse.status} - using default status`);
+      await base44.asServiceRole.entities.SalesTeamMember.update(salesMemberId, {
+        chat_status: 'available'
+      });
+      return Response.json({ status: 'available', hasActiveEvent: false });
+    }
+
     const calData = await calResponse.json();
 
     const relevantEvents = (calData.items || []).filter(event => {
