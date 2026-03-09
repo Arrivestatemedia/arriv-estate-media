@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
 
       // Skip if job was deleted
       if (invoice.job_id) {
-        const job = await base44.asServiceRole.entities.Job.read(invoice.job_id);
+        const job = await base44.asServiceRole.entities.Job.get(invoice.job_id);
         if (!job) continue;
       }
 
