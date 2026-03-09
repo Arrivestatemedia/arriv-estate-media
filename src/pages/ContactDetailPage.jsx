@@ -338,7 +338,18 @@ export default function ContactDetailPage() {
                 <div className="bg-slate-50 p-4 rounded-lg space-y-2">
                   {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
                   {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
-                  {selectedActivity.contact_phone && <p><span className="font-medium">Phone:</span> {selectedActivity.contact_phone}</p>}
+                  {selectedActivity.contact_phone && (
+                    <p>
+                      <span className="font-medium">Phone:</span>{' '}
+                      <a
+                        href={`tel:${selectedActivity.contact_phone}`}
+                        className="hover:underline"
+                        style={{ color: '#B8956A', cursor: 'pointer' }}
+                      >
+                        {selectedActivity.contact_phone}
+                      </a>
+                    </p>
+                  )}
                   {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
                 </div>
               </div>

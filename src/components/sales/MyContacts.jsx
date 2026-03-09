@@ -237,7 +237,18 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                           {secondaryInfo[contact.email].secondary_phones?.length > 0 && (
                             <div className="text-xs">
                               <span style={{ color: 'rgba(26,26,26,0.5)' }}>Other phones: </span>
-                              <span style={{ color: '#1A1A1A' }}>{secondaryInfo[contact.email].secondary_phones.join(', ')}</span>
+                              <span style={{ color: '#1A1A1A' }}>
+                                {secondaryInfo[contact.email].secondary_phones.map((phone, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={`tel:${phone}`}
+                                    className="hover:underline"
+                                    style={{ color: '#B8956A', cursor: 'pointer' }}
+                                  >
+                                    {phone}{idx < secondaryInfo[contact.email].secondary_phones.length - 1 ? ', ' : ''}
+                                  </a>
+                                ))}
+                              </span>
                             </div>
                           )}
                         </div>
