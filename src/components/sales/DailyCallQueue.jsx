@@ -864,7 +864,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
             try {
               const analysis = await analyzeContact(contact, learnedContext);
               // Save as permanent ActivityLog record
-              const savedRecord = await saveScheduledFollowUp(contact, analysis, sid, sem);
+              const savedRecord = await saveScheduledFollowUp(contact, analysis, sid, sem, newScheduledMap);
               newScheduledMap[contact.key] = savedRecord;
               newMeta[contact.key] = {
                 urgency: analysis.urgency,
