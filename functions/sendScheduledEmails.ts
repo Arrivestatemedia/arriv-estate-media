@@ -12,10 +12,11 @@ Deno.serve(async (req) => {
     const now = new Date();
     const toSend = pending.filter(e => new Date(e.scheduled_for) <= now);
 
-    let sent = 0, failed = 0;
+    // Cap at 20 per run to avoid timeouts
+    const batch = toSend.slice(0, 20);
 
-    for (const email of toSend) {
-      try {
+    const results = await Promise.allSettled(
+      batch.map(async (email) => {
         await base44.asServiceRole.functions.invoke('sendEmailViaGmail', {
           to: email.to,
           subject: email.subject,
@@ -24,22 +25,27 @@ Deno.serve(async (req) => {
           fromName: email.from_name || undefined,
           salesMemberId: email.sales_member_id || undefined,
         });
-
         await base44.asServiceRole.entities.ScheduledEmail.update(email.id, {
           status: "sent",
           sent_at: new Date().toISOString()
         });
-        sent++;
-      } catch (err) {
-        await base44.asServiceRole.entities.ScheduledEmail.update(email.id, {
-          status: "failed",
-          error_message: err.message
-        });
-        failed++;
-      }
-    }
+      })
+    );
 
-    return Response.json({ success: true, sent, failed, checked: toSend.length });
+    let sent = 0, failed = 0;
+    await Promise.all(results.map(async (result, i) => {
+      if (result.status === 'fulfilled') {
+        sent++;
+      } else {
+        failed++;
+        await base44.asServiceRole.entities.ScheduledEmail.update(batch[i].id, {
+          status: "failed",
+          error_message: result.reason?.message || 'Unknown error'
+        });
+      }
+    }));
+
+    return Response.json({ success: true, sent, failed, checked: batch.length, total_pending: toSend.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
