@@ -135,6 +135,7 @@ BRAD'S PROVEN CLOSING FRAMEWORK:
 3. Handle objections gracefully, never argue
 4. Close with: "Brad handles the rest" — makes transition seamless
 5. For objections: acknowledge first, then redirect
+6. Same-day follow-ups are valid and encouraged — if someone says "call me back in an hour" or "later today," schedule it for that same day, not days later
 
 Fill in each JSON field with natural, conversational scripts (multiple sentences where appropriate). Reference specific details from their history or market.
 
