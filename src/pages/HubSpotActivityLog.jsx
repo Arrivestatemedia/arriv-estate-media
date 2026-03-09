@@ -668,70 +668,71 @@ export default function HubSpotActivityLog() {
                      <DialogTitle>Log New Activity</DialogTitle>
                    </DialogHeader>
                    <div className="space-y-3 sm:space-y-4 pb-24 sm:pb-0">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Contact</label>
-                      <Select value={selectedContact || ""} onValueChange={setSelectedContact} disabled={loadingContacts}>
-                        <SelectTrigger><SelectValue placeholder={loadingContacts ? "Loading contacts..." : "Select a contact (optional)"} /></SelectTrigger>
-                        <SelectContent>
-                          {contacts.map((c) => (
-                            <SelectItem key={c.email} value={c.email}>
-                              {c.name} {c.company ? `(${c.company})` : ""} {c.phone ? `${c.phone}` : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Phone (optional)</label>
-                      <Input 
-                        type="tel" 
-                        placeholder="Contact phone number" 
-                        value={formData.contact_phone || ""} 
-                        onChange={(e) => setFormData({...formData, contact_phone: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Activity Type</label>
-                      <Select value={formData.activity_type} onValueChange={(val) => setFormData({...formData, activity_type: val})}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="call">Call</SelectItem>
-                          <SelectItem value="email">Email</SelectItem>
-                          <SelectItem value="meeting">Meeting</SelectItem>
-                          <SelectItem value="task">Task</SelectItem>
-                          <SelectItem value="note">Note</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Contact</label>
+                       <Select value={selectedContact || ""} onValueChange={setSelectedContact} disabled={loadingContacts}>
+                         <SelectTrigger className="w-full"><SelectValue placeholder={loadingContacts ? "Loading contacts..." : "Select a contact (optional)"} /></SelectTrigger>
+                         <SelectContent>
+                           {contacts.map((c) => (
+                             <SelectItem key={c.email} value={c.email}>
+                               {c.name} {c.company ? `(${c.company})` : ""} {c.phone ? `${c.phone}` : ""}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Phone (optional)</label>
+                       <Input 
+                         type="tel" 
+                         placeholder="Contact phone number" 
+                         value={formData.contact_phone || ""} 
+                         onChange={(e) => setFormData({...formData, contact_phone: e.target.value})}
+                         className="w-full"
+                       />
+                     </div>
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Activity Type</label>
+                       <Select value={formData.activity_type} onValueChange={(val) => setFormData({...formData, activity_type: val})}>
+                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="call">Call</SelectItem>
+                           <SelectItem value="email">Email</SelectItem>
+                           <SelectItem value="meeting">Meeting</SelectItem>
+                           <SelectItem value="task">Task</SelectItem>
+                           <SelectItem value="note">Note</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Date & Time</label>
-                      <Input type="datetime-local" value={formData.activity_date} onChange={(e) => setFormData({...formData, activity_date: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-                      <Input type="number" placeholder="0" value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: parseInt(e.target.value) || 0})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Notes</label>
-                      <Textarea placeholder="Summary of the activity..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={4} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Pictures</label>
-                      <Input type="file" accept="image/*" multiple onChange={handlePictureChange} disabled={uploadingPictures} />
-                      {uploadingPictures && <p className="text-xs text-gray-500 mt-1">Uploading pictures...</p>}
-                      {formPictureUrls.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {formPictureUrls.map((url, i) => (
-                            <img key={i} src={url} alt="Preview" className="rounded-lg max-h-20 w-auto" />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <Button onClick={handleSubmit} disabled={createActivityMutation.isPending || uploadingPictures} className="w-full">
-                      {uploadingPictures ? "Uploading pictures..." : createActivityMutation.isPending ? "Logging..." : "Log Activity"}
-                    </Button>
-                  </div>
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Date & Time</label>
+                       <Input type="datetime-local" value={formData.activity_date} onChange={(e) => setFormData({...formData, activity_date: e.target.value})} className="w-full text-xs sm:text-sm h-10 sm:h-9" />
+                     </div>
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
+                       <Input type="number" placeholder="0" value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: parseInt(e.target.value) || 0})} className="w-full" />
+                     </div>
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Notes</label>
+                       <Textarea placeholder="Summary of the activity..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={3} className="w-full text-sm" />
+                     </div>
+                     <div>
+                       <label className="block text-sm font-medium mb-1">Pictures</label>
+                       <Input type="file" accept="image/*" multiple onChange={handlePictureChange} disabled={uploadingPictures} className="w-full text-xs" />
+                       {uploadingPictures && <p className="text-xs text-gray-500 mt-1">Uploading pictures...</p>}
+                       {formPictureUrls.length > 0 && (
+                         <div className="flex flex-wrap gap-2 mt-2">
+                           {formPictureUrls.map((url, i) => (
+                             <img key={i} src={url} alt="Preview" className="rounded-lg max-h-20 w-auto" />
+                           ))}
+                         </div>
+                       )}
+                     </div>
+                     <Button onClick={handleSubmit} disabled={createActivityMutation.isPending || uploadingPictures} className="w-full">
+                       {uploadingPictures ? "Uploading pictures..." : createActivityMutation.isPending ? "Logging..." : "Log Activity"}
+                     </Button>
+                   </div>
                 </DialogContent>
               </Dialog>
             )}
