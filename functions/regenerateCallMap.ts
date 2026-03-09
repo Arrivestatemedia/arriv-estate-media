@@ -91,11 +91,12 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
     }
 
     // Build comprehensive history snippet (use provided activityHistory if available)
-    const historySnippet = activityHistory || pastActivities.slice(0, 6).map(a => {
+    const historySnippet = activityHistory || pastActivities.slice(0, 15).map(a => {
       const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
       const dateStr = new Date(a.activity_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return `${dateStr} (${a.activity_type}): ${a.notes.slice(0, 100)}${pics}`;
-    }).join("\n");
+      // Include full notes, not truncated
+      return `${dateStr} (${a.activity_type}): ${a.notes}${pics}`;
+    }).join("\n\n");
 
     // Collect all picture URLs for LLM analysis
     const pictureUrls = pastActivities
