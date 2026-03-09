@@ -81,20 +81,17 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
               <Mail className="w-4 h-4" />
               Email
             </Button>
-            <div className="ml-auto relative">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowRegenerateOptions(!showRegenerateOptions)}
-                disabled={regenerating}
-                className="gap-2"
-                style={{ borderColor: '#B8956A', color: '#B8956A' }}
-              >
-                <RefreshCw className="w-4 h-4" />
-                Regenerate Call Map
-                <ChevronDown className="w-4 h-4" />
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={regenerateCallMap}
+              disabled={regenerating}
+              className="gap-2"
+              style={{ borderColor: '#B8956A', color: '#B8956A' }}
+            >
+              <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+              {regenerating ? 'Regenerating...' : 'Regenerate Call Map'}
+            </Button>
           </div>
 
           {/* Call map content */}
