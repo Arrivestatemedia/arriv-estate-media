@@ -58,7 +58,7 @@ export default function PrivacyPolicy() {
             Message frequency varies depending on booking activity. Message and data rates may apply.
           </p>
           <p className="mb-3" style={{ color: 'rgba(26,26,26,0.8)' }}>
-            Recipients may opt out at any time by replying <strong>STOP</strong> to any SMS message. For assistance, reply <strong>HELP</strong>.
+            Recipients may opt out at any time by replying STOP to any SMS message. For assistance, reply HELP.
           </p>
           <p style={{ color: 'rgba(26,26,26,0.8)' }}>
             SMS consent is optional and is not required to create an account or request services. Personal information is not used for marketing SMS and is not shared with third parties for promotional messaging.
