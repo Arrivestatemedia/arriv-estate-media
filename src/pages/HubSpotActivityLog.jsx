@@ -621,19 +621,19 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        <div className="flex flex-wrap justify-between items-start gap-3 mb-6">
-           <div className="flex items-center gap-3">
+        <div className="flex justify-between items-center mb-8">
+           <div className="flex items-center gap-4">
              {user?.type === 'sales' && (
                <ProfilePictureUpload salesMemberId={user.id} currentUrl={profilePicUrl} onUploaded={(url) => setProfilePicUrl(url)} />
              )}
              <div>
-               <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#1A1A1A' }}>
+               <h1 className="text-3xl font-bold" style={{ color: '#1A1A1A' }}>
                  <span style={{ fontStyle: 'italic' }}>Arriv</span>{' '}
                  <span style={{ fontStyle: 'italic', fontWeight: 'bold', color: '#3B82F6' }}>One</span>
                </h1>
-              <p className="mt-0.5 text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>All sales activities in one place</p>
+              <p className="mt-1" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>All sales activities in one place</p>
               {user?.type === 'sales' && (
-                <p className="text-sm font-medium mt-0.5" style={{ color: '#B8956A' }}>
+                <p className="text-sm font-medium mt-1" style={{ color: '#B8956A' }}>
                   Hi {user.full_name?.split(' ')[0]}, Good {(() => {
                     const h = new Date().getHours();
                     if (h < 12) return 'Morning';
@@ -644,7 +644,7 @@ export default function HubSpotActivityLog() {
               )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex gap-2 items-center">
             {user?.type === 'sales' && (
               <>
                 <Button variant="outline" size="sm" onClick={() => setShowEditProfile(true)}>
@@ -774,7 +774,7 @@ export default function HubSpotActivityLog() {
           </DialogContent>
         </Dialog>
 
-        <div className="flex overflow-x-auto mb-6 border-b border-[#B8956A]/20 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20">
           {[
             { id: "activity", label: "Activity Log" },
             { id: "email", label: "Email Hub" },
@@ -783,11 +783,11 @@ export default function HubSpotActivityLog() {
             { id: "queue", label: "Call Queue" },
             { id: "calendar", label: "Calendar" },
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="px-3 py-3 font-medium border-b-2 transition whitespace-nowrap shrink-0 text-sm" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
               {tab.label}
             </button>
           ))}
-          <button onClick={() => setActiveTab("call")} className="px-3 py-3 font-medium border-b-2 transition whitespace-nowrap shrink-0 text-sm" style={{ color: activeTab === "call" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "call" ? '#B8956A' : 'transparent' }}>
+          <button onClick={() => setActiveTab("call")} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === "call" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "call" ? '#B8956A' : 'transparent' }}>
             <span className="flex items-center gap-1">
               <Phone className="w-4 h-4" />
               Dialer
@@ -796,11 +796,11 @@ export default function HubSpotActivityLog() {
               )}
             </span>
           </button>
-          <button onClick={() => setActiveTab("chat")} className="px-3 py-3 font-medium border-b-2 transition whitespace-nowrap shrink-0 text-sm" style={{ color: activeTab === "chat" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "chat" ? '#B8956A' : 'transparent' }}>
+          <button onClick={() => setActiveTab("chat")} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === "chat" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "chat" ? '#B8956A' : 'transparent' }}>
             <span className="flex items-center gap-1"><MessageSquare className="w-4 h-4" />Chat</span>
           </button>
-          <button onClick={() => setActiveTab("ai")} className="px-3 py-3 font-medium border-b-2 transition whitespace-nowrap shrink-0 text-sm" style={{ color: activeTab === "ai" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "ai" ? '#B8956A' : 'transparent' }}>
-            <span className="flex items-center gap-1"><Sparkles className="w-4 h-4" />AI</span>
+          <button onClick={() => setActiveTab("ai")} className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap" style={{ color: activeTab === "ai" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "ai" ? '#B8956A' : 'transparent' }}>
+            <span className="flex items-center gap-1"><Sparkles className="w-4 h-4" />AI Assistant</span>
           </button>
         </div>
 
@@ -1050,9 +1050,8 @@ export default function HubSpotActivityLog() {
                                 )}
                               </div>
                             </div>
-                            <div className="text-right text-xs shrink-0" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                              {format(new Date(activity.activity_date), "MMM d")}
-                              <div className="hidden sm:block">{format(new Date(activity.activity_date), "yyyy h:mm a")}</div>
+                            <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                              {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
                             </div>
                           </div>
                         </CardContent>

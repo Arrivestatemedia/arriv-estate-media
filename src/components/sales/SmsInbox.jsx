@@ -112,7 +112,7 @@ export default function SmsInbox({ salesMemberId }) {
 
   if (selectedConvo) {
     return (
-      <div className="flex flex-col" style={{ minHeight: 300, maxHeight: '70vh' }}>
+      <div className="flex flex-col h-[500px]">
         {/* Header */}
         <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
           <Button variant="ghost" size="icon" onClick={() => setSelectedConvo(null)}>

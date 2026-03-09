@@ -91,11 +91,11 @@ import PublicAccountSettings from './pages/PublicAccountSettings';
 import SalesLogin from './pages/SalesLogin';
 import SalesRepGmailAuthCallback from './pages/SalesRepGmailAuthCallback';
 import SignIn from './pages/SignIn';
-import SmsConsent from './pages/SmsConsent';
 import SupraAccess from './pages/SupraAccess';
 import Terms from './pages/Terms';
 import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
+import SmsConsent from './pages/SmsConsent';
 import __Layout from './Layout.jsx';
 
 
@@ -144,11 +144,11 @@ export const PAGES = {
     "SalesLogin": SalesLogin,
     "SalesRepGmailAuthCallback": SalesRepGmailAuthCallback,
     "SignIn": SignIn,
-    "SmsConsent": SmsConsent,
     "SupraAccess": SupraAccess,
     "Terms": Terms,
     "TrackLink": TrackLink,
     "confirmDeleteUser": confirmDeleteUser,
+    "SmsConsent": SmsConsent,
 }
 
 export const pagesConfig = {

@@ -608,12 +608,12 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
                   )}
                 </div>
                 {editingDate ? (
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1">
                     <Input
                       type="datetime-local"
                       value={editDateValue}
                       onChange={e => setEditDateValue(e.target.value)}
-                      className="text-xs h-10 flex-1 min-w-0"
+                      className="text-xs h-8"
                     />
                     <Button size="sm" onClick={saveEditedDate} disabled={savingDate} style={{ backgroundColor: '#B8956A', color: '#fff' }}>
                       {savingDate ? "Saving..." : "Save"}

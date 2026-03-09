@@ -49,7 +49,7 @@ const playDing = () => {
 };
 
 
-export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {}, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded, onBack }) {
+export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {}, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -525,13 +525,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     <>
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="border-b border-gray-200 p-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {onBack && (
-            <button onClick={onBack} className="sm:hidden p-1.5 text-gray-500 hover:text-gray-800 rounded-lg">
-              ← 
-            </button>
-          )}
+      <div className="border-b border-gray-200 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           {chatType === "dm" ? (
             <>
               <button
