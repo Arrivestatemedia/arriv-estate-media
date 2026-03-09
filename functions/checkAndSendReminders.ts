@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
       // Skip if booking was deleted or cancelled
       if (invoice.booking_id) {
-        const booking = await base44.asServiceRole.entities.Booking.read(invoice.booking_id);
+        const booking = await base44.asServiceRole.entities.Booking.get(invoice.booking_id);
         if (!booking || booking.status === 'cancelled' || booking.status === 'denied') continue;
       }
 
