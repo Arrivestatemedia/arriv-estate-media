@@ -656,18 +656,18 @@ export default function HubSpotActivityLog() {
               </>
             )}
             {activeTab === "activity" && (
-              <Dialog open={showForm} onOpenChange={setShowForm}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
-                    <Plus className="w-4 h-4" />
-                    Log Activity
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Log New Activity</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
+               <Dialog open={showForm} onOpenChange={setShowForm}>
+                 <DialogTrigger asChild>
+                   <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
+                     <Plus className="w-4 h-4" />
+                     Log Activity
+                   </Button>
+                 </DialogTrigger>
+                 <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+                   <DialogHeader>
+                     <DialogTitle>Log New Activity</DialogTitle>
+                   </DialogHeader>
+                   <div className="space-y-3 sm:space-y-4 pb-24 sm:pb-0">
                     <div>
                       <label className="block text-sm font-medium mb-1">Contact</label>
                       <Select value={selectedContact || ""} onValueChange={setSelectedContact} disabled={loadingContacts}>
