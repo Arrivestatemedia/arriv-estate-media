@@ -151,7 +151,7 @@ ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interaction
           if_send_email: { type: "string", description: "Script for 'Send me an email' objection" },
           if_too_expensive: { type: "string", description: "Script for 'Too expensive' objection" },
           if_cold_unengaged: { type: "string", description: "Script for cold/one-word answers" },
-          if_busy_bad_time: { type: "string", description: "Script for busy/bad timing objection" },
+          if_busy_bad_time: { type: "string", description: "Script for busy/bad timing objection — if they say call back later today, schedule a same-day follow up" },
           if_no_answer_voicemail: { type: "string", description: "Voicemail script (15 sec max)" },
           follow_up_text: { type: "string", description: "Follow-up text to send after voicemail" }
         },
