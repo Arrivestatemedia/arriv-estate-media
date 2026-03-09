@@ -306,6 +306,20 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
         salesMemberId,
         createIfNotFound: true,
       });
+
+      // Save secondary contact info if any exist
+      if (additional_names.some(n => n.trim()) || additional_emails.some(e => e.trim()) || additional_phones.some(p => p.trim())) {
+        const contactEmail = propertiesToSend.email || '';
+        const contactName = [propertiesToSend.firstname, propertiesToSend.lastname].filter(Boolean).join(' ');
+        await base44.entities.SecondaryContactInfo.create({
+          contact_email: contactEmail,
+          contact_name: contactName,
+          secondary_names: additional_names.filter(n => n.trim()),
+          secondary_emails: additional_emails.filter(e => e.trim()),
+          secondary_phones: additional_phones.filter(p => p.trim())
+        });
+      }
+
       setCreatedSuccess(true);
       setNewContact(NEW_CONTACT_DEFAULTS);
       setTimeout(() => {
