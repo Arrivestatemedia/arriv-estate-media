@@ -299,9 +299,10 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
     setCreatingNew(true);
     setError("");
     try {
+      const { additional_names, additional_emails, additional_phones, ...propertiesToSend } = newContact;
       await base44.functions.invoke("updateHubSpotContact", {
         contactId: null,
-        properties: newContact,
+        properties: propertiesToSend,
         salesMemberId,
         createIfNotFound: true,
       });
