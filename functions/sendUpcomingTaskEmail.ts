@@ -25,11 +25,16 @@ Deno.serve(async (req) => {
         sales_member_email: member.email
       }, '-activity_date', 100);
 
-      // Filter for today's activities
+      // Filter for TODAY's SCHEDULED activities (future or today, not past logged activities)
+      const now = new Date();
       const todaysActivities = activities.filter(a => {
         const activityDate = new Date(a.activity_date);
-        activityDate.setHours(0, 0, 0, 0);
-        return activityDate.getTime() === today.getTime();
+        // Only include if activity is scheduled for today or later AND is in the future (not already past)
+        const isTodayOrLater = activityDate >= today;
+        const isScheduledOrPending = a.activity_type === 'call' || a.activity_type === 'task' || a.activity_type === 'meeting';
+        // Exclude if it's already past (older than 30 minutes ago)
+        const isPast = activityDate < new Date(now.getTime() - 30 * 60 * 1000);
+        return isTodayOrLater && isScheduledOrPending && !isPast;
       });
 
       if (todaysActivities.length === 0) continue;
