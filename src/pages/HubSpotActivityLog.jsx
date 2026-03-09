@@ -644,7 +644,7 @@ export default function HubSpotActivityLog() {
               )}
             </div>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center">
             {user?.type === 'sales' && (
               <>
                 <Button variant="outline" size="sm" onClick={() => setShowEditProfile(true)}>
