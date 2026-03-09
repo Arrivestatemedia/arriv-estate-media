@@ -126,6 +126,9 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
   const [activities, setActivities] = useState({});
   const [loadingActivities, setLoadingActivities] = useState({});
   const [logActivityContact, setLogActivityContact] = useState(null);
+  const [secondaryInfo, setSecondaryInfo] = useState({});
+  const [editingSecondaryId, setEditingSecondaryId] = useState(null);
+  const [secondarySaving, setSecondarySaving] = useState(false);
 
   // Activities shown below the search box (for both regular search results and new contact auto-search)
   const [inlineActivities, setInlineActivities] = useState(null);
@@ -248,6 +251,42 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
     }
   };
 
+  const loadSecondaryInfo = async () => {
+    try {
+      const all = await base44.entities.SecondaryContactInfo.list();
+      const map = {};
+      all.forEach(info => {
+        map[info.contact_email] = info;
+      });
+      setSecondaryInfo(map);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveSecondary = async (contactEmail) => {
+    setSecondarySaving(true);
+    try {
+      const existing = secondaryInfo[contactEmail];
+      if (existing) {
+        await base44.entities.SecondaryContactInfo.update(existing.id, editingSecondaryId);
+      } else {
+        const contact = results.find(c => c.email === contactEmail);
+        await base44.entities.SecondaryContactInfo.create({
+          contact_email: contactEmail,
+          contact_name: [contact.firstname, contact.lastname].filter(Boolean).join(' '),
+          ...editingSecondaryId
+        });
+      }
+      await loadSecondaryInfo();
+      setEditingSecondaryId(null);
+    } catch (e) {
+      setError("Failed to save secondary info: " + e.message);
+    } finally {
+      setSecondarySaving(false);
+    }
+  };
+
   const toggleExpand = async (contact) => {
     if (expandedId === contact.id) {
       setExpandedId(null);
@@ -265,6 +304,22 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
       });
       if (!activities[contact.id]) {
         await fetchActivitiesForContact(contact);
+      }
+      if (Object.keys(secondaryInfo).length === 0) {
+        await loadSecondaryInfo();
+      }
+      if (!editingSecondaryId && secondaryInfo[contact.email]) {
+        setEditingSecondaryId({
+          secondary_names: secondaryInfo[contact.email].secondary_names || [],
+          secondary_emails: secondaryInfo[contact.email].secondary_emails || [],
+          secondary_phones: secondaryInfo[contact.email].secondary_phones || []
+        });
+      } else if (!editingSecondaryId) {
+        setEditingSecondaryId({
+          secondary_names: [],
+          secondary_emails: [],
+          secondary_phones: []
+        });
       }
     }
   };
@@ -651,6 +706,160 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                         Delete
                       </Button>
                     </div>
+
+                    {/* Secondary Contact Info */}
+                    {editingSecondaryId && (
+                      <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'rgba(26,26,26,0.5)' }}>Additional Contact Info</p>
+
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs font-medium mb-2" style={{ color: 'rgba(26,26,26,0.7)' }}>Additional Names</label>
+                            <div className="space-y-2">
+                              {editingSecondaryId.secondary_names?.map((name, idx) => (
+                                <div key={idx} className="flex gap-2">
+                                  <Input
+                                    value={name}
+                                    onChange={(e) => setEditingSecondaryId(prev => ({
+                                      ...prev,
+                                      secondary_names: prev.secondary_names.map((n, i) => i === idx ? e.target.value : n)
+                                    }))}
+                                    placeholder="Name"
+                                    className="flex-1 text-sm"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingSecondaryId(prev => ({
+                                      ...prev,
+                                      secondary_names: prev.secondary_names.filter((_, i) => i !== idx)
+                                    }))}
+                                    className="px-2"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                              {editingSecondaryId.secondary_names.length < 5 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingSecondaryId(prev => ({
+                                    ...prev,
+                                    secondary_names: [...prev.secondary_names, '']
+                                  }))}
+                                  className="w-full gap-2"
+                                  style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Add Name
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium mb-2" style={{ color: 'rgba(26,26,26,0.7)' }}>Additional Emails</label>
+                            <div className="space-y-2">
+                              {editingSecondaryId.secondary_emails?.map((email, idx) => (
+                                <div key={idx} className="flex gap-2">
+                                  <Input
+                                    value={email}
+                                    onChange={(e) => setEditingSecondaryId(prev => ({
+                                      ...prev,
+                                      secondary_emails: prev.secondary_emails.map((em, i) => i === idx ? e.target.value : em)
+                                    }))}
+                                    placeholder="Email"
+                                    className="flex-1 text-sm"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingSecondaryId(prev => ({
+                                      ...prev,
+                                      secondary_emails: prev.secondary_emails.filter((_, i) => i !== idx)
+                                    }))}
+                                    className="px-2"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                              {editingSecondaryId.secondary_emails.length < 5 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingSecondaryId(prev => ({
+                                    ...prev,
+                                    secondary_emails: [...prev.secondary_emails, '']
+                                  }))}
+                                  className="w-full gap-2"
+                                  style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Add Email
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium mb-2" style={{ color: 'rgba(26,26,26,0.7)' }}>Additional Phones</label>
+                            <div className="space-y-2">
+                              {editingSecondaryId.secondary_phones?.map((phone, idx) => (
+                                <div key={idx} className="flex gap-2">
+                                  <Input
+                                    value={phone}
+                                    onChange={(e) => setEditingSecondaryId(prev => ({
+                                      ...prev,
+                                      secondary_phones: prev.secondary_phones.map((ph, i) => i === idx ? e.target.value : ph)
+                                    }))}
+                                    placeholder="Phone"
+                                    className="flex-1 text-sm"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingSecondaryId(prev => ({
+                                      ...prev,
+                                      secondary_phones: prev.secondary_phones.filter((_, i) => i !== idx)
+                                    }))}
+                                    className="px-2"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                              {editingSecondaryId.secondary_phones.length < 5 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingSecondaryId(prev => ({
+                                    ...prev,
+                                    secondary_phones: [...prev.secondary_phones, '']
+                                  }))}
+                                  className="w-full gap-2"
+                                  style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Add Phone
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={() => handleSaveSecondary(contact.email)}
+                            disabled={secondarySaving}
+                            className="w-full gap-2"
+                            style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                          >
+                            {secondarySaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            {secondarySaving ? 'Saving...' : 'Save Secondary Info'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
