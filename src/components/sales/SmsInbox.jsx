@@ -112,7 +112,7 @@ export default function SmsInbox({ salesMemberId }) {
 
   if (selectedConvo) {
     return (
-      <div className="flex flex-col h-[500px]">
+      <div className="flex flex-col min-h-screen md:h-[500px] md:max-h-[500px]">
         {/* Header */}
         <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
           <Button variant="ghost" size="icon" onClick={() => setSelectedConvo(null)}>
@@ -127,7 +127,7 @@ export default function SmsInbox({ salesMemberId }) {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto py-3 space-y-3">
+        <div className="flex-1 overflow-y-auto py-3 space-y-3 min-h-[120px]">
           {messages.map((msg) => (
             <div
               key={msg.id}
