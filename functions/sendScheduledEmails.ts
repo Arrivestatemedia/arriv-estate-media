@@ -12,8 +12,9 @@ Deno.serve(async (req) => {
     const now = new Date();
     const toSend = pending.filter(e => new Date(e.scheduled_for) <= now);
 
-    // Cap at 20 per run to avoid timeouts
-    const batch = toSend.slice(0, 20);
+    // Cap at 5 per run — each sendEmailViaGmail makes OAuth + Gmail API calls,
+    // running too many in parallel exceeds the CPU time limit
+    const batch = toSend.slice(0, 5);
 
     const results = await Promise.allSettled(
       batch.map(async (email) => {
