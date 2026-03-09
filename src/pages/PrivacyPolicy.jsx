@@ -51,8 +51,17 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="SMS Communications">
+          <p className="mb-3" style={{ color: 'rgba(26,26,26,0.8)' }}>
+            Phone numbers provided during onboarding or account signup may be used to send work-related SMS notifications from Arriv Estate Media LLC. These messages may include booking confirmations, scheduling updates, arrival notifications, job completion notices, invoice notifications, and payment reminders.
+          </p>
+          <p className="mb-3" style={{ color: 'rgba(26,26,26,0.8)' }}>
+            Message frequency varies depending on booking activity. Message and data rates may apply.
+          </p>
+          <p className="mb-3" style={{ color: 'rgba(26,26,26,0.8)' }}>
+            Recipients may opt out at any time by replying <strong>STOP</strong> to any SMS message. For assistance, reply <strong>HELP</strong>.
+          </p>
           <p style={{ color: 'rgba(26,26,26,0.8)' }}>
-            Phone numbers provided during onboarding or contractual agreement may be used to send work-related SMS messages. Message frequency varies based on job activity. Message and data rates may apply. Recipients may opt out at any time by replying <strong>STOP</strong>.
+            SMS consent is optional and is not required to create an account or request services. Personal information is not used for marketing SMS and is not shared with third parties for promotional messaging.
           </p>
         </Section>
 
