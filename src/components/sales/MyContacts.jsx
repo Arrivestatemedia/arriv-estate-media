@@ -239,14 +239,14 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                               <span style={{ color: 'rgba(26,26,26,0.5)' }}>Other phones: </span>
                               <span style={{ color: '#1A1A1A' }}>
                                 {secondaryInfo[contact.email].secondary_phones.map((phone, idx) => (
-                                  <a
+                                  <button
                                     key={idx}
-                                    href={`tel:${phone}`}
+                                    onClick={() => { localStorage.setItem('_dialerPhone', phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone } })); }}
                                     className="hover:underline"
-                                    style={{ color: '#B8956A', cursor: 'pointer' }}
+                                    style={{ color: '#B8956A', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
                                   >
                                     {phone}{idx < secondaryInfo[contact.email].secondary_phones.length - 1 ? ', ' : ''}
-                                  </a>
+                                  </button>
                                 ))}
                               </span>
                             </div>

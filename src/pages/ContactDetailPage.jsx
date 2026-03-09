@@ -341,13 +341,13 @@ export default function ContactDetailPage() {
                   {selectedActivity.contact_phone && (
                     <p>
                       <span className="font-medium">Phone:</span>{' '}
-                      <a
-                        href={`tel:${selectedActivity.contact_phone}`}
+                      <button
+                        onClick={() => { localStorage.setItem('_dialerPhone', selectedActivity.contact_phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: selectedActivity.contact_phone } })); }}
                         className="hover:underline"
-                        style={{ color: '#B8956A', cursor: 'pointer' }}
+                        style={{ color: '#B8956A', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
                       >
                         {selectedActivity.contact_phone}
-                      </a>
+                      </button>
                     </p>
                   )}
                   {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
