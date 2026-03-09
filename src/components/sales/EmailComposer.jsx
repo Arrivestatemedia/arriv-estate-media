@@ -436,8 +436,8 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
             </div>
           )}
 
-          <div className="flex gap-2">
-           <Button onClick={handleSendEmail} disabled={sending || sent || (scheduleMode && !scheduledFor)} className="flex-1 gap-2" style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}>
+          <div className="flex flex-wrap gap-2">
+           <Button onClick={handleSendEmail} disabled={sending || sent || (scheduleMode && !scheduledFor)} className="flex-1 min-w-[120px] gap-2" style={{ backgroundColor: sent ? '#22c55e' : '#B8956A', color: sent ? '#fff' : '#1A1A1A' }}>
              {scheduleMode ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
              {sending ? "Sending..." : sent ? (scheduleMode ? "Scheduled!" : "Sent!") : scheduleMode ? "Schedule Email" : "Send Email"}
            </Button>
@@ -458,7 +458,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
            </Button>
            <Button onClick={() => setScheduleMeetingMode(!scheduleMeetingMode)} variant="outline" className="gap-2" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
              <Calendar className="w-4 h-4" />
-             Schedule Meeting
+             Meeting
            </Button>
           </div>
 
