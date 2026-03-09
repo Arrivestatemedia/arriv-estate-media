@@ -37,7 +37,12 @@ const FIELDS = [
   ]},
 ];
 
-const NEW_CONTACT_DEFAULTS = { firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "" };
+const NEW_CONTACT_DEFAULTS = { 
+  firstname: "", lastname: "", email: "", phone: "", company: "", jobtitle: "", hs_lead_status: "",
+  additional_names: [],
+  additional_emails: [],
+  additional_phones: []
+};
 
 // Fetches all activities for a contact by email or name
 async function loadActivitiesForContact(contact) {
@@ -358,15 +363,133 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Input
-                      value={newContact[key] || ''}
-                      onChange={(e) => setNewContact(prev => ({ ...prev, [key]: e.target.value }))}
-                      placeholder={label}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={newContact[key] || ''}
+                        onChange={(e) => setNewContact(prev => ({ ...prev, [key]: e.target.value }))}
+                        placeholder={label}
+                        className="flex-1"
+                      />
+                      {['firstname', 'lastname', 'email', 'phone'].includes(key) && newContact[`additional_${key === 'firstname' || key === 'lastname' ? 'names' : key === 'email' ? 'emails' : 'phones'}`].length < 5 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const arrayKey = key === 'firstname' || key === 'lastname' ? 'additional_names' : key === 'email' ? 'additional_emails' : 'additional_phones';
+                            setNewContact(prev => ({
+                              ...prev,
+                              [arrayKey]: [...prev[arrayKey], '']
+                            }));
+                          }}
+                          className="px-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
             </div>
+
+            {/* Additional Names */}
+            {newContact.additional_names.length > 0 && (
+              <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: 'rgba(26,26,26,0.5)' }}>Additional Names</p>
+                <div className="space-y-2">
+                  {newContact.additional_names.map((name, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Input
+                        value={name}
+                        onChange={(e) => setNewContact(prev => ({
+                          ...prev,
+                          additional_names: prev.additional_names.map((n, i) => i === idx ? e.target.value : n)
+                        }))}
+                        placeholder="Additional name"
+                        className="flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setNewContact(prev => ({
+                          ...prev,
+                          additional_names: prev.additional_names.filter((_, i) => i !== idx)
+                        }))}
+                        className="px-2"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Additional Emails */}
+            {newContact.additional_emails.length > 0 && (
+              <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: 'rgba(26,26,26,0.5)' }}>Additional Emails</p>
+                <div className="space-y-2">
+                  {newContact.additional_emails.map((email, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Input
+                        value={email}
+                        onChange={(e) => setNewContact(prev => ({
+                          ...prev,
+                          additional_emails: prev.additional_emails.map((em, i) => i === idx ? e.target.value : em)
+                        }))}
+                        placeholder="Additional email"
+                        className="flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setNewContact(prev => ({
+                          ...prev,
+                          additional_emails: prev.additional_emails.filter((_, i) => i !== idx)
+                        }))}
+                        className="px-2"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Additional Phones */}
+            {newContact.additional_phones.length > 0 && (
+              <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: 'rgba(26,26,26,0.5)' }}>Additional Phones</p>
+                <div className="space-y-2">
+                  {newContact.additional_phones.map((phone, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Input
+                        value={phone}
+                        onChange={(e) => setNewContact(prev => ({
+                          ...prev,
+                          additional_phones: prev.additional_phones.map((ph, i) => i === idx ? e.target.value : ph)
+                        }))}
+                        placeholder="Additional phone"
+                        className="flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setNewContact(prev => ({
+                          ...prev,
+                          additional_phones: prev.additional_phones.filter((_, i) => i !== idx)
+                        }))}
+                        className="px-2"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Matched HubSpot contact info */}
             {inlineContactInfo && (
