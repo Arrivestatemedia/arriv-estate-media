@@ -160,10 +160,12 @@ ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interaction
       }
     });
 
-    // callMapRes is already parsed JSON object from LLM — stringify it for storage
+    // callMapRes is already parsed JSON object from LLM — format it as Markdown for storage and display
     let newCallMap = "";
     if (callMapRes) {
-      newCallMap = typeof callMapRes === "string" ? callMapRes : JSON.stringify(callMapRes);
+      const callMapData = typeof callMapRes === "string" ? JSON.parse(callMapRes) : callMapRes;
+      // Format as Markdown with sections
+      newCallMap = `📞 **Opening**\n${callMapData.opening}\n\n🔀 **If they're interested**\n${callMapData.if_interested}\n\n🔀 **If they say "I already have a photographer"**\n${callMapData.if_has_photographer}\n\n🔀 **If they say "Not interested right now"**\n${callMapData.if_not_interested}\n\n🔀 **If they say "Send me an email"**\n${callMapData.if_send_email}\n\n🔀 **If they say "Too expensive"**\n${callMapData.if_too_expensive}\n\n🔀 **If they're cold / one-word answers**\n${callMapData.if_cold_unengaged}\n\n🔀 **If they're busy / bad time**\n${callMapData.if_busy_bad_time}\n\n📵 **If no answer — voicemail**\n${callMapData.if_no_answer_voicemail}\n\n📱 **Follow-up text**\n${callMapData.follow_up_text}`;
     }
     
     if (!newCallMap || newCallMap.length === 0) {
