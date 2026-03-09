@@ -18,15 +18,36 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
   const [showFollowUpForm, setShowFollowUpForm] = useState(null); // contactKey being followed up
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [saving, setSaving] = useState(false);
+  const [secondaryInfo, setSecondaryInfo] = useState({});
 
   useEffect(() => {
     loadActivities();
+    loadSecondaryInfo();
     // Subscribe to real-time updates
     const unsub = base44.entities.ActivityLog.subscribe((event) => {
       loadActivities();
     });
-    return () => unsub();
+    const unsub2 = base44.entities.SecondaryContactInfo.subscribe((event) => {
+      loadSecondaryInfo();
+    });
+    return () => {
+      unsub();
+      unsub2();
+    };
   }, [salesMemberId, salesMemberEmail]);
+
+  const loadSecondaryInfo = async () => {
+    try {
+      const all = await base44.entities.SecondaryContactInfo.list();
+      const map = {};
+      all.forEach(info => {
+        map[info.contact_email] = info;
+      });
+      setSecondaryInfo(map);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const loadActivities = async () => {
     setLoading(true);
@@ -199,6 +220,28 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                         {contact.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{contact.email}</span>}
                         {contact.company && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{contact.company}</span>}
                       </div>
+                      {secondaryInfo[contact.email] && (
+                        <div className="mt-2 pt-2 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+                          {secondaryInfo[contact.email].secondary_names?.length > 0 && (
+                            <div className="text-xs mb-1">
+                              <span style={{ color: 'rgba(26,26,26,0.5)' }}>Also known as: </span>
+                              <span style={{ color: '#1A1A1A' }}>{secondaryInfo[contact.email].secondary_names.join(', ')}</span>
+                            </div>
+                          )}
+                          {secondaryInfo[contact.email].secondary_emails?.length > 0 && (
+                            <div className="text-xs mb-1">
+                              <span style={{ color: 'rgba(26,26,26,0.5)' }}>Other emails: </span>
+                              <span style={{ color: '#1A1A1A' }}>{secondaryInfo[contact.email].secondary_emails.join(', ')}</span>
+                            </div>
+                          )}
+                          {secondaryInfo[contact.email].secondary_phones?.length > 0 && (
+                            <div className="text-xs">
+                              <span style={{ color: 'rgba(26,26,26,0.5)' }}>Other phones: </span>
+                              <span style={{ color: '#1A1A1A' }}>{secondaryInfo[contact.email].secondary_phones.join(', ')}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div className="flex gap-3 mt-2 text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
                         <span>{contact.activities.length} activit{contact.activities.length !== 1 ? 'ies' : 'y'}</span>
                         {lastActivity && (
