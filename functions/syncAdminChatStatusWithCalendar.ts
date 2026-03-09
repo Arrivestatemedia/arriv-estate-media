@@ -16,16 +16,21 @@ Deno.serve(async (req) => {
     const timeMin = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
     const timeMax = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
 
-    // Run calendar fetch and admin member lookup in parallel
-    const [calResponse, adminMembers] = await Promise.all([
-      fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
-        { headers: { 'Authorization': `Bearer ${accessToken}` } }
-      ),
-      base44.asServiceRole.entities.SalesTeamMember.filter({ email: adminEmail })
-    ]);
+    // Fetch calendar events
+    const calResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
 
     const calData = await calResponse.json();
+    
+    // Try to get admin member (not critical if it fails)
+    let adminMembers = [];
+    try {
+      adminMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: adminEmail });
+    } catch (e) {
+      console.log('Could not fetch admin member, skipping update');
+    }
 
     const relevantEvents = (calData.items || []).filter(event => {
       const organizerEmail = (event.organizer?.email || '').toLowerCase();
