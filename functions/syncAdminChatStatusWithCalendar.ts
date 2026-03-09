@@ -16,12 +16,14 @@ Deno.serve(async (req) => {
     const timeMin = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
     const timeMax = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
 
-    const calResponse = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
-      {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      }
-    );
+    // Run calendar fetch and admin member lookup in parallel
+    const [calResponse, adminMembers] = await Promise.all([
+      fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
+        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+      ),
+      base44.asServiceRole.entities.SalesTeamMember.filter({ email: adminEmail })
+    ]);
 
     const calData = await calResponse.json();
 
@@ -29,19 +31,15 @@ Deno.serve(async (req) => {
       const organizerEmail = (event.organizer?.email || '').toLowerCase();
       const attendeeEmails = (event.attendees || []).map(a => (a.email || '').toLowerCase());
       const includesAdmin = organizerEmail === adminEmail.toLowerCase() || attendeeEmails.includes(adminEmail.toLowerCase());
-
       const startTime = new Date(event.start?.dateTime || event.start?.date);
       const endTime = new Date(event.end?.dateTime || event.end?.date);
       const isOngoing = startTime <= now && endTime > new Date(now.getTime() + 30000);
-
       return includesAdmin && isOngoing;
     });
 
     const hasActiveEvent = relevantEvents.length > 0;
     const newStatus = hasActiveEvent ? 'in_meeting' : 'available';
 
-    // Find admin SalesTeamMember by email and update their chat_status
-    const adminMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: adminEmail });
     if (adminMembers && adminMembers.length > 0) {
       await base44.asServiceRole.entities.SalesTeamMember.update(adminMembers[0].id, { chat_status: newStatus });
     }
