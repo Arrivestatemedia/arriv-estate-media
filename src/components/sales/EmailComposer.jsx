@@ -298,20 +298,20 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
   return (
     <div className="space-y-4">
       {/* Tab switcher */}
-      <div className="flex gap-1 border-b" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
-        <button onClick={() => setTab("compose")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "compose" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "compose" ? '#B8956A' : 'transparent' }}>
+      <div className="flex overflow-x-auto border-b" style={{ borderColor: 'rgba(184,149,106,0.2)', scrollbarWidth: 'none' }}>
+        <button onClick={() => setTab("compose")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition whitespace-nowrap shrink-0" style={{ color: tab === "compose" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "compose" ? '#B8956A' : 'transparent' }}>
           <PenLine className="w-4 h-4" /> Compose
         </button>
-        <button onClick={() => setTab("replies")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "replies" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "replies" ? '#B8956A' : 'transparent' }}>
+        <button onClick={() => setTab("replies")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition whitespace-nowrap shrink-0" style={{ color: tab === "replies" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "replies" ? '#B8956A' : 'transparent' }}>
           <Inbox className="w-4 h-4" /> Inbox
         </button>
-        <button onClick={() => setTab("scheduled")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "scheduled" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "scheduled" ? '#B8956A' : 'transparent' }}>
+        <button onClick={() => setTab("scheduled")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition whitespace-nowrap shrink-0" style={{ color: tab === "scheduled" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "scheduled" ? '#B8956A' : 'transparent' }}>
           <Clock className="w-4 h-4" /> Scheduled
         </button>
-        <button onClick={() => setTab("outbox")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "outbox" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "outbox" ? '#B8956A' : 'transparent' }}>
+        <button onClick={() => setTab("outbox")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition whitespace-nowrap shrink-0" style={{ color: tab === "outbox" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "outbox" ? '#B8956A' : 'transparent' }}>
           <SendHorizontal className="w-4 h-4" /> Outbox
         </button>
-        <button onClick={() => setTab("drafts")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition" style={{ color: tab === "drafts" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "drafts" ? '#B8956A' : 'transparent' }}>
+        <button onClick={() => setTab("drafts")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition whitespace-nowrap shrink-0" style={{ color: tab === "drafts" ? '#B8956A' : 'rgba(26,26,26,0.5)', borderBottomColor: tab === "drafts" ? '#B8956A' : 'transparent' }}>
           <PenLine className="w-4 h-4" /> Drafts
         </button>
       </div>

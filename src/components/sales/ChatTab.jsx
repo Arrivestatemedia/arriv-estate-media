@@ -65,13 +65,16 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
 
   return (
     <div className="flex h-full bg-gray-50">
-      <ChatSidebar
-        currentUserId={currentUserId}
-        currentUserName={currentUserName}
-        onSelectChat={handleSelectChat}
-        memberStatuses={memberStatuses}
-      />
-      <div className="flex-1">
+      {/* On mobile: show sidebar only when no chat selected, show chat window only when selected */}
+      <div className={`${selectedChat ? 'hidden sm:flex' : 'flex'} w-full sm:w-64 flex-shrink-0`}>
+        <ChatSidebar
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          onSelectChat={handleSelectChat}
+          memberStatuses={memberStatuses}
+        />
+      </div>
+      <div className={`${selectedChat ? 'flex' : 'hidden sm:flex'} flex-1 flex-col`}>
         {selectedChat ? (
            <ChatWindow
              chatType={selectedChat.type}
@@ -84,6 +87,7 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
              onInitiateTransfer={onInitiateTransfer}
              onVideoCallStarted={onVideoCallStarted}
              onVideoCallEnded={onVideoCallEnded}
+             onBack={() => setSelectedChat(null)}
            />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
