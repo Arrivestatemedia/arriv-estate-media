@@ -12,31 +12,30 @@ Deno.serve(async (req) => {
     const brevoApiKey = Deno.env.get('BREVO_API_KEY');
     const adminEmail = 'BradCBurke@arrivestatemedia.com';
 
-    for (const invoice of unpaidInvoices) {
-      if (!invoice.email_sent_at) continue;
+    const processInvoice = async (invoice) => {
+      if (!invoice.email_sent_at) return;
 
       // Skip if job was deleted
       if (invoice.job_id) {
         const job = await base44.asServiceRole.entities.Job.get(invoice.job_id);
-        if (!job) continue;
+        if (!job) return;
       }
 
       // Skip if booking was deleted or cancelled
       if (invoice.booking_id) {
         const booking = await base44.asServiceRole.entities.Booking.get(invoice.booking_id);
-        if (!booking || booking.status === 'cancelled' || booking.status === 'denied') continue;
+        if (!booking || booking.status === 'cancelled' || booking.status === 'denied') return;
       }
 
       const emailSentAt = new Date(invoice.email_sent_at);
       const hoursSinceEmail = (now - emailSentAt) / (1000 * 60 * 60);
 
-      // Use the Google Drive link (the actual invoice PDF link)
       const invoiceLink = invoice.google_drive_unpaid_url || invoice.google_drive_paid_url || invoice.stripe_payment_link_url;
-      if (!invoiceLink) continue;
+      if (!invoiceLink) return;
 
       const firstName = invoice.client_name ? invoice.client_name.split(' ')[0] : 'there';
 
-      const buildHtml = (reminderNum) => `<!DOCTYPE html>
+      const buildHtml = () => `<!DOCTYPE html>
 <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <p>Hi ${firstName},</p>
   <p>This is a friendly reminder that your invoice for media services at <strong>${invoice.job_address}</strong> is still outstanding.</p>
@@ -48,53 +47,42 @@ Deno.serve(async (req) => {
   <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
 </body></html>`;
 
+      const sendBrevo = (subject) => fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
+          to: [{ email: invoice.client_email, name: invoice.client_name }],
+          subject,
+          htmlContent: buildHtml()
+        })
+      });
+
       // Send 24h reminder
       if (hoursSinceEmail >= 24 && !invoice.reminder_1_sent_at) {
-        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
-            to: [{ email: invoice.client_email, name: invoice.client_name }],
-            subject: `Reminder: Invoice for ${invoice.job_address}`,
-            htmlContent: buildHtml(1)
-          })
-        });
+        const brevoRes = await sendBrevo(`Reminder: Invoice for ${invoice.job_address}`);
         if (brevoRes.ok) {
-          await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-            reminder_1_sent_at: new Date().toISOString()
-          });
+          await base44.asServiceRole.entities.Invoice.update(invoice.id, { reminder_1_sent_at: new Date().toISOString() });
           console.log('24h reminder sent for invoice:', invoice.id);
         } else {
-          const err = await brevoRes.json();
-          console.error('Brevo 24h reminder error:', err);
+          console.error('Brevo 24h reminder error:', await brevoRes.json());
         }
       }
 
       // Send 48h reminder
       if (hoursSinceEmail >= 48 && invoice.reminder_1_sent_at && !invoice.reminder_2_sent_at) {
-        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
-            to: [{ email: invoice.client_email, name: invoice.client_name }],
-            subject: `Final Reminder: Invoice for ${invoice.job_address}`,
-            htmlContent: buildHtml(2)
-          })
-        });
+        const brevoRes = await sendBrevo(`Final Reminder: Invoice for ${invoice.job_address}`);
         if (brevoRes.ok) {
-          await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-            reminder_2_sent_at: new Date().toISOString()
-          });
+          await base44.asServiceRole.entities.Invoice.update(invoice.id, { reminder_2_sent_at: new Date().toISOString() });
           console.log('48h reminder sent for invoice:', invoice.id);
         } else {
-          const err = await brevoRes.json();
-          console.error('Brevo 48h reminder error:', err);
+          console.error('Brevo 48h reminder error:', await brevoRes.json());
         }
       }
-    }
-    
+    };
+
+    await Promise.allSettled(unpaidInvoices.map(processInvoice));
+
     return Response.json({ success: true, processedCount: unpaidInvoices.length });
     
   } catch (error) {
