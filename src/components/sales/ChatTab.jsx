@@ -66,28 +66,45 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
 
   return (
     <div className="flex h-full bg-gray-50">
-      <ChatSidebar
-        currentUserId={currentUserId}
-        currentUserName={currentUserName}
-        onSelectChat={handleSelectChat}
-        memberStatuses={memberStatuses}
-      />
-      <div className="flex-1">
+      {/* Mobile: show sidebar only when no chat selected */}
+      <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-64`}>
+        <ChatSidebar
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          onSelectChat={handleSelectChat}
+          memberStatuses={memberStatuses}
+        />
+      </div>
+      {/* Mobile: show chat window only when chat selected */}
+      <div className={`${selectedChat ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
         {selectedChat ? (
-           <ChatWindow
-             chatType={selectedChat.type}
-             chatId={selectedChat.id}
-             chatName={selectedChat.name}
-             currentUserId={currentUserId}
-             currentUserName={currentUserName}
-             memberProfiles={memberProfiles}
-             memberStatuses={memberStatuses}
-             onInitiateTransfer={onInitiateTransfer}
-             onVideoCallStarted={onVideoCallStarted}
-             onVideoCallEnded={onVideoCallEnded}
-           />
+          <>
+            {/* Mobile back button */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#1A1A1A] md:hidden">
+              <button
+                onClick={() => setSelectedChat(null)}
+                className="text-white flex items-center gap-1 text-sm"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </button>
+              <span className="text-white text-sm font-medium truncate">{selectedChat.name}</span>
+            </div>
+            <ChatWindow
+              chatType={selectedChat.type}
+              chatId={selectedChat.id}
+              chatName={selectedChat.name}
+              currentUserId={currentUserId}
+              currentUserName={currentUserName}
+              memberProfiles={memberProfiles}
+              memberStatuses={memberStatuses}
+              onInitiateTransfer={onInitiateTransfer}
+              onVideoCallStarted={onVideoCallStarted}
+              onVideoCallEnded={onVideoCallEnded}
+            />
+          </>
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="hidden md:flex items-center justify-center h-full text-gray-500">
             Select a channel or conversation to start
           </div>
         )}
