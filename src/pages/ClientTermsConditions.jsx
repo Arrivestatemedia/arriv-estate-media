@@ -141,10 +141,16 @@ export default function ClientTermsConditions() {
                   ARRIV Estate Media LLC may send clients email communications related to their account and bookings.
                 </p>
                 <p className="text-[#1A1A1A]/80 mt-3">
-                  SMS/text message notifications are optional and are sent only if a client explicitly opts in. SMS messages may include booking confirmations, scheduling updates, media partner arrival notifications, job completion notices, invoice delivery, and payment reminders. Message and data rates may apply.
+                  SMS/text message notifications are optional and are sent only if a client explicitly opts in. SMS messages may include booking confirmations, scheduling updates, media partner arrival notifications, job completion notices, invoice delivery, and payment reminders.
                 </p>
                 <p className="text-[#1A1A1A]/80 mt-3">
-                  Clients may opt out of SMS communications at any time by replying STOP. Opting out of SMS does not affect the ability to create an account, request services, or receive services.
+                  Message frequency varies. Message and data rates may apply.
+                </p>
+                <p className="text-[#1A1A1A]/80 mt-3">
+                  Clients may opt out of SMS communications at any time by replying <strong>STOP</strong> to any message. For assistance, clients may reply <strong>HELP</strong>.
+                </p>
+                <p className="text-[#1A1A1A]/80 mt-3">
+                  SMS consent is not required to create an account or request services.
                 </p>
               </div>
 
