@@ -774,7 +774,7 @@ export default function HubSpotActivityLog() {
           </DialogContent>
         </Dialog>
 
-        <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20">
+        <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20 overflow-x-auto whitespace-nowrap">
           {[
             { id: "activity", label: "Activity Log" },
             { id: "email", label: "Email Hub" },
@@ -783,11 +783,11 @@ export default function HubSpotActivityLog() {
             { id: "queue", label: "Call Queue" },
             { id: "calendar", label: "Calendar" },
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="shrink-0 px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
               {tab.label}
             </button>
           ))}
-          <button onClick={() => setActiveTab("call")} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === "call" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "call" ? '#B8956A' : 'transparent' }}>
+          <button onClick={() => setActiveTab("call")} className="shrink-0 px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === "call" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "call" ? '#B8956A' : 'transparent' }}>
             <span className="flex items-center gap-1">
               <Phone className="w-4 h-4" />
               Dialer
@@ -796,10 +796,10 @@ export default function HubSpotActivityLog() {
               )}
             </span>
           </button>
-          <button onClick={() => setActiveTab("chat")} className="px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === "chat" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "chat" ? '#B8956A' : 'transparent' }}>
+          <button onClick={() => setActiveTab("chat")} className="shrink-0 px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === "chat" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "chat" ? '#B8956A' : 'transparent' }}>
             <span className="flex items-center gap-1"><MessageSquare className="w-4 h-4" />Chat</span>
           </button>
-          <button onClick={() => setActiveTab("ai")} className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap" style={{ color: activeTab === "ai" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "ai" ? '#B8956A' : 'transparent' }}>
+          <button onClick={() => setActiveTab("ai")} className="shrink-0 px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === "ai" ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === "ai" ? '#B8956A' : 'transparent' }}>
             <span className="flex items-center gap-1"><Sparkles className="w-4 h-4" />AI Assistant</span>
           </button>
         </div>
