@@ -6,9 +6,12 @@ import { base44 } from '@/api/base44Client';
 import ReactMarkdown from 'react-markdown';
 
 export default function ViewCallMapModal({ activity, open, onOpenChange }) {
-  const [callMap, setCallMap] = useState(activity?.call_map || "");
+  const notes = activity?.notes || "";
+  const callMapMatch = notes.match(/--- CALL MAP ---\n?([\s\S]*)/);
+  const initialCallMap = callMapMatch ? callMapMatch[1].trim() : "";
+  
+  const [callMap, setCallMap] = useState(initialCallMap);
   const [regenerating, setRegenerating] = useState(false);
-  const [showRegenerateOptions, setShowRegenerateOptions] = useState(false);
 
   const regenerateCallMap = async () => {
     setRegenerating(true);
@@ -23,16 +26,16 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
       const newCallMap = res.data?.call_map;
       if (!newCallMap || typeof newCallMap !== 'string' || newCallMap.trim().length === 0) {
         console.error('Invalid call map response:', res.data);
-        setCallMap("");
+        alert('Failed to generate call map');
         return;
       }
       
       setCallMap(newCallMap);
-      await base44.entities.ActivityLog.update(activity.id, { call_map: newCallMap });
-      setShowRegenerateOptions(false);
+      const updatedNotes = notes.replace(/--- CALL MAP ---[\s\S]*/, "") + `\n\n--- CALL MAP ---\n${newCallMap}`;
+      await base44.entities.ActivityLog.update(activity.id, { notes: updatedNotes });
     } catch (e) {
       console.error('Regenerate failed:', e);
-      setCallMap("");
+      alert('Failed to regenerate call map');
     } finally {
       setRegenerating(false);
     }
