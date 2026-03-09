@@ -213,7 +213,7 @@ export default function ClientSignup() {
                   className="mt-0.5 shrink-0"
                 />
                 <span>
-                  I would like to receive optional SMS updates from Arriv Estate Media LLC about my bookings (confirmations, scheduling updates, arrival notifications, job completion notices, invoice notifications, and payment reminders). Message frequency varies. Message & data rates may apply. Reply STOP to opt out. Reply HELP for help. SMS consent is not required to create an account or request services.
+                  I would like to receive optional SMS updates from Arriv Estate Media LLC about my bookings (including confirmations, scheduling updates, arrival notifications, job completion notices, invoices, and payment reminders). Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help. SMS consent is not required to create an account or use our services.
                 </span>
               </label>
             </div>
