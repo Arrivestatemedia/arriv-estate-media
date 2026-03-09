@@ -83,44 +83,56 @@ async function analyzeContact(contact, learnedContext) {
   ].filter(Boolean).join(" ");
 
   const res = await base44.integrations.Core.InvokeLLM({
-    prompt: `You are a sharp sales intelligence agent for ARRIV, a real estate photography company. Decide ONE follow-up date for this realtor. This gets saved permanently — be deliberate.
+    prompt: `You are a sharp sales intelligence agent for ARRIV, a real estate photography company. Your ONLY job: read the contact's history, understand EXACTLY what they said, and schedule the next call at the RIGHT time. Do NOT overestimate timeline.
 
 TODAY: ${today} (${dayName})
-
 CONTACT: ${contact.name} | ${contact.company || "Unknown brokerage"}
 
+=== READ THIS HISTORY VERY CAREFULLY ===
 FULL HISTORY (newest first):
 ${historyText || "No prior contact"}
 
-${learnedContext ? `LEARNED PATTERNS:\n${learnedContext}\n` : ""}
+${learnedContext ? `\nLEARNED PATTERNS FROM PAST OUTCOMES:\n${learnedContext}\n` : ""}
 
-=== CRITICAL RULES — READ CAREFULLY ===
+=== IF ATTACHED IMAGES EXIST, READ THEM FIRST ===
+${allPictureUrls.length > 0 ? `IMAGES ATTACHED: ${allPictureUrls.length} screenshot(s) from conversations. READ EACH ONE. Look for:
+- Exact words they used ("call me back at...", "next week", "I'm interested", "not now")
+- Dates/times they mentioned
+- Their tone (warm, cold, hesitant, excited)
+- Any commitments they made
+IMAGES ARE PRIMARY EVIDENCE. Use them to override unclear notes.` : ""}
 
-RESPECT THEIR STATED PREFERENCE ABOVE ALL ELSE:
-- If they said "I'll reach out when ready", "I'll call you", "I'll get back to you", or anything indicating THEY will initiate → set 45 days out. Do NOT reach out sooner. Urgency: skip (show in "coming up" only, don't surface as due today)
-- If they have listings currently active on the market and we haven't shot them yet → this IS urgent. Override to high urgency, 1-2 business days.
-- If they said "call me in X weeks/days" → respect that exact timeframe to the day.
-- "Not interested" or firm no → 45 days. Urgency: low.
-- "Busy, call me later/tomorrow" → next business day 8am. Urgency: high.
-- Warm/showed interest → 2-3 business days, morning. Urgency: high.
-- No answer 1-2x → 4 business days, different time than last. Urgency: medium.
-- No answer 3+ times → 14 days, switch to text. Urgency: low.
-- Left voicemail → 4 business days, different time. Urgency: medium.
-- No history at all → next Tuesday or Wednesday 8:30am. Urgency: medium.
+=== DECISION RULES (apply in order) ===
 
-BEST DAYS: Tuesday > Wednesday > Thursday > Monday after 10am. Avoid Friday PM and weekends.
-BEST TIMES: 8–9am > 12–1pm > 5–7pm > 9:30–10:30am.
+1. DID THEY GIVE A SPECIFIC CALLBACK TIME? ("call me back at 2pm", "tomorrow morning", "next Monday")
+   → Schedule EXACTLY then (or next business day if weekend). Urgency: high.
 
-CHANNEL SELECTION — pick the best outreach method based on history:
-- Default: call
-- Switch to TEXT if: they've responded positively to texts in history, they said "text me", 3+ no-answer calls in a row, or they seem to prefer async communication
-- Switch to EMAIL if: they're a heavy email communicator based on history, they asked to be emailed, or it's a formal/complex follow-up that needs written detail
-- If unsure: call is safest for first contact; text is great for warm leads who aren't picking up; email for detailed proposals
-- Note: "no_answer 3+ times" → switch to text as primary
+2. DID THEY SAY "CALL ME BACK IN X DAYS/WEEKS"? ("call me back in 2 weeks", "in a month")
+   → Schedule EXACTLY that many days from now. Urgency: medium.
 
-SEARCH: Look up "${searchQuery}" — find active listings, brokerage, market area. If they have an active listing we haven't shot, flag urgency: high.
+3. DID THEY SAY THEY'LL CALL YOU? ("I'll get back to you", "I'll reach out", "I'll call you when ready")
+   → Set 45 days out. Urgency: skip. DO NOT surface as due today.
 
-${allPictureUrls.length > 0 ? `\nATTACHED IMAGES: There are ${allPictureUrls.length} image(s) attached from past activities (e.g. screenshots of conversations, texts, emails). READ THEM. They may contain context about what was discussed, agreements made, or what the contact said — treat this as primary evidence when deciding timing and channel.` : ""}
+4. ARE THEY A WARM LEAD? (said "interested", "sounds good", "send me info", asked questions)
+   → Schedule 2-3 business days, morning 8-9am. Urgency: high.
+
+5. DID THEY SAY "NOT INTERESTED"? (firm no, rejection)
+   → Schedule 45 days out. Urgency: low.
+
+6. NO ANSWER (they didn't pick up, voicemail only)
+   → Schedule 4 business days, different time than last attempt. Urgency: medium.
+
+7. THEY SAID THEY'RE BUSY/BAD TIME NOW
+   → Next business day 8:30am. Urgency: high.
+
+8. FIRST CONTACT (no history)
+   → Next Tuesday or Wednesday 8:30am. Urgency: medium.
+
+BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
+
+CHANNEL: Default=call. Switch to TEXT only if they explicitly said "text me" or have responded positively to texts. EMAIL only if they asked or are heavy email communicator.
+
+MARKET INTEL: Look up "${searchQuery}" — check for active listings. If they have one and we haven't shot it, override urgency to HIGH and schedule 1-2 business days.
 
 OUTPUT valid JSON only:
 {
@@ -128,9 +140,9 @@ OUTPUT valid JSON only:
   "urgency": "high" | "medium" | "low" | "skip",
   "channel": "call" | "text" | "email",
   "channel_reason": "One sentence on why this channel was chosen",
-  "reason": "Short, plain-English reason referencing the specific signal",
-  "suggested_opener": "A casual, natural 1-2 sentence opener — sounds like a real person talking, not a script",
-  "contact_intel": "1-2 sentences on what you found about this realtor online",
+  "reason": "Specific quote or context from history explaining the timing",
+  "suggested_opener": "A casual, natural 1-2 sentence opener",
+  "contact_intel": "1-2 sentences on what you found about this realtor",
   "pattern_tags": ["tag1", "tag2"]
 }`,
     add_context_from_internet: true,
