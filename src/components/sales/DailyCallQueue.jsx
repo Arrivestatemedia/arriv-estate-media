@@ -882,11 +882,18 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
             try {
               const scheduled = newScheduledMap[contact.key];
               console.log(`[DailyCallQueue loadQueue] Generating call map for ${contact.name}`);
+              const historySnippet = contact.past
+                .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+                .slice(0, 15)
+                .map(a => `${format(new Date(a.activity_date), "MMM d, yyyy")}: [${a.activity_type}] ${a.notes?.slice(0, 150)}`)
+                .join("\n");
+              
               const callMapRes = await base44.functions.invoke('regenerateCallMap', {
                 contactName: contact.name,
                 contactEmail: contact.email,
                 companyName: contact.company,
                 contactPhone: contact.phone,
+                activityHistory: historySnippet || null,
               });
 
               const callMap = callMapRes?.data?.call_map;
