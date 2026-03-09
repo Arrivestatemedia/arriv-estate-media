@@ -224,7 +224,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                         <div className="mt-2 pt-2 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
                           {secondaryInfo[contact.email].secondary_names?.length > 0 && (
                             <div className="text-xs mb-1">
-                              <span style={{ color: 'rgba(26,26,26,0.5)' }}>Also known as: </span>
+                              <span style={{ color: 'rgba(26,26,26,0.5)' }}>Additional contacts: </span>
                               <span style={{ color: '#1A1A1A' }}>{secondaryInfo[contact.email].secondary_names.join(', ')}</span>
                             </div>
                           )}
