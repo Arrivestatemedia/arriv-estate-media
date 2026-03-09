@@ -164,7 +164,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
   );
 
   return (
-    <div className="w-64 bg-[#1A1A1A] text-white flex flex-col border-r border-gray-700">
+    <div className="w-full md:w-64 bg-[#1A1A1A] text-white flex flex-col border-r border-gray-700">
       {/* Header */}
       <div className="p-4 border-b border-gray-700">
         <h3 className="font-bold text-lg">{currentUserName}</h3>
