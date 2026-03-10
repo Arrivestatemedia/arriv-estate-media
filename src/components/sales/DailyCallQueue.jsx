@@ -126,7 +126,7 @@ IMAGES ARE PRIMARY EVIDENCE. Use them to override unclear notes.` : ""}
    → Next business day 8:30am. Urgency: high.
 
 8. FIRST CONTACT (no history)
-   → Next Tuesday or Wednesday 8:30am. Urgency: medium.
+   → Schedule TODAY (if it's before 5pm) at the next available window, or TOMORROW at 8:30am. Never push a brand new contact out more than 1 day. Urgency: high.
 
 BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
 
