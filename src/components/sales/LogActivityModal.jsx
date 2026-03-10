@@ -25,30 +25,46 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
   const [selectedContact, setSelectedContact] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Load contacts when modal opens
+  // Load contacts when modal opens — merge ActivityLog contacts + HubSpot contacts
   React.useEffect(() => {
     if (!open) return;
     setLoadingContacts(true);
     const memberId = salesMemberId || localStorage.getItem('sales_member_id');
-    base44.entities.ActivityLog.filter({ sales_member_id: memberId }, '-activity_date', 100)
-      .then(logs => {
-        const uniqueContacts = {};
-        logs?.forEach(log => {
-          if (log.contact_email && !uniqueContacts[log.contact_email]) {
-            uniqueContacts[log.contact_email] = {
-              email: log.contact_email,
-              name: log.contact_name,
-              company: log.company_name
-            };
-          }
-        });
-        setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
-        if (contact) {
-          setSelectedContact(contact.email || contact.id);
+
+    Promise.all([
+      base44.entities.ActivityLog.filter({ sales_member_id: memberId }, '-activity_date', 200).catch(() => []),
+      base44.functions.invoke("searchHubSpotContacts", { query: "", limit: 200 }).catch(() => ({ data: { contacts: [] } }))
+    ]).then(([logs, hsRes]) => {
+      const uniqueContacts = {};
+
+      // Add from activity logs first
+      logs?.forEach(log => {
+        if (log.contact_email && !uniqueContacts[log.contact_email]) {
+          uniqueContacts[log.contact_email] = {
+            email: log.contact_email,
+            name: log.contact_name,
+            company: log.company_name,
+            phone: log.contact_phone || ""
+          };
         }
-      })
-      .catch(() => setContacts([]))
-      .finally(() => setLoadingContacts(false));
+      });
+
+      // Merge HubSpot contacts (won't override existing ones)
+      const hsContacts = hsRes?.data?.contacts || [];
+      hsContacts.forEach(c => {
+        const email = c.email;
+        if (!email) return;
+        const name = [c.firstname, c.lastname].filter(Boolean).join(" ");
+        if (!uniqueContacts[email]) {
+          uniqueContacts[email] = { email, name, company: c.company || "", phone: c.phone || "" };
+        } else if (!uniqueContacts[email].name && name) {
+          uniqueContacts[email].name = name;
+        }
+      });
+
+      setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+      if (contact) setSelectedContact(contact.email || contact.id);
+    }).finally(() => setLoadingContacts(false));
   }, [open, salesMemberId, contact]);
 
   const selectedContactObj = selectedContact 
