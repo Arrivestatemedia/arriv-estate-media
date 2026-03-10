@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp, Edit2, Check, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating, contactPhone, contactEmail, onCall, onEmail, onSaveEdit }) {
   const [showContextBox, setShowContextBox] = useState(false);
@@ -53,17 +54,24 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
         </DialogHeader>
 
         {(contactPhone || contactEmail) && (
-          <div className="flex gap-2 shrink-0 mb-2">
-            {contactPhone && (
-              <Button
-                size="sm"
-                className="gap-2"
-                style={{ backgroundColor: '#B8956A', color: '#fff' }}
-                onClick={() => { onClose(); onCall && onCall(contactPhone); }}
-              >
-                <Phone className="w-4 h-4" /> Call
-              </Button>
-            )}
+           <div className="flex gap-2 shrink-0 mb-2">
+             {contactPhone && (
+               <TooltipProvider>
+                 <Tooltip>
+                   <TooltipTrigger asChild>
+                     <Button
+                       size="sm"
+                       className="gap-2"
+                       style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                       onClick={() => { onClose(); onCall && onCall(contactPhone); }}
+                     >
+                       <Phone className="w-4 h-4" /> Call
+                     </Button>
+                   </TooltipTrigger>
+                   <TooltipContent>{contactPhone}</TooltipContent>
+                 </Tooltip>
+               </TooltipProvider>
+             )}
             {contactEmail && (
               <Button
                 size="sm"
