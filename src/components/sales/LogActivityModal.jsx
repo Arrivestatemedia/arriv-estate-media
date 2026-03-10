@@ -147,7 +147,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
                    <SelectItem value="__none__" disabled>No previous contacts found</SelectItem>
                  )}
                  {contacts.map((c) => (
-                   <SelectItem key={c.email} value={c.email}>
+                   <SelectItem key={c.email || c.name} value={c.email || c.name}>
                      {c.name} {c.company ? `(${c.company})` : ""}
                    </SelectItem>
                  ))}
