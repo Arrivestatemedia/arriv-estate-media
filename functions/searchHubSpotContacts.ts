@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       lifecycle_stage: result.properties.lifecyclestage || ''
     })) || [];
 
-    return Response.json({ contacts });
+    return Response.json({ results: contacts });
   } catch (error) {
     console.error('Search HubSpot error:', error);
     return Response.json({ error: error.message }, { status: 500 });
