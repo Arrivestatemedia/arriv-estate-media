@@ -224,6 +224,15 @@ export default function ContactDetailPage() {
 
           {/* Action buttons */}
            <div className="mt-4 flex flex-wrap gap-2 items-start">
+             <Button
+               size="sm"
+               className="gap-2"
+               style={{ backgroundColor: '#B8956A', color: '#fff' }}
+               onClick={() => setShowLogActivity(true)}
+             >
+               <Plus className="w-4 h-4" />
+               Log Activity
+             </Button>
              {contact.phone && (
                <TooltipProvider>
                  <Tooltip>
