@@ -31,18 +31,10 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     setLoadingContacts(true);
     const memberId = salesMemberId || localStorage.getItem('sales_member_id');
 
-    const memberEmail = salesMemberEmail || localStorage.getItem('sales_member_email');
-
-    // Pull ALL activity logs for this rep (by id or email) to build contact list
-    base44.entities.ActivityLog.list('-activity_date', 500)
-      .then(allLogs => {
-        const logs = allLogs.filter(a =>
-          a.sales_member_id === memberId ||
-          a.sales_member_email === memberEmail ||
-          a.created_by === memberEmail
-        );
+    base44.entities.ActivityLog.filter({ sales_member_id: memberId }, '-activity_date', 500)
+      .then(logs => {
         const uniqueContacts = {};
-        logs.forEach(log => {
+        logs?.forEach(log => {
           if (log.contact_email && !uniqueContacts[log.contact_email]) {
             uniqueContacts[log.contact_email] = {
               email: log.contact_email,
