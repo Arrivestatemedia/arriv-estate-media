@@ -473,7 +473,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                          </SelectTrigger>
                          <SelectContent>
                           {contacts.map((c) => (
-                            <SelectItem key={c.email} value={c.email}>
+                            <SelectItem key={c.email || c.name} value={c.email || c.name}>
                               {c.name} {c.company ? `(${c.company})` : ""}
                             </SelectItem>
                           ))}
