@@ -62,7 +62,10 @@ export default function ContactDetailPage() {
     if (!contactKey) return;
     
     const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
-      if (event.data?.contact_email === contactKey || event.data?.contact_name === contactKey) {
+      const eventEmail = (event.data?.contact_email || '').toLowerCase().trim();
+      const eventName = (event.data?.contact_name || '').toLowerCase().trim();
+      const key = contactKey.toLowerCase().trim();
+      if (eventEmail === key || eventName === key) {
         loadActivities();
       }
     });
