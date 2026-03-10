@@ -90,23 +90,28 @@ export default function ContactDetailPage() {
       if (filtered.length > 0) {
         const contactEmail = filtered[0].contact_email || '';
         const contactName = filtered[0].contact_name || '';
+        const phoneFromLog = filtered.find(a => a.contact_phone)?.contact_phone || '';
+        
         const baseContact = {
           key: contactKey,
           name: contactName,
           email: contactEmail,
           company: filtered[0].company_name || '',
-          phone: '',
+          phone: phoneFromLog,
         };
         setContact(baseContact);
 
-        // Try to fetch phone from HubSpot
-        if (contactEmail) {
-          base44.functions.invoke('searchHubSpotContacts', { query: contactEmail }).then(res => {
+        // If no phone in activities, fetch from HubSpot
+        if (!phoneFromLog && contactEmail) {
+          try {
+            const res = await base44.functions.invoke('searchHubSpotContacts', { query: contactEmail });
             const results = res?.data?.results || [];
             const match = results.find(r => r.properties?.email === contactEmail);
             const phone = match?.properties?.phone || match?.properties?.mobilephone || '';
             if (phone) setContact(prev => ({ ...prev, phone }));
-          }).catch(() => {});
+          } catch (hsError) {
+            console.error('HubSpot search failed:', hsError);
+          }
         }
       }
     } catch (e) {
