@@ -31,14 +31,12 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     setLoadingContacts(true);
     const memberId = salesMemberId || localStorage.getItem('sales_member_id');
     const memberEmail = salesMemberEmail || localStorage.getItem('sales_member_email');
-    const isAdmin = localStorage.getItem('sales_member_role') === 'admin';
     base44.entities.ActivityLog.list('-activity_date', 500)
       .then(all => {
-        const logs = isAdmin ? all : all.filter(a =>
+        const logs = all.filter(a =>
           a.sales_member_id === memberId ||
           a.sales_member_email === memberEmail ||
-          a.created_by === memberEmail ||
-          (!a.sales_member_id && !a.sales_member_email) // include activities with no rep assigned
+          a.created_by === memberEmail
         );
         const uniqueContacts = {};
         logs.forEach(log => {
