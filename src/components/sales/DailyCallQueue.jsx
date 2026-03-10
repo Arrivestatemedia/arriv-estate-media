@@ -805,6 +805,81 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
   );
 }
 
+function UpcomingCard({ contact, scheduled, meta, onDeleted }) {
+  const [expanded, setExpanded] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const priority = getPriorityLabel(meta.urgency || "low");
+  const hasCallMap = scheduled && /--- CALL MAP ---/i.test(scheduled.notes || '');
+  const notes = scheduled?.notes || '';
+  // Show the portion before the call map as the "notes preview"
+  const notesPreview = notes.split(/--- CALL MAP ---/i)[0].replace(/^\[AI Scheduled\]\s*/i, '').trim();
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    if (!scheduled) return;
+    setDeleting(true);
+    await base44.entities.ActivityLog.delete(scheduled.id).catch(() => {});
+    setDeleting(false);
+    if (onDeleted) onDeleted();
+  };
+
+  return (
+    <div>
+      <div
+        className="rounded-lg cursor-pointer"
+        style={{ backgroundColor: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.2)' }}
+        onClick={() => setExpanded(e => !e)}
+      >
+        <div className="flex items-center justify-between gap-2 p-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: priority.color }} />
+            <span className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{contact.name}</span>
+            {contact.company && <span className="text-xs truncate" style={{ color: 'rgba(26,26,26,0.4)' }}>{contact.company}</span>}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge style={{ backgroundColor: priority.bg, color: priority.color, border: 'none', fontSize: '10px' }}>{priority.label}</Badge>
+            {expanded ? <ChevronUp className="w-3.5 h-3.5 opacity-40" /> : <ChevronDown className="w-3.5 h-3.5 opacity-40" />}
+          </div>
+        </div>
+        {scheduled && (
+          <div className="px-3 pb-3 -mt-1">
+            <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
+              {format(new Date(scheduled.activity_date), "MMM d 'at' h:mm a")}
+            </span>
+          </div>
+        )}
+
+        {expanded && (
+          <div className="px-3 pb-3 pt-2 border-t space-y-3" style={{ borderColor: 'rgba(184,149,106,0.15)' }} onClick={e => e.stopPropagation()}>
+            {notesPreview && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(26,26,26,0.4)' }}>Notes</p>
+                <p className="text-xs" style={{ color: '#1A1A1A' }}>{notesPreview}</p>
+              </div>
+            )}
+            <div className="flex gap-2 flex-wrap">
+              {hasCallMap && (
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                  onClick={() => setMapOpen(true)}>
+                  📋 View Call Map
+                </Button>
+              )}
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" style={{ borderColor: '#ef4444', color: '#ef4444' }}
+                onClick={handleDelete} disabled={deleting}>
+                <Trash2 className="w-3 h-3" /> {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+      {scheduled && hasCallMap && (
+        <ViewCallMapModal activity={scheduled} open={mapOpen} onOpenChange={setMapOpen} />
+      )}
+    </div>
+  );
+}
+
 export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repName }) {
   const [contacts, setContacts] = useState([]);
   // scheduledMap: contactKey -> ActivityLog record (the saved follow-up)
