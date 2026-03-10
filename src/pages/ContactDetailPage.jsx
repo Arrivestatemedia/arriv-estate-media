@@ -169,8 +169,21 @@ export default function ContactDetailPage() {
             </div>
           </div>
 
+          {/* Action buttons */}
+          <div className="mt-4 flex flex-wrap gap-2 items-start">
+            <Button
+              size="sm"
+              className="gap-2"
+              style={{ backgroundColor: '#B8956A', color: '#fff' }}
+              onClick={() => setShowLogActivity(true)}
+            >
+              <Plus className="w-4 h-4" />
+              Log Activity
+            </Button>
+          </div>
+
           {/* Follow-up button / form */}
-          <div className="mt-4">
+          <div className="mt-3">
             {showFollowUpForm ? (
               <div className="space-y-3 p-4 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.3)' }}>
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>Schedule Follow-up</p>
