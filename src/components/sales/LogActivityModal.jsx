@@ -65,8 +65,8 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
       .finally(() => setLoadingContacts(false));
   }, [open, salesMemberId, contact]);
 
-  const selectedContactObj = selectedContact 
-    ? contacts.find(c => c.email === selectedContact) || contact
+  const selectedContactObj = selectedContact
+    ? contacts.find(c => (c.email && c.email === selectedContact) || (c.name && c.name === selectedContact)) || contact
     : contact;
 
   const contactName = selectedContactObj
