@@ -49,7 +49,7 @@ export default function ContactDetailPage() {
       if (phone) {
         localStorage.setItem('_dialerPhone', phone);
         const isAdmin = localStorage.getItem('user_role') === 'admin';
-        const route = isAdmin ? 'AdminActivityPage?tab=myactivity' : 'HubSpotActivityLog?tab=dialer';
+        const route = isAdmin ? 'AdminActivityPage?tab=myactivity&dialer=true' : 'HubSpotActivityLog?tab=dialer';
         window.location.href = createPageUrl(route);
       }
     };
