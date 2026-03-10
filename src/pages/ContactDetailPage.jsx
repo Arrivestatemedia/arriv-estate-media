@@ -48,7 +48,9 @@ export default function ContactDetailPage() {
       const phone = e.detail?.phone;
       if (phone) {
         localStorage.setItem('_dialerPhone', phone);
-        window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=dialer';
+        const isAdmin = localStorage.getItem('user_role') === 'admin';
+        const route = isAdmin ? 'AdminActivityPage?tab=myactivity' : 'HubSpotActivityLog?tab=dialer';
+        window.location.href = createPageUrl(route);
       }
     };
     window.addEventListener('openDialer', handleOpenDialer);
