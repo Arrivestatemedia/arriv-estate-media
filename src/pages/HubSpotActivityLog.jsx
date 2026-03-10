@@ -310,7 +310,7 @@ export default function HubSpotActivityLog() {
   }, [showForm, user?.id]);
 
   const selectedContactObj = selectedContact
-    ? contacts.find(c => c.email === selectedContact)
+    ? contacts.find(c => (c.email && c.email === selectedContact) || (c.name && c.name === selectedContact))
     : null;
 
   const { data: activities = [] } = useQuery({
