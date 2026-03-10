@@ -372,14 +372,22 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
         : "";
 
       const res = await base44.integrations.Core.InvokeLLM({
-       prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
+       prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown brokerage"}
 
-      Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}${patternTagsText}
-      History: ${historySnippet || "no prior contact"}
+CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
+- We shoot photos and video for real estate listings. That's it.
+- We do NOT offer: websites, marketing platforms, advertising campaigns, CRM tools, lead gen, or anything other than photo/video.
+- NEVER use placeholders like "[Your Name]" or "[Your Company]". Use "ARRIV" as company.
+- Scripts must be casual and human, not corporate. Reference specific details from history.
+- Key stat: "homes with pro media sell 32% faster and for 5-11% more"
+- Brad handles pricing questions and closings.
 
-      Output JSON with ALL 10 sections. Every field required and must be filled with full content.
+Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}${patternTagsText}
+History: ${historySnippet || "no prior contact"}
 
-      ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
+Output JSON with ALL 10 sections. Every field required and must be filled with full content.
+
+${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""}`,
         add_context_from_internet: true,
         file_urls: scriptPictureUrls.length > 0 ? scriptPictureUrls : undefined,
         response_json_schema: {
