@@ -53,7 +53,12 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
         });
         setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
         if (contact) {
-          setSelectedContact(contact.email || contact.id);
+          const contactFullName = [contact.firstname, contact.lastname].filter(Boolean).join(' ') || contact.name || '';
+          // Match by email first, then fall back to name for contacts without email
+          const matchByEmail = contact.email && Object.values(uniqueContacts).find(c => c.email === contact.email);
+          const matchByName = contactFullName && Object.values(uniqueContacts).find(c => c.name === contactFullName);
+          const match = matchByEmail || matchByName;
+          if (match) setSelectedContact(match.email || match.name);
         }
       })
       .catch(() => setContacts([]))
