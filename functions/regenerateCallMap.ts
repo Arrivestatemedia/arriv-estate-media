@@ -113,7 +113,17 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
 
     // Generate comprehensive call map with learned patterns
     const callMapRes = await base44.integrations.Core.InvokeLLM({
-      prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contactName}. Generate a complete call map as a JSON structure with all conversation branches covered. Sound like a real person who knows them.
+      prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map. 
+
+CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
+- We shoot photos and video for real estate listings. That's it.
+- We do NOT offer: websites, marketing platforms, advertising campaigns, CRM tools, lead gen, anything digital other than photo/video.
+- The rep's name is the rep. NEVER use placeholders like "[Your Name]" or "[Your Company]". Use "ARRIV" as the company name.
+- Scripts must sound like a real human, not a corporate bot. Casual, warm, direct.
+- Key stat to use when relevant: "homes with pro media sell 32% faster and for 5-11% more"
+- Brad handles pricing questions and closings — route there when needed.
+
+Generate a complete call map as a JSON structure with all conversation branches covered. Sound like a real person who knows them.
 
 PROFILE DATA:
 ${hubspotData}
