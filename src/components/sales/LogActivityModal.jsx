@@ -30,10 +30,16 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     if (!open) return;
     setLoadingContacts(true);
     const memberId = salesMemberId || localStorage.getItem('sales_member_id');
-    base44.entities.ActivityLog.filter({ sales_member_id: memberId }, '-activity_date', 100)
-      .then(logs => {
+    const memberEmail = salesMemberEmail || localStorage.getItem('sales_member_email');
+    base44.entities.ActivityLog.list('-activity_date', 500)
+      .then(all => {
+        const logs = all.filter(a =>
+          a.sales_member_id === memberId ||
+          a.sales_member_email === memberEmail ||
+          a.created_by === memberEmail
+        );
         const uniqueContacts = {};
-        logs?.forEach(log => {
+        logs.forEach(log => {
           const key = log.contact_email || log.contact_name;
           if (key && !uniqueContacts[key]) {
             uniqueContacts[key] = {
