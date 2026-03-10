@@ -147,6 +147,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     setNotes("");
     setDuration("");
     setScreenshots([]);
+    setSelectedContact(null);
     setActivityDate(new Date().toISOString().slice(0, 16));
     onClose();
   };
