@@ -268,7 +268,15 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem, existingSchedu
       .slice(0, 6);
 
     const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown"}
+      prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown brokerage"}
+
+CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
+- We shoot photos and video for real estate listings. That's it.
+- We do NOT offer: websites, marketing platforms, advertising campaigns, CRM tools, lead gen, or anything other than photo/video.
+- NEVER use placeholders like "[Your Name]" or "[Your Company]". Use "ARRIV" as company.
+- Scripts must be casual and human, not corporate. Reference specific details from history.
+- Key stat: "homes with pro media sell 32% faster and for 5-11% more"
+- Brad handles pricing questions and closings.
 
 History: ${historySnippet || "no prior contact"}
 
