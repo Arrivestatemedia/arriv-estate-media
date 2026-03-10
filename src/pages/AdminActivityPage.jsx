@@ -382,8 +382,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     }
   };
 
-  const selectedContactObj = selectedContact 
-    ? contacts.find(c => c.email === selectedContact)
+  const selectedContactObj = selectedContact
+    ? contacts.find(c => (c.email && c.email === selectedContact) || (c.name && c.name === selectedContact))
     : null;
 
   const handleSubmit = () => {
