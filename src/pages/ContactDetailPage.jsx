@@ -42,6 +42,19 @@ export default function ContactDetailPage() {
     loadActivities();
   }, [contactKey]);
 
+  // Listen for openDialer event and navigate to dialer
+  useEffect(() => {
+    const handleOpenDialer = (e) => {
+      const phone = e.detail?.phone;
+      if (phone) {
+        localStorage.setItem('_dialerPhone', phone);
+        window.location.href = createPageUrl('HubSpotActivityLog') + '?tab=dialer';
+      }
+    };
+    window.addEventListener('openDialer', handleOpenDialer);
+    return () => window.removeEventListener('openDialer', handleOpenDialer);
+  }, []);
+
   // Subscribe to ActivityLog changes for real-time call map updates
   useEffect(() => {
     if (!contactKey) return;
