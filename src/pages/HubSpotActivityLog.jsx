@@ -292,8 +292,10 @@ export default function HubSpotActivityLog() {
     setLoadingContacts(true);
     base44.entities.ActivityLog.filter({ sales_member_id: user.id }, '-activity_date', 100)
       .then(logs => {
+        const isPhoneOrExtension = (name) => !name || /^[+\d\s\-().]+$/.test(name.trim()) || /^\d{1,4}$/.test(name.trim());
         const uniqueContacts = {};
         logs?.forEach(log => {
+          if (isPhoneOrExtension(log.contact_name) && !log.contact_email) return;
           const key = log.contact_email || log.contact_name;
           if (key && !uniqueContacts[key]) {
             uniqueContacts[key] = {
