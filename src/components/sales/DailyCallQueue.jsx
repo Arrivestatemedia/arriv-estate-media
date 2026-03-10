@@ -348,11 +348,11 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
   const [deletingFollowUp, setDeletingFollowUp] = useState(false);
 
   const priority = getPriorityLabel(urgency || "medium");
+  const followUpDate = scheduledFollowUp ? new Date(scheduledFollowUp.activity_date) : null;
   const bestTime = followUpDate
     ? format(followUpDate, "h:mm a")
     : getBestTime(contact);
   const lastActivity = contact.past[0];
-  const followUpDate = scheduledFollowUp ? new Date(scheduledFollowUp.activity_date) : null;
 
   const generateScript = async () => {
     setGeneratingScript(true);
