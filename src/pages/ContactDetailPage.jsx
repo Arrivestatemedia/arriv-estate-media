@@ -392,6 +392,16 @@ export default function ContactDetailPage() {
         );
       })()}
 
+      {/* Log Activity Modal */}
+      <LogActivityModal
+        open={showLogActivity}
+        onClose={() => setShowLogActivity(false)}
+        contact={contact}
+        salesMemberId={localStorage.getItem('sales_member_id')}
+        salesMemberEmail={localStorage.getItem('sales_member_email')}
+        onLogged={() => { setShowLogActivity(false); loadActivities(); }}
+      />
+
       {/* Floating Chat Bubble */}
       <CallStatusProvider>
         <FloatingChatBubble />
