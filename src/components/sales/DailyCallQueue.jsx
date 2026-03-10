@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2, MapPin, Lightbulb } from "lucide-react";
+import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2, MapPin } from "lucide-react";
 import { format, formatDistanceToNow, addDays, isAfter, startOfDay, parseISO } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import ViewCallMapModal from "./ViewCallMapModal";
@@ -461,7 +461,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
   };
 
   const logOutcome = async () => {
-    if (!outcome) return;
+    if (!outcome || !outcomeNotes) return;
     setLoggingOutcome(true);
 
     const salesMemberEmail = localStorage.getItem('sales_member_email');
@@ -766,27 +766,6 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
             {!saved ? (
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.4)' }}>Log Outcome</p>
-                
-                {/* Auto-populate from notes logged today */}
-                {!outcome && contact.past && (() => {
-                  const today = startOfDay(new Date());
-                  const todayNotes = contact.past
-                    .filter(a => startOfDay(new Date(a.activity_date)).getTime() === today.getTime() && a.notes?.trim())
-                    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
-                  
-                  if (todayNotes.length > 0) {
-                    const latestNotes = todayNotes[0].notes;
-                    return (
-                      <div className="p-2 rounded-lg text-xs" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.2)' }}>
-                        <p style={{ color: 'rgba(26,26,26,0.6)' }}>
-                          <span className="font-semibold" style={{ color: '#B8956A' }}>Notes from today:</span> {latestNotes.slice(0, 120)}{latestNotes.length > 120 ? '...' : ''}
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-                
                 <Select value={outcome} onValueChange={setOutcome}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="What happened on this call?" /></SelectTrigger>
                   <SelectContent>
@@ -800,25 +779,6 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
                 </Select>
                 {outcome && (
                   <>
-                    {/* AI suggest outcome based on notes */}
-                    {!outcomeNotes && (() => {
-                      const today = startOfDay(new Date());
-                      const todayNotes = contact.past
-                        .filter(a => startOfDay(new Date(a.activity_date)).getTime() === today.getTime())
-                        .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
-                      
-                      if (todayNotes.length > 0 && outcomeNotes === "") {
-                        return (
-                          <div className="p-2 rounded-lg text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.08)' }}>
-                            <p style={{ color: 'rgba(26,26,26,0.6)' }}>
-                              💡 <span className="font-semibold">AI Suggestion:</span> Based on notes, outcome seems like "{outcome.replace(/_/g, " ")}"
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                    
                     <Textarea
                       placeholder="Quick notes on what was said..."
                       value={outcomeNotes}
@@ -826,7 +786,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
                       rows={2}
                       className="text-sm"
                     />
-                    <Button size="sm" onClick={logOutcome} disabled={loggingOutcome} className="w-full" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
+                    <Button size="sm" onClick={logOutcome} disabled={loggingOutcome || !outcomeNotes} className="w-full" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
                       {loggingOutcome ? "Saving..." : "Log & Schedule Next Follow-up"}
                     </Button>
                   </>
