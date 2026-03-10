@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+import LogActivityModal from "@/components/sales/LogActivityModal";
 import { CallStatusProvider } from "@/components/CallStatusContext";
 import CallMapModal from "@/components/sales/CallMapModal";
 
