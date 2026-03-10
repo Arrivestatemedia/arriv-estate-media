@@ -113,30 +113,33 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
 
     // Generate comprehensive call map with learned patterns
     const callMapRes = await base44.integrations.Core.InvokeLLM({
-      prompt: `You're coaching a sales rep at ARRIV (real estate video & photography service) for a call with ${contactName}. ARRIV shoots professional photo & video for real estate listings — that's the entire service.
+      prompt: `You're helping a sales rep at ARRIV (real estate photography company) prep for a call with ${contactName}. Generate a complete call map as a JSON structure with all conversation branches covered. Sound like a real person who knows them.
 
-${pictureUrls.length > 0 ? `LOOK AT ATTACHED IMAGES FIRST: They show examples of ARRIV's work and past interactions with this contact. Use them to understand exactly what we do and what was discussed.\n\n` : ""}CONTACT PROFILE:
+PROFILE DATA:
 ${hubspotData}
 
 MARKET INTEL:
 ${marketIntel}
 
-CONVERSATION CONTEXT:
-${reason ? `Why we're calling: ${reason}\n` : ""}${contactIntel ? `Rep's notes: ${contactIntel}\n` : ""}${patternTags && patternTags.length > 0 ? `Patterns: ${patternTags.join(", ")}\n` : ""}
+CONTEXT:
+${reason ? `Reason for call: ${reason}\n` : ""}${contactIntel ? `Rep notes on this contact: ${contactIntel}\n` : ""}${patternTags && patternTags.length > 0 ? `Recurring patterns with this contact: ${patternTags.join(", ")}\n` : ""}
 
-HISTORY:
-${historySnippet || "First contact"}
+CALL HISTORY:
+${historySnippet || "No prior activities"}
 
-${smsHistory ? `TEXTS:\n${smsHistory}\n` : ""}
+${smsHistory ? `TEXT MESSAGE HISTORY (analyze the tone, concerns, interests):\n${smsHistory}\n` : ""}
 
-BRAD'S FRAMEWORK:
-1. Open natural & specific — reference their market, recent listings, or prior conversation
-2. Lead with value: "Homes with professional photos/video sell 32% faster, 5-11% higher price"
-3. Objections? Acknowledge first, then redirect to Brad for pricing/details
-4. Close: "Brad handles everything from here" — builds trust
-5. If they say "call me back later today," schedule SAME-DAY, not days later
+BRAD'S PROVEN CLOSING FRAMEWORK:
+1. Open specific to them (reference actual conversation or market detail)
+2. Lead with urgency: "listings with pro media sell 32% faster, 5-11% higher"
+3. Handle objections gracefully, never argue
+4. Close with: "Brad handles the rest" — makes transition seamless
+5. For objections: acknowledge first, then redirect
+6. Same-day follow-ups are valid and encouraged — if someone says "call me back in an hour" or "later today," schedule it for that same day, not days later
 
-Write natural, conversational scripts. Multiple sentences where needed. If images show our work or prior context, reference that specifically.`,
+Fill in each JSON field with natural, conversational scripts (multiple sentences where appropriate). Reference specific details from their history or market.
+
+${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interactions. Analyze them to understand what was actually discussed. Reference specific details if visible.` : ""}`,
       model: "gemini_3_flash",
       file_urls: pictureUrls.length > 0 ? pictureUrls : undefined,
       response_json_schema: {
