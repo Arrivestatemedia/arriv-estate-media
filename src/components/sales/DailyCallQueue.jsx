@@ -236,13 +236,18 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem, existingSchedu
       if (found) break;
     }
   } else {
-    // For all other reps: smart scheduling based on realtor industry best practices
-    // Best times to reach realtors: 9am-11am (before showings), 1pm-3pm (lunch/admin time), 4pm-5pm (end of day)
-    const optimalWindows = [
+    // For all other reps: smart scheduling aligned with contact's best time preference
+    const allOptimalWindows = [
       { start: 9, end: 11 },      // Morning window
       { start: 13, end: 15 },     // Early afternoon
-      { start: 16, end: 17 }      // Late afternoon
+      { start: 17, end: 19 }      // Evening (5-7pm)
     ];
+    // Reorder based on contact's best time
+    const optimalWindows = isEveningPreferred
+      ? [allOptimalWindows[2], allOptimalWindows[0], allOptimalWindows[1]]
+      : isNoonPreferred || isAfternoonPreferred
+        ? [allOptimalWindows[1], allOptimalWindows[2], allOptimalWindows[0]]
+        : allOptimalWindows;
 
     let adjusted = new Date(followUpDate);
     let found = false;
