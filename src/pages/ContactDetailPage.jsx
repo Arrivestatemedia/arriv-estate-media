@@ -42,15 +42,14 @@ export default function ContactDetailPage() {
     loadActivities();
   }, [contactKey]);
 
-  // Listen for openDialer event and navigate to dialer
+  // Listen for openDialer event and store phone for dialer
   useEffect(() => {
     const handleOpenDialer = (e) => {
       const phone = e.detail?.phone;
       if (phone) {
         localStorage.setItem('_dialerPhone', phone);
-        const isAdmin = localStorage.getItem('user_role') === 'admin';
-        const route = isAdmin ? 'AdminActivityPage?tab=myactivity&dialer=true' : 'HubSpotActivityLog?tab=dialer';
-        window.location.href = createPageUrl(route);
+        // Dispatch event to parent to open dialer without navigation
+        window.dispatchEvent(new CustomEvent('showDialer', { detail: { phone } }));
       }
     };
     window.addEventListener('openDialer', handleOpenDialer);
