@@ -79,9 +79,7 @@ function LayoutContent({ children, currentPageName }) {
   const isSalesTeam = localStorage.getItem('sales_member_id');
 
   const navItems = isSalesTeam
-      ? [
-          { label: "Activity Log", page: "HubSpotActivityLog", icon: Briefcase },
-        ]
+      ? []
       : isAdmin
         ? [
             { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
@@ -90,7 +88,6 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
             { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
-            { label: "Activity Log", page: "HubSpotActivityLog", icon: FileText },
             { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },
             { label: "Client Terms", page: "AdminClientTerms", icon: Settings },
             { label: "Closing Invoice", page: "ManualClosingInvoice", icon: FileText },
