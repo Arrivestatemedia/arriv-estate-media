@@ -162,6 +162,13 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       setActiveTab('call');
     };
 
+    // Handle showDialer event from ContactDetailPage (non-navigation)
+    const handleShowDialer = (event) => {
+      const { phone } = event.detail;
+      if (phone) localStorage.setItem('_dialerPhone', phone);
+      setActiveTab('call');
+    };
+
     const handleEmailCardReady = () => {
       const email = localStorage.getItem('emailTo');
       if (email) {
@@ -182,6 +189,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     window.addEventListener('emailCardReady', handleEmailCardReady);
     window.addEventListener('switchToQueueTab', handleSwitchToQueue);
     window.addEventListener('openDialer', handleOpenDialer);
+    window.addEventListener('showDialer', handleShowDialer);
     window.addEventListener('adminNavigateToQueue', handleAdminNavigateToQueue);
 
     // Check if NotificationPanel stored a pending tab switch
@@ -215,6 +223,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       window.removeEventListener('emailCardReady', handleEmailCardReady);
       window.removeEventListener('switchToQueueTab', handleSwitchToQueue);
       window.removeEventListener('openDialer', handleOpenDialer);
+      window.removeEventListener('showDialer', handleShowDialer);
       window.removeEventListener('adminNavigateToQueue', handleAdminNavigateToQueue);
     };
   }, []);
