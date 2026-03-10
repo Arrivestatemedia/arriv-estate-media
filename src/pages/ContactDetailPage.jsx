@@ -88,14 +88,26 @@ export default function ContactDetailPage() {
       setActivities(filtered);
       
       if (filtered.length > 0) {
-        const phone = filtered.find(a => a.contact_phone)?.contact_phone || '';
-        setContact({
+        const contactEmail = filtered[0].contact_email || '';
+        const contactName = filtered[0].contact_name || '';
+        const baseContact = {
           key: contactKey,
-          name: filtered[0].contact_name || '',
-          email: filtered[0].contact_email || '',
+          name: contactName,
+          email: contactEmail,
           company: filtered[0].company_name || '',
-          phone,
-        });
+          phone: '',
+        };
+        setContact(baseContact);
+
+        // Try to fetch phone from HubSpot
+        if (contactEmail) {
+          base44.functions.invoke('searchHubSpotContacts', { query: contactEmail }).then(res => {
+            const results = res?.data?.results || [];
+            const match = results.find(r => r.properties?.email === contactEmail);
+            const phone = match?.properties?.phone || match?.properties?.mobilephone || '';
+            if (phone) setContact(prev => ({ ...prev, phone }));
+          }).catch(() => {});
+        }
       }
     } catch (e) {
       console.error(e);
