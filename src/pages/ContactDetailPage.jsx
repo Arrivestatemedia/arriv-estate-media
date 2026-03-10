@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Phone, Mail, Building2, User, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { createPortal } from "react-dom";
 import { createPageUrl } from "@/utils";
@@ -206,17 +207,35 @@ export default function ContactDetailPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="mt-4 flex flex-wrap gap-2 items-start">
-            <Button
-              size="sm"
-              className="gap-2"
-              style={{ backgroundColor: '#B8956A', color: '#fff' }}
-              onClick={() => setShowLogActivity(true)}
-            >
-              <Plus className="w-4 h-4" />
-              Log Activity
-            </Button>
-          </div>
+           <div className="mt-4 flex flex-wrap gap-2 items-start">
+             <Button
+               size="sm"
+               className="gap-2"
+               style={{ backgroundColor: '#B8956A', color: '#fff' }}
+               onClick={() => setShowLogActivity(true)}
+             >
+               <Plus className="w-4 h-4" />
+               Log Activity
+             </Button>
+             {contact.phone && (
+               <TooltipProvider>
+                 <Tooltip>
+                   <TooltipTrigger asChild>
+                     <Button
+                       size="sm"
+                       className="gap-2"
+                       style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                       onClick={() => window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }))}
+                     >
+                       <Phone className="w-4 h-4" />
+                       Call
+                     </Button>
+                   </TooltipTrigger>
+                   <TooltipContent>{contact.phone}</TooltipContent>
+                 </Tooltip>
+               </TooltipProvider>
+             )}
+           </div>
 
           {/* Follow-up button / form */}
           <div className="mt-3">
