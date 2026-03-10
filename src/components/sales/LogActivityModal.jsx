@@ -28,6 +28,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
   // Load contacts when modal opens
   React.useEffect(() => {
     if (!open) return;
+    setSelectedContact(null);
     setLoadingContacts(true);
     const memberId = salesMemberId || localStorage.getItem('sales_member_id');
     const memberEmail = salesMemberEmail || localStorage.getItem('sales_member_email');
@@ -51,15 +52,25 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
             };
           }
         });
-        setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+
+        // Always ensure the passed contact is in the list
         if (contact) {
           const contactFullName = [contact.firstname, contact.lastname].filter(Boolean).join(' ') || contact.name || '';
-          // Match by email first, then fall back to name for contacts without email
-          const matchByEmail = contact.email && Object.values(uniqueContacts).find(c => c.email === contact.email);
-          const matchByName = contactFullName && Object.values(uniqueContacts).find(c => c.name === contactFullName);
-          const match = matchByEmail || matchByName;
-          if (match) setSelectedContact(match.email || match.name);
+          const contactEmail = contact.email || '';
+          const key = contactEmail || contactFullName;
+          if (key && !uniqueContacts[key]) {
+            uniqueContacts[key] = {
+              email: contactEmail,
+              name: contactFullName || contact.contact_name || '',
+              company: contact.company || contact.company_name || ''
+            };
+          }
+          // Auto-select it
+          const selectValue = contactEmail || contactFullName;
+          if (selectValue) setSelectedContact(selectValue);
         }
+
+        setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
       })
       .catch(() => setContacts([]))
       .finally(() => setLoadingContacts(false));
