@@ -191,14 +191,17 @@ export default function ContactDetailPage() {
                 {contact.email && <span className="flex items-center gap-1"><Mail className="w-4 h-4" />{contact.email}</span>}
                 {contact.company && <span className="flex items-center gap-1"><Building2 className="w-4 h-4" />{contact.company}</span>}
                 {contact.phone && (
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }))}
-                    className="flex items-center gap-1 hover:opacity-70 transition-opacity"
-                    style={{ color: '#B8956A' }}
-                  >
-                    <Phone className="w-4 h-4" />{contact.phone}
-                  </button>
-                )}
+                   <button
+                     onClick={() => {
+                       localStorage.setItem('_dialerPhone', contact.phone);
+                       window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }));
+                     }}
+                     className="flex items-center gap-1 hover:opacity-70 transition-opacity"
+                     style={{ color: '#B8956A' }}
+                   >
+                     <Phone className="w-4 h-4" />{contact.phone}
+                   </button>
+                 )}
               </div>
               <p className="text-sm mt-2" style={{ color: 'rgba(26,26,26,0.6)' }}>
                 {activities.length} activit{activities.length !== 1 ? 'ies' : 'y'}
@@ -225,7 +228,10 @@ export default function ContactDetailPage() {
                        size="sm"
                        className="gap-2"
                        style={{ backgroundColor: '#B8956A', color: '#fff' }}
-                       onClick={() => window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }))}
+                       onClick={() => {
+                         localStorage.setItem('_dialerPhone', contact.phone);
+                         window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }));
+                       }}
                      >
                        <Phone className="w-4 h-4" />
                        Call
