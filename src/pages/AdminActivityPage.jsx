@@ -58,7 +58,13 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam === 'queue') {
+    const dialerParam = params.get('dialer');
+    
+    if (dialerParam === 'true') {
+      setActiveTab('activity');
+      // Use sessionStorage to switch to call tab after initial load
+      sessionStorage.setItem('_switchToDialerTab', 'true');
+    } else if (tabParam === 'queue') {
       setActiveTab('activity');
       // Use sessionStorage as a flag to switch to queue sub-tab after tab changes
       sessionStorage.setItem('_switchToQueueSubTab', 'true');
@@ -187,6 +193,15 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       sessionStorage.removeItem('_switchToQueueSubTab');
       setTimeout(() => {
         setActiveTab('queue');
+      }, 50);
+    }
+
+    // Check if we need to switch to dialer tab (from dialer=true param)
+    const switchToDialer = sessionStorage.getItem('_switchToDialerTab');
+    if (switchToDialer) {
+      sessionStorage.removeItem('_switchToDialerTab');
+      setTimeout(() => {
+        setActiveTab('call');
       }, 50);
     }
 
