@@ -165,56 +165,61 @@ OUTPUT valid JSON only:
   return res;
 }
 
+// Map getBestTime result to a preferred window index
+function getBestTimeWindowOrder(bestTime, isBradley) {
+  const t = bestTime.toLowerCase();
+  if (isBradley) {
+    // Bradley windows: 0=7:55am, 1=10:15am, 2=2:15pm+
+    if (t.includes("5:00") || t.includes("6pm") || t.includes("evening") || t.includes("7pm")) return [2, 0, 1];
+    if (t.includes("12:00") || t.includes("noon") || t.includes("lunch")) return [1, 2, 0];
+    if (t.includes("1:00") || t.includes("2pm") || t.includes("afternoon")) return [2, 1, 0];
+    return [0, 1, 2]; // default: morning first
+  } else {
+    // Other reps windows: 0=9am, 1=1pm, 2=4pm
+    if (t.includes("5:00") || t.includes("evening") || t.includes("7pm")) return [2, 0, 1];
+    if (t.includes("12:00") || t.includes("noon") || t.includes("lunch")) return [1, 2, 0];
+    if (t.includes("1:00") || t.includes("2pm") || t.includes("afternoon")) return [1, 2, 0];
+    return [0, 1, 2]; // default: morning first
+  }
+}
+
 // Save the AI's decision as a permanent ActivityLog record
 async function saveScheduledFollowUp(contact, analysis, sid, sem, existingScheduledMap) {
   let followUpDate = analysis.follow_up_date_time
     ? new Date(analysis.follow_up_date_time)
     : addDays(new Date(), 7);
 
-  // Bradley-specific availability windows (ONLY for Brad Burke)
-    if (sem === 'bradley@arrivestatemedia.com' || sem?.toLowerCase().includes('bradley') || sem?.toLowerCase().includes('brad')) {
-      // Adjust to next available time in Bradley's windows: 7:55am-8:10am, 10:15am-10:38am, 2:15pm+
-      const windows = [
-        { start: 7.9167, end: 8.167 },   // 7:55am - 8:10am (15 min window)
-        { start: 10.25, end: 10.633 },   // 10:15am - 10:38am (23 min window)
-        { start: 14.25, end: 24 }        // 2:15pm - midnight
-      ];
+  const isBradley = sem === 'bradley@arrivestatemedia.com' || sem?.toLowerCase().includes('bradley') || sem?.toLowerCase().includes('brad');
+  const bestTime = getBestTime(contact);
+  
+  if (isBradley) {
+    // Bradley's availability windows: 7:55am-8:10am, 10:15am-10:38am, 2:15pm+
+    const allWindows = [
+      { start: 7.9167, end: 8.167 },
+      { start: 10.25, end: 10.633 },
+      { start: 14.25, end: 24 }
+    ];
+    const windowOrder = getBestTimeWindowOrder(bestTime, true);
+    const windows = windowOrder.map(i => allWindows[i]);
 
-    let adjusted = new Date(followUpDate);
     let found = false;
-
-    // Try current day first, then next days
     for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
-      adjusted = new Date(followUpDate);
+      const adjusted = new Date(followUpDate);
       adjusted.setDate(adjusted.getDate() + dayOffset);
       adjusted.setHours(0, 0, 0, 0);
 
       for (const window of windows) {
-        // Start at the beginning of the window
         let testTime = new Date(adjusted);
         testTime.setHours(Math.floor(window.start), Math.round((window.start % 1) * 60), 0, 0);
-
-        // Try to find an available 5-minute slot within the window
-        const windowEndMinutes = Math.floor((window.end % 1) * 60);
-        const windowEndHours = Math.floor(window.end);
-        const maxMinutes = (windowEndHours * 60 + windowEndMinutes);
+        const maxMinutes = Math.floor(window.end) * 60 + Math.round((window.end % 1) * 60);
         
         while (testTime.getHours() * 60 + testTime.getMinutes() < maxMinutes) {
           if (testTime > new Date()) {
-            // Check if this time is already scheduled
-            const conflict = existingScheduledMap && Object.values(existingScheduledMap).some(scheduled => {
-              const scheduledTime = new Date(scheduled.activity_date);
-              const timeDiff = Math.abs(testTime - scheduledTime) / (1000 * 60); // diff in minutes
-              return timeDiff < 5; // if within 5 minutes, it's a conflict
+            const conflict = existingScheduledMap && Object.values(existingScheduledMap).some(s => {
+              return Math.abs(testTime - new Date(s.activity_date)) / 60000 < 5;
             });
-
-            if (!conflict) {
-              followUpDate = testTime;
-              found = true;
-              break;
-            }
+            if (!conflict) { followUpDate = testTime; found = true; break; }
           }
-          // Move to next 5-minute slot
           testTime.setMinutes(testTime.getMinutes() + 5);
         }
         if (found) break;
@@ -222,32 +227,24 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem, existingSchedu
       if (found) break;
     }
   } else {
-    // For all other reps: smart scheduling based on realtor industry best practices
-    // Best times to reach realtors: 9am-11am (before showings), 1pm-3pm (lunch/admin time), 4pm-5pm (end of day)
-    const optimalWindows = [
-      { start: 9, end: 11 },      // Morning window
-      { start: 13, end: 15 },     // Early afternoon
-      { start: 16, end: 17 }      // Late afternoon
+    const allWindows = [
+      { start: 9, end: 11 },
+      { start: 13, end: 15 },
+      { start: 16, end: 18 }
     ];
+    const windowOrder = getBestTimeWindowOrder(bestTime, false);
+    const windows = windowOrder.map(i => allWindows[i]);
 
-    let adjusted = new Date(followUpDate);
     let found = false;
-
     for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
-      adjusted = new Date(followUpDate);
+      const adjusted = new Date(followUpDate);
       adjusted.setDate(adjusted.getDate() + dayOffset);
       adjusted.setHours(0, 0, 0, 0);
 
-      // Prefer first window (9-11am)
-      for (const window of optimalWindows) {
+      for (const window of windows) {
         const testTime = new Date(adjusted);
         testTime.setHours(window.start, 0, 0, 0);
-
-        if (testTime > new Date()) {
-          followUpDate = testTime;
-          found = true;
-          break;
-        }
+        if (testTime > new Date()) { followUpDate = testTime; found = true; break; }
       }
       if (found) break;
     }
