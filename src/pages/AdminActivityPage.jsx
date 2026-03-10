@@ -61,9 +61,13 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     const dialerParam = params.get('dialer');
     
     if (dialerParam === 'true') {
-      setActiveTab('activity');
-      // Use sessionStorage to switch to call tab after initial load
-      sessionStorage.setItem('_switchToDialerTab', 'true');
+      // Directly switch to dialer tab with phone pre-filled
+      const phone = localStorage.getItem('_dialerPhone');
+      setActiveTab('call');
+      // If no phone yet, set sessionStorage flag to pick it up from listener
+      if (!phone) {
+        sessionStorage.setItem('_switchToDialerTab', 'true');
+      }
     } else if (tabParam === 'queue') {
       setActiveTab('activity');
       // Use sessionStorage as a flag to switch to queue sub-tab after tab changes
