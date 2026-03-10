@@ -171,14 +171,28 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem, existingSchedu
     ? new Date(analysis.follow_up_date_time)
     : addDays(new Date(), 7);
 
+  // Determine best time preference from contact history
+  const bestTimeStr = getBestTime(contact);
+  const isEveningPreferred = bestTimeStr.includes("5:00") || bestTimeStr.includes("7:00") || bestTimeStr.includes("PM");
+  const isMorningPreferred = bestTimeStr.includes("8:00") || bestTimeStr.includes("9:00") || bestTimeStr.includes("Mon–Wed");
+  const isNoonPreferred = bestTimeStr.includes("12:00") || bestTimeStr.includes("1:00 PM");
+  const isAfternoonPreferred = bestTimeStr.includes("1:00") || bestTimeStr.includes("2:00");
+
   // Bradley-specific availability windows (ONLY for Brad Burke)
     if (sem === 'bradley@arrivestatemedia.com' || sem?.toLowerCase().includes('bradley') || sem?.toLowerCase().includes('brad')) {
       // Adjust to next available time in Bradley's windows: 7:55am-8:10am, 10:15am-10:38am, 2:15pm+
-      const windows = [
-        { start: 7.9167, end: 8.167 },   // 7:55am - 8:10am (15 min window)
-        { start: 10.25, end: 10.633 },   // 10:15am - 10:38am (23 min window)
+      // Reorder windows based on contact's best time preference
+      const allWindows = [
+        { start: 7.9167, end: 8.167 },   // 7:55am - 8:10am
+        { start: 10.25, end: 10.633 },   // 10:15am - 10:38am
         { start: 14.25, end: 24 }        // 2:15pm - midnight
       ];
+      // If evening preferred, try 2:15pm+ first
+      const windows = isEveningPreferred
+        ? [allWindows[2], allWindows[0], allWindows[1]]
+        : isNoonPreferred || isAfternoonPreferred
+          ? [allWindows[1], allWindows[2], allWindows[0]]
+          : allWindows;
 
     let adjusted = new Date(followUpDate);
     let found = false;
