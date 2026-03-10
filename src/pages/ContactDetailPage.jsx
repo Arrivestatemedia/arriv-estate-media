@@ -164,6 +164,15 @@ export default function ContactDetailPage() {
               <div className="flex flex-wrap gap-3 mt-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
                 {contact.email && <span className="flex items-center gap-1"><Mail className="w-4 h-4" />{contact.email}</span>}
                 {contact.company && <span className="flex items-center gap-1"><Building2 className="w-4 h-4" />{contact.company}</span>}
+                {contact.phone && (
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: contact.phone } }))}
+                    className="flex items-center gap-1 hover:opacity-70 transition-opacity"
+                    style={{ color: '#B8956A' }}
+                  >
+                    <Phone className="w-4 h-4" />{contact.phone}
+                  </button>
+                )}
               </div>
               <p className="text-sm mt-2" style={{ color: 'rgba(26,26,26,0.6)' }}>
                 {activities.length} activit{activities.length !== 1 ? 'ies' : 'y'}
