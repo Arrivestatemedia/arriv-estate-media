@@ -105,15 +105,14 @@ export default function ContactDetailPage() {
         if (!phone && contactEmail) {
           try {
             const res = await base44.functions.invoke('searchHubSpotContacts', { query: contactEmail });
-            console.log('HubSpot response:', res?.data);
             const results = res?.data?.results || [];
             if (results.length > 0) {
               // Try exact email match first
-              let match = results.find(r => r.properties?.email?.toLowerCase() === contactEmail.toLowerCase());
+              let match = results.find(r => r.email?.toLowerCase() === contactEmail.toLowerCase());
               // Fall back to first result if no exact match
               if (!match) match = results[0];
               
-              const hsPhone = match?.properties?.phone || match?.properties?.mobilephone || '';
+              const hsPhone = match?.phone || '';
               if (hsPhone) {
                 setContact(prev => ({ ...prev, phone: hsPhone }));
               }
