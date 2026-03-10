@@ -675,10 +675,10 @@ export default function HubSpotActivityLog() {
                          <SelectTrigger className="w-full"><SelectValue placeholder={loadingContacts ? "Loading contacts..." : "Select a contact (optional)"} /></SelectTrigger>
                          <SelectContent>
                            {contacts.map((c) => (
-                             <SelectItem key={c.email} value={c.email}>
-                               {c.name} {c.company ? `(${c.company})` : ""} {c.phone ? `${c.phone}` : ""}
-                             </SelectItem>
-                           ))}
+                               <SelectItem key={c.email || c.name} value={c.email || c.name}>
+                                 {c.name} {c.company ? `(${c.company})` : ""} {c.phone ? `${c.phone}` : ""}
+                               </SelectItem>
+                             ))}
                          </SelectContent>
                        </Select>
                      </div>
