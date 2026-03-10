@@ -73,9 +73,10 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       .then(logs => {
         const uniqueContacts = {};
         logs?.forEach(log => {
-          if (log.contact_email && !uniqueContacts[log.contact_email]) {
-            uniqueContacts[log.contact_email] = {
-              email: log.contact_email,
+          const key = log.contact_email || log.contact_name;
+          if (key && !uniqueContacts[key]) {
+            uniqueContacts[key] = {
+              email: log.contact_email || "",
               name: log.contact_name,
               company: log.company_name
             };
