@@ -88,11 +88,13 @@ export default function ContactDetailPage() {
       setActivities(filtered);
       
       if (filtered.length > 0) {
+        const phone = filtered.find(a => a.contact_phone)?.contact_phone || '';
         setContact({
           key: contactKey,
           name: filtered[0].contact_name || '',
           email: filtered[0].contact_email || '',
           company: filtered[0].company_name || '',
+          phone,
         });
       }
     } catch (e) {
