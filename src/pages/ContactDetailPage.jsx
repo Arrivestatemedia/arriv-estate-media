@@ -29,6 +29,7 @@ export default function ContactDetailPage() {
   const [contact, setContact] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
+  const [editFormData, setEditFormData] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [showLogActivity, setShowLogActivity] = useState(false);
@@ -90,6 +91,26 @@ export default function ContactDetailPage() {
       await loadActivities();
     } catch (e) {
       console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editFormData?.notes) {
+      alert("Notes are required");
+      return;
+    }
+    setSaving(true);
+    try {
+      await base44.entities.ActivityLog.update(editingActivity, editFormData);
+      setEditingActivity(null);
+      setEditFormData(null);
+      await loadActivities();
+      setSelectedActivity(null);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to save activity");
     } finally {
       setSaving(false);
     }
@@ -374,78 +395,157 @@ export default function ContactDetailPage() {
       </div>
 
       {/* Activity Detail Modal */}
-      <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open && !zoomedImage) setSelectedActivity(null); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Activity Details</DialogTitle>
-          </DialogHeader>
-          {selectedActivity && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-3">Activity</h3>
-                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                  <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
-                  <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                  {(() => {
-                  const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
-                  const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
-                  const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
-                  return (
-                  <>
-                  <p><span className="font-medium">Notes:</span> {shortNote}</p>
-                  {hasCallMap && (
-                    <div className="pt-2">
-                      <button
-                        onClick={() => { setCallMapActivity(selectedActivity); setSelectedActivity(null); }}
-                        className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
-                        style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
-                      >
-                        📋 View Call Map
-                      </button>
-                    </div>
-                  )}
-                  </>
-                  );
-                  })()}
-                  {selectedActivity.duration_minutes > 0 && (
-                    <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
-                  )}
-                  {selectedActivity.picture_urls && selectedActivity.picture_urls.length > 0 && (
-                    <div>
-                      <p className="font-medium mb-2">Pictures:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedActivity.picture_urls.map((url, idx) => (
-                          <img key={idx} src={url} alt={`Activity ${idx + 1}`} className="rounded-lg max-h-48 w-auto cursor-zoom-in hover:opacity-90 transition" onClick={() => setZoomedImage(url)} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+      <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open && !zoomedImage) { setSelectedActivity(null); setEditingActivity(null); setEditFormData(null); } }}>
+       <DialogContent className="max-w-2xl">
+         <DialogHeader>
+           <div className="flex justify-between items-center">
+             <DialogTitle>Activity Details</DialogTitle>
+             {selectedActivity && !editingActivity && (
+               <Button
+                 size="sm"
+                 onClick={() => {
+                   setEditingActivity(selectedActivity.id);
+                   setEditFormData(selectedActivity);
+                 }}
+                 style={{ backgroundColor: '#B8956A', color: '#fff' }}
+               >
+                 Edit
+               </Button>
+             )}
+           </div>
+         </DialogHeader>
+         {selectedActivity && !editingActivity && (
+           <div className="space-y-6">
+             <div>
+               <h3 className="font-semibold mb-3">Activity</h3>
+               <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                 <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
+                 <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
+                 {(() => {
+                 const raw = (selectedActivity.notes || '').replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
+                 const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                 const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                 return (
+                 <>
+                 <p><span className="font-medium">Notes:</span> {shortNote}</p>
+                 {hasCallMap && (
+                   <div className="pt-2">
+                     <button
+                       onClick={() => { setCallMapActivity(selectedActivity); setSelectedActivity(null); }}
+                       className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
+                       style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
+                     >
+                       📋 View Call Map
+                     </button>
+                   </div>
+                 )}
+                 </>
+                 );
+                 })()}
+                 {selectedActivity.duration_minutes > 0 && (
+                   <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
+                 )}
+                 {selectedActivity.picture_urls && selectedActivity.picture_urls.length > 0 && (
+                   <div>
+                     <p className="font-medium mb-2">Pictures:</p>
+                     <div className="flex flex-wrap gap-2">
+                       {selectedActivity.picture_urls.map((url, idx) => (
+                         <img key={idx} src={url} alt={`Activity ${idx + 1}`} className="rounded-lg max-h-48 w-auto cursor-zoom-in hover:opacity-90 transition" onClick={() => setZoomedImage(url)} />
+                       ))}
+                     </div>
+                   </div>
+                 )}
+               </div>
+             </div>
 
-              <div>
-                <h3 className="font-semibold mb-3">Contact Information</h3>
-                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                  {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
-                  {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
-                  {selectedActivity.contact_phone && (
-                    <p>
-                      <span className="font-medium">Phone:</span>{' '}
-                      <button
-                        onClick={() => { localStorage.setItem('_dialerPhone', selectedActivity.contact_phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: selectedActivity.contact_phone } })); }}
-                        className="hover:underline"
-                        style={{ color: '#B8956A', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
-                      >
-                        {selectedActivity.contact_phone}
-                      </button>
-                    </p>
-                  )}
-                  {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
+             <div>
+               <h3 className="font-semibold mb-3">Contact Information</h3>
+               <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                 {selectedActivity.contact_name && <p><span className="font-medium">Name:</span> {selectedActivity.contact_name}</p>}
+                 {selectedActivity.contact_email && <p><span className="font-medium">Email:</span> {selectedActivity.contact_email}</p>}
+                 {selectedActivity.contact_phone && (
+                   <p>
+                     <span className="font-medium">Phone:</span>{' '}
+                     <button
+                       onClick={() => { localStorage.setItem('_dialerPhone', selectedActivity.contact_phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone: selectedActivity.contact_phone } })); }}
+                       className="hover:underline"
+                       style={{ color: '#B8956A', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                     >
+                       {selectedActivity.contact_phone}
+                     </button>
+                   </p>
+                 )}
+                 {selectedActivity.company_name && <p><span className="font-medium">Company:</span> {selectedActivity.company_name}</p>}
+               </div>
+             </div>
+           </div>
+         )}
+         {editingActivity && editFormData && (
+           <div className="space-y-4">
+             <div>
+               <label className="block text-sm font-medium mb-1">Activity Type</label>
+               <Select value={editFormData.activity_type} onValueChange={(val) => setEditFormData({...editFormData, activity_type: val})}>
+                 <SelectTrigger>
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="call">Call</SelectItem>
+                   <SelectItem value="email">Email</SelectItem>
+                   <SelectItem value="meeting">Meeting</SelectItem>
+                   <SelectItem value="task">Task</SelectItem>
+                   <SelectItem value="note">Note</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+             <div>
+               <label className="block text-sm font-medium mb-1">Date & Time</label>
+               <Input
+                 type="datetime-local"
+                 value={editFormData.activity_date?.slice(0, 16) || ''}
+                 onChange={(e) => setEditFormData({...editFormData, activity_date: e.target.value})}
+               />
+             </div>
+             <div>
+               <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
+               <Input
+                 type="number"
+                 placeholder="0"
+                 value={editFormData.duration_minutes || 0}
+                 onChange={(e) => setEditFormData({...editFormData, duration_minutes: parseInt(e.target.value) || 0})}
+               />
+             </div>
+             <div>
+               <label className="block text-sm font-medium mb-1">Notes</label>
+               <Textarea
+                 placeholder="Summary of the activity..."
+                 value={editFormData.notes}
+                 onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})}
+                 rows={4}
+               />
+             </div>
+             <div className="flex gap-2">
+               <Button
+                 variant="outline"
+                 onClick={() => {
+                   setEditingActivity(null);
+                   setEditFormData(null);
+                 }}
+                 className="flex-1"
+               >
+                 Cancel
+               </Button>
+               <Button
+                 onClick={handleSaveEdit}
+                 disabled={saving}
+                 className="flex-1"
+                 style={{ backgroundColor: '#B8956A', color: '#fff' }}
+               >
+                 {saving ? 'Saving...' : 'Save'}
+               </Button>
+             </div>
+           </div>
+         )}
+       </DialogContent>
       </Dialog>
 
       {/* Call Map Modal */}
