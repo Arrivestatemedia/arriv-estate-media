@@ -1104,40 +1104,15 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         <div className="mt-6">
           <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'rgba(26,26,26,0.4)' }}>Coming Up</p>
           <div className="space-y-2">
-            {upcomingContacts.map(contact => {
-              const scheduled = scheduledMap[contact.key];
-              const meta = metaMap[contact.key] || {};
-              const priority = getPriorityLabel(meta.urgency || "low");
-              const isMapOpen = viewMapOpenKey === contact.key;
-              return (
-                <div key={contact.key}>
-                  <div className="flex flex-col gap-2 rounded-lg p-3" style={{ backgroundColor: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.2)' }}>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: priority.color }} />
-                        <span className="font-medium text-sm truncate" style={{ color: '#1A1A1A' }}>{contact.name}</span>
-                        {contact.company && <span className="text-xs truncate" style={{ color: 'rgba(26,26,26,0.4)' }}>{contact.company}</span>}
-                      </div>
-                      <Badge style={{ backgroundColor: priority.bg, color: priority.color, border: 'none', fontSize: '10px' }}>{priority.label}</Badge>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      {scheduled && (
-                        <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
-                          {format(new Date(scheduled.activity_date), "MMM d 'at' h:mm a")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {scheduled && (
-                    <ViewCallMapModal
-                      activity={scheduled}
-                      open={isMapOpen}
-                      onOpenChange={(open) => setViewMapOpenKey(open ? contact.key : null)}
-                    />
-                  )}
-                </div>
-              );
-            })}
+            {upcomingContacts.map(contact => (
+              <UpcomingCard
+                key={contact.key}
+                contact={contact}
+                scheduled={scheduledMap[contact.key]}
+                meta={metaMap[contact.key] || {}}
+                onDeleted={() => setRefreshKey(k => k + 1)}
+              />
+            ))}
           </div>
         </div>
       )}
