@@ -90,27 +90,36 @@ export default function ContactDetailPage() {
       if (filtered.length > 0) {
         const contactEmail = filtered[0].contact_email || '';
         const contactName = filtered[0].contact_name || '';
-        const phoneFromLog = filtered.find(a => a.contact_phone)?.contact_phone || '';
+        let phone = filtered[0].contact_phone || '';
         
         const baseContact = {
           key: contactKey,
           name: contactName,
           email: contactEmail,
           company: filtered[0].company_name || '',
-          phone: phoneFromLog,
+          phone,
         };
         setContact(baseContact);
 
-        // If no phone in activities, fetch from HubSpot
-        if (!phoneFromLog && contactEmail) {
+        // Fetch from HubSpot for phone if not found
+        if (!phone && contactEmail) {
           try {
             const res = await base44.functions.invoke('searchHubSpotContacts', { query: contactEmail });
+            console.log('HubSpot response:', res?.data);
             const results = res?.data?.results || [];
-            const match = results.find(r => r.properties?.email === contactEmail);
-            const phone = match?.properties?.phone || match?.properties?.mobilephone || '';
-            if (phone) setContact(prev => ({ ...prev, phone }));
+            if (results.length > 0) {
+              // Try exact email match first
+              let match = results.find(r => r.properties?.email?.toLowerCase() === contactEmail.toLowerCase());
+              // Fall back to first result if no exact match
+              if (!match) match = results[0];
+              
+              const hsPhone = match?.properties?.phone || match?.properties?.mobilephone || '';
+              if (hsPhone) {
+                setContact(prev => ({ ...prev, phone: hsPhone }));
+              }
+            }
           } catch (hsError) {
-            console.error('HubSpot search failed:', hsError);
+            console.error('HubSpot search error:', hsError);
           }
         }
       }
