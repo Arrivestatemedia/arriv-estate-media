@@ -120,16 +120,20 @@ export default function ContactDetailPage() {
   };
 
   const loadActivities = async () => {
-    setLoading(true);
-    try {
-      const all = await base44.entities.ActivityLog.list('-activity_date', 500);
-      const filtered = all.filter(a => {
-        const aEmail = (a.contact_email || '').toLowerCase().trim();
-        const aName = (a.contact_name || '').toLowerCase().trim();
-        const key = contactKey.toLowerCase().trim();
-        return aEmail === key || aName === key;
-      }).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
-      setActivities(filtered);
+   setLoading(true);
+   try {
+     const all = await base44.entities.ActivityLog.list('-activity_date', 500);
+     const key = contactKey.toLowerCase().trim();
+     console.log('Loading activities for:', key);
+     const filtered = all.filter(a => {
+       const aEmail = (a.contact_email || '').toLowerCase().trim();
+       const aName = (a.contact_name || '').toLowerCase().trim();
+       const matches = aEmail === key || aName === key;
+       if (!matches) console.log('No match:', { aEmail, aName, key, contact_email: a.contact_email, contact_name: a.contact_name });
+       return matches;
+     }).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+     console.log('Filtered activities:', filtered.length);
+     setActivities(filtered);
       
       if (filtered.length > 0) {
         const contactEmail = filtered[0].contact_email || '';
