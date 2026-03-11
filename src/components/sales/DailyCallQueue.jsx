@@ -583,6 +583,20 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         if (!contactMap[key].phone && a.contact_phone) contactMap[key].phone = a.contact_phone;
       });
 
+      // Resolve AI-scheduled items that have been superseded by a real activity on/after their date
+      Object.values(contactMap).forEach(c => {
+        const realDates = c.activities
+          .filter(a => a._isRealActivity)
+          .map(a => new Date(a.activity_date));
+        c.upcoming = c.upcoming.filter(a => {
+          if (!a._isAIScheduled) return true;
+          const aiDay = new Date(a.activity_date); aiDay.setHours(0,0,0,0);
+          const resolvedByReal = realDates.some(d => d >= aiDay);
+          if (resolvedByReal) { c.past.push(a); return false; }
+          return true;
+        });
+      });
+
       const filtered = Object.values(contactMap).filter(c => {
         const name = c.name?.trim();
         if (!name) return false;
