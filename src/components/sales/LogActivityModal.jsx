@@ -176,14 +176,16 @@ Recent history:
 ${historySnippet || "No prior history"}
 
 Based on the activity notes and history, determine when to next contact this person.
-Use one of these outcome patterns to guide timing:
-- No answer → follow up in 3 hours
-- Busy / bad time → call back next morning at 8:30am
-- Interested → follow up in 1-2 days
-- Warm, will reach out when ready → follow up in 3 weeks
-- Not interested → pause 30 days
-- Left voicemail → follow up in 3 days at 5pm
-- General note/meeting → use best judgment (typically 5-7 days)
+CRITICAL: Default minimum follow-up is 7 days. Only schedule same-day or next-day if the notes EXPLICITLY say so (e.g. "call later today", "call tomorrow").
+
+Use these outcome patterns:
+- No answer / voicemail → 7 days out
+- Busy / bad time (no specific time given) → 7 days out at 8:30am
+- Interested / warm lead → 7–10 days out
+- Will reach out when ready → 45 days out (urgency: skip)
+- Not interested → 30–45 days out (urgency: low)
+- Specific callback time mentioned in notes → use that exact time (only exception to the 7-day minimum)
+- General note/meeting/touchpoint → 14 days out
 
 Output JSON with follow_up_date_time (ISO), urgency (high/medium/low/skip), and reason.`,
         response_json_schema: {
