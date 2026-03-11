@@ -336,15 +336,26 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       byContact[key].push(a);
     });
     Object.values(byContact).forEach(list => {
-      // Check if this contact has ANY [Queue Call] record
-      const hasQueueCall = list.some(a => (a.notes || '').includes('[Queue Call]'));
-      if (!hasQueueCall) return; // If no [Queue Call], nothing is resolved
-      
-      // If [Queue Call] exists, mark ALL [AI Scheduled] items as resolved
-      list.forEach(a => {
+      const aiItems = list.filter(a => {
         const n = a.notes || '';
-        if ((n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]')) {
-          resolved.add(a.id);
+        return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
+      });
+      
+      // Real items = anything that's NOT an AI-scheduled marker (any logged activity counts)
+      const realItems = list.filter(a => {
+        const n = a.notes || '';
+        return !(n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
+      });
+      
+      // Resolve AI items if ANY real activity exists on or after their scheduled date
+      aiItems.forEach(ai => {
+        const aiDay = new Date(ai.activity_date);
+        aiDay.setHours(0, 0, 0, 0);
+        if (realItems.some(r => {
+          const rDay = new Date(r.activity_date);
+          return rDay >= aiDay;
+        })) {
+          resolved.add(ai.id);
         }
       });
     });
