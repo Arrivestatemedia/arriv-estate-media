@@ -325,14 +325,42 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     buildLookup();
   }, [activities]);
 
-  const isQueueScheduled = (a) => {
+  // Compute which AI-scheduled records have been superseded by a real logged activity
+  const resolvedAIIds = React.useMemo(() => {
+    const resolved = new Set();
+    const byContact = {};
+    activities.forEach(a => {
+      const key = a.contact_email || a.contact_name;
+      if (!key) return;
+      if (!byContact[key]) byContact[key] = [];
+      byContact[key].push(a);
+    });
+    Object.values(byContact).forEach(list => {
+      const aiItems = list.filter(a => {
+        const n = a.notes || '';
+        return !n.includes('[Queue Call]') && (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
+      });
+      const realItems = list.filter(a => {
+        const n = a.notes || '';
+        return !n.includes('[Queue Call]') && !n.includes('[AI Scheduled]') && !n.includes('--- CALL MAP ---');
+      });
+      aiItems.forEach(ai => {
+        const aiDay = new Date(ai.activity_date); aiDay.setHours(0,0,0,0);
+        if (realItems.some(r => new Date(r.activity_date) >= aiDay)) resolved.add(ai.id);
+      });
+    });
+    return resolved;
+  }, [activities]);
+
+  const isAIPending = (a) => {
     const notes = a.notes || '';
-    if (notes.includes('[Queue Call]')) return false; // explicitly logged — belongs in history
+    if (notes.includes('[Queue Call]')) return false;
+    if (resolvedAIIds.has(a.id)) return false;
     return notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---');
   };
 
   const upcomingActivities = activities
-    .filter(a => new Date(a.activity_date) > new Date() || isQueueScheduled(a))
+    .filter(a => new Date(a.activity_date) > new Date() || isAIPending(a))
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5)
     .map(a => {
@@ -341,7 +369,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     });
 
   const pastActivities = [...activities]
-    .filter(a => new Date(a.activity_date) <= new Date() && !isQueueScheduled(a))
+    .filter(a => !isAIPending(a) && new Date(a.activity_date) <= new Date())
     .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date))
     .map(a => {
       const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
