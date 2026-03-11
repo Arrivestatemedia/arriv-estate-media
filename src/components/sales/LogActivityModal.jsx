@@ -136,7 +136,8 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
         hubspot_synced: false,
       });
 
-      // 2. Find existing AI-scheduled record for this contact and move it to history
+      // 2. Find existing AI-scheduled record for this contact and retire it to history
+      //    Use a date far in the past so the queue no longer sees it as "upcoming"
       const allLogs = await base44.entities.ActivityLog.list('-activity_date', 500);
       const contactLogs = allLogs.filter(a =>
         (contactEmail && a.contact_email === contactEmail) ||
@@ -147,78 +148,51 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
         (a.created_by || '').toLowerCase() === (sem || '').toLowerCase()
       );
 
-      const existingScheduled = contactLogs.find(a => {
+      // Retire ALL existing AI-scheduled records for this contact
+      const existingScheduled = contactLogs.filter(a => {
         const n = a.notes || '';
         return n.includes('[AI Scheduled]') || (n.includes('--- CALL MAP ---') && !n.includes('[Queue Call]'));
       });
 
-      if (existingScheduled) {
-        await base44.entities.ActivityLog.update(existingScheduled.id, {
-          activity_date: new Date().toISOString(),
-          notes: `[Queue Call] Outcome from activity log — ${notes.trim()}`,
-        }).catch(() => {});
-      }
+      // Set date to 30 days ago so it moves to history (past) and clears from queue
+      const retiredDate = new Date();
+      retiredDate.setDate(retiredDate.getDate() - 30);
+      await Promise.all(existingScheduled.map(s =>
+        base44.entities.ActivityLog.update(s.id, {
+          activity_date: retiredDate.toISOString(),
+          notes: `[Queue Call] Completed via activity log — ${notes.trim()}`,
+        }).catch(() => {})
+      ));
 
-      // 3. Use AI to schedule the next follow-up
-      const historySnippet = contactLogs
-        .filter(a => !(a.notes || '').includes('[AI Scheduled]'))
-        .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
-        .slice(0, 6)
-        .map(a => `${new Date(a.activity_date).toLocaleDateString()}: [${a.activity_type}] ${(a.notes || '').slice(0, 150)}`)
-        .join('\n');
+      // 3. Use the same Scheduling AI as the Call Queue to schedule the next follow-up
+      const pastInsights = sid
+        ? await base44.entities.QueueInsight.filter({ sales_member_id: sid }, '-logged_at', 200).catch(() => [])
+        : [];
+      const learnedContext = buildLearnedContext(pastInsights);
 
-      const analysis = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are scheduling the next sales follow-up call for a real estate photography company (ARRIV).
-
-Contact: ${contactNameStr} ${selectedContactObj?.company ? `at ${selectedContactObj.company}` : ''}
-Activity just logged (${activityType}): ${notes.trim()}
-
-Recent history:
-${historySnippet || "No prior history"}
-
-Based on the activity notes and history, determine when to next contact this person.
-CRITICAL: Default minimum follow-up is 7 days. Only schedule same-day or next-day if the notes EXPLICITLY say so (e.g. "call later today", "call tomorrow").
-
-Use these outcome patterns:
-- No answer / voicemail → 7 days out
-- Busy / bad time (no specific time given) → 7 days out at 8:30am
-- Interested / warm lead → 7–10 days out
-- Will reach out when ready → 45 days out (urgency: skip)
-- Not interested → 30–45 days out (urgency: low)
-- Specific callback time mentioned in notes → use that exact time (only exception to the 7-day minimum)
-- General note/meeting/touchpoint → 14 days out
-
-Output JSON with follow_up_date_time (ISO), urgency (high/medium/low/skip), and reason.`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            follow_up_date_time: { type: "string" },
-            urgency: { type: "string", enum: ["high", "medium", "low", "skip"] },
-            reason: { type: "string" }
-          },
-          required: ["follow_up_date_time", "urgency", "reason"]
+      // Build contact object with updated activity history (including this new log)
+      const updatedActivities = [
+        ...contactLogs.filter(a => !(a.notes || '').includes('[AI Scheduled]')),
+        {
+          activity_type: activityType,
+          activity_date: new Date(activityDate).toISOString(),
+          notes: notes.trim(),
+          picture_urls: screenshots.map(s => s.url),
         }
-      });
+      ].sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+
+      const contactForAI = {
+        name: contactNameStr,
+        email: contactEmail,
+        phone: selectedContactObj?.phone || contact?.phone || "",
+        company: selectedContactObj?.company || "",
+        activities: updatedActivities,
+      };
+
+      const analysis = await analyzeContact(contactForAI, learnedContext);
 
       if (analysis && analysis.urgency !== "skip") {
-        let followUpDate = new Date(analysis.follow_up_date_time || Date.now() + 7 * 24 * 60 * 60 * 1000);
-        // Hard minimum: 7 days out unless notes explicitly say same-day or next-day
-        const reasonLower = (analysis.reason || "").toLowerCase();
-        const explicitShort = reasonLower.includes("later today") || reasonLower.includes("call back today") ||
-          reasonLower.includes("tomorrow morning") || reasonLower.includes("call tomorrow") || reasonLower.includes("callback tomorrow");
-        const minDate = explicitShort ? new Date() : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        if (followUpDate < minDate) { followUpDate = minDate; followUpDate.setHours(8, 30, 0, 0); }
-        await base44.entities.ActivityLog.create({
-          activity_type: "call",
-          contact_name: contactNameStr,
-          contact_email: contactEmail,
-          contact_phone: selectedContactObj?.phone || contact?.phone || "",
-          company_name: selectedContactObj?.company || "",
-          activity_date: followUpDate.toISOString(),
-          notes: `[AI Scheduled] ${analysis.reason}`,
-          sales_member_id: sid || "",
-          sales_member_email: sem || "",
-        });
+        await saveScheduledFollowUp(contactForAI, analysis, sid, sem, {});
       }
 
       toast.success("Activity logged & next follow-up scheduled.");
