@@ -332,7 +332,18 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   };
 
   const upcomingActivities = activities
-    .filter(a => !isQueueScheduled(a) && new Date(a.activity_date) > new Date())
+    .filter(a => {
+      if (!isQueueScheduled(a)) return new Date(a.activity_date) > new Date();
+      // AI-scheduled: stay in upcoming UNLESS a real activity was logged after this record was created
+      const createdAt = new Date(a.created_date || a.activity_date);
+      const key = a.contact_email || a.contact_name;
+      const hasNewerRealActivity = activities.some(other =>
+        !isQueueScheduled(other) &&
+        (other.contact_email === a.contact_email || other.contact_name === a.contact_name) &&
+        new Date(other.created_date || other.activity_date) > createdAt
+      );
+      return !hasNewerRealActivity;
+    })
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5)
     .map(a => {
