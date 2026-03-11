@@ -327,8 +327,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
 
   const isQueueScheduled = (a) => {
     const notes = a.notes || '';
-    return notes.includes('[AI Scheduled]') ||
-      (notes.includes('--- CALL MAP ---') && !notes.includes('[Queue Call]'));
+    if (notes.includes('[Queue Call]')) return false; // explicitly logged — belongs in history
+    return notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---');
   };
 
   const upcomingActivities = activities
