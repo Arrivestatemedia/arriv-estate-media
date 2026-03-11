@@ -326,7 +326,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   }, [activities]);
 
   // Compute which AI-scheduled records have been superseded by a real logged activity
-  const resolvedAIIds = React.useMemo(() => {
+  const resolvedAIIds = useMemo(() => {
     const resolved = new Set();
     const byContact = {};
     activities.forEach(a => {
