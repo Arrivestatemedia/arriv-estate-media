@@ -198,7 +198,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                      const isAdminHub = window.location.pathname.includes('AdminHub');
                      const backUrl = window.location.pathname + (isAdminHub ? '?tab=activity&subtab=mycontacts' : '?tab=mycontacts');
                      window.history.pushState(null, '', backUrl);
-                     window.location.href = createPageUrl(`ContactDetailPage?contact=${encodeURIComponent(contact.key)}`);
+                     window.location.href = createPageUrl('ContactDetailPage') + '?contact=' + encodeURIComponent(contact.key);
                    }}
                  >
                   <div className="flex items-start gap-3 flex-1 min-w-0">

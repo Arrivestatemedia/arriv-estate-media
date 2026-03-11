@@ -99,7 +99,7 @@ export default function ContactDetailPage() {
     setLoading(true);
     try {
       const all = await base44.entities.ActivityLog.list('-activity_date', 500);
-      const filtered = all.filter(a => (a.contact_email || a.contact_name) === contactKey).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+      const filtered = all.filter(a => a.contact_email === contactKey || a.contact_name === contactKey).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
       setActivities(filtered);
       
       if (filtered.length > 0) {
