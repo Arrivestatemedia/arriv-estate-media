@@ -114,27 +114,105 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     }
     setSaving(true);
     try {
-      const screenshotLinks = screenshots.map(s => s.url).join("\n");
-      const fullNotes = screenshotLinks
-        ? `${notes.trim()}\n\n[Screenshots]\n${screenshotLinks}`
-        : notes.trim();
+      const sid = salesMemberId || localStorage.getItem('sales_member_id');
+      const sem = salesMemberEmail || localStorage.getItem('sales_member_email');
+      const contactEmail = selectedContactObj?.email || "";
+      const contactNameStr = contactName;
 
+      // 1. Save the new activity
       await base44.entities.ActivityLog.create({
         activity_type: activityType,
-        contact_email: selectedContactObj?.email || "",
-        contact_name: contactName,
+        contact_email: contactEmail,
+        contact_name: contactNameStr,
         contact_phone: selectedContactObj?.phone || contact?.phone || "",
         company_name: selectedContactObj?.company || "",
         activity_date: new Date(activityDate).toISOString(),
         notes: notes.trim(),
         duration_minutes: duration ? Number(duration) : 0,
         picture_urls: screenshots.map(s => s.url),
-        sales_member_id: salesMemberId || "",
-        sales_member_email: salesMemberEmail || localStorage.getItem("sales_member_email") || "",
+        sales_member_id: sid || "",
+        sales_member_email: sem || "",
         hubspot_synced: false,
       });
 
-      toast.success("Activity logged successfully.");
+      // 2. Find existing AI-scheduled record for this contact and move it to history
+      const allLogs = await base44.entities.ActivityLog.list('-activity_date', 500);
+      const contactLogs = allLogs.filter(a =>
+        (contactEmail && a.contact_email === contactEmail) ||
+        (contactNameStr && a.contact_name === contactNameStr)
+      ).filter(a =>
+        a.sales_member_id === sid ||
+        (a.sales_member_email || '').toLowerCase() === (sem || '').toLowerCase() ||
+        (a.created_by || '').toLowerCase() === (sem || '').toLowerCase()
+      );
+
+      const existingScheduled = contactLogs.find(a => {
+        const n = a.notes || '';
+        return n.includes('[AI Scheduled]') || (n.includes('--- CALL MAP ---') && !n.includes('[Queue Call]'));
+      });
+
+      if (existingScheduled) {
+        await base44.entities.ActivityLog.update(existingScheduled.id, {
+          activity_date: new Date().toISOString(),
+          notes: `[Queue Call] Outcome from activity log — ${notes.trim()}`,
+        }).catch(() => {});
+      }
+
+      // 3. Use AI to schedule the next follow-up
+      const historySnippet = contactLogs
+        .filter(a => !(a.notes || '').includes('[AI Scheduled]'))
+        .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+        .slice(0, 6)
+        .map(a => `${new Date(a.activity_date).toLocaleDateString()}: [${a.activity_type}] ${(a.notes || '').slice(0, 150)}`)
+        .join('\n');
+
+      const analysis = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are scheduling the next sales follow-up call for a real estate photography company (ARRIV).
+
+Contact: ${contactNameStr} ${selectedContactObj?.company ? `at ${selectedContactObj.company}` : ''}
+Activity just logged (${activityType}): ${notes.trim()}
+
+Recent history:
+${historySnippet || "No prior history"}
+
+Based on the activity notes and history, determine when to next contact this person.
+Use one of these outcome patterns to guide timing:
+- No answer → follow up in 3 hours
+- Busy / bad time → call back next morning at 8:30am
+- Interested → follow up in 1-2 days
+- Warm, will reach out when ready → follow up in 3 weeks
+- Not interested → pause 30 days
+- Left voicemail → follow up in 3 days at 5pm
+- General note/meeting → use best judgment (typically 5-7 days)
+
+Output JSON with follow_up_date_time (ISO), urgency (high/medium/low/skip), and reason.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            follow_up_date_time: { type: "string" },
+            urgency: { type: "string", enum: ["high", "medium", "low", "skip"] },
+            reason: { type: "string" }
+          },
+          required: ["follow_up_date_time", "urgency", "reason"]
+        }
+      });
+
+      if (analysis && analysis.urgency !== "skip") {
+        const followUpDate = new Date(analysis.follow_up_date_time || Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await base44.entities.ActivityLog.create({
+          activity_type: "call",
+          contact_name: contactNameStr,
+          contact_email: contactEmail,
+          contact_phone: selectedContactObj?.phone || contact?.phone || "",
+          company_name: selectedContactObj?.company || "",
+          activity_date: followUpDate.toISOString(),
+          notes: `[AI Scheduled] ${analysis.reason}`,
+          sales_member_id: sid || "",
+          sales_member_email: sem || "",
+        });
+      }
+
+      toast.success("Activity logged & next follow-up scheduled.");
       if (onLogged) onLogged();
       handleClose();
     } catch (err) {
