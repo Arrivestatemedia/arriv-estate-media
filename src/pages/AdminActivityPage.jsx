@@ -338,11 +338,12 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     Object.values(byContact).forEach(list => {
       const aiItems = list.filter(a => {
         const n = a.notes || '';
-        return !n.includes('[Queue Call]') && (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
+        return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]');
       });
+      // Real items = anything that's NOT an unlogged AI-scheduled item (includes [Queue Call] outcomes)
       const realItems = list.filter(a => {
         const n = a.notes || '';
-        return !n.includes('[Queue Call]') && !n.includes('[AI Scheduled]') && !n.includes('--- CALL MAP ---');
+        return !(n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) || n.includes('[Queue Call]');
       });
       aiItems.forEach(ai => {
         const aiDay = new Date(ai.activity_date); aiDay.setHours(0,0,0,0);
