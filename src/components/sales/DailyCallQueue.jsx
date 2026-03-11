@@ -564,16 +564,16 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         }
         contactMap[key].activities.push(a);
 
-        // AI-scheduled/queue items are ALWAYS treated as "upcoming" (pending) even if
-        // their date has passed — they stay in the queue until explicitly resolved
-        // EXCEPT: records tagged [Queue Call] are always past (logged outcomes)
         const notes = a.notes || '';
         const isLogged = notes.includes('[Queue Call]');
-        const isQueueScheduled = !isLogged && (
-          notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---')
-        );
+        const isAIScheduled = !isLogged && (notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---'));
+        const isRealActivity = !isAIScheduled && !isLogged;
 
-        if (!isLogged && (new Date(a.activity_date) >= startOfToday || isQueueScheduled)) {
+        // Tag each record for later resolution check
+        a._isAIScheduled = isAIScheduled;
+        a._isRealActivity = isRealActivity;
+
+        if (!isLogged && (new Date(a.activity_date) >= startOfToday || isAIScheduled)) {
           contactMap[key].upcoming.push(a);
         } else {
           contactMap[key].past.push(a);
