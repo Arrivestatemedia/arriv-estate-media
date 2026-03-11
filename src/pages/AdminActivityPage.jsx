@@ -332,7 +332,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   };
 
   const upcomingActivities = activities
-    .filter(a => new Date(a.activity_date) > new Date() || isQueueScheduled(a))
+    .filter(a => !isQueueScheduled(a) && new Date(a.activity_date) > new Date())
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5)
     .map(a => {
@@ -341,7 +341,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     });
 
   const pastActivities = [...activities]
-    .filter(a => new Date(a.activity_date) <= new Date() && !isQueueScheduled(a))
+    .filter(a => !isQueueScheduled(a) && new Date(a.activity_date) <= new Date())
     .sort((a, b) => new Date(b.created_date || b.activity_date) - new Date(a.created_date || a.activity_date))
     .map(a => {
       const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
