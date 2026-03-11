@@ -176,6 +176,19 @@ async function saveScheduledFollowUp(contact, analysis, sid, sem, existingSchedu
     ? new Date(analysis.follow_up_date_time)
     : addDays(new Date(), 7);
 
+  // Hard safety: minimum 7 days out unless AI explicitly set same-day/next-day
+  // Only allow same-day or next-day if the reason explicitly mentions it
+  const reason = (analysis.reason || "").toLowerCase();
+  const explicitSameDayOrNextDay = reason.includes("call back today") || reason.includes("later today") ||
+    reason.includes("call tomorrow") || reason.includes("tomorrow morning") || reason.includes("callback tomorrow") ||
+    reason.includes("call me back tomorrow");
+  const minDate = explicitSameDayOrNextDay ? addDays(new Date(), 0) : addDays(new Date(), 7);
+  if (followUpDate < minDate) {
+    followUpDate = minDate;
+    // Set to 8:30am
+    followUpDate.setHours(8, 30, 0, 0);
+  }
+
   // Determine best time preference from contact history
   const bestTimeStr = getBestTime(contact);
   const isEveningPreferred = bestTimeStr.includes("5:00") || bestTimeStr.includes("7:00") || bestTimeStr.includes("PM");
