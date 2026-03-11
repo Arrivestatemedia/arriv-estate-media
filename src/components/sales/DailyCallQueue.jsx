@@ -482,9 +482,12 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
         sales_member_email: sem,
       });
 
-      // 2. Delete the old scheduled follow-up from the queue
+      // 2. Update the old scheduled follow-up with the outcome so it moves to Activity History
       if (scheduledFollowUp) {
-        await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
+        await base44.entities.ActivityLog.update(scheduledFollowUp.id, {
+          activity_date: new Date().toISOString(),
+          notes: `[Queue Call] Outcome: ${outcome.replace(/_/g, " ")} — ${outcomeNotes}`,
+        }).catch(() => {});
       }
 
       // 3. Build updated history including this new outcome for the AI to read
