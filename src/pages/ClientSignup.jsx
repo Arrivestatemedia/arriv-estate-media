@@ -179,6 +179,20 @@ export default function ClientSignup() {
             )}
 
             <div className="space-y-2">
+              <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-start gap-2 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
+                <Checkbox
+                  checked={smsConsented}
+                  onCheckedChange={setSmsConsented}
+                  className="mt-0.5 shrink-0"
+                />
+                <span>
+                  I would like to receive optional SMS updates from Arriv Estate Media LLC about my bookings (including confirmations, scheduling updates, arrival notifications, job completion notices, invoices, and payment reminders). Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help. SMS consent is not required to create an account or use our services.
+                </span>
+              </label>
+              <p className="text-xs text-[#1A1A1A]/50 px-1">
+                For support, contact <a href="mailto:support@arrivestatemedia.com" className="text-[#B8956A] hover:underline">support@arrivestatemedia.com</a>
+              </p>
+
               <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-center gap-2 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
                 <Checkbox
                   checked={termsScrolled && termsAccepted}
@@ -205,20 +219,6 @@ export default function ClientSignup() {
                   Please read the Terms & Conditions first
                 </p>
               )}
-
-              <label className="text-xs text-[#1A1A1A]/70 cursor-pointer leading-relaxed flex items-start gap-2 p-3 bg-[#B8956A]/5 rounded-lg border border-[#B8956A]/20">
-                <Checkbox
-                  checked={smsConsented}
-                  onCheckedChange={setSmsConsented}
-                  className="mt-0.5 shrink-0"
-                />
-                <span>
-                  I would like to receive optional SMS updates from Arriv Estate Media LLC about my bookings (including confirmations, scheduling updates, arrival notifications, job completion notices, invoices, and payment reminders). Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help. SMS consent is not required to create an account or use our services.
-                </span>
-              </label>
-              <p className="text-xs text-[#1A1A1A]/50 px-1">
-                For support, contact <a href="mailto:support@arrivestatemedia.com" className="text-[#B8956A] hover:underline">support@arrivestatemedia.com</a>
-              </p>
             </div>
 
             <Button
