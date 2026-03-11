@@ -120,13 +120,16 @@ IMAGES ARE PRIMARY EVIDENCE. Use them to override unclear notes.` : ""}
    → Schedule 45 days out. Urgency: low.
 
 6. NO ANSWER (they didn't pick up, voicemail only)
-   → Schedule 4 business days, different time than last attempt. Urgency: medium.
+   → Schedule 4 business days out, different time than last attempt. Urgency: medium.
 
 7. THEY SAID THEY'RE BUSY/BAD TIME NOW
    → Next business day 8:30am. Urgency: high.
 
 8. FIRST CONTACT (no history)
-   → Schedule TODAY (if it's before 5pm) at the next available window, or TOMORROW at 8:30am. Never push a brand new contact out more than 1 day. Urgency: high.
+   → Schedule TOMORROW at 8:30am. Urgency: high.
+
+CRITICAL RULE — NO SAME-DAY SCHEDULING:
+NEVER schedule a follow-up for the same calendar day as today (${today}) UNLESS the contact explicitly said "call me back in X hours" or "call me back later today". If the outcome was logged today, the minimum follow-up date is TOMORROW. A contact just spoken to today cannot also be a follow-up due today.
 
 BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
 
