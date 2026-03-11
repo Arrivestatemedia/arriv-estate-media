@@ -198,7 +198,13 @@ Output JSON with follow_up_date_time (ISO), urgency (high/medium/low/skip), and 
       });
 
       if (analysis && analysis.urgency !== "skip") {
-        const followUpDate = new Date(analysis.follow_up_date_time || Date.now() + 7 * 24 * 60 * 60 * 1000);
+        let followUpDate = new Date(analysis.follow_up_date_time || Date.now() + 7 * 24 * 60 * 60 * 1000);
+        // Hard minimum: 7 days out unless notes explicitly say same-day or next-day
+        const reasonLower = (analysis.reason || "").toLowerCase();
+        const explicitShort = reasonLower.includes("later today") || reasonLower.includes("call back today") ||
+          reasonLower.includes("tomorrow morning") || reasonLower.includes("call tomorrow") || reasonLower.includes("callback tomorrow");
+        const minDate = explicitShort ? new Date() : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        if (followUpDate < minDate) { followUpDate = minDate; followUpDate.setHours(8, 30, 0, 0); }
         await base44.entities.ActivityLog.create({
           activity_type: "call",
           contact_name: contactNameStr,
