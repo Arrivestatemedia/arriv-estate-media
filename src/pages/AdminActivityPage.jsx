@@ -340,10 +340,13 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
         const n = a.notes || '';
         return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]');
       });
-      // Real items = anything that's NOT an unlogged AI-scheduled item (includes [Queue Call] outcomes)
+      // Real items = any activity that's NOT a pure unlogged AI-scheduled item
       const realItems = list.filter(a => {
         const n = a.notes || '';
-        return !(n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) || n.includes('[Queue Call]');
+        // If it has [Queue Call], it's a real outcome
+        if (n.includes('[Queue Call]')) return true;
+        // If it doesn't have AI markers, it's real
+        return !(n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
       });
       aiItems.forEach(ai => {
         const aiDay = new Date(ai.activity_date); aiDay.setHours(0,0,0,0);
