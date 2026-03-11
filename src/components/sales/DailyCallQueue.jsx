@@ -468,37 +468,8 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
     const sid = salesMemberId || localStorage.getItem('sales_member_id');
     const sem = salesMemberEmail;
 
-    let nextFollowUpDate = null;
-    let nextNotes = "";
-    const now = new Date();
-
-    if (outcome === "no_answer") {
-      nextFollowUpDate = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-      nextNotes = `Follow-up text after missed call to ${contact.name}`;
-    } else if (outcome === "call_later") {
-      nextFollowUpDate = addDays(now, 1);
-      nextFollowUpDate.setHours(8, 30, 0);
-      nextNotes = `Follow-up call to ${contact.name} — asked to call back`;
-    } else if (outcome === "interested") {
-      nextFollowUpDate = addDays(now, 2);
-      nextFollowUpDate.setHours(8, 0, 0);
-      nextNotes = `WARM LEAD — ${contact.name} showed interest. Notify Brad for handoff.`;
-    } else if (outcome === "not_interested") {
-      nextFollowUpDate = addDays(now, 30);
-      nextFollowUpDate.setHours(9, 0, 0);
-      nextNotes = `30-day pause. ${contact.name} not interested at this time.`;
-    } else if (outcome === "warm_waiting") {
-      nextFollowUpDate = addDays(now, 21);
-      nextFollowUpDate.setHours(8, 0, 0);
-      nextNotes = `Warm lead — ${contact.name} will reach out when ready. Check back in 3 weeks.`;
-    } else if (outcome === "left_voicemail") {
-      nextFollowUpDate = addDays(now, 3);
-      nextFollowUpDate.setHours(17, 0, 0);
-      nextNotes = `Left voicemail for ${contact.name}. Follow up in 3 days.`;
-    }
-
     try {
-      // Log the completed call
+      // 1. Log the completed call outcome as a real activity
       await base44.entities.ActivityLog.create({
         activity_type: "call",
         contact_name: contact.name,
@@ -511,78 +482,57 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
         sales_member_email: sem,
       });
 
-      // If there was a scheduled follow-up, delete it — we'll replace it with the new one
+      // 2. Delete the old scheduled follow-up from the queue
       if (scheduledFollowUp) {
         await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
       }
 
-      // Create the new permanent follow-up WITH auto-generated call map stored
-       if (nextFollowUpDate) {
-          let generatedCallMap = "";
+      // 3. Build updated history including this new outcome for the AI to read
+      const updatedHistoryActivities = [
+        ...contact.activities,
+        {
+          activity_type: "call",
+          activity_date: new Date().toISOString(),
+          notes: `[Queue Call] Outcome: ${outcome.replace(/_/g, " ")} — ${outcomeNotes}`,
+          picture_urls: [],
+        }
+      ].sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date)).slice(0, 15);
 
-          // Generate call map via backend function with full historical context
-          try {
-            const meta = metaMap[contact.key] || {};
-            const recentHistory = contact.activities
-              .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
-              .slice(0, 15)
-              .map(a => `${format(new Date(a.activity_date), "MMM d, yyyy")}: [${a.activity_type}] ${a.notes?.slice(0, 150)}`)
-              .join("\n");
+      const updatedContact = { ...contact, activities: updatedHistoryActivities };
 
-            const callMapRes = await base44.functions.invoke('regenerateCallMap', {
-              contactName: contact.name,
-              contactEmail: contact.email,
-              companyName: contact.company,
-              contactPhone: contact.phone,
-              activityHistory: recentHistory,
-              patternTags: meta.patternTags || [],
-              reason: meta.reason || "",
-              contactIntel: meta.contactIntel || "",
-            });
+      // 4. Use the Scheduling AI to determine the correct next follow-up date & details
+      //    based on the outcome notes and full history
+      const [pastInsights] = await Promise.all([
+        sid ? base44.entities.QueueInsight.filter({ sales_member_id: sid }, '-logged_at', 200).catch(() => []) : Promise.resolve([])
+      ]);
+      const learnedCtx = buildLearnedContext(pastInsights);
+      const analysis = await analyzeContact(updatedContact, learnedCtx);
 
-            const callMapData = callMapRes?.data?.call_map;
-            if (callMapData && typeof callMapData === 'string' && callMapData.trim().length > 0) {
-              generatedCallMap = callMapData;
-              console.log('[DailyCallQueue logOutcome] Call map generated, length:', generatedCallMap.length);
-            } else {
-              console.warn('[DailyCallQueue logOutcome] Invalid call map response:', callMapRes?.data);
-            }
-          } catch (error) {
-            console.error('[DailyCallQueue logOutcome] Call map generation error:', error);
-          }
-
-          await base44.entities.ActivityLog.create({
-            activity_type: "call",
-            contact_name: contact.name,
-            contact_email: contact.email,
-            contact_phone: contact.phone || "",
-            company_name: contact.company,
-            activity_date: nextFollowUpDate.toISOString(),
-            notes: generatedCallMap ? `${nextNotes}\n\n--- CALL MAP ---\n${generatedCallMap}` : nextNotes,
-            sales_member_id: sid,
-            sales_member_email: sem,
-          });
-       }
-
-      // Save insight so the AI learns
+      // 5. Save insight so AI learns
       await base44.entities.QueueInsight.create({
         sales_member_id: sid,
         contact_key: contact.key,
         contact_name: contact.name,
         outcome,
         outcome_notes: outcomeNotes,
-        ai_recommendation: reason || "",
-        next_contact_date: nextFollowUpDate ? format(nextFollowUpDate, "yyyy-MM-dd") : null,
+        ai_recommendation: analysis?.reason || reason || "",
+        next_contact_date: analysis?.follow_up_date_time ? format(new Date(analysis.follow_up_date_time), "yyyy-MM-dd") : null,
         pattern_tags: patternTags || [],
         logged_at: new Date().toISOString(),
       });
+
+      // 6. Save the AI-scheduled follow-up with a fresh call map (unless urgency is "skip")
+      if (analysis && analysis.urgency !== "skip") {
+        await saveScheduledFollowUp(updatedContact, analysis, sid, sem, scheduledMap);
+      }
 
       setSaved(true);
       setLoggingOutcome(false);
       setOutcome("");
       setOutcomeNotes("");
       if (onOutcomeLogged) onOutcomeLogged();
-    } catch {
+    } catch (err) {
+      console.error('[logOutcome] Error:', err);
       setLoggingOutcome(false);
     }
   };
