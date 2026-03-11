@@ -336,21 +336,16 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       byContact[key].push(a);
     });
     Object.values(byContact).forEach(list => {
-      const aiItems = list.filter(a => {
+      // Check if this contact has ANY [Queue Call] record
+      const hasQueueCall = list.some(a => (a.notes || '').includes('[Queue Call]'));
+      if (!hasQueueCall) return; // If no [Queue Call], nothing is resolved
+      
+      // If [Queue Call] exists, mark ALL [AI Scheduled] items as resolved
+      list.forEach(a => {
         const n = a.notes || '';
-        return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]');
-      });
-      // Real items = any activity that's NOT a pure unlogged AI-scheduled item
-      const realItems = list.filter(a => {
-        const n = a.notes || '';
-        // If it has [Queue Call], it's a real outcome
-        if (n.includes('[Queue Call]')) return true;
-        // If it doesn't have AI markers, it's real
-        return !(n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
-      });
-      aiItems.forEach(ai => {
-        const aiDay = new Date(ai.activity_date); aiDay.setHours(0,0,0,0);
-        if (realItems.some(r => new Date(r.activity_date) >= aiDay)) resolved.add(ai.id);
+        if ((n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]')) {
+          resolved.add(a.id);
+        }
       });
     });
     return resolved;
