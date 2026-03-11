@@ -933,9 +933,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
           contactMap[key] = { key, name: a.contact_name || '', email: a.contact_email || '', company: a.company_name || '', phone: '', activities: [], past: [], upcoming: [] };
         }
         contactMap[key].activities.push(a);
-        // [Queue Call] records are completed activities — always treat as past regardless of timestamp
-        const isCompletedQueueCall = (a.notes || '').startsWith('[Queue Call]');
-        if (new Date(a.activity_date) >= startOfToday && !isCompletedQueueCall) {
+        if (new Date(a.activity_date) >= startOfToday) {
           contactMap[key].upcoming.push(a);
         } else {
           contactMap[key].past.push(a);
@@ -961,10 +959,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
       const deletePromises = [];
       filtered.forEach(contact => {
         const upcoming = contact.upcoming
-          .filter(a =>
-            (a.activity_type === "call" || a.activity_type === "task") &&
-            !(a.notes || '').startsWith('[Queue Call]')
-          )
+          .filter(a => a.activity_type === "call" || a.activity_type === "task")
           .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date));
         if (upcoming.length > 0) {
           newScheduledMap[contact.key] = upcoming[0];

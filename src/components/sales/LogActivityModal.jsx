@@ -114,10 +114,11 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     }
     setSaving(true);
     try {
-      const sid = salesMemberId || localStorage.getItem("sales_member_id") || "";
-      const sem = salesMemberEmail || localStorage.getItem("sales_member_email") || "";
+      const screenshotLinks = screenshots.map(s => s.url).join("\n");
+      const fullNotes = screenshotLinks
+        ? `${notes.trim()}\n\n[Screenshots]\n${screenshotLinks}`
+        : notes.trim();
 
-      // Log the new activity
       await base44.entities.ActivityLog.create({
         activity_type: activityType,
         contact_email: selectedContactObj?.email || "",
@@ -128,31 +129,10 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
         notes: notes.trim(),
         duration_minutes: duration ? Number(duration) : 0,
         picture_urls: screenshots.map(s => s.url),
-        sales_member_id: sid,
-        sales_member_email: sem,
+        sales_member_id: salesMemberId || "",
+        sales_member_email: salesMemberEmail || localStorage.getItem("sales_member_email") || "",
         hubspot_synced: false,
       });
-
-      // Remove existing scheduled queue follow-up for this contact, then let AI reschedule
-      try {
-        const contactKey = selectedContactObj?.email || contactName;
-        if (contactKey) {
-          const all = await base44.entities.ActivityLog.list('-activity_date', 500);
-          const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
-          const existingScheduled = all.filter(a =>
-            (a.contact_email === contactKey || a.contact_name === contactKey) &&
-            (a.sales_member_id === sid || a.sales_member_email === sem || a.created_by === sem) &&
-            new Date(a.activity_date) >= startOfToday &&
-            !(a.notes || '').startsWith('[Queue Call]') &&
-            (a.activity_type === "call" || a.activity_type === "task")
-          );
-          // Delete old scheduled items so the AI will reschedule based on the new activity
-          await Promise.all(existingScheduled.map(a => base44.entities.ActivityLog.delete(a.id).catch(() => {})));
-        }
-      } catch (e) {
-        // Non-critical — don't block success
-        console.error("Failed to clear old scheduled follow-up:", e);
-      }
 
       toast.success("Activity logged successfully.");
       if (onLogged) onLogged();
