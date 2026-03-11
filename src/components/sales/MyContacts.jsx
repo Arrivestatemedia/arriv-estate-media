@@ -83,9 +83,16 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
       };
     }
     contactMap[key].activities.push(a);
+
+    // AI-scheduled queue items should never appear in Activity History —
+    // they are pending tasks, not completed activities
+    const notes = a.notes || '';
+    const isQueueScheduled = notes.includes('[AI Scheduled]') ||
+      (notes.includes('--- CALL MAP ---') && !notes.includes('[Queue Call]'));
+
     if (new Date(a.activity_date) > new Date()) {
       contactMap[key].upcoming.push(a);
-    } else {
+    } else if (!isQueueScheduled) {
       contactMap[key].past.push(a);
     }
     // Merge best known name/company

@@ -933,7 +933,14 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
           contactMap[key] = { key, name: a.contact_name || '', email: a.contact_email || '', company: a.company_name || '', phone: '', activities: [], past: [], upcoming: [] };
         }
         contactMap[key].activities.push(a);
-        if (new Date(a.activity_date) >= startOfToday) {
+
+        // AI-scheduled/queue items are ALWAYS treated as "upcoming" (pending) even if
+        // their date has passed — they stay in the queue until explicitly resolved
+        const notes = a.notes || '';
+        const isQueueScheduled = notes.includes('[AI Scheduled]') ||
+          (notes.includes('--- CALL MAP ---') && !notes.includes('[Queue Call]'));
+
+        if (new Date(a.activity_date) >= startOfToday || isQueueScheduled) {
           contactMap[key].upcoming.push(a);
         } else {
           contactMap[key].past.push(a);
