@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Paperclip, X, Check, Image } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { analyzeContact, saveScheduledFollowUp, buildLearnedContext } from "./schedulingUtils";
 
 export default function LogActivityModal({ open, onClose, contact, salesMemberId, salesMemberEmail, onLogged }) {
   const [activityType, setActivityType] = useState("call");
