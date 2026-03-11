@@ -6,21 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2, MapPin } from "lucide-react";
-import { format, formatDistanceToNow, addDays, isAfter, startOfDay, parseISO } from "date-fns";
+import { Phone, Clock, Sparkles, ChevronDown, ChevronUp, Loader2, CheckCircle2, RefreshCw, Calendar, Brain, Pencil, Trash2 } from "lucide-react";
+import { format, formatDistanceToNow, addDays, isAfter, startOfDay } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import ViewCallMapModal from "./ViewCallMapModal";
-
-function getBestTime(contact) {
-  const notes = contact.activities.map(a => (a.notes || "").toLowerCase()).join(" ");
-  if (notes.includes("morning") || notes.includes("9am") || notes.includes("8am") || notes.includes("early")) return "8:00–9:00 AM";
-  if (notes.includes("lunch") || notes.includes("noon") || notes.includes("12pm") || notes.includes("midday")) return "12:00–1:00 PM";
-  if (notes.includes("evening") || notes.includes("5pm") || notes.includes("6pm") || notes.includes("after showing") || notes.includes("after 4") || notes.includes("after 5")) return "5:00–7:00 PM";
-  if (notes.includes("afternoon") || notes.includes("2pm") || notes.includes("3pm")) return "1:00–2:00 PM";
-  const today = new Date().getDay();
-  if (today === 0 || today === 6 || today === 5) return "Mon–Wed 8:00–9:00 AM";
-  return "5:00–7:00 PM";
-}
+import { getBestTime, buildLearnedContext, analyzeContact, saveScheduledFollowUp } from "./schedulingUtils";
 
 function getPriorityLabel(urgency) {
   if (urgency === "high") return { label: "High", color: "#ef4444", bg: "rgba(239,68,68,0.1)" };
