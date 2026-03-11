@@ -104,29 +104,34 @@ IMAGES ARE PRIMARY EVIDENCE. Use them to override unclear notes.` : ""}
 
 === DECISION RULES (apply in order) ===
 
-1. DID THEY GIVE A SPECIFIC CALLBACK TIME? ("call me back at 2pm", "tomorrow morning", "next Monday")
-   → Schedule EXACTLY then (or next business day if weekend). Urgency: high.
+⚠️ CRITICAL SCHEDULING RULE — READ FIRST:
+NEVER schedule same-day or next-day UNLESS the notes EXPLICITLY state a same-day callback (e.g. "call back in 2 hours", "call later today") or next-day callback (e.g. "call tomorrow", "call me tomorrow morning").
+The DEFAULT minimum follow-up is 7 days from today. Most follow-ups should be 1–4 weeks out.
+Read every note and attachment carefully before deciding. Use the most specific timing signals you find.
 
-2. DID THEY SAY "CALL ME BACK IN X DAYS/WEEKS"? ("call me back in 2 weeks", "in a month")
-   → Schedule EXACTLY that many days from now. Urgency: medium.
+1. DID THEY GIVE A SPECIFIC CALLBACK TIME? ("call me back at 2pm today", "tomorrow morning", "next Monday", "in 2 weeks")
+   → Schedule EXACTLY then. Urgency: high. This is the ONLY case where same-day or next-day is allowed.
 
-3. DID THEY SAY THEY'LL CALL YOU? ("I'll get back to you", "I'll reach out", "I'll call you when ready")
-   → Set 45 days out. Urgency: skip. DO NOT surface as due today.
+2. DID THEY SAY THEY'LL CALL YOU? ("I'll get back to you", "I'll reach out when ready")
+   → Schedule 45 days out. Urgency: skip.
 
-4. ARE THEY A WARM LEAD? (said "interested", "sounds good", "send me info", asked questions)
-   → Schedule 2-3 business days, morning 8-9am. Urgency: high.
+3. ARE THEY A WARM LEAD? (said "interested", "sounds good", "send me info", asked pricing questions)
+   → Schedule 7–10 days out, morning 8-9am. Urgency: high.
 
-5. DID THEY SAY "NOT INTERESTED"? (firm no, rejection)
-   → Schedule 45 days out. Urgency: low.
+4. DID THEY SAY "NOT INTERESTED"? (firm no, rejection)
+   → Schedule 30–45 days out. Urgency: low.
 
-6. NO ANSWER (they didn't pick up, voicemail only)
-   → Schedule 4 business days, different time than last attempt. Urgency: medium.
+5. NO ANSWER / LEFT VOICEMAIL
+   → Schedule 7 days out, different time than last attempt. Urgency: medium.
 
-7. THEY SAID THEY'RE BUSY/BAD TIME NOW
-   → Next business day 8:30am. Urgency: high.
+6. THEY SAID THEY'RE BUSY/BAD TIME (but no specific callback time given)
+   → Schedule 7 days out at 8:30am. Urgency: medium.
+
+7. GENERAL CONVERSATION / TOUCHPOINT (no specific signal)
+   → Schedule 14 days out. Urgency: medium.
 
 8. FIRST CONTACT (no history)
-   → Schedule TODAY (if it's before 5pm) at the next available window, or TOMORROW at 8:30am. Never push a brand new contact out more than 1 day. Urgency: high.
+   → Schedule 7 days out at 8:30am. Urgency: high.
 
 BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
 
