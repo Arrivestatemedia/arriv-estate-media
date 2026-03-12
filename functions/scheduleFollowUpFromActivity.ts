@@ -82,15 +82,15 @@ Deno.serve(async (req) => {
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `You are a sales scheduling AI for ARRIV (real estate photography company). A sales rep just logged a real activity. Schedule the next follow-up.
+      prompt: `You are a sales scheduling AI for ARRIV (real estate photography and video company). A sales rep just logged a real activity. Schedule the next follow-up AND write a full call map for the rep to use.
 
 TODAY: ${today}
-CONTACT: ${contactName || contactEmail}
+CONTACT: ${contactName || contactEmail} at ${activity.company_name || 'their company'}
 ACTIVITY JUST LOGGED: [${activity.activity_type}] ${notes}
 PRIOR HISTORY:
 ${historySnippet || 'No prior history'}
 
-RULES:
+SCHEDULING RULES:
 - NEVER schedule same-day or next-day unless notes explicitly say "call back today/tomorrow"
 - Default minimum: 7 days from today
 - If warm/interested: 7-10 days
@@ -100,20 +100,29 @@ RULES:
 - If they said "never" / "remove me" / "do not call": urgency = "skip"
 - Use common sense — go as far out as needed. There's no maximum.
 
+CALL MAP RULES:
+- Write a tailored call map the rep will use when they actually make this follow-up call
+- Reference specific details from the contact's history (what they said, their situation, their company, their market)
+- Include: Opening, If Interested, If They Already Have Someone, If Not Ready Yet, If Busy/Bad Time, If Too Expensive, Voicemail Script, Follow-Up Text
+- Keep each section 2-3 sentences max, conversational and natural
+- Do NOT be generic — make it specific to this contact's situation
+
 Return ONLY valid JSON:
 {
   "days_until_followup": <number>,
-  "reason": "<brief reason>",
-  "urgency": "high" | "medium" | "low" | "skip"
+  "reason": "<brief reason (1 sentence)>",
+  "urgency": "high" | "medium" | "low" | "skip",
+  "call_map": "<full call map formatted with emoji headers like 📞 Opening, 🔀 If Interested, etc.>"
 }`,
       response_json_schema: {
         type: 'object',
         properties: {
           days_until_followup: { type: 'number' },
           reason: { type: 'string' },
-          urgency: { type: 'string' }
+          urgency: { type: 'string' },
+          call_map: { type: 'string' }
         },
-        required: ['days_until_followup', 'reason', 'urgency']
+        required: ['days_until_followup', 'reason', 'urgency', 'call_map']
       }
     });
 
