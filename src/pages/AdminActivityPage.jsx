@@ -347,17 +347,14 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
         return !(n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
       });
       
-      // Resolve AI items if ANY real activity exists on or after their scheduled date
-      aiItems.forEach(ai => {
-        const aiDay = new Date(ai.activity_date);
-        aiDay.setHours(0, 0, 0, 0);
-        if (realItems.some(r => {
-          const rDay = new Date(r.activity_date);
-          return rDay >= aiDay;
-        })) {
+      // Resolve AI items if ANY real logged activity exists (call, email, meeting, note)
+      // for this contact — real activities are logged via the Log Activity modal or the dialer
+      // NOT via DailyCallQueue's [Queue Call] logging (which handles its own scheduling)
+      if (realItems.length > 0) {
+        aiItems.forEach(ai => {
           resolved.add(ai.id);
-        }
-      });
+        });
+      }
     });
     return resolved;
   }, [activities]);
