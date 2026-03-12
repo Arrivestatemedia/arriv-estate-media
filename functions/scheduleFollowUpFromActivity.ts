@@ -146,7 +146,7 @@ Return ONLY valid JSON:
       contact_phone: activity.contact_phone || '',
       company_name: activity.company_name || '',
       activity_date: followUpDate.toISOString(),
-      notes: `[AI Scheduled] ${scheduleData.reason || 'Follow-up'}`,
+      notes: `[AI Scheduled] ${scheduleData.reason || 'Follow-up'}${scheduleData.call_map ? '\n\n--- CALL MAP ---\n' + scheduleData.call_map : ''}`,
       sales_member_id: sid || '',
       sales_member_email: sem || '',
     });
