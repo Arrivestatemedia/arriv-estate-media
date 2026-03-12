@@ -11,12 +11,14 @@ Deno.serve(async (req) => {
 
     const all = await base44.asServiceRole.entities.ActivityLog.list('-activity_date', 1000);
 
-    // Group by contact key + sales member
+    // Group by contact key + sales member — only real named contacts, not phone numbers/extensions
     const grouped = {};
     all.forEach(a => {
       const sid = a.sales_member_id || a.sales_member_email || '';
       const cid = a.contact_email || a.contact_name || '';
       if (!sid || !cid) return;
+      // Skip phone numbers and short extensions (not real contact names)
+      if (/^\+?\d+$/.test(cid) || cid.length <= 5) return;
       const key = `${sid}::${cid}`;
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(a);
