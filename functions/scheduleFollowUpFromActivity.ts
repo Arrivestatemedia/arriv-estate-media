@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, reason: 'No contact identifier' });
     }
 
+    // Skip phone numbers and short extensions — only schedule for real named contacts
+    const identifier = contactName || contactEmail || '';
+    if (/^\+?\d+$/.test(identifier.trim()) || identifier.trim().length <= 5) {
+      return Response.json({ success: false, reason: 'Skipping — contact is a phone number or extension, not a named contact' });
+    }
+
     // Use service role for all DB operations (no user token in automation context)
     const allLogs = await base44.asServiceRole.entities.ActivityLog.list('-activity_date', 500);
 
