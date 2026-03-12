@@ -147,8 +147,13 @@ Return ONLY valid JSON:
 
         const daysOut = Math.max(7, Math.round(scheduleData.days_until_followup || 7));
         const followUpDate = new Date();
-        followUpDate.setDate(followUpDate.getDate() + daysOut);
-        followUpDate.setHours(8, 30, 0, 0);
+        followUpDate.setUTCDate(followUpDate.getUTCDate() + daysOut);
+        // Use ET timezone: EDT (UTC-4) Mar-Nov, EST (UTC-5) Nov-Mar
+        const yr = followUpDate.getUTCFullYear();
+        const isDST = followUpDate >= new Date(Date.UTC(yr, 2, 8)) && followUpDate < new Date(Date.UTC(yr, 10, 1));
+        const etOffsetHours = isDST ? 4 : 5; // hours to add to ET to get UTC
+        // Target 9:30 AM ET
+        followUpDate.setUTCHours(9 + etOffsetHours, 30, 0, 0);
 
         await base44.asServiceRole.entities.ActivityLog.create({
           activity_type: 'call',
