@@ -6,25 +6,28 @@ Deno.serve(async (req) => {
     const body = await req.json();
 
     // Automation payload structure: { event, data, old_data }
-    const activity = body?.data || body?.event?.data;
+    // Direct call structure: { activity_id, activity_type, contact_email, ..., _force_reschedule: true }
+    const forceReschedule = body?._force_reschedule === true;
+    const activity = body?.data || body?.event?.data || (forceReschedule ? body : null);
 
     if (!activity) {
       return Response.json({ success: false, reason: 'No activity data' });
     }
 
-    // Skip AI-scheduled tasks, queue calls, tasks, and notes — only process real human activities
-    const notes = activity.notes || '';
-    if (
-      notes.includes('[AI Scheduled]') ||
-      notes.includes('--- CALL MAP ---') ||
-      notes.includes('[Queue Call]')
-    ) {
-      return Response.json({ success: false, reason: 'Skipping AI-scheduled or queue call' });
-    }
+    // Skip AI-scheduled tasks, queue calls — unless force rescheduling
+    if (!forceReschedule) {
+      const notes = activity.notes || '';
+      if (
+        notes.includes('[AI Scheduled]') ||
+        notes.includes('[Queue Call]')
+      ) {
+        return Response.json({ success: false, reason: 'Skipping AI-scheduled or queue call' });
+      }
 
-    // Only trigger on real activity types (not task/note)
-    if (!['call', 'email', 'meeting'].includes(activity.activity_type)) {
-      return Response.json({ success: false, reason: 'Not a trackable activity type' });
+      // Only trigger on real activity types (not task/note)
+      if (!['call', 'email', 'meeting'].includes(activity.activity_type)) {
+        return Response.json({ success: false, reason: 'Not a trackable activity type' });
+      }
     }
 
     const contactEmail = activity.contact_email;
