@@ -364,9 +364,14 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
 
   const isAIPending = (a) => {
     const notes = a.notes || '';
+    // Queue call outcomes are real activities, not pending AI tasks
     if (notes.includes('[Queue Call]')) return false;
+    // Already resolved by a real interaction
     if (resolvedAIIds.has(a.id)) return false;
-    return notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---');
+    // Must be AI-generated
+    if (!notes.includes('[AI Scheduled]') && !notes.includes('--- CALL MAP ---')) return false;
+    // Must still be in the future
+    return new Date(a.activity_date) > new Date();
   };
 
   const upcomingActivities = activities
