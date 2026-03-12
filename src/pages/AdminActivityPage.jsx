@@ -338,13 +338,13 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     Object.values(byContact).forEach(list => {
       const aiItems = list.filter(a => {
         const n = a.notes || '';
-        return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
+        return n.includes('[AI Scheduled]') && !n.includes('[Queue Call]');
       });
       
-      // Real items = anything that's NOT an AI-scheduled marker (any logged activity counts)
+      // Real items = anything without [AI Scheduled] prefix
       const realItems = list.filter(a => {
         const n = a.notes || '';
-        return !(n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
+        return !n.includes('[AI Scheduled]') && !n.includes('[Queue Call]');
       });
       
       // Resolve AI items if ANY real activity exists on or after their scheduled date
@@ -366,7 +366,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     const notes = a.notes || '';
     if (notes.includes('[Queue Call]')) return false;
     if (resolvedAIIds.has(a.id)) return false;
-    return notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---');
+    // ONLY treat as pending if it has the [AI Scheduled] prefix
+    return notes.includes('[AI Scheduled]');
   };
 
   const upcomingActivities = activities

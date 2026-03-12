@@ -566,7 +566,8 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
 
         const notes = a.notes || '';
         const isLogged = notes.includes('[Queue Call]');
-        const isAIScheduled = !isLogged && (notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---'));
+        // ONLY treat as AI-scheduled if it has the [AI Scheduled] prefix — NOT just any record with a call map
+        const isAIScheduled = !isLogged && notes.includes('[AI Scheduled]');
         const isRealActivity = !isAIScheduled && !isLogged;
 
         // Tag each record for later resolution check
