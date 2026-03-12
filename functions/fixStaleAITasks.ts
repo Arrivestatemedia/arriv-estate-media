@@ -25,12 +25,12 @@ Deno.serve(async (req) => {
     Object.values(grouped).forEach(list => {
       const aiItems = list.filter(a => {
         const n = a.notes || '';
-        return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]');
+        return n.includes('[AI Scheduled]') && !n.includes('[Queue Call]');
       });
 
       const realItems = list.filter(a => {
         const n = a.notes || '';
-        return !n.includes('[AI Scheduled]') && !n.includes('--- CALL MAP ---') && !n.includes('[Queue Call]');
+        return !n.includes('[AI Scheduled]') && !n.includes('[Queue Call]');
       });
 
       aiItems.forEach(ai => {

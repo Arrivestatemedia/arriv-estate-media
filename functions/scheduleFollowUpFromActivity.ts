@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     // 1. Retire any existing AI-scheduled tasks for this contact
     const aiTasksToRetire = contactLogs.filter(a => {
       const n = a.notes || '';
-      return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]');
+      return n.includes('[AI Scheduled]') && !n.includes('[Queue Call]');
     });
 
     if (aiTasksToRetire.length > 0) {

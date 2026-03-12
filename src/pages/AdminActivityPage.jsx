@@ -400,7 +400,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
             (data.contact_name && a.contact_name === data.contact_name);
           if (!keyMatch) return false;
           const n = a.notes || '';
-          return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]');
+          return n.includes('[AI Scheduled]') && !n.includes('[Queue Call]');
         });
 
         if (aiTasksToRetire.length > 0) {
