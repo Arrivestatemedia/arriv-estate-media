@@ -108,10 +108,12 @@ ${historySnippet || 'No prior history'}
 RULES:
 - NEVER schedule same-day or next-day unless notes explicitly say "call back today/tomorrow"
 - Default minimum: 7 days from today
-- If they said "I'll reach out when ready" / "building home" / "not ready yet": 45-60 days
 - If warm/interested: 7-10 days
 - If no answer / left voicemail: 7 days
-- If not interested: 30-45 days
+- If they said "I'll reach out when ready" / "building home" / "not ready yet" / waiting on something: 45-60 days
+- If not interested OR already has someone / a photographer / a vendor: 120-180 days (4-6 months) — they may change their mind
+- If they said "never" / "remove me" / "do not call": urgency = "skip"
+- Use common sense — go as far out as needed. There's no maximum.
 
 Return ONLY valid JSON:
 {
