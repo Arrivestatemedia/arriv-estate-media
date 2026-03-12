@@ -16,17 +16,6 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, reason: 'No contact email' });
     }
 
-    // CRITICAL: Skip AI-generated activities and queue-logged outcomes to prevent infinite loops
-    // DailyCallQueue already handles its own follow-up scheduling for [Queue Call] outcomes
-    const notes = activity.notes || '';
-    if (
-      notes.includes('[AI Scheduled]') ||
-      notes.includes('--- CALL MAP ---') ||
-      notes.includes('[Queue Call]')
-    ) {
-      return Response.json({ success: false, reason: 'Skipping AI-generated or queue activity' });
-    }
-
     // Fetch prior activities for this contact
     const priorActivities = await base44.entities.ActivityLog.filter(
       { contact_email: activity.contact_email },

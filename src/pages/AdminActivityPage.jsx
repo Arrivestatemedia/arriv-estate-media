@@ -347,15 +347,12 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
         return !(n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---'));
       });
       
-      // Resolve an AI task if a real activity exists on or after the AI task's scheduled date.
-      // This ensures: old AI tasks get resolved when a real interaction happens,
-      // but NEW AI tasks (future dates) remain in upcoming.
+      // Resolve AI items if ANY real activity exists on or after their scheduled date
       aiItems.forEach(ai => {
         const aiDay = new Date(ai.activity_date);
         aiDay.setHours(0, 0, 0, 0);
         if (realItems.some(r => {
           const rDay = new Date(r.activity_date);
-          rDay.setHours(0, 0, 0, 0);
           return rDay >= aiDay;
         })) {
           resolved.add(ai.id);
@@ -367,19 +364,13 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
 
   const isAIPending = (a) => {
     const notes = a.notes || '';
-    // Queue call outcomes are real activities, not pending AI tasks
     if (notes.includes('[Queue Call]')) return false;
-    // Already resolved by a real interaction
     if (resolvedAIIds.has(a.id)) return false;
-    // Must be AI-generated
-    if (!notes.includes('[AI Scheduled]') && !notes.includes('--- CALL MAP ---')) return false;
-    // Must still be in the future
-    return new Date(a.activity_date) > new Date();
+    return notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---');
   };
 
   const upcomingActivities = activities
-    .filter(a => isAIPending(a) || new Date(a.activity_date) > new Date())
-    .filter(a => !resolvedAIIds.has(a.id))
+    .filter(a => new Date(a.activity_date) > new Date() || isAIPending(a))
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5)
     .map(a => {
