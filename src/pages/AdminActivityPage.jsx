@@ -388,7 +388,33 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
 
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.entities.ActivityLog.create(data);
+      // 1. Create the real activity
+      const created = await base44.entities.ActivityLog.create(data);
+
+      // 2. Retire any old AI-scheduled tasks for this contact so they move to history
+      if (data.contact_email || data.contact_name) {
+        const allLogs = await base44.entities.ActivityLog.list('-activity_date', 300);
+        const aiTasksToRetire = allLogs.filter(a => {
+          const keyMatch = (data.contact_email && a.contact_email === data.contact_email) ||
+            (data.contact_name && a.contact_name === data.contact_name);
+          if (!keyMatch) return false;
+          const n = a.notes || '';
+          return (n.includes('[AI Scheduled]') || n.includes('--- CALL MAP ---')) && !n.includes('[Queue Call]');
+        });
+
+        if (aiTasksToRetire.length > 0) {
+          const retiredDate = new Date();
+          retiredDate.setDate(retiredDate.getDate() - 30);
+          await Promise.all(aiTasksToRetire.map(s =>
+            base44.entities.ActivityLog.update(s.id, {
+              activity_date: retiredDate.toISOString(),
+              notes: `[Queue Call] Completed via activity log — ${(data.notes || '').slice(0, 100)}`,
+            }).catch(() => {})
+          ));
+        }
+      }
+
+      return created;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminActivities'] });

@@ -602,7 +602,8 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         if (!name) return false;
         if (/^\+?\d[\d\s\-().]+$/.test(name)) return false;
         if (/^\d+$/.test(name)) return false;
-        return c.past.length > 0;
+        // Include contacts with past real activities OR with AI-scheduled upcoming items (new contacts)
+        return c.past.length > 0 || c.upcoming.some(a => a._isAIScheduled);
       });
 
       setContacts(filtered);
