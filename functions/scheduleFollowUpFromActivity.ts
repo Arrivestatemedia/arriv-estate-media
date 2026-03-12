@@ -124,7 +124,7 @@ Return ONLY valid JSON:
       return Response.json({ success: true, reason: 'Urgency skip — no follow-up scheduled' });
     }
 
-    const daysOut = Math.max(7, scheduleData.days_until_followup || 7);
+    const daysOut = Math.max(7, Math.round(scheduleData.days_until_followup || 7));
     const followUpDate = new Date();
     followUpDate.setDate(followUpDate.getDate() + daysOut);
     followUpDate.setHours(8, 30, 0, 0); // Default 8:30 AM
