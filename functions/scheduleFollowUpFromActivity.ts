@@ -10,17 +10,10 @@ Deno.serve(async (req) => {
     }
 
     const { event } = await req.json();
-    const body = await req.json();
-    const activity = body.data;
+    const activity = event.data;
 
     if (!activity || !activity.contact_email) {
       return Response.json({ success: false, reason: 'No contact email' });
-    }
-
-    // Skip AI-scheduled records and Queue Call outcomes — those are handled by DailyCallQueue already
-    const notes = activity.notes || '';
-    if (notes.includes('[AI Scheduled]') || notes.includes('[Queue Call]') || notes.includes('--- CALL MAP ---')) {
-      return Response.json({ success: false, reason: 'Skipped: AI or queue activity' });
     }
 
     // Fetch prior activities for this contact

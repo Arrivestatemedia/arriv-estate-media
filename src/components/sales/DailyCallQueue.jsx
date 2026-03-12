@@ -567,8 +567,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         const notes = a.notes || '';
         const isLogged = notes.includes('[Queue Call]');
         const isAIScheduled = !isLogged && (notes.includes('[AI Scheduled]') || notes.includes('--- CALL MAP ---'));
-        // [Queue Call] outcomes count as real resolution triggers too
-        const isRealActivity = !isAIScheduled;
+        const isRealActivity = !isAIScheduled && !isLogged;
 
         // Tag each record for later resolution check
         a._isAIScheduled = isAIScheduled;
