@@ -151,7 +151,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
       // Retire ALL existing AI-scheduled records for this contact
       const existingScheduled = contactLogs.filter(a => {
         const n = a.notes || '';
-        return n.includes('[AI Scheduled]') || (n.includes('--- CALL MAP ---') && !n.includes('[Queue Call]'));
+        return n.includes('[AI Scheduled]') && !n.includes('[Queue Call]');
       });
 
       // Set date to 30 days ago so it moves to history (past) and clears from queue
