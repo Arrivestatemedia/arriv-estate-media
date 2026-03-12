@@ -370,7 +370,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   };
 
   const upcomingActivities = activities
-    .filter(a => new Date(a.activity_date) > new Date() || isAIPending(a))
+    .filter(a => isAIPending(a) || new Date(a.activity_date) > new Date())
+    .filter(a => !resolvedAIIds.has(a.id))
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
     .slice(0, 5)
     .map(a => {
