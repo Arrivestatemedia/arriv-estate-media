@@ -280,7 +280,7 @@ If they have NO active listing found: Skip the listing reference. Instead: "I wo
         properties: {
           opening: { type: "string" },
           if_interested: { type: "string" },
-          if_has_photographer: { type: "string", description: "They already use a photographer. Do NOT repeat the pitch. Acknowledge it, pivot to video as a SEPARATE service from photography, plant a seed for the future. Example: 'Oh totally, I actually don't do photography — I specialize in video tours. A lot of agents use me alongside their photographer. Worth keeping in mind if you ever want to add video to a listing.'" },
+          if_has_photographer: { type: "string", description: "They already use a photographer. Acknowledge it warmly, then mention ARRIV provides BOTH photography AND video as full-service media. Don't dismiss their photographer — position ARRIV as an add-on/upgrade. Example: 'That's great! We actually do photography too, but we also specialize in video tours. A lot of agents use us alongside their existing photographer to add video to their listings. Worth keeping in mind as an add-on.' OR 'Awesome — we do full-service real estate media including photos and video, so we could potentially upgrade what you're already doing or add video tours.'" },
           if_not_interested: { type: "string" },
           if_send_email: { type: "string" },
           if_too_expensive: { type: "string" },
