@@ -925,7 +925,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                       const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
                       const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
                       return (
-                      <Draggable key={activity.id} draggableId={activity.id} index={index}>
+                      <Draggable key={activity.id} draggableId={activity.id} index={upcomingPage * 10 + index}>
                          {(dragProvided, dragSnapshot) => (
                            <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps}
                              style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}>
