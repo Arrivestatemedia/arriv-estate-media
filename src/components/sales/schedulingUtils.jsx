@@ -272,6 +272,21 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
     const allActivityNotes = (contact.activities || []).map(a => a.notes || "").join(" ").toLowerCase();
     const boxSent = /box sent|intro package sent|package sent|sent a box|sent an intro|introduction package|sent box|mailed a box|mailed package/i.test(allActivityNotes);
 
+    // Detect first-contact-only leads (only note is "FIRST CONTACT:")
+    const allRawNotes = (contact.activities || []).map(a => (a.notes || "").trim());
+    const isFirstContactOnly = allRawNotes.length > 0 && allRawNotes.every(n => /^FIRST CONTACT:/i.test(n));
+    const firstContactContext = isFirstContactOnly ? `
+⚠️ THIS IS A BRAND NEW FIRST CONTACT — NEVER CALLED BEFORE. The opening MUST follow this exact framework:
+"Hi [Name], this is Brad — I'm a local real estate media creator. Do you have a moment?"
+[Pause.]
+"I came across your [listing address/area] listing — it's a beautiful home."
+[Pause.]
+"I noticed the listing currently has photos but no video, so I wanted to reach out. I create clean, unbranded video tours that are MLS-ready, so agents can drop them straight into their listing without changing anything else."
+[Pause.]
+"If video isn't something you're planning to add, totally fine — I just wanted to see if it's something you'd be open to considering."
+Use the contact's name and look up their active listing address via web research to reference it specifically.
+` : "";
+
     const boxSentContext = boxSent ? `
     ⚠️ BOX / INTRO PACKAGE WAS SENT TO THIS CONTACT. The opening MUST be:
     "Hi ${contact.name?.split(' ')[0] || '[Name]'}, my name is Brad Burke, a local real estate media provider — do you have a moment? I recently sent over a small introduction package and just wanted to introduce myself personally."
