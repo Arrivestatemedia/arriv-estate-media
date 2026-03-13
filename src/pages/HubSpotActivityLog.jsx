@@ -1013,7 +1013,7 @@ Return ONLY valid JSON, no extra text:
                     {upcomingActivities.slice(upcomingPage * 5, upcomingPage * 5 + visibleUpcomingOnPage).map((activity, index) => {
                       const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
                       return (
-                        <Draggable key={activity.id} draggableId={activity.id} index={upcomingPage * 10 + index}>
+                        <Draggable key={activity.id} draggableId={activity.id} index={upcomingPage * 5 + index}>
                           {(dragProvided, dragSnapshot) => {
                             const isExpanded = expandedUpcoming[activity.id];
                             const raw = activity.notes || '';
