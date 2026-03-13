@@ -1102,7 +1102,7 @@ Return ONLY valid JSON, no extra text:
                     ) : (
                       <>
                         {currentPageActivities.map((activity, index) => (
-                          <Draggable key={activity.id} draggableId={activity.id} index={index}>
+                          <Draggable key={activity.id} draggableId={activity.id} index={upcomingActivities.length + index}>
                             {(dragProvided, dragSnapshot) => (
                               <div
                                 ref={dragProvided.innerRef}
