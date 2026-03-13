@@ -69,12 +69,28 @@ function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, ur
 
       const allNotes = contact.activities.map(a => a.notes || "").join(" ");
       const boxSent = /box sent|intro package sent|package sent|sent a box|sent an intro|introduction package|sent box|mailed a box|mailed package/i.test(allNotes);
+      const isFirstContact = (contact.activities || []).every(a => /^(FIRST CONTACT:|Contact created:)/i.test((a.notes || "").trim()));
+      const firstName = contact.name?.split(' ')[0] || 'there';
+
       const boxContext = boxSent ? `
 ⚠️ BOX / INTRO PACKAGE WAS SENT TO THIS CONTACT. Opening MUST be:
 "Hi ${contact.name?.split(' ')[0] || '[Name]'}, my name is Brad Burke, a local real estate media provider — do you have a moment? I recently sent over a small introduction package and just wanted to introduce myself personally."
 [Pause. Let them respond.]
 Then: "Glad it made it. I provide full-service real estate media — photography, video, and drone — and I just wanted to put a voice behind the name. [Reference their active listing if found.] I would love to help you get it to the closing table by adding a 2–3 minute MLS-ready video you can just drop into the listing."
 If won't need it: "Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource."
+` : "";
+
+      const firstContactScript = isFirstContact && !boxSent ? `
+⚠️ THIS IS A BRAND NEW CONTACT — FIRST CALL EVER. Use this exact opening structure:
+Opening: "Hi ${firstName}, this is Brad — I'm a local real estate media creator. Do you have a moment?"
+[Pause briefly]
+Then: "I came across your listing on [find their active listing from market research — street name or area] — it's a beautiful home."
+[Pause]
+Then: "I noticed the listing currently has photos but no video, so I wanted to reach out. I create clean, unbranded video tours that are MLS-ready, so agents can drop them straight into the listing without changing anything else."
+[Pause]
+Then: "If video isn't something you're planning to add, totally fine — I just wanted to see if it's something you'd be open to considering."
+
+If they have NO active listing found: Skip the listing reference. Instead: "I work with realtors in the area providing full-service real estate media — photography, video, and drone. I just wanted to introduce myself and see if you'd be open to connecting."
 ` : "";
 
       const res = await base44.integrations.Core.InvokeLLM({
@@ -87,7 +103,7 @@ CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
 - Scripts must be casual and human, not corporate. Reference specific details from history.
 - Key stat: "homes with pro media sell 32% faster and for 5-11% more"
 - Brad handles pricing questions and closings.
-${boxContext}
+${boxContext}${firstContactScript}
 Rep: ${repName || "the rep"} | Contact Intel: ${contactIntel || "N/A"} | Why: ${reason || "routine follow-up"}${patternTagsText}
 History: ${historySnippet || "no prior contact"}
 
