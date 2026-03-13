@@ -1023,7 +1023,8 @@ export default function HubSpotActivityLog() {
 
             {/* ── ACTIVITY HISTORY ── */}
             <Droppable droppableId="history">
-              {(provided, snapshot) => (
+              {(provided, snapshot) => {
+                return (
                 <div ref={provided.innerRef} {...provided.droppableProps} className="mb-8">
                   <h2 className="text-xl font-semibold mb-1" style={{ color: '#1A1A1A' }}>Activity History</h2>
                   <p className="text-xs mb-4" style={{ color: 'rgba(26,26,26,0.4)' }}>drag to move</p>
