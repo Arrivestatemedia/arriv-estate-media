@@ -919,7 +919,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                     </div>
                   )}
                   <div className="space-y-3">
-                    {upcomingActivities.map((activity, index) => {
+                    {upcomingActivities.slice(upcomingPage * 10, upcomingPage * 10 + visibleUpcomingOnPage).map((activity, index) => {
                       const isExpanded = expandedUpcoming[activity.id];
                       const raw = activity.notes || '';
                       const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
