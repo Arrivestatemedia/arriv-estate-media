@@ -15,6 +15,8 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedContact, setExpandedContact] = useState(null);
+  const [contactsPage, setContactsPage] = useState(0);
+  const [visibleContactsOnPage, setVisibleContactsOnPage] = useState(5);
   const [showFollowUpForm, setShowFollowUpForm] = useState(null); // contactKey being followed up
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [saving, setSaving] = useState(false);
