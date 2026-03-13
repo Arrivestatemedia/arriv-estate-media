@@ -151,7 +151,14 @@ OUTPUT valid JSON only:
 export async function saveScheduledFollowUp(contact, analysis, sid, sem, existingScheduledMap) {
   let followUpDate = analysis.follow_up_date_time
     ? new Date(analysis.follow_up_date_time)
-    : addDays(new Date(), 7);
+    : (() => {
+        // Default to next business day at 8:30am — never 7 days out
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+        d.setHours(8, 30, 0, 0);
+        return d;
+      })();
 
   // Check if this is a brand-new contact (only has a "Contact created:" or "FIRST CONTACT:" note)
   const allNotes = (contact.activities || []).map(a => (a.notes || "").trim());
