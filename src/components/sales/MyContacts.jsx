@@ -392,6 +392,24 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
           );
         })}
       </div>
+      {contacts.length > 5 && (() => {
+        const totalPages = Math.ceil(contacts.length / 10);
+        const endIdx = contactsPage * 10 + visibleContactsOnPage;
+        return (
+          <div className="flex justify-center gap-2 pt-4 flex-wrap">
+            {visibleContactsOnPage < 10 && endIdx < contacts.length && (
+              <Button variant="outline" onClick={() => setVisibleContactsOnPage(v => Math.min(10, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
+            )}
+            {totalPages > 1 && (
+              <>
+                <Button variant="outline" onClick={() => { setContactsPage(p => Math.max(0, p - 1)); setVisibleContactsOnPage(5); }} disabled={contactsPage === 0} style={{ borderColor: '#B8956A', color: '#B8956A' }}>← Back</Button>
+                <span className="px-3 py-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Page {contactsPage + 1} of {totalPages}</span>
+                <Button variant="outline" onClick={() => { setContactsPage(p => Math.min(totalPages - 1, p + 1)); setVisibleContactsOnPage(5); }} disabled={contactsPage === totalPages - 1} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Next →</Button>
+              </>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
