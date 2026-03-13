@@ -928,7 +928,8 @@ export default function HubSpotActivityLog() {
           <div>
             {/* ── UPCOMING TASKS ── */}
             <Droppable droppableId="upcoming">
-              {(provided, snapshot) => (
+              {(provided, snapshot) => {
+                return (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
