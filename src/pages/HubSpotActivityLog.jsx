@@ -915,11 +915,20 @@ export default function HubSpotActivityLog() {
             if (destination.droppableId === 'history') {
               newDate = new Date(Date.now() - 60000).toISOString(); // 1 min ago = past
             } else {
+              // Smart scheduling: next business day (skip weekends), during business hours 9am-5pm ET
               const d = new Date();
               d.setDate(d.getDate() + 1);
+              // Skip Saturday (6) and Sunday (0)
+              while (d.getDay() === 0 || d.getDay() === 6) {
+                d.setDate(d.getDate() + 1);
+              }
               const yr = d.getUTCFullYear();
               const isDST = d >= new Date(Date.UTC(yr, 2, 8)) && d < new Date(Date.UTC(yr, 10, 1));
-              d.setUTCHours(9 + (isDST ? 4 : 5), 30, 0, 0);
+              const etOffset = isDST ? 4 : 5; // hours to add to ET to get UTC
+              // Pick a time based on the day of week: Mon/Wed/Fri = 10am ET, Tue/Thu = 2pm ET
+              const dayOfWeek = d.getDay(); // 1=Mon,2=Tue,3=Wed,4=Thu,5=Fri
+              const etHour = (dayOfWeek === 2 || dayOfWeek === 4) ? 14 : 10;
+              d.setUTCHours(etHour + etOffset, 0, 0, 0);
               newDate = d.toISOString();
             }
             await base44.entities.ActivityLog.update(activity.id, { activity_date: newDate });
