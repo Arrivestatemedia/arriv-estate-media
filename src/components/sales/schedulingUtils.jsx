@@ -153,26 +153,43 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
     ? new Date(analysis.follow_up_date_time)
     : addDays(new Date(), 7);
 
-  // Check if this is a brand-new contact (only has a "Contact created:" note)
+  // Check if this is a brand-new contact (only has a "Contact created:" or "FIRST CONTACT:" note)
   const allNotes = (contact.activities || []).map(a => (a.notes || "").trim());
-  const isNewContactOnly = allNotes.length > 0 && allNotes.every(n => /^Contact created:/i.test(n));
+  const isNewContactOnly = allNotes.length > 0 && allNotes.every(n => /^(Contact created:|FIRST CONTACT:)/i.test(n));
 
-  // For new contacts, always force same/next business day regardless of what AI returned
+  // For new contacts, ALWAYS force same/next business day — no exceptions
   if (isNewContactOnly) {
     const now = new Date();
-    const isBusinessDay = now.getDay() >= 1 && now.getDay() <= 5;
-    const isBeforeEnd = now.getHours() < 17;
     followUpDate = new Date(now);
+    const isBusinessDay = followUpDate.getDay() >= 1 && followUpDate.getDay() <= 5;
+    const isBeforeEnd = followUpDate.getHours() < 17;
     if (!isBusinessDay || !isBeforeEnd) {
-      do {
+      followUpDate.setDate(followUpDate.getDate() + 1);
+      while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
         followUpDate.setDate(followUpDate.getDate() + 1);
-      } while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6);
+      }
     }
-    // Keep the AI-suggested hour if it's in the future today, else default to 8:30am
-    const aiHour = analysis.follow_up_date_time ? new Date(analysis.follow_up_date_time).getHours() : 8;
-    const aiMinute = analysis.follow_up_date_time ? new Date(analysis.follow_up_date_time).getMinutes() : 30;
-    followUpDate.setHours(aiHour || 8, aiMinute || 30, 0, 0);
-    if (followUpDate < now) followUpDate.setHours(now.getHours() + 1, 0, 0, 0);
+    // Use AI-suggested time if it's a valid realtor window, otherwise pick best window
+    const aiHour = analysis.follow_up_date_time ? new Date(analysis.follow_up_date_time).getHours() : 0;
+    if (aiHour >= 8 && aiHour <= 19) {
+      const aiMinute = new Date(analysis.follow_up_date_time).getMinutes();
+      followUpDate.setHours(aiHour, aiMinute, 0, 0);
+    } else {
+      // Default to 8:30am — before showings start
+      followUpDate.setHours(8, 30, 0, 0);
+    }
+    // If the time is already past today, push to next hour or next business day morning
+    if (followUpDate <= now) {
+      if (isBusinessDay && now.getHours() < 17) {
+        followUpDate.setHours(now.getHours() + 1, 0, 0, 0);
+      } else {
+        followUpDate.setDate(followUpDate.getDate() + 1);
+        while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
+          followUpDate.setDate(followUpDate.getDate() + 1);
+        }
+        followUpDate.setHours(8, 30, 0, 0);
+      }
+    }
   }
 
   // Safety: don't schedule in the past
