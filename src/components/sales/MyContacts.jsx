@@ -393,12 +393,12 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
         })}
       </div>
       {contacts.length > 5 && (() => {
-        const totalPages = Math.ceil(contacts.length / 10);
-        const endIdx = contactsPage * 10 + visibleContactsOnPage;
+        const totalPages = Math.ceil(contacts.length / 5);
+        const endIdx = contactsPage * 5 + visibleContactsOnPage;
         return (
           <div className="flex justify-center gap-2 pt-4 flex-wrap">
-            {visibleContactsOnPage < 10 && endIdx < contacts.length && (
-              <Button variant="outline" onClick={() => setVisibleContactsOnPage(v => Math.min(10, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
+            {visibleContactsOnPage < 5 && endIdx < contacts.length && (
+              <Button variant="outline" onClick={() => setVisibleContactsOnPage(v => Math.min(5, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
             )}
             {totalPages > 1 && (
               <>
