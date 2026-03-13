@@ -1477,6 +1477,33 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
               const callCount = activities.filter(a => a.contact_email === callMapActivity.contact_email).length;
               const isWarmContact = callCount >= 5;
 
+              // Detect first contact and box sent for script injection
+              const contactActivities = activities.filter(a => a.contact_email === callMapActivity.contact_email || a.contact_name === callMapActivity.contact_name);
+              const allContactNotes = contactActivities.map(a => a.notes || "").join(" ");
+              const isFirstContact = contactActivities.length === 0 || contactActivities.every(a => /^(FIRST CONTACT:|Contact created:)/i.test((a.notes || "").trim()));
+              const boxSent = /box sent|intro package sent|package sent|sent a box|sent an intro|introduction package|sent box|mailed a box|mailed package/i.test(allContactNotes);
+              const fcFirstName = (callMapActivity.contact_name || "").split(" ")[0] || "there";
+
+              const firstContactScript = isFirstContact && !boxSent ? `
+⚠️ THIS IS A BRAND NEW CONTACT — FIRST CALL EVER. Use this exact opening structure:
+Opening: "Hi ${fcFirstName}, this is Brad — I'm a local real estate media creator. Do you have a moment?"
+[Pause briefly]
+Then: "I came across your listing on [find their active listing from market research — street name or area] — it's a beautiful home."
+[Pause]
+Then: "I noticed the listing currently has photos but no video, so I wanted to reach out. I create clean, unbranded video tours that are MLS-ready, so agents can drop them straight into the listing without changing anything else."
+[Pause]
+Then: "If video isn't something you're planning to add, totally fine — I just wanted to see if it's something you'd be open to considering."
+If they have NO active listing found: Skip the listing reference. Instead: "I work with realtors in the area providing full-service real estate media — photography, video, and drone. I just wanted to introduce myself and see if you'd be open to connecting."
+` : "";
+
+              const boxContext = boxSent ? `
+⚠️ BOX / INTRO PACKAGE WAS SENT TO THIS CONTACT. Opening MUST be:
+"Hi ${fcFirstName}, my name is Brad Burke, a local real estate media provider — do you have a moment? I recently sent over a small introduction package and just wanted to introduce myself personally."
+[Pause. Let them respond.]
+Then: "Glad it made it. I provide full-service real estate media — photography, video, and drone — and I just wanted to put a voice behind the name. [Reference their active listing if found.] I would love to help you get it to the closing table by adding a 2–3 minute MLS-ready video you can just drop into the listing."
+If they don't need it: "Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource."
+` : "";
+
               // Fetch the sales rep's learned style profile
               let learnedStyleContext = '';
               try {
