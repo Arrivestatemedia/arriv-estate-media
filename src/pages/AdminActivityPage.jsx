@@ -995,6 +995,24 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                       );
                     })}
                   </div>
+                  {upcomingActivities.length > 5 && (() => {
+                    const upcomingTotalPages = Math.ceil(upcomingActivities.length / 10);
+                    const upcomingEndIdx = upcomingPage * 10 + visibleUpcomingOnPage;
+                    return (
+                      <div className="flex justify-center gap-2 pt-4 flex-wrap">
+                        {visibleUpcomingOnPage < 10 && upcomingEndIdx < upcomingActivities.length && (
+                          <Button variant="outline" onClick={() => setVisibleUpcomingOnPage(v => Math.min(10, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
+                        )}
+                        {upcomingTotalPages > 1 && (
+                          <>
+                            <Button variant="outline" onClick={() => { setUpcomingPage(p => Math.max(0, p - 1)); setVisibleUpcomingOnPage(5); }} disabled={upcomingPage === 0} style={{ borderColor: '#B8956A', color: '#B8956A' }}>← Back</Button>
+                            <span className="px-3 py-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Page {upcomingPage + 1} of {upcomingTotalPages}</span>
+                            <Button variant="outline" onClick={() => { setUpcomingPage(p => Math.min(upcomingTotalPages - 1, p + 1)); setVisibleUpcomingOnPage(5); }} disabled={upcomingPage === upcomingTotalPages - 1} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Next →</Button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {provided.placeholder}
                 </div>
               )}
