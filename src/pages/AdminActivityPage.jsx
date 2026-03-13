@@ -372,6 +372,8 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
   };
 
   const [expandedUpcoming, setExpandedUpcoming] = useState({});
+  const [upcomingPage, setUpcomingPage] = useState(0);
+  const [visibleUpcomingOnPage, setVisibleUpcomingOnPage] = useState(5);
 
   const upcomingActivities = activities
     .filter(a => new Date(a.activity_date) > new Date() || isAIPending(a))
