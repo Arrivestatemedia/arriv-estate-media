@@ -906,16 +906,32 @@ export default function HubSpotActivityLog() {
         )}
 
         {activeTab === "activity" && !showArchive && (
-          <DragDropContext onDragEnd={async (result) => {
+          <DragDropContext onDragEnd={(result) => {
             const { source, destination, draggableId } = result;
             if (!destination || source.droppableId === destination.droppableId) return;
             const activity = activities.find(a => a.id === draggableId);
             if (!activity) return;
-            let newDate;
+
             if (destination.droppableId === 'history') {
-              newDate = new Date(Date.now() - 60000).toISOString(); // 1 min ago = past
+              // Synchronous move to history
+              const newDate = new Date(Date.now() - 60000).toISOString();
+              base44.entities.ActivityLog.update(activity.id, { activity_date: newDate })
+                .then(() => queryClient.invalidateQueries({ queryKey: ['activities'] }));
             } else {
-              // AI-driven scheduling: read notes and patterns to pick the best time
+              // Optimistically set to tomorrow 10am ET, then let AI refine in background
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              while (tomorrow.getDay() === 0 || tomorrow.getDay() === 6) tomorrow.setDate(tomorrow.getDate() + 1);
+              const yr = tomorrow.getUTCFullYear();
+              const isDST = tomorrow >= new Date(Date.UTC(yr, 2, 8)) && tomorrow < new Date(Date.UTC(yr, 10, 1));
+              tomorrow.setUTCHours(10 + (isDST ? 4 : 5), 0, 0, 0);
+              const optimisticDate = tomorrow.toISOString();
+
+              // Save optimistic date immediately so drag completes visually
+              base44.entities.ActivityLog.update(activity.id, { activity_date: optimisticDate })
+                .then(() => queryClient.invalidateQueries({ queryKey: ['activities'] }));
+
+              // Now run AI in background to pick a smarter time
               const contactKey = activity.contact_email || activity.contact_name;
               const contactHistory = activities
                 .filter(a => (a.contact_email && a.contact_email === contactKey) || (a.contact_name && a.contact_name === contactKey))
@@ -929,7 +945,8 @@ export default function HubSpotActivityLog() {
                 })
                 .join('\n');
               const todayET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-              const llmResult = await base44.integrations.Core.InvokeLLM({
+
+              base44.integrations.Core.InvokeLLM({
                 prompt: `You are a sales scheduling AI. Analyze this contact's full history and pick the BEST specific date+time (ET) to schedule a follow-up call.
 
 TODAY (ET): ${todayET}
@@ -949,26 +966,21 @@ Return ONLY valid JSON, no extra text:
 {"iso_date": "YYYY-MM-DDTHH:mm:00", "reason": "brief reason based on what you found in the notes/patterns"}`,
                 response_json_schema: {
                   type: 'object',
-                  properties: {
-                    iso_date: { type: 'string' },
-                    reason: { type: 'string' }
-                  },
+                  properties: { iso_date: { type: 'string' }, reason: { type: 'string' } },
                   required: ['iso_date', 'reason']
                 }
-              });
-              const schedData = typeof llmResult === 'string' ? JSON.parse(llmResult) : llmResult;
-              // The LLM returns ET time — convert to UTC
-              const etDate = new Date(schedData.iso_date);
-              const yr = etDate.getUTCFullYear();
-              const isDST = etDate >= new Date(Date.UTC(yr, 2, 8)) && etDate < new Date(Date.UTC(yr, 10, 1));
-              etDate.setTime(etDate.getTime() + (isDST ? 4 : 5) * 3600000);
-              // Safety: must be in the future
-              const minDate = new Date();
-              minDate.setDate(minDate.getDate() + 1);
-              newDate = etDate > minDate ? etDate.toISOString() : minDate.toISOString();
+              }).then(llmResult => {
+                const schedData = typeof llmResult === 'string' ? JSON.parse(llmResult) : llmResult;
+                const etDate = new Date(schedData.iso_date);
+                const yr2 = etDate.getUTCFullYear();
+                const isDST2 = etDate >= new Date(Date.UTC(yr2, 2, 8)) && etDate < new Date(Date.UTC(yr2, 10, 1));
+                etDate.setTime(etDate.getTime() + (isDST2 ? 4 : 5) * 3600000);
+                const minDate = new Date();
+                minDate.setDate(minDate.getDate() + 1);
+                const finalDate = etDate > minDate ? etDate.toISOString() : minDate.toISOString();
+                return base44.entities.ActivityLog.update(activity.id, { activity_date: finalDate });
+              }).then(() => queryClient.invalidateQueries({ queryKey: ['activities'] })).catch(() => {});
             }
-            await base44.entities.ActivityLog.update(activity.id, { activity_date: newDate });
-            queryClient.invalidateQueries({ queryKey: ['activities'] });
           }}>
           <div>
             {/* ── UPCOMING TASKS ── */}
