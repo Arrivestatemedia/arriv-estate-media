@@ -913,10 +913,8 @@ export default function HubSpotActivityLog() {
             if (!activity) return;
             let newDate;
             if (destination.droppableId === 'history') {
-              // Move to past: set to right now
-              newDate = new Date().toISOString();
+              newDate = new Date(Date.now() - 60000).toISOString(); // 1 min ago = past
             } else {
-              // Move to upcoming: set to 7 days from now at 9:30 AM ET
               const d = new Date();
               d.setDate(d.getDate() + 7);
               const yr = d.getUTCFullYear();
@@ -928,236 +926,214 @@ export default function HubSpotActivityLog() {
             queryClient.invalidateQueries({ queryKey: ['activities'] });
           }}>
           <div>
+            {/* ── UPCOMING TASKS ── */}
             <Droppable droppableId="upcoming">
               {(provided, snapshot) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="mb-8"
-              style={{ minHeight: upcomingActivities.length === 0 ? '80px' : undefined }}
-            >
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
-                  <h2 className="text-xl font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
-                  <Badge variant="secondary">{upcomingActivities.length}</Badge>
-                  <span className="text-xs ml-1" style={{ color: 'rgba(26,26,26,0.4)' }}>drag to move</span>
-                </div>
-                {upcomingActivities.length === 0 && (
-                  <div className="rounded-xl border-2 border-dashed flex items-center justify-center h-16 text-sm" style={{ borderColor: snapshot.isDraggingOver ? '#B8956A' : 'rgba(184,149,106,0.3)', color: 'rgba(26,26,26,0.4)', backgroundColor: snapshot.isDraggingOver ? 'rgba(184,149,106,0.06)' : 'transparent', transition: 'all 0.15s' }}>
-                    Drop here to make upcoming
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="mb-8"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
+                    <h2 className="text-xl font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
+                    <Badge variant="secondary">{upcomingActivities.length}</Badge>
+                    <span className="text-xs ml-1" style={{ color: 'rgba(26,26,26,0.4)' }}>drag to move</span>
                   </div>
-                )}
-                <div className="space-y-3">
-                  {upcomingActivities.map((activity, index) => (
-                  <Draggable key={activity.id} draggableId={activity.id} index={index}>
-                    {(dragProvided, dragSnapshot) => (
-                    <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps} style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}>
-                  {/* original card below — keep intact */}
-                  {(() => {
-                    // Ensure phone is always present (from activity record, lookup, or will be fetched on demand)
-                    const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
-                    return (
-                      <Card 
-                      key={activity.id} 
-                      style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.1)' }}
-                      className="cursor-pointer hover:shadow-md transition"
-                      onClick={() => handleActivityClick(activity)}
+                  {upcomingActivities.length === 0 && (
+                    <div
+                      className="rounded-xl border-2 border-dashed flex items-center justify-center h-16 text-sm transition-all"
+                      style={{ borderColor: snapshot.isDraggingOver ? '#B8956A' : 'rgba(184,149,106,0.3)', color: 'rgba(26,26,26,0.4)', backgroundColor: snapshot.isDraggingOver ? 'rgba(184,149,106,0.06)' : 'transparent' }}
                     >
-                      <CardContent className="pt-6">
-                        <div className="flex items-start gap-3">
-                          <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
-                            {activityIcons[activity.activity_type]}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" style={{ backgroundColor: 'rgba(184,149,106,0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
-                              <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
-                              <span className="text-sm font-medium" style={{ color: '#B8956A' }}>{format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}</span>
-                            </div>
-                            <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={(e) => {
-                               e.stopPropagation();
-                               setPrefilledContactData({
-                                 firstName: activity.contact_name?.split(' ')[0] || '',
-                                 lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '',
-                                 email: activity.contact_email || '',
-                                 phone: displayPhone || '',
-                                 company: activity.company_name || ''
-                               });
-                               setOpenNewContactForm(true);
-                               setActiveTab("contacts");
-                             }}>{activity.contact_name || activity.company_name}</p>
-                             {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
-                             {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.company_name}</p>}
-                             {displayPhone ? (
-                               <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', displayPhone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
-                                 <Phone className="w-3 h-3" />
-                                 <span>{displayPhone}</span>
-                               </button>
-                             ) : (
-                               <span className="text-xs font-medium mt-0.5" style={{ color: 'rgba(26,26,26,0.4)' }}>No phone on file</span>
-                             )}
-                             {/* Show reason/short note, hide full call map from card */}
-                             {(() => {
-                               const raw = activity.notes || '';
-                               const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
-                               const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
-                               return (
-                                 <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                   {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 120)}{shortNote.length > 120 ? '...' : ''}</p>}
-                                   {hasCallMap && (
-                                     <button
-                                       onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
-                                       className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
-                                       style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
-                                     >
-                                       📋 View Call Map
-                                     </button>
-                                   )}
-                                 </div>
-                               );
-                             })()}
-                          </div>
-                        </div>
-                      </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4" style={{ color: '#1A1A1A' }}>Activity History</h2>
-              <div className="space-y-3">
-                {pastActivities.length === 0 && upcomingActivities.length === 0 ? (
-                  <Card>
-                    <CardContent className="pt-6 text-center" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                      No activities logged yet
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    {currentPageActivities.map((activity) => (
-                       <Card key={activity.id} className="cursor-pointer hover:shadow-md transition" onClick={() => handleActivityClick(activity)}>
-                         <CardContent className="pt-6">
-                           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                             <div className="flex items-start gap-3 flex-1">
-                               <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
-                                 {activityIcons[activity.activity_type]}
-                               </div>
-                               <div className="flex-1">
-                                 <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
-                                  <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={() => {
-                                   const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
-                                   setPrefilledContactData({
-                                     firstName: activity.contact_name?.split(' ')[0] || '',
-                                     lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '',
-                                     email: activity.contact_email || '',
-                                     phone: displayPhone,
-                                     company: activity.company_name || ''
-                                   });
-                                   setOpenNewContactForm(true);
-                                   setActiveTab("contacts");
-                                 }}>{activity.contact_name || activity.company_name}</p>
-                                 {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
-                                 {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.company_name}</p>}
-                                 {(() => {
-                                   const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
-                                   return displayPhone ? (
-                                     <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', displayPhone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
-                                       <Phone className="w-3 h-3" />{displayPhone}
-                                     </button>
-                                   ) : null;
-                                 })()}
-                                 {(() => {
-                                    const raw = (activity.notes || '').replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '');
-                                    const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
-                                    const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
-                                    return (
-                                      <div className="mt-2 flex items-start gap-2 flex-wrap">
-                                        {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 100)}{shortNote.length > 100 ? '...' : ''}</p>}
-                                        {hasCallMap && (
-                                          <button
-                                            onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
-                                            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
-                                            style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
-                                          >
-                                            📋 View Call Map
-                                          </button>
-                                        )}
-                                      </div>
-                                    );
-                                  })()}
-                                 {activity.duration_minutes > 0 && (
-                                   <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.duration_minutes} minutes</p>
-                                 )}
-                               </div>
-                             </div>
-                             <div className="text-sm md:text-right md:whitespace-nowrap" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                               {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
-                             </div>
-                           </div>
-                         </CardContent>
-                       </Card>
-                     ))}
-                    <div className="flex justify-center gap-2 pt-4 flex-wrap">
-                      {visibleOnCurrentPage < itemsPerPage && endIdx < pastActivities.length && (
-                        <Button
-                          variant="outline"
-                          onClick={() => setVisibleOnCurrentPage(v => Math.min(itemsPerPage, v + 5))}
-                          style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                        >
-                          Load More
-                        </Button>
-                      )}
-                      {totalPages > 1 && (
-                        <>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setCurrentPage(p => Math.max(0, p - 1));
-                              setVisibleOnCurrentPage(5);
-                            }}
-                            disabled={currentPage === 0}
-                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                          >
-                            ← Back
-                          </Button>
-                          <span className="px-3 py-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                            Page {currentPage + 1} of {totalPages}
-                          </span>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setCurrentPage(p => Math.min(totalPages - 1, p + 1));
-                              setVisibleOnCurrentPage(5);
-                            }}
-                            disabled={currentPage === totalPages - 1}
-                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                          >
-                            Next →
-                          </Button>
-                        </>
-                      )}
+                      Drop here to reschedule as upcoming
                     </div>
-                  </>
-                )}
-              </div>
-            </div>
+                  )}
+                  <div className="space-y-3">
+                    {upcomingActivities.map((activity, index) => {
+                      const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
+                      return (
+                        <Draggable key={activity.id} draggableId={activity.id} index={index}>
+                          {(dragProvided, dragSnapshot) => (
+                            <div
+                              ref={dragProvided.innerRef}
+                              {...dragProvided.draggableProps}
+                              {...dragProvided.dragHandleProps}
+                              style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}
+                            >
+                              <Card
+                                style={{ borderColor: '#B8956A', backgroundColor: dragSnapshot.isDragging ? 'rgba(184,149,106,0.2)' : 'rgba(184,149,106,0.1)' }}
+                                className="cursor-pointer hover:shadow-md transition"
+                                onClick={() => handleActivityClick(activity)}
+                              >
+                                <CardContent className="pt-6">
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
+                                      {activityIcons[activity.activity_type]}
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" style={{ backgroundColor: 'rgba(184,149,106,0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
+                                        <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
+                                        <span className="text-sm font-medium" style={{ color: '#B8956A' }}>{format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}</span>
+                                      </div>
+                                      <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPrefilledContactData({ firstName: activity.contact_name?.split(' ')[0] || '', lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '', email: activity.contact_email || '', phone: displayPhone || '', company: activity.company_name || '' });
+                                        setOpenNewContactForm(true);
+                                        setActiveTab("contacts");
+                                      }}>{activity.contact_name || activity.company_name}</p>
+                                      {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
+                                      {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.company_name}</p>}
+                                      {displayPhone ? (
+                                        <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', displayPhone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
+                                          <Phone className="w-3 h-3" /><span>{displayPhone}</span>
+                                        </button>
+                                      ) : (
+                                        <span className="text-xs font-medium mt-0.5" style={{ color: 'rgba(26,26,26,0.4)' }}>No phone on file</span>
+                                      )}
+                                      {(() => {
+                                        const raw = activity.notes || '';
+                                        const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                                        const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                                        return (
+                                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                            {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 120)}{shortNote.length > 120 ? '...' : ''}</p>}
+                                            {hasCallMap && (
+                                              <button onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80" style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}>
+                                                📋 View Call Map
+                                              </button>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    })}
+                  </div>
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+
+            {/* ── ACTIVITY HISTORY ── */}
+            <Droppable droppableId="history">
+              {(provided, snapshot) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="mb-8">
+                  <h2 className="text-xl font-semibold mb-1" style={{ color: '#1A1A1A' }}>Activity History</h2>
+                  <p className="text-xs mb-4" style={{ color: 'rgba(26,26,26,0.4)' }}>drag to move</p>
+                  {snapshot.isDraggingOver && (
+                    <div className="rounded-xl border-2 border-dashed flex items-center justify-center h-12 text-sm mb-3 transition-all" style={{ borderColor: '#B8956A', color: 'rgba(26,26,26,0.4)', backgroundColor: 'rgba(184,149,106,0.06)' }}>
+                      Drop here to move to history
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {pastActivities.length === 0 && upcomingActivities.length === 0 ? (
+                      <Card>
+                        <CardContent className="pt-6 text-center" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                          No activities logged yet
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <>
+                        {currentPageActivities.map((activity, index) => (
+                          <Draggable key={activity.id} draggableId={activity.id} index={index}>
+                            {(dragProvided, dragSnapshot) => (
+                              <div
+                                ref={dragProvided.innerRef}
+                                {...dragProvided.draggableProps}
+                                {...dragProvided.dragHandleProps}
+                                style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}
+                              >
+                                <Card className="cursor-pointer hover:shadow-md transition" style={{ backgroundColor: dragSnapshot.isDragging ? 'rgba(184,149,106,0.08)' : undefined }} onClick={() => handleActivityClick(activity)}>
+                                  <CardContent className="pt-6">
+                                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                                      <div className="flex items-start gap-3 flex-1">
+                                        <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
+                                          {activityIcons[activity.activity_type]}
+                                        </div>
+                                        <div className="flex-1">
+                                          <Badge variant="outline">{activityLabels[activity.activity_type]}</Badge>
+                                          <p className="font-medium mt-2 cursor-pointer hover:opacity-70" style={{ color: '#1A1A1A' }} onClick={() => {
+                                            const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
+                                            setPrefilledContactData({ firstName: activity.contact_name?.split(' ')[0] || '', lastName: activity.contact_name?.split(' ').slice(1).join(' ') || '', email: activity.contact_email || '', phone: displayPhone, company: activity.company_name || '' });
+                                            setOpenNewContactForm(true);
+                                            setActiveTab("contacts");
+                                          }}>{activity.contact_name || activity.company_name}</p>
+                                          {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
+                                          {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.company_name}</p>}
+                                          {(() => {
+                                            const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
+                                            return displayPhone ? (
+                                              <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', displayPhone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
+                                                <Phone className="w-3 h-3" />{displayPhone}
+                                              </button>
+                                            ) : null;
+                                          })()}
+                                          {(() => {
+                                            const raw = (activity.notes || '').replace(/HubSpot contact/g, 'Contact').replace(/HubSpot/g, '');
+                                            const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                                            const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                                            return (
+                                              <div className="mt-2 flex items-start gap-2 flex-wrap">
+                                                {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 100)}{shortNote.length > 100 ? '...' : ''}</p>}
+                                                {hasCallMap && (
+                                                  <button onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80" style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}>
+                                                    📋 View Call Map
+                                                  </button>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
+                                          {activity.duration_minutes > 0 && (
+                                            <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.duration_minutes} minutes</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="text-sm md:text-right md:whitespace-nowrap" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                                        {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                        <div className="flex justify-center gap-2 pt-4 flex-wrap">
+                          {visibleOnCurrentPage < itemsPerPage && endIdx < pastActivities.length && (
+                            <Button variant="outline" onClick={() => setVisibleOnCurrentPage(v => Math.min(itemsPerPage, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
+                          )}
+                          {totalPages > 1 && (
+                            <>
+                              <Button variant="outline" onClick={() => { setCurrentPage(p => Math.max(0, p - 1)); setVisibleOnCurrentPage(5); }} disabled={currentPage === 0} style={{ borderColor: '#B8956A', color: '#B8956A' }}>← Back</Button>
+                              <span className="px-3 py-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Page {currentPage + 1} of {totalPages}</span>
+                              <Button variant="outline" onClick={() => { setCurrentPage(p => Math.min(totalPages - 1, p + 1)); setVisibleOnCurrentPage(5); }} disabled={currentPage === totalPages - 1} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Next →</Button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Droppable>
 
             {/* Archive button */}
             <div className="flex justify-center pb-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowArchive(true)}
-                className="gap-2"
-                style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}
-              >
+              <Button variant="outline" onClick={() => setShowArchive(true)} className="gap-2" style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}>
                 <Archive className="w-4 h-4" />
                 View Activity Archive
               </Button>
             </div>
           </div>
+          </DragDropContext>
         )}
 
         {/* Success Dialog */}
