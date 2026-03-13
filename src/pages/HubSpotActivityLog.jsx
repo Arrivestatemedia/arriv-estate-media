@@ -906,16 +906,54 @@ export default function HubSpotActivityLog() {
         )}
 
         {activeTab === "activity" && !showArchive && (
+          <DragDropContext onDragEnd={async (result) => {
+            const { source, destination, draggableId } = result;
+            if (!destination || source.droppableId === destination.droppableId) return;
+            const activity = activities.find(a => a.id === draggableId);
+            if (!activity) return;
+            let newDate;
+            if (destination.droppableId === 'history') {
+              // Move to past: set to right now
+              newDate = new Date().toISOString();
+            } else {
+              // Move to upcoming: set to 7 days from now at 9:30 AM ET
+              const d = new Date();
+              d.setDate(d.getDate() + 7);
+              const yr = d.getUTCFullYear();
+              const isDST = d >= new Date(Date.UTC(yr, 2, 8)) && d < new Date(Date.UTC(yr, 10, 1));
+              d.setUTCHours(9 + (isDST ? 4 : 5), 30, 0, 0);
+              newDate = d.toISOString();
+            }
+            await base44.entities.ActivityLog.update(activity.id, { activity_date: newDate });
+            queryClient.invalidateQueries({ queryKey: ['activities'] });
+          }}>
           <div>
-            {upcomingActivities.length > 0 && (
-              <div className="mb-8">
+            <Droppable droppableId="upcoming">
+              {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="mb-8"
+              style={{ minHeight: upcomingActivities.length === 0 ? '80px' : undefined }}
+            >
                 <div className="flex items-center gap-2 mb-4">
                   <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
                   <h2 className="text-xl font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
                   <Badge variant="secondary">{upcomingActivities.length}</Badge>
+                  <span className="text-xs ml-1" style={{ color: 'rgba(26,26,26,0.4)' }}>drag to move</span>
                 </div>
+                {upcomingActivities.length === 0 && (
+                  <div className="rounded-xl border-2 border-dashed flex items-center justify-center h-16 text-sm" style={{ borderColor: snapshot.isDraggingOver ? '#B8956A' : 'rgba(184,149,106,0.3)', color: 'rgba(26,26,26,0.4)', backgroundColor: snapshot.isDraggingOver ? 'rgba(184,149,106,0.06)' : 'transparent', transition: 'all 0.15s' }}>
+                    Drop here to make upcoming
+                  </div>
+                )}
                 <div className="space-y-3">
-                  {upcomingActivities.map((activity) => {
+                  {upcomingActivities.map((activity, index) => (
+                  <Draggable key={activity.id} draggableId={activity.id} index={index}>
+                    {(dragProvided, dragSnapshot) => (
+                    <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps} style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}>
+                  {/* original card below — keep intact */}
+                  {(() => {
                     // Ensure phone is always present (from activity record, lookup, or will be fetched on demand)
                     const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
                     return (
