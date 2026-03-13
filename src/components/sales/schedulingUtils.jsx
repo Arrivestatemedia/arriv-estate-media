@@ -104,7 +104,10 @@ Read every note and attachment carefully before deciding. Use the most specific 
 7. GENERAL CONVERSATION / TOUCHPOINT (no specific signal)
    → Schedule 14 days out. Urgency: medium.
 
-8. FIRST CONTACT (no history)
+8. CONTACT CREATED (only activity is a "Contact created:" note — brand new, never called)
+   → Schedule TODAY (same business day) if it's a business day before 5pm, otherwise NEXT business day at 8:30am. Urgency: high. This is a FRESH lead that must be called immediately.
+
+9. FIRST CONTACT (has prior real activity history but no specific signal)
    → Schedule 7 days out at 8:30am. Urgency: high.
 
 BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
@@ -149,14 +152,38 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
     ? new Date(analysis.follow_up_date_time)
     : addDays(new Date(), 7);
 
-  // Hard safety: minimum 7 days out unless explicitly same-day/next-day
+  // Check if this is a brand-new contact (only has a "Contact created:" note)
+  const allNotes = (contact.activities || []).map(a => (a.notes || "").trim());
+  const isNewContactOnly = allNotes.length > 0 && allNotes.every(n => /^Contact created:/i.test(n));
+
+  // Hard safety: minimum 7 days out unless explicitly same-day/next-day OR brand-new contact
   const reason = (analysis.reason || "").toLowerCase();
   const explicitSameDayOrNextDay = reason.includes("call back today") || reason.includes("later today") ||
     reason.includes("call tomorrow") || reason.includes("tomorrow morning") || reason.includes("callback tomorrow") ||
     reason.includes("call me back tomorrow");
-  const minDate = explicitSameDayOrNextDay ? addDays(new Date(), 0) : addDays(new Date(), 7);
+  const minDate = (explicitSameDayOrNextDay || isNewContactOnly) ? addDays(new Date(), 0) : addDays(new Date(), 7);
   if (followUpDate < minDate) {
     followUpDate = new Date(minDate);
+    followUpDate.setHours(8, 30, 0, 0);
+  }
+
+  // For new contacts, force same/next business day
+  if (isNewContactOnly) {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
+    const hour = now.getHours();
+    const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
+    const isBeforeEnd = hour < 17;
+    if (isBusinessDay && isBeforeEnd) {
+      // Schedule today at the next available slot
+      followUpDate = new Date(now);
+    } else {
+      // Next business day
+      followUpDate = new Date(now);
+      do {
+        followUpDate.setDate(followUpDate.getDate() + 1);
+      } while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6);
+    }
     followUpDate.setHours(8, 30, 0, 0);
   }
 
