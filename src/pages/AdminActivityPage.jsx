@@ -1058,62 +1058,33 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                     ))}
                     <div className="flex justify-center gap-2 pt-4 flex-wrap">
                       {visibleOnCurrentPage < itemsPerPage && endIdx < pastActivities.length && (
-                        <Button
-                          variant="outline"
-                          onClick={() => setVisibleOnCurrentPage(v => Math.min(itemsPerPage, v + 5))}
-                          style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                        >
-                          Load More
-                        </Button>
+                        <Button variant="outline" onClick={() => setVisibleOnCurrentPage(v => Math.min(itemsPerPage, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
                       )}
                       {totalPages > 1 && (
                         <>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setCurrentPage(p => Math.max(0, p - 1));
-                              setVisibleOnCurrentPage(5);
-                            }}
-                            disabled={currentPage === 0}
-                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                          >
-                            ← Back
-                          </Button>
-                          <span className="px-3 py-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                            Page {currentPage + 1} of {totalPages}
-                          </span>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setCurrentPage(p => Math.min(totalPages - 1, p + 1));
-                              setVisibleOnCurrentPage(5);
-                            }}
-                            disabled={currentPage === totalPages - 1}
-                            style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                          >
-                            Next →
-                          </Button>
+                          <Button variant="outline" onClick={() => { setCurrentPage(p => Math.max(0, p - 1)); setVisibleOnCurrentPage(5); }} disabled={currentPage === 0} style={{ borderColor: '#B8956A', color: '#B8956A' }}>← Back</Button>
+                          <span className="px-3 py-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Page {currentPage + 1} of {totalPages}</span>
+                          <Button variant="outline" onClick={() => { setCurrentPage(p => Math.min(totalPages - 1, p + 1)); setVisibleOnCurrentPage(5); }} disabled={currentPage === totalPages - 1} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Next →</Button>
                         </>
                       )}
                     </div>
                   </>
                 )}
-              </div>
-            </div>
+                  </div>
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
 
             {/* Archive button */}
             <div className="flex justify-center pb-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowArchive(true)}
-                className="gap-2"
-                style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}
-              >
+              <Button variant="outline" onClick={() => setShowArchive(true)} className="gap-2" style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}>
                 <Archive className="w-4 h-4" />
                 View Activity Archive
               </Button>
             </div>
           </>
+          </DragDropContext>
         )}
 
         {/* Activity Success Dialog */}
