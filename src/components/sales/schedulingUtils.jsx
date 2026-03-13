@@ -101,13 +101,13 @@ For the TIME of day: use realtor behavior research — realtors are most reachab
    → Schedule 3–5 days out at best contact window. Urgency: medium.
 
 7. GENERAL CONVERSATION / TOUCHPOINT (no specific signal)
-   → Schedule 7–14 days out. Urgency: medium.
+   → Schedule 3–5 days out. Urgency: medium.
 
-8. CONTACT CREATED (only activity is a "Contact created:" note — brand new, never called)
-   → Schedule TODAY if it's a business day before 5pm, otherwise NEXT business day. Pick the best time window for realtors based on your research. Urgency: high. FRESH lead — call immediately.
+8. CONTACT CREATED or FIRST CONTACT (only activity is a "Contact created:" or "FIRST CONTACT:" note — brand new, never called)
+   → Schedule TODAY (same business day) if before 5pm, otherwise NEXT business day morning. Use 8–9am, 12–1pm, or 5–7pm based on realtor research. Urgency: HIGH. DO NOT schedule more than 1 business day out. DO NOT use 7 days.
 
-9. FIRST CONTACT (has some history but no clear signal)
-   → Schedule 5–7 days out at best contact window. Urgency: high.
+9. HAS SOME HISTORY BUT NO CLEAR SIGNAL
+   → Schedule 3–5 days out at best contact window. Urgency: medium.
 
 BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
 
