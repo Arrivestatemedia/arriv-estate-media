@@ -144,6 +144,13 @@ export default function ContactDetailPage() {
     }
   };
 
+  const handleDeleteActivity = async (activity, e) => {
+    e.stopPropagation();
+    if (!confirm('Delete this activity?')) return;
+    await base44.entities.ActivityLog.delete(activity.id);
+    setActivities(prev => prev.filter(a => a.id !== activity.id));
+  };
+
   const activityIcons = {
     call: <Phone className="w-4 h-4" />,
     email: <Mail className="w-4 h-4" />,
