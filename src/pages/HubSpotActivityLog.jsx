@@ -916,7 +916,7 @@ export default function HubSpotActivityLog() {
               newDate = new Date(Date.now() - 60000).toISOString(); // 1 min ago = past
             } else {
               const d = new Date();
-              d.setDate(d.getDate() + 7);
+              d.setDate(d.getDate() + 1);
               const yr = d.getUTCFullYear();
               const isDST = d >= new Date(Date.UTC(yr, 2, 8)) && d < new Date(Date.UTC(yr, 10, 1));
               d.setUTCHours(9 + (isDST ? 4 : 5), 30, 0, 0);
