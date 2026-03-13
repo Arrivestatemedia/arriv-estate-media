@@ -1019,7 +1019,8 @@ export default function HubSpotActivityLog() {
                   </div>
                   {provided.placeholder}
                 </div>
-              )}
+                );
+              }}
             </Droppable>
 
             {/* ── ACTIVITY HISTORY ── */}
