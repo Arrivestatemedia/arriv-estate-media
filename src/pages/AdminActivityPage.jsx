@@ -917,64 +917,81 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                     </div>
                   )}
                   <div className="space-y-3">
-                    {upcomingActivities.map((activity, index) => (
+                    {upcomingActivities.map((activity, index) => {
+                      const isExpanded = expandedUpcoming[activity.id];
+                      const raw = activity.notes || '';
+                      const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                      const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                      return (
                       <Draggable key={activity.id} draggableId={activity.id} index={index}>
-                        {(dragProvided, dragSnapshot) => (
-                          <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps}
-                            style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}>
-                            <Card
-                              style={{ borderColor: '#B8956A', backgroundColor: dragSnapshot.isDragging ? 'rgba(184,149,106,0.2)' : 'rgba(184, 149, 106, 0.1)' }}
-                              className="cursor-pointer hover:shadow-md transition"
-                              onClick={() => handleActivityClick(activity)}
-                            >
-                              <CardContent className="pt-6">
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="flex items-start gap-3 flex-1">
-                                    <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)' }}>
-                                      {activityIcons[activity.activity_type]}
-                                    </div>
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <Badge variant="outline" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
-                                        <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
-                                        <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
-                                          {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
-                                        </span>
-                                      </div>
-                                      <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                                      {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                                      {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
-                                      {activity.contact_phone && (
-                                        <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', activity.contact_phone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
-                                          <Phone className="w-3 h-3" />{activity.contact_phone}
-                                        </button>
-                                      )}
-                                      {(() => {
-                                        const raw = activity.notes || '';
-                                        const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
-                                        const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
-                                        return (
-                                          <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                            {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 120)}{shortNote.length > 120 ? '...' : ''}</p>}
-                                            {hasCallMap && (
-                                              <button onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
-                                                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
-                                                style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}>
-                                                📋 View Call Map
-                                              </button>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-                                    </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
+                         {(dragProvided, dragSnapshot) => (
+                           <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps}
+                             style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}>
+                             <Card
+                               style={{ borderColor: '#B8956A', backgroundColor: dragSnapshot.isDragging ? 'rgba(184,149,106,0.2)' : 'rgba(184,149,106,0.1)' }}
+                               className="hover:shadow-md transition cursor-pointer"
+                               onClick={() => {
+                                 if (isExpanded) {
+                                   handleActivityClick(activity);
+                                 } else {
+                                   setExpandedUpcoming(prev => ({ ...prev, [activity.id]: true }));
+                                 }
+                               }}
+                             >
+                               <CardContent className="pt-4 pb-4">
+                                 {/* Collapsed row */}
+                                 <div className="flex items-center gap-3">
+                                   <div className="p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.2)' }}>
+                                     {activityIcons[activity.activity_type]}
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                     <div className="flex items-center gap-2 flex-wrap">
+                                       <Badge variant="outline" style={{ backgroundColor: 'rgba(184,149,106,0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
+                                       <span className="text-xs font-medium" style={{ color: '#B8956A' }}>{format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}</span>
+                                     </div>
+                                     <p className="font-medium text-sm mt-0.5 truncate" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                                     {activity.company_name && activity.contact_name && <p className="text-xs truncate" style={{ color: 'rgba(26,26,26,0.5)' }}>{activity.company_name}</p>}
+                                   </div>
+                                   <button
+                                     onClick={(e) => { e.stopPropagation(); setExpandedUpcoming(prev => ({ ...prev, [activity.id]: !isExpanded })); }}
+                                     className="shrink-0 p-1"
+                                     style={{ color: 'rgba(26,26,26,0.4)' }}
+                                   >
+                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                   </button>
+                                 </div>
+
+                                 {/* Expanded details */}
+                                 {isExpanded && (
+                                   <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.3)' }} onClick={(e) => e.stopPropagation()}>
+                                     {activity.contact_email && <p className="text-sm mb-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{activity.contact_email}</p>}
+                                     {activity.contact_phone ? (
+                                       <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', activity.contact_phone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mb-2 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
+                                         <Phone className="w-3 h-3" /><span>{activity.contact_phone}</span>
+                                       </button>
+                                     ) : (
+                                       <span className="text-xs mb-2 block" style={{ color: 'rgba(26,26,26,0.4)' }}>No phone on file</span>
+                                     )}
+                                     {shortNote && <p className="text-sm mb-2" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 150)}{shortNote.length > 150 ? '...' : ''}</p>}
+                                     <div className="flex gap-2 flex-wrap">
+                                       {hasCallMap && (
+                                         <button onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80" style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}>
+                                           📋 View Call Map
+                                         </button>
+                                       )}
+                                       <button onClick={() => handleActivityClick(activity)} className="text-xs font-medium px-2.5 py-1 rounded-full transition-opacity hover:opacity-80" style={{ backgroundColor: 'rgba(26,26,26,0.06)', color: '#1A1A1A' }}>
+                                         View Details
+                                       </button>
+                                     </div>
+                                   </div>
+                                 )}
+                               </CardContent>
+                             </Card>
+                           </div>
+                         )}
+                       </Draggable>
+                      );
+                    })}
                   </div>
                   {provided.placeholder}
                 </div>
