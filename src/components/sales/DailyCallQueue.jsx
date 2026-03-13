@@ -117,7 +117,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
           properties: {
             opening: { type: "string", description: "2 sentences, casual, specific. NOT 'Hi this is X from ARRIV'" },
             if_interested: { type: "string", description: "Full 60-second pitch, key points, guide to booking" },
-            if_has_photographer: { type: "string", description: "Acknowledge, don't argue, plant seed for future" },
+            if_has_photographer: { type: "string", description: "They already use a photographer. Do NOT repeat the pitch. Acknowledge it, pivot to video as a SEPARATE service — agents often use both. Plant a seed. Example: 'Oh totally, I actually specialize in video tours, not photography — a lot of agents use me alongside their photographer. Worth keeping in mind if you ever want to add video to a listing.'" },
             if_not_interested: { type: "string", description: "Graceful response, leaves door open, mention follow-up" },
             if_send_email: { type: "string", description: "Agree to email but GET COMMITMENT for a call too" },
             if_too_expensive: { type: "string", description: "Value frame, never discount, redirect to Brad for pricing" },
