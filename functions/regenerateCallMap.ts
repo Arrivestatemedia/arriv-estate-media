@@ -111,6 +111,18 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
 
     const marketIntel = typeof webResearch === "string" ? webResearch : webResearch?.text || "";
 
+    // Detect box/intro package sent
+    const allActivityNotes = pastActivities.map(a => a.notes || "").join(" ");
+    const boxSent = /box sent|intro package sent|package sent|sent a box|sent an intro|introduction package|sent box|mailed a box|mailed package/i.test(allActivityNotes);
+    const firstName = (contactName || "").split(" ")[0] || "there";
+    const boxContext = boxSent ? `
+⚠️ BOX / INTRO PACKAGE WAS SENT TO THIS CONTACT. The opening MUST be:
+"Hi ${firstName}, my name is Brad Burke, a local real estate media provider — do you have a moment? I recently sent over a small introduction package and just wanted to introduce myself personally."
+[Pause. Let them respond.]
+Then: "Glad it made it. I provide full-service real estate media — photography, video, and drone — and I just wanted to put a voice behind the name. [Reference their active listing if found from market intel.] I would love to help you get it to the closing table by adding a 2–3 minute MLS-ready video you can just drop into the listing."
+If they say they don't need it: "Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource."
+` : "";
+
     // Generate comprehensive call map with learned patterns
     const callMapRes = await base44.integrations.Core.InvokeLLM({
       prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map. 
@@ -122,6 +134,7 @@ CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
 - Scripts must sound like a real human, not a corporate bot. Casual, warm, direct.
 - Key stat to use when relevant: "homes with pro media sell 32% faster and for 5-11% more"
 - Brad handles pricing questions and closings — route there when needed.
+${boxContext}
 
 Generate a complete call map as a JSON structure with all conversation branches covered. Sound like a real person who knows them.
 
