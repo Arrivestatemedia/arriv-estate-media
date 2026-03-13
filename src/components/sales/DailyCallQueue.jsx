@@ -118,7 +118,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
             opening: { type: "string", description: "2 sentences, casual, specific. NOT 'Hi this is X from ARRIV'" },
             if_interested: { type: "string", description: "Full 60-second pitch, key points, guide to booking" },
             if_has_photographer: { type: "string", description: "They already use a photographer. Acknowledge it warmly, then mention ARRIV provides BOTH photography AND video as full-service media. Don't dismiss their photographer — position ARRIV as upgrade/add-on. Example: 'That's great! We actually do photography too, but we also specialize in video tours. A lot of agents use us alongside their existing photographer to add video to their listings. Worth keeping in mind as an add-on.' OR 'Awesome — we do full-service real estate media including photos and video, so we could potentially upgrade what you're already doing or add video tours.'" },
-            if_not_interested: { type: "string", description: "Graceful response, leaves door open, mention follow-up" },
+            if_not_interested: { type: "string", description: "Graceful response that leaves door open. Example: 'Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource.'" },
             if_send_email: { type: "string", description: "Agree to email but GET COMMITMENT for a call too" },
             if_too_expensive: { type: "string", description: "Value frame, never discount, redirect to Brad for pricing" },
             if_cold_unengaged: { type: "string", description: "Short graceful exit that doesn't burn the bridge" },

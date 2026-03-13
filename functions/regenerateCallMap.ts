@@ -186,7 +186,7 @@ ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interaction
           opening: { type: "string", description: "Opening 1-2 sentences, casual, specific to this person" },
           if_interested: { type: "string", description: "Script if they're open/interested (under 60 sec)" },
           if_has_photographer: { type: "string", description: "They already use a photographer. Acknowledge it warmly, then mention ARRIV provides BOTH photography AND video as full-service media. Don't dismiss their photographer — position ARRIV as upgrade/add-on. Example: 'That's great! We actually do photography too, but we also specialize in video tours. A lot of agents use us alongside their existing photographer to add video to their listings. Worth keeping in mind as an add-on.' OR 'Awesome — we do full-service real estate media including photos and video, so we could potentially upgrade what you're already doing or add video tours.'" },
-          if_not_interested: { type: "string", description: "Script for 'Not interested right now' objection" },
+          if_not_interested: { type: "string", description: "Script for 'Not interested right now' objection. Use: 'Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource.'" },
           if_send_email: { type: "string", description: "Script for 'Send me an email' objection" },
           if_too_expensive: { type: "string", description: "Script for 'Too expensive' objection" },
           if_cold_unengaged: { type: "string", description: "Script for cold/one-word answers" },
