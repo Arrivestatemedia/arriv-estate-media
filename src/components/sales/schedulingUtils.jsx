@@ -152,16 +152,29 @@ OUTPUT valid JSON only:
 }
 
 export async function saveScheduledFollowUp(contact, analysis, sid, sem, existingScheduledMap) {
-  let followUpDate = analysis.follow_up_date_time
-    ? new Date(analysis.follow_up_date_time)
-    : (() => {
-        // Default to next business day at 8:30am — never 7 days out
-        const d = new Date();
-        d.setDate(d.getDate() + 1);
-        while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-        d.setHours(8, 30, 0, 0);
-        return d;
-      })();
+  // If AI provided a date/time, use it directly (AI already chose the best time)
+  // Only apply time-window logic if AI didn't provide a specific time
+  let followUpDate = null;
+  let useAITimeDirectly = false;
+
+  if (analysis.follow_up_date_time) {
+    const aiDate = new Date(analysis.follow_up_date_time);
+    const aiHour = aiDate.getHours();
+    // Check if the AI-suggested time is within reasonable business/outreach windows
+    if (aiHour >= 8 && aiHour <= 19) {
+      followUpDate = aiDate;
+      useAITimeDirectly = true;
+    }
+  }
+
+  if (!followUpDate) {
+    // Default to next business day at 8:30am — never 7 days out
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    d.setHours(8, 30, 0, 0);
+    followUpDate = d;
+  }
 
   // Check if this is a brand-new contact (only has a "Contact created:" or "FIRST CONTACT:" note)
   const allNotes = (contact.activities || []).map(a => (a.notes || "").trim());
