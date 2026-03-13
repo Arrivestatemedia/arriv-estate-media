@@ -996,12 +996,12 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                     })}
                   </div>
                   {upcomingActivities.length > 0 && (() => {
-                    const upcomingTotalPages = Math.ceil(upcomingActivities.length / 10);
-                    const upcomingEndIdx = upcomingPage * 10 + visibleUpcomingOnPage;
+                    const upcomingTotalPages = Math.ceil(upcomingActivities.length / 5);
+                    const upcomingEndIdx = upcomingPage * 5 + visibleUpcomingOnPage;
                     return (
                       <div className="flex justify-center gap-2 pt-4 flex-wrap">
-                        {visibleUpcomingOnPage < 10 && upcomingEndIdx < upcomingActivities.length && (
-                          <Button variant="outline" onClick={() => setVisibleUpcomingOnPage(v => Math.min(10, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
+                        {visibleUpcomingOnPage < 5 && upcomingEndIdx < upcomingActivities.length && (
+                          <Button variant="outline" onClick={() => setVisibleUpcomingOnPage(v => Math.min(5, v + 5))} style={{ borderColor: '#B8956A', color: '#B8956A' }}>Load More</Button>
                         )}
                         {upcomingTotalPages > 1 && (
                           <>
