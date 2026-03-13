@@ -111,6 +111,9 @@ For the TIME of day: use realtor behavior research — realtors are most reachab
 
 BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
 
+⚠️ CRITICAL: When you output follow_up_date_time, the TIME must match the BEST WINDOW you identified above. 
+Do not output a time outside the 8-9am, 12-1pm, or 5-7pm windows unless the contact explicitly said a different time.
+
 CHANNEL: Default=call. Switch to TEXT only if they explicitly said "text me". EMAIL only if they asked.
 
 BOX / INTRO PACKAGE SENT: If any note mentions "box sent", "intro package sent", "package sent", "sent a box", "sent an intro", or any close variation — this means a physical introduction package was mailed to this realtor. The opening script MUST reference this: "Hi [Name], my name is Brad Burke, a local real estate media provider — do you have a moment? I recently sent over a small introduction package and just wanted to introduce myself personally." Then after they respond: "Glad it made it. I provide full-service real estate media — photography, video, and drone — and I just wanted to put a voice behind the name. [Reference their specific listing if found via research.] I would love to help you get it to the closing table by adding a 2–3 minute MLS-ready video that you can just drop into the listing." If they say they don't need it: "Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource."
