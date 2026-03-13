@@ -185,7 +185,7 @@ ${pictureUrls.length > 0 ? `\nATTACHED IMAGES: Screenshots from past interaction
         properties: {
           opening: { type: "string", description: "Opening 1-2 sentences, casual, specific to this person" },
           if_interested: { type: "string", description: "Script if they're open/interested (under 60 sec)" },
-          if_has_photographer: { type: "string", description: "Script for 'I already have a photographer' objection" },
+          if_has_photographer: { type: "string", description: "They already use a photographer. Do NOT repeat the opening pitch. Acknowledge it warmly, then pivot: ARRIV specializes in VIDEO TOURS — a completely separate service from photography. Many agents use both. Plant a seed. Example: 'Oh totally — I actually don't do photography, I specialize in video tours. A lot of agents use me alongside their photographer. Worth keeping in mind if you ever want to add video to a listing.'" },
           if_not_interested: { type: "string", description: "Script for 'Not interested right now' objection" },
           if_send_email: { type: "string", description: "Script for 'Send me an email' objection" },
           if_too_expensive: { type: "string", description: "Script for 'Too expensive' objection" },
