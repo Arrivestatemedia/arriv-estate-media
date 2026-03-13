@@ -149,7 +149,7 @@ CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
 - Scripts must sound like a real human, not a corporate bot. Casual, warm, direct.
 - Key stat to use when relevant: "homes with pro media sell 32% faster and for 5-11% more"
 - Brad handles pricing questions and closings — route there when needed.
-${boxContext}
+${boxContext}${firstContactScript}
 
 Generate a complete call map as a JSON structure with all conversation branches covered. Sound like a real person who knows them.
 
