@@ -371,10 +371,11 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     return notes.includes('[AI Scheduled]');
   };
 
+  const [expandedUpcoming, setExpandedUpcoming] = useState({});
+
   const upcomingActivities = activities
     .filter(a => new Date(a.activity_date) > new Date() || isAIPending(a))
     .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))
-    .slice(0, 5)
     .map(a => {
       const phone = a.contact_phone || phoneLookup[a.contact_email] || phoneLookup[a.contact_name] || '';
       return { ...a, contact_phone: phone };
