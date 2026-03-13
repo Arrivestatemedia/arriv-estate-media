@@ -269,8 +269,23 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
 
     const scriptPictureUrls = (contact.activities || []).slice(0, 6).flatMap(a => a.picture_urls || []).slice(0, 6);
 
-    const allActivityNotes = (contact.activities || []).map(a => a.notes || "").join(" ").toLowerCase();
+    const allActivityNotes = (contact.activities || []).map(a => a.notes || "").join(" ");
     const boxSent = /box sent|intro package sent|package sent|sent a box|sent an intro|introduction package|sent box|mailed a box|mailed package/i.test(allActivityNotes);
+    const isFirstContact = (contact.activities || []).every(a => /^(FIRST CONTACT:|Contact created:)/i.test((a.notes || "").trim()));
+    const firstName = contact.name?.split(' ')[0] || 'there';
+
+    const firstContactScript = isFirstContact && !boxSent ? `
+⚠️ THIS IS A BRAND NEW CONTACT — FIRST CALL EVER. Use this exact opening structure:
+Opening: "Hi ${firstName}, this is Brad — I'm a local real estate media creator. Do you have a moment?"
+[Pause briefly]
+Then: "I came across your listing on [find their active listing from market research — street name or area] — it's a beautiful home."
+[Pause]
+Then: "I noticed the listing currently has photos but no video, so I wanted to reach out. I create clean, unbranded video tours that are MLS-ready, so agents can drop them straight into the listing without changing anything else."
+[Pause]
+Then: "If video isn't something you're planning to add, totally fine — I just wanted to see if it's something you'd be open to considering."
+
+If they have NO active listing found: Skip the listing reference. Instead: "I work with realtors in the area providing full-service real estate media — photography, video, and drone. I just wanted to introduce myself and see if you'd be open to connecting."
+` : "";
 
     const boxSentContext = boxSent ? `
     ⚠️ BOX / INTRO PACKAGE WAS SENT TO THIS CONTACT. The opening MUST be:
