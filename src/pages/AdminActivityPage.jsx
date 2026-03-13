@@ -995,7 +995,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                       );
                     })}
                   </div>
-                  {upcomingActivities.length > 5 && (() => {
+                  {upcomingActivities.length > 0 && (() => {
                     const upcomingTotalPages = Math.ceil(upcomingActivities.length / 10);
                     const upcomingEndIdx = upcomingPage * 10 + visibleUpcomingOnPage;
                     return (
