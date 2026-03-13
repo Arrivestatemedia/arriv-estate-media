@@ -915,21 +915,57 @@ export default function HubSpotActivityLog() {
             if (destination.droppableId === 'history') {
               newDate = new Date(Date.now() - 60000).toISOString(); // 1 min ago = past
             } else {
-              // Smart scheduling: next business day (skip weekends), during business hours 9am-5pm ET
-              const d = new Date();
-              d.setDate(d.getDate() + 1);
-              // Skip Saturday (6) and Sunday (0)
-              while (d.getDay() === 0 || d.getDay() === 6) {
-                d.setDate(d.getDate() + 1);
-              }
-              const yr = d.getUTCFullYear();
-              const isDST = d >= new Date(Date.UTC(yr, 2, 8)) && d < new Date(Date.UTC(yr, 10, 1));
-              const etOffset = isDST ? 4 : 5; // hours to add to ET to get UTC
-              // Pick a time based on the day of week: Mon/Wed/Fri = 10am ET, Tue/Thu = 2pm ET
-              const dayOfWeek = d.getDay(); // 1=Mon,2=Tue,3=Wed,4=Thu,5=Fri
-              const etHour = (dayOfWeek === 2 || dayOfWeek === 4) ? 14 : 10;
-              d.setUTCHours(etHour + etOffset, 0, 0, 0);
-              newDate = d.toISOString();
+              // AI-driven scheduling: read notes and patterns to pick the best time
+              const contactKey = activity.contact_email || activity.contact_name;
+              const contactHistory = activities
+                .filter(a => (a.contact_email && a.contact_email === contactKey) || (a.contact_name && a.contact_name === contactKey))
+                .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+                .slice(0, 20)
+                .map(a => {
+                  const dt = new Date(a.activity_date);
+                  const etStr = dt.toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                  const note = (a.notes || '').replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim().slice(0, 200);
+                  return `${etStr} [${a.activity_type}]: ${note}`;
+                })
+                .join('\n');
+              const todayET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+              const llmResult = await base44.integrations.Core.InvokeLLM({
+                prompt: `You are a sales scheduling AI. Analyze this contact's full history and pick the BEST specific date+time (ET) to schedule a follow-up call.
+
+TODAY (ET): ${todayET}
+CONTACT: ${activity.contact_name || activity.contact_email}
+FULL ACTIVITY HISTORY (most recent first):
+${contactHistory || 'No history.'}
+
+ANALYSIS INSTRUCTIONS:
+- Look for patterns: what times/days were calls actually answered vs missed?
+- Read the notes carefully: did they say "call me back at X time", "I'm usually free in the afternoon", "mornings are better", "I'm at showings until noon", etc.?
+- Look at when real-time conversations happened (these are the times they were actually available)
+- Consider their industry patterns (real estate agents are often busy on weekends and evenings with showings)
+- Must be tomorrow or later, Monday–Friday, between 8am–6pm ET
+- If no useful patterns exist, default to tomorrow at 10am ET
+
+Return ONLY valid JSON, no extra text:
+{"iso_date": "YYYY-MM-DDTHH:mm:00", "reason": "brief reason based on what you found in the notes/patterns"}`,
+                response_json_schema: {
+                  type: 'object',
+                  properties: {
+                    iso_date: { type: 'string' },
+                    reason: { type: 'string' }
+                  },
+                  required: ['iso_date', 'reason']
+                }
+              });
+              const schedData = typeof llmResult === 'string' ? JSON.parse(llmResult) : llmResult;
+              // The LLM returns ET time — convert to UTC
+              const etDate = new Date(schedData.iso_date);
+              const yr = etDate.getUTCFullYear();
+              const isDST = etDate >= new Date(Date.UTC(yr, 2, 8)) && etDate < new Date(Date.UTC(yr, 10, 1));
+              etDate.setTime(etDate.getTime() + (isDST ? 4 : 5) * 3600000);
+              // Safety: must be in the future
+              const minDate = new Date();
+              minDate.setDate(minDate.getDate() + 1);
+              newDate = etDate > minDate ? etDate.toISOString() : minDate.toISOString();
             }
             await base44.entities.ActivityLog.update(activity.id, { activity_date: newDate });
             queryClient.invalidateQueries({ queryKey: ['activities'] });
