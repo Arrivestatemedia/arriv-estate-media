@@ -176,125 +176,47 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
     followUpDate = d;
   }
 
-  // Check if this is a brand-new contact (only has a "Contact created:" or "FIRST CONTACT:" note)
-  const allNotes = (contact.activities || []).map(a => (a.notes || "").trim());
-  const isNewContactOnly = allNotes.length > 0 && allNotes.every(n => /^(Contact created:|FIRST CONTACT:)/i.test(n));
+  // Only apply time-window logic if AI didn't provide a specific time
+  if (!useAITimeDirectly) {
+    // Check if this is a brand-new contact (only has a "Contact created:" or "FIRST CONTACT:" note)
+    const allNotes = (contact.activities || []).map(a => (a.notes || "").trim());
+    const isNewContactOnly = allNotes.length > 0 && allNotes.every(n => /^(Contact created:|FIRST CONTACT:)/i.test(n));
 
-  // For new contacts, ALWAYS force same/next business day — no exceptions
-  if (isNewContactOnly) {
-    const now = new Date();
-    followUpDate = new Date(now);
-    const isBusinessDay = followUpDate.getDay() >= 1 && followUpDate.getDay() <= 5;
-    const isBeforeEnd = followUpDate.getHours() < 17;
-    if (!isBusinessDay || !isBeforeEnd) {
-      followUpDate.setDate(followUpDate.getDate() + 1);
-      while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
-        followUpDate.setDate(followUpDate.getDate() + 1);
-      }
-    }
-    // Use AI-suggested time if it's a valid realtor window, otherwise pick best window
-    const aiHour = analysis.follow_up_date_time ? new Date(analysis.follow_up_date_time).getHours() : 0;
-    if (aiHour >= 8 && aiHour <= 19) {
-      const aiMinute = new Date(analysis.follow_up_date_time).getMinutes();
-      followUpDate.setHours(aiHour, aiMinute, 0, 0);
-    } else {
-      // Default to 8:30am — before showings start
-      followUpDate.setHours(8, 30, 0, 0);
-    }
-    // If the time is already past today, push to next hour or next business day morning
-    if (followUpDate <= now) {
-      if (isBusinessDay && now.getHours() < 17) {
-        followUpDate.setHours(now.getHours() + 1, 0, 0, 0);
-      } else {
+    // For new contacts, ALWAYS force same/next business day — no exceptions
+    if (isNewContactOnly) {
+      const now = new Date();
+      followUpDate = new Date(now);
+      const isBusinessDay = followUpDate.getDay() >= 1 && followUpDate.getDay() <= 5;
+      const isBeforeEnd = followUpDate.getHours() < 17;
+      if (!isBusinessDay || !isBeforeEnd) {
         followUpDate.setDate(followUpDate.getDate() + 1);
         while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
           followUpDate.setDate(followUpDate.getDate() + 1);
         }
-        followUpDate.setHours(8, 30, 0, 0);
       }
-    }
-  }
-
-  // Safety: don't schedule in the past
-  if (followUpDate < new Date()) {
-    followUpDate = addDays(new Date(), 1);
-    while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
-      followUpDate.setDate(followUpDate.getDate() + 1);
-    }
-    followUpDate.setHours(8, 30, 0, 0);
-  }
-
-  const bestTimeStr = getBestTime(contact);
-  const isEveningPreferred = bestTimeStr.includes("5:00") || bestTimeStr.includes("7:00") || bestTimeStr.includes("PM");
-  const isMorningPreferred = bestTimeStr.includes("8:00") || bestTimeStr.includes("9:00") || bestTimeStr.includes("Mon–Wed");
-  const isNoonPreferred = bestTimeStr.includes("12:00") || bestTimeStr.includes("1:00 PM");
-  const isAfternoonPreferred = bestTimeStr.includes("1:00") || bestTimeStr.includes("2:00");
-
-  if (sem === 'bradley@arrivestatemedia.com' || sem?.toLowerCase().includes('bradley') || sem?.toLowerCase().includes('brad')) {
-    const allWindows = [
-      { start: 7.9167, end: 8.167 },
-      { start: 10.25, end: 10.633 },
-      { start: 14.25, end: 24 }
-    ];
-    const windows = isEveningPreferred
-      ? [allWindows[2], allWindows[0], allWindows[1]]
-      : isNoonPreferred || isAfternoonPreferred
-        ? [allWindows[1], allWindows[2], allWindows[0]]
-        : allWindows;
-
-    let found = false;
-    for (let dayOffset = 0; dayOffset < 14 && !found; dayOffset++) {
-      let adjusted = new Date(followUpDate);
-      adjusted.setDate(adjusted.getDate() + dayOffset);
-      adjusted.setHours(0, 0, 0, 0);
-
-      for (const window of windows) {
-        let testTime = new Date(adjusted);
-        testTime.setHours(Math.floor(window.start), Math.round((window.start % 1) * 60), 0, 0);
-        const maxMinutes = Math.floor(window.end) * 60 + Math.round((window.end % 1) * 60);
-
-        while (testTime.getHours() * 60 + testTime.getMinutes() < maxMinutes) {
-          if (testTime > new Date()) {
-            const conflict = existingScheduledMap && Object.values(existingScheduledMap).some(s => {
-              return Math.abs(testTime - new Date(s.activity_date)) / 60000 < 5;
-            });
-            if (!conflict) {
-              followUpDate = testTime;
-              found = true;
-              break;
-            }
+      // Default to 8:30am — before showings start
+      followUpDate.setHours(8, 30, 0, 0);
+      // If the time is already past today, push to next hour or next business day morning
+      if (followUpDate <= now) {
+        if (isBusinessDay && now.getHours() < 17) {
+          followUpDate.setHours(now.getHours() + 1, 0, 0, 0);
+        } else {
+          followUpDate.setDate(followUpDate.getDate() + 1);
+          while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
+            followUpDate.setDate(followUpDate.getDate() + 1);
           }
-          testTime.setMinutes(testTime.getMinutes() + 5);
+          followUpDate.setHours(8, 30, 0, 0);
         }
-        if (found) break;
       }
     }
-  } else {
-    const allOptimalWindows = [
-      { start: 9, end: 11 },
-      { start: 13, end: 15 },
-      { start: 17, end: 19 }
-    ];
-    const optimalWindows = isEveningPreferred
-      ? [allOptimalWindows[2], allOptimalWindows[0], allOptimalWindows[1]]
-      : isNoonPreferred || isAfternoonPreferred
-        ? [allOptimalWindows[1], allOptimalWindows[2], allOptimalWindows[0]]
-        : allOptimalWindows;
 
-    let found = false;
-    for (let dayOffset = 0; dayOffset < 14 && !found; dayOffset++) {
-      let adjusted = new Date(followUpDate);
-      adjusted.setDate(adjusted.getDate() + dayOffset);
-      adjusted.setHours(0, 0, 0, 0);
-      for (const window of optimalWindows) {
-        const testTime = new Date(adjusted);
-        testTime.setHours(window.start, 0, 0, 0);
-        if (testTime > new Date()) {
-          followUpDate = testTime;
-          found = true;
-          break;
-        }
+    // Safety: don't schedule in the past
+    if (followUpDate < new Date()) {
+      followUpDate = addDays(new Date(), 1);
+      while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
+        followUpDate.setDate(followUpDate.getDate() + 1);
       }
+      followUpDate.setHours(8, 30, 0, 0);
     }
   }
 
