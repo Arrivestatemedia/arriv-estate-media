@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Mail, Building2, User, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus } from "lucide-react";
+import { Phone, Mail, Building2, User, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { createPortal } from "react-dom";
