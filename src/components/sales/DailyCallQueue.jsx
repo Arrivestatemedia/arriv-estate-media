@@ -546,7 +546,8 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
   const [loading, setLoading] = useState(true);
   const [scheduling, setScheduling] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [viewMapOpenKey, setViewMapOpenKey] = useState(null);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapActivity, setMapActivity] = useState(null);
 
   const sid = salesMemberId || localStorage.getItem('sales_member_id');
   const sem = salesMemberEmail || localStorage.getItem('sales_member_email');
@@ -554,6 +555,15 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
   useEffect(() => {
     loadQueue();
   }, [salesMemberId, salesMemberEmail, refreshKey]);
+
+  useEffect(() => {
+    const handleOpenCallMapModal = (e) => {
+      setMapActivity(e.detail?.activity || null);
+      setMapOpen(true);
+    };
+    window.addEventListener('openCallMapModal', handleOpenCallMapModal);
+    return () => window.removeEventListener('openCallMapModal', handleOpenCallMapModal);
+  }, []);
 
   const loadQueue = async () => {
     setLoading(true);
@@ -879,21 +889,25 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
       )}
 
       {upcomingContacts.length > 0 && (
-        <div className="mt-6">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'rgba(26,26,26,0.4)' }}>Coming Up</p>
-          <div className="space-y-2">
-            {upcomingContacts.map(contact => (
-              <UpcomingCard
-                key={contact.key}
-                contact={contact}
-                scheduled={scheduledMap[contact.key]}
-                meta={metaMap[contact.key] || {}}
-                onDeleted={() => setRefreshKey(k => k + 1)}
-              />
-            ))}
-          </div>
-        </div>
+       <div className="mt-6">
+         <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'rgba(26,26,26,0.4)' }}>Coming Up</p>
+         <div className="space-y-2">
+           {upcomingContacts.map(contact => (
+             <UpcomingCard
+               key={contact.key}
+               contact={contact}
+               scheduled={scheduledMap[contact.key]}
+               meta={metaMap[contact.key] || {}}
+               onDeleted={() => setRefreshKey(k => k + 1)}
+             />
+           ))}
+         </div>
+       </div>
       )}
-    </div>
-  );
-}
+
+      {mapActivity && (
+       <ViewCallMapModal activity={mapActivity} open={mapOpen} onOpenChange={setMapOpen} />
+      )}
+      </div>
+      );
+      }
