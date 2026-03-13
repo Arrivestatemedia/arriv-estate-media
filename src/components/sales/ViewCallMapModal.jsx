@@ -12,6 +12,7 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
   
   const [callMap, setCallMap] = useState(initialCallMap);
   const [regenerating, setRegenerating] = useState(false);
+  const [contextInput, setContextInput] = useState("");
 
   const regenerateCallMap = async () => {
     setRegenerating(true);
@@ -21,7 +22,7 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
         contactEmail: activity.contact_email,
         companyName: activity.company_name,
         contactPhone: activity.contact_phone,
-        previousCallMap: callMap,
+        reason: contextInput,
       });
       
       const newCallMap = res.data?.call_map;
@@ -61,6 +62,31 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Regenerate Panel */}
+          <div className="border rounded-lg p-4" style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184,149,106,0.05)' }}>
+            <div className="flex items-center gap-2 mb-3" style={{ color: '#B8956A' }}>
+              <RefreshCw className="w-4 h-4" />
+              <span className="font-semibold text-sm">Regenerate Call Map</span>
+            </div>
+            <textarea
+              placeholder="Add context to improve the call map... e.g. 'She mentioned she was moving offices next month' or 'I already sent the portfolio link twice'"
+              value={contextInput}
+              onChange={(e) => setContextInput(e.target.value)}
+              className="w-full p-2 border rounded text-sm mb-3"
+              style={{ borderColor: '#B8956A', minHeight: '80px' }}
+            />
+            <Button
+              size="sm"
+              onClick={regenerateCallMap}
+              disabled={regenerating}
+              className="gap-2"
+              style={{ backgroundColor: '#B8956A', color: '#FFFFFF' }}
+            >
+              <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+              {regenerating ? 'Regenerating...' : 'Regenerate'}
+            </Button>
+          </div>
+
           {/* Action buttons */}
           <div className="flex gap-2 items-center">
             <Button size="sm" className="gap-2" style={{ backgroundColor: '#B8956A', color: '#FFFFFF' }}>
@@ -70,17 +96,6 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
             <Button size="sm" variant="outline" className="gap-2" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
               <Mail className="w-4 h-4" />
               Email
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={regenerateCallMap}
-              disabled={regenerating}
-              className="gap-2"
-              style={{ borderColor: '#B8956A', color: '#B8956A' }}
-            >
-              <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
-              {regenerating ? 'Regenerating...' : 'Regenerate Call Map'}
             </Button>
           </div>
 
