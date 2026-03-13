@@ -628,6 +628,27 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
       if (deletePromises.length > 0) Promise.all(deletePromises);
       setScheduledMap(newScheduledMap);
 
+      // Restore metaMap from existing scheduled activity notes so display works on reload
+      const restoredMeta = {};
+      filtered.forEach(contact => {
+        const scheduled = newScheduledMap[contact.key];
+        if (scheduled) {
+          const notes = scheduled.notes || '';
+          const reasonMatch = notes.match(/^\[AI Scheduled\]\s*([^|]+)/);
+          const openerMatch = notes.match(/Opener:\s*(.+?)(?:\n|--- CALL MAP ---|$)/s);
+          restoredMeta[contact.key] = {
+            urgency: restoredMeta[contact.key]?.urgency || "medium",
+            channel: "call",
+            channelReason: "",
+            reason: reasonMatch ? reasonMatch[1].trim() : "",
+            suggestedOpener: openerMatch ? openerMatch[1].trim() : "",
+            contactIntel: "",
+            patternTags: []
+          };
+        }
+      });
+      setMetaMap(restoredMeta);
+
       setLoading(false);
 
       // For contacts that have NO scheduled follow-up yet, run AI to create one
