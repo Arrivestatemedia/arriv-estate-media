@@ -1123,7 +1123,8 @@ export default function HubSpotActivityLog() {
                     )}
                   </div>
                 </div>
-              )}
+                );
+              }}
             </Droppable>
 
             {/* Archive button */}
