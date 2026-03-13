@@ -1534,6 +1534,7 @@ If they don't need it: "Totally understand. If you ever need backup coverage or 
           ## SMS / MESSAGE HISTORY
           ${smsContext || 'No SMS history'}
 
+          ${firstContactScript}${boxContext}
           ## CONTEXT FROM BRAD
           ${shortNote || 'No prior notes'}
 
