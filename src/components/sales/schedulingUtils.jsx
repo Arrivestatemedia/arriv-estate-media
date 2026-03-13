@@ -78,37 +78,36 @@ IMAGES ARE PRIMARY EVIDENCE. Use them to override unclear notes.` : ""}
 
 === DECISION RULES (apply in order) ===
 
-⚠️ CRITICAL SCHEDULING RULE — READ FIRST:
-NEVER schedule same-day or next-day UNLESS the notes EXPLICITLY state a same-day callback (e.g. "call back in 2 hours", "call later today") or next-day callback (e.g. "call tomorrow", "call me tomorrow morning").
-The DEFAULT minimum follow-up is 7 days from today. Most follow-ups should be 1–4 weeks out.
+⚠️ CRITICAL SCHEDULING RULES:
 Read every note and attachment carefully before deciding. Use the most specific timing signals you find.
+For the TIME of day: use realtor behavior research — realtors are most reachable 8-9am (before showings), 12-1pm (lunch), and 5-7pm (after showings). Pick the best window based on what you know about this contact.
 
 1. DID THEY GIVE A SPECIFIC CALLBACK TIME? ("call me back at 2pm today", "tomorrow morning", "next Monday", "in 2 weeks")
-   → Schedule EXACTLY then. Urgency: high. This is the ONLY case where same-day or next-day is allowed.
+   → Schedule EXACTLY then. Urgency: high.
 
 2. DID THEY SAY THEY'LL CALL YOU? ("I'll get back to you", "I'll reach out when ready")
    → Schedule 45 days out. Urgency: skip.
 
 3. ARE THEY A WARM LEAD? (said "interested", "sounds good", "send me info", asked pricing questions)
-   → Schedule 7–10 days out, morning 8-9am. Urgency: high.
+   → Schedule 2–4 days out at best contact window. Urgency: high.
 
 4. DID THEY SAY "NOT INTERESTED"? (firm no, rejection)
    → Schedule 30–45 days out. Urgency: low.
 
 5. NO ANSWER / LEFT VOICEMAIL
-   → Schedule 7 days out, different time than last attempt. Urgency: medium.
+   → Schedule 3–5 days out at a DIFFERENT time window than last attempt. Urgency: medium.
 
 6. THEY SAID THEY'RE BUSY/BAD TIME (but no specific callback time given)
-   → Schedule 7 days out at 8:30am. Urgency: medium.
+   → Schedule 3–5 days out at best contact window. Urgency: medium.
 
 7. GENERAL CONVERSATION / TOUCHPOINT (no specific signal)
-   → Schedule 14 days out. Urgency: medium.
+   → Schedule 7–14 days out. Urgency: medium.
 
 8. CONTACT CREATED (only activity is a "Contact created:" note — brand new, never called)
-   → Schedule TODAY (same business day) if it's a business day before 5pm, otherwise NEXT business day at 8:30am. Urgency: high. This is a FRESH lead that must be called immediately.
+   → Schedule TODAY if it's a business day before 5pm, otherwise NEXT business day. Pick the best time window for realtors based on your research. Urgency: high. FRESH lead — call immediately.
 
-9. FIRST CONTACT (has prior real activity history but no specific signal)
-   → Schedule 7 days out at 8:30am. Urgency: high.
+9. FIRST CONTACT (has some history but no clear signal)
+   → Schedule 5–7 days out at best contact window. Urgency: high.
 
 BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
 
