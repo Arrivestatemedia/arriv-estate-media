@@ -369,8 +369,19 @@ export default function ContactDetailPage() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
-                      {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className="text-sm whitespace-nowrap" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
+                        {format(new Date(activity.activity_date), "MMM d, yyyy h:mm a")}
+                      </span>
+                      <button
+                        onClick={(e) => handleDeleteActivity(activity, e)}
+                        className="p-1 rounded hover:bg-red-50 transition-colors"
+                        style={{ color: 'rgba(26,26,26,0.3)' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'rgba(26,26,26,0.3)'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 </CardContent>
