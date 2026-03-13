@@ -541,6 +541,60 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     }
   };
 
+  const handleDragEnd = (result) => {
+    const { source, destination, draggableId } = result;
+    if (!destination || source.droppableId === destination.droppableId) return;
+    const activity = activities.find(a => a.id === draggableId);
+    if (!activity) return;
+
+    if (destination.droppableId === 'history') {
+      const newDate = new Date(Date.now() - 60000).toISOString();
+      base44.entities.ActivityLog.update(activity.id, { activity_date: newDate })
+        .then(() => queryClient.invalidateQueries({ queryKey: ['adminActivities'] }));
+    } else {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      while (tomorrow.getDay() === 0 || tomorrow.getDay() === 6) tomorrow.setDate(tomorrow.getDate() + 1);
+      const yr = tomorrow.getUTCFullYear();
+      const isDST = tomorrow >= new Date(Date.UTC(yr, 2, 8)) && tomorrow < new Date(Date.UTC(yr, 10, 1));
+      tomorrow.setUTCHours(10 + (isDST ? 4 : 5), 0, 0, 0);
+      const optimisticDate = tomorrow.toISOString();
+
+      base44.entities.ActivityLog.update(activity.id, { activity_date: optimisticDate })
+        .then(() => queryClient.invalidateQueries({ queryKey: ['adminActivities'] }));
+
+      const contactKey = activity.contact_email || activity.contact_name;
+      const contactHistory = activities
+        .filter(a => (a.contact_email && a.contact_email === contactKey) || (a.contact_name && a.contact_name === contactKey))
+        .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+        .slice(0, 20)
+        .map(a => {
+          const dt = new Date(a.activity_date);
+          const etStr = dt.toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+          const note = (a.notes || '').replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim().slice(0, 200);
+          return etStr + ' [' + a.activity_type + ']: ' + note;
+        }).join('\n');
+      const todayET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+      const prompt = 'You are a sales scheduling AI. Analyze this contact\'s full history and pick the BEST specific date+time (ET) to schedule a follow-up call.\n\nTODAY (ET): ' + todayET + '\nCONTACT: ' + (activity.contact_name || activity.contact_email) + '\nFULL ACTIVITY HISTORY (most recent first):\n' + (contactHistory || 'No history.') + '\n\nMust be tomorrow or later, Monday\u2013Friday, between 8am\u20136pm ET. Return ONLY valid JSON:\n{"iso_date": "YYYY-MM-DDTHH:mm:00", "reason": "brief reason"}';
+
+      base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: { type: 'object', properties: { iso_date: { type: 'string' }, reason: { type: 'string' } }, required: ['iso_date', 'reason'] }
+      }).then(llmResult => {
+        const schedData = typeof llmResult === 'string' ? JSON.parse(llmResult) : llmResult;
+        const etDate = new Date(schedData.iso_date);
+        const yr2 = etDate.getUTCFullYear();
+        const isDST2 = etDate >= new Date(Date.UTC(yr2, 2, 8)) && etDate < new Date(Date.UTC(yr2, 10, 1));
+        etDate.setTime(etDate.getTime() + (isDST2 ? 4 : 5) * 3600000);
+        const minDate = new Date();
+        minDate.setDate(minDate.getDate() + 1);
+        const finalDate = etDate > minDate ? etDate.toISOString() : minDate.toISOString();
+        return base44.entities.ActivityLog.update(activity.id, { activity_date: finalDate });
+      }).then(() => queryClient.invalidateQueries({ queryKey: ['adminActivities'] })).catch(() => {});
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
