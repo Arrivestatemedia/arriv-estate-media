@@ -155,33 +155,29 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
   const allNotes = (contact.activities || []).map(a => (a.notes || "").trim());
   const isNewContactOnly = allNotes.length > 0 && allNotes.every(n => /^Contact created:/i.test(n));
 
-  // Hard safety: minimum 7 days out unless explicitly same-day/next-day OR brand-new contact
-  const reason = (analysis.reason || "").toLowerCase();
-  const explicitSameDayOrNextDay = reason.includes("call back today") || reason.includes("later today") ||
-    reason.includes("call tomorrow") || reason.includes("tomorrow morning") || reason.includes("callback tomorrow") ||
-    reason.includes("call me back tomorrow");
-  const minDate = (explicitSameDayOrNextDay || isNewContactOnly) ? addDays(new Date(), 0) : addDays(new Date(), 7);
-  if (followUpDate < minDate) {
-    followUpDate = new Date(minDate);
-    followUpDate.setHours(8, 30, 0, 0);
-  }
-
-  // For new contacts, force same/next business day
+  // For new contacts, always force same/next business day regardless of what AI returned
   if (isNewContactOnly) {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
-    const hour = now.getHours();
-    const isBusinessDay = dayOfWeek >= 1 && dayOfWeek <= 5;
-    const isBeforeEnd = hour < 17;
-    if (isBusinessDay && isBeforeEnd) {
-      // Schedule today at the next available slot
-      followUpDate = new Date(now);
-    } else {
-      // Next business day
-      followUpDate = new Date(now);
+    const isBusinessDay = now.getDay() >= 1 && now.getDay() <= 5;
+    const isBeforeEnd = now.getHours() < 17;
+    followUpDate = new Date(now);
+    if (!isBusinessDay || !isBeforeEnd) {
       do {
         followUpDate.setDate(followUpDate.getDate() + 1);
       } while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6);
+    }
+    // Keep the AI-suggested hour if it's in the future today, else default to 8:30am
+    const aiHour = analysis.follow_up_date_time ? new Date(analysis.follow_up_date_time).getHours() : 8;
+    const aiMinute = analysis.follow_up_date_time ? new Date(analysis.follow_up_date_time).getMinutes() : 30;
+    followUpDate.setHours(aiHour || 8, aiMinute || 30, 0, 0);
+    if (followUpDate < now) followUpDate.setHours(now.getHours() + 1, 0, 0, 0);
+  }
+
+  // Safety: don't schedule in the past
+  if (followUpDate < new Date()) {
+    followUpDate = addDays(new Date(), 1);
+    while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
+      followUpDate.setDate(followUpDate.getDate() + 1);
     }
     followUpDate.setHours(8, 30, 0, 0);
   }
