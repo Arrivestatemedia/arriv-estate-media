@@ -395,7 +395,24 @@ export default function ContactDetailPage() {
       <Dialog open={!!selectedActivity} onOpenChange={(open) => { if (!open && !zoomedImage) setSelectedActivity(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Activity Details</DialogTitle>
+            <div className="flex justify-between items-center pr-6">
+              <DialogTitle>Activity Details</DialogTitle>
+              {selectedActivity && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={async () => {
+                    if (!confirm('Delete this activity?')) return;
+                    await base44.entities.ActivityLog.delete(selectedActivity.id);
+                    setActivities(prev => prev.filter(a => a.id !== selectedActivity.id));
+                    setSelectedActivity(null);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Delete
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {selectedActivity && (
             <div className="space-y-6">
