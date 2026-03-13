@@ -1010,7 +1010,7 @@ Return ONLY valid JSON, no extra text:
                     </div>
                   )}
                   <div className="space-y-3">
-                    {upcomingActivities.slice(upcomingPage * 10, upcomingPage * 10 + visibleUpcomingOnPage).map((activity, index) => {
+                    {upcomingActivities.slice(upcomingPage * 5, upcomingPage * 5 + visibleUpcomingOnPage).map((activity, index) => {
                       const displayPhone = activity.contact_phone || phoneLookup[activity.contact_email] || phoneLookup[activity.contact_name] || '';
                       return (
                         <Draggable key={activity.id} draggableId={activity.id} index={upcomingPage * 10 + index}>
