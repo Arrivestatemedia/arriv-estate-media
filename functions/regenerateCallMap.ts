@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { activityId, contactName, contactEmail, companyName, contactPhone, activityHistory, patternTags, reason, contactIntel } = await req.json();
+    const { activityId, contactName, contactEmail, companyName, contactPhone, activityHistory, patternTags, reason, contactIntel, previousCallMap } = await req.json();
 
     // Fetch past activities for this contact
     const pastActivities = await base44.asServiceRole.entities.ActivityLog.filter({
@@ -140,7 +140,7 @@ If they say they don't need it: "Totally understand. If you ever need backup cov
 
     // Generate comprehensive call map with learned patterns
     const callMapRes = await base44.integrations.Core.InvokeLLM({
-      prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map. 
+      prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map.${previousCallMap ? `\n\nEXISTING CALL MAP (for context and learning what works — improve upon it, keep the good parts, fix what doesn't work):\n${previousCallMap}\n` : ""} 
 
 CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
 - We shoot photos and video for real estate listings. That's it.

@@ -21,6 +21,7 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
         contactEmail: activity.contact_email,
         companyName: activity.company_name,
         contactPhone: activity.contact_phone,
+        previousCallMap: callMap,
       });
       
       const newCallMap = res.data?.call_map;
