@@ -305,7 +305,7 @@ If they have NO active listing found: Skip the listing reference. Instead: "I wo
     - Scripts must be casual and human, not corporate. Reference specific details from history.
     - Key stat: "homes with pro media sell 32% faster and for 5-11% more"
     - Brad handles pricing questions and closings.
-    ${boxSentContext}
+    ${boxSentContext}${firstContactScript}
     History: ${historySnippet || "no prior contact"}
 
     Output JSON with ALL 10 sections. Every field required and must be filled with full content.
