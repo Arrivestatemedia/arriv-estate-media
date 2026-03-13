@@ -844,79 +844,152 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
         )}
 
         {activeTab === "activity" && !showArchive && (
-          <>
-            {upcomingActivities.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
-                  <h2 className="text-xl font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
-                  <Badge variant="secondary">{upcomingActivities.length}</Badge>
-                </div>
-                <div className="space-y-3">
-                   {upcomingActivities.map((activity) => (
-                     <Card 
-                       key={activity.id} 
-                       style={{ borderColor: '#B8956A', backgroundColor: 'rgba(184, 149, 106, 0.1)' }}
-                       className="cursor-pointer hover:shadow-md transition"
-                       onClick={() => handleActivityClick(activity)}
-                     >
-                       <CardContent className="pt-6">
-                         <div className="flex items-start justify-between gap-4">
-                           <div className="flex items-start gap-3 flex-1">
-                             <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)' }}>
-                               {activityIcons[activity.activity_type]}
-                             </div>
-                             <div className="flex-1">
-                               <div className="flex items-center gap-2">
-                                 <Badge variant="outline" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
-                                 <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
-                                 <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
-                                   {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
-                                 </span>
-                               </div>
-                               <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
-                               {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
-                               {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
-                               {activity.contact_phone && (
-                                 <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', activity.contact_phone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
-                                   <Phone className="w-3 h-3" />{activity.contact_phone}
-                                 </button>
-                               )}
-                               {(() => {
-                                 const raw = activity.notes || '';
-                                 const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
-                                 const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
-                                 return (
-                                   <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                     {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 120)}{shortNote.length > 120 ? '...' : ''}</p>}
-                                     {hasCallMap && (
-                                       <button
-                                         onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
-                                         className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
-                                         style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
-                                       >
-                                         📋 View Call Map
-                                       </button>
-                                     )}
-                                   </div>
-                                 );
-                               })()}
-                               {activity.picture_url && (
-                                 <img src={activity.picture_url} alt="Activity" className="mt-2 rounded-lg max-h-32 w-auto" />
-                               )}
-                             </div>
-                           </div>
-                         </div>
-                       </CardContent>
-                     </Card>
-                   ))}
-                 </div>
-              </div>
-            )}
+          <DragDropContext onDragEnd={(result) => {
+            const { source, destination, draggableId } = result;
+            if (!destination || source.droppableId === destination.droppableId) return;
+            const activity = activities.find(a => a.id === draggableId);
+            if (!activity) return;
 
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4" style={{ color: '#1A1A1A' }}>Activity History</h2>
-              <div className="space-y-3">
+            if (destination.droppableId === 'history') {
+              const newDate = new Date(Date.now() - 60000).toISOString();
+              base44.entities.ActivityLog.update(activity.id, { activity_date: newDate })
+                .then(() => queryClient.invalidateQueries({ queryKey: ['adminActivities'] }));
+            } else {
+              // Optimistic: tomorrow 10am ET
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              while (tomorrow.getDay() === 0 || tomorrow.getDay() === 6) tomorrow.setDate(tomorrow.getDate() + 1);
+              const yr = tomorrow.getUTCFullYear();
+              const isDST = tomorrow >= new Date(Date.UTC(yr, 2, 8)) && tomorrow < new Date(Date.UTC(yr, 10, 1));
+              tomorrow.setUTCHours(10 + (isDST ? 4 : 5), 0, 0, 0);
+              const optimisticDate = tomorrow.toISOString();
+
+              base44.entities.ActivityLog.update(activity.id, { activity_date: optimisticDate })
+                .then(() => queryClient.invalidateQueries({ queryKey: ['adminActivities'] }));
+
+              // AI refine in background
+              const contactKey = activity.contact_email || activity.contact_name;
+              const contactHistory = activities
+                .filter(a => (a.contact_email && a.contact_email === contactKey) || (a.contact_name && a.contact_name === contactKey))
+                .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+                .slice(0, 20)
+                .map(a => {
+                  const dt = new Date(a.activity_date);
+                  const etStr = dt.toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                  const note = (a.notes || '').replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim().slice(0, 200);
+                  return `${etStr} [${a.activity_type}]: ${note}`;
+                }).join('\n');
+              const todayET = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+              base44.integrations.Core.InvokeLLM({
+                prompt: `You are a sales scheduling AI. Analyze this contact's full history and pick the BEST specific date+time (ET) to schedule a follow-up call.\n\nTODAY (ET): ${todayET}\nCONTACT: ${activity.contact_name || activity.contact_email}\nFULL ACTIVITY HISTORY (most recent first):\n${contactHistory || 'No history.'}\n\nMust be tomorrow or later, Monday–Friday, between 8am–6pm ET. Return ONLY valid JSON:\n{"iso_date": "YYYY-MM-DDTHH:mm:00", "reason": "brief reason"}`,
+                response_json_schema: { type: 'object', properties: { iso_date: { type: 'string' }, reason: { type: 'string' } }, required: ['iso_date', 'reason'] }
+              }).then(llmResult => {
+                const schedData = typeof llmResult === 'string' ? JSON.parse(llmResult) : llmResult;
+                const etDate = new Date(schedData.iso_date);
+                const yr2 = etDate.getUTCFullYear();
+                const isDST2 = etDate >= new Date(Date.UTC(yr2, 2, 8)) && etDate < new Date(Date.UTC(yr2, 10, 1));
+                etDate.setTime(etDate.getTime() + (isDST2 ? 4 : 5) * 3600000);
+                const minDate = new Date();
+                minDate.setDate(minDate.getDate() + 1);
+                const finalDate = etDate > minDate ? etDate.toISOString() : minDate.toISOString();
+                return base44.entities.ActivityLog.update(activity.id, { activity_date: finalDate });
+              }).then(() => queryClient.invalidateQueries({ queryKey: ['adminActivities'] })).catch(() => {});
+            }
+          }}>
+          <>
+            <Droppable droppableId="upcoming">
+              {(provided, snapshot) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="mb-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Zap className="w-5 h-5" style={{ color: '#B8956A' }} />
+                    <h2 className="text-xl font-semibold" style={{ color: '#1A1A1A' }}>Upcoming Tasks</h2>
+                    <Badge variant="secondary">{upcomingActivities.length}</Badge>
+                    <span className="text-xs ml-1" style={{ color: 'rgba(26,26,26,0.4)' }}>drag to move</span>
+                  </div>
+                  {upcomingActivities.length === 0 && (
+                    <div className="rounded-xl border-2 border-dashed flex items-center justify-center h-16 text-sm transition-all"
+                      style={{ borderColor: snapshot.isDraggingOver ? '#B8956A' : 'rgba(184,149,106,0.3)', color: 'rgba(26,26,26,0.4)', backgroundColor: snapshot.isDraggingOver ? 'rgba(184,149,106,0.06)' : 'transparent' }}>
+                      Drop here to reschedule as upcoming
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {upcomingActivities.map((activity, index) => (
+                      <Draggable key={activity.id} draggableId={activity.id} index={index}>
+                        {(dragProvided, dragSnapshot) => (
+                          <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps}
+                            style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}>
+                            <Card
+                              style={{ borderColor: '#B8956A', backgroundColor: dragSnapshot.isDragging ? 'rgba(184,149,106,0.2)' : 'rgba(184, 149, 106, 0.1)' }}
+                              className="cursor-pointer hover:shadow-md transition"
+                              onClick={() => handleActivityClick(activity)}
+                            >
+                              <CardContent className="pt-6">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex items-start gap-3 flex-1">
+                                    <div className="mt-1 p-2 rounded-lg" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)' }}>
+                                      {activityIcons[activity.activity_type]}
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" style={{ backgroundColor: 'rgba(184, 149, 106, 0.2)', color: '#B8956A' }}>{activityLabels[activity.activity_type]}</Badge>
+                                        <Clock className="w-4 h-4" style={{ color: '#B8956A' }} />
+                                        <span className="text-sm font-medium" style={{ color: '#B8956A' }}>
+                                          {format(new Date(activity.activity_date), "MMM d 'at' h:mm a")}
+                                        </span>
+                                      </div>
+                                      <p className="font-medium mt-2" style={{ color: '#1A1A1A' }}>{activity.contact_name || activity.company_name}</p>
+                                      {activity.contact_email && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.contact_email}</p>}
+                                      {activity.company_name && <p className="text-sm" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>{activity.company_name}</p>}
+                                      {activity.contact_phone && (
+                                        <button onClick={(e) => { e.stopPropagation(); localStorage.setItem('_dialerPhone', activity.contact_phone); setActiveTab("call"); }} className="flex items-center gap-1 text-xs font-medium mt-0.5 hover:opacity-70 transition-opacity" style={{ color: '#B8956A' }}>
+                                          <Phone className="w-3 h-3" />{activity.contact_phone}
+                                        </button>
+                                      )}
+                                      {(() => {
+                                        const raw = activity.notes || '';
+                                        const hasCallMap = raw.includes('--- CALL MAP ---') || raw.includes('CALL MAP');
+                                        const shortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+                                        return (
+                                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                            {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 120)}{shortNote.length > 120 ? '...' : ''}</p>}
+                                            {hasCallMap && (
+                                              <button onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
+                                                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
+                                                style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}>
+                                                📋 View Call Map
+                                              </button>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                  </div>
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+
+            <Droppable droppableId="history">
+              {(provided, snapshot) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="mb-8">
+                  <h2 className="text-xl font-semibold mb-1" style={{ color: '#1A1A1A' }}>Activity History</h2>
+                  <p className="text-xs mb-4" style={{ color: 'rgba(26,26,26,0.4)' }}>drag to move</p>
+                  {snapshot.isDraggingOver && (
+                    <div className="rounded-xl border-2 border-dashed flex items-center justify-center h-12 text-sm mb-3 transition-all"
+                      style={{ borderColor: '#B8956A', color: 'rgba(26,26,26,0.4)', backgroundColor: 'rgba(184,149,106,0.06)' }}>
+                      Drop here to move to history
+                    </div>
+                  )}
+                  <div className="space-y-3">
                 {pastActivities.length === 0 && upcomingActivities.length === 0 ? (
                   <Card>
                     <CardContent className="pt-6 text-center" style={{ color: 'rgba(26, 26, 26, 0.6)' }}>
@@ -925,10 +998,14 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                   </Card>
                 ) : (
                   <>
-                    {currentPageActivities.map((activity) => (
+                    {currentPageActivities.map((activity, index) => (
+                      <Draggable key={activity.id} draggableId={activity.id} index={upcomingActivities.length + index}>
+                        {(dragProvided, dragSnapshot) => (
+                          <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps}
+                            style={{ ...dragProvided.draggableProps.style, opacity: dragSnapshot.isDragging ? 0.85 : 1 }}>
                       <Card
-                        key={activity.id}
                         className="cursor-pointer hover:shadow-md transition"
+                        style={{ backgroundColor: dragSnapshot.isDragging ? 'rgba(184,149,106,0.08)' : undefined }}
                         onClick={() => handleActivityClick(activity)}
                       >
                         <CardContent className="pt-6">
@@ -955,11 +1032,9 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                                     <div className="mt-2 flex items-start gap-2 flex-wrap">
                                       {shortNote && <p className="text-sm flex-1" style={{ color: '#1A1A1A' }}>{shortNote.slice(0, 100)}{shortNote.length > 100 ? '...' : ''}</p>}
                                       {hasCallMap && (
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
+                                        <button onClick={(e) => { e.stopPropagation(); setCallMapActivity(activity); }}
                                           className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 transition-opacity hover:opacity-80"
-                                          style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}
-                                        >
+                                          style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }}>
                                           📋 View Call Map
                                         </button>
                                       )}
@@ -977,6 +1052,9 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
                           </div>
                         </CardContent>
                       </Card>
+                          </div>
+                        )}
+                      </Draggable>
                     ))}
                     <div className="flex justify-center gap-2 pt-4 flex-wrap">
                       {visibleOnCurrentPage < itemsPerPage && endIdx < pastActivities.length && (
