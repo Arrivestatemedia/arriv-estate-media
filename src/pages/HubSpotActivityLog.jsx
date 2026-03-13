@@ -786,7 +786,7 @@ export default function HubSpotActivityLog() {
           {[
             { id: "activity", label: "Activity Log" },
             { id: "email", label: "Email Hub" },
-            { id: "contacts", label: "Contacts" },
+            { id: "contacts", label: "Search/Add Contacts" },
             { id: "mycontacts", label: "My Contacts" },
             { id: "queue", label: "Call Queue" },
             { id: "calendar", label: "Calendar" },

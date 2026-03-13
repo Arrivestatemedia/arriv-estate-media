@@ -764,7 +764,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
               borderBottomColor: activeTab === "contacts" ? '#B8956A' : 'transparent'
             }}
           >
-            Contacts
+            Search/Add Contacts
           </button>
           <button
             onClick={() => setActiveTab("mycontacts")}
