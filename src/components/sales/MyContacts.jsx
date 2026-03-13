@@ -187,7 +187,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
       </div>
 
       <div className="space-y-3">
-        {contacts.slice(contactsPage * 10, contactsPage * 10 + visibleContactsOnPage).map((contact) => {
+        {contacts.slice(contactsPage * 5, contactsPage * 5 + visibleContactsOnPage).map((contact) => {
           const isExpanded = expandedContact === contact.key;
           const lastActivity = contact.past[0];
           const nextActivity = contact.upcoming[0];
