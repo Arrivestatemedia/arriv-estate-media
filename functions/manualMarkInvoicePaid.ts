@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { invoiceId, skipNotifications } = await req.json();
+    const { invoiceId } = await req.json();
     if (!invoiceId) {
       return Response.json({ error: 'invoiceId required' }, { status: 400 });
     }
@@ -31,24 +31,16 @@ Deno.serve(async (req) => {
       paid_at: new Date().toISOString(),
     });
 
-    // Also unlock the booking if linked
-    if (invoice.booking_id) {
-      await base44.asServiceRole.entities.Booking.update(invoice.booking_id, {
-        payment_locked: false,
-        status: 'approved',
-      }).catch(() => {});
-    }
+    console.log('[manualMarkInvoicePaid] Marked invoice as paid:', invoiceId);
 
-    console.log('[manualMarkInvoicePaid] Marked invoice as paid:', invoiceId, 'skipNotifications:', skipNotifications);
+    // Run the full post-payment flow (receipt, drive move, email, SMS, etc.)
+    const result = await base44.asServiceRole.functions.invoke('processPaymentConfirmation', {
+      invoiceId,
+    });
 
-    if (!skipNotifications) {
-      // Run the full post-payment flow (receipt, drive move, email, SMS, etc.)
-      const result = await base44.asServiceRole.functions.invoke('processPaymentConfirmation', { invoiceId });
-      console.log('[manualMarkInvoicePaid] processPaymentConfirmation result:', result);
-      return Response.json({ success: true, message: 'Invoice marked as paid and receipt sent' });
-    }
+    console.log('[manualMarkInvoicePaid] processPaymentConfirmation result:', result);
 
-    return Response.json({ success: true, message: 'Invoice marked as paid (no notifications sent)' });
+    return Response.json({ success: true, message: 'Invoice marked as paid and receipt sent' });
   } catch (error) {
     console.error('[manualMarkInvoicePaid] Error:', error);
     return Response.json({ error: error.message }, { status: 500 });

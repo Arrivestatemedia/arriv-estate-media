@@ -251,16 +251,16 @@ export default function AdminBookings() {
     setShowEditDialog(true);
   };
 
-  const handleManualMarkPaid = async (booking, skipNotifications = false) => {
+  const handleManualMarkPaid = async (booking) => {
     if (!booking.invoice_id) {
       alert('No invoice linked to this booking. Cannot mark as paid.');
       return;
     }
     setMarkingPaidId(booking.id);
     try {
-      const res = await base44.functions.invoke('manualMarkInvoicePaid', { invoiceId: booking.invoice_id, skipNotifications });
+      const res = await base44.functions.invoke('manualMarkInvoicePaid', { invoiceId: booking.invoice_id });
       if (res.data?.success) {
-        alert(skipNotifications ? 'Invoice marked as paid. No messages sent.' : 'Invoice marked as paid! Receipt has been sent to the client.');
+        alert('Invoice marked as paid! Receipt has been sent to the client.');
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       } else {
         alert('Failed: ' + (res.data?.error || 'Unknown error'));
@@ -439,24 +439,14 @@ export default function AdminBookings() {
                            'Accept for Myself'}
                         </Button>
                         {booking.payment_locked && booking.invoice_id && (
-                          <>
-                            <Button
-                              onClick={() => handleManualMarkPaid(booking, false)}
-                              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-                              disabled={markingPaidId === booking.id}
-                            >
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              {markingPaidId === booking.id ? 'Processing...' : 'Mark Paid + Notify'}
-                            </Button>
-                            <Button
-                              onClick={() => handleManualMarkPaid(booking, true)}
-                              className="flex-1 bg-slate-600 hover:bg-slate-700 text-white"
-                              disabled={markingPaidId === booking.id}
-                            >
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              {markingPaidId === booking.id ? 'Processing...' : 'Mark Paid (Silent)'}
-                            </Button>
-                          </>
+                          <Button
+                            onClick={() => handleManualMarkPaid(booking)}
+                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+                            disabled={markingPaidId === booking.id}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            {markingPaidId === booking.id ? 'Processing...' : 'Mark Paid'}
+                          </Button>
                         )}
                         <Button
                           onClick={() => deleteMutation.mutate(booking.id)}
