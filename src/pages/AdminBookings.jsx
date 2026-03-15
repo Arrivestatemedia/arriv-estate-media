@@ -470,6 +470,14 @@ export default function AdminBookings() {
                       </>
                     )}
                     {booking.status === 'approved' && (
+                                          <>
+                                          <Button
+                                            onClick={() => handleMarkCompleted(booking)}
+                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                            disabled={loadingBookingId !== null}
+                                          >
+                                            {loadingBookingId === booking.id ? 'Updating...' : '✓ Mark Completed'}
+                                          </Button>
                                           <Button
                                             onClick={() => {
                                               setLoadingBookingId(booking.id);
