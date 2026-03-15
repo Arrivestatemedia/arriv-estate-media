@@ -251,16 +251,16 @@ export default function AdminBookings() {
     setShowEditDialog(true);
   };
 
-  const handleManualMarkPaid = async (booking) => {
+  const handleManualMarkPaid = async (booking, skipNotifications = false) => {
     if (!booking.invoice_id) {
       alert('No invoice linked to this booking. Cannot mark as paid.');
       return;
     }
     setMarkingPaidId(booking.id);
     try {
-      const res = await base44.functions.invoke('manualMarkInvoicePaid', { invoiceId: booking.invoice_id });
+      const res = await base44.functions.invoke('manualMarkInvoicePaid', { invoiceId: booking.invoice_id, skipNotifications });
       if (res.data?.success) {
-        alert('Invoice marked as paid! Receipt has been sent to the client.');
+        alert(skipNotifications ? 'Invoice marked as paid. No messages sent.' : 'Invoice marked as paid! Receipt has been sent to the client.');
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       } else {
         alert('Failed: ' + (res.data?.error || 'Unknown error'));
