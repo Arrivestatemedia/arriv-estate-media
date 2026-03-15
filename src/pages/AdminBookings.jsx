@@ -438,6 +438,16 @@ export default function AdminBookings() {
                            booking.payment_locked ? (booking.request_pay_at_closing ? '🔒 Awaiting Deposit' : '🔒 Awaiting Payment') :
                            'Accept for Myself'}
                         </Button>
+                        {booking.payment_locked && booking.invoice_id && (
+                          <Button
+                            onClick={() => handleManualMarkPaid(booking)}
+                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+                            disabled={markingPaidId === booking.id}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            {markingPaidId === booking.id ? 'Processing...' : 'Mark Paid'}
+                          </Button>
+                        )}
                         <Button
                           onClick={() => deleteMutation.mutate(booking.id)}
                           variant="outline"
