@@ -251,6 +251,17 @@ export default function AdminBookings() {
     setShowEditDialog(true);
   };
 
+  const handleMarkCompleted = async (booking) => {
+    if (!confirm('Mark this booking as completed silently? No notifications will be sent to the client.')) return;
+    setLoadingBookingId(booking.id);
+    try {
+      await base44.entities.Booking.update(booking.id, { status: 'completed' });
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+    } finally {
+      setLoadingBookingId(null);
+    }
+  };
+
   const handleManualMarkPaid = async (booking) => {
     if (!booking.invoice_id) {
       alert('No invoice linked to this booking. Cannot mark as paid.');
