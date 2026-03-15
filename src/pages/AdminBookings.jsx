@@ -272,6 +272,17 @@ export default function AdminBookings() {
     }
   };
 
+  const handleMarkCompleted = async (booking) => {
+    setLoadingBookingId(booking.id);
+    try {
+      await base44.entities.Booking.update(booking.id, { status: 'completed' });
+      queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+      setSelectedBooking(null);
+    } finally {
+      setLoadingBookingId(null);
+    }
+  };
+
   const handleSaveBooking = async (formData) => {
     try {
       await base44.functions.invoke('updateBooking', {
