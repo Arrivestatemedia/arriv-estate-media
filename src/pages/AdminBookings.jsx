@@ -470,47 +470,45 @@ export default function AdminBookings() {
                       </>
                     )}
                     {booking.status === 'approved' && (
-                                          <>
-                                          <Button
-                                            onClick={() => handleMarkCompleted(booking)}
-                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                                            disabled={loadingBookingId !== null}
-                                          >
-                                            {loadingBookingId === booking.id ? 'Updating...' : '✓ Mark Completed'}
-                                          </Button>
-                                          <Button
-                                            onClick={() => {
-                                              setLoadingBookingId(booking.id);
-                                              base44.functions.invoke('revertBookingStatus', { bookingId: booking.id }).then(() => {
-                                                queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-                                                queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
-                                                queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
-                                                setLoadingBookingId(null);
-                                              }).catch(() => {
-                                                queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-                                                queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
-                                                queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
-                                                setLoadingBookingId(null);
-                                              });
-                                            }}
-                                            variant="outline"
-                                            className="flex-1 border-yellow-300 text-yellow-600 hover:bg-yellow-50"
-                                            disabled={loadingBookingId !== null}
-                                          >
-                                            {loadingBookingId === booking.id ? 'Reverting...' : 'Revert to Pending'}
-                                          </Button>
-                                        )}
-                                        {(booking.status === 'approved' || booking.status === 'denied') && (
-                                         <Button
-                                           onClick={() => deleteMutation.mutate(booking.id)}
-                                           variant="outline"
-                                           className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-                                           disabled={loadingBookingId !== null}
-                                         >
-                                           {loadingBookingId === booking.id ? 'Deleting...' : 'Delete'}
-                                         </Button>
-                                        )}
-                                        </>)
+                      <>
+                        <Button
+                          onClick={() => handleMarkCompleted(booking)}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                          disabled={loadingBookingId !== null}
+                        >
+                          {loadingBookingId === booking.id ? 'Updating...' : '✓ Mark Completed'}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setLoadingBookingId(booking.id);
+                            base44.functions.invoke('revertBookingStatus', { bookingId: booking.id }).then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+                              queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+                              queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
+                              setLoadingBookingId(null);
+                            }).catch(() => {
+                              queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+                              queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+                              queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'media-partner-jobs' });
+                              setLoadingBookingId(null);
+                            });
+                          }}
+                          variant="outline"
+                          className="flex-1 border-yellow-300 text-yellow-600 hover:bg-yellow-50"
+                          disabled={loadingBookingId !== null}
+                        >
+                          {loadingBookingId === booking.id ? 'Reverting...' : 'Revert to Pending'}
+                        </Button>
+                        <Button
+                          onClick={() => deleteMutation.mutate(booking.id)}
+                          variant="outline"
+                          className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                          disabled={loadingBookingId !== null}
+                        >
+                          {loadingBookingId === booking.id ? 'Deleting...' : 'Delete'}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
