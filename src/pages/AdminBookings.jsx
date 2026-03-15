@@ -460,6 +460,14 @@ export default function AdminBookings() {
                           </Button>
                         )}
                         <Button
+                          onClick={() => handleMarkCompleted(booking)}
+                          variant="outline"
+                          className="flex-1 border-blue-300 text-blue-600 hover:bg-blue-50"
+                          disabled={loadingBookingId !== null}
+                        >
+                          {loadingBookingId === booking.id ? 'Processing...' : '✓ Complete (Silent)'}
+                        </Button>
+                        <Button
                           onClick={() => deleteMutation.mutate(booking.id)}
                           variant="outline"
                           className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
