@@ -60,18 +60,29 @@ Deno.serve(async (req) => {
         }
 
         // Find invoice by stripe_checkout_session_id (most reliable)
-        console.log('Searching for invoice with checkout session:', session.id);
+        console.log('Searching for invoice with checkout session:', session.id, 'payment_link:', session.payment_link, 'customer_email:', session.customer_details?.email);
         const invoices = await base44.asServiceRole.entities.Invoice.filter({ 
           payment_status: 'unpaid'
         });
 
-        console.log('Found unpaid invoices:', invoices.length);
+        console.log('Found unpaid invoices:', invoices.length, invoices.map(i => ({ id: i.id, email: i.client_email, plinkId: i.stripe_payment_link_id })));
 
+        // Match 1: by checkout session ID (most precise)
         let invoice = invoices.find(inv => inv.stripe_checkout_session_id === session.id);
 
-        if (!invoice) {
+        // Match 2: by payment link ID
+        if (!invoice && session.payment_link) {
           console.log('No match on session ID, trying payment link ID:', session.payment_link);
           invoice = invoices.find(inv => inv.stripe_payment_link_id === session.payment_link);
+        }
+
+        // Match 3: by customer email (fallback — works when payment_link is null)
+        if (!invoice) {
+          const customerEmail = session.customer_details?.email || session.customer_email;
+          console.log('No match on payment link, trying customer email:', customerEmail);
+          if (customerEmail) {
+            invoice = invoices.find(inv => inv.client_email?.toLowerCase() === customerEmail.toLowerCase());
+          }
         }
 
         console.log('Matched invoice:', invoice?.id || 'NO MATCH', invoice?.client_email);
