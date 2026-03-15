@@ -233,6 +233,11 @@ Deno.serve(async (req) => {
       email_sent_at: new Date().toISOString()
     });
 
+    // Link invoice back to booking so admin can manually mark paid if webhook fails
+    await base44.asServiceRole.entities.Booking.update(bookingId, {
+      invoice_id: invoice.id
+    });
+
     return Response.json({ 
       success: true, 
       invoiceId: invoice.id,
