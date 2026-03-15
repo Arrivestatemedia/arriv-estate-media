@@ -251,6 +251,27 @@ export default function AdminBookings() {
     setShowEditDialog(true);
   };
 
+  const handleManualMarkPaid = async (booking) => {
+    if (!booking.invoice_id) {
+      alert('No invoice linked to this booking. Cannot mark as paid.');
+      return;
+    }
+    setMarkingPaidId(booking.id);
+    try {
+      const res = await base44.functions.invoke('manualMarkInvoicePaid', { invoiceId: booking.invoice_id });
+      if (res.data?.success) {
+        alert('Invoice marked as paid! Receipt has been sent to the client.');
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+      } else {
+        alert('Failed: ' + (res.data?.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+    } finally {
+      setMarkingPaidId(null);
+    }
+  };
+
   const handleSaveBooking = async (formData) => {
     try {
       await base44.functions.invoke('updateBooking', {
