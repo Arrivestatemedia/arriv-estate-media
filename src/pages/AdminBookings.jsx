@@ -439,14 +439,24 @@ export default function AdminBookings() {
                            'Accept for Myself'}
                         </Button>
                         {booking.payment_locked && booking.invoice_id && (
-                          <Button
-                            onClick={() => handleManualMarkPaid(booking)}
-                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
-                            disabled={markingPaidId === booking.id}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            {markingPaidId === booking.id ? 'Processing...' : 'Mark Paid'}
-                          </Button>
+                          <>
+                            <Button
+                              onClick={() => handleManualMarkPaid(booking, false)}
+                              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+                              disabled={markingPaidId === booking.id}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              {markingPaidId === booking.id ? 'Processing...' : 'Mark Paid + Notify'}
+                            </Button>
+                            <Button
+                              onClick={() => handleManualMarkPaid(booking, true)}
+                              className="flex-1 bg-slate-600 hover:bg-slate-700 text-white"
+                              disabled={markingPaidId === booking.id}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              {markingPaidId === booking.id ? 'Processing...' : 'Mark Paid (Silent)'}
+                            </Button>
+                          </>
                         )}
                         <Button
                           onClick={() => deleteMutation.mutate(booking.id)}
