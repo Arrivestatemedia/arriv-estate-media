@@ -634,6 +634,13 @@ export default function AdminBookings() {
                 {selectedBooking.status === 'approved' && (
                   <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
                     <Button
+                      onClick={() => handleMarkCompleted(selectedBooking)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                      disabled={loadingBookingId === selectedBooking.id}
+                    >
+                      {loadingBookingId === selectedBooking.id ? 'Updating...' : '✓ Mark Completed'}
+                    </Button>
+                    <Button
                       onClick={() => {
                         setLoadingBookingId(selectedBooking.id);
                         base44.functions.invoke('revertBookingStatus', { bookingId: selectedBooking.id }).then(() => {
