@@ -23,6 +23,7 @@ export default function AdminBookings() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingBooking, setEditingBooking] = useState(null);
     const [showEditDialog, setShowEditDialog] = useState(false);
+    const [markingPaidId, setMarkingPaidId] = useState(null);
     const queryClient = useQueryClient();
 
   useEffect(() => {
