@@ -7,10 +7,9 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // Get all activity logs
   const allLogs = await base44.asServiceRole.entities.ActivityLog.list('-activity_date', 2000);
 
-  // Find all contacts that already have an [AI Scheduled] task
+  // Find contacts that already have an [AI Scheduled] task
   const scheduledEmails = new Set(
     allLogs
       .filter(a => a.notes && a.notes.startsWith('[AI Scheduled]'))
@@ -18,46 +17,128 @@ Deno.serve(async (req) => {
       .filter(Boolean)
   );
 
-  // Find all contacts that have NO [AI Scheduled] task
-  // Group by email, pick their most recent non-AI-scheduled activity
+  // For each contact NOT yet scheduled, find their most recent real activity
   const contactMap = {};
   for (const log of allLogs) {
     const email = log.contact_email;
     if (!email || scheduledEmails.has(email)) continue;
-    if (log.notes && (log.notes.startsWith('[AI Scheduled]') || log.notes.startsWith('[Queue Call]'))) continue;
+    const n = log.notes || '';
+    if (n.startsWith('[AI Scheduled]') || n.startsWith('[Queue Call]')) continue;
+    if (!['call', 'email', 'meeting'].includes(log.activity_type)) continue;
     if (!contactMap[email] || new Date(log.activity_date) > new Date(contactMap[email].activity_date)) {
       contactMap[email] = log;
     }
   }
 
   const toBackfill = Object.values(contactMap);
-  console.log(`[Backfill] Found ${toBackfill.length} contacts without scheduled follow-ups`);
+  console.log(`[Backfill] ${toBackfill.length} contacts need follow-up scheduling`);
 
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   let scheduled = 0;
   let errors = 0;
+  const results = [];
 
   for (const activity of toBackfill) {
     try {
-      await base44.asServiceRole.functions.invoke('scheduleFollowUpFromActivity', {
-        event: { type: 'create', entity_name: 'ActivityLog', entity_id: activity.id },
-        data: {
-          activity_type: activity.activity_type,
-          contact_name: activity.contact_name,
-          contact_email: activity.contact_email,
-          company_name: activity.company_name,
-          activity_date: activity.activity_date,
-          notes: activity.notes,
-          sales_member_id: activity.sales_member_id,
-          sales_member_email: activity.sales_member_email,
+      const contactName = activity.contact_name;
+      const contactEmail = activity.contact_email;
+      const sid = activity.sales_member_id;
+      const sem = activity.sales_member_email;
+      const notes = activity.notes || '';
+
+      // Get history for this contact
+      const contactLogs = allLogs.filter(a => {
+        return (contactEmail && a.contact_email === contactEmail) ||
+               (contactName && a.contact_name === contactName);
+      });
+
+      const historySnippet = contactLogs
+        .filter(a => {
+          const n = a.notes || '';
+          return !n.includes('[AI Scheduled]') && !n.includes('--- CALL MAP ---');
+        })
+        .slice(0, 10)
+        .map(a => `${new Date(a.activity_date).toLocaleDateString()}: [${a.activity_type}] ${(a.notes || '').slice(0, 120)}`)
+        .join('\n');
+
+      const llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: `You are a sales scheduling AI for ARRIV (real estate photography and video company). Schedule the next follow-up AND write a call map.
+
+TODAY: ${today}
+CONTACT: ${contactName || contactEmail} at ${activity.company_name || 'their company'}
+LAST ACTIVITY: [${activity.activity_type}] on ${new Date(activity.activity_date).toLocaleDateString()} — ${notes}
+PRIOR HISTORY:
+${historySnippet || 'No prior history'}
+
+SCHEDULING RULES:
+- NEVER schedule same-day or next-day
+- Default minimum: 7 days from today
+- If warm/interested: 7-10 days
+- If no answer / left voicemail: 7 days
+- If "not ready yet" / waiting on something: 45-60 days
+- If already has someone / not interested: 120-180 days
+- If "never" / "remove me": urgency = "skip"
+
+CALL MAP RULES:
+- Write a tailored call map the rep will use for this follow-up call
+- Reference specific details from the contact's history
+- Include: 📞 Opening, 🔀 If Interested, 📸 If They Already Have Someone, ⏳ If Not Ready Yet, 📅 If Busy/Bad Time, 💰 If Too Expensive, 📬 Voicemail Script, 📱 Follow-Up Text
+- Keep each section 2-3 sentences, conversational and specific to this contact
+
+Return ONLY valid JSON:
+{
+  "days_until_followup": <number>,
+  "reason": "<brief reason>",
+  "urgency": "high" | "medium" | "low" | "skip",
+  "call_map": "<full call map>"
+}`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            days_until_followup: { type: 'number' },
+            reason: { type: 'string' },
+            urgency: { type: 'string' },
+            call_map: { type: 'string' }
+          },
+          required: ['days_until_followup', 'reason', 'urgency', 'call_map']
         }
       });
+
+      const scheduleData = typeof llmResult === 'string' ? JSON.parse(llmResult) : llmResult;
+
+      if (scheduleData.urgency === 'skip') {
+        results.push({ email: contactEmail, status: 'skipped' });
+        continue;
+      }
+
+      const daysOut = Math.max(7, Math.round(scheduleData.days_until_followup || 7));
+      const followUpDate = new Date();
+      followUpDate.setUTCDate(followUpDate.getUTCDate() + daysOut);
+      const yr = followUpDate.getUTCFullYear();
+      const isDST = followUpDate >= new Date(Date.UTC(yr, 2, 8)) && followUpDate < new Date(Date.UTC(yr, 10, 1));
+      const etOffsetHours = isDST ? 4 : 5;
+      followUpDate.setUTCHours(9 + etOffsetHours, 30, 0, 0);
+
+      await base44.asServiceRole.entities.ActivityLog.create({
+        activity_type: 'call',
+        contact_name: contactName || '',
+        contact_email: contactEmail || '',
+        company_name: activity.company_name || '',
+        activity_date: followUpDate.toISOString(),
+        notes: `[AI Scheduled] ${scheduleData.reason || 'Follow-up'}\n\n--- CALL MAP ---\n${scheduleData.call_map}`,
+        sales_member_id: sid || '',
+        sales_member_email: sem || '',
+      });
+
       scheduled++;
-      console.log(`[Backfill] Scheduled follow-up for ${activity.contact_email}`);
+      results.push({ email: contactEmail, status: 'scheduled', daysOut, followUpDate: followUpDate.toISOString() });
+      console.log(`[Backfill] Scheduled follow-up for ${contactEmail} in ${daysOut} days`);
     } catch (e) {
       errors++;
+      results.push({ email: activity.contact_email, status: 'error', error: e.message });
       console.error(`[Backfill] Failed for ${activity.contact_email}: ${e.message}`);
     }
   }
 
-  return Response.json({ success: true, scheduled, errors, total: toBackfill.length });
+  return Response.json({ success: true, scheduled, errors, total: toBackfill.length, results });
 });
