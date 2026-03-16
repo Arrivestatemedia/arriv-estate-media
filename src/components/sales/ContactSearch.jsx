@@ -359,6 +359,7 @@ export default function ContactSearch({ salesMemberId, salesMemberEmail: salesMe
         contactId: null,
         properties: propertiesToSend,
         salesMemberId,
+        salesMemberEmail: salesMemberEmailProp || localStorage.getItem('sales_member_email') || '',
         createIfNotFound: true,
       });
 
