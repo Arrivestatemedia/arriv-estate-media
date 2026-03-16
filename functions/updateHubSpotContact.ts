@@ -60,15 +60,13 @@ Deno.serve(async (req) => {
       result = await updateRes.json();
     }
 
-    // Look up sales member email for attribution
-    let salesMemberEmail = '';
-    if (salesMemberId) {
+    // Use salesMemberEmail if passed directly; fallback to DB lookup
+    let salesMemberEmail = body.salesMemberEmail || '';
+    if (!salesMemberEmail && salesMemberId) {
       try {
         const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
         if (members[0]) salesMemberEmail = members[0].email;
-      } catch (_) {
-        // fallback: salesMemberEmail stays empty
-      }
+      } catch (_) {}
     }
 
     // Always log as activity so the auto-scheduling automation fires
