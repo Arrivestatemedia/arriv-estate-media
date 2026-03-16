@@ -331,7 +331,7 @@ export default function ContactSearch({ salesMemberId, salesMemberEmail: salesMe
       Object.keys(editFields).forEach(key => {
         if (editFields[key] || editFields[key] === '') propertiesToSend[key] = editFields[key];
       });
-      await base44.functions.invoke("updateHubSpotContact", { contactId, properties: propertiesToSend, salesMemberId });
+      await base44.functions.invoke("updateHubSpotContact", { contactId, properties: propertiesToSend, salesMemberId, salesMemberEmail: salesMemberEmailProp || localStorage.getItem('sales_member_email') || '' });
       setSavedId(contactId);
       setTimeout(() => setSavedId(null), 3000);
       setResults(results.map(c =>
