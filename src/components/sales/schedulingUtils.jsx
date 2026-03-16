@@ -183,7 +183,7 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
   if (!useAITimeDirectly) {
     // Check if this is a brand-new contact (only has a "Contact created:" or "FIRST CONTACT:" note)
     const allNotes = (contact.activities || []).map(a => (a.notes || "").trim());
-    const isNewContactOnly = allNotes.length > 0 && allNotes.every(n => /^(Contact created:|FIRST CONTACT:)/i.test(n));
+    const isNewContactOnly = allNotes.length > 0 && allNotes.every(n => /^(Contact created:|Contact updated:|FIRST CONTACT:)/i.test(n));
 
     // For new contacts, ALWAYS force same/next business day — no exceptions
     if (isNewContactOnly) {
