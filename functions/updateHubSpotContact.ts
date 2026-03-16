@@ -71,24 +71,23 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Log as activity if salesMemberId provided
-    if (salesMemberId) {
-      const action = (!contactId || createIfNotFound) ? 'created' : 'updated';
-      await base44.asServiceRole.entities.ActivityLog.create({
-        activity_type: 'email',
-        contact_name: `${properties.firstname || ''} ${properties.lastname || ''}`.trim(),
-        contact_email: properties.email || '',
-        company_name: properties.company || '',
-        activity_date: new Date().toISOString(),
-        notes: `Contact ${action}: ${[properties.firstname, properties.lastname, properties.email, properties.phone, properties.company, properties.jobtitle, properties.hs_lead_status].filter(Boolean).join(', ')}`,
+    // Always log as activity so the auto-scheduling automation fires
+    const action = (!contactId || createIfNotFound) ? 'created' : 'updated';
+    const contactName = `${properties.firstname || ''} ${properties.lastname || ''}`.trim();
+    const notesLine = `Contact ${action}: ${[properties.firstname, properties.lastname, properties.email, properties.phone, properties.company, properties.jobtitle, properties.hs_lead_status].filter(Boolean).join(', ')}`;
 
-        hubspot_synced: true,
-        hubspot_engagement_id: result.id,
-
-        sales_member_id: salesMemberId,
-        sales_member_email: salesMemberEmail
-      });
-    }
+    await base44.asServiceRole.entities.ActivityLog.create({
+      activity_type: 'email',
+      contact_name: contactName,
+      contact_email: properties.email || '',
+      company_name: properties.company || '',
+      activity_date: new Date().toISOString(),
+      notes: notesLine,
+      hubspot_synced: true,
+      hubspot_engagement_id: result.id,
+      sales_member_id: salesMemberId || '',
+      sales_member_email: salesMemberEmail || ''
+    });
 
     return Response.json({ success: true, contact: result });
   } catch (error) {
