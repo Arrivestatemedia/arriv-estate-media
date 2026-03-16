@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
         contact_email: properties.email || '',
         company_name: properties.company || '',
         activity_date: new Date().toISOString(),
-        notes: `Contact ${action}: ${Object.keys(properties).filter(k => properties[k]).join(', ')}`,
+        notes: `Contact ${action}: ${[properties.firstname, properties.lastname, properties.email, properties.phone, properties.company, properties.jobtitle, properties.hs_lead_status].filter(Boolean).join(', ')}`,
 
         hubspot_synced: true,
         hubspot_engagement_id: result.id,
