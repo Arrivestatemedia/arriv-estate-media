@@ -696,11 +696,73 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         setScheduling(true);
         const newMeta = { ...metaMap };
 
-        await Promise.all(
+        // Step 1: Run all AI analyses in parallel (fast)
+        const analysisResults = await Promise.all(
           needsScheduling.map(async (contact) => {
             try {
               const analysis = await analyzeContact(contact, learnedContext);
-              // Save as permanent ActivityLog record
+              return { contact, analysis };
+            } catch (e) {
+              console.error(`Failed to analyze ${contact.name}`, e);
+              return null;
+            }
+          })
+        );
+
+        // Step 2: Spread out contacts that land on the same time slot.
+        // Group by day, then assign staggered times (30-min increments) per day.
+        const validResults = analysisResults.filter(Boolean);
+        
+        // Track occupied slots: Map of "YYYY-MM-DD HH:mm" -> true
+        // Seed with already-scheduled contacts
+        const occupiedSlots = {};
+        Object.values(newScheduledMap).forEach(record => {
+          const d = new Date(record.activity_date);
+          const key = `${format(d, 'yyyy-MM-dd')} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+          occupiedSlots[key] = true;
+        });
+
+        // Sort by suggested date so earlier ones get priority
+        validResults.sort((a, b) => {
+          const da = a.analysis?.follow_up_date_time ? new Date(a.analysis.follow_up_date_time) : new Date();
+          const db = b.analysis?.follow_up_date_time ? new Date(b.analysis.follow_up_date_time) : new Date();
+          return da - db;
+        });
+
+        // Assign non-conflicting slots
+        validResults.forEach(({ contact, analysis }) => {
+          if (!analysis?.follow_up_date_time) return;
+          let date = new Date(analysis.follow_up_date_time);
+          // Round to nearest 30-min slot
+          const mins = date.getMinutes();
+          date.setMinutes(mins < 30 ? 0 : 30, 0, 0);
+          
+          // Find next free 30-min slot within business hours (8am–7pm)
+          let attempts = 0;
+          while (attempts < 20) {
+            const slotKey = `${format(date, 'yyyy-MM-dd')} ${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
+            const hour = date.getHours();
+            if (!occupiedSlots[slotKey] && hour >= 8 && hour < 19) {
+              occupiedSlots[slotKey] = true;
+              analysis.follow_up_date_time = date.toISOString();
+              break;
+            }
+            // Move 30 mins forward
+            date = new Date(date.getTime() + 30 * 60 * 1000);
+            // Skip outside business hours — jump to 8am next business day
+            if (date.getHours() >= 19 || date.getHours() < 8) {
+              date.setDate(date.getDate() + 1);
+              while (date.getDay() === 0 || date.getDay() === 6) date.setDate(date.getDate() + 1);
+              date.setHours(8, 0, 0, 0);
+            }
+            attempts++;
+          }
+        });
+
+        // Step 3: Save all with the adjusted times
+        await Promise.all(
+          validResults.map(async ({ contact, analysis }) => {
+            try {
               const savedRecord = await saveScheduledFollowUp(contact, analysis, sid, sem, newScheduledMap);
               newScheduledMap[contact.key] = savedRecord;
               newMeta[contact.key] = {
@@ -713,7 +775,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                 patternTags: analysis.pattern_tags || []
               };
             } catch (e) {
-              console.error(`Failed to schedule ${contact.name}`, e);
+              console.error(`Failed to save schedule for ${contact.name}`, e);
             }
           })
         );
