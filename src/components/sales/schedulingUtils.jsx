@@ -35,8 +35,12 @@ export function buildLearnedContext(insights) {
 }
 
 export async function analyzeContact(contact, learnedContext) {
-  const historyText = (contact.activities || [])
-    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+  // Filter out HubSpot sync logs — they are not real interactions and confuse the AI
+  const realActivities = (contact.activities || [])
+    .filter(a => !/^Contact (created|updated):/i.test((a.notes || '').trim()))
+    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+
+  const historyText = realActivities
     .slice(0, 15)
     .map(a => {
       const pics = a.picture_urls?.length ? ` [has ${a.picture_urls.length} attached image(s)]` : "";
@@ -44,8 +48,7 @@ export async function analyzeContact(contact, learnedContext) {
     })
     .join("\n");
 
-  const allPictureUrls = (contact.activities || [])
-    .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+  const allPictureUrls = realActivities
     .slice(0, 15)
     .flatMap(a => a.picture_urls || [])
     .slice(0, 6);
