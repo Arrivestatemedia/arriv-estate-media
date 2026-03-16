@@ -88,10 +88,10 @@ For the TIME of day: use realtor behavior research — realtors are most reachab
 1. DID THEY GIVE A SPECIFIC CALLBACK TIME? ("call me back at 2pm today", "tomorrow morning", "next Monday", "in 2 weeks")
    → Schedule EXACTLY then. Urgency: high.
 
-2. DID THEY SAY THEY'LL CALL YOU? ("I'll get back to you", "I'll reach out when ready")
-   → Schedule 45 days out. Urgency: skip.
+2. ⚠️ DID THEY SAY THEY'LL REACH OUT TO YOU WHEN READY? ("I'll reach out when ready", "I'll contact you when I have listings", "I'll call you when I need it", "will reach out", "will contact you", "she'll reach out", "she will contact", "will get back to me", "she said she would reach out")
+   → THIS RULE OVERRIDES EVERYTHING ELSE, even if they sounded warm or have listings. Schedule 30–45 days out. Urgency: skip. DO NOT treat "has listings coming up" as a warm lead if they also said THEY will contact YOU.
 
-3. ARE THEY A WARM LEAD? (said "interested", "sounds good", "send me info", asked pricing questions)
+3. ARE THEY A WARM LEAD? (said "interested", "sounds good", "send me info", asked pricing questions — AND did NOT say they'll reach out to you)
    → Schedule 2–4 days out at best contact window. Urgency: high.
 
 4. DID THEY SAY "NOT INTERESTED"? (firm no, rejection)
