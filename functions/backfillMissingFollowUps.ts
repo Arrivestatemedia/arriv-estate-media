@@ -71,10 +71,10 @@ PRIOR HISTORY:
 ${historySnippet || 'No prior history'}
 
 SCHEDULING RULES:
-- NEVER schedule same-day or next-day
-- Default minimum: 7 days from today
-- If warm/interested: 7-10 days
-- If no answer / left voicemail: 7 days
+- If BRAND NEW contact with NO prior history: 0-1 days (same-day or next-day)
+- If no answer / left voicemail on first ever attempt: 1-2 days
+- If warm/interested (2nd+ contact): 7-10 days
+- If no answer / left voicemail (not first attempt): 7 days
 - If "not ready yet" / waiting on something: 45-60 days
 - If already has someone / not interested: 120-180 days
 - If "never" / "remove me": urgency = "skip"
@@ -111,7 +111,7 @@ Return ONLY valid JSON:
         continue;
       }
 
-      const daysOut = Math.max(7, Math.round(scheduleData.days_until_followup || 7));
+      const daysOut = Math.max(0, Math.round(scheduleData.days_until_followup ?? 1));
       const followUpDate = new Date();
       followUpDate.setUTCDate(followUpDate.getUTCDate() + daysOut);
       const yr = followUpDate.getUTCFullYear();

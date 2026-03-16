@@ -98,10 +98,10 @@ PRIOR HISTORY:
 ${historySnippet || 'No prior history'}
 
 SCHEDULING RULES:
-- NEVER schedule same-day or next-day unless notes explicitly say "call back today/tomorrow"
-- Default minimum: 7 days from today
-- If warm/interested: 7-10 days
-- If no answer / left voicemail: 7 days
+- If this is a BRAND NEW contact with NO prior history: schedule 0-1 days out (same-day or next-day) — strike while the iron is hot
+- If no answer / left voicemail on first ever attempt: 1-2 days
+- If warm/interested (2nd+ contact): 7-10 days
+- If no answer / left voicemail (not first attempt): 7 days
 - If they said "I'll reach out when ready" / "building home" / "not ready yet" / waiting on something: 45-60 days
 - If not interested OR already has someone / a photographer / a vendor: 120-180 days (4-6 months) — they may change their mind
 - If they said "never" / "remove me" / "do not call": urgency = "skip"
@@ -140,7 +140,7 @@ Return ONLY valid JSON:
       return Response.json({ success: true, reason: 'Urgency skip — no follow-up scheduled' });
     }
 
-    const daysOut = Math.max(7, Math.round(scheduleData.days_until_followup || 7));
+    const daysOut = Math.max(0, Math.round(scheduleData.days_until_followup ?? 1));
     const followUpDate = new Date();
     followUpDate.setUTCDate(followUpDate.getUTCDate() + daysOut);
     // Use ET timezone: EDT (UTC-4) Mar-Nov, EST (UTC-5) Nov-Mar
