@@ -641,8 +641,9 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         if (!name) return false;
         if (/^\+?\d[\d\s\-().]+$/.test(name)) return false;
         if (/^\d+$/.test(name)) return false;
-        // Include contacts with past real activities OR with AI-scheduled upcoming items (new contacts)
-        return c.past.length > 0 || c.upcoming.some(a => a._isAIScheduled);
+        // Include contacts with past real activities, HubSpot sync logs (new contacts), OR AI-scheduled upcoming items
+        const hasAnyActivity = c.activities.length > 0;
+        return hasAnyActivity;
       });
 
       setContacts(filtered);
