@@ -667,6 +667,36 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         }
       });
       if (deletePromises.length > 0) Promise.all(deletePromises);
+      // For "new" contacts (no past real interactions) whose scheduled task is > 1 day away,
+      // delete the wrong far-future task so they get re-scheduled to same/next business day.
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(23, 59, 59, 999);
+
+      const deleteWrongSchedules = [];
+      filtered.forEach(contact => {
+        const scheduled = newScheduledMap[contact.key];
+        if (!scheduled) return;
+        // Check if this contact is "new" (no past real interactions)
+        const pastReal = contact.activities.filter(a => {
+          const notes = (a.notes || '').trim();
+          const actDate = new Date(a.activity_date);
+          const isPast = actDate <= new Date();
+          const isSystemLog = /^Contact (created|updated):/i.test(notes);
+          const isAIScheduled = /^\[AI Scheduled\]/i.test(notes);
+          return isPast && !isSystemLog && !isAIScheduled;
+        });
+        const neverSpokenPhrases = /never spoken|never called|never talked|never contacted|haven't spoken|haven't called|has not been called|not yet called|first contact|no prior contact/i;
+        const allNeverSpoken = pastReal.length > 0 && pastReal.every(a => neverSpokenPhrases.test(a.notes || ''));
+        const isNew = pastReal.length === 0 || allNeverSpoken;
+
+        if (isNew && new Date(scheduled.activity_date) > tomorrow) {
+          deleteWrongSchedules.push(base44.entities.ActivityLog.delete(scheduled.id).catch(() => {}));
+          delete newScheduledMap[contact.key];
+        }
+      });
+      if (deleteWrongSchedules.length > 0) await Promise.all(deleteWrongSchedules);
+
       setScheduledMap(newScheduledMap);
 
       // Restore metaMap from existing scheduled activity notes so display works on reload
