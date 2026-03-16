@@ -1,5 +1,33 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
+// Call windows in ET: [startHour, startMin, endHour, endMin]
+const CALL_WINDOWS_ET = [
+  [7, 55, 8, 10],
+  [10, 15, 10, 38],
+  [14, 15, 18, 0],
+];
+
+function pickCallSlot(daysOut, contactIdentifier) {
+  let hash = 0;
+  for (let i = 0; i < contactIdentifier.length; i++) {
+    hash = (hash * 31 + contactIdentifier.charCodeAt(i)) >>> 0;
+  }
+  const windowIndex = hash % CALL_WINDOWS_ET.length;
+  const [startH, startM, endH, endM] = CALL_WINDOWS_ET[windowIndex];
+  const windowMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+  const offsetMinutes = hash % windowMinutes;
+  const slotH = startH + Math.floor((startM + offsetMinutes) / 60);
+  const slotM = (startM + offsetMinutes) % 60;
+
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysOut);
+  const yr = date.getUTCFullYear();
+  const isDST = date >= new Date(Date.UTC(yr, 2, 8)) && date < new Date(Date.UTC(yr, 10, 1));
+  const etOffset = isDST ? 4 : 5;
+  date.setUTCHours(slotH + etOffset, slotM, 0, 0);
+  return date;
+}
+
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const user = await base44.auth.me();
@@ -112,12 +140,7 @@ Return ONLY valid JSON:
       }
 
       const daysOut = Math.max(0, Math.round(scheduleData.days_until_followup ?? 1));
-      const followUpDate = new Date();
-      followUpDate.setUTCDate(followUpDate.getUTCDate() + daysOut);
-      const yr = followUpDate.getUTCFullYear();
-      const isDST = followUpDate >= new Date(Date.UTC(yr, 2, 8)) && followUpDate < new Date(Date.UTC(yr, 10, 1));
-      const etOffsetHours = isDST ? 4 : 5;
-      followUpDate.setUTCHours(9 + etOffsetHours, 30, 0, 0);
+      const followUpDate = pickCallSlot(daysOut, contactEmail || contactName || '');
 
       await base44.asServiceRole.entities.ActivityLog.create({
         activity_type: 'call',
