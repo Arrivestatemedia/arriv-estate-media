@@ -69,12 +69,23 @@ Deno.serve(async (req) => {
 </html>
     `.trim();
 
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: clientEmail,
-      subject: `Refund Receipt – Invoice #1016 | Arriv Estate Media`,
-      body: emailBody,
-      from_name: 'Arriv Estate Media'
+    const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': Deno.env.get('BREVO_API_KEY'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: { name: 'Arriv Estate Media', email: 'noreply@arrivestatemedia.com' },
+        to: [{ email: clientEmail, name: clientName }],
+        subject: `Refund Receipt – Invoice #1016 | Arriv Estate Media`,
+        htmlContent: emailBody
+      })
     });
+    if (!brevoRes.ok) {
+      const err = await brevoRes.text();
+      throw new Error('Brevo error: ' + err);
+    }
 
     return Response.json({ success: true });
   } catch (error) {
