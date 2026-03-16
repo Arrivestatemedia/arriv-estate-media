@@ -655,9 +655,11 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
           .sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date));
         if (upcoming.length > 0) {
           newScheduledMap[contact.key] = upcoming[0];
-          // Delete any extras silently
+          // ONLY delete duplicates that are AI-scheduled — never delete manually created tasks
           upcoming.slice(1).forEach(dupe => {
-            deletePromises.push(base44.entities.ActivityLog.delete(dupe.id).catch(() => {}));
+            if (dupe._isAIScheduled) {
+              deletePromises.push(base44.entities.ActivityLog.delete(dupe.id).catch(() => {}));
+            }
           });
         }
       });
