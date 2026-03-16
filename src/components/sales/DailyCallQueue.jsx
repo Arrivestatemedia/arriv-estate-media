@@ -604,13 +604,15 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         const isLogged = notes.includes('[Queue Call]');
         // ONLY treat as AI-scheduled if it has the [AI Scheduled] prefix — NOT just any record with a call map
         const isAIScheduled = !isLogged && notes.includes('[AI Scheduled]');
-        const isRealActivity = !isAIScheduled && !isLogged;
+        // HubSpot sync logs are NOT real interactions — always treat as past
+        const isHubSpotSync = /^Contact (created|updated):/i.test(notes.trim());
+        const isRealActivity = !isAIScheduled && !isLogged && !isHubSpotSync;
 
         // Tag each record for later resolution check
         a._isAIScheduled = isAIScheduled;
         a._isRealActivity = isRealActivity;
 
-        if (!isLogged && (new Date(a.activity_date) >= startOfToday || isAIScheduled)) {
+        if (!isLogged && !isHubSpotSync && (new Date(a.activity_date) >= startOfToday || isAIScheduled)) {
           contactMap[key].upcoming.push(a);
         } else {
           contactMap[key].past.push(a);
