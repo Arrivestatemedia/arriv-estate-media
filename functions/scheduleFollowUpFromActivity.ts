@@ -9,20 +9,29 @@ const CALL_WINDOWS_ET = [
 
 // Pick a call slot within one of the three windows, staggered by a hash of the contact identifier
 function pickCallSlot(daysOut, contactIdentifier) {
-  // Simple hash to spread contacts across windows and times
-  let hash = 0;
+  // Two independent hashes for more spread
+  let hash1 = 0;
+  let hash2 = 0;
   for (let i = 0; i < contactIdentifier.length; i++) {
-    hash = (hash * 31 + contactIdentifier.charCodeAt(i)) >>> 0;
+    hash1 = (hash1 * 31 + contactIdentifier.charCodeAt(i)) >>> 0;
+    hash2 = (hash2 * 37 + contactIdentifier.charCodeAt(contactIdentifier.length - 1 - i)) >>> 0;
   }
-  const windowIndex = hash % CALL_WINDOWS_ET.length;
+
+  // Spread across windows using hash1
+  const windowIndex = hash1 % CALL_WINDOWS_ET.length;
   const [startH, startM, endH, endM] = CALL_WINDOWS_ET[windowIndex];
   const windowMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-  const offsetMinutes = hash % windowMinutes;
+  // Use hash2 for the minute offset within the window so it's independent of window selection
+  const offsetMinutes = hash2 % windowMinutes;
   const slotH = startH + Math.floor((startM + offsetMinutes) / 60);
   const slotM = (startM + offsetMinutes) % 60;
 
+  // Spread contacts across days: add 0-2 extra days based on hash to avoid same-day clumping
+  const dayJitter = (hash1 + hash2) % 3; // 0, 1, or 2 extra days
+  const totalDays = daysOut + dayJitter;
+
   const date = new Date();
-  date.setUTCDate(date.getUTCDate() + daysOut);
+  date.setUTCDate(date.getUTCDate() + totalDays);
   // ET offset: EDT = UTC-4 (Mar-Nov), EST = UTC-5 (Nov-Mar)
   const yr = date.getUTCFullYear();
   const isDST = date >= new Date(Date.UTC(yr, 2, 8)) && date < new Date(Date.UTC(yr, 10, 1));

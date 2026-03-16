@@ -8,19 +8,26 @@ const CALL_WINDOWS_ET = [
 ];
 
 function pickCallSlot(daysOut, contactIdentifier) {
-  let hash = 0;
+  let hash1 = 0;
+  let hash2 = 0;
   for (let i = 0; i < contactIdentifier.length; i++) {
-    hash = (hash * 31 + contactIdentifier.charCodeAt(i)) >>> 0;
+    hash1 = (hash1 * 31 + contactIdentifier.charCodeAt(i)) >>> 0;
+    hash2 = (hash2 * 37 + contactIdentifier.charCodeAt(contactIdentifier.length - 1 - i)) >>> 0;
   }
-  const windowIndex = hash % CALL_WINDOWS_ET.length;
+
+  const windowIndex = hash1 % CALL_WINDOWS_ET.length;
   const [startH, startM, endH, endM] = CALL_WINDOWS_ET[windowIndex];
   const windowMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-  const offsetMinutes = hash % windowMinutes;
+  const offsetMinutes = hash2 % windowMinutes;
   const slotH = startH + Math.floor((startM + offsetMinutes) / 60);
   const slotM = (startM + offsetMinutes) % 60;
 
+  // Spread contacts across days: 0-2 extra days to avoid same-day clumping
+  const dayJitter = (hash1 + hash2) % 3;
+  const totalDays = daysOut + dayJitter;
+
   const date = new Date();
-  date.setUTCDate(date.getUTCDate() + daysOut);
+  date.setUTCDate(date.getUTCDate() + totalDays);
   const yr = date.getUTCFullYear();
   const isDST = date >= new Date(Date.UTC(yr, 2, 8)) && date < new Date(Date.UTC(yr, 10, 1));
   const etOffset = isDST ? 4 : 5;
