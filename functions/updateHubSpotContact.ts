@@ -67,24 +67,8 @@ Deno.serve(async (req) => {
       if (members[0]) salesMemberEmail = members[0].email;
     }
 
-    // Log as activity if salesMemberId provided
-    if (salesMemberId) {
-      const action = (!contactId || createIfNotFound) ? 'created' : 'updated';
-      await base44.asServiceRole.entities.ActivityLog.create({
-        activity_type: 'email',
-        contact_name: `${properties.firstname || ''} ${properties.lastname || ''}`.trim(),
-        contact_email: properties.email || '',
-        company_name: properties.company || '',
-        activity_date: new Date().toISOString(),
-        notes: `Contact ${action}: ${Object.keys(properties).filter(k => properties[k]).join(', ')}`,
-
-        hubspot_synced: true,
-        hubspot_engagement_id: result.id,
-
-        sales_member_id: salesMemberId,
-        sales_member_email: salesMemberEmail
-      });
-    }
+    // Do not log HubSpot contact updates as ActivityLog entries — they are not real activities
+    // and confuse the AI call queue analysis.
 
     return Response.json({ success: true, contact: result });
   } catch (error) {
