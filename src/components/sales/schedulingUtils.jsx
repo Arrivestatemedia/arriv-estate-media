@@ -166,22 +166,35 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
   let followUpDate = null;
   let useAITimeDirectly = false;
 
+  // Brad's available call windows: 8:00am, 10:15am, or 2:30pm
+  const snapToAvailableWindow = (date) => {
+    const h = date.getHours();
+    const m = date.getMinutes();
+    const totalMins = h * 60 + m;
+    // Window A: 7:55–8:15 → 8:00
+    // Window B: 10:15–10:38 → 10:15
+    // Window C: after 14:15 → 14:30
+    if (totalMins <= 8 * 60 + 30) { date.setHours(8, 0, 0, 0); }
+    else if (totalMins <= 11 * 60) { date.setHours(10, 15, 0, 0); }
+    else { date.setHours(14, 30, 0, 0); }
+    return date;
+  };
+
   if (analysis.follow_up_date_time) {
     const aiDate = new Date(analysis.follow_up_date_time);
     const aiHour = aiDate.getHours();
-    // Check if the AI-suggested time is within reasonable business/outreach windows
-    if (aiHour >= 8 && aiHour <= 19) {
-      followUpDate = aiDate;
+    if (aiHour >= 7 && aiHour <= 19) {
+      followUpDate = snapToAvailableWindow(aiDate);
       useAITimeDirectly = true;
     }
   }
 
   if (!followUpDate) {
-    // Default to next business day at 8:30am — never 7 days out
+    // Default to next business day at 8:00am (Window A)
     const d = new Date();
     d.setDate(d.getDate() + 1);
     while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-    d.setHours(8, 30, 0, 0);
+    d.setHours(8, 0, 0, 0);
     followUpDate = d;
   }
 
