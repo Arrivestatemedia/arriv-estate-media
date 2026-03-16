@@ -180,15 +180,17 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
     return date;
   };
 
-  // HARD OVERRIDE: If contact is brand new (all activities within last 3 days, ≤2 real activities),
-  // ALWAYS schedule same/next business day — ignore AI date entirely.
-  const realActivitiesForCheck = (contact.activities || [])
-    .filter(a => !/^Contact (created|updated):/i.test((a.notes || '').trim()));
-  const allActivitiesRecent = (contact.activities || []).every(a => {
-    const d = new Date(a.activity_date);
-    return (Date.now() - d.getTime()) < 3 * 24 * 60 * 60 * 1000; // within 3 days
+  // HARD OVERRIDE: If contact has no real past interactions (excluding Contact created/updated logs
+  // and future AI-scheduled tasks), treat as new and force same/next business day.
+  const pastRealInteractions = (contact.activities || []).filter(a => {
+    const notes = (a.notes || '').trim();
+    const actDate = new Date(a.activity_date);
+    const isPast = actDate <= new Date();
+    const isSystemLog = /^Contact (created|updated):/i.test(notes);
+    const isAIScheduled = /^\[AI Scheduled\]/i.test(notes);
+    return isPast && !isSystemLog && !isAIScheduled;
   });
-  const isNewContact = allActivitiesRecent && realActivitiesForCheck.length <= 2;
+  const isNewContact = pastRealInteractions.length === 0;
 
   if (isNewContact) {
     const now = new Date();
