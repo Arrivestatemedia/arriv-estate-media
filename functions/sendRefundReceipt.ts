@@ -55,6 +55,28 @@ Deno.serve(async (req) => {
 
     const netAmount = originalAmount - refundAmount;
 
+    // Generate PDF
+    const pdfBytes = await generateRefundPDF({ clientName, clientEmail, jobAddress, serviceDate, pkg, originalAmount, refundAmount, netAmount });
+
+    // Upload PDF to Google Drive refund receipts folder
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+    const fileName = `Refund_Receipt_Invoice1016_${clientName.replace(/\s+/g, '_')}.pdf`;
+    const metadata = JSON.stringify({ name: fileName, parents: [REFUND_RECEIPTS_FOLDER_ID], mimeType: 'application/pdf' });
+    const boundary = 'boundary_arriv_refund';
+    const multipartBody = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`;
+    const bodyStart = new TextEncoder().encode(multipartBody);
+    const bodyEnd = new TextEncoder().encode(`\r\n--${boundary}--`);
+    const combined = new Uint8Array(bodyStart.length + pdfBytes.length + bodyEnd.length);
+    combined.set(bodyStart, 0);
+    combined.set(pdfBytes, bodyStart.length);
+    combined.set(bodyEnd, bodyStart.length + pdfBytes.length);
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body: combined
+    });
+
+
     const emailBody = `
 <!DOCTYPE html>
 <html>
