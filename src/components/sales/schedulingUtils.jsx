@@ -216,18 +216,21 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
           followUpDate.setDate(followUpDate.getDate() + 1);
         }
       }
-      // Default to 8:30am — before showings start
-      followUpDate.setHours(8, 30, 0, 0);
-      // If the time is already past today, push to next hour or next business day morning
+      // Default to 8:00am (Window A)
+      followUpDate.setHours(8, 0, 0, 0);
+      // If the time is already past today, use next available window or next business day
       if (followUpDate <= now) {
-        if (isBusinessDay && now.getHours() < 17) {
-          followUpDate.setHours(now.getHours() + 1, 0, 0, 0);
+        const nowMins = now.getHours() * 60 + now.getMinutes();
+        if (isBusinessDay && nowMins < 10 * 60) {
+          followUpDate.setHours(10, 15, 0, 0); // Window B
+        } else if (isBusinessDay && nowMins < 14 * 60 + 15) {
+          followUpDate.setHours(14, 30, 0, 0); // Window C
         } else {
           followUpDate.setDate(followUpDate.getDate() + 1);
           while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
             followUpDate.setDate(followUpDate.getDate() + 1);
           }
-          followUpDate.setHours(8, 30, 0, 0);
+          followUpDate.setHours(8, 0, 0, 0);
         }
       }
     }
