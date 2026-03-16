@@ -241,7 +241,7 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
       while (followUpDate.getDay() === 0 || followUpDate.getDay() === 6) {
         followUpDate.setDate(followUpDate.getDate() + 1);
       }
-      followUpDate.setHours(8, 30, 0, 0);
+      followUpDate.setHours(8, 0, 0, 0);
     }
   }
 
