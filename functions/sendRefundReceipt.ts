@@ -1,4 +1,52 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { PDFDocument, rgb, StandardFonts } from 'npm:pdf-lib@1.17.1';
+
+const REFUND_RECEIPTS_FOLDER_ID = '14JQWnqjP-CTm_5Ej-NvmG8x2QKboly1r';
+
+async function generateRefundPDF({ clientName, clientEmail, jobAddress, serviceDate, pkg, originalAmount, refundAmount, netAmount }) {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595, 842]);
+  const { width, height } = page.getSize();
+  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  // Header
+  page.drawRectangle({ x: 0, y: height - 80, width, height: 80, color: rgb(0.1, 0.1, 0.1) });
+  page.drawText('ARRIV ESTATE MEDIA', { x: 40, y: height - 50, size: 20, font: bold, color: rgb(1, 1, 1) });
+  page.drawText('Refund Receipt', { x: 40, y: height - 68, size: 11, font: regular, color: rgb(0.72, 0.58, 0.42) });
+
+  let y = height - 120;
+  const line = (label, value, isBold = false) => {
+    page.drawText(label, { x: 40, y, size: 11, font: isBold ? bold : regular, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(value, { x: 400, y, size: 11, font: isBold ? bold : regular, color: rgb(0.1, 0.1, 0.1) });
+    y -= 22;
+  };
+
+  line('Invoice #', '1016');
+  line('Client', clientName);
+  line('Email', clientEmail);
+  line('Property', jobAddress);
+  line('Service Date', serviceDate);
+  line('Package', pkg);
+
+  y -= 10;
+  page.drawLine({ start: { x: 40, y }, end: { x: 555, y }, thickness: 1, color: rgb(0.85, 0.85, 0.85) });
+  y -= 25;
+
+  line('Original Amount Paid', `$${originalAmount.toFixed(2)}`);
+  page.drawText('Refund Applied', { x: 40, y, size: 11, font: bold, color: rgb(0.85, 0.2, 0.2) });
+  page.drawText(`-$${refundAmount.toFixed(2)}`, { x: 400, y, size: 11, font: bold, color: rgb(0.85, 0.2, 0.2) });
+  y -= 22;
+
+  y -= 5;
+  page.drawLine({ start: { x: 40, y }, end: { x: 555, y }, thickness: 2, color: rgb(0.1, 0.1, 0.1) });
+  y -= 28;
+
+  page.drawText('Net Total', { x: 40, y, size: 14, font: bold, color: rgb(0.1, 0.1, 0.1) });
+  page.drawText(`$${netAmount.toFixed(2)}`, { x: 400, y, size: 14, font: bold, color: rgb(0.1, 0.1, 0.1) });
+
+  return await pdfDoc.save();
+}
 
 Deno.serve(async (req) => {
   try {
