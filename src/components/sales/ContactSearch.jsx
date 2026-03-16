@@ -108,7 +108,7 @@ function ActivityList({ activities, loading, onSelect }) {
   );
 }
 
-export default function ContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm, prefilledData, onFormClosed }) {
+export default function ContactSearch({ salesMemberId, salesMemberEmail: salesMemberEmailProp, openNewContactForm, setOpenNewContactForm, prefilledData, onFormClosed }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
