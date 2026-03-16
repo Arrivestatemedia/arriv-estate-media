@@ -180,7 +180,37 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
     return date;
   };
 
-  if (analysis.follow_up_date_time) {
+  // HARD OVERRIDE: If contact is brand new (all activities within last 3 days, ≤2 real activities),
+  // ALWAYS schedule same/next business day — ignore AI date entirely.
+  const realActivitiesForCheck = (contact.activities || [])
+    .filter(a => !/^Contact (created|updated):/i.test((a.notes || '').trim()));
+  const allActivitiesRecent = (contact.activities || []).every(a => {
+    const d = new Date(a.activity_date);
+    return (Date.now() - d.getTime()) < 3 * 24 * 60 * 60 * 1000; // within 3 days
+  });
+  const isNewContact = allActivitiesRecent && realActivitiesForCheck.length <= 2;
+
+  if (isNewContact) {
+    const now = new Date();
+    const d = new Date(now);
+    const isBusinessDay = d.getDay() >= 1 && d.getDay() <= 5;
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    // Try to fit into today's remaining windows
+    if (isBusinessDay && nowMins < 7 * 60 + 55) {
+      d.setHours(8, 0, 0, 0);
+    } else if (isBusinessDay && nowMins < 10 * 60 + 15) {
+      d.setHours(10, 15, 0, 0);
+    } else if (isBusinessDay && nowMins < 14 * 60 + 15) {
+      d.setHours(14, 30, 0, 0);
+    } else {
+      // Push to next business day Window A
+      d.setDate(d.getDate() + 1);
+      while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+      d.setHours(8, 0, 0, 0);
+    }
+    followUpDate = d;
+    useAITimeDirectly = true;
+  } else if (analysis.follow_up_date_time) {
     const aiDate = new Date(analysis.follow_up_date_time);
     const aiHour = aiDate.getHours();
     if (aiHour >= 7 && aiHour <= 19) {
