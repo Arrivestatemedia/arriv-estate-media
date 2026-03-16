@@ -83,7 +83,11 @@ IMAGES ARE PRIMARY EVIDENCE. Use them to override unclear notes.` : ""}
 
 ⚠️ CRITICAL SCHEDULING RULES:
 Read every note and attachment carefully before deciding. Use the most specific timing signals you find.
-For the TIME of day: use realtor behavior research — realtors are most reachable 8-9am (before showings), 12-1pm (lunch), and 5-7pm (after showings). Pick the best window based on what you know about this contact.
+⚠️ BRAD'S AVAILABLE CALL WINDOWS — YOU MUST ONLY SCHEDULE WITHIN THESE TIMES, NO EXCEPTIONS:
+  - Window A: 7:55 AM – 8:15 AM  → use 8:00 AM
+  - Window B: 10:15 AM – 10:38 AM → use 10:15 AM
+  - Window C: After 2:15 PM → use 2:30 PM (or later, up to 7pm)
+NEVER schedule at 8:30am, 9am, 12pm, or any time outside these three windows. If a realtor prefers "morning" — pick Window A or B. If "afternoon/evening" — pick Window C.
 
 1. DID THEY GIVE A SPECIFIC CALLBACK TIME? ("call me back at 2pm today", "tomorrow morning", "next Monday", "in 2 weeks")
    → Schedule EXACTLY then. Urgency: high.
