@@ -833,7 +833,6 @@ export default function HubSpotActivityLog() {
             <CardContent className="pt-6">
               <ContactSearch
                 salesMemberId={user?.id}
-                salesMemberEmail={user?.email}
                 openNewContactForm={openNewContactForm}
                 setOpenNewContactForm={setOpenNewContactForm}
                 prefilledData={prefilledContactData}

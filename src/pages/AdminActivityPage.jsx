@@ -838,8 +838,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           <Card style={{ backgroundColor: '#FFFFFF' }}>
             <CardContent className="pt-6">
               <ContactSearch 
-                salesMemberId={user?.id}
-                salesMemberEmail={user?.email}
+                salesMemberId={user?.id} 
                 openNewContactForm={openNewContactForm}
                 setOpenNewContactForm={setOpenNewContactForm}
                 prefilledData={prefilledContactData}

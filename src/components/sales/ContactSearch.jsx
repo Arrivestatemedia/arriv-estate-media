@@ -108,7 +108,7 @@ function ActivityList({ activities, loading, onSelect }) {
   );
 }
 
-export default function ContactSearch({ salesMemberId, salesMemberEmail: salesMemberEmailProp, openNewContactForm, setOpenNewContactForm, prefilledData, onFormClosed }) {
+export default function ContactSearch({ salesMemberId, openNewContactForm, setOpenNewContactForm, prefilledData, onFormClosed }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -331,7 +331,7 @@ export default function ContactSearch({ salesMemberId, salesMemberEmail: salesMe
       Object.keys(editFields).forEach(key => {
         if (editFields[key] || editFields[key] === '') propertiesToSend[key] = editFields[key];
       });
-      await base44.functions.invoke("updateHubSpotContact", { contactId, properties: propertiesToSend, salesMemberId, salesMemberEmail: salesMemberEmailProp || localStorage.getItem('sales_member_email') || '' });
+      await base44.functions.invoke("updateHubSpotContact", { contactId, properties: propertiesToSend, salesMemberId });
       setSavedId(contactId);
       setTimeout(() => setSavedId(null), 3000);
       setResults(results.map(c =>
@@ -359,7 +359,6 @@ export default function ContactSearch({ salesMemberId, salesMemberEmail: salesMe
         contactId: null,
         properties: propertiesToSend,
         salesMemberId,
-        salesMemberEmail: salesMemberEmailProp || localStorage.getItem('sales_member_email') || '',
         createIfNotFound: true,
       });
 
