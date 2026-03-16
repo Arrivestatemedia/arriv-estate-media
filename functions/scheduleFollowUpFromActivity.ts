@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    const notes = activity.notes || '';
     const contactEmail = activity.contact_email;
     const contactName = activity.contact_name;
     const sid = activity.sales_member_id;
