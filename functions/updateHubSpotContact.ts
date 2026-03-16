@@ -3,7 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { contactId, properties, salesMemberId, createIfNotFound } = await req.json();
+    const body = await req.json();
+    const { contactId, properties, salesMemberId, createIfNotFound } = body;
 
     if (!properties) {
       return Response.json({ error: 'properties required' }, { status: 400 });
