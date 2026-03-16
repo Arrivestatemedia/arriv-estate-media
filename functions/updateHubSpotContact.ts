@@ -63,8 +63,12 @@ Deno.serve(async (req) => {
     // Look up sales member email for attribution
     let salesMemberEmail = '';
     if (salesMemberId) {
-      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
-      if (members[0]) salesMemberEmail = members[0].email;
+      try {
+        const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
+        if (members[0]) salesMemberEmail = members[0].email;
+      } catch (_) {
+        // fallback: salesMemberEmail stays empty
+      }
     }
 
     // Log as activity if salesMemberId provided
