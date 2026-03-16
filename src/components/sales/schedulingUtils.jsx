@@ -116,10 +116,12 @@ NEVER schedule at 8:30am, 9am, 12pm, or any time outside these three windows. If
 9. HAS SOME HISTORY BUT NO CLEAR SIGNAL
    → Schedule 3–5 days out at best contact window. Urgency: medium.
 
-BEST TIMES: 8–9am > 12–1pm > 5–7pm. AVOID weekends & Friday evenings.
-
-⚠️ CRITICAL: When you output follow_up_date_time, the TIME must match the BEST WINDOW you identified above. 
-Do not output a time outside the 8-9am, 12-1pm, or 5-7pm windows unless the contact explicitly said a different time.
+⚠️ CRITICAL: follow_up_date_time MUST use one of Brad's 3 windows:
+  - 08:00 (Window A: 7:55–8:15am)
+  - 10:15 (Window B: 10:15–10:38am)
+  - 14:30 (Window C: after 2:15pm)
+NEVER output a time like 08:30, 09:00, 12:00, 17:00, etc. Only 08:00, 10:15, or 14:30 (or later in Window C if contact prefers evening — up to 19:00).
+AVOID weekends & Friday evenings.
 
 CHANNEL: Default=call. Switch to TEXT only if they explicitly said "text me". EMAIL only if they asked.
 
