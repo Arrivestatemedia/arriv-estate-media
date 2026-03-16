@@ -190,7 +190,13 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
     const isAIScheduled = /^\[AI Scheduled\]/i.test(notes);
     return isPast && !isSystemLog && !isAIScheduled;
   });
-  const isNewContact = pastRealInteractions.length === 0;
+
+  // Also treat as new if all real interactions are notes/references saying they've never been called
+  const neverSpokenPhrases = /never spoken|never called|never talked|never contacted|haven't spoken|haven't called|has not been called|not yet called|first contact|no prior contact/i;
+  const allActivitiesAreNeverSpoken = pastRealInteractions.length > 0 &&
+    pastRealInteractions.every(a => neverSpokenPhrases.test(a.notes || ''));
+
+  const isNewContact = pastRealInteractions.length === 0 || allActivitiesAreNeverSpoken;
 
   if (isNewContact) {
     const now = new Date();
