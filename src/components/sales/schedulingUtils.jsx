@@ -227,10 +227,13 @@ export async function saveScheduledFollowUp(contact, analysis, sid, sem, existin
 
   // Generate call map
   try {
-    const historySnippet = (contact.activities || []).slice(0, 4).map(a => {
-      const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
-      return `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${(a.notes || "").slice(0, 120)}${pics}`;
-    }).join("\n");
+    const historySnippet = (contact.activities || [])
+      .filter(a => !/^Contact (created|updated):/i.test((a.notes || '').trim()))
+      .slice(0, 4)
+      .map(a => {
+        const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} image(s)]` : "";
+        return `${format(new Date(a.activity_date), "MMM d")}: ${a.activity_type} — ${(a.notes || "").slice(0, 120)}${pics}`;
+      }).join("\n");
 
     const scriptPictureUrls = (contact.activities || []).slice(0, 6).flatMap(a => a.picture_urls || []).slice(0, 6);
 
