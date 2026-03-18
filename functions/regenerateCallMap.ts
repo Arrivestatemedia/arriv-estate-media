@@ -157,14 +157,8 @@ If they say they don't need it: "Totally understand. If you ever need backup cov
 ` : "";
 
     // Generate comprehensive call map with learned patterns
-    const noBoxProhibition = !boxSent ? `\n\n🚫 ABSOLUTELY DO NOT mention sending a box, intro package, or any physical mail. No box was sent to this contact. Do NOT use the phrase "I recently sent over a small introduction package" or anything similar. This is PROHIBITED.\n` : "";
-
     const callMapRes = await base44.integrations.Core.InvokeLLM({
       prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map.${previousCallMap ? `\n\nEXISTING CALL MAP (for reference only — do NOT copy the opening word-for-word if it doesn't match the situation below):\n${previousCallMap}\n` : ""}${learnedStyleContext}
-
-⚠️ SITUATION-SPECIFIC OVERRIDE — THIS OVERRIDES ALL STYLE GUIDELINES ABOVE:
-${boxSent ? boxContext : `🚫 NO BOX OR INTRO PACKAGE WAS SENT. NEVER say "I recently sent over a small introduction package" or any variation. This contact has NOT received anything in the mail. Using that line would be a lie. Use the appropriate first-contact or warm opener instead.`}
-${firstContactScript}
 
 CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
 - We shoot photos and video for real estate listings. That's it.
@@ -173,7 +167,10 @@ CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
 - Scripts must sound like a real human, not a corporate bot. Casual, warm, direct.
 - Key stat to use when relevant: "homes with pro media sell 32% faster and for 5-11% more"
 - Brad handles pricing questions and closings — route there when needed.
-${boxContext}${firstContactScript}
+
+⚠️ SITUATION-SPECIFIC OPENING INSTRUCTIONS — THESE OVERRIDE EVERYTHING ABOVE:
+${boxSent ? boxContext : `🚫 NO BOX OR INTRO PACKAGE WAS SENT TO THIS CONTACT. NEVER use the phrase "I recently sent over a small introduction package" or anything like it. That would be a lie. It is absolutely prohibited regardless of any style guidelines.`}
+${firstContactScript}
 
 Generate a complete call map as a JSON structure with all conversation branches covered. Sound like a real person who knows them.
 
