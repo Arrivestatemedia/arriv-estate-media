@@ -45,6 +45,22 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
     }
   };
 
+  const [seeding, setSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState(null);
+
+  const runSeed = async () => {
+    setSeeding(true);
+    setSeedResult(null);
+    try {
+      const res = await base44.functions.invoke('seedStyleFromExamples', {});
+      setSeedResult(res.data?.message || 'Done');
+    } catch (e) {
+      setSeedResult('Error: ' + e.message);
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   const { data: activities = [] } = useQuery({
     queryKey: ['adminRepActivities', salesMemberId],
     queryFn: () => base44.entities.ActivityLog.filter({ sales_member_id: salesMemberId }, '-activity_date', 200),
