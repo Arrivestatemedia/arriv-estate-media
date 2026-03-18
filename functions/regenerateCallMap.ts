@@ -131,7 +131,7 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
 
     // Detect box/intro package sent and first contact
     const allActivityNotes = pastActivities.map(a => a.notes || "").join(" ");
-    const boxSent = /box sent|intro package sent|package sent|sent a box|sent an intro|introduction package|sent box|mailed a box|mailed package/i.test(allActivityNotes);
+    const boxSent = /box sent/i.test(allActivityNotes);
     const isFirstContact = pastActivities.length === 0 || pastActivities.every(a => /^(FIRST CONTACT:|Contact created:)/i.test((a.notes || "").trim()));
     const firstName = (contactName || "").split(" ")[0] || "there";
 
