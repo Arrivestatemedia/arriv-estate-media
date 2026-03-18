@@ -494,6 +494,20 @@ export default function ContactDetailPage() {
          const raw = callMapActivity.notes || '';
          const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
          const callMap = mapMatch ? mapMatch[1].trim() : '';
+         const handleSaveCallMapEdit = async (editedText) => {
+           const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
+           const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
+           await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+           setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
+           setActivities(prev => prev.map(a => a.id === callMapActivity.id ? { ...a, notes: updatedNotes } : a));
+           // Fire-and-forget: learn from this edit system-wide
+           base44.functions.invoke('analyzeCallMapEdit', {
+             salesMemberId: localStorage.getItem('sales_member_id'),
+             salesMemberEmail: localStorage.getItem('sales_member_email'),
+             originalCallMap: callMap,
+             editedCallMap: editedText
+           }).catch(() => {});
+         };
          return (
            <CallMapModal
              open={!!callMapActivity}
@@ -504,6 +518,7 @@ export default function ContactDetailPage() {
              contactEmail={contact?.email || callMapActivity.contact_email || ''}
              onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone } })); }}
              onEmail={(email) => { localStorage.setItem('_emailTo', email); window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email } })); }}
+             onSaveEdit={handleSaveCallMapEdit}
            />
          );
        })()}
