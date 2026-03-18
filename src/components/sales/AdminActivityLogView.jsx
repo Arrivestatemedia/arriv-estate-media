@@ -86,6 +86,21 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
 
   return (
     <div>
+      {/* AI Learning backfill — admin only */}
+      {isAdminView && (
+        <div className="mb-5 p-3 rounded-xl flex items-center justify-between gap-3" style={{ backgroundColor: 'rgba(184,149,106,0.07)', border: '1px solid rgba(184,149,106,0.2)' }}>
+          <div className="flex items-center gap-2">
+            <Brain className="w-4 h-4" style={{ color: '#B8956A' }} />
+            <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>AI Call Map Learning</span>
+            {backfillResult && <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>{backfillResult}</span>}
+          </div>
+          <Button size="sm" onClick={runBackfill} disabled={backfilling} style={{ backgroundColor: '#B8956A', color: '#fff' }} className="gap-2 shrink-0">
+            <Brain className={`w-3.5 h-3.5 ${backfilling ? 'animate-pulse' : ''}`} />
+            {backfilling ? 'Learning...' : 'Learn from All Call Maps'}
+          </Button>
+        </div>
+      )}
+
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
