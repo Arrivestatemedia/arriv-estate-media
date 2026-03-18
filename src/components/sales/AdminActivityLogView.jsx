@@ -124,6 +124,7 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
         {(seedResult || backfillResult) && (
           <p className="text-xs mt-2" style={{ color: 'rgba(26,26,26,0.5)' }}>{seedResult || backfillResult}</p>
         )}
+      </div>
       )}
 
       {/* Stats row */}
