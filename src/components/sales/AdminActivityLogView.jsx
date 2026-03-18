@@ -110,11 +110,20 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
             <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>AI Call Map Learning</span>
             {backfillResult && <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>{backfillResult}</span>}
           </div>
-          <Button size="sm" onClick={runBackfill} disabled={backfilling} style={{ backgroundColor: '#B8956A', color: '#fff' }} className="gap-2 shrink-0">
-            <Brain className={`w-3.5 h-3.5 ${backfilling ? 'animate-pulse' : ''}`} />
-            {backfilling ? 'Learning...' : 'Learn from All Call Maps'}
-          </Button>
+          <div className="flex gap-2 shrink-0 flex-wrap">
+            <Button size="sm" onClick={runSeed} disabled={seeding} style={{ backgroundColor: '#1A1A1A', color: '#fff' }} className="gap-2">
+              <Brain className={`w-3.5 h-3.5 ${seeding ? 'animate-pulse' : ''}`} />
+              {seeding ? 'Seeding...' : 'Seed from Brad\'s Examples'}
+            </Button>
+            <Button size="sm" onClick={runBackfill} disabled={backfilling} style={{ backgroundColor: '#B8956A', color: '#fff' }} className="gap-2">
+              <Brain className={`w-3.5 h-3.5 ${backfilling ? 'animate-pulse' : ''}`} />
+              {backfilling ? 'Learning...' : 'Learn from All Call Maps'}
+            </Button>
+          </div>
         </div>
+        {(seedResult || backfillResult) && (
+          <p className="text-xs mt-2" style={{ color: 'rgba(26,26,26,0.5)' }}>{seedResult || backfillResult}</p>
+        )}
       )}
 
       {/* Stats row */}
