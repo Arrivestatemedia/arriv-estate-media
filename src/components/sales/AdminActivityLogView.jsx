@@ -121,9 +121,9 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
               </Button>
             </div>
           </div>
-          {(seedResult || backfillResult) && (
+          {(seedResult || backfillResult) ? (
             <p className="px-3 pb-2 text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>{seedResult || backfillResult}</p>
-          )}
+          ) : null}
         </div>
       )}
 
