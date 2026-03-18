@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Mail, Calendar, Clock, Zap, Archive, MapPin } from "lucide-react";
+import { Phone, Mail, Calendar, Clock, Zap, Archive, MapPin, Brain } from "lucide-react";
 import { format } from "date-fns";
 import ActivityArchive from "@/components/sales/ActivityArchive";
 import ViewCallMapModal from "@/components/sales/ViewCallMapModal";
@@ -28,7 +28,22 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
   const [showArchive, setShowArchive] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [viewMapActivity, setViewMapActivity] = useState(null);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState(null);
   const queryClient = useQueryClient();
+
+  const runBackfill = async () => {
+    setBackfilling(true);
+    setBackfillResult(null);
+    try {
+      const res = await base44.functions.invoke('backfillCallMapLearning', {});
+      setBackfillResult(res.data?.message || 'Done');
+    } catch (e) {
+      setBackfillResult('Error: ' + e.message);
+    } finally {
+      setBackfilling(false);
+    }
+  };
 
   const { data: activities = [] } = useQuery({
     queryKey: ['adminRepActivities', salesMemberId],
