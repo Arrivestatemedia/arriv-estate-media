@@ -104,27 +104,27 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
     <div>
       {/* AI Learning backfill — admin only */}
       {isAdminView && (
-        <div className="mb-5 p-3 rounded-xl flex items-center justify-between gap-3" style={{ backgroundColor: 'rgba(184,149,106,0.07)', border: '1px solid rgba(184,149,106,0.2)' }}>
-          <div className="flex items-center gap-2">
-            <Brain className="w-4 h-4" style={{ color: '#B8956A' }} />
-            <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>AI Call Map Learning</span>
-            {backfillResult && <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>{backfillResult}</span>}
+        <div className="mb-5 rounded-xl" style={{ backgroundColor: 'rgba(184,149,106,0.07)', border: '1px solid rgba(184,149,106,0.2)' }}>
+          <div className="p-3 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4" style={{ color: '#B8956A' }} />
+              <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>AI Call Map Learning</span>
+            </div>
+            <div className="flex gap-2 shrink-0 flex-wrap">
+              <Button size="sm" onClick={runSeed} disabled={seeding} style={{ backgroundColor: '#1A1A1A', color: '#fff' }} className="gap-2">
+                <Brain className={`w-3.5 h-3.5 ${seeding ? 'animate-pulse' : ''}`} />
+                {seeding ? 'Seeding...' : "Seed from Brad's Examples"}
+              </Button>
+              <Button size="sm" onClick={runBackfill} disabled={backfilling} style={{ backgroundColor: '#B8956A', color: '#fff' }} className="gap-2">
+                <Brain className={`w-3.5 h-3.5 ${backfilling ? 'animate-pulse' : ''}`} />
+                {backfilling ? 'Learning...' : 'Learn from All Call Maps'}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2 shrink-0 flex-wrap">
-            <Button size="sm" onClick={runSeed} disabled={seeding} style={{ backgroundColor: '#1A1A1A', color: '#fff' }} className="gap-2">
-              <Brain className={`w-3.5 h-3.5 ${seeding ? 'animate-pulse' : ''}`} />
-              {seeding ? 'Seeding...' : 'Seed from Brad\'s Examples'}
-            </Button>
-            <Button size="sm" onClick={runBackfill} disabled={backfilling} style={{ backgroundColor: '#B8956A', color: '#fff' }} className="gap-2">
-              <Brain className={`w-3.5 h-3.5 ${backfilling ? 'animate-pulse' : ''}`} />
-              {backfilling ? 'Learning...' : 'Learn from All Call Maps'}
-            </Button>
-          </div>
+          {(seedResult || backfillResult) && (
+            <p className="px-3 pb-2 text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>{seedResult || backfillResult}</p>
+          )}
         </div>
-        {(seedResult || backfillResult) && (
-          <p className="text-xs mt-2" style={{ color: 'rgba(26,26,26,0.5)' }}>{seedResult || backfillResult}</p>
-        )}
-      </div>
       )}
 
       {/* Stats row */}
