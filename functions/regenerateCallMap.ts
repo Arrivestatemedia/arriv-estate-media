@@ -111,6 +111,24 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
 
     const marketIntel = typeof webResearch === "string" ? webResearch : webResearch?.text || "";
 
+    // Fetch system-wide learned style preferences from all rep edits
+    let learnedStyleContext = "";
+    try {
+      const styleProfiles = await base44.asServiceRole.entities.SalesRepStyleProfile.list();
+      if (styleProfiles?.length > 0) {
+        const totalEdits = styleProfiles.reduce((sum, p) => sum + (p.edit_count || 0), 0);
+        const allPrefs = styleProfiles
+          .filter(p => p.learned_preferences)
+          .map(p => p.learned_preferences)
+          .join('\n\n---\n\n');
+        if (allPrefs) {
+          learnedStyleContext = `\n\nSYSTEM-LEARNED CALL MAP IMPROVEMENTS (learned from ${totalEdits} rep edits — apply ALL of these style improvements to every section of this call map):\n${allPrefs.slice(0, 2500)}\n`;
+        }
+      }
+    } catch (e) {
+      console.log('Style profile fetch skipped:', e.message);
+    }
+
     // Detect box/intro package sent and first contact
     const allActivityNotes = pastActivities.map(a => a.notes || "").join(" ");
     const boxSent = /box sent|intro package sent|package sent|sent a box|sent an intro|introduction package|sent box|mailed a box|mailed package/i.test(allActivityNotes);

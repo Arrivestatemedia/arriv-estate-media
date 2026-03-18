@@ -323,6 +323,17 @@ If they have NO active listing found: Skip the listing reference. Instead: "I wo
     If they say won't need it: "Totally understand. If you ever need backup coverage or something with a quick turnaround, I'd be happy to be a resource."
     ` : "";
 
+    // Fetch system-wide learned style preferences
+    let learnedStyleCtx = "";
+    try {
+      const styleProfiles = await base44.entities.SalesRepStyleProfile.list();
+      if (styleProfiles?.length > 0) {
+        const totalEdits = styleProfiles.reduce((s, p) => s + (p.edit_count || 0), 0);
+        const allPrefs = styleProfiles.filter(p => p.learned_preferences).map(p => p.learned_preferences).join('\n\n---\n\n');
+        if (allPrefs) learnedStyleCtx = `\n\nSYSTEM-LEARNED CALL MAP IMPROVEMENTS (from ${totalEdits} rep edits — apply ALL of these style improvements to every section):\n${allPrefs.slice(0, 2000)}\n`;
+      }
+    } catch (e) {}
+
     const res = await base44.integrations.Core.InvokeLLM({
       prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown brokerage"}
 

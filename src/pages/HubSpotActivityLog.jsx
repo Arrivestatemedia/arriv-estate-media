@@ -1474,6 +1474,13 @@ Return ONLY valid JSON, no extra text:
               console.log('[HubSpot] Call map edit saved successfully');
               setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
               queryClient.invalidateQueries({ queryKey: ['activities'] });
+              // Fire-and-forget: analyze the edit for system-level learning
+              base44.functions.invoke('analyzeCallMapEdit', {
+                salesMemberId: user?.id,
+                salesMemberEmail: user?.email,
+                originalCallMap: callMap,
+                editedCallMap: editedText
+              }).catch(() => {});
               // Return success so the modal knows to close
               return Promise.resolve();
             } catch (error) {
