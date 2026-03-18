@@ -28,6 +28,13 @@ export default function CallMapModal({ open, onClose, contactName, callMap, onRe
     setIsSaving(true);
     try {
       await onSaveEdit(editedCallMap);
+      // System-level learning: analyze the diff between original and edited call map
+      base44.functions.invoke('analyzeCallMapEdit', {
+        salesMemberId: localStorage.getItem('sales_member_id'),
+        salesMemberEmail: localStorage.getItem('sales_member_email'),
+        originalCallMap: callMap,
+        editedCallMap: editedCallMap
+      }).catch(() => {});
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving edit:', error);
