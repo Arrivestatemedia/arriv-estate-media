@@ -157,8 +157,10 @@ If they say they don't need it: "Totally understand. If you ever need backup cov
 ` : "";
 
     // Generate comprehensive call map with learned patterns
+    const noBoxProhibition = !boxSent ? `\n\n🚫 ABSOLUTELY DO NOT mention sending a box, intro package, or any physical mail. No box was sent to this contact. Do NOT use the phrase "I recently sent over a small introduction package" or anything similar. This is PROHIBITED.\n` : "";
+
     const callMapRes = await base44.integrations.Core.InvokeLLM({
-      prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map.${previousCallMap ? `\n\nEXISTING CALL MAP (for context and learning what works — improve upon it, keep the good parts, fix what doesn't work):\n${previousCallMap}\n` : ""}${learnedStyleContext} 
+      prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map.${previousCallMap ? `\n\nEXISTING CALL MAP (for reference only — do NOT copy the opening word-for-word if it doesn't match the situation below):\n${previousCallMap}\n` : ""}${learnedStyleContext}${noBoxProhibition}
 
 CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
 - We shoot photos and video for real estate listings. That's it.
