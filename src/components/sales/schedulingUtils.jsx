@@ -336,7 +336,7 @@ If they have NO active listing found: Skip the listing reference. Instead: "I wo
 
     const res = await base44.integrations.Core.InvokeLLM({
       prompt: `CALL MAP for ${contact.name} at ${contact.company || "Unknown brokerage"}
-
+    ${learnedStyleCtx}
     CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
     - We shoot photos and video for real estate listings. That's it.
     - We do NOT offer: websites, marketing platforms, advertising campaigns, CRM tools, lead gen, or anything other than photo/video.
