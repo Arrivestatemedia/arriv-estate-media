@@ -121,7 +121,15 @@ export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
                 <FileText className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Notes / Content</p>
               </div>
-              {(() => {
+              {isEditing ? (
+                <Textarea
+                  value={editedNotes}
+                  onChange={e => setEditedNotes(e.target.value)}
+                  rows={6}
+                  className="text-sm resize-none"
+                  style={{ borderColor: 'rgba(184,149,106,0.3)' }}
+                />
+              ) : (() => {
                 const raw = activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
                 const screenshotMarker = '\n\n[Screenshots]\n';
                 const markerIdx = raw?.indexOf('[Screenshots]\n');
