@@ -27,6 +27,8 @@ const activityLabels = {
 
 export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, repName, isAdminView }) {
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [editingActivity, setEditingActivity] = useState(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
   const [showArchive, setShowArchive] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
