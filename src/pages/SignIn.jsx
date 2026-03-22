@@ -169,6 +169,19 @@ export default function SignIn() {
               {loading ? "Logging in..." : "Log In"}
             </Button>
 
+            <div className="text-center pt-2">
+              <p className="text-xs text-[#1A1A1A]/50">
+                Sales team member?{" "}
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/SalesLogin'}
+                  className="text-[#B8956A] hover:underline font-medium"
+                >
+                  Log in here
+                </button>
+              </p>
+            </div>
+
           </form>
         </CardContent>
       </Card>
