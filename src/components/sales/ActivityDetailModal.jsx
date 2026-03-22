@@ -7,8 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { base44 } from "@/api/base44Client";
 import ViewCallMapModal from "./ViewCallMapModal";
 
-export default function ActivityDetailModal({ activity, onClose }) {
+export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
   const [showCallMap, setShowCallMap] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedNotes, setEditedNotes] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (activity) setEditedNotes(activity.notes || "");
+  }, [activity]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await base44.entities.ActivityLog.update(activity.id, { notes: editedNotes });
+    setIsSaving(false);
+    setIsEditing(false);
+    if (onUpdate) onUpdate({ ...activity, notes: editedNotes });
+  };
+
   if (!activity) return null;
 
   const typeColors = {
