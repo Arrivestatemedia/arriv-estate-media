@@ -64,7 +64,11 @@ async function generateCallMapPDF(repName, contactName, callTime, callMapContent
     yPos -= 28;
   };
 
-  const stripEmoji = (str) => str.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2300}-\u{23FF}]/gu, '').trim();
+  const sanitize = (str) => str
+    .replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2300}-\u{23FF}]/gu, '')
+    .replace(/[^\x20-\x7E]/g, '')
+    .trim();
+  const stripEmoji = sanitize;
 
   const drawBodyText = (text) => {
     const lines = wrapText(stripEmoji(text), regularFont, 10, contentWidth - 16);
