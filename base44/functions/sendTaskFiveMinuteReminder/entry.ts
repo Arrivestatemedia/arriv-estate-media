@@ -5,100 +5,141 @@ const GOLD = rgb(0.722, 0.584, 0.416);
 const WHITE = rgb(1, 1, 1);
 const BLACK = rgb(0.102, 0.102, 0.102);
 const DARK = rgb(0.102, 0.102, 0.102);
+const LIGHT_GOLD_BG = rgb(0.98, 0.96, 0.92);
 
 const sanitize = (str) => (str || '')
   .replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2300}-\u{23FF}]/gu, '')
-  .replace(/[^\x20-\x7E]/g, '')
+  .replace(/[^\x20-\x7E]/g, ' ')
+  .replace(/\s+/g, ' ')
   .trim();
+
+function wrapText(text, font, size, maxW) {
+  const words = sanitize(text).split(' ').filter(Boolean);
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (font.widthOfTextAtSize(test, size) > maxW && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function parseSections(content) {
+  const sections = [];
+  const rawLines = content.split('\n');
+  let current = null;
+
+  const isHeaderLine = (line) =>
+    /^#{1,3}\s/.test(line) ||
+    /^\*\*[A-Z]/.test(line) ||
+    /^\p{Emoji}\s/u.test(line);
+
+  for (const line of rawLines) {
+    if (/^---+$/.test(line.trim())) continue;
+    if (isHeaderLine(line)) {
+      if (current) sections.push(current);
+      let label = line.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').replace(/^[-–—]\s+/, '').trim();
+      label = label.replace(/^[\p{Emoji}]\s*/u, '').trim();
+      current = { label, body: [] };
+    } else if (current) {
+      const cleaned = line.replace(/\*\*/g, '').trim();
+      if (cleaned) current.body.push(cleaned);
+    }
+  }
+  if (current) sections.push(current);
+  return sections;
+}
 
 async function generateCallMapPDF(repName, contactName, callTime, callMapContent) {
   const pdfDoc = await PDFDocument.create();
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  let page = pdfDoc.addPage([612, 792]);
-  const margin = 50;
-  const contentWidth = 612 - margin * 2;
+  const pageW = 612;
+  const pageH = 792;
+  const margin = 40;
+  const contentW = pageW - margin * 2;
+
+  const addPage = () => {
+    const p = pdfDoc.addPage([pageW, pageH]);
+    return { page: p, yPos: pageH - 50 };
+  };
+
+  let { page, yPos } = addPage();
 
   // Header
-  page.drawRectangle({ x: 0, y: 702, width: 612, height: 90, color: DARK });
-  page.drawText('CALL MAP', { x: margin, y: 754, size: 26, font: boldFont, color: WHITE, maxWidth: contentWidth });
+  page.drawRectangle({ x: 0, y: pageH - 80, width: pageW, height: 80, color: DARK });
+  page.drawText('CALL MAP', { x: margin, y: pageH - 44, size: 24, font: boldFont, color: WHITE });
   page.drawText(sanitize(`${repName}  .  ${contactName}  .  ${callTime} ET`), {
-    x: margin, y: 722, size: 11, font: regularFont, color: GOLD, maxWidth: contentWidth
+    x: margin, y: pageH - 64, size: 10, font: regularFont, color: GOLD,
   });
+  yPos = pageH - 98;
 
-  let yPos = 685;
+  const sections = parseSections(callMapContent);
 
-  const wrapText = (text, font, size, maxW) => {
-    const words = sanitize(text).split(' ').filter(Boolean);
-    const lines = [];
-    let current = '';
-    for (const word of words) {
-      const test = current ? `${current} ${word}` : word;
-      if (font.widthOfTextAtSize(test, size) > maxW && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = test;
-      }
+  for (const section of sections) {
+    const label = sanitize(section.label).slice(0, 90);
+    const bodyText = section.body.map(l => sanitize(l)).filter(Boolean).join(' ');
+    const bodyLines = bodyText ? wrapText(bodyText, regularFont, 9.5, contentW - 20) : [];
+
+    const sectionHeight = 20 + (bodyLines.length * 13) + 12;
+
+    if (yPos - sectionHeight < 50) {
+      const next = addPage();
+      page = next.page;
+      yPos = next.yPos;
     }
-    if (current) lines.push(current);
-    return lines;
-  };
 
-  const drawSectionHeader = (title) => {
-    if (yPos < 80) { page = pdfDoc.addPage([612, 792]); yPos = 730; }
-    yPos -= 6;
-    page.drawRectangle({ x: margin, y: yPos - 6, width: contentWidth, height: 22, color: GOLD });
-    page.drawText(sanitize(title).slice(0, 80), { x: margin + 8, y: yPos, size: 10, font: boldFont, color: WHITE });
-    yPos -= 28;
-  };
+    const cardTop = yPos;
+    const cardHeight = sectionHeight;
 
-  const drawBodyText = (text) => {
-    const lines = wrapText(text, regularFont, 10, contentWidth - 16);
-    for (const line of lines) {
-      if (yPos < 60) { page = pdfDoc.addPage([612, 792]); yPos = 730; }
-      page.drawText(line, { x: margin + 8, y: yPos, size: 10, font: regularFont, color: BLACK });
+    page.drawRectangle({
+      x: margin, y: cardTop - cardHeight,
+      width: contentW, height: cardHeight,
+      color: LIGHT_GOLD_BG,
+      borderColor: GOLD,
+      borderWidth: 0.5,
+    });
+
+    page.drawRectangle({
+      x: margin, y: cardTop - 20,
+      width: contentW, height: 20,
+      color: GOLD,
+    });
+
+    page.drawText(label, {
+      x: margin + 8, y: cardTop - 14,
+      size: 9, font: boldFont, color: WHITE,
+      maxWidth: contentW - 16,
+    });
+
+    let textY = cardTop - 32;
+    for (const line of bodyLines) {
+      page.drawText(line, { x: margin + 10, y: textY, size: 9.5, font: regularFont, color: BLACK });
+      textY -= 13;
+    }
+
+    yPos = cardTop - cardHeight - 8;
+  }
+
+  if (sections.length === 0 && callMapContent) {
+    const plainLines = wrapText(callMapContent, regularFont, 10, contentW);
+    for (const line of plainLines) {
+      if (yPos < 50) { const next = addPage(); page = next.page; yPos = next.yPos; }
+      page.drawText(line, { x: margin, y: yPos, size: 10, font: regularFont, color: BLACK });
       yPos -= 14;
     }
-  };
-
-  const inputLines = (callMapContent || '').split('\n');
-  let currentTitle = null;
-  let currentBodyLines = [];
-
-  const flushSection = () => {
-    if (currentTitle !== null) {
-      drawSectionHeader(currentTitle);
-      const body = currentBodyLines.filter(l => l.trim()).join(' ');
-      if (body) drawBodyText(body);
-      yPos -= 4;
-    }
-  };
-
-  for (const line of inputLines) {
-    const isHeader = /^#{1,3}\s/.test(line) || /^\*\*[^*]/.test(line) ||
-      /^[\u{1F300}-\u{1FFFF}]\s/u.test(line);
-    if (isHeader) {
-      flushSection();
-      currentTitle = line.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').replace(/^[-]/,'').trim();
-      currentBodyLines = [];
-    } else if (/^---+$/.test(line.trim())) {
-      // skip
-    } else if (currentTitle !== null) {
-      const cleaned = line.replace(/\*\*/g, '').trim();
-      if (cleaned) currentBodyLines.push(cleaned);
-    }
-  }
-  flushSection();
-
-  if (currentTitle === null && callMapContent) {
-    drawBodyText(callMapContent.replace(/\*\*/g, '').replace(/^#{1,3}\s/gm, ''));
   }
 
   const lastPage = pdfDoc.getPages()[pdfDoc.getPageCount() - 1];
   lastPage.drawText('ARRIV Estate Media  .  Confidential', {
-    x: margin, y: 30, size: 8, font: regularFont, color: rgb(0.5, 0.5, 0.5)
+    x: margin, y: 24, size: 8, font: regularFont, color: rgb(0.6, 0.6, 0.6),
   });
 
   const pdfBytes = await pdfDoc.save();
