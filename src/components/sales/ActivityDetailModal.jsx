@@ -115,7 +115,7 @@ export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
           )}
 
            {/* Notes / Content */}
-           {activity.notes && (
+           {(activity.notes || isEditing) && (
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <FileText className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
