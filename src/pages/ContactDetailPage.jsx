@@ -644,28 +644,6 @@ export default function ContactDetailPage() {
              editedCallMap: editedText
            }).catch(() => {});
          };
-         const handleRegenerate = async (context) => {
-           setRegenLoading(true);
-           try {
-             const res = await base44.functions.invoke('regenerateCallMap', {
-               contactName: callMapActivity.contact_name,
-               contactEmail: callMapActivity.contact_email,
-               companyName: callMapActivity.company_name,
-               contactPhone: callMapActivity.contact_phone || contact?.phone,
-               reason: context,
-               previousCallMap: callMap || undefined,
-             });
-             const newCallMap = res.data?.call_map;
-             if (newCallMap) {
-               const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
-               const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${newCallMap}`;
-               await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
-               setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
-               setActivities(prev => prev.map(a => a.id === callMapActivity.id ? { ...a, notes: updatedNotes } : a));
-             }
-           } catch (e) { console.error(e); }
-           finally { setRegenLoading(false); }
-         };
          return (
            <CallMapModal
              open={!!callMapActivity}
