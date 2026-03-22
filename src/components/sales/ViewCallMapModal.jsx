@@ -23,6 +23,7 @@ export default function ViewCallMapModal({ activity, open, onOpenChange }) {
         companyName: activity.company_name,
         contactPhone: activity.contact_phone,
         reason: contextInput,
+        previousCallMap: callMap || undefined,
       });
       
       const newCallMap = res.data?.call_map;
