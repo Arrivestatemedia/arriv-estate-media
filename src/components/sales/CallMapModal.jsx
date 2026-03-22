@@ -4,8 +4,39 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Phone, RefreshCw, Mail, ChevronDown, ChevronUp, Edit2, Check, X } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Parse call map markdown into sections: [{label, body}]
+function parseCallMap(text) {
+  if (!text) return [];
+  const lines = text.split('\n');
+  const sections = [];
+  let current = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || /^---+$/.test(trimmed)) continue;
+
+    // Detect section header: starts with emoji or ** or #
+    const headerMatch = trimmed.match(/^([\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{2300}-\u{23FF}☎📞📧📅📋📝✅❌🔁📱🚫⏰💬])\s+\*\*(.+?)\*\*/u)
+      || trimmed.match(/^\*\*(.+?)\*\*/);
+    const isHeader = headerMatch || /^#{1,3}\s/.test(trimmed);
+
+    if (isHeader) {
+      if (current) sections.push(current);
+      let label = trimmed
+        .replace(/^#{1,3}\s+/, '')
+        .replace(/\*\*/g, '')
+        .trim();
+      current = { label, body: '' };
+    } else if (current) {
+      const cleaned = trimmed.replace(/\*\*/g, '').replace(/^[-*]\s+/, '');
+      current.body = current.body ? `${current.body} ${cleaned}` : cleaned;
+    }
+  }
+  if (current) sections.push(current);
+  return sections.filter(s => s.label || s.body);
+}
 
 export default function CallMapModal({ open, onClose, contactName, callMap, onRegenerate, regenerating, contactPhone, contactEmail, onCall, onEmail, onSaveEdit }) {
   const [showContextBox, setShowContextBox] = useState(false);
