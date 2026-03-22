@@ -63,8 +63,10 @@ async function generateCallMapPDF(repName, contactName, callTime, callMapContent
     yPos -= 28;
   };
 
+  const stripEmoji = (str) => str.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2300}-\u{23FF}]/gu, '').trim();
+
   const drawBodyText = (text) => {
-    const lines = wrapText(text, regularFont, 10, contentWidth - 16);
+    const lines = wrapText(stripEmoji(text), regularFont, 10, contentWidth - 16);
     for (const line of lines) {
       if (yPos < 60) {
         page = pdfDoc.addPage([612, 792]);
