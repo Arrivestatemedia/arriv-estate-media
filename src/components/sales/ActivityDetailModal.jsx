@@ -1,30 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image, MapPin, Edit2, Check, X } from "lucide-react";
+import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { base44 } from "@/api/base44Client";
 import ViewCallMapModal from "./ViewCallMapModal";
 
-export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
+export default function ActivityDetailModal({ activity, onClose }) {
   const [showCallMap, setShowCallMap] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedNotes, setEditedNotes] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (activity) setEditedNotes(activity.notes || "");
-  }, [activity]);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    await base44.entities.ActivityLog.update(activity.id, { notes: editedNotes });
-    setIsSaving(false);
-    setIsEditing(false);
-    if (onUpdate) onUpdate({ ...activity, notes: editedNotes });
-  };
-
   if (!activity) return null;
 
   const typeColors = {
@@ -51,23 +33,6 @@ export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
         </DialogHeader>
 
         <div className="space-y-4 pt-1">
-          {/* Edit / Save / Cancel buttons */}
-          <div className="flex justify-end gap-2">
-            {!isEditing ? (
-              <Button size="sm" variant="outline" onClick={() => setIsEditing(true)} className="gap-1.5" style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}>
-                <Edit2 className="w-3.5 h-3.5" /> Edit
-              </Button>
-            ) : (
-              <>
-                <Button size="sm" variant="outline" onClick={() => { setIsEditing(false); setEditedNotes(activity.notes || ""); }} className="gap-1.5">
-                  <X className="w-3.5 h-3.5" /> Cancel
-                </Button>
-                <Button size="sm" onClick={handleSave} disabled={isSaving} className="gap-1.5" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
-                  <Check className="w-3.5 h-3.5" /> {isSaving ? "Saving..." : "Save"}
-                </Button>
-              </>
-            )}
-          </div>
           {/* Contact Info */}
           <div className="bg-slate-50 rounded-lg p-3 space-y-1.5 text-sm">
             {activity.contact_name && (
@@ -115,21 +80,13 @@ export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
           )}
 
            {/* Notes / Content */}
-           {(activity.notes || isEditing) && (
+           {activity.notes && (
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <FileText className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(26,26,26,0.5)' }}>Notes / Content</p>
               </div>
-              {isEditing ? (
-                <Textarea
-                  value={editedNotes}
-                  onChange={e => setEditedNotes(e.target.value)}
-                  rows={6}
-                  className="text-sm resize-none"
-                  style={{ borderColor: 'rgba(184,149,106,0.3)' }}
-                />
-              ) : (() => {
+              {(() => {
                 const raw = activity.notes?.replace(/HubSpot contact/gi, 'Contact').replace(/HubSpot/gi, '');
                 const screenshotMarker = '\n\n[Screenshots]\n';
                 const markerIdx = raw?.indexOf('[Screenshots]\n');
