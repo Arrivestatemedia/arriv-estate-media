@@ -158,7 +158,7 @@ If they say they don't need it: "Totally understand. If you ever need backup cov
 
     // Generate comprehensive call map with learned patterns
     const callMapRes = await base44.integrations.Core.InvokeLLM({
-      prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map.${previousCallMap ? `\n\n⚠️ PREVIOUSLY EDITED CALL MAP — The rep has already manually customized this call map. You MUST treat their edits as intentional style and tone choices. Preserve the specific phrasing, wording, and structural decisions they made wherever possible. Only update sections that need to change based on new context (e.g. new activity, new intel). Do NOT revert or override their manual edits:\n${previousCallMap}\n` : ""}${learnedStyleContext}
+      prompt: `You're helping a sales rep at ARRIV prep for a call with ${contactName}. Generate a complete call map.${previousCallMap ? `\n\nEXISTING CALL MAP (for reference only — do NOT copy the opening word-for-word if it doesn't match the situation below):\n${previousCallMap}\n` : ""}${learnedStyleContext}
 
 CRITICAL — ARRIV IS A REAL ESTATE PHOTOGRAPHY & VIDEO COMPANY. NOTHING ELSE.
 - We shoot photos and video for real estate listings. That's it.
