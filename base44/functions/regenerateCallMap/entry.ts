@@ -98,9 +98,9 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
     }).join("\n");
 
     // Collect all picture URLs for LLM analysis
-    const pictureUrls = pastActivities
-      .flatMap(a => a.picture_urls || [])
-      .slice(0, 8);
+    // Merge picture URLs from backend history + any passed directly from frontend
+    const dbPictureUrls = pastActivities.flatMap(a => a.picture_urls || []);
+    const pictureUrls = [...new Set([...(frontendPictureUrls || []), ...dbPictureUrls])].slice(0, 10);
 
     // Do web research on contact/company to find market intel
     const webResearch = await base44.integrations.Core.InvokeLLM({
