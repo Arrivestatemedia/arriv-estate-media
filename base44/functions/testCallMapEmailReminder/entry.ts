@@ -84,7 +84,7 @@ async function generateCallMapPDF(repName, contactName, callTime, callMapContent
 
   const flushSection = () => {
     if (currentTitle !== null) {
-      drawSectionHeader(currentTitle);
+      drawSectionHeader(stripEmoji(currentTitle));
       const body = currentBodyLines.filter(l => l.trim()).join(' ');
       if (body) drawBodyText(body);
       yPos -= 4;
