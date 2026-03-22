@@ -1572,8 +1572,11 @@ Return ONLY valid JSON, no extra text:
                const salesRepName = localStorage.getItem('sales_member_name') || 'the sales rep';
                const prompt = `You are generating a hyper-personalized, research-backed call map for ${salesRepName}, a sales representative for ARRIV Estate Media LLC (full-service real estate media: photography, video, drone).
 
-               ## PRIOR MANUAL EDITS (LEARN FROM THESE REFINEMENTS)
-               ${manualEdits || 'No prior edits — generate from scratch based on research.'}
+               ## CURRENT CALL MAP (THE REP HAS MANUALLY EDITED THIS — PRESERVE THEIR WORDING AND STYLE)
+               ${callMap ? `The rep has already customized the call map below. Treat every edit as intentional. Preserve their phrasing, structure, and tone. Only update sections that need to change based on new context.\n${callMap}` : 'No existing call map — generate fresh.'}
+
+               ## PRIOR MANUAL EDITS FROM OTHER ACTIVITIES (ALSO LEARN FROM THESE)
+               ${manualEdits || 'No prior edits.'}
 
                ## CONTACT INFO
           - Name: ${callMapActivity.contact_name || 'the contact'}
