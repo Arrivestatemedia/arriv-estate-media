@@ -50,7 +50,8 @@ async function generateCallMapPDF(repName, contactName, callTime, callMapContent
     return lines;
   };
 
-  const drawSectionHeader = (title) => {
+  const drawSectionHeader = (rawTitle) => {
+    const title = rawTitle.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2300}-\u{23FF}]/gu, '').trim();
     if (yPos < 80) {
       page = pdfDoc.addPage([612, 792]);
       yPos = 730;
