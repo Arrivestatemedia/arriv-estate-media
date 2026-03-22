@@ -31,6 +31,11 @@ async function generateCallMapPDF(repName, contactName, callTime, callMapContent
     const lines = (callMapContent || '').split('\n');
     let i = 0;
 
+    const sanitize = (str) => str
+      .replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2300}-\u{23FF}]/gu, '')
+      .replace(/[^\x20-\x7E]/g, '')
+      .trim();
+
     const renderSection = (title, body) => {
       if (doc.y > 680) doc.addPage();
 
