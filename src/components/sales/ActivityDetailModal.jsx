@@ -51,6 +51,23 @@ export default function ActivityDetailModal({ activity, onClose, onUpdate }) {
         </DialogHeader>
 
         <div className="space-y-4 pt-1">
+          {/* Edit / Save / Cancel buttons */}
+          <div className="flex justify-end gap-2">
+            {!isEditing ? (
+              <Button size="sm" variant="outline" onClick={() => setIsEditing(true)} className="gap-1.5" style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}>
+                <Edit2 className="w-3.5 h-3.5" /> Edit
+              </Button>
+            ) : (
+              <>
+                <Button size="sm" variant="outline" onClick={() => { setIsEditing(false); setEditedNotes(activity.notes || ""); }} className="gap-1.5">
+                  <X className="w-3.5 h-3.5" /> Cancel
+                </Button>
+                <Button size="sm" onClick={handleSave} disabled={isSaving} className="gap-1.5" style={{ backgroundColor: '#B8956A', color: '#fff' }}>
+                  <Check className="w-3.5 h-3.5" /> {isSaving ? "Saving..." : "Save"}
+                </Button>
+              </>
+            )}
+          </div>
           {/* Contact Info */}
           <div className="bg-slate-50 rounded-lg p-3 space-y-1.5 text-sm">
             {activity.contact_name && (
