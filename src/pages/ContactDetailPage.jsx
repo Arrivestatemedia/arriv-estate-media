@@ -572,7 +572,6 @@ export default function ContactDetailPage() {
          const raw = callMapActivity.notes || '';
          const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
          const callMap = mapMatch ? mapMatch[1].trim() : '';
-         const [regenLoading, setRegenLoading] = React.useState(false);
          const handleRegenerate = async (context) => {
            setRegenLoading(true);
            try {
