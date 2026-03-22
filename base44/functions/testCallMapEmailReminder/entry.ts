@@ -1,90 +1,139 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
-import PDFDocument from 'npm:pdfkit@0.15.0';
+import { PDFDocument, rgb, StandardFonts } from 'npm:pdf-lib@1.17.1';
+
+const GOLD = rgb(0.722, 0.584, 0.416);
+const WHITE = rgb(1, 1, 1);
+const BLACK = rgb(0.102, 0.102, 0.102);
+const DARK = rgb(0.102, 0.102, 0.102);
+const LIGHT_GRAY = rgb(0.97, 0.97, 0.97);
 
 async function generateCallMapPDF(repName, contactName, callTime, callMapContent) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50, size: 'LETTER' });
-    const chunks = [];
+  const pdfDoc = await PDFDocument.create();
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    doc.on('data', chunk => chunks.push(chunk));
-    doc.on('end', () => {
-      const buf = Buffer.concat(chunks);
-      resolve(buf.toString('base64'));
-    });
-    doc.on('error', reject);
+  let page = pdfDoc.addPage([612, 792]);
+  const { width } = page.getSize();
+  const margin = 50;
+  const contentWidth = width - margin * 2;
 
-    const GOLD = '#B8956A';
-    const BLACK = '#1A1A1A';
-    const GRAY = '#666666';
-    const pageWidth = 612 - 100;
-
-    doc.rect(0, 0, 612, 90).fill('#1A1A1A');
-    doc.fillColor('#FFFFFF').fontSize(24).font('Helvetica-Bold')
-      .text('CALL MAP', 50, 22, { width: pageWidth, align: 'center' });
-    doc.fillColor(GOLD).fontSize(12).font('Helvetica')
-      .text(`${repName}  ·  ${contactName}  ·  ${callTime} ET`, 50, 54, { width: pageWidth, align: 'center' });
-
-    doc.y = 110;
-
-    const lines = (callMapContent || '').split('\n');
-    let currentTitle = null;
-    let currentBody = [];
-
-    const renderSection = (title, body) => {
-      if (doc.y > 680) doc.addPage();
-      const titleY = doc.y;
-      doc.rect(50, titleY, pageWidth, 22).fill(GOLD);
-      doc.fillColor('#FFFFFF').fontSize(10).font('Helvetica-Bold')
-        .text(title.trim(), 58, titleY + 6, { width: pageWidth - 16 });
-      doc.y = titleY + 28;
-      if (body.trim()) {
-        doc.fillColor(BLACK).fontSize(10).font('Helvetica')
-          .text(body.trim(), 58, doc.y, { width: pageWidth - 16, lineGap: 2 });
-        doc.y += 8;
-      }
-      doc.y += 4;
-    };
-
-    for (const line of lines) {
-      const isHeader = /^#{1,3}\s/.test(line) || /^\*\*[^*]/.test(line) ||
-        /^[📞📧✅🔴📩🎯💡🔑🚫⏱️📱💼🏠📋🗓️]\s/.test(line);
-
-      if (isHeader) {
-        if (currentTitle !== null) renderSection(currentTitle, currentBody.join('\n'));
-        currentTitle = line.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').replace(/^[-–—]\s+/, '').trim();
-        currentBody = [];
-      } else if (line.trim() === '---' || line.trim() === '***') {
-        // skip
-      } else if (currentTitle !== null) {
-        const cleaned = line.replace(/\*\*/g, '').trim();
-        if (cleaned) currentBody.push(cleaned);
-      }
-    }
-
-    if (currentTitle !== null) renderSection(currentTitle, currentBody.join('\n'));
-
-    if (currentTitle === null && callMapContent) {
-      doc.fillColor(BLACK).fontSize(10).font('Helvetica')
-        .text(callMapContent.replace(/\*\*/g, '').trim(), 50, doc.y, { width: pageWidth, lineGap: 2 });
-    }
-
-    doc.fillColor(GRAY).fontSize(8).font('Helvetica')
-      .text('ARRIV Estate Media  ·  Confidential', 50, 730, { width: pageWidth, align: 'center' });
-
-    doc.end();
+  // ── Header bar ──
+  page.drawRectangle({ x: 0, y: 702, width: 612, height: 90, color: DARK });
+  page.drawText('CALL MAP', {
+    x: margin, y: 754, size: 26, font: boldFont, color: WHITE,
+    maxWidth: contentWidth
   });
+  const subLine = `${repName}  ·  ${contactName}  ·  ${callTime} ET`;
+  page.drawText(subLine, {
+    x: margin, y: 722, size: 11, font: regularFont, color: GOLD,
+    maxWidth: contentWidth
+  });
+
+  let yPos = 685;
+
+  // Helper: wrap text into lines
+  const wrapText = (text, font, size, maxW) => {
+    const words = text.split(' ');
+    const lines = [];
+    let current = '';
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      const w = font.widthOfTextAtSize(test, size);
+      if (w > maxW && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  };
+
+  const drawSectionHeader = (title) => {
+    if (yPos < 80) {
+      page = pdfDoc.addPage([612, 792]);
+      yPos = 730;
+    }
+    yPos -= 6;
+    page.drawRectangle({ x: margin, y: yPos - 6, width: contentWidth, height: 22, color: GOLD });
+    page.drawText(title.slice(0, 80), {
+      x: margin + 8, y: yPos, size: 10, font: boldFont, color: WHITE
+    });
+    yPos -= 28;
+  };
+
+  const drawBodyText = (text) => {
+    const lines = wrapText(text, regularFont, 10, contentWidth - 16);
+    for (const line of lines) {
+      if (yPos < 60) {
+        page = pdfDoc.addPage([612, 792]);
+        yPos = 730;
+      }
+      page.drawText(line, { x: margin + 8, y: yPos, size: 10, font: regularFont, color: BLACK });
+      yPos -= 14;
+    }
+  };
+
+  // Parse markdown sections
+  const lines = (callMapContent || '').split('\n');
+  let currentTitle = null;
+  let currentBodyLines = [];
+
+  const flushSection = () => {
+    if (currentTitle !== null) {
+      drawSectionHeader(currentTitle);
+      const body = currentBodyLines.filter(l => l.trim()).join(' ');
+      if (body) drawBodyText(body);
+      yPos -= 4;
+    }
+  };
+
+  for (const line of lines) {
+    const isHeader = /^#{1,3}\s/.test(line) || /^\*\*[^*]/.test(line) ||
+      /^[📞📧✅🔴📩🎯💡🔑🚫⏱️📱💼🏠📋🗓️]\s/.test(line);
+
+    if (isHeader) {
+      flushSection();
+      currentTitle = line.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').replace(/^[-–—]\s+/, '').trim();
+      // Strip leading emoji
+      currentTitle = currentTitle.replace(/^[\u{1F300}-\u{1FFFF}]\s*/u, '').trim();
+      currentBodyLines = [];
+    } else if (/^---+$/.test(line.trim())) {
+      // skip
+    } else if (currentTitle !== null) {
+      const cleaned = line.replace(/\*\*/g, '').trim();
+      if (cleaned) currentBodyLines.push(cleaned);
+    }
+  }
+  flushSection();
+
+  // If no sections found, dump raw text
+  if (currentTitle === null && callMapContent) {
+    const cleanText = callMapContent.replace(/\*\*/g, '').replace(/^#{1,3}\s/gm, '');
+    drawBodyText(cleanText);
+  }
+
+  // Footer
+  const lastPage = pdfDoc.getPages()[pdfDoc.getPageCount() - 1];
+  lastPage.drawText('ARRIV Estate Media  ·  Confidential', {
+    x: margin, y: 30, size: 8, font: regularFont, color: rgb(0.5, 0.5, 0.5)
+  });
+
+  const pdfBytes = await pdfDoc.save();
+  // Convert to base64
+  const base64 = btoa(String.fromCharCode(...pdfBytes));
+  return base64;
 }
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Find Chloe-Ray Iacob's upcoming call
-    const all = await base44.asServiceRole.entities.ActivityLog.filter({
-      contact_name: 'Chloe-Ray Iacob'
-    }, 'activity_date', 50);
+    const all = await base44.asServiceRole.entities.ActivityLog.filter(
+      { contact_name: 'Chloe-Ray Iacob' }, 'activity_date', 50
+    );
 
-    // Find the upcoming one
     const now = new Date();
     const upcoming = all
       .filter(a => new Date(a.activity_date) > now)
@@ -97,9 +146,7 @@ Deno.serve(async (req) => {
     const activity = upcoming[0];
 
     const callTime = new Date(activity.activity_date).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZone: 'America/New_York'
+      hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York'
     });
 
     const repName = 'Brad';
@@ -118,12 +165,10 @@ Deno.serve(async (req) => {
       to: [{ email: 'BradCBurke@arrivestatemedia.com', name: 'Brad Burke' }],
       subject: `⏰ [TEST] Call Reminder: ${contact} at ${callTime}`,
       htmlContent: `<p>Hi ${repName},</p><p>You have a call at <strong>${callTime}</strong>. Please find your call map attached.</p><p>Good luck!</p><p>— Arriv Estate Media</p>`,
-      attachment: [
-        {
-          content: pdfBase64,
-          name: `Call_Map_${contact.replace(/\s+/g, '_')}.pdf`
-        }
-      ]
+      attachment: [{
+        content: pdfBase64,
+        name: `Call_Map_${contact.replace(/\s+/g, '_')}.pdf`
+      }]
     };
 
     const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -137,19 +182,15 @@ Deno.serve(async (req) => {
     });
 
     const result = await resp.json();
+    if (!resp.ok) return Response.json({ error: result }, { status: 400 });
 
-    if (!resp.ok) {
-      return Response.json({ error: result }, { status: 400 });
-    }
-
-    return Response.json({ 
-      success: true, 
+    return Response.json({
+      success: true,
       sent_to: 'BradCBurke@arrivestatemedia.com',
-      activity_id: activity.id,
       call_time: callTime,
       contact,
       has_call_map: !!mapMatch,
-      brevo: result
+      call_map_preview: callMapContent.slice(0, 200)
     });
   } catch (error) {
     console.error(error);
