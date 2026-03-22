@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { activityId, contactName, contactEmail, companyName, contactPhone, activityHistory, patternTags, reason, contactIntel, previousCallMap } = await req.json();
+    const { activityId, contactName, contactEmail, companyName, contactPhone, activityHistory, patternTags, reason, contactIntel, previousCallMap, pictureUrls: frontendPictureUrls } = await req.json();
 
     // Fetch past activities for this contact
     const pastActivities = await base44.asServiceRole.entities.ActivityLog.filter({
