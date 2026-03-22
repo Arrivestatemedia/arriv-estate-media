@@ -39,7 +39,7 @@ function parseSections(content) {
   const isHeaderLine = (line) =>
     /^#{1,3}\s/.test(line) ||
     /^\*\*[A-Z]/.test(line) ||
-    /^[📞📧✅🔴📩🎯💡🔑🚫⏱📱💼🏠📋🗓🔄⏰❄️🟢🔁📵]\s/u.test(line);
+    /^\p{Emoji}\s/u.test(line);
 
   for (const line of rawLines) {
     if (/^---+$/.test(line.trim())) continue;
