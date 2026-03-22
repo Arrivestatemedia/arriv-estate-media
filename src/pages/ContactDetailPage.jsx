@@ -571,13 +571,13 @@ export default function ContactDetailPage() {
          const raw = callMapActivity.notes || '';
          const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
          const callMap = mapMatch ? mapMatch[1].trim() : '';
+         const [regenLoading, setRegenLoading] = React.useState(false);
          const handleSaveCallMapEdit = async (editedText) => {
            const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
            const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
            await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
            setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
            setActivities(prev => prev.map(a => a.id === callMapActivity.id ? { ...a, notes: updatedNotes } : a));
-           // Fire-and-forget: learn from this edit system-wide
            base44.functions.invoke('analyzeCallMapEdit', {
              salesMemberId: localStorage.getItem('sales_member_id'),
              salesMemberEmail: localStorage.getItem('sales_member_email'),
@@ -585,17 +585,41 @@ export default function ContactDetailPage() {
              editedCallMap: editedText
            }).catch(() => {});
          };
+         const handleRegenerate = async (context) => {
+           setRegenLoading(true);
+           try {
+             const res = await base44.functions.invoke('regenerateCallMap', {
+               contactName: callMapActivity.contact_name,
+               contactEmail: callMapActivity.contact_email,
+               companyName: callMapActivity.company_name,
+               contactPhone: callMapActivity.contact_phone || contact?.phone,
+               reason: context,
+               previousCallMap: callMap || undefined,
+             });
+             const newCallMap = res.data?.call_map;
+             if (newCallMap) {
+               const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
+               const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${newCallMap}`;
+               await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+               setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
+               setActivities(prev => prev.map(a => a.id === callMapActivity.id ? { ...a, notes: updatedNotes } : a));
+             }
+           } catch (e) { console.error(e); }
+           finally { setRegenLoading(false); }
+         };
          return (
            <CallMapModal
              open={!!callMapActivity}
              onClose={() => setCallMapActivity(null)}
              contactName={callMapActivity.contact_name || callMapActivity.company_name || 'Contact'}
              callMap={callMap}
+             regenerating={regenLoading}
              contactPhone={contact?.phone || callMapActivity.contact_phone || ''}
              contactEmail={contact?.email || callMapActivity.contact_email || ''}
              onCall={(phone) => { localStorage.setItem('_dialerPhone', phone); window.dispatchEvent(new CustomEvent('openDialer', { detail: { phone } })); }}
              onEmail={(email) => { localStorage.setItem('_emailTo', email); window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email } })); }}
              onSaveEdit={handleSaveCallMapEdit}
+             onRegenerate={handleRegenerate}
            />
          );
        })()}
