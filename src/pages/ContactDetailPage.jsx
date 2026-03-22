@@ -572,6 +572,65 @@ export default function ContactDetailPage() {
          const mapMatch = raw.match(/--- CALL MAP ---\s*([\s\S]*)/i);
          const callMap = mapMatch ? mapMatch[1].trim() : '';
          const [regenLoading, setRegenLoading] = React.useState(false);
+         const handleRegenerate = async (context) => {
+           setRegenLoading(true);
+           try {
+             // Build rich history from all activities for this contact
+             const contactActivities = activities
+               .filter(a => a.contact_email === callMapActivity.contact_email || a.contact_name === callMapActivity.contact_name)
+               .sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))
+               .slice(0, 15);
+
+             const activityHistory = contactActivities.map(a => {
+               const dt = new Date(a.activity_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+               const note = (a.notes || '').replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
+               const pics = a.picture_urls?.length ? ` [+${a.picture_urls.length} attachment(s)]` : '';
+               return `${dt} (${a.activity_type}): ${note.slice(0, 300)}${pics}`;
+             }).join('\n');
+
+             // Collect all picture/attachment URLs from history for LLM vision analysis
+             const attachmentUrls = contactActivities
+               .flatMap(a => a.picture_urls || [])
+               .slice(0, 8);
+
+             // Build contactIntel from notes on the contact record
+             const contactIntel = [
+               contact?.notes,
+               context
+             ].filter(Boolean).join('\n\n');
+
+             // Detect recurring patterns (e.g. "has photographer", "too expensive")
+             const allNotes = contactActivities.map(a => (a.notes || '').toLowerCase()).join(' ');
+             const patternTags = [];
+             if (/has.{0,20}photographer|already.{0,20}someone/.test(allNotes)) patternTags.push('has existing photographer');
+             if (/too expensive|too much|price|cost/.test(allNotes)) patternTags.push('price sensitive');
+             if (/not interested|no thanks|don.t need/.test(allNotes)) patternTags.push('previously declined');
+             if (/call back|try again|follow.?up/.test(allNotes)) patternTags.push('requested follow-up');
+             if (/busy|bad time|in a meeting/.test(allNotes)) patternTags.push('often busy');
+
+             const res = await base44.functions.invoke('regenerateCallMap', {
+               contactName: callMapActivity.contact_name,
+               contactEmail: callMapActivity.contact_email,
+               companyName: callMapActivity.company_name,
+               contactPhone: callMapActivity.contact_phone || contact?.phone,
+               reason: context,
+               previousCallMap: callMap || undefined,
+               activityHistory,
+               contactIntel: contactIntel || undefined,
+               patternTags: patternTags.length ? patternTags : undefined,
+               pictureUrls: attachmentUrls.length ? attachmentUrls : undefined,
+             });
+             const newCallMap = res.data?.call_map;
+             if (newCallMap) {
+               const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
+               const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${newCallMap}`;
+               await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+               setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
+               setActivities(prev => prev.map(a => a.id === callMapActivity.id ? { ...a, notes: updatedNotes } : a));
+             }
+           } catch (e) { console.error(e); }
+           finally { setRegenLoading(false); }
+         };
          const handleSaveCallMapEdit = async (editedText) => {
            const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
            const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
