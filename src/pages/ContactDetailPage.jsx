@@ -36,6 +36,7 @@ export default function ContactDetailPage() {
   const [callMapActivity, setCallMapActivity] = useState(null);
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [saving, setSaving] = useState(false);
+  const [regenLoading, setRegenLoading] = useState(false);
 
   const queryClient = useQueryClient();
 
