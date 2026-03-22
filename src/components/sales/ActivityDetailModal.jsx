@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image, MapPin } from "lucide-react";
+import { Clock, User, Building2, Phone, Mail, FileText, Timer, Image, MapPin, Edit2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { base44 } from "@/api/base44Client";
 import ViewCallMapModal from "./ViewCallMapModal";
 
 export default function ActivityDetailModal({ activity, onClose }) {
