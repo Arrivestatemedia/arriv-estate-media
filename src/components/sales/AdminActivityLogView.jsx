@@ -284,39 +284,102 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
       </div>
 
       {/* Detail Modal */}
-      <Dialog open={!!selectedActivity} onOpenChange={() => setSelectedActivity(null)}>
+      <Dialog open={!!selectedActivity} onOpenChange={() => { setSelectedActivity(null); setEditingActivity(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Activity Details</DialogTitle>
+            <div className="flex justify-between items-center pr-6">
+              <DialogTitle>Activity Details</DialogTitle>
+              {selectedActivity && !editingActivity && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
+                  onClick={() => setEditingActivity({
+                    notes: selectedActivity.notes || '',
+                    activity_type: selectedActivity.activity_type,
+                    activity_date: selectedActivity.activity_date ? new Date(selectedActivity.activity_date).toISOString().slice(0,16) : '',
+                    duration_minutes: selectedActivity.duration_minutes || '',
+                  })}
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Edit
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {selectedActivity && (
             <div className="space-y-5">
-              <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
-                <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
-                {selectedActivity.duration_minutes > 0 && (
-                  <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
-                )}
-                <p><span className="font-medium">Notes:</span> {selectedActivity.notes}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                <p className="font-medium text-sm mb-1" style={{ color: 'rgba(26,26,26,0.6)' }}>Contact</p>
-                {selectedActivity.contact_name && <p>{selectedActivity.contact_name}</p>}
-                {selectedActivity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{selectedActivity.contact_email}</p>}
-                {selectedActivity.company_name && <p className="text-sm">{selectedActivity.company_name}</p>}
-              </div>
-              {selectedActivity.picture_urls?.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedActivity.picture_urls.map((url, idx) => (
-                    <img
-                      key={idx}
-                      src={url}
-                      alt={`Activity ${idx + 1}`}
-                      className="rounded-lg max-h-48 w-auto cursor-zoom-in hover:opacity-90 transition"
-                      onClick={() => setZoomedImage(url)}
-                    />
-                  ))}
+              {editingActivity ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{ color: 'rgba(26,26,26,0.5)' }}>Type</label>
+                    <Select value={editingActivity.activity_type} onValueChange={v => setEditingActivity(p => ({ ...p, activity_type: v }))}>
+                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="call">Call</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                        <SelectItem value="task">Task</SelectItem>
+                        <SelectItem value="note">Note</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{ color: 'rgba(26,26,26,0.5)' }}>Date & Time</label>
+                    <Input type="datetime-local" className="h-9 text-sm" value={editingActivity.activity_date} onChange={e => setEditingActivity(p => ({ ...p, activity_date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{ color: 'rgba(26,26,26,0.5)' }}>Duration (minutes)</label>
+                    <Input type="number" className="h-9 text-sm" value={editingActivity.duration_minutes} onChange={e => setEditingActivity(p => ({ ...p, duration_minutes: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wide mb-1 block" style={{ color: 'rgba(26,26,26,0.5)' }}>Notes</label>
+                    <Textarea className="text-sm" rows={4} value={editingActivity.notes} onChange={e => setEditingActivity(p => ({ ...p, notes: e.target.value }))} />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="outline" onClick={() => setEditingActivity(null)}>Cancel</Button>
+                    <Button size="sm" disabled={isSavingEdit} style={{ backgroundColor: '#B8956A', color: '#fff' }}
+                      onClick={async () => {
+                        setIsSavingEdit(true);
+                        await base44.entities.ActivityLog.update(selectedActivity.id, {
+                          activity_type: editingActivity.activity_type,
+                          activity_date: new Date(editingActivity.activity_date).toISOString(),
+                          duration_minutes: Number(editingActivity.duration_minutes) || 0,
+                          notes: editingActivity.notes,
+                        });
+                        setSelectedActivity(null);
+                        setEditingActivity(null);
+                        setIsSavingEdit(false);
+                      }}
+                    >
+                      {isSavingEdit ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                    <p><span className="font-medium">Type:</span> {activityLabels[selectedActivity.activity_type]}</p>
+                    <p><span className="font-medium">Date:</span> {format(new Date(selectedActivity.activity_date), "MMM d, yyyy h:mm a")}</p>
+                    {selectedActivity.duration_minutes > 0 && (
+                      <p><span className="font-medium">Duration:</span> {selectedActivity.duration_minutes} minutes</p>
+                    )}
+                    <p><span className="font-medium">Notes:</span> {selectedActivity.notes}</p>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                    <p className="font-medium text-sm mb-1" style={{ color: 'rgba(26,26,26,0.6)' }}>Contact</p>
+                    {selectedActivity.contact_name && <p>{selectedActivity.contact_name}</p>}
+                    {selectedActivity.contact_email && <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{selectedActivity.contact_email}</p>}
+                    {selectedActivity.company_name && <p className="text-sm">{selectedActivity.company_name}</p>}
+                  </div>
+                  {selectedActivity.picture_urls?.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedActivity.picture_urls.map((url, idx) => (
+                        <img key={idx} src={url} alt={`Activity ${idx + 1}`} className="rounded-lg max-h-48 w-auto cursor-zoom-in hover:opacity-90 transition" onClick={() => setZoomedImage(url)} />
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
