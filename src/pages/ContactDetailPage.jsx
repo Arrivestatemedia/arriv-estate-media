@@ -128,12 +128,12 @@ export default function ContactDetailPage() {
         if (!phone && contactEmail) {
           try {
             const res = await base44.functions.invoke('searchHubSpotContacts', { query: contactEmail });
-            const results = res?.data?.results || [];
-            if (results.length > 0) {
+            const contacts = res?.data?.contacts || [];
+            if (contacts.length > 0) {
               // Try exact email match first
-              let match = results.find(r => r.email?.toLowerCase() === contactEmail.toLowerCase());
+              let match = contacts.find(r => r.email?.toLowerCase() === contactEmail.toLowerCase());
               // Fall back to first result if no exact match
-              if (!match) match = results[0];
+              if (!match) match = contacts[0];
               
               const hsPhone = match?.phone || '';
               if (hsPhone) {
