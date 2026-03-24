@@ -33,7 +33,17 @@ Deno.serve(async (req) => {
         : 'Task';
 
       const repEmail = activity.sales_member_email;
-      const firstName = repEmail.split('@')[0].split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+      
+      // Look up the actual sales team member name
+      let firstName = repEmail.split('@')[0];
+      try {
+        const salesMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: repEmail });
+        if (salesMembers.length > 0 && salesMembers[0].full_name) {
+          firstName = salesMembers[0].full_name.split(' ')[0];
+        }
+      } catch (e) {
+        console.warn(`Could not look up sales member ${repEmail}, using email prefix`);
+      }
 
       // Extract call map text
       const rawNotes = activity.notes || '';
