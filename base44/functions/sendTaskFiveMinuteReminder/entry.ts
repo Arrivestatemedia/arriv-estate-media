@@ -38,11 +38,7 @@ Deno.serve(async (req) => {
       // Strip call map from notes
       const rawNotes = activity.notes || '';
       const callMapMatch = rawNotes.match(/\n\n--- CALL MAP ---\s*([\s\S]*)/i);
-      // Strip all emoji and non-ASCII chars from call map for jsPDF compatibility
-      const rawCallMap = callMapMatch ? callMapMatch[1].trim() : null;
-      const callMapText = rawCallMap
-        ? rawCallMap.replace(/[^\x00-\x7F]/g, '').replace(/\*\*/g, '').trim()
-        : null;
+      const callMapText = callMapMatch ? callMapMatch[1].trim() : null;
 
       // Generate call map PDF if available
       let attachments = [];
