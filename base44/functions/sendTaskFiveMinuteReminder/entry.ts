@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const upcoming = activities.filter(a => a.sales_member_email);
 
     if (upcoming.length === 0) {
-      return Response.json({ success: true, sent: 0, version: 'v3' });
+      return Response.json({ success: true, sent: 0 });
     }
 
     const brevoApiKey = Deno.env.get('BREVO_API_KEY');
@@ -35,12 +35,12 @@ Deno.serve(async (req) => {
       const repEmail = activity.sales_member_email;
       const firstName = repEmail.split('@')[0].split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 
-      // Strip call map from notes
+      // Extract call map text
       const rawNotes = activity.notes || '';
       const callMapMatch = rawNotes.match(/\n\n--- CALL MAP ---\s*([\s\S]*)/i);
       const callMapText = callMapMatch ? callMapMatch[1].trim() : null;
 
-      // Generate call map PDF if available
+      // Generate professional call map PDF
       let attachments = [];
       if (callMapText) {
         try {
@@ -50,38 +50,90 @@ Deno.serve(async (req) => {
           const pageHeight = doc.internal.pageSize.getHeight();
           const margin = 50;
 
+          // White page background
+          doc.setFillColor(255, 255, 255);
+          doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+          // Dark header bar
+          doc.setFillColor(26, 26, 26);
+          doc.rect(0, 0, pageWidth, 80, 'F');
+
+          // "CALL MAP" title in white
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(16);
-          doc.setTextColor(26, 26, 26);
-          doc.text(`Call Map: ${contact}`, margin, 60);
+          doc.setFontSize(28);
+          doc.setTextColor(255, 255, 255);
+          doc.text('CALL MAP', margin, 35);
 
+          // Subtitle with rep name, contact, and time in gold
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          doc.setTextColor(80, 80, 80);
-          doc.text(`${type} at ${time} ET`, margin, 80);
+          doc.setFontSize(11);
+          doc.setTextColor(184, 149, 106);
+          doc.text(`${firstName} ${contact} ${time}`, margin, 60);
 
+          // Gold divider line
           doc.setDrawColor(184, 149, 106);
-          doc.setLineWidth(1);
-          doc.line(margin, 92, pageWidth - margin, 92);
+          doc.setLineWidth(2);
+          doc.line(margin, 85, pageWidth - margin, 85);
 
-          let y = 112;
-          const lines = doc.splitTextToSize(callMapText, pageWidth - margin * 2);
+          let y = 110;
+
+          // Parse call map sections and render with styling
+          const lines = callMapText.split('\n');
+          let currentSection = null;
 
           for (const line of lines) {
             if (y > pageHeight - 60) {
               doc.addPage();
               y = 50;
             }
-            if (/^\*\*/.test(line)) {
-              doc.setFont('helvetica', 'bold');
-              doc.text(line.replace(/\*\*/g, ''), margin, y);
-              doc.setFont('helvetica', 'normal');
-            } else {
-              doc.setFont('helvetica', 'normal');
-              doc.text(line, margin, y);
+
+            const trimmed = line.trim();
+            if (!trimmed) {
+              y += 8;
+              continue;
             }
-            y += 14;
+
+            // Section headers (bold text at start of line, like "Opening", "If they're interested", etc.)
+            if (/^(Opening|If |When |Follow-up)/.test(trimmed) && !trimmed.startsWith('  ')) {
+              // Draw section header with gold background
+              const headerHeight = 16;
+              doc.setFillColor(184, 149, 106);
+              doc.rect(margin, y - 10, pageWidth - margin * 2, headerHeight, 'F');
+
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(10);
+              doc.setTextColor(255, 255, 255);
+              doc.text(trimmed, margin + 8, y + 2);
+
+              currentSection = trimmed;
+              y += 20;
+              continue;
+            }
+
+            // Content under sections
+            if (currentSection) {
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(10);
+              doc.setTextColor(80, 80, 80);
+
+              const contentLines = doc.splitTextToSize(trimmed, pageWidth - margin * 2 - 16);
+              for (const contentLine of contentLines) {
+                if (y > pageHeight - 60) {
+                  doc.addPage();
+                  y = 50;
+                }
+                doc.text(contentLine, margin + 8, y);
+                y += 13;
+              }
+              y += 6;
+            }
           }
+
+          // Footer
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(180, 180, 180);
+          doc.text('ARRIV Estate Media · Confidential', pageWidth / 2, pageHeight - 20, { align: 'center' });
 
           const pdfBytes = doc.output('arraybuffer');
           const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
@@ -92,7 +144,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Clean HTML email
+      // Send via Brevo
       const htmlBody = `<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -131,9 +183,8 @@ Deno.serve(async (req) => {
 
     const sent = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').map(r => r.reason?.message);
-    console.log(`Results: ${sent} sent, ${failed.length} failed`, failed);
 
-    return Response.json({ success: true, sent, failed: failed.length, version: 'v3' });
+    return Response.json({ success: true, sent, failed: failed.length });
 
   } catch (error) {
     console.error('Error sending 5-minute task reminders:', error);
