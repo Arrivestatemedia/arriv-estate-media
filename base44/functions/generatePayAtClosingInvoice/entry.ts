@@ -297,6 +297,19 @@ Deno.serve(async (req) => {
       y += clauseLines.length * 13;
     }
 
+    // Refund Policy (small print above footer)
+    const refundY = pageHeight - 100;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, refundY, pageWidth - margin, refundY);
+    doc.setFont('helvetica', 'bolditalic');
+    doc.setFontSize(7);
+    doc.setTextColor(140, 140, 140);
+    doc.text('*Refund Policy', margin, refundY + 10);
+    doc.setFont('helvetica', 'normal');
+    const refundText = 'Arriv Estate Media LLC is committed to delivering high-quality media and offers revisions or reshoots when necessary to meet expectations. Due to the time and production involved, completed services are generally non-refundable. However, partial refunds may be issued at ARRIV\'s discretion. Media usage rights are granted upon full payment. In the event of a refund, usage rights may be adjusted accordingly.';
+    const refundWrapped = doc.splitTextToSize(refundText, pageWidth - margin * 2);
+    doc.text(refundWrapped, margin, refundY + 20);
+
     // Footer
     doc.setFillColor(26, 26, 26);
     doc.rect(0, pageHeight - 55, pageWidth, 55, 'F');
