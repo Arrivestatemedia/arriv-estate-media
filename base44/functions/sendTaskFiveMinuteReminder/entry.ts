@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       const callMapText = callMapMatch ? callMapMatch[1].trim() : null;
 
       // Generate professional call map PDF
-      let attachments = [];
+      let pdfBase64 = null;
       if (callMapText) {
         try {
           const { jsPDF } = await import('npm:jspdf@2.5.1');
@@ -77,68 +77,61 @@ Deno.serve(async (req) => {
 
           let y = 110;
 
-          // Parse call map sections and render with styling
-          const lines = callMapText.split('\n');
-          let currentSection = null;
-
+          // Parse call map sections by looking for lines that start with capital letters (section headers)
+          const lines = callMapText.split('\n').filter(l => l.trim());
+          
           for (const line of lines) {
-            if (y > pageHeight - 60) {
+            if (y > pageHeight - 80) {
               doc.addPage();
               y = 50;
             }
 
             const trimmed = line.trim();
-            if (!trimmed) {
-              y += 8;
-              continue;
-            }
+            if (!trimmed) continue;
 
-            // Section headers (bold text at start of line, like "Opening", "If they're interested", etc.)
-            if (/^(Opening|If |When |Follow-up)/.test(trimmed) && !trimmed.startsWith('  ')) {
+            // Detect section headers: lines that look like headers (e.g., "Opening", "If they're interested")
+            const isHeader = /^(Opening|If |When |Follow-up|DuO|Du@)/i.test(trimmed) || 
+                           (trimmed.length < 60 && /^[A-Z]/.test(trimmed) && !trimmed.includes('...'));
+
+            if (isHeader) {
               // Draw section header with gold background
-              const headerHeight = 16;
+              const headerHeight = 18;
               doc.setFillColor(184, 149, 106);
-              doc.rect(margin, y - 10, pageWidth - margin * 2, headerHeight, 'F');
+              doc.rect(margin, y - 12, pageWidth - margin * 2, headerHeight, 'F');
 
               doc.setFont('helvetica', 'bold');
-              doc.setFontSize(10);
+              doc.setFontSize(11);
               doc.setTextColor(255, 255, 255);
-              doc.text(trimmed, margin + 8, y + 2);
-
-              currentSection = trimmed;
-              y += 20;
-              continue;
-            }
-
-            // Content under sections
-            if (currentSection) {
+              doc.text(trimmed, margin + 8, y + 3);
+              y += 28;
+            } else {
+              // Content text under section
               doc.setFont('helvetica', 'normal');
               doc.setFontSize(10);
               doc.setTextColor(80, 80, 80);
-
+              
               const contentLines = doc.splitTextToSize(trimmed, pageWidth - margin * 2 - 16);
               for (const contentLine of contentLines) {
-                if (y > pageHeight - 60) {
+                if (y > pageHeight - 80) {
                   doc.addPage();
                   y = 50;
                 }
                 doc.text(contentLine, margin + 8, y);
-                y += 13;
+                y += 14;
               }
-              y += 6;
+              y += 8;
             }
           }
 
           // Footer
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(8);
-          doc.setTextColor(180, 180, 180);
+          doc.setTextColor(150, 150, 150);
           doc.text('ARRIV Estate Media · Confidential', pageWidth / 2, pageHeight - 20, { align: 'center' });
 
-          const pdfBytes = doc.output('arraybuffer');
-          const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
-          const safeName = contact.replace(/[^a-zA-Z0-9_ -]/g, '').replace(/\s+/g, '_');
-          attachments = [{ name: `Call_Map_${safeName}.pdf`, content: base64Pdf }];
+          const pdfBytes = new Uint8Array(doc.output('arraybuffer'));
+          pdfBase64 = btoa(String.fromCharCode.apply(null, pdfBytes));
+          console.log(`Generated PDF (${pdfBytes.length} bytes) for ${contact}`);
         } catch (pdfErr) {
           console.warn('PDF generation failed:', pdfErr.message);
         }
