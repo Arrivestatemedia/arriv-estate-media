@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const upcoming = activities.filter(a => a.sales_member_email);
 
     if (upcoming.length === 0) {
-      return Response.json({ success: true, sent: 0 });
+      return Response.json({ success: true, sent: 0, version: 'v3' });
     }
 
     const brevoApiKey = Deno.env.get('BREVO_API_KEY');
@@ -32,32 +32,22 @@ Deno.serve(async (req) => {
         ? activity.activity_type.charAt(0).toUpperCase() + activity.activity_type.slice(1)
         : 'Task';
 
-      const recipientName = activity.sales_member_email.split('@')[0].split('.')[0];
-      const firstName = recipientName.charAt(0).toUpperCase() + recipientName.slice(1);
+      const repEmail = activity.sales_member_email;
+      const firstName = repEmail.split('@')[0].split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 
-      // Extract call map from notes (strip it from main body)
+      // Strip call map from notes
       const rawNotes = activity.notes || '';
       const callMapMatch = rawNotes.match(/\n\n--- CALL MAP ---\s*([\s\S]*)/i);
       const callMapText = callMapMatch ? callMapMatch[1].trim() : null;
-      const shortNotes = rawNotes.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').replace(/^\[AI Scheduled\]\s*/, '').trim();
 
-      // Build HTML email body
-      const htmlBody = `<!DOCTYPE html>
-<html>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <p>Hi ${firstName},</p>
-  <p>You have a <strong>${type}</strong> with <strong>${contact}</strong> at <strong>${time} ET</strong>. Please find your call map attached.</p>
-  <p>Good luck!</p>
-</body>
-</html>`;
-
-      // If there's a call map, generate a PDF and attach it
+      // Generate call map PDF if available
       let attachments = [];
       if (callMapText) {
         try {
           const { jsPDF } = await import('npm:jspdf@2.5.1');
           const doc = new jsPDF({ unit: 'pt', format: 'letter' });
           const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
           const margin = 50;
 
           doc.setFont('helvetica', 'bold');
@@ -72,25 +62,22 @@ Deno.serve(async (req) => {
 
           doc.setDrawColor(184, 149, 106);
           doc.setLineWidth(1);
-          doc.line(margin, 90, pageWidth - margin, 90);
+          doc.line(margin, 92, pageWidth - margin, 92);
 
-          let y = 110;
+          let y = 112;
           const lines = doc.splitTextToSize(callMapText, pageWidth - margin * 2);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          doc.setTextColor(50, 50, 50);
 
           for (const line of lines) {
-            if (y > doc.internal.pageSize.getHeight() - 60) {
+            if (y > pageHeight - 60) {
               doc.addPage();
               y = 50;
             }
-            // Bold section headers (lines starting with **)
             if (/^\*\*/.test(line)) {
               doc.setFont('helvetica', 'bold');
               doc.text(line.replace(/\*\*/g, ''), margin, y);
               doc.setFont('helvetica', 'normal');
             } else {
+              doc.setFont('helvetica', 'normal');
               doc.text(line, margin, y);
             }
             y += 14;
@@ -98,20 +85,28 @@ Deno.serve(async (req) => {
 
           const pdfBytes = doc.output('arraybuffer');
           const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
-          const safeName = contact.replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '_');
-          attachments = [{
-            name: `Call_Map_${safeName}.pdf`,
-            content: base64Pdf
-          }];
+          const safeName = contact.replace(/[^a-zA-Z0-9_ -]/g, '').replace(/\s+/g, '_');
+          attachments = [{ name: `Call_Map_${safeName}.pdf`, content: base64Pdf }];
         } catch (pdfErr) {
           console.warn('PDF generation failed:', pdfErr.message);
         }
       }
 
-      // Send via Brevo
+      // Clean HTML email
+      const htmlBody = `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <p>Hi ${firstName},</p>
+  <p>You have a <strong>${type}</strong> with <strong>${contact}</strong> at <strong>${time} ET</strong>.</p>
+  ${callMapText ? '<p>Your call map is attached as a PDF.</p>' : ''}
+  <p>Good luck!</p>
+  <p style="color: #999; font-size: 12px;">— Arriv Estate Media</p>
+</body>
+</html>`;
+
       const payload = {
         sender: { name: 'Arriv Estate Media', email: adminEmail },
-        to: [{ email: activity.sales_member_email, name: firstName }],
+        to: [{ email: repEmail, name: firstName }],
         subject: `Call Reminder: ${contact} at ${time}`,
         htmlContent: htmlBody,
       };
@@ -130,10 +125,15 @@ Deno.serve(async (req) => {
         const err = await res.json();
         throw new Error(`Brevo error: ${err.message}`);
       }
+
+      console.log(`Sent reminder to ${repEmail} for ${contact} at ${time}`);
     }));
 
     const sent = results.filter(r => r.status === 'fulfilled').length;
-    return Response.json({ success: true, sent, failed: results.length - sent });
+    const failed = results.filter(r => r.status === 'rejected').map(r => r.reason?.message);
+    console.log(`Results: ${sent} sent, ${failed.length} failed`, failed);
+
+    return Response.json({ success: true, sent, failed: failed.length, version: 'v3' });
 
   } catch (error) {
     console.error('Error sending 5-minute task reminders:', error);
