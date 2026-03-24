@@ -24,7 +24,6 @@ export default function AdminBookings() {
     const [editingBooking, setEditingBooking] = useState(null);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [markingPaidId, setMarkingPaidId] = useState(null);
-    const [sendingInvoiceId, setSendingInvoiceId] = useState(null);
     const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -284,28 +283,6 @@ export default function AdminBookings() {
     }
   };
 
-  const handleSendInvoice = async (booking) => {
-    if (!confirm(`Send pay-up-front invoice to ${booking.client_name} (${booking.client_email})?`)) return;
-    setSendingInvoiceId(booking.id);
-    try {
-      const res = await base44.functions.invoke('generatePayUpFrontInvoice', {
-        bookingId: booking.id,
-        booking: booking,
-        total_price: booking.total_price
-      });
-      if (res.data?.success) {
-        alert('Invoice sent! Drive link: ' + res.data.driveViewLink);
-        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-      } else {
-        alert('Failed: ' + (res.data?.error || 'Unknown error'));
-      }
-    } catch (error) {
-      alert('Error: ' + error.message);
-    } finally {
-      setSendingInvoiceId(null);
-    }
-  };
-
   const handleSaveBooking = async (formData) => {
     try {
       await base44.functions.invoke('updateBooking', {
@@ -454,15 +431,6 @@ export default function AdminBookings() {
                     </Button>
                     {booking.status === 'pending' && (
                       <>
-                        {!booking.request_pay_at_closing && (
-                          <Button
-                            onClick={() => handleSendInvoice(booking)}
-                            className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white"
-                            disabled={sendingInvoiceId === booking.id}
-                          >
-                            {sendingInvoiceId === booking.id ? 'Sending...' : '📄 Send Invoice'}
-                          </Button>
-                        )}
                         <Button
                           onClick={() => handlePostToJobBoard(booking)}
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:cursor-not-allowed"
