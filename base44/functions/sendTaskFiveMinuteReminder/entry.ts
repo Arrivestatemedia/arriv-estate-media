@@ -21,6 +21,10 @@ Deno.serve(async (req) => {
     const brevoApiKey = Deno.env.get('BREVO_API_KEY');
     const adminEmail = Deno.env.get('ADMIN_EMAIL');
 
+    if (!brevoApiKey) {
+      throw new Error('BREVO_API_KEY not set');
+    }
+
     const results = await Promise.allSettled(upcoming.map(async (activity) => {
       const time = new Date(activity.activity_date).toLocaleTimeString('en-US', {
         hour: 'numeric',
@@ -45,7 +49,7 @@ Deno.serve(async (req) => {
         console.warn(`Could not look up sales member ${repEmail}, using email prefix`);
       }
 
-      // Extract call map text
+      // Extract call map text - look for the structured call map sections
       const rawNotes = activity.notes || '';
       const callMapMatch = rawNotes.match(/\n\n--- CALL MAP ---\s*([\s\S]*)/i);
       const callMapText = callMapMatch ? callMapMatch[1].trim() : null;
@@ -87,7 +91,7 @@ Deno.serve(async (req) => {
 
           let y = 110;
 
-          // Parse call map sections by looking for lines that start with capital letters (section headers)
+          // Parse call map sections by looking for header patterns
           const lines = callMapText.split('\n').filter(l => l.trim());
           
           for (const line of lines) {
@@ -99,7 +103,7 @@ Deno.serve(async (req) => {
             const trimmed = line.trim();
             if (!trimmed) continue;
 
-            // Detect section headers: lines that look like headers (e.g., "Opening", "If they're interested")
+            // Detect section headers
             const isHeader = /^(Opening|If |When |Follow-up|DuO|Du@)/i.test(trimmed) || 
                            (trimmed.length < 60 && /^[A-Z]/.test(trimmed) && !trimmed.includes('...'));
 
@@ -141,9 +145,9 @@ Deno.serve(async (req) => {
 
           const pdfBytes = new Uint8Array(doc.output('arraybuffer'));
           pdfBase64 = btoa(String.fromCharCode.apply(null, pdfBytes));
-          console.log(`Generated PDF (${pdfBytes.length} bytes) for ${contact}`);
+          console.log(`✓ Generated PDF (${pdfBytes.length} bytes) for ${contact}`);
         } catch (pdfErr) {
-          console.warn('PDF generation failed:', pdfErr.message);
+          console.error('PDF generation failed:', pdfErr.message);
         }
       }
 
@@ -159,22 +163,19 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
+      const safeName = contact.replace(/[^a-zA-Z0-9_-]/g, '').replace(/\s+/g, '_');
       const payload = {
         sender: { name: 'Arriv Estate Media', email: adminEmail },
         to: [{ email: repEmail, name: firstName }],
         subject: `Call Reminder: ${contact} at ${time}`,
         htmlContent: htmlBody,
-      };
-
-      if (pdfBase64) {
-        const safeName = contact.replace(/[^a-zA-Z0-9_-]/g, '').replace(/\s+/g, '_');
-        payload.attachment = [{
+        attachment: pdfBase64 ? [{
           name: `Call_Map_${safeName}.pdf`,
           content: pdfBase64
-        }];
-      }
+        }] : []
+      };
 
-      console.log(`Sending via Brevo to ${repEmail}:`, { subject: payload.subject, hasAttachment: !!pdfBase64 });
+      console.log(`Sending to ${repEmail}: ${contact} at ${time}, PDF attached: ${!!pdfBase64}`);
 
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -184,17 +185,18 @@ Deno.serve(async (req) => {
 
       const resData = await res.json();
       if (!res.ok) {
-        console.error('Brevo error:', resData);
+        console.error('Brevo error response:', resData);
         throw new Error(`Brevo error: ${resData.message || JSON.stringify(resData)}`);
       }
 
-      console.log(`✓ Sent to ${repEmail} for ${contact} at ${time}`);
+      console.log(`✓ Sent to ${repEmail}`);
+      return { email: repEmail, success: true };
     }));
 
     const sent = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').map(r => r.reason?.message);
+    const failed = results.filter(r => r.status === 'rejected').length;
 
-    return Response.json({ success: true, sent, failed: failed.length });
+    return Response.json({ success: true, sent, failed });
 
   } catch (error) {
     console.error('Error sending 5-minute task reminders:', error);
