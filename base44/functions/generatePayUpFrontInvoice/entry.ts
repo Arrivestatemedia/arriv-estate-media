@@ -128,21 +128,6 @@ Deno.serve(async (req) => {
     y -= 15;
     page.drawText(stripeData.url, { x: 50, y, size: 9, color: rgb(0, 0, 0.8), maxWidth: 500 });
 
-    // Refund Policy
-    const refundGray = rgb(0.5, 0.5, 0.5);
-    const refundPolicyLines = [
-      '*Refund Policy',
-      'Arriv Estate Media LLC is committed to delivering high-quality media and offers revisions or reshoots when necessary to meet',
-      'expectations. Due to the time and production involved, completed services are generally non-refundable. However, partial refunds',
-      'may be issued at ARRIV\'s discretion. Media usage rights are granted upon full payment. In the event of a refund, usage rights',
-      'may be adjusted accordingly.',
-    ];
-    let refundY = 120;
-    for (const line of refundPolicyLines) {
-      page.drawText(line, { x: 50, y: refundY, size: 7, color: refundGray });
-      refundY -= 11;
-    }
-
     page.drawText('Thank you for your business!', { x: 50, y: 50, size: 10, color: black });
     page.drawText('Arriv Estate Media | 678-242-9107 | arrivestatemedia.com', { x: 50, y: 30, size: 9, color: gray });
 
