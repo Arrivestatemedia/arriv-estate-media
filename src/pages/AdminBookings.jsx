@@ -284,6 +284,28 @@ export default function AdminBookings() {
     }
   };
 
+  const handleSendInvoice = async (booking) => {
+    if (!confirm(`Send pay-up-front invoice to ${booking.client_name} (${booking.client_email})?`)) return;
+    setSendingInvoiceId(booking.id);
+    try {
+      const res = await base44.functions.invoke('generatePayUpFrontInvoice', {
+        bookingId: booking.id,
+        booking: booking,
+        total_price: booking.total_price
+      });
+      if (res.data?.success) {
+        alert('Invoice sent! Drive link: ' + res.data.driveViewLink);
+        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+      } else {
+        alert('Failed: ' + (res.data?.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+    } finally {
+      setSendingInvoiceId(null);
+    }
+  };
+
   const handleSaveBooking = async (formData) => {
     try {
       await base44.functions.invoke('updateBooking', {
