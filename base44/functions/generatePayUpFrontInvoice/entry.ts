@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { PDFDocument, rgb } from 'npm:pdf-lib@^1.17.1';
 
 Deno.serve(async (req) => {
   try {
@@ -53,11 +52,41 @@ Deno.serve(async (req) => {
       'premium_bundle': 675
     };
 
-    const packageNames = {
+    const pkgNames = {
       'mls_walkthrough': 'MLS Walkthrough',
-      'photo_essentials': 'Photo Essentials',
+      'photo_essentials': 'Photo Essentials Package',
       'photo_cinematic': 'Photo + Cinematic Walkthrough',
-      'premium_bundle': 'Premium Media Bundle'
+      'premium_bundle': 'Premium Bundle Package'
+    };
+
+    const packageInclusions = {
+      'mls_walkthrough': [
+        '2-3 minute unbranded MLS-ready walkthrough',
+      ],
+      'photo_essentials': [
+        '25-50 edited photos (interior + exterior)',
+      ],
+      'photo_cinematic': [
+        '2-3 minute unbranded MLS-ready walkthrough',
+        '25-50 edited photos (interior + exterior)',
+      ],
+      'premium_bundle': [
+        'Twilight exterior edits (up to 5 photos)',
+        'AI Staging',
+        '2-3 minute unbranded MLS-ready walkthrough',
+        '50-150 edited photos (interior + exterior)',
+        '2 vertical reels',
+        'Drone',
+      ]
+    };
+
+    const addonPrices = {
+      'drone': 125,
+      '3d_tour': 125,
+      'twilight': 125,
+      'rush_delivery': 100,
+      'vertical_reel': 40,
+      'ai_staging': 125
     };
 
     const addonDescriptions = {
@@ -70,68 +99,196 @@ Deno.serve(async (req) => {
     };
 
     const jobAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
-    const basePkgAmount = packagePrices[booking.package] || 0;
     const addOns = booking.add_ons || [];
 
-    // Generate PDF
-    console.log('Generating invoice PDF...');
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([612, 792]);
-
-    const gold = rgb(0.72, 0.59, 0.42);
-    const black = rgb(0.1, 0.1, 0.1);
-    const gray = rgb(0.4, 0.4, 0.4);
-
-    let y = 750;
-
-    page.drawText('ARRIV ESTATE MEDIA', { x: 50, y, size: 18, color: gold });
-    y -= 30;
-    page.drawText('INVOICE', { x: 50, y, size: 14, color: black });
-    page.drawText(`#${invoiceNumber}`, { x: 480, y, size: 14, color: black });
-    y -= 25;
-    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
-    y -= 20;
-
-    const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    page.drawText(`Date: ${invoiceDate}`, { x: 50, y, size: 10, color: black });
-    y -= 25;
-
-    page.drawText('BILL TO:', { x: 50, y, size: 10, color: gold });
-    y -= 15;
-    page.drawText(booking.client_name, { x: 50, y, size: 12, color: black });
-    y -= 15;
-    page.drawText(jobAddress, { x: 50, y, size: 12, color: black, maxWidth: 400 });
-    y -= 30;
-
-    page.drawText('SERVICES', { x: 50, y, size: 10, color: gold });
-    y -= 15;
-    page.drawText(packageNames[booking.package] || booking.package, { x: 50, y, size: 12, color: black });
-    page.drawText(`$${basePkgAmount.toFixed(2)}`, { x: 480, y, size: 12, color: black });
-    y -= 18;
-
-    for (const addon of addOns) {
-      page.drawText(`  + ${addonDescriptions[addon] || addon}`, { x: 50, y, size: 10, color: black });
-      y -= 14;
+    // Fetch logo
+    let logoBase64 = null;
+    try {
+      const logoRes = await fetch('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png');
+      if (logoRes.ok) {
+        const logoBuffer = await logoRes.arrayBuffer();
+        const logoBytes = new Uint8Array(logoBuffer);
+        let b64 = '';
+        const chunkSize = 1024;
+        for (let i = 0; i < logoBytes.length; i += chunkSize) {
+          b64 += String.fromCharCode(...logoBytes.subarray(i, i + chunkSize));
+        }
+        logoBase64 = btoa(b64);
+      }
+    } catch (e) {
+      console.warn('Logo fetch failed:', e.message);
     }
 
-    y -= 15;
-    page.drawLine({ start: { x: 50, y }, end: { x: 562, y }, thickness: 1, color: gold });
-    y -= 25;
+    // Generate PDF using jsPDF (same as deposit/pay-at-closing invoices)
+    console.log('Generating invoice PDF...');
+    const { jsPDF } = await import('npm:jspdf@2.5.1');
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 60;
 
-    page.drawText('AMOUNT DUE', { x: 50, y, size: 11, color: gold });
-    page.drawText(`$${chargeAmount.toFixed(2)}`, { x: 480, y, size: 16, color: black });
-    y -= 45;
+    // Cream background
+    doc.setFillColor(255, 251, 245);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-    page.drawText('PAYMENT', { x: 50, y, size: 10, color: gold });
-    y -= 15;
-    page.drawText('Please use the link below to submit payment:', { x: 50, y, size: 10, color: black });
-    y -= 15;
-    page.drawText(stripeData.url, { x: 50, y, size: 9, color: rgb(0, 0, 0.8), maxWidth: 500 });
+    // Logo
+    const logoH = 175;
+    let curY = 0;
+    if (logoBase64) {
+      const imgData = `data:image/png;base64,${logoBase64}`;
+      const imgProps = doc.getImageProperties(imgData);
+      const logoW = (imgProps.width / imgProps.height) * logoH;
+      doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, curY, logoW, logoH);
+      curY += logoH - 55;
+    } else {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(26);
+      doc.setTextColor(26, 26, 26);
+      doc.text('ARRIV', pageWidth / 2, curY + 30, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(184, 149, 106);
+      doc.text('ESTATE MEDIA', pageWidth / 2, curY + 46, { align: 'center' });
+      curY += 60;
+    }
 
-    page.drawText('Thank you for your business!', { x: 50, y: 50, size: 10, color: black });
-    page.drawText('Arriv Estate Media | 678-242-9107 | arrivestatemedia.com', { x: 50, y: 30, size: 9, color: gray });
+    // Gold divider
+    doc.setDrawColor(184, 149, 106);
+    doc.setLineWidth(1);
+    doc.line(margin, curY, pageWidth - margin, curY);
+    curY += 50;
 
-    const pdfBytes = await pdfDoc.save();
+    // INVOICE title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(26, 26, 26);
+    doc.text('INVOICE', margin, curY);
+    curY += 18;
+
+    // Invoice # and Date
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Invoice #: ${invoiceNumber}`, margin, curY);
+    curY += 14;
+    doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}`, margin, curY);
+    curY += 26;
+
+    // BILL TO
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('BILL TO:', margin, curY);
+    curY += 15;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(booking.client_name, margin, curY);
+    curY += 17;
+
+    doc.setTextColor(184, 149, 106);
+    doc.text('Listing Address:', margin, curY);
+    curY += 15;
+
+    doc.setTextColor(80, 80, 80);
+    doc.text(jobAddress, margin, curY);
+    curY += 15;
+    doc.text(`Service Date: ${booking.preferred_date}`, margin, curY);
+
+    // Divider
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    curY += 20;
+    doc.line(margin, curY, pageWidth - margin, curY);
+    curY += 20;
+
+    // SERVICES PROVIDED
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(184, 149, 106);
+    doc.text('SERVICES PROVIDED', margin, curY);
+    curY += 10;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, curY, pageWidth - margin, curY);
+    curY += 13;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('Description', margin, curY);
+    doc.text('Amount', pageWidth - margin, curY, { align: 'right' });
+    curY += 7;
+    doc.line(margin, curY, pageWidth - margin, curY);
+    curY += 15;
+
+    // Package row
+    const basePkgAmount = packagePrices[booking.package] || 0;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(pkgNames[booking.package] || booking.package, margin, curY);
+    doc.text(`$${chargeAmount.toFixed(2)}`, pageWidth - margin, curY, { align: 'right' });
+    curY += 16;
+
+    // Package inclusions as bullet points
+    const inclusions = packageInclusions[booking.package] || [];
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    for (const item of inclusions) {
+      doc.text(`  • ${item}`, margin + 5, curY);
+      curY += 13;
+    }
+
+    // Add-on bullet points (included in package price for pay-up-front)
+    for (const addon of addOns) {
+      doc.text(`  • ${addonDescriptions[addon] || addon}`, margin + 5, curY);
+      curY += 13;
+    }
+
+    // Total row
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, curY + 5, pageWidth - margin, curY + 5);
+    curY += 20;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('TOTAL DUE:', margin, curY);
+    doc.setTextColor(184, 149, 106);
+    doc.text(`$${chargeAmount.toFixed(2)}`, pageWidth - margin, curY, { align: 'right' });
+    curY += 30;
+
+    // Divider
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, curY, pageWidth - margin, curY);
+    curY += 20;
+
+    // PAYMENT INSTRUCTIONS
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text('PAYMENT INSTRUCTIONS', margin, curY);
+    curY += 16;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Full payment is required for your shoot to be confirmed.', margin, curY);
+    curY += 16;
+
+    const linkLabel = 'Payment Link: ';
+    doc.text(linkLabel, margin, curY);
+    const labelWidth = doc.getTextWidth(linkLabel);
+    doc.setTextColor(184, 149, 106);
+    doc.textWithLink(stripeData.url, margin + labelWidth, curY, { url: stripeData.url });
+
+    // Dark footer bar
+    doc.setFillColor(26, 26, 26);
+    doc.rect(0, pageHeight - 55, pageWidth, 55, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(184, 149, 106);
+    doc.text('Arriv Estate Media LLC | Professional Property Photography & Videography', pageWidth / 2, pageHeight - 28, { align: 'center' });
+
+    const pdfBytes = new Uint8Array(doc.output('arraybuffer'));
     console.log('PDF generated, size:', pdfBytes.length);
 
     // Upload PDF to Google Drive
@@ -142,12 +299,12 @@ Deno.serve(async (req) => {
     const boundary = 'boundary_arriv_invoice';
     const metadata = JSON.stringify({ name: fileName, parents: [unpaidFolderId] });
 
-    const textEncoder = new TextEncoder();
-    const before = textEncoder.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`);
-    const after = textEncoder.encode(`\r\n--${boundary}--`);
+    const enc = new TextEncoder();
+    const before = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\nContent-Transfer-Encoding: binary\r\n\r\n`);
+    const after = enc.encode(`\r\n--${boundary}--`);
     const uploadBody = new Uint8Array(before.length + pdfBytes.length + after.length);
     uploadBody.set(before);
-    uploadBody.set(new Uint8Array(pdfBytes), before.length);
+    uploadBody.set(pdfBytes, before.length);
     uploadBody.set(after, before.length + pdfBytes.length);
 
     const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
@@ -233,7 +390,6 @@ Deno.serve(async (req) => {
       email_sent_at: new Date().toISOString()
     });
 
-    // Link invoice back to booking so admin can manually mark paid if webhook fails
     await base44.asServiceRole.entities.Booking.update(bookingId, {
       invoice_id: invoice.id
     });
