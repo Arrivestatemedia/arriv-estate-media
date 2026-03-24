@@ -128,22 +128,12 @@ Deno.serve(async (req) => {
     y -= 15;
     page.drawText(stripeData.url, { x: 50, y, size: 9, color: rgb(0, 0, 0.8), maxWidth: 500 });
 
-    // Refund Policy small print
-    const refundLines = [
-      '*Refund Policy',
-      'Arriv Estate Media LLC is committed to delivering high-quality media and offers revisions or reshoots when necessary to meet expectations.',
-      'Due to the time and production involved, completed services are generally non-refundable. However, partial refunds may be issued at ARRIV\'s discretion.',
-      'Media usage rights are granted upon full payment. In the event of a refund, usage rights may be adjusted accordingly.'
-    ];
-    let ry = 135;
-    page.drawLine({ start: { x: 50, y: ry + 10 }, end: { x: 562, y: ry + 10 }, thickness: 0.5, color: gray });
-    for (const line of refundLines) {
-      const wrapped = line.length > 90 ? [line.slice(0, 90), line.slice(90)] : [line];
-      for (const wl of wrapped) {
-        page.drawText(wl, { x: 50, y: ry, size: 7, color: gray, maxWidth: 512 });
-        ry -= 10;
-      }
-    }
+    // Refund Policy small print — fixed at bottom above footer
+    page.drawLine({ start: { x: 50, y: 175 }, end: { x: 562, y: 175 }, thickness: 0.5, color: gray });
+    page.drawText('*Refund Policy', { x: 50, y: 163, size: 7, color: gray });
+    page.drawText('Arriv Estate Media LLC is committed to delivering high-quality media and offers revisions or reshoots when necessary to meet expectations.', { x: 50, y: 152, size: 7, color: gray, maxWidth: 512 });
+    page.drawText('Due to the time and production involved, completed services are generally non-refundable. However, partial refunds may be issued at ARRIV\'s discretion.', { x: 50, y: 141, size: 7, color: gray, maxWidth: 512 });
+    page.drawText('Media usage rights are granted upon full payment. In the event of a refund, usage rights may be adjusted accordingly.', { x: 50, y: 130, size: 7, color: gray, maxWidth: 512 });
 
     page.drawText('Thank you for your business!', { x: 50, y: 50, size: 10, color: black });
     page.drawText('Arriv Estate Media | 678-242-9107 | arrivestatemedia.com', { x: 50, y: 30, size: 9, color: gray });
