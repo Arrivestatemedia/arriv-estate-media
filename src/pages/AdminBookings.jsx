@@ -454,6 +454,15 @@ export default function AdminBookings() {
                     </Button>
                     {booking.status === 'pending' && (
                       <>
+                        {!booking.request_pay_at_closing && (
+                          <Button
+                            onClick={() => handleSendInvoice(booking)}
+                            className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white"
+                            disabled={sendingInvoiceId === booking.id}
+                          >
+                            {sendingInvoiceId === booking.id ? 'Sending...' : '📄 Send Invoice'}
+                          </Button>
+                        )}
                         <Button
                           onClick={() => handlePostToJobBoard(booking)}
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:cursor-not-allowed"
