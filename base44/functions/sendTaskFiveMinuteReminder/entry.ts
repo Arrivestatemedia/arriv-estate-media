@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <p>Hi ${firstName},</p>
   <p>You have a <strong>${type}</strong> with <strong>${contact}</strong> at <strong>${time} ET</strong>.</p>
-  ${callMapText ? '<p>Your call map is attached as a PDF.</p>' : ''}
+  ${pdfBase64 ? '<p>Your call map is attached as a PDF.</p>' : ''}
   <p>Good luck!</p>
   <p style="color: #999; font-size: 12px;">— Arriv Estate Media</p>
 </body>
@@ -156,9 +156,15 @@ Deno.serve(async (req) => {
         htmlContent: htmlBody,
       };
 
-      if (attachments.length > 0) {
-        payload.attachment = attachments;
+      if (pdfBase64) {
+        const safeName = contact.replace(/[^a-zA-Z0-9_-]/g, '').replace(/\s+/g, '_');
+        payload.attachment = [{
+          name: `Call_Map_${safeName}.pdf`,
+          content: pdfBase64
+        }];
       }
+
+      console.log(`Sending via Brevo to ${repEmail}:`, { subject: payload.subject, hasAttachment: !!pdfBase64 });
 
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -166,12 +172,13 @@ Deno.serve(async (req) => {
         body: JSON.stringify(payload)
       });
 
+      const resData = await res.json();
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(`Brevo error: ${err.message}`);
+        console.error('Brevo error:', resData);
+        throw new Error(`Brevo error: ${resData.message || JSON.stringify(resData)}`);
       }
 
-      console.log(`Sent reminder to ${repEmail} for ${contact} at ${time}`);
+      console.log(`✓ Sent to ${repEmail} for ${contact} at ${time}`);
     }));
 
     const sent = results.filter(r => r.status === 'fulfilled').length;
