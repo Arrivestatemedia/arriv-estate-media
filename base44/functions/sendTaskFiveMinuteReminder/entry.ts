@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
 
     const now = new Date();
     const windowStart = new Date(now.getTime() + 4 * 60 * 1000);
-    const windowEnd = new Date(now.getTime() + 9 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 6 * 60 * 1000);
 
     const activities = await base44.asServiceRole.entities.ActivityLog.filter({
       activity_date: { $gte: windowStart.toISOString(), $lte: windowEnd.toISOString() }
