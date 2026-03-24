@@ -163,6 +163,11 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
+      const brevoApiKey = Deno.env.get('BREVO_API_KEY');
+      if (!brevoApiKey) {
+        throw new Error('BREVO_API_KEY not set');
+      }
+
       const safeName = contact.replace(/[^a-zA-Z0-9_-]/g, '').replace(/\s+/g, '_');
       const payload = {
         sender: { name: 'Arriv Estate Media', email: adminEmail },
