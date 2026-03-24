@@ -15,8 +15,6 @@ Deno.serve(async (req) => {
     // Get Gmail access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
     
-    const refundPolicy = `\n\n---\n*Refund Policy\n\nArriv Estate Media LLC is committed to delivering high-quality media and offers revisions or reshoots when necessary to meet expectations.\n\nDue to the time and production involved, completed services are generally non-refundable. However, partial refunds may be issued at ARRIV's discretion.\n\nMedia usage rights are granted upon full payment. In the event of a refund, usage rights may be adjusted accordingly.`;
-
     const emailBody = `Hi ${invoice.client_name.split(' ')[0]},
 
 Thank you for your payment! We've received your payment for the media services at ${invoice.job_address}.
@@ -31,7 +29,7 @@ Best regards,
 Bradley Burke
 Arriv Estate Media
 📞 678-242-9107
-🌐 arrivestatemedia.com${refundPolicy}`;
+🌐 arrivestatemedia.com`;
 
     const message = [
       `To: ${invoice.client_email}`,
