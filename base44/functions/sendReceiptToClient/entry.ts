@@ -29,7 +29,16 @@ Best regards,
 Bradley Burke
 Arriv Estate Media
 📞 678-242-9107
-🌐 arrivestatemedia.com`;
+🌐 arrivestatemedia.com
+
+---
+
+*Refund Policy
+Arriv Estate Media LLC is committed to delivering high-quality media and offers revisions or reshoots when necessary to meet expectations.
+
+Due to the time and production involved, completed services are generally non-refundable. However, partial refunds may be issued at ARRIV's discretion.
+
+Media usage rights are granted upon full payment. In the event of a refund, usage rights may be adjusted accordingly.`;
 
     const message = [
       `To: ${invoice.client_email}`,
