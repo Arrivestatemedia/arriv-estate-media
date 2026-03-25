@@ -1,4 +1,149 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { PDFDocument, rgb, StandardFonts } from 'npm:pdf-lib@1.17.1';
+
+const GOLD = rgb(0.722, 0.584, 0.416);
+const WHITE = rgb(1, 1, 1);
+const BLACK = rgb(0.102, 0.102, 0.102);
+const DARK = rgb(0.102, 0.102, 0.102);
+const LIGHT_GOLD_BG = rgb(0.98, 0.96, 0.92);
+
+const sanitize = (str) => (str || '')
+  .replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|[\u{2300}-\u{23FF}]/gu, '')
+  .replace(/[^\x20-\x7E]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+function wrapText(text, font, size, maxW) {
+  const words = sanitize(text).split(' ').filter(Boolean);
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (font.widthOfTextAtSize(test, size) > maxW && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function parseSections(content) {
+  const sections = [];
+  const rawLines = content.split('\n');
+  let current = null;
+
+  const isHeaderLine = (line) =>
+    /^#{1,3}\s/.test(line) ||
+    /^\*\*[A-Z]/.test(line) ||
+    /^\p{Emoji}\s/u.test(line);
+
+  for (const line of rawLines) {
+    if (/^---+$/.test(line.trim())) continue;
+    if (isHeaderLine(line)) {
+      if (current) sections.push(current);
+      let label = line
+        .replace(/^#{1,3}\s+/, '')
+        .replace(/\*\*/g, '')
+        .replace(/^[-–—]\s+/, '')
+        .trim();
+      label = label.replace(/^[\p{Emoji}]\s*/u, '').trim();
+      current = { label, body: [] };
+    } else if (current) {
+      const cleaned = line.replace(/\*\*/g, '').trim();
+      if (cleaned) current.body.push(cleaned);
+    }
+  }
+  if (current) sections.push(current);
+  return sections;
+}
+
+async function generateCallMapPDF(repName, contactName, callTime, callMapContent) {
+  const pdfDoc = await PDFDocument.create();
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  const pageW = 612;
+  const pageH = 792;
+  const margin = 40;
+  const contentW = pageW - margin * 2;
+
+  const addPage = () => {
+    const p = pdfDoc.addPage([pageW, pageH]);
+    return { page: p, yPos: pageH - 50 };
+  };
+
+  let { page, yPos } = addPage();
+
+  // Header
+  page.drawRectangle({ x: 0, y: pageH - 80, width: pageW, height: 80, color: DARK });
+  page.drawText('CALL MAP', { x: margin, y: pageH - 44, size: 24, font: boldFont, color: WHITE });
+  page.drawText(sanitize(`${repName}  ·  ${contactName}  ·  ${callTime} ET`), {
+    x: margin, y: pageH - 64, size: 10, font: regularFont, color: GOLD,
+  });
+  yPos = pageH - 98;
+
+  const sections = parseSections(callMapContent);
+
+  for (const section of sections) {
+    const label = sanitize(section.label).slice(0, 90);
+    const bodyText = section.body.map(l => sanitize(l)).filter(Boolean).join(' ');
+    const bodyLines = bodyText ? wrapText(bodyText, regularFont, 9.5, contentW - 20) : [];
+
+    const sectionHeight = 20 + (bodyLines.length * 13) + 12;
+
+    if (yPos - sectionHeight < 50) {
+      const next = addPage();
+      page = next.page;
+      yPos = next.yPos;
+    }
+
+    const cardTop = yPos;
+    const cardHeight = sectionHeight;
+
+    page.drawRectangle({
+      x: margin, y: cardTop - cardHeight,
+      width: contentW, height: cardHeight,
+      color: LIGHT_GOLD_BG,
+      borderColor: GOLD,
+      borderWidth: 0.5,
+    });
+
+    page.drawRectangle({ x: margin, y: cardTop - 20, width: contentW, height: 20, color: GOLD });
+    page.drawText(label, {
+      x: margin + 8, y: cardTop - 14,
+      size: 9, font: boldFont, color: WHITE,
+      maxWidth: contentW - 16,
+    });
+
+    let textY = cardTop - 32;
+    for (const line of bodyLines) {
+      page.drawText(line, { x: margin + 10, y: textY, size: 9.5, font: regularFont, color: BLACK });
+      textY -= 13;
+    }
+
+    yPos = cardTop - cardHeight - 8;
+  }
+
+  if (sections.length === 0 && callMapContent) {
+    const plainLines = wrapText(callMapContent, regularFont, 10, contentW);
+    for (const line of plainLines) {
+      if (yPos < 50) { const next = addPage(); page = next.page; yPos = next.yPos; }
+      page.drawText(line, { x: margin, y: yPos, size: 10, font: regularFont, color: BLACK });
+      yPos -= 14;
+    }
+  }
+
+  const lastPage = pdfDoc.getPages()[pdfDoc.getPageCount() - 1];
+  lastPage.drawText('ARRIV Estate Media  ·  Confidential', {
+    x: margin, y: 24, size: 8, font: regularFont, color: rgb(0.6, 0.6, 0.6),
+  });
+
+  const pdfBytes = await pdfDoc.save();
+  return btoa(String.fromCharCode(...pdfBytes));
+}
 
 Deno.serve(async (req) => {
   try {
@@ -54,98 +199,12 @@ Deno.serve(async (req) => {
       const callMapMatch = rawNotes.match(/\n\n--- CALL MAP ---\s*([\s\S]*)/i);
       const callMapText = callMapMatch ? callMapMatch[1].trim() : null;
 
-      // Generate professional call map PDF
+      // Generate professional call map PDF using pdf-lib
       let pdfBase64 = null;
       if (callMapText) {
         try {
-          const { jsPDF } = await import('npm:jspdf@2.5.1');
-          const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-          const pageWidth = doc.internal.pageSize.getWidth();
-          const pageHeight = doc.internal.pageSize.getHeight();
-          const margin = 50;
-
-          // White page background
-          doc.setFillColor(255, 255, 255);
-          doc.rect(0, 0, pageWidth, pageHeight, 'F');
-
-          // Dark header bar
-          doc.setFillColor(26, 26, 26);
-          doc.rect(0, 0, pageWidth, 80, 'F');
-
-          // "CALL MAP" title in white
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(28);
-          doc.setTextColor(255, 255, 255);
-          doc.text('CALL MAP', margin, 35);
-
-          // Subtitle with rep name, contact, and time in gold
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(11);
-          doc.setTextColor(184, 149, 106);
-          doc.text(`${firstName} ${contact} ${time}`, margin, 60);
-
-          // Gold divider line
-          doc.setDrawColor(184, 149, 106);
-          doc.setLineWidth(2);
-          doc.line(margin, 85, pageWidth - margin, 85);
-
-          let y = 110;
-
-          // Parse call map sections by looking for header patterns
-          const lines = callMapText.split('\n').filter(l => l.trim());
-          
-          for (const line of lines) {
-            if (y > pageHeight - 80) {
-              doc.addPage();
-              y = 50;
-            }
-
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-
-            // Detect section headers
-            const isHeader = /^(Opening|If |When |Follow-up|DuO|Du@)/i.test(trimmed) || 
-                           (trimmed.length < 60 && /^[A-Z]/.test(trimmed) && !trimmed.includes('...'));
-
-            if (isHeader) {
-              // Draw section header with gold background
-              const headerHeight = 18;
-              doc.setFillColor(184, 149, 106);
-              doc.rect(margin, y - 12, pageWidth - margin * 2, headerHeight, 'F');
-
-              doc.setFont('helvetica', 'bold');
-              doc.setFontSize(11);
-              doc.setTextColor(255, 255, 255);
-              doc.text(trimmed, margin + 8, y + 3);
-              y += 28;
-            } else {
-              // Content text under section
-              doc.setFont('helvetica', 'normal');
-              doc.setFontSize(10);
-              doc.setTextColor(80, 80, 80);
-              
-              const contentLines = doc.splitTextToSize(trimmed, pageWidth - margin * 2 - 16);
-              for (const contentLine of contentLines) {
-                if (y > pageHeight - 80) {
-                  doc.addPage();
-                  y = 50;
-                }
-                doc.text(contentLine, margin + 8, y);
-                y += 14;
-              }
-              y += 8;
-            }
-          }
-
-          // Footer
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8);
-          doc.setTextColor(150, 150, 150);
-          doc.text('ARRIV Estate Media · Confidential', pageWidth / 2, pageHeight - 20, { align: 'center' });
-
-          const pdfBytes = new Uint8Array(doc.output('arraybuffer'));
-          pdfBase64 = btoa(String.fromCharCode.apply(null, pdfBytes));
-          console.log(`✓ Generated PDF (${pdfBytes.length} bytes) for ${contact}`);
+          pdfBase64 = await generateCallMapPDF(firstName, contact, time, callMapText);
+          console.log(`✓ Generated PDF for ${contact}`);
         } catch (pdfErr) {
           console.error('PDF generation failed:', pdfErr.message);
         }
@@ -170,7 +229,7 @@ Deno.serve(async (req) => {
 
       const safeName = contact.replace(/[^a-zA-Z0-9_-]/g, '').replace(/\s+/g, '_');
       const payload = {
-        sender: { name: 'Arriv Estate Media', email: adminEmail },
+        sender: { name: 'Arriv Estate Media', email: 'noreply@arrivestatemedia.com' },
         to: [{ email: repEmail, name: firstName }],
         subject: `Call Reminder: ${contact} at ${time}`,
         htmlContent: htmlBody,
