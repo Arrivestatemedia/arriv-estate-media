@@ -16,6 +16,62 @@ Deno.serve(async (req) => {
       Deno.env.get('STRIPE_WEBHOOK_SECRET')
     );
     
+    // Handle payment_intent.succeeded by looking up the checkout session
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
+      console.log('payment_intent.succeeded:', paymentIntent.id);
+
+      // Find invoice by payment intent ID or customer email
+      const invoices = await base44.asServiceRole.entities.Invoice.filter({ payment_status: 'unpaid' });
+
+      // Match by payment intent ID (if already stored) or customer email
+      let invoice = invoices.find(inv => inv.stripe_payment_intent_id === paymentIntent.id);
+
+      if (!invoice) {
+        const customerEmail = paymentIntent.receipt_email || paymentIntent.customer_email;
+        console.log('Trying email match:', customerEmail);
+        if (customerEmail) {
+          invoice = invoices.find(inv => inv.client_email?.toLowerCase() === customerEmail.toLowerCase());
+        }
+      }
+
+      // Also try matching via the checkout session linked to this payment intent
+      if (!invoice) {
+        try {
+          const sessions = await fetch(`https://api.stripe.com/v1/checkout/sessions?payment_intent=${paymentIntent.id}&limit=1`, {
+            headers: { 'Authorization': `Bearer ${Deno.env.get('STRIPE_SECRET_KEY')}` }
+          });
+          const sessionData = await sessions.json();
+          const session = sessionData.data?.[0];
+          if (session) {
+            console.log('Found checkout session:', session.id, 'payment_link:', session.payment_link);
+            if (session.payment_link) {
+              invoice = invoices.find(inv => inv.stripe_payment_link_id === session.payment_link);
+            }
+            if (!invoice) {
+              const email = session.customer_details?.email;
+              if (email) invoice = invoices.find(inv => inv.client_email?.toLowerCase() === email.toLowerCase());
+            }
+          }
+        } catch (e) {
+          console.warn('Could not look up checkout session:', e.message);
+        }
+      }
+
+      console.log('Matched invoice:', invoice?.id || 'NO MATCH');
+
+      if (invoice) {
+        await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+          stripe_payment_intent_id: paymentIntent.id
+        });
+        await base44.asServiceRole.functions.invoke('processPaymentConfirmation', { invoiceId: invoice.id });
+      } else {
+        console.warn('No invoice matched for payment_intent:', paymentIntent.id);
+      }
+    }
+
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         console.log('Checkout session completed:', {
