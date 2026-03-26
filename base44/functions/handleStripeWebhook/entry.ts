@@ -67,8 +67,12 @@ Deno.serve(async (req) => {
 
         console.log('Found unpaid invoices:', invoices.length, invoices.map(i => ({ id: i.id, email: i.client_email, plinkId: i.stripe_payment_link_id })));
 
-        // Match 1: by checkout session ID (most precise)
-        let invoice = invoices.find(inv => inv.stripe_checkout_session_id === session.id);
+        // Match 1: by checkout session ID (most precise) — skip if stored value is actually a plink_ ID
+        let invoice = invoices.find(inv =>
+          inv.stripe_checkout_session_id &&
+          !inv.stripe_checkout_session_id.startsWith('plink_') &&
+          inv.stripe_checkout_session_id === session.id
+        );
 
         // Match 2: by payment link ID
         if (!invoice && session.payment_link) {

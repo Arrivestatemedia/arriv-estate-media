@@ -561,7 +561,6 @@ Deno.serve(async (req) => {
             payment_status: 'unpaid',
             stripe_payment_link_id: stripeData.id,
             stripe_payment_link_url: stripeData.url,
-            stripe_checkout_session_id: stripeData.id,
             google_drive_unpaid_url: driveViewLink,
             google_drive_file_id: pdfFileId,
             pay_at_closing: false,
