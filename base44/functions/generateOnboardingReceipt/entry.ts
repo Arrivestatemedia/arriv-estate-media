@@ -54,7 +54,11 @@ Deno.serve(async (req) => {
         let b64 = '';
         for (let i = 0; i < logoBytes.length; i += 1024) b64 += String.fromCharCode(...logoBytes.subarray(i, i + 1024));
         const logoBase64 = btoa(b64);
-        doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', margin, 5, 120, 70);
+        const imgData = `data:image/png;base64,${logoBase64}`;
+        const imgProps = doc.getImageProperties(imgData);
+        const logoH = 60;
+        const logoW = (imgProps.width / imgProps.height) * logoH;
+        doc.addImage(imgData, 'PNG', margin, 10, logoW, logoH);
       }
     } catch (e) {
       doc.setFont('helvetica', 'bold');

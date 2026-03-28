@@ -28,34 +28,39 @@ Deno.serve(async (req) => {
     const gmailToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
     // Send email to media partner
-    const emailSubject = 'Receipt – Media Partner Onboarding Fee';
-    const emailBody = `Hi ${user.full_name.split(' ')[0]},
+    const emailSubject = 'Media Partner Onboarding Receipt';
+    const firstName = user.full_name.split(' ')[0];
+    const apparelLines = [
+      `Shirt: ${user.shirtFit} - Size ${user.shirtSize}`,
+      `Jacket: Size ${user.jacketSize}`,
+      ...(user.addGearBag ? ['Gear Bag'] : []),
+      ...(user.addWaterBottle ? ['Water Bottle'] : [])
+    ].map(line => `<li>${line}</li>`).join('');
 
-Thank you for completing your onboarding with Arriv Estate Media!
+    const htmlEmailBody = `<!DOCTYPE html>
+<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <p>Hi ${firstName},</p>
+  <p>Thank you for completing your onboarding with Arriv Estate Media!</p>
+  <p>We've received your $50 onboarding fee payment. Please find your receipt attached below.</p>
+  <p style="text-align: center; margin: 30px 0;">
+    <a href="${receiptUrl}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">View Receipt</a>
+  </p>
+  <p>Your required apparel will be ordered shortly:</p>
+  <ul>${apparelLines}</ul>
+  <p>You're now fully onboarded and can access the job board.</p>
+  <p>Best regards,<br><strong>Arriv Estate Media Team</strong></p>
+</body></html>`;
 
-We've received your $50 onboarding fee payment. Your receipt has been generated and is available here:
-${receiptUrl}
-
-Your required apparel will be ordered shortly:
-- Shirt: ${user.shirtFit} - Size ${user.shirtSize}
-- Jacket: Size ${user.jacketSize}
-${user.addGearBag ? '- Gear Bag' : ''}
-${user.addWaterBottle ? '- Water Bottle' : ''}
-
-You're now fully onboarded and can access the job board.
-
-Best regards,
-Arriv Estate Media Team`;
-
-    const emailMessage = [
+    const emailLines = [
       `To: ${user.email}`,
       `Subject: ${emailSubject}`,
-      'Content-Type: text/plain; charset=utf-8',
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=utf-8',
       '',
-      emailBody
+      htmlEmailBody
     ].join('\r\n');
 
-    const encodedEmail = btoa(unescape(encodeURIComponent(emailMessage)))
+    const encodedEmail = btoa(unescape(encodeURIComponent(emailLines)))
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
