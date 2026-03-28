@@ -8,7 +8,6 @@ import JobForm from "../components/jobs/JobForm";
 import JobCard from "../components/jobs/JobCard";
 import PendingBookingCard from "../components/booking/PendingBookingCard";
 import InviteUsersCard from "../components/dashboard/InviteUsersCard";
-import SendMediaDialog from "../components/jobs/SendMediaDialog";
 import { AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
@@ -16,7 +15,6 @@ import { createPageUrl } from "../utils";
 export default function Dashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
-  const [sendMediaJob, setSendMediaJob] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -299,17 +297,11 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {approvedJobs.map((job) => (
-              <JobCard key={job.id} job={job} isAdmin={true} onManage={handleEdit} onBook={handleBook} onBookBackup={handleBookBackup} onUpdateBackup={handleUpdateBackup} currentUserEmail={user?.email} userRole="admin" onSendMedia={(j) => setSendMediaJob(j)} />
+              <JobCard key={job.id} job={job} isAdmin={true} onManage={handleEdit} onBook={handleBook} onBookBackup={handleBookBackup} onUpdateBackup={handleUpdateBackup} currentUserEmail={user?.email} userRole="admin" />
             ))}
           </div>
         )}
       </div>
-
-      <SendMediaDialog
-        job={sendMediaJob}
-        open={!!sendMediaJob}
-        onClose={() => setSendMediaJob(null)}
-      />
     </div>
   );
 }
