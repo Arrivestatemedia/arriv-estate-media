@@ -35,8 +35,10 @@ Deno.serve(async (req) => {
     }
 
     // Update job with Google Drive folder URL
-    jobData.google_drive_folder_url = folderUrl;
-    const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, jobData);
+    // Strip date/time fields — never let the frontend overwrite these to prevent timezone shift bugs
+    const { date, start_time, ...safeJobData } = jobData;
+    safeJobData.google_drive_folder_url = folderUrl;
+    const updatedJob = await base44.asServiceRole.entities.Job.update(jobId, safeJobData);
 
     // Invoke the calendar event creation function
     await base44.asServiceRole.functions.invoke('createJobCalendarEvent', {
