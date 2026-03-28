@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film } from "lucide-react";
+import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film, Send } from "lucide-react";
 import { format, parse as parseDate } from "date-fns";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
@@ -24,7 +24,7 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-600 border-red-300" },
 };
 
-export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole, isMediaPartner, onJobUpdate }) {
+export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole, isMediaPartner, onJobUpdate, onSendMedia }) {
   const type = typeConfig[job.type] || typeConfig.photo;
   const status = statusConfig[job.status] || statusConfig.open;
   const TypeIcon = type.icon;
@@ -263,6 +263,18 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
                 </p>
               )}
             </div>
+          )}
+
+          {isAdmin && onSendMedia && (
+            <Button
+              onClick={() => onSendMedia(job)}
+              variant="outline"
+              size="sm"
+              className="w-full mb-2 text-sm border-[#B8956A] text-[#B8956A] hover:bg-[#B8956A]/10"
+            >
+              <Send className="w-3.5 h-3.5 mr-2" />
+              Send Media to Client
+            </Button>
           )}
 
           <div className="flex gap-2">
