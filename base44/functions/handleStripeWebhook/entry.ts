@@ -112,6 +112,33 @@ Deno.serve(async (req) => {
             if (users[0]) await base44.asServiceRole.entities.User.update(users[0].id, onboardingUpdate);
           }
 
+          // Generate receipt and send notifications
+          try {
+            // Resolve the userId if not already available
+            let resolvedUserId = userId;
+            if (!resolvedUserId && userEmail) {
+              const matchedUsers = await base44.asServiceRole.entities.User.filter({ email: userEmail });
+              if (matchedUsers[0]) resolvedUserId = matchedUsers[0].id;
+            }
+
+            if (resolvedUserId) {
+              const receiptResult = await base44.asServiceRole.functions.invoke('generateOnboardingReceipt', {
+                userId: resolvedUserId,
+                paymentIntentId: session.payment_intent,
+                paidAt: new Date().toISOString()
+              });
+
+              const driveUrl = receiptResult?.data?.driveUrl;
+
+              await base44.asServiceRole.functions.invoke('sendOnboardingReceiptNotifications', {
+                userId: resolvedUserId,
+                receiptUrl: driveUrl || ''
+              });
+            }
+          } catch (receiptError) {
+            console.error('Failed to generate/send onboarding receipt:', receiptError.message);
+          }
+
           return Response.json({ received: true });
         }
 
