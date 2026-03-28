@@ -59,7 +59,6 @@ Deno.serve(async (req) => {
             if (!job.date || !job.booked_by) continue;
 
             // Parse job date and time
-            const jobDate = parseDate(job.date, 'yyyy-MM-dd', new Date());
             let jobTime = job.start_time || '09:00';
 
             // Normalize to 24-hour format
@@ -73,10 +72,12 @@ Deno.serve(async (req) => {
               jobTime = `${String(h).padStart(2, '0')}:${String(minute || 0).padStart(2, '0')}`;
             }
 
-            // Create job datetime in ET timezone
+            // Build job datetime correctly: parse date parts + time parts, then convert from ET to UTC
+            const [jobYear, jobMonth, jobDay] = job.date.split('-').map(Number);
             const [jobHour, jobMinute] = jobTime.split(':').map(Number);
-            jobDate.setHours(jobHour, jobMinute, 0, 0);
-            const jobDatetimeUTC = fromZonedTime(jobDate, tz);
+            // fromZonedTime expects a plain Date representing wall-clock time in the given tz
+            const jobDatetimeUTC = fromZonedTime(new Date(jobYear, jobMonth - 1, jobDay, jobHour, jobMinute, 0, 0), tz);
+            const jobDate = toZonedTime(jobDatetimeUTC, tz);
 
             const timeDiffMs = jobDatetimeUTC.getTime() - now.getTime();
             const timeDiffMinutes = timeDiffMs / (1000 * 60);
