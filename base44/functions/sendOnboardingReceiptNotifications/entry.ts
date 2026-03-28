@@ -3,11 +3,22 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { userId, receiptUrl } = await req.json();
+    const { userId, pendingSignupId, userEmail, receiptUrl } = await req.json();
 
-    // Get user data
-    const users = await base44.asServiceRole.entities.User.filter({ id: userId });
-    const user = users[0];
+    // Get user data — try User entity first, fall back to PendingSignup
+    let user = null;
+    if (userId) {
+      const users = await base44.asServiceRole.entities.User.filter({ id: userId });
+      user = users[0];
+    }
+    if (!user && pendingSignupId) {
+      const signups = await base44.asServiceRole.entities.PendingSignup.filter({ id: pendingSignupId });
+      user = signups[0] || null;
+    }
+    if (!user && userEmail) {
+      const signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: userEmail });
+      user = signups[0] || null;
+    }
 
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
