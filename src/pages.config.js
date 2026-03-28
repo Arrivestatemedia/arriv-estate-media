@@ -96,6 +96,7 @@ import TrackLink from './pages/TrackLink';
 import confirmDeleteUser from './pages/confirmDeleteUser';
 import HubSpotActivityLog from './pages/HubSpotActivityLog';
 import AdminActivityPage from './pages/AdminActivityPage';
+import SendMediaToClient from './pages/SendMediaToClient';
 import __Layout from './Layout.jsx';
 
 
@@ -149,6 +150,7 @@ export const PAGES = {
     "confirmDeleteUser": confirmDeleteUser,
     "HubSpotActivityLog": HubSpotActivityLog,
     "AdminActivityPage": AdminActivityPage,
+    "SendMediaToClient": SendMediaToClient,
 }
 
 export const pagesConfig = {
