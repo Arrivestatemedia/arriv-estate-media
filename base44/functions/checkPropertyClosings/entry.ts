@@ -88,8 +88,8 @@ Deno.serve(async (req) => {
           scan_notes: (detection.scan_notes || '') + `\n[${new Date().toISOString()}] Scan: ${llmResponse.confidence} confidence - ${llmResponse.source_info}`
         });
 
-        // If closing detected
-        if (llmResponse.has_sold && llmResponse.closing_date) {
+        // If closing detected — reject if closing date is older than the job's shoot date (false positive from prior sale)
+        if (llmResponse.has_sold && llmResponse.closing_date && llmResponse.closing_date >= job.date) {
           console.log(`CLOSING DETECTED for job ${job.id}: ${job.location} closed on ${llmResponse.closing_date}`);
 
           // Update ClosingDetection
