@@ -19,9 +19,19 @@ Deno.serve(async (req) => {
       return oneDayAfterCompletion <= today;
     });
 
+    // Only monitor pay-at-closing jobs
+    const payAtClosingBookings = await base44.asServiceRole.entities.Booking.filter({ request_pay_at_closing: true });
+    const payAtClosingBookingIds = new Set(payAtClosingBookings.map(b => b.id));
+    const payAtClosingJobs = pastJobs.filter(j => j.booking_id && payAtClosingBookingIds.has(j.booking_id));
+
+    console.log(`Filtered to ${payAtClosingJobs.length} pay-at-closing jobs out of ${pastJobs.length} past jobs`);
+
+    // Replace pastJobs reference below with payAtClosingJobs
+    const monitoredJobs = payAtClosingJobs;
+
     console.log(`Found ${pastJobs.length} past jobs to monitor for closings`);
 
-    for (const job of pastJobs) {
+    for (const job of monitoredJobs) {
       try {
         // Check if we already have a ClosingDetection record
         const existingDetections = await base44.asServiceRole.entities.ClosingDetection.filter({
@@ -177,7 +187,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ success: true, jobsProcessed: pastJobs.length });
+    return Response.json({ success: true, jobsProcessed: monitoredJobs.length });
   } catch (error) {
     console.error('Closing detection error:', error);
     return Response.json({ error: error.message }, { status: 500 });
