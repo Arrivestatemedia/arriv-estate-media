@@ -151,7 +151,7 @@ export default function SendMediaToClient() {
 
         <Button
           onClick={handleSend}
-          disabled={!selectedJobId || !driveLink || !editableMessage.trim() || sending}
+          disabled={!selectedJobId || !driveLink || sending}
           className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white h-12 text-base"
         >
           <Send className="w-5 h-5 mr-2" />
