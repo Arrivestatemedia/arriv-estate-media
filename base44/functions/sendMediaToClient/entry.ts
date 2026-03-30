@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       const timeOfDay = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
       const firstName = job.client_name?.split(' ')[0] || job.client_name;
       const address = job.location;
-      const youtubeLine = youtubeLink ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${youtubeLink}` : '';
+      const youtubeLine = youtubeLink ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${youtubeLink}\n\nInstructions on how to drop your link directly into your listing:\n\nhttps://drive.google.com/file/d/1D1Pd9zqBa28MpBd3a8qxDWsvdYSE0smi/view?usp=sharing` : '';
       messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready.\n\nHere's the download link:\n\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
     }
 
