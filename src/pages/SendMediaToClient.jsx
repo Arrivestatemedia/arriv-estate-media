@@ -62,7 +62,7 @@ export default function SendMediaToClient() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] p-6">
+    <div className="min-h-screen bg-[#FFFBF5] p-6 pb-24">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Send Media to Client</h1>
         <p className="text-[#1A1A1A]/60 mb-8">Send the completed media links via email and SMS to the client.</p>
