@@ -38,20 +38,53 @@ Deno.serve(async (req) => {
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+    const bradleyPhone = Deno.env.get('BRADLEY_PHONE');
+    const bradleyEmail = Deno.env.get('ADMIN_EMAIL');
     const gmailToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
 
-    // Send SMS
-    const formattedPhone = job.client_phone?.startsWith('+') ? job.client_phone : `+1${job.client_phone}`;
-    const smsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ From: fromPhone, To: formattedPhone, Body: messageBody }).toString(),
-    });
+    const sendSms = async (to) => {
+      const formatted = to?.startsWith('+') ? to : `+1${to}`;
+      const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ From: fromPhone, To: formatted, Body: messageBody }).toString(),
+      });
+      return res.ok;
+    };
 
-    const smsOk = smsRes.ok;
+    const sendEmail = async (to) => {
+      const emailSubject = `Your Media is Ready – ${job.location}`;
+      const emailLines = [
+        `To: ${to}`,
+        `Subject: ${emailSubject}`,
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=utf-8',
+        '',
+        messageBody,
+      ].join('\r\n');
+      const encodedEmail = btoa(unescape(encodeURIComponent(emailLines)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw: encodedEmail }),
+      });
+      return res.ok;
+    };
+
+    const emailSubject = `Your Media is Ready – ${job.location}`;
+
+    // Send to client
+    const smsOk = await sendSms(job.client_phone);
+    const emailOk = await sendEmail(job.client_email);
+
+    // Send copies to Bradley
+    await sendSms(bradleyPhone);
+    await sendEmail(bradleyEmail);
+
     await base44.asServiceRole.entities.MessageLog.create({
       message_type: 'sms',
       recipient_type: 'client',
@@ -61,26 +94,6 @@ Deno.serve(async (req) => {
       status: smsOk ? 'success' : 'failed',
     });
 
-    // Send Email
-    const emailSubject = `Your Media is Ready – ${address}`;
-    const emailLines = [
-      `To: ${job.client_email}`,
-      `Subject: ${emailSubject}`,
-      'MIME-Version: 1.0',
-      'Content-Type: text/plain; charset=utf-8',
-      '',
-      messageBody,
-    ].join('\r\n');
-
-    const encodedEmail = btoa(unescape(encodeURIComponent(emailLines)))
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    const emailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${gmailToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ raw: encodedEmail }),
-    });
-
     await base44.asServiceRole.entities.MessageLog.create({
       message_type: 'email',
       recipient_type: 'client',
@@ -88,10 +101,10 @@ Deno.serve(async (req) => {
       subject: emailSubject,
       message_content: messageBody,
       job_id: jobId,
-      status: emailRes.ok ? 'success' : 'failed',
+      status: emailOk ? 'success' : 'failed',
     });
 
-    return Response.json({ success: true, smsOk, emailOk: emailRes.ok, preview: messageBody });
+    return Response.json({ success: true, smsOk, emailOk, preview: messageBody });
 
   } catch (error) {
     console.error('sendMediaToClient error:', error);
