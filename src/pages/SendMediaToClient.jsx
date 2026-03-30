@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
@@ -12,6 +13,7 @@ export default function SendMediaToClient() {
   const [selectedJobId, setSelectedJobId] = useState("");
   const [driveLink, setDriveLink] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
+  const [editableMessage, setEditableMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -22,9 +24,9 @@ export default function SendMediaToClient() {
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId);
 
-  // Build preview message
-  const getPreview = () => {
-    if (!selectedJob || !driveLink) return null;
+  // Build default message whenever inputs change
+  const buildDefaultMessage = () => {
+    if (!selectedJob || !driveLink) return "";
     const hour = new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" });
     const h = parseInt(hour);
     const timeOfDay = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
@@ -35,8 +37,13 @@ export default function SendMediaToClient() {
     return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready.\n\nHere's the download link:\n\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
   };
 
+  // Auto-populate the editable message when key inputs change
+  useEffect(() => {
+    setEditableMessage(buildDefaultMessage());
+  }, [selectedJobId, driveLink, youtubeLink]);
+
   const handleSend = async () => {
-    if (!selectedJobId || !driveLink) return;
+    if (!selectedJobId || !driveLink || !editableMessage.trim()) return;
     setSending(true);
     setResult(null);
     try {
@@ -44,6 +51,7 @@ export default function SendMediaToClient() {
         jobId: selectedJobId,
         driveLink,
         youtubeLink: youtubeLink || undefined,
+        messageBody: editableMessage,
       });
       setResult({ success: true, data: res.data });
     } catch (err) {
@@ -52,8 +60,6 @@ export default function SendMediaToClient() {
       setSending(false);
     }
   };
-
-  const preview = getPreview();
 
   return (
     <div className="min-h-screen bg-[#FFFBF5] p-6">
@@ -110,18 +116,29 @@ export default function SendMediaToClient() {
           </CardContent>
         </Card>
 
-        {preview && (
+        {editableMessage ? (
           <Card className="border-2 border-[#B8956A]/20 bg-white mb-6">
             <CardHeader>
-              <CardTitle className="text-[#1A1A1A] text-lg">Message Preview</CardTitle>
+              <CardTitle className="text-[#1A1A1A] text-lg">Edit Message</CardTitle>
+              <p className="text-sm text-[#1A1A1A]/50">This message will be sent via both SMS and email. Edit as needed.</p>
             </CardHeader>
             <CardContent>
-              <pre className="whitespace-pre-wrap text-sm text-[#1A1A1A]/80 font-sans leading-relaxed bg-[#FFFBF5] p-4 rounded-lg border border-[#B8956A]/20">
-                {preview}
-              </pre>
+              <Textarea
+                value={editableMessage}
+                onChange={(e) => setEditableMessage(e.target.value)}
+                rows={10}
+                className="font-mono text-sm leading-relaxed border-[#B8956A]/30 focus:border-[#B8956A]"
+              />
+              <button
+                type="button"
+                onClick={() => setEditableMessage(buildDefaultMessage())}
+                className="mt-2 text-xs text-[#B8956A] hover:underline"
+              >
+                Reset to default
+              </button>
             </CardContent>
           </Card>
-        )}
+        ) : null}
 
         {result && (
           <div className={`flex items-center gap-2 p-4 rounded-lg mb-6 text-sm font-medium ${result.success ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
@@ -134,7 +151,7 @@ export default function SendMediaToClient() {
 
         <Button
           onClick={handleSend}
-          disabled={!selectedJobId || !driveLink || sending}
+          disabled={!selectedJobId || !driveLink || !editableMessage.trim() || sending}
           className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white h-12 text-base"
         >
           <Send className="w-5 h-5 mr-2" />

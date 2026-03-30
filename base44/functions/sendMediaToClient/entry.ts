@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { jobId, driveLink, youtubeLink } = await req.json();
+    const { jobId, driveLink, youtubeLink, messageBody: customMessageBody } = await req.json();
 
     if (!jobId || !driveLink) {
       return Response.json({ error: 'jobId and driveLink are required' }, { status: 400 });
@@ -20,20 +20,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    // Determine time of day greeting
-    const hour = new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' });
-    const h = parseInt(hour);
-    const timeOfDay = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
-
-    const firstName = job.client_name?.split(' ')[0] || job.client_name;
-    const address = job.location;
-
-    // Build message body
-    const youtubeLine = youtubeLink
-      ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${youtubeLink}`
-      : '';
-
-    const messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready.\n\nHere's the download link:\n\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+    let messageBody;
+    if (customMessageBody) {
+      // Use the edited message from the frontend
+      messageBody = customMessageBody;
+    } else {
+      // Fallback: build default message
+      const hour = new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' });
+      const h = parseInt(hour);
+      const timeOfDay = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+      const firstName = job.client_name?.split(' ')[0] || job.client_name;
+      const address = job.location;
+      const youtubeLine = youtubeLink ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${youtubeLink}` : '';
+      messageBody = `Good ${timeOfDay} ${firstName} -\nyour media for ${address} is ready.\n\nHere's the download link:\n\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+    }
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
