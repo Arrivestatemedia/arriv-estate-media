@@ -354,6 +354,57 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.warn('Could not update booking:', e.message);
       }
+
+      // ── 8b. Past-shoot: send "media in 5-10 min" email + mark job completed ─
+      try {
+        const bookings = await base44.asServiceRole.entities.Booking.filter({ id: invoice.booking_id });
+        const booking = bookings[0];
+        if (booking && invoice.service_date) {
+          const [sy, sm, sd] = invoice.service_date.split('-').map(Number);
+          const serviceDate = new Date(sy, sm - 1, sd);
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const isPastShoot = serviceDate < today;
+
+          if (isPastShoot) {
+            // Send "media ready soon" email via Brevo
+            const pastShootFirstName = invoice.client_name.split(' ')[0];
+            const pastShootHtml = `<!DOCTYPE html>
+<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <p>Hi ${pastShootFirstName},</p>
+  <p>Your payment has been received — thank you!</p>
+  <p>Your media for <strong>${invoice.job_address}</strong> is currently being processed and will be delivered to you within the next <strong>5–10 minutes</strong>.</p>
+  <p>Keep an eye on your inbox!</p>
+  <p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107<br>🌐 arrivestatemedia.com</p>
+</body></html>`;
+
+            const brevoApiKeyPast = Deno.env.get('BREVO_API_KEY');
+            if (brevoApiKeyPast) {
+              await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: { 'api-key': brevoApiKeyPast, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail },
+                  to: [{ email: invoice.client_email, name: invoice.client_name }],
+                  subject: 'Your media is on its way!',
+                  htmlContent: pastShootHtml
+                })
+              }).catch(e => console.warn('Past-shoot email error:', e.message));
+            }
+
+            // Mark the associated job as completed
+            const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: invoice.booking_id });
+            if (jobs[0]) {
+              await base44.asServiceRole.entities.Job.update(jobs[0].id, {
+                status: 'completed',
+                media_partner_status: 'job_completed',
+                completed_at: new Date().toISOString()
+              }).catch(e => console.warn('Job update error:', e.message));
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Past-shoot post-payment error:', e.message);
+      }
     }
 
     // ── 9. Log to HubSpot ────────────────────────────────────────────────────
