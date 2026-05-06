@@ -18,6 +18,12 @@ Deno.serve(async (req) => {
         const addOnsTotal = (sb.add_on_ids || []).reduce((sum, id) => sum + (addOnPrices[id] || 0), 0);
         const totalPrice = pkgPrice + addOnsTotal;
 
+        // Determine if the shoot date is in the past
+        const [py, pm, pd] = sb.preferred_date.split('-').map(Number);
+        const shootDate = new Date(py, pm - 1, pd);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const isPastShoot = shootDate < today;
+
         const bookingPayload = {
           client_name: sb.client_name,
           client_email: sb.client_email,
@@ -33,6 +39,7 @@ Deno.serve(async (req) => {
           add_ons: sb.add_on_ids || [],
           request_pay_at_closing: sb.request_pay_at_closing || false,
           total_price: totalPrice,
+          past_shoot: isPastShoot, // skip notifications, auto-approve, assign to admin
         };
 
         const res = await base44.asServiceRole.functions.invoke('handleBookingSubmission', { booking: bookingPayload });

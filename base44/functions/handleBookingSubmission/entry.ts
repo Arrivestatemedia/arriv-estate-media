@@ -10,16 +10,55 @@ Deno.serve(async (req) => {
     }
 
     const adminEmail = 'BradCBurke@arrivestatemedia.com';
+    const adminName = 'Bradley Burke';
     const propertyAddress = `${booking.street_address}, ${booking.city}, ${booking.state}`;
+    const isPastShoot = !!booking.past_shoot;
 
-    // Create booking in database
+    // Create booking in database — auto-approve past shoots
     const createdBooking = await base44.asServiceRole.entities.Booking.create({
       ...booking,
-      status: 'pending'
+      status: isPastShoot ? 'approved' : 'pending'
     });
 
-    // Send admin notification email via Gmail
-    try {
+    // For past shoots: create a Job assigned to admin (Bradley) and skip all client/admin notifications
+    if (isPastShoot) {
+      const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
+      const addOnPrices = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
+      const addOnsTotal = (booking.add_ons || []).reduce((sum, id) => sum + (addOnPrices[id] || 0), 0);
+      const payRate = (packagePrices[booking.package] || 0) + addOnsTotal;
+
+      try {
+        await base44.asServiceRole.entities.Job.create({
+          title: `${booking.package} – ${propertyAddress}`,
+          type: booking.package === 'mls_walkthrough' ? 'video' : (booking.package === 'photo_essentials' ? 'photo' : 'photo_video'),
+          location: propertyAddress,
+          date: booking.preferred_date,
+          start_time: booking.preferred_time,
+          pay_rate: payRate,
+          client_price: parseFloat(booking.total_price),
+          status: 'completed',
+          media_partner_status: 'job_completed',
+          booked_by: adminEmail,
+          booked_by_name: adminName,
+          client_name: booking.client_name,
+          client_email: booking.client_email,
+          client_phone: booking.client_phone || '',
+          package: booking.package,
+          add_ons: booking.add_ons || [],
+          notes: booking.notes || '',
+          from_booking: true,
+          booking_id: createdBooking.id,
+          footage_uploaded: true,
+        });
+      } catch (jobErr) {
+        console.error('Job creation error (past shoot):', jobErr.message);
+      }
+
+      // Skip to invoice generation — fall through to the invoice block below
+    }
+
+    // Send admin notification email via Gmail (skip for past shoots)
+    if (!isPastShoot) try {
       const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
       const emailSubject = `New Booking Request - ${booking.client_name}`;
       const payAtClosingNote = booking.request_pay_at_closing ? '\n\n⚠️ CLIENT REQUESTED PAY-AT-CLOSING' : '';
@@ -56,10 +95,10 @@ Deno.serve(async (req) => {
       console.error('Admin email error:', error);
     }
 
-    // For pay-up-front: send booking confirmation email first (separate from invoice generation)
+    // For pay-up-front: send booking confirmation email first (skip for past shoots)
     if (!booking.request_pay_at_closing) {
-      // Send booking confirmation email via Gmail
-      try {
+      // Send booking confirmation email via Gmail (skip for past shoots)
+      if (!isPastShoot) try {
         const firstName = booking.client_name.split(' ')[0];
         const packageNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
         const addOnsList = (booking.add_ons || []).map(addon => {
@@ -125,8 +164,8 @@ Deno.serve(async (req) => {
 
       // Now generate invoice (separate try/catch)
       try {
-        // Send SMS to admin via Twilio
-        try {
+        // Send SMS to admin via Twilio (skip for past shoots)
+        if (!isPastShoot) try {
           const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
           const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
           const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
@@ -148,6 +187,7 @@ Deno.serve(async (req) => {
         }
 
         const totalAmount = parseFloat(booking.total_price);
+
 
         // Invoice number
         const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1);
@@ -609,8 +649,8 @@ Deno.serve(async (req) => {
         });
       }
 
-    } else {
-      // Pay-at-closing: send simple confirmation via Gmail
+    } else if (!isPastShoot) {
+      // Pay-at-closing: send simple confirmation via Gmail (skip for past shoots)
       try {
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
         const emailSubject = 'Your Booking Request Confirmation';
