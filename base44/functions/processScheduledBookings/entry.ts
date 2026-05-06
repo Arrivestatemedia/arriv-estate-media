@@ -100,52 +100,122 @@ Deno.serve(async (req) => {
           const stripeData = await stripeResponse.json();
           if (!stripeResponse.ok) throw new Error(`Stripe error: ${stripeData.error?.message}`);
 
-          // Generate PDF
+          // Generate PDF with full branded layout
           const { jsPDF } = await import('npm:jspdf@2.5.1');
           const doc = new jsPDF({ unit: 'pt', format: 'letter' });
           const pageWidth = doc.internal.pageSize.getWidth();
           const pageHeight = doc.internal.pageSize.getHeight();
           const margin = 60;
+
+          // Cream background
           doc.setFillColor(255, 251, 245);
           doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-          let curY = 20;
+          // Fetch logo
+          let logoBase64 = null;
+          try {
+            const logoRes = await fetch('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png');
+            if (logoRes.ok) {
+              const logoBuffer = await logoRes.arrayBuffer();
+              const logoBytes = new Uint8Array(logoBuffer);
+              let b64 = '';
+              const chunkSize = 1024;
+              for (let i = 0; i < logoBytes.length; i += chunkSize) {
+                b64 += String.fromCharCode(...logoBytes.subarray(i, i + chunkSize));
+              }
+              logoBase64 = btoa(b64);
+            }
+          } catch (e) { /* skip logo if unavailable */ }
+
+          const logoH = 175;
+          let curY = 0;
+          if (logoBase64) {
+            const imgData = `data:image/png;base64,${logoBase64}`;
+            const imgProps = doc.getImageProperties(imgData);
+            const logoW = (imgProps.width / imgProps.height) * logoH;
+            doc.addImage(imgData, 'PNG', (pageWidth - logoW) / 2, curY, logoW, logoH);
+            curY += logoH - 55;
+          } else {
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(26); doc.setTextColor(26, 26, 26);
+            doc.text('ARRIV', pageWidth / 2, curY + 30, { align: 'center' });
+            curY += 60;
+          }
+
+          // Gold divider
+          doc.setDrawColor(184, 149, 106); doc.setLineWidth(1);
+          doc.line(margin, curY, pageWidth - margin, curY); curY += 50;
+
+          // INVOICE title
           doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(26, 26, 26);
           doc.text('INVOICE', margin, curY); curY += 18;
           doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(80, 80, 80);
           doc.text(`Invoice #: ${invoiceNumber}`, margin, curY); curY += 14;
           doc.text(`Date: ${new Date().toLocaleDateString('en-US')}`, margin, curY); curY += 26;
+
           doc.setFont('helvetica', 'bold'); doc.setTextColor(26, 26, 26);
           doc.text('BILL TO:', margin, curY); curY += 15;
           doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
-          doc.text(sb.client_name, margin, curY); curY += 14;
-          doc.text(propertyAddress, margin, curY); curY += 14;
+          doc.text(sb.client_name, margin, curY); curY += 17;
+          doc.setTextColor(184, 149, 106); doc.text('Listing Address:', margin, curY); curY += 15;
+          doc.setTextColor(80, 80, 80); doc.text(propertyAddress, margin, curY); curY += 15;
           doc.text(`Service Date: ${sb.preferred_date}`, margin, curY); curY += 20;
+
           doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.5);
           doc.line(margin, curY, pageWidth - margin, curY); curY += 20;
-          doc.setFont('helvetica', 'bold'); doc.setTextColor(184, 149, 106);
-          doc.text('SERVICES PROVIDED', margin, curY); curY += 20;
-          doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
+
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(184, 149, 106);
+          doc.text('SERVICES PROVIDED', margin, curY); curY += 10;
+          doc.setDrawColor(200, 200, 200); doc.line(margin, curY, pageWidth - margin, curY); curY += 13;
+          doc.setFont('helvetica', 'bold'); doc.setTextColor(26, 26, 26);
+          doc.text('Description', margin, curY); doc.text('Amount', pageWidth - margin, curY, { align: 'right' }); curY += 7;
+          doc.line(margin, curY, pageWidth - margin, curY); curY += 15;
+
           const pkgNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
+          const addonDesc = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
+
+          doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
           doc.text(pkgNames[sb.package_id] || sb.package_id, margin, curY);
           doc.text(`$${pkgPrice.toFixed(2)}`, pageWidth - margin, curY, { align: 'right' }); curY += 16;
+
           if (sb.package_features && sb.package_features.length > 0) {
             doc.setFontSize(8.5); doc.setTextColor(120, 120, 120);
             for (const f of sb.package_features) { doc.text(`  • ${f}`, margin + 8, curY); curY += 12; }
             doc.setFontSize(10); doc.setTextColor(80, 80, 80);
           }
-          const addonDesc = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
+          curY += 4;
+
           for (const addon of (sb.add_on_ids || [])) {
             doc.text(addonDesc[addon] || addon, margin, curY);
-            doc.text(`$${(addOnPrices[addon] || 0).toFixed(2)}`, pageWidth - margin, curY, { align: 'right' }); curY += 16;
+            doc.text(`$${(addOnPrices[addon] || 0).toFixed(2)}`, pageWidth - margin, curY, { align: 'right' }); curY += 18;
           }
+
           doc.setDrawColor(200, 200, 200); doc.line(margin, curY, pageWidth - margin, curY); curY += 14;
           doc.setFont('helvetica', 'bold'); doc.setTextColor(26, 26, 26); doc.text('TOTAL DUE:', margin, curY);
           doc.setTextColor(184, 149, 106); doc.text(`$${totalPrice.toFixed(2)}`, pageWidth - margin, curY, { align: 'right' }); curY += 30;
+          doc.setDrawColor(200, 200, 200); doc.line(margin, curY, pageWidth - margin, curY); curY += 20;
+
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(26, 26, 26);
+          doc.text('PAYMENT INSTRUCTIONS', margin, curY); curY += 16;
           doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
-          doc.text(`Payment Link: ${stripeData.url}`, margin, curY);
+          doc.text('Full payment is required for your shoot to be confirmed.', margin, curY); curY += 16;
+          const linkLabel = 'Payment Link: ';
+          doc.text(linkLabel, margin, curY);
+          const labelWidth = doc.getTextWidth(linkLabel);
+          doc.setTextColor(184, 149, 106);
+          doc.textWithLink(stripeData.url, margin + labelWidth, curY, { url: stripeData.url });
+
+          // Refund policy
+          const refundText = 'Arriv Estate Media LLC is committed to delivering high-quality media and offers revisions or reshoots when necessary to meet expectations. Due to the time and production involved, completed services are generally non-refundable. However, partial refunds may be issued at ARRIV\'s discretion.';
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(120, 120, 120);
+          const refundLines = doc.splitTextToSize(refundText, pageWidth - margin * 2);
+          const refundBlockHeight = refundLines.length * 9 + 14;
+          const refundY = pageHeight - 55 - 10 - refundBlockHeight;
+          doc.setFont('helvetica', 'bold'); doc.text('*Refund Policy', margin, refundY);
+          doc.setFont('helvetica', 'normal'); doc.text(refundLines, margin, refundY + 12);
+
+          // Footer
           doc.setFillColor(26, 26, 26); doc.rect(0, pageHeight - 55, pageWidth, 55, 'F');
-          doc.setFontSize(9); doc.setTextColor(184, 149, 106);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(184, 149, 106);
           doc.text('Arriv Estate Media LLC | Professional Property Photography & Videography', pageWidth / 2, pageHeight - 28, { align: 'center' });
 
           const pdfBytes = new Uint8Array(doc.output('arraybuffer'));
