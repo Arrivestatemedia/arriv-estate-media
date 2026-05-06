@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
       try {
         const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
         const addOnPrices = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
-        const pkgPrice = packagePrices[sb.package_id] || 0;
+        const pkgPrice = sb.custom_package_price != null ? sb.custom_package_price : (packagePrices[sb.package_id] || 0);
         const addOnsTotal = (sb.add_on_ids || []).reduce((sum, id) => sum + (addOnPrices[id] || 0), 0);
         const totalPrice = pkgPrice + addOnsTotal;
 

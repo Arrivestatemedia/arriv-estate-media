@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Clock, Plus, Trash2, CalendarClock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { format, isWeekend } from "date-fns";
 
-const packages = [
+const defaultPackages = [
   { id: "mls_walkthrough", name: "MLS Walkthrough", price: 100, features: [
     "2-3 minute unbranded MLS-ready walkthrough",
     "Bonus vertical social clip",
@@ -55,7 +55,7 @@ const statusColors = {
   failed: "bg-red-100 text-red-800",
 };
 
-function PackageRow({ pkg, isSelected, onSelect, activeFeatures, onFeaturesChange }) {
+function PackageRow({ pkg, isSelected, onSelect, activeFeatures, onFeaturesChange, customPrice, onPriceChange }) {
   const [expanded, setExpanded] = useState(false);
   const [newFeature, setNewFeature] = useState("");
 
@@ -88,7 +88,15 @@ function PackageRow({ pkg, isSelected, onSelect, activeFeatures, onFeaturesChang
           <span className="font-medium text-sm text-[#1A1A1A]">{pkg.name}</span>
         </button>
         <div className="flex items-center gap-2 pr-4">
-          <span className="font-bold text-[#B8956A]">${pkg.price}</span>
+          <span className="text-[#B8956A] font-bold">$</span>
+          <input
+            type="number"
+            value={customPrice ?? pkg.price}
+            onChange={e => { e.stopPropagation(); onPriceChange(pkg.id, e.target.value === '' ? '' : Number(e.target.value)); }}
+            onClick={e => e.stopPropagation()}
+            className="w-20 text-sm font-bold text-[#B8956A] border border-[#B8956A]/30 rounded-lg px-2 py-1 outline-none focus:border-[#B8956A]"
+            min="0"
+          />
           <button type="button" onClick={() => setExpanded(e => !e)} className="p-1 rounded hover:bg-black/5">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -150,6 +158,7 @@ export default function AdminScheduledBookings() {
     notes: "",
   });
   const [packageFeatures, setPackageFeatures] = useState({});
+  const [customPackagePrices, setCustomPackagePrices] = useState({});
 
   // Verify admin
   const [isAdmin, setIsAdmin] = useState(false);
@@ -182,6 +191,7 @@ export default function AdminScheduledBookings() {
   const resetForm = () => {
     setForm({ package_id: "", add_on_ids: [], request_pay_at_closing: false, client_name: "", client_email: "", client_phone: "", street_address: "", city: "", state: "", preferred_date: "", preferred_time: "", notes: "" });
     setPackageFeatures({});
+    setCustomPackagePrices({});
     setSelectedDate(null);
     setScheduleDate(null);
     setScheduleTime("");
@@ -231,10 +241,13 @@ export default function AdminScheduledBookings() {
       scheduled_submit_at = new Date(scheduleDate.getFullYear(), scheduleDate.getMonth(), scheduleDate.getDate(), hours, parseInt(min)).toISOString();
     }
 
-    const selectedPkg = packages.find(p => p.id === form.package_id);
+    const selectedPkg = defaultPackages.find(p => p.id === form.package_id);
     const activeFeatures = packageFeatures[form.package_id] || selectedPkg?.features || [];
+    const pkgPrice = customPackagePrices[form.package_id] ?? selectedPkg?.price ?? 0;
+    const addOnTotal = form.add_on_ids.reduce((sum, id) => sum + (addOns.find(a => a.id === id)?.price || 0), 0);
+    const totalPrice = pkgPrice + addOnTotal;
 
-    createMutation.mutate({ ...form, scheduled_submit_at, package_features: activeFeatures });
+    createMutation.mutate({ ...form, scheduled_submit_at, package_features: activeFeatures, total_price: totalPrice, custom_package_price: pkgPrice });
   };
 
   const availableShootSlots = form.preferred_date
@@ -281,7 +294,7 @@ export default function AdminScheduledBookings() {
         ) : (
           <div className="space-y-4">
             {scheduledBookings.map((sb) => {
-              const pkg = packages.find(p => p.id === sb.package_id);
+              const pkg = defaultPackages.find(p => p.id === sb.package_id);
               const selectedAddOns = (sb.add_on_ids || []).map(id => addOns.find(a => a.id === id)?.name).filter(Boolean);
               return (
                 <Card key={sb.id} className="border-2 border-[#B8956A]/20">
@@ -428,7 +441,7 @@ export default function AdminScheduledBookings() {
             <div>
               <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Package *</label>
               <div className="border border-[#B8956A]/30 rounded-lg overflow-hidden">
-                {packages.map((pkg) => (
+                {defaultPackages.map((pkg) => (
                   <PackageRow
                     key={pkg.id}
                     pkg={pkg}
@@ -436,11 +449,13 @@ export default function AdminScheduledBookings() {
                     onSelect={(id) => setForm(prev => ({ ...prev, package_id: prev.package_id === id ? "" : id }))}
                     activeFeatures={packageFeatures[pkg.id] || pkg.features}
                     onFeaturesChange={(pkgId, features) => setPackageFeatures(prev => ({ ...prev, [pkgId]: features }))}
+                    customPrice={customPackagePrices[pkg.id]}
+                    onPriceChange={(pkgId, price) => setCustomPackagePrices(prev => ({ ...prev, [pkgId]: price }))}
                   />
                 ))}
               </div>
               {form.package_id && (
-                <p className="text-xs text-[#B8956A] mt-1">Selected: {packages.find(p => p.id === form.package_id)?.name}</p>
+                <p className="text-xs text-[#B8956A] mt-1">Selected: {defaultPackages.find(p => p.id === form.package_id)?.name} — ${customPackagePrices[form.package_id] ?? defaultPackages.find(p => p.id === form.package_id)?.price}</p>
               )}
             </div>
 

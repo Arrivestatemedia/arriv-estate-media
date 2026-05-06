@@ -1,0 +1,98 @@
+{
+  "name": "ScheduledBooking",
+  "type": "object",
+  "properties": {
+    "scheduled_submit_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date and time to automatically submit this booking"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "submitted",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Current status of the scheduled booking"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "Selected package ID"
+    },
+    "package_features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Active feature line items for the selected package"
+    },
+    "add_on_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Selected add-on IDs"
+    },
+    "custom_package_price": {
+      "type": "number",
+      "description": "Custom price override for the selected package (overrides default)"
+    },
+    "total_price": {
+      "type": "number",
+      "description": "Total price including package and add-ons"
+    },
+    "request_pay_at_closing": {
+      "type": "boolean",
+      "default": false
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "client_phone": {
+      "type": "string"
+    },
+    "street_address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "preferred_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "preferred_time": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "submitted_booking_id": {
+      "type": "string",
+      "description": "ID of the resulting Booking record after submission"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error message if submission failed"
+    }
+  },
+  "required": [
+    "scheduled_submit_at",
+    "package_id",
+    "client_name",
+    "client_email",
+    "street_address",
+    "city",
+    "state",
+    "preferred_date",
+    "preferred_time"
+  ]
+}
