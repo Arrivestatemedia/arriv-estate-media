@@ -229,7 +229,7 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
 
       // 6. Save the AI-scheduled follow-up with a fresh call map (unless urgency is "skip")
       if (analysis && analysis.urgency !== "skip") {
-        await saveScheduledFollowUp(updatedContact, analysis, sid, sem, scheduledMap);
+        await saveScheduledFollowUp(updatedContact, analysis, sid, sem, {});
       }
 
       setSaved(true);

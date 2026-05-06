@@ -643,7 +643,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
            </div>
           ) : (
            sentEmails.map(email => (
-             <button key={email.id} onClick={() => { setSelectedEmail(email); setEmailModalOpen(true); setEmailModalType("outbox"); }} className="w-full text-left rounded-lg border p-4 hover:opacity-80 transition flex items-start justify-between gap-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+             <button key={email.id} onClick={() => { setSelectedEmail(email); setEmailModalOpen(true); }} className="w-full text-left rounded-lg border p-4 hover:opacity-80 transition flex items-start justify-between gap-3" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
                <div className="flex-1 min-w-0">
                  <div className="flex items-center gap-2 mb-1">
                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: email.status === 'success' ? '#22c55e' : email.status === 'failed' ? '#ef4444' : '#888' }}>

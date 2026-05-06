@@ -209,16 +209,27 @@ export default function AdminScheduledBookings() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!scheduleDate || !scheduleTime) return alert("Please select a scheduled submit date and time.");
     if (!form.package_id) return alert("Please select a package.");
     if (!form.preferred_date || !form.preferred_time) return alert("Please select the shoot date and time.");
 
-    const [h, mAndPeriod] = scheduleTime.split(':');
-    const [min, period] = mAndPeriod.split(' ');
-    let hours = parseInt(h);
-    if (period === 'PM' && hours !== 12) hours += 12;
-    if (period === 'AM' && hours === 12) hours = 0;
-    const scheduled_submit_at = new Date(scheduleDate.getFullYear(), scheduleDate.getMonth(), scheduleDate.getDate(), hours, parseInt(min)).toISOString();
+    // If shoot date is in the past, submit immediately (now). Otherwise require a schedule date/time.
+    const [py, pm, pd] = form.preferred_date.split('-').map(Number);
+    const shootDate = new Date(py, pm - 1, pd);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const isPastDate = shootDate < today;
+
+    let scheduled_submit_at;
+    if (isPastDate) {
+      scheduled_submit_at = new Date().toISOString(); // process immediately
+    } else {
+      if (!scheduleDate || !scheduleTime) return alert("Please select a scheduled submit date and time.");
+      const [h, mAndPeriod] = scheduleTime.split(':');
+      const [min, period] = mAndPeriod.split(' ');
+      let hours = parseInt(h);
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      scheduled_submit_at = new Date(scheduleDate.getFullYear(), scheduleDate.getMonth(), scheduleDate.getDate(), hours, parseInt(min)).toISOString();
+    }
 
     const selectedPkg = packages.find(p => p.id === form.package_id);
     const activeFeatures = packageFeatures[form.package_id] || selectedPkg?.features || [];
@@ -322,45 +333,96 @@ export default function AdminScheduledBookings() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
 
-            {/* When to auto-submit */}
-            <div className="bg-[#B8956A]/10 rounded-lg p-4 border border-[#B8956A]/30 space-y-3">
-              <p className="font-semibold text-[#1A1A1A] flex items-center gap-2"><CalendarClock className="w-4 h-4 text-[#B8956A]" /> When to Auto-Submit</p>
+            {/* Shoot date & time — first so we can conditionally show/hide auto-submit */}
+            <div>
+              <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Preferred Shoot Date *</label>
               <Calendar
                 mode="single"
-                selected={scheduleDate}
-                onSelect={handleScheduleDateSelect}
-                disabled={(d) => { const today = new Date(); today.setHours(0,0,0,0); return d < today; }}
-                className="border border-[#B8956A]/20 rounded-lg p-2 bg-white"
+                selected={selectedDate}
+                onSelect={handleShootDateSelect}
+                className="border border-[#B8956A]/20 rounded-lg p-2"
               />
-              {scheduleDate && (
-                <div>
-                  <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Time to submit</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {["8:00 AM","9:00 AM","10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM"].map(t => (
-                      <button key={t} type="button" onClick={() => setScheduleTime(t)}
-                        className={`p-2 text-xs rounded-lg border-2 transition-all ${scheduleTime === t ? "bg-[#B8956A] text-white border-[#B8956A]" : "border-[#B8956A]/20 hover:border-[#B8956A] text-[#1A1A1A]"}`}>
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="time"
-                      onChange={e => {
-                        if (!e.target.value) return;
-                        const [h, m] = e.target.value.split(':');
-                        const hour = parseInt(h);
-                        const period = hour >= 12 ? 'PM' : 'AM';
-                        const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-                        setScheduleTime(`${displayHour}:${m} ${period}`);
-                      }}
-                      className="flex-1 text-xs border border-[#B8956A]/30 rounded-lg px-2 py-1.5 outline-none focus:border-[#B8956A]"
-                    />
-                    <span className="text-xs text-[#1A1A1A]/50">or enter custom time</span>
-                  </div>
-                </div>
-              )}
             </div>
+            {form.preferred_date && (
+              <div>
+                <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Shoot Time *</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {availableShootSlots.map(t => (
+                    <button key={t} type="button" onClick={() => setForm(p=>({...p,preferred_time:t}))}
+                      className={`p-2 text-xs rounded-lg border-2 transition-all ${form.preferred_time===t ? "bg-[#B8956A] text-white border-[#B8956A]" : "border-[#B8956A]/20 hover:border-[#B8956A] text-[#1A1A1A]"}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="time"
+                    onChange={e => {
+                      if (!e.target.value) return;
+                      const [h, m] = e.target.value.split(':');
+                      const hour = parseInt(h);
+                      const period = hour >= 12 ? 'PM' : 'AM';
+                      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+                      setForm(p => ({...p, preferred_time: `${displayHour}:${m} ${period}`}));
+                    }}
+                    className="flex-1 text-xs border border-[#B8956A]/30 rounded-lg px-2 py-1.5 outline-none focus:border-[#B8956A]"
+                  />
+                  <span className="text-xs text-[#1A1A1A]/50">or enter custom time</span>
+                </div>
+                {form.preferred_time && <p className="text-xs text-[#B8956A] mt-1">Selected: {form.preferred_time}</p>}
+              </div>
+            )}
+
+            {/* When to auto-submit — only shown for future shoot dates */}
+            {form.preferred_date && (() => {
+              const [py, pm, pd] = form.preferred_date.split('-').map(Number);
+              const shootDate = new Date(py, pm - 1, pd);
+              const today = new Date(); today.setHours(0, 0, 0, 0);
+              return shootDate < today;
+            })() ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
+                This shoot date is in the past — the booking will be submitted and processed immediately upon saving.
+              </div>
+            ) : (
+              <div className="bg-[#B8956A]/10 rounded-lg p-4 border border-[#B8956A]/30 space-y-3">
+                <p className="font-semibold text-[#1A1A1A] flex items-center gap-2"><CalendarClock className="w-4 h-4 text-[#B8956A]" /> When to Auto-Submit</p>
+                <Calendar
+                  mode="single"
+                  selected={scheduleDate}
+                  onSelect={handleScheduleDateSelect}
+                  disabled={(d) => { const today = new Date(); today.setHours(0,0,0,0); return d < today; }}
+                  className="border border-[#B8956A]/20 rounded-lg p-2 bg-white"
+                />
+                {scheduleDate && (
+                  <div>
+                    <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Time to submit</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {["8:00 AM","9:00 AM","10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM"].map(t => (
+                        <button key={t} type="button" onClick={() => setScheduleTime(t)}
+                          className={`p-2 text-xs rounded-lg border-2 transition-all ${scheduleTime === t ? "bg-[#B8956A] text-white border-[#B8956A]" : "border-[#B8956A]/20 hover:border-[#B8956A] text-[#1A1A1A]"}`}>
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="time"
+                        onChange={e => {
+                          if (!e.target.value) return;
+                          const [h, m] = e.target.value.split(':');
+                          const hour = parseInt(h);
+                          const period = hour >= 12 ? 'PM' : 'AM';
+                          const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+                          setScheduleTime(`${displayHour}:${m} ${period}`);
+                        }}
+                        className="flex-1 text-xs border border-[#B8956A]/30 rounded-lg px-2 py-1.5 outline-none focus:border-[#B8956A]"
+                      />
+                      <span className="text-xs text-[#1A1A1A]/50">or enter custom time</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Package */}
             <div>
@@ -435,47 +497,6 @@ export default function AdminScheduledBookings() {
                 <Input required maxLength="2" value={form.state} onChange={e => setForm(p=>({...p,state:e.target.value.toUpperCase()}))} className="border-[#B8956A]/30" placeholder="GA" />
               </div>
             </div>
-
-            {/* Shoot date & time */}
-            <div>
-              <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Preferred Shoot Date *</label>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleShootDateSelect}
-                disabled={(d) => { const today = new Date(); today.setHours(0,0,0,0); return d < today; }}
-                className="border border-[#B8956A]/20 rounded-lg p-2"
-              />
-            </div>
-            {form.preferred_date && (
-              <div>
-                <label className="text-sm font-medium text-[#1A1A1A] mb-2 block">Shoot Time *</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {availableShootSlots.map(t => (
-                    <button key={t} type="button" onClick={() => setForm(p=>({...p,preferred_time:t}))}
-                      className={`p-2 text-xs rounded-lg border-2 transition-all ${form.preferred_time===t ? "bg-[#B8956A] text-white border-[#B8956A]" : "border-[#B8956A]/20 hover:border-[#B8956A] text-[#1A1A1A]"}`}>
-                      {t}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    type="time"
-                    onChange={e => {
-                      if (!e.target.value) return;
-                      const [h, m] = e.target.value.split(':');
-                      const hour = parseInt(h);
-                      const period = hour >= 12 ? 'PM' : 'AM';
-                      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-                      setForm(p => ({...p, preferred_time: `${displayHour}:${m} ${period}`}));
-                    }}
-                    className="flex-1 text-xs border border-[#B8956A]/30 rounded-lg px-2 py-1.5 outline-none focus:border-[#B8956A]"
-                  />
-                  <span className="text-xs text-[#1A1A1A]/50">or enter custom time</span>
-                </div>
-                {form.preferred_time && <p className="text-xs text-[#B8956A] mt-1">Selected: {form.preferred_time}</p>}
-              </div>
-            )}
 
             {/* Notes */}
             <div>
