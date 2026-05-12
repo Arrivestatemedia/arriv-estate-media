@@ -15,6 +15,7 @@ export default function SendMediaToClient() {
 
   // ── Send tab state ──────────────────────────────────────────────────────
   const [selectedJobId, setSelectedJobId] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [driveLink, setDriveLink] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
   const [editableMessage, setEditableMessage] = useState("");
@@ -65,9 +66,34 @@ export default function SendMediaToClient() {
     return `Good ${timeOfDay} ${firstName} -\nyour media for ${selectedJob.location} is ready.\n\nHere's the download link:\n\n${driveLink}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
   };
 
+  const buildTemplateMessage = (templateId) => {
+    if (!selectedJob || !driveLink) return "";
+    const template = savedMessages.find((m) => m.id === templateId);
+    if (!template) return "";
+    const hour = new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" });
+    const h = parseInt(hour);
+    const timeOfDay = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
+    const firstName = selectedJob.client_name?.split(" ")[0] || selectedJob.client_name;
+    let body = template.body
+      .replace(/\{first_name\}/g, firstName)
+      .replace(/\{address\}/g, selectedJob.location)
+      .replace(/\{drive_link\}/g, driveLink)
+      .replace(/\{time_of_day\}/g, timeOfDay);
+    if (youtubeLink) {
+      body = body.replace(/\{youtube_link\}/g, youtubeLink);
+    } else {
+      body = body.replace(/\{youtube_link\}/g, "");
+    }
+    return body;
+  };
+
   useEffect(() => {
-    setEditableMessage(buildDefaultMessage());
-  }, [selectedJobId, driveLink, youtubeLink]);
+    if (selectedTemplateId) {
+      setEditableMessage(buildTemplateMessage(selectedTemplateId));
+    } else {
+      setEditableMessage(buildDefaultMessage());
+    }
+  }, [selectedJobId, driveLink, youtubeLink, selectedTemplateId]);
 
   const handleSend = async () => {
     if (!selectedJobId || !driveLink || !editableMessage.trim()) return;
@@ -135,6 +161,23 @@ export default function SendMediaToClient() {
                   </div>
                 )}
 
+                {savedMessages.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Message Template <span className="text-[#1A1A1A]/40 text-xs">(optional — leave blank for default)</span></Label>
+                    <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Use default message..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={null}>Default message</SelectItem>
+                        {savedMessages.map((msg) => (
+                          <SelectItem key={msg.id} value={msg.id}>{msg.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Google Drive Link <span className="text-red-500">*</span></Label>
                   <Input placeholder="https://drive.google.com/..." value={driveLink} onChange={(e) => setDriveLink(e.target.value)} />
@@ -160,7 +203,7 @@ export default function SendMediaToClient() {
                     rows={10}
                     className="font-mono text-sm leading-relaxed border-[#B8956A]/30 focus:border-[#B8956A]"
                   />
-                  <button type="button" onClick={() => setEditableMessage(buildDefaultMessage())} className="mt-2 text-xs text-[#B8956A] hover:underline">
+                  <button type="button" onClick={() => setEditableMessage(selectedTemplateId ? buildTemplateMessage(selectedTemplateId) : buildDefaultMessage())} className="mt-2 text-xs text-[#B8956A] hover:underline">
                     Reset to default
                   </button>
                 </CardContent>
