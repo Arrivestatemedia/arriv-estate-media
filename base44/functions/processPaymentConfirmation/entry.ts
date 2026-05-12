@@ -142,9 +142,10 @@ Deno.serve(async (req) => {
     const addonPrices = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
     const addonDescriptions = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
     const pkgNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
-    const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
-    const basePkgAmount = packagePrices[invoice.package] || 0;
     const addOns = invoice.add_ons || [];
+    const totalAddOnAmount = addOns.reduce((sum, addon) => sum + (addonPrices[addon] || 0), 0);
+    // Always derive package price from what the client actually paid minus add-ons
+    const basePkgAmount = parseFloat(invoice.amount) - totalAddOnAmount;
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
