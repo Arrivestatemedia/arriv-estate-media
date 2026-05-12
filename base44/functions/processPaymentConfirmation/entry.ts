@@ -138,28 +138,16 @@ Deno.serve(async (req) => {
     doc.line(margin, curY, pageWidth - margin, curY);
     curY += 15;
 
-    // Line items
-    const addonPrices = { drone: 125, '3d_tour': 125, twilight: 125, rush_delivery: 100, vertical_reel: 40, ai_staging: 125 };
-    const addonDescriptions = { drone: 'Drone Photography', '3d_tour': '3D Virtual Tour', twilight: 'Twilight Photography', rush_delivery: 'Rush Delivery', vertical_reel: 'Vertical Reel', ai_staging: 'AI Staging' };
+    // Line items — use the actual amount paid, no hardcoded prices
     const pkgNames = { mls_walkthrough: 'MLS Walkthrough', photo_essentials: 'Photo Essentials Package', photo_cinematic: 'Photo + Cinematic Walkthrough', premium_bundle: 'Premium Bundle Package' };
-    const addOns = invoice.add_ons || [];
-    const totalAddOnAmount = addOns.reduce((sum, addon) => sum + (addonPrices[addon] || 0), 0);
-    // Always derive package price from what the client actually paid minus add-ons
-    const basePkgAmount = parseFloat(invoice.amount) - totalAddOnAmount;
+    const totalPaid = parseFloat(invoice.amount);
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
     let y = curY;
     doc.text(pkgNames[invoice.package] || invoice.package, margin, y);
-    doc.text(`$${basePkgAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+    doc.text(`$${totalPaid.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
     y += 18;
-
-    for (const addon of addOns) {
-      const price = addonPrices[addon] || 0;
-      doc.text(addonDescriptions[addon] || addon, margin, y);
-      doc.text(`$${price.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
-      y += 18;
-    }
 
     // Total paid
     doc.setDrawColor(200, 200, 200);
