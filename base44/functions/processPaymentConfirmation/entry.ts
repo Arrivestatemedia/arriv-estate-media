@@ -402,7 +402,7 @@ Deno.serve(async (req) => {
         // Find if there's a ScheduledBooking linked to this booking with a media message
         const scheduledBookings = await base44.asServiceRole.entities.ScheduledBooking.filter({ submitted_booking_id: invoice.booking_id });
         const sb = scheduledBookings[0];
-        if (sb && sb.scheduled_media_message_id && sb.scheduled_media_drive_link) {
+        if (sb && sb.scheduled_media_message_id) {
           // Fetch the message template
           const messages = await base44.asServiceRole.entities.ScheduledMediaMessage.filter({ id: sb.scheduled_media_message_id });
           const msgTemplate = messages[0];
