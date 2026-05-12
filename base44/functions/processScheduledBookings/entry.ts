@@ -22,11 +22,11 @@ Deno.serve(async (req) => {
         const adminEmail = 'BradCBurke@arrivestatemedia.com';
         const adminName = 'Bradley Burke';
 
-        // Determine if the shoot date is in the past
+        // Determine if the shoot date is in the past OR if auto-send media is configured
         const [py, pm, pd] = sb.preferred_date.split('-').map(Number);
         const shootDate = new Date(py, pm - 1, pd);
         const today = new Date(); today.setHours(0, 0, 0, 0);
-        const isPastShoot = shootDate < today;
+        const isPastShoot = shootDate < today || !!sb.scheduled_media_message_id;
 
         // Create the Booking record directly (service role, no auth needed)
         const createdBooking = await base44.asServiceRole.entities.Booking.create({
