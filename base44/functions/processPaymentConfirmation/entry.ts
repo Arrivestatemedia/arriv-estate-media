@@ -407,7 +407,57 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 9. Log to HubSpot ────────────────────────────────────────────────────
+    // ── 9. Auto-send scheduled media message if configured ───────────────────
+    try {
+      if (invoice.booking_id) {
+        // Find if there's a ScheduledBooking linked to this booking with a media message
+        const scheduledBookings = await base44.asServiceRole.entities.ScheduledBooking.filter({ submitted_booking_id: invoice.booking_id });
+        const sb = scheduledBookings[0];
+        if (sb && sb.scheduled_media_message_id && sb.scheduled_media_drive_link) {
+          // Fetch the message template
+          const messages = await base44.asServiceRole.entities.ScheduledMediaMessage.filter({ id: sb.scheduled_media_message_id });
+          const msgTemplate = messages[0];
+          if (msgTemplate) {
+            const hour = new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' });
+            const h = parseInt(hour);
+            const timeOfDay = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+            const firstName = invoice.client_name?.split(' ')[0] || invoice.client_name;
+            const address = invoice.job_address;
+            const driveLink = sb.scheduled_media_drive_link;
+            const youtubeLink = sb.scheduled_media_youtube_link || '';
+
+            let messageBody = msgTemplate.body
+              .replace(/\{first_name\}/g, firstName)
+              .replace(/\{address\}/g, address)
+              .replace(/\{drive_link\}/g, driveLink)
+              .replace(/\{time_of_day\}/g, timeOfDay);
+
+            if (youtubeLink) {
+              messageBody = messageBody.replace(/\{youtube_link\}/g, youtubeLink);
+            } else {
+              messageBody = messageBody.replace(/\{youtube_link\}/g, '');
+            }
+
+            // Find the Job to send via sendMediaToClient
+            const jobs = await base44.asServiceRole.entities.Job.filter({ booking_id: invoice.booking_id });
+            const job = jobs[0];
+            if (job) {
+              await base44.asServiceRole.functions.invoke('sendMediaToClient', {
+                jobId: job.id,
+                driveLink,
+                youtubeLink: youtubeLink || undefined,
+                messageBody,
+              });
+              console.log('Auto-sent scheduled media message to client after payment');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Auto-send media message error:', e.message);
+    }
+
+    // ── 10. Log to HubSpot ────────────────────────────────────────────────────
     try {
       await base44.asServiceRole.functions.invoke('logHubSpotEvent', {
         contactEmail: invoice.client_email,

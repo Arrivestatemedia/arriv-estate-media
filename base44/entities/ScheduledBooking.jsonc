@@ -82,6 +82,18 @@
     "error_message": {
       "type": "string",
       "description": "Error message if submission failed"
+    },
+    "scheduled_media_message_id": {
+      "type": "string",
+      "description": "ID of the ScheduledMediaMessage template to send after payment"
+    },
+    "scheduled_media_drive_link": {
+      "type": "string",
+      "description": "Google Drive link to inject into the scheduled media message"
+    },
+    "scheduled_media_youtube_link": {
+      "type": "string",
+      "description": "Optional YouTube link to inject into the scheduled media message"
     }
   },
   "required": [

@@ -181,6 +181,12 @@ export default function AdminScheduledBookings() {
     enabled: isAdmin && showForm,
   });
 
+  const { data: savedMessages = [] } = useQuery({
+    queryKey: ['scheduledMediaMessages'],
+    queryFn: () => base44.entities.ScheduledMediaMessage.list('-created_date', 50),
+    enabled: isAdmin && showForm,
+  });
+
   // Deduplicate by email, keeping most recent
   const previousCustomers = useMemo(() => {
     const seen = new Set();
@@ -206,7 +212,7 @@ export default function AdminScheduledBookings() {
   });
 
   const resetForm = () => {
-    setForm({ package_id: "", add_on_ids: [], request_pay_at_closing: false, client_name: "", client_email: "", client_phone: "", street_address: "", city: "", state: "", preferred_date: "", preferred_time: "", notes: "" });
+    setForm({ package_id: "", add_on_ids: [], request_pay_at_closing: false, client_name: "", client_email: "", client_phone: "", street_address: "", city: "", state: "", preferred_date: "", preferred_time: "", notes: "", scheduled_media_message_id: "", scheduled_media_drive_link: "", scheduled_media_youtube_link: "" });
     setPackageFeatures({});
     setCustomPackagePrices({});
     setSelectedDate(null);
@@ -279,7 +285,16 @@ export default function AdminScheduledBookings() {
     const addOnTotal = form.add_on_ids.reduce((sum, id) => sum + (addOns.find(a => a.id === id)?.price || 0), 0);
     const totalPrice = pkgPrice + addOnTotal;
 
-    createMutation.mutate({ ...form, scheduled_submit_at, package_features: activeFeatures, total_price: totalPrice, custom_package_price: pkgPrice });
+    createMutation.mutate({
+      ...form,
+      scheduled_submit_at,
+      package_features: activeFeatures,
+      total_price: totalPrice,
+      custom_package_price: pkgPrice,
+      scheduled_media_message_id: form.scheduled_media_message_id || null,
+      scheduled_media_drive_link: form.scheduled_media_drive_link || null,
+      scheduled_media_youtube_link: form.scheduled_media_youtube_link || null,
+    });
   };
 
   const availableShootSlots = form.preferred_date
@@ -562,6 +577,73 @@ export default function AdminScheduledBookings() {
               <div>
                 <label className="text-sm font-medium text-[#1A1A1A] mb-1 block">State *</label>
                 <Input required maxLength="2" value={form.state} onChange={e => setForm(p=>({...p,state:e.target.value.toUpperCase()}))} className="border-[#B8956A]/30" placeholder="GA" />
+              </div>
+            </div>
+
+            {/* Auto-send media on payment */}
+            <div className="bg-[#B8956A]/10 rounded-lg p-4 border border-[#B8956A]/30 space-y-3">
+              <p className="font-semibold text-[#1A1A1A] text-sm flex items-center gap-2">
+                <span>📤</span> Auto-Send Media After Payment
+              </p>
+              <p className="text-xs text-[#1A1A1A]/50">Optionally attach a saved message template and drive link to send automatically when the client pays.</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-[#1A1A1A] mb-1 block">Message Template</label>
+                  <Select value={form.scheduled_media_message_id || ""} onValueChange={v => setForm(p => ({ ...p, scheduled_media_message_id: v }))}>
+                    <SelectTrigger className="border-[#B8956A]/30 bg-white text-sm">
+                      <SelectValue placeholder="Select a saved message (optional)..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>-- None --</SelectItem>
+                      {savedMessages.map(msg => (
+                        <SelectItem key={msg.id} value={msg.id}>{msg.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {savedMessages.length === 0 && (
+                    <p className="text-xs text-[#1A1A1A]/40 mt-1">No templates yet — create one in the Send Media tab.</p>
+                  )}
+                </div>
+                {form.scheduled_media_message_id && (
+                  <>
+                    <div>
+                      <label className="text-xs font-medium text-[#1A1A1A] mb-1 block">Google Drive Link <span className="text-red-400">*</span></label>
+                      <Input
+                        value={form.scheduled_media_drive_link || ""}
+                        onChange={e => setForm(p => ({ ...p, scheduled_media_drive_link: e.target.value }))}
+                        placeholder="https://drive.google.com/..."
+                        className="border-[#B8956A]/30 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#1A1A1A] mb-1 block">YouTube Link <span className="text-[#1A1A1A]/40">(optional)</span></label>
+                      <Input
+                        value={form.scheduled_media_youtube_link || ""}
+                        onChange={e => setForm(p => ({ ...p, scheduled_media_youtube_link: e.target.value }))}
+                        placeholder="https://youtu.be/..."
+                        className="border-[#B8956A]/30 text-sm"
+                      />
+                    </div>
+                    {(() => {
+                      const msg = savedMessages.find(m => m.id === form.scheduled_media_message_id);
+                      if (!msg) return null;
+                      const firstName = form.client_name?.split(' ')[0] || '{first_name}';
+                      const address = [form.street_address, form.city, form.state].filter(Boolean).join(', ') || '{address}';
+                      const preview = msg.body
+                        .replace(/\{first_name\}/g, firstName)
+                        .replace(/\{address\}/g, address)
+                        .replace(/\{drive_link\}/g, form.scheduled_media_drive_link || '{drive_link}')
+                        .replace(/\{youtube_link\}/g, form.scheduled_media_youtube_link || '{youtube_link}')
+                        .replace(/\{time_of_day\}/g, 'morning/afternoon/evening');
+                      return (
+                        <div>
+                          <label className="text-xs font-medium text-[#1A1A1A] mb-1 block">Preview</label>
+                          <pre className="text-xs text-[#1A1A1A]/60 bg-white border border-[#B8956A]/20 rounded-lg p-3 whitespace-pre-wrap font-mono">{preview}</pre>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
               </div>
             </div>
 
