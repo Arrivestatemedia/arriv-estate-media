@@ -254,11 +254,17 @@ Deno.serve(async (req) => {
           const brevoApiKey = Deno.env.get('BREVO_API_KEY');
           const firstName = sb.client_name.split(' ')[0];
           const htmlEmailBody = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;"><p>Hi ${firstName},</p><p>Your invoice for media services at <strong>${propertyAddress}</strong> is ready.</p><p style="text-align: center; margin: 30px 0;"><a href="${driveViewLink}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">👉 View Invoice</a></p><p>Best regards,<br><strong>Bradley Burke</strong><br>Arriv Estate Media<br>📞 678-242-9107</p></body></html>`;
-          await fetch('https://api.brevo.com/v3/smtp/email', {
+          const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
             headers: { 'api-key': brevoApiKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({ sender: { name: 'Bradley Burke - Arriv Estate Media', email: adminEmail }, to: [{ email: sb.client_email, name: sb.client_name }], subject: 'Your Invoice from Arriv Estate Media', htmlContent: htmlEmailBody })
           });
+          const brevoData = await brevoRes.json();
+          if (!brevoRes.ok) {
+            console.error('Brevo email failed:', JSON.stringify(brevoData));
+            throw new Error(`Brevo email failed: ${JSON.stringify(brevoData)}`);
+          }
+          console.log('Invoice email sent via Brevo to', sb.client_email);
 
           // Save invoice record
           const invoice = await base44.asServiceRole.entities.Invoice.create({
