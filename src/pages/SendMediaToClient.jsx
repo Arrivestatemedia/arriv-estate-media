@@ -27,6 +27,7 @@ export default function SendMediaToClient() {
   const [tmplDriveLink, setTmplDriveLink] = useState("");
   const [tmplYoutubeLink, setTmplYoutubeLink] = useState("");
   const [tmplJobId, setTmplJobId] = useState("");
+  const [tmplCustomAddress, setTmplCustomAddress] = useState("");
   const [tmplMessage, setTmplMessage] = useState("");
   const [saveResult, setSaveResult] = useState(null);
 
@@ -59,13 +60,15 @@ export default function SendMediaToClient() {
   });
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId);
-  const tmplJob = jobs.find((j) => j.id === tmplJobId);
+  const tmplJob = tmplJobId === "__custom__"
+    ? { client_name: "", location: tmplCustomAddress }
+    : jobs.find((j) => j.id === tmplJobId);
 
   const buildTmplDefaultMessage = (jobOverride, driveLinkOverride, youtubeLinkOverride) => {
     const job = jobOverride ?? tmplJob;
     const dl = driveLinkOverride ?? tmplDriveLink;
     const yl = youtubeLinkOverride ?? tmplYoutubeLink;
-    if (!job || !dl) return "";
+    if (!job || !dl || (!job.location && !job.client_name)) return "";
     const hour = new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" });
     const h = parseInt(hour);
     const timeOfDay = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
@@ -119,7 +122,7 @@ export default function SendMediaToClient() {
 
   useEffect(() => {
     setTmplMessage(buildTmplDefaultMessage());
-  }, [tmplJobId, tmplDriveLink, tmplYoutubeLink]);
+  }, [tmplJobId, tmplDriveLink, tmplYoutubeLink, tmplCustomAddress]);
 
   const handleSend = async () => {
     if (!selectedJobId || !driveLink || !editableMessage.trim()) return;
@@ -277,6 +280,28 @@ export default function SendMediaToClient() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>New Job / Listing <span className="text-[#1A1A1A]/40 text-xs">(or type a custom address)</span></Label>
+                  <Input
+                    placeholder="e.g. 123 Main St, Atlanta, GA"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSaveResult(null);
+                      // Build a synthetic job object for preview
+                      if (val.trim()) {
+                        setTmplJobId("__custom__");
+                        // Store custom address in a ref-like way via state
+                        setTmplCustomAddress(val);
+                      } else {
+                        if (tmplJobId === "__custom__") setTmplJobId("");
+                        setTmplCustomAddress("");
+                      }
+                    }}
+                    value={tmplJobId === "__custom__" ? tmplCustomAddress : ""}
+                    className="border-[#B8956A]/30"
+                  />
                 </div>
 
                 {tmplJob && (
