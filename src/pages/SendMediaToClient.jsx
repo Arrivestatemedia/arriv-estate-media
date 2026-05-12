@@ -28,6 +28,9 @@ export default function SendMediaToClient() {
   const [tmplYoutubeLink, setTmplYoutubeLink] = useState("");
   const [tmplJobId, setTmplJobId] = useState("");
   const [tmplCustomAddress, setTmplCustomAddress] = useState("");
+  const [tmplClientName, setTmplClientName] = useState("");
+  const [tmplClientEmail, setTmplClientEmail] = useState("");
+  const [tmplClientPhone, setTmplClientPhone] = useState("");
   const [tmplMessage, setTmplMessage] = useState("");
   const [saveResult, setSaveResult] = useState(null);
 
@@ -49,6 +52,10 @@ export default function SendMediaToClient() {
       setTmplDriveLink("");
       setTmplYoutubeLink("");
       setTmplJobId("");
+      setTmplCustomAddress("");
+      setTmplClientName("");
+      setTmplClientEmail("");
+      setTmplClientPhone("");
       setTmplMessage("");
       setSaveResult({ success: true });
     },
@@ -61,22 +68,23 @@ export default function SendMediaToClient() {
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId);
   const tmplJob = tmplJobId === "__custom__"
-    ? { client_name: "", location: tmplCustomAddress }
+    ? { client_name: tmplClientName, location: tmplCustomAddress }
     : jobs.find((j) => j.id === tmplJobId);
 
-  const buildTmplDefaultMessage = (jobOverride, driveLinkOverride, youtubeLinkOverride) => {
-    const job = jobOverride ?? tmplJob;
-    const dl = driveLinkOverride ?? tmplDriveLink;
-    const yl = youtubeLinkOverride ?? tmplYoutubeLink;
-    if (!job || !dl || (!job.location && !job.client_name)) return "";
+  const buildTmplDefaultMessage = () => {
+    const location = tmplJob?.location || tmplCustomAddress;
+    const clientName = tmplClientName || tmplJob?.client_name || "";
+    const dl = tmplDriveLink;
+    const yl = tmplYoutubeLink;
+    if (!dl || !location) return "";
     const hour = new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" });
     const h = parseInt(hour);
     const timeOfDay = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
-    const firstName = job.client_name?.split(" ")[0] || job.client_name;
+    const firstName = clientName?.split(" ")[0] || clientName;
     const youtubeLine = yl
       ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${yl}\n\nInstructions on how to drop your link directly into your listing:\n\nhttps://drive.google.com/file/d/1D1Pd9zqBa28MpBd3a8qxDWsvdYSE0smi/view?usp=sharing`
       : "";
-    return `Good ${timeOfDay} ${firstName} -\nyour media for ${job.location} is ready.\n\nHere's the download link:\n\n${dl}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+    return `Good ${timeOfDay} ${firstName} -\nyour media for ${location} is ready.\n\nHere's the download link:\n\n${dl}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
   };
 
   const buildDefaultMessage = () => {
@@ -122,7 +130,7 @@ export default function SendMediaToClient() {
 
   useEffect(() => {
     setTmplMessage(buildTmplDefaultMessage());
-  }, [tmplJobId, tmplDriveLink, tmplYoutubeLink, tmplCustomAddress]);
+  }, [tmplJobId, tmplDriveLink, tmplYoutubeLink, tmplCustomAddress, tmplClientName]);
 
   const handleSend = async () => {
     if (!selectedJobId || !driveLink || !editableMessage.trim()) return;
@@ -266,11 +274,25 @@ export default function SendMediaToClient() {
                   <Input placeholder='e.g. "Standard Photo Delivery"' value={newMsgName} onChange={(e) => { setNewMsgName(e.target.value); setSaveResult(null); }} className="border-[#B8956A]/30" />
                 </div>
 
+                {/* Existing customer picker */}
                 <div className="space-y-2">
-                  <Label>Job / Listing <span className="text-[#1A1A1A]/40 text-xs">(pick one to preview the message)</span></Label>
-                  <Select value={tmplJobId} onValueChange={(v) => { setTmplJobId(v); setSaveResult(null); }}>
+                  <Label>Pick Existing Customer <span className="text-[#1A1A1A]/40 text-xs">(auto-fills fields below)</span></Label>
+                  <Select
+                    value={tmplJobId}
+                    onValueChange={(v) => {
+                      setTmplJobId(v);
+                      setSaveResult(null);
+                      const job = jobs.find((j) => j.id === v);
+                      if (job) {
+                        setTmplClientName(job.client_name || "");
+                        setTmplClientEmail(job.client_email || "");
+                        setTmplClientPhone(job.client_phone || "");
+                        setTmplCustomAddress(job.location || "");
+                      }
+                    }}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a job..." />
+                      <SelectValue placeholder="Select from past jobs..." />
                     </SelectTrigger>
                     <SelectContent>
                       {jobs.map((job) => (
@@ -282,35 +304,53 @@ export default function SendMediaToClient() {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>New Job / Listing <span className="text-[#1A1A1A]/40 text-xs">(or type a custom address)</span></Label>
+                {/* Client details — editable, auto-filled from picker or typed manually */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2 space-y-1">
+                    <Label>Client Name</Label>
+                    <Input
+                      placeholder="e.g. Jane Smith"
+                      value={tmplClientName}
+                      onChange={(e) => { setTmplClientName(e.target.value); setSaveResult(null); }}
+                      className="border-[#B8956A]/30"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="jane@email.com"
+                      value={tmplClientEmail}
+                      onChange={(e) => { setTmplClientEmail(e.target.value); setSaveResult(null); }}
+                      className="border-[#B8956A]/30"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Phone</Label>
+                    <Input
+                      placeholder="+1 (555) 000-0000"
+                      value={tmplClientPhone}
+                      onChange={(e) => { setTmplClientPhone(e.target.value); setSaveResult(null); }}
+                      className="border-[#B8956A]/30"
+                    />
+                  </div>
+                </div>
+
+                {/* Address / Listing */}
+                <div className="space-y-1">
+                  <Label>Listing Address</Label>
                   <Input
                     placeholder="e.g. 123 Main St, Atlanta, GA"
+                    value={tmplCustomAddress}
                     onChange={(e) => {
                       const val = e.target.value;
                       setSaveResult(null);
-                      // Build a synthetic job object for preview
-                      if (val.trim()) {
-                        setTmplJobId("__custom__");
-                        // Store custom address in a ref-like way via state
-                        setTmplCustomAddress(val);
-                      } else {
-                        if (tmplJobId === "__custom__") setTmplJobId("");
-                        setTmplCustomAddress("");
-                      }
+                      setTmplCustomAddress(val);
+                      setTmplJobId("__custom__");
                     }}
-                    value={tmplJobId === "__custom__" ? tmplCustomAddress : ""}
                     className="border-[#B8956A]/30"
                   />
                 </div>
-
-                {tmplJob && (
-                  <div className="text-sm text-[#1A1A1A]/60 bg-[#FFFBF5] rounded-lg p-3 border border-[#B8956A]/20">
-                    <p><span className="font-medium">Client:</span> {tmplJob.client_name}</p>
-                    <p><span className="font-medium">Email:</span> {tmplJob.client_email}</p>
-                    <p><span className="font-medium">Phone:</span> {tmplJob.client_phone}</p>
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label>Google Drive Link <span className="text-red-500">*</span></Label>
