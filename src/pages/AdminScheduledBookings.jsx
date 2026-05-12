@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -140,6 +140,7 @@ function PackageRow({ pkg, isSelected, onSelect, activeFeatures, onFeaturesChang
 export default function AdminScheduledBookings() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
   const [scheduleDate, setScheduleDate] = useState(null);
   const [scheduleTime, setScheduleTime] = useState("");
@@ -174,6 +175,22 @@ export default function AdminScheduledBookings() {
     enabled: isAdmin,
   });
 
+  const { data: pastBookings = [] } = useQuery({
+    queryKey: ['pastBookingsForDropdown'],
+    queryFn: () => base44.entities.Booking.list('-created_date', 200),
+    enabled: isAdmin && showForm,
+  });
+
+  // Deduplicate by email, keeping most recent
+  const previousCustomers = useMemo(() => {
+    const seen = new Set();
+    return pastBookings.filter(b => {
+      if (!b.client_email || seen.has(b.client_email)) return false;
+      seen.add(b.client_email);
+      return true;
+    });
+  }, [pastBookings]);
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.ScheduledBooking.create(data),
     onSuccess: () => {
@@ -195,6 +212,21 @@ export default function AdminScheduledBookings() {
     setSelectedDate(null);
     setScheduleDate(null);
     setScheduleTime("");
+    setSelectedCustomer("");
+  };
+
+  const handleCustomerSelect = (email) => {
+    setSelectedCustomer(email);
+    if (!email) return;
+    const customer = previousCustomers.find(b => b.client_email === email);
+    if (customer) {
+      setForm(prev => ({
+        ...prev,
+        client_name: customer.client_name || "",
+        client_email: customer.client_email || "",
+        client_phone: customer.client_phone || "",
+      }));
+    }
   };
 
   const handleShootDateSelect = (date) => {
@@ -480,6 +512,26 @@ export default function AdminScheduledBookings() {
                 })}
               </div>
             </div>
+
+            {/* Previous customer selector */}
+            {previousCustomers.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-[#1A1A1A] mb-1 block">Previous Customer</label>
+                <Select value={selectedCustomer} onValueChange={handleCustomerSelect}>
+                  <SelectTrigger className="border-[#B8956A]/30">
+                    <SelectValue placeholder="Select a previous customer to auto-fill..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>-- None --</SelectItem>
+                    {previousCustomers.map(b => (
+                      <SelectItem key={b.client_email} value={b.client_email}>
+                        {b.client_name} — {b.client_email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Client info */}
             <div className="grid grid-cols-2 gap-3">
