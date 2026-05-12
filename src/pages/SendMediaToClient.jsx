@@ -24,9 +24,11 @@ export default function SendMediaToClient() {
 
   // ── Saved messages tab state ────────────────────────────────────────────
   const [newMsgName, setNewMsgName] = useState("");
-  const [newMsgBody, setNewMsgBody] = useState(
-    "Good {time_of_day} {first_name} -\nyour media for {address} is ready.\n\nHere's the download link:\n\n{drive_link}\n\nHappy to make any adjustments if needed.\n-Brad"
-  );
+  const [tmplDriveLink, setTmplDriveLink] = useState("");
+  const [tmplYoutubeLink, setTmplYoutubeLink] = useState("");
+  const [tmplJobId, setTmplJobId] = useState("");
+  const [tmplMessage, setTmplMessage] = useState("");
+  const [saveResult, setSaveResult] = useState(null);
 
   const { data: jobs = [] } = useQuery({
     queryKey: ["completedJobs"],
@@ -43,7 +45,11 @@ export default function SendMediaToClient() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduledMediaMessages"] });
       setNewMsgName("");
-      setNewMsgBody("Good {time_of_day} {first_name} -\nyour media for {address} is ready.\n\nHere's the download link:\n\n{drive_link}\n\nHappy to make any adjustments if needed.\n-Brad");
+      setTmplDriveLink("");
+      setTmplYoutubeLink("");
+      setTmplJobId("");
+      setTmplMessage("");
+      setSaveResult({ success: true });
     },
   });
 
@@ -53,6 +59,22 @@ export default function SendMediaToClient() {
   });
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId);
+  const tmplJob = jobs.find((j) => j.id === tmplJobId);
+
+  const buildTmplDefaultMessage = (jobOverride, driveLinkOverride, youtubeLinkOverride) => {
+    const job = jobOverride ?? tmplJob;
+    const dl = driveLinkOverride ?? tmplDriveLink;
+    const yl = youtubeLinkOverride ?? tmplYoutubeLink;
+    if (!job || !dl) return "";
+    const hour = new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" });
+    const h = parseInt(hour);
+    const timeOfDay = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
+    const firstName = job.client_name?.split(" ")[0] || job.client_name;
+    const youtubeLine = yl
+      ? `\n\nAnd here's the unbranded YouTube link for MLS:\n\n${yl}\n\nInstructions on how to drop your link directly into your listing:\n\nhttps://drive.google.com/file/d/1D1Pd9zqBa28MpBd3a8qxDWsvdYSE0smi/view?usp=sharing`
+      : "";
+    return `Good ${timeOfDay} ${firstName} -\nyour media for ${job.location} is ready.\n\nHere's the download link:\n\n${dl}${youtubeLine}\n\nHappy to make any adjustments if needed.\n-Brad`;
+  };
 
   const buildDefaultMessage = () => {
     if (!selectedJob || !driveLink) return "";
@@ -94,6 +116,10 @@ export default function SendMediaToClient() {
       setEditableMessage(buildDefaultMessage());
     }
   }, [selectedJobId, driveLink, youtubeLink, selectedTemplateId]);
+
+  useEffect(() => {
+    setTmplMessage(buildTmplDefaultMessage());
+  }, [tmplJobId, tmplDriveLink, tmplYoutubeLink]);
 
   const handleSend = async () => {
     if (!selectedJobId || !driveLink || !editableMessage.trim()) return;
@@ -230,34 +256,84 @@ export default function SendMediaToClient() {
             <Card className="border-2 border-[#B8956A]/20 bg-white">
               <CardHeader>
                 <CardTitle className="text-[#1A1A1A] text-lg">Create New Template</CardTitle>
-                <p className="text-sm text-[#1A1A1A]/50">
-                  Use placeholders: <code className="bg-black/5 px-1 rounded">{"{first_name}"}</code>, <code className="bg-black/5 px-1 rounded">{"{address}"}</code>, <code className="bg-black/5 px-1 rounded">{"{drive_link}"}</code>, <code className="bg-black/5 px-1 rounded">{"{youtube_link}"}</code>, <code className="bg-black/5 px-1 rounded">{"{time_of_day}"}</code>
-                </p>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5">
                 <div className="space-y-2">
-                  <Label>Template Name</Label>
-                  <Input placeholder='e.g. "Standard Photo Delivery"' value={newMsgName} onChange={(e) => setNewMsgName(e.target.value)} className="border-[#B8956A]/30" />
+                  <Label>Template Name <span className="text-red-500">*</span></Label>
+                  <Input placeholder='e.g. "Standard Photo Delivery"' value={newMsgName} onChange={(e) => { setNewMsgName(e.target.value); setSaveResult(null); }} className="border-[#B8956A]/30" />
                 </div>
+
                 <div className="space-y-2">
-                  <Label>Message Body</Label>
-                  <Textarea
-                    value={newMsgBody}
-                    onChange={(e) => setNewMsgBody(e.target.value)}
-                    rows={8}
-                    className="font-mono text-sm leading-relaxed border-[#B8956A]/30 focus:border-[#B8956A]"
-                  />
+                  <Label>Job / Listing <span className="text-[#1A1A1A]/40 text-xs">(pick one to preview the message)</span></Label>
+                  <Select value={tmplJobId} onValueChange={(v) => { setTmplJobId(v); setSaveResult(null); }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a job..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobs.map((job) => (
+                        <SelectItem key={job.id} value={job.id}>
+                          {job.location} — {job.client_name} ({job.date})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  onClick={() => createMsgMutation.mutate({ name: newMsgName, body: newMsgBody })}
-                  disabled={!newMsgName.trim() || !newMsgBody.trim() || createMsgMutation.isPending}
-                  className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Save Template
-                </Button>
+
+                {tmplJob && (
+                  <div className="text-sm text-[#1A1A1A]/60 bg-[#FFFBF5] rounded-lg p-3 border border-[#B8956A]/20">
+                    <p><span className="font-medium">Client:</span> {tmplJob.client_name}</p>
+                    <p><span className="font-medium">Email:</span> {tmplJob.client_email}</p>
+                    <p><span className="font-medium">Phone:</span> {tmplJob.client_phone}</p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Google Drive Link <span className="text-red-500">*</span></Label>
+                  <Input placeholder="https://drive.google.com/..." value={tmplDriveLink} onChange={(e) => { setTmplDriveLink(e.target.value); setSaveResult(null); }} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Unbranded YouTube Link for MLS <span className="text-[#1A1A1A]/40 text-xs">(optional)</span></Label>
+                  <Input placeholder="https://youtu.be/..." value={tmplYoutubeLink} onChange={(e) => { setTmplYoutubeLink(e.target.value); setSaveResult(null); }} />
+                </div>
               </CardContent>
             </Card>
+
+            {tmplMessage ? (
+              <Card className="border-2 border-[#B8956A]/20 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-[#1A1A1A] text-lg">Edit Message</CardTitle>
+                  <p className="text-sm text-[#1A1A1A]/50">This is what will be saved as the template body.</p>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={tmplMessage}
+                    onChange={(e) => setTmplMessage(e.target.value)}
+                    rows={10}
+                    className="font-mono text-sm leading-relaxed border-[#B8956A]/30 focus:border-[#B8956A]"
+                  />
+                  <button type="button" onClick={() => setTmplMessage(buildTmplDefaultMessage())} className="mt-2 text-xs text-[#B8956A] hover:underline">
+                    Reset to default
+                  </button>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {saveResult && (
+              <div className={`flex items-center gap-2 p-4 rounded-lg text-sm font-medium ${saveResult.success ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+                {saveResult.success ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                {saveResult.success ? "Template saved!" : `Error: ${saveResult.error}`}
+              </div>
+            )}
+
+            <Button
+              onClick={() => createMsgMutation.mutate({ name: newMsgName, body: tmplMessage })}
+              disabled={!newMsgName.trim() || !tmplMessage.trim() || createMsgMutation.isPending}
+              className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white h-12 text-base"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              {createMsgMutation.isPending ? "Saving..." : "Save Template"}
+            </Button>
 
             {savedMessages.length > 0 && (
               <div className="space-y-3">
