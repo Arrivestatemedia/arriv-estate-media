@@ -78,6 +78,15 @@ Deno.serve(async (req) => {
       console.error('Failed to send notifications:', error);
     }
 
+    // Generate and send pay-up-front invoice
+    if (!booking.request_pay_at_closing) {
+      try {
+        await base44.asServiceRole.functions.invoke('generatePayUpFrontInvoice', { bookingId });
+      } catch (error) {
+        console.error('Failed to generate invoice:', error.message);
+      }
+    }
+
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
