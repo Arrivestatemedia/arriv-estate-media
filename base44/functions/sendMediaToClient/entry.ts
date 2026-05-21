@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -49,7 +49,8 @@ Deno.serve(async (req) => {
     const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
     const bradleyPhone = Deno.env.get('BRADLEY_PHONE');
     const bradleyEmail = Deno.env.get('ADMIN_EMAIL');
-    const { accessToken: gmailToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+    const gmailConn = await base44.asServiceRole.connectors.getConnection('gmail');
+    const gmailToken = gmailConn.accessToken;
 
     const sendSms = async (to) => {
       const formatted = to?.startsWith('+') ? to : `+1${to}`;
