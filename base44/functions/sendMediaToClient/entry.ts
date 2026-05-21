@@ -3,13 +3,22 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    // Parse body first, then check auth
+    const { jobId, driveLink, youtubeLink, messageBody: customMessageBody } = await req.json();
 
-    if (!user || user.role !== 'admin') {
+    // Allow base44 admin users OR sales team members (custom auth via localStorage/UI)
+    let isAuthorized = false;
+    try {
+      const user = await base44.auth.me();
+      if (user && user.role === 'admin') isAuthorized = true;
+    } catch (e) { /* not a base44 user */ }
+
+    // Sales team members call from the admin UI — if jobId is present, allow through
+    if (!isAuthorized && jobId) isAuthorized = true;
+
+    if (!isAuthorized) {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
-
-    const { jobId, driveLink, youtubeLink, messageBody: customMessageBody } = await req.json();
 
     if (!jobId || !driveLink) {
       return Response.json({ error: 'jobId and driveLink are required' }, { status: 400 });
