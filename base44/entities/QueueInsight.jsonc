@@ -1,0 +1,57 @@
+{
+  "name": "QueueInsight",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "ID of the sales team member this insight belongs to"
+    },
+    "contact_key": {
+      "type": "string",
+      "description": "Email or name key of the contact"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Name of the contact"
+    },
+    "outcome": {
+      "type": "string",
+      "description": "Logged outcome (no_answer, interested, warm_waiting, etc.)"
+    },
+    "outcome_notes": {
+      "type": "string",
+      "description": "Rep's notes on the outcome"
+    },
+    "ai_recommendation": {
+      "type": "string",
+      "description": "What the AI recommended at the time"
+    },
+    "next_contact_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Next contact date the AI set"
+    },
+    "was_accurate": {
+      "type": "boolean",
+      "description": "Whether the AI timing recommendation was good (set retroactively)"
+    },
+    "pattern_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags like 'warm_lead', 'listing_coming', 'needs_space', 'repeat_no_answer'"
+    },
+    "logged_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this insight was logged"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "contact_key",
+    "outcome",
+    "logged_at"
+  ]
+}

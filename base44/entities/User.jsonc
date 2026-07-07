@@ -1,0 +1,153 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user",
+      "description": "User role in the system"
+    },
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "client",
+        "media_partner"
+      ],
+      "description": "Type of user account"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "User's phone number"
+    },
+    "hasLoggedInBefore": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user has logged in before"
+    },
+    "firstLoginAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "First login timestamp"
+    },
+    "orientationCompleted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether orientation is completed"
+    },
+    "orientationCompletedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Orientation completion timestamp"
+    },
+    "onboardingFeePaid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether onboarding fee is paid"
+    },
+    "onboardingFeePaidAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Onboarding fee payment timestamp"
+    },
+    "stripeCustomerId": {
+      "type": "string",
+      "description": "Stripe customer ID"
+    },
+    "stripeOnboardingPaymentIntentId": {
+      "type": "string",
+      "description": "Stripe PaymentIntent ID for onboarding"
+    },
+    "orientationVideoUrl": {
+      "type": "string",
+      "description": "URL of orientation video"
+    },
+    "shirtFit": {
+      "type": "string",
+      "enum": [
+        "MEN",
+        "WOMEN"
+      ],
+      "description": "Shirt fit preference"
+    },
+    "shirtSize": {
+      "type": "string",
+      "description": "Shirt size"
+    },
+    "jacketSize": {
+      "type": "string",
+      "description": "Jacket size"
+    },
+    "apparelSizesConfirmedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When apparel sizes were confirmed"
+    },
+    "addGearBag": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether gear bag was added"
+    },
+    "addWaterBottle": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether water bottle was added"
+    },
+    "gearBagImageUrl": {
+      "type": "string",
+      "description": "Gear bag product image URL"
+    },
+    "waterBottleImageUrl": {
+      "type": "string",
+      "description": "Water bottle product image URL"
+    },
+    "payout_method": {
+      "type": "string",
+      "enum": [
+        "zelle",
+        "bank_account"
+      ],
+      "description": "Preferred payout method"
+    },
+    "zelle_info": {
+      "type": "string",
+      "description": "Zelle phone or email"
+    },
+    "bank_account_last4": {
+      "type": "string",
+      "description": "Last 4 digits of bank account"
+    },
+    "weekly_earnings": {
+      "type": "number",
+      "default": 0,
+      "description": "Current week earnings"
+    },
+    "total_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Total unpaid balance"
+    }
+  },
+  "required": [
+    "user_type",
+    "phone_number",
+    "firstLoginAt",
+    "orientationCompletedAt",
+    "onboardingFeePaidAt",
+    "stripeCustomerId",
+    "stripeOnboardingPaymentIntentId",
+    "orientationVideoUrl",
+    "shirtFit",
+    "shirtSize",
+    "jacketSize",
+    "apparelSizesConfirmedAt",
+    "gearBagImageUrl",
+    "waterBottleImageUrl",
+    "payout_method",
+    "zelle_info",
+    "bank_account_last4"
+  ]
+}

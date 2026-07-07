@@ -1,0 +1,60 @@
+{
+  "name": "PaymentStatement",
+  "type": "object",
+  "properties": {
+    "media_partner_email": {
+      "type": "string",
+      "description": "Email of the media partner"
+    },
+    "media_partner_name": {
+      "type": "string",
+      "description": "Name of the media partner"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL of the payment statement PDF"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original filename of the statement"
+    },
+    "payment_period_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date of payment period"
+    },
+    "payment_period_end": {
+      "type": "string",
+      "format": "date",
+      "description": "End date of payment period"
+    },
+    "payout_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Payout date"
+    },
+    "total_gross_paid": {
+      "type": "number",
+      "description": "Total gross amount paid"
+    },
+    "year": {
+      "type": "integer",
+      "description": "Year of the statement"
+    },
+    "is_archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether statement is archived (from previous year)"
+    }
+  },
+  "required": [
+    "media_partner_email",
+    "media_partner_name",
+    "file_url",
+    "file_name",
+    "payment_period_start",
+    "payment_period_end",
+    "payout_date",
+    "year"
+  ]
+}

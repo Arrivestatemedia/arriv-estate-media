@@ -1,0 +1,71 @@
+{
+  "name": "ClosingDetection",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Related job ID"
+    },
+    "job_address": {
+      "type": "string",
+      "description": "Property address to monitor"
+    },
+    "monitoring_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When to start checking (job date)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "monitoring",
+        "closed",
+        "manual_closed"
+      ],
+      "default": "pending",
+      "description": "Detection status"
+    },
+    "closed_detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When closing was detected"
+    },
+    "closing_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Property closing date"
+    },
+    "final_sale_price": {
+      "type": "number",
+      "description": "Final sale price if detected"
+    },
+    "detection_source": {
+      "type": "string",
+      "enum": [
+        "ai_scan",
+        "manual",
+        "client_notification"
+      ],
+      "description": "How closing was detected"
+    },
+    "last_scan_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last AI scan timestamp"
+    },
+    "scan_notes": {
+      "type": "string",
+      "description": "Notes from AI scans"
+    },
+    "final_invoice_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether final invoice was sent"
+    }
+  },
+  "required": [
+    "job_id",
+    "job_address"
+  ]
+}

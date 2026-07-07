@@ -1,0 +1,28 @@
+{
+  "name": "VideoCallMessage",
+  "type": "object",
+  "properties": {
+    "room_name": {
+      "type": "string",
+      "description": "Twilio room name for the video call"
+    },
+    "sender_id": {
+      "type": "string",
+      "description": "ID of the message sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Name of the message sender for display"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message text content"
+    }
+  },
+  "required": [
+    "room_name",
+    "sender_id",
+    "sender_name",
+    "content"
+  ]
+}

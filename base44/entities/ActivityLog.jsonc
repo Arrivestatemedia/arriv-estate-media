@@ -1,0 +1,89 @@
+{
+  "name": "ActivityLog",
+  "type": "object",
+  "properties": {
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "call",
+        "email",
+        "meeting",
+        "task",
+        "note"
+      ],
+      "description": "Type of activity"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Contact email address"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Contact name"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "activity_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date and time of activity"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Summary or notes about the activity"
+    },
+    "call_map": {
+      "type": "string",
+      "description": "Auto-generated call map for the activity"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Duration of call or meeting in minutes"
+    },
+    "picture_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of picture URLs attached to the activity"
+    },
+    "missed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this was a missed incoming call"
+    },
+    "missed_acknowledged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the sales rep has seen/dismissed the missed call badge"
+    },
+    "hubspot_synced": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether activity was synced to HubSpot"
+    },
+    "hubspot_engagement_id": {
+      "type": "string",
+      "description": "HubSpot engagement ID"
+    },
+    "sync_error": {
+      "type": "string",
+      "description": "Error message if sync failed"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "ID of the sales team member who logged this activity"
+    },
+    "sales_member_email": {
+      "type": "string",
+      "description": "Email of the sales team member who logged this activity"
+    }
+  },
+  "required": [
+    "activity_type",
+    "activity_date",
+    "notes"
+  ]
+}

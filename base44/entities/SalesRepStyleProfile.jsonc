@@ -1,0 +1,36 @@
+{
+  "name": "SalesRepStyleProfile",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "ID of the sales team member"
+    },
+    "sales_member_email": {
+      "type": "string",
+      "description": "Email of the sales team member"
+    },
+    "edit_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of call map edits analyzed"
+    },
+    "learned_preferences": {
+      "type": "string",
+      "description": "Extracted style patterns and preferences from manual edits"
+    },
+    "last_learned_from_activity_id": {
+      "type": "string",
+      "description": "ID of the last activity that contributed to learning"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the style profile was last updated"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "sales_member_email"
+  ]
+}

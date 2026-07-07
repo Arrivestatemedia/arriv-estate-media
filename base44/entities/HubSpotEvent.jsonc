@@ -1,0 +1,53 @@
+{
+  "name": "HubSpotEvent",
+  "type": "object",
+  "properties": {
+    "contact_email": {
+      "type": "string",
+      "description": "Contact email in HubSpot"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "email_sent",
+        "link_clicked",
+        "payment_confirmed",
+        "reminder_sent"
+      ],
+      "description": "Type of event"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Related job ID"
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "Related invoice ID"
+    },
+    "job_address": {
+      "type": "string",
+      "description": "Property address"
+    },
+    "event_details": {
+      "type": "object",
+      "description": "Additional event metadata"
+    },
+    "hubspot_timeline_id": {
+      "type": "string",
+      "description": "HubSpot timeline event ID if available"
+    },
+    "synced_to_hubspot": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether event was logged to HubSpot"
+    },
+    "sync_error": {
+      "type": "string",
+      "description": "Error message if HubSpot sync failed"
+    }
+  },
+  "required": [
+    "contact_email",
+    "event_type"
+  ]
+}

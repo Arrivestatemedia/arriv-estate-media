@@ -1,0 +1,62 @@
+{
+  "name": "BookingChangeRequest",
+  "type": "object",
+  "properties": {
+    "booking_id": {
+      "type": "string",
+      "description": "ID of the booking being changed"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email of the client"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Name of the client"
+    },
+    "original_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Original booking date"
+    },
+    "original_time": {
+      "type": "string",
+      "description": "Original booking time"
+    },
+    "requested_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Requested new date (null if cancellation)"
+    },
+    "requested_time": {
+      "type": "string",
+      "description": "Requested new time (null if cancellation)"
+    },
+    "is_cancellation": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a cancellation request"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes from client about the change"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied"
+      ],
+      "default": "pending",
+      "description": "Status of the change request"
+    }
+  },
+  "required": [
+    "booking_id",
+    "client_email",
+    "client_name",
+    "original_date",
+    "original_time"
+  ]
+}

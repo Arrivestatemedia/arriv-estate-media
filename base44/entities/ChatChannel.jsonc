@@ -1,0 +1,34 @@
+{
+  "name": "ChatChannel",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Channel name (e.g., #general, #sales)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Channel description"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Sales member ID who created the channel"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a private channel"
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of sales member IDs in this channel"
+    }
+  },
+  "required": [
+    "name",
+    "created_by"
+  ]
+}

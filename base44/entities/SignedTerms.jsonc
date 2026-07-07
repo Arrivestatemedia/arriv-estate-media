@@ -1,0 +1,29 @@
+{
+  "name": "SignedTerms",
+  "type": "object",
+  "properties": {
+    "media_partner_email": {
+      "type": "string",
+      "description": "Email of the media partner who signed"
+    },
+    "media_partner_name": {
+      "type": "string",
+      "description": "Name of the media partner"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL to the signed terms PDF"
+    },
+    "signed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date and time when terms were signed"
+    }
+  },
+  "required": [
+    "media_partner_email",
+    "media_partner_name",
+    "document_url",
+    "signed_date"
+  ]
+}

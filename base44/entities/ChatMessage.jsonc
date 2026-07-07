@@ -1,0 +1,52 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "channel_id": {
+      "type": "string",
+      "description": "Channel ID this message belongs to"
+    },
+    "sender_id": {
+      "type": "string",
+      "description": "Sales member ID of the sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Sender's full name"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was sent"
+    },
+    "parent_message_id": {
+      "type": "string",
+      "description": "ID of parent message if this is a thread reply (null for main messages)"
+    },
+    "reactions": {
+      "type": "object",
+      "description": "Object mapping emoji to array of user IDs who reacted with that emoji",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "thread_reply_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of replies in this thread (for main messages)"
+    }
+  },
+  "required": [
+    "channel_id",
+    "sender_id",
+    "sender_name",
+    "content"
+  ]
+}

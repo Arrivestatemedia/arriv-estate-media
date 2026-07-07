@@ -1,0 +1,47 @@
+{
+  "name": "PendingCallTransfer",
+  "type": "object",
+  "properties": {
+    "from_member_id": {
+      "type": "string",
+      "description": "Sales member ID initiating the transfer"
+    },
+    "from_member_name": {
+      "type": "string",
+      "description": "Name of the person initiating the transfer"
+    },
+    "to_member_id": {
+      "type": "string",
+      "description": "Sales member ID receiving the transfer"
+    },
+    "to_member_extension": {
+      "type": "integer",
+      "description": "Extension of the member receiving the transfer"
+    },
+    "caller_number": {
+      "type": "string",
+      "description": "The external caller's phone number to connect"
+    },
+    "caller_name": {
+      "type": "string",
+      "description": "Display name of the caller"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined",
+        "expired"
+      ],
+      "default": "pending",
+      "description": "Status of the transfer request"
+    }
+  },
+  "required": [
+    "from_member_id",
+    "from_member_name",
+    "to_member_id",
+    "caller_number"
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "ScheduledEmail",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "ID of the sales rep who scheduled"
+    },
+    "sales_member_email": {
+      "type": "string",
+      "description": "Email of the sales rep"
+    },
+    "to": {
+      "type": "string",
+      "description": "Recipient email"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject"
+    },
+    "body": {
+      "type": "string",
+      "description": "Email body"
+    },
+    "from_email": {
+      "type": "string",
+      "description": "Send from address"
+    },
+    "from_name": {
+      "type": "string",
+      "description": "Send from name"
+    },
+    "scheduled_for": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When to send the email"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Status of the scheduled email"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When it was actually sent"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error if failed"
+    }
+  },
+  "required": [
+    "to",
+    "subject",
+    "body",
+    "scheduled_for"
+  ]
+}

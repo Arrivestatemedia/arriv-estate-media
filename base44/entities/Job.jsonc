@@ -1,0 +1,168 @@
+{
+  "name": "Job",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Job title"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "photo",
+        "video",
+        "photo_video"
+      ],
+      "description": "Type of job"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed job description"
+    },
+    "location": {
+      "type": "string",
+      "description": "Job location"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Job date"
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Start time of the job"
+    },
+    "duration_hours": {
+      "type": "number",
+      "description": "Estimated duration in hours"
+    },
+    "pay_rate": {
+      "type": "number",
+      "description": "Pay amount in dollars (contractor payout)"
+    },
+    "client_price": {
+      "type": "number",
+      "description": "Original client price (visible to admin)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "booked",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "archived"
+      ],
+      "default": "open",
+      "description": "Current status of the job"
+    },
+    "media_partner_status": {
+      "type": "string",
+      "enum": [
+        "awaiting_arrival",
+        "on_the_way",
+        "on_site",
+        "job_completed"
+      ],
+      "default": "awaiting_arrival",
+      "description": "Media partner's current status"
+    },
+    "booked_by": {
+      "type": "string",
+      "description": "Email of the contractor who booked"
+    },
+    "booked_by_name": {
+      "type": "string",
+      "description": "Name of the contractor who booked"
+    },
+    "booked_by_phone": {
+      "type": "string",
+      "description": "Phone number of the contractor who booked"
+    },
+    "backup_booked_by": {
+      "type": "string",
+      "description": "Email of the backup contractor"
+    },
+    "backup_booked_by_name": {
+      "type": "string",
+      "description": "Name of the backup contractor"
+    },
+    "backup_booked_by_phone": {
+      "type": "string",
+      "description": "Phone number of the backup contractor"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Name of the client"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email of the client"
+    },
+    "client_phone": {
+      "type": "string",
+      "description": "Phone number of the client"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes or requirements"
+    },
+    "from_booking": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether job was created from a booking request"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "ID of the original booking that created this job"
+    },
+    "package": {
+      "type": "string",
+      "description": "Package name for the job"
+    },
+    "add_ons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Selected add-ons for this job"
+    },
+    "on_the_way_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When media partner started heading to the job"
+    },
+    "on_site_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When media partner arrived on site"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When media partner completed the job"
+    },
+    "google_drive_folder_url": {
+      "type": "string",
+      "description": "Google Drive folder URL for uploading footage"
+    },
+    "footage_uploaded": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether media partner confirmed footage upload"
+    },
+    "footage_reminder_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When footage upload reminder was sent"
+    }
+  },
+  "required": [
+    "title",
+    "type",
+    "date",
+    "pay_rate",
+    "location"
+  ]
+}

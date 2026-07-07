@@ -1,0 +1,103 @@
+{
+  "name": "Booking",
+  "type": "object",
+  "properties": {
+    "client_name": {
+      "type": "string",
+      "description": "Client's full name"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Client's email address"
+    },
+    "client_phone": {
+      "type": "string",
+      "description": "Client's phone number"
+    },
+    "package": {
+      "type": "string",
+      "enum": [
+        "mls_walkthrough",
+        "photo_essentials",
+        "photo_cinematic",
+        "premium_bundle"
+      ],
+      "description": "Selected package"
+    },
+    "add_ons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Selected add-ons"
+    },
+    "street_address": {
+      "type": "string",
+      "description": "Street address and house number"
+    },
+    "city": {
+      "type": "string",
+      "description": "City"
+    },
+    "state": {
+      "type": "string",
+      "description": "State"
+    },
+    "preferred_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Preferred shoot date"
+    },
+    "preferred_time": {
+      "type": "string",
+      "description": "Preferred shoot time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes or requirements"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "approved",
+        "completed",
+        "cancelled",
+        "denied"
+      ],
+      "default": "pending",
+      "description": "Booking status"
+    },
+    "total_price": {
+      "type": "number",
+      "description": "Total calculated price"
+    },
+    "custom_price_text": {
+      "type": "string",
+      "description": "Custom text to display instead of total_price (for pay-at-closing, etc.)"
+    },
+    "request_pay_at_closing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether client requested pay-at-closing option"
+    },
+    "payment_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether approval buttons are locked pending payment (pay-up-front only)"
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "Related invoice ID"
+    }
+  },
+  "required": [
+    "client_name",
+    "client_email",
+    "street_address",
+    "city",
+    "state",
+    "preferred_date"
+  ]
+}

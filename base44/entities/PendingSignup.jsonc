@@ -1,0 +1,125 @@
+{
+  "name": "PendingSignup",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Email address for the pending signup"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Full name of the user"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Phone number of the user"
+    },
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "client",
+        "media_partner"
+      ],
+      "description": "Type of user"
+    },
+    "user_role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "admin"
+      ],
+      "default": "user",
+      "description": "Role of the user"
+    },
+    "password_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the user's password"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed"
+      ],
+      "default": "pending",
+      "description": "Status of the pending signup"
+    },
+    "orientationCompleted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether media partner completed orientation"
+    },
+    "onboardingFeePaid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether media partner paid onboarding fee"
+    },
+    "shirtFit": {
+      "type": "string",
+      "description": "Shirt fit preference (MEN or WOMEN)"
+    },
+    "shirtSize": {
+      "type": "string",
+      "description": "Shirt size selection"
+    },
+    "jacketSize": {
+      "type": "string",
+      "description": "Jacket size selection"
+    },
+    "addGearBag": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether media partner added gear bag"
+    },
+    "addWaterBottle": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether media partner added water bottle"
+    },
+    "apparelSizesConfirmedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When apparel sizes were confirmed"
+    },
+    "deletion_requested_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date when deletion was requested"
+    },
+    "deletion_token": {
+      "type": "string",
+      "description": "Token for immediate deletion verification"
+    },
+    "payout_method": {
+      "type": "string",
+      "enum": [
+        "zelle",
+        "bank_account"
+      ],
+      "description": "Payout method for media partners"
+    },
+    "zelle_info": {
+      "type": "string",
+      "description": "Zelle phone number or email"
+    },
+    "bank_account_number": {
+      "type": "string",
+      "description": "Bank account number"
+    },
+    "bank_account_last4": {
+      "type": "string",
+      "description": "Last 4 digits of bank account"
+    },
+    "bank_routing_number": {
+      "type": "string",
+      "description": "Bank routing number"
+    }
+  },
+  "required": [
+    "email",
+    "full_name",
+    "phone_number",
+    "user_type",
+    "password_hash"
+  ]
+}

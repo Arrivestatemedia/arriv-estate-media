@@ -1,0 +1,95 @@
+{
+  "name": "Conference",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Conference title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Conference description"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the conference"
+    },
+    "scheduled_time": {
+      "type": "string",
+      "description": "Time of the conference (HH:MM format)"
+    },
+    "duration_minutes": {
+      "type": "integer",
+      "description": "Duration in minutes",
+      "default": 60
+    },
+    "room_name": {
+      "type": "string",
+      "description": "Twilio video room name"
+    },
+    "meeting_link": {
+      "type": "string",
+      "description": "Direct link to join the conference"
+    },
+    "organizer_id": {
+      "type": "string",
+      "description": "Sales team member ID who created the conference"
+    },
+    "organizer_name": {
+      "type": "string",
+      "description": "Name of the organizer"
+    },
+    "organizer_email": {
+      "type": "string",
+      "description": "Email of the organizer"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Participant ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Participant name"
+          },
+          "email": {
+            "type": "string",
+            "description": "Participant email"
+          }
+        }
+      },
+      "description": "List of invited participants"
+    },
+    "google_calendar_event_id": {
+      "type": "string",
+      "description": "Google Calendar event ID"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "default": "scheduled",
+      "description": "Conference status"
+    },
+    "channel_id": {
+      "type": "string",
+      "description": "Associated chat channel ID (optional)"
+    }
+  },
+  "required": [
+    "title",
+    "scheduled_date",
+    "scheduled_time",
+    "organizer_id",
+    "organizer_email"
+  ]
+}

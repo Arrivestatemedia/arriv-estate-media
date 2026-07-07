@@ -1,0 +1,35 @@
+{
+  "name": "SmsConversation",
+  "type": "object",
+  "properties": {
+    "from_number": {
+      "type": "string",
+      "description": "The external phone number"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Optional contact name for this number"
+    },
+    "last_message": {
+      "type": "string",
+      "description": "Preview of the last message"
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time of the last message"
+    },
+    "unread_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of unread messages"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "Assigned sales member ID (optional)"
+    }
+  },
+  "required": [
+    "from_number"
+  ]
+}

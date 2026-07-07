@@ -1,0 +1,33 @@
+{
+  "name": "PushSubscription",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Sales team member ID"
+    },
+    "endpoint": {
+      "type": "string",
+      "description": "Push subscription endpoint"
+    },
+    "auth": {
+      "type": "string",
+      "description": "Push subscription auth key"
+    },
+    "p256dh": {
+      "type": "string",
+      "description": "Push subscription p256dh key"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether subscription is active"
+    }
+  },
+  "required": [
+    "user_id",
+    "endpoint",
+    "auth",
+    "p256dh"
+  ]
+}

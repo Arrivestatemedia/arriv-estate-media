@@ -1,0 +1,121 @@
+{
+  "name": "JobApplication",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Applicant's full name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Applicant's email"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Applicant's phone number"
+    },
+    "address": {
+      "type": "string",
+      "description": "Applicant's address"
+    },
+    "dob": {
+      "type": "string",
+      "format": "date",
+      "description": "Applicant's date of birth"
+    },
+    "ssn": {
+      "type": "string",
+      "description": "Last 4 digits of SSN (encrypted)"
+    },
+    "linkedin": {
+      "type": "string",
+      "description": "LinkedIn profile URL"
+    },
+    "portfolio_link": {
+      "type": "string",
+      "description": "Portfolio website URL"
+    },
+    "last_related_job": {
+      "type": "string",
+      "description": "Description of last related job/experience"
+    },
+    "why_good_fit": {
+      "type": "string",
+      "description": "Why applicant believes they are a good fit"
+    },
+    "race": {
+      "type": "string",
+      "enum": [
+        "white",
+        "black_african_american",
+        "hispanic_latino",
+        "asian",
+        "native_american",
+        "pacific_islander",
+        "two_or_more",
+        "prefer_not_to_answer"
+      ],
+      "description": "Applicant's race/ethnicity (EEOC)"
+    },
+    "background_check_agreed": {
+      "type": "boolean",
+      "description": "Applicant agrees to background check",
+      "default": false
+    },
+    "ssn_disclosure_agreed": {
+      "type": "boolean",
+      "description": "Applicant acknowledges SSN disclosure notice",
+      "default": false
+    },
+    "eeoc_agreed": {
+      "type": "boolean",
+      "description": "Applicant acknowledges EEOC notice",
+      "default": false
+    },
+    "signature": {
+      "type": "string",
+      "description": "Applicant's electronic signature (typed full name)"
+    },
+    "video_samples": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Google Drive URLs of video samples"
+    },
+    "picture_samples": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Google Drive URLs of picture samples"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "reviewed",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Application status"
+    }
+  },
+  "required": [
+    "full_name",
+    "email",
+    "phone",
+    "address",
+    "dob",
+    "ssn",
+    "linkedin",
+    "portfolio_link",
+    "last_related_job",
+    "why_good_fit",
+    "background_check_agreed",
+    "ssn_disclosure_agreed",
+    "eeoc_agreed",
+    "signature"
+  ]
+}

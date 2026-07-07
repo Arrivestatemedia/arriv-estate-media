@@ -1,0 +1,29 @@
+{
+  "name": "JobReminder",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "ID of the job"
+    },
+    "reminder_type": {
+      "type": "string",
+      "enum": [
+        "9am_morning",
+        "24_hours_before",
+        "90_minutes_before",
+        "1_hour_before"
+      ],
+      "description": "Type of reminder"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the reminder was sent"
+    }
+  },
+  "required": [
+    "job_id",
+    "reminder_type"
+  ]
+}

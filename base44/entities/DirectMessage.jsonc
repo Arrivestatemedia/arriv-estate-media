@@ -1,0 +1,67 @@
+{
+  "name": "DirectMessage",
+  "type": "object",
+  "properties": {
+    "sender_id": {
+      "type": "string",
+      "description": "Sales member ID of the sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Sender's full name"
+    },
+    "recipient_id": {
+      "type": "string",
+      "description": "Sales member ID of the recipient"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Recipient's full name"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was sent"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the recipient has read this message"
+    },
+    "reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether an unanswered reminder email has been sent for this message"
+    },
+    "parent_message_id": {
+      "type": "string",
+      "description": "ID of parent message if this is a thread reply (null for main messages)"
+    },
+    "thread_reply_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of replies in this thread (for main messages)"
+    },
+    "reactions": {
+      "type": "object",
+      "description": "Object mapping emoji to array of user IDs who reacted with that emoji",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "sender_id",
+    "sender_name",
+    "recipient_id",
+    "recipient_name",
+    "content"
+  ]
+}

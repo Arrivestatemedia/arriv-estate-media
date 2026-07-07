@@ -1,0 +1,32 @@
+{
+  "name": "PendingNotification",
+  "type": "object",
+  "properties": {
+    "recipient_id": {
+      "type": "string",
+      "description": "Recipient user/member ID"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "incoming_video_call",
+        "transfer",
+        "message"
+      ],
+      "description": "Type of notification event"
+    },
+    "event_data": {
+      "type": "object",
+      "description": "Event-specific data payload"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether notification has been read"
+    }
+  },
+  "required": [
+    "recipient_id",
+    "event_type"
+  ]
+}

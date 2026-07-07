@@ -1,0 +1,38 @@
+{
+  "name": "SecondaryContactInfo",
+  "type": "object",
+  "properties": {
+    "contact_email": {
+      "type": "string",
+      "description": "Primary contact email (linked reference)"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Primary contact name"
+    },
+    "secondary_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Additional names for this contact"
+    },
+    "secondary_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Additional emails for this contact"
+    },
+    "secondary_phones": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Additional phone numbers for this contact"
+    }
+  },
+  "required": [
+    "contact_email"
+  ]
+}

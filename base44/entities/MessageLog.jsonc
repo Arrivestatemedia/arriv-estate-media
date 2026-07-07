@@ -1,0 +1,71 @@
+{
+  "name": "MessageLog",
+  "type": "object",
+  "properties": {
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "sms",
+        "email"
+      ],
+      "description": "Type of message sent"
+    },
+    "recipient_type": {
+      "type": "string",
+      "enum": [
+        "client",
+        "media_partner",
+        "admin"
+      ],
+      "description": "Who received the message"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Email address of recipient (for emails)"
+    },
+    "recipient_phone": {
+      "type": "string",
+      "description": "Phone number of recipient (for SMS)"
+    },
+    "message_content": {
+      "type": "string",
+      "description": "Full text of the message sent"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line (for emails only)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "ID of the job this message relates to (null for non-job messages)"
+    },
+    "reminder_type": {
+      "type": "string",
+      "enum": [
+        "9am_morning",
+        "24_hours_before",
+        "90_minutes_before",
+        "1_hour_before"
+      ],
+      "description": "Type of reminder (if applicable)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed"
+      ],
+      "default": "success",
+      "description": "Whether message was sent successfully"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if message failed"
+    }
+  },
+  "required": [
+    "message_type",
+    "recipient_type",
+    "message_content"
+  ]
+}

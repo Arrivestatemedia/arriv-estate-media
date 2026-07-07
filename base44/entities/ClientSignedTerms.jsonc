@@ -1,0 +1,29 @@
+{
+  "name": "ClientSignedTerms",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email of the client who signed"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Name of the client"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL to the signed terms PDF"
+    },
+    "signed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date and time when terms were signed"
+    }
+  },
+  "required": [
+    "client_email",
+    "client_name",
+    "document_url",
+    "signed_date"
+  ]
+}

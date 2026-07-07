@@ -1,0 +1,41 @@
+{
+  "name": "SmsMessage",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID of the parent SmsConversation"
+    },
+    "from_number": {
+      "type": "string",
+      "description": "Sender phone number"
+    },
+    "to_number": {
+      "type": "string",
+      "description": "Recipient phone number"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "description": "Whether the message was received or sent"
+    },
+    "twilio_sid": {
+      "type": "string",
+      "description": "Twilio message SID"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "from_number",
+    "to_number",
+    "body",
+    "direction"
+  ]
+}

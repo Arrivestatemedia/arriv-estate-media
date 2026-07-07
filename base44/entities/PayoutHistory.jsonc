@@ -1,0 +1,50 @@
+{
+  "name": "PayoutHistory",
+  "type": "object",
+  "properties": {
+    "media_partner_email": {
+      "type": "string",
+      "description": "Email of the media partner"
+    },
+    "media_partner_name": {
+      "type": "string",
+      "description": "Name of the media partner"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount paid out"
+    },
+    "payout_method": {
+      "type": "string",
+      "enum": [
+        "zelle",
+        "bank_account"
+      ],
+      "description": "Method used for payout"
+    },
+    "payout_destination": {
+      "type": "string",
+      "description": "Zelle info or bank account last 4"
+    },
+    "payout_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of payout"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed"
+      ],
+      "default": "pending",
+      "description": "Status of payout"
+    }
+  },
+  "required": [
+    "media_partner_email",
+    "amount",
+    "payout_method",
+    "payout_date"
+  ]
+}

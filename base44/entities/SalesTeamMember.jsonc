@@ -1,0 +1,87 @@
+{
+  "name": "SalesTeamMember",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Sales team member email (login)"
+    },
+    "company_email": {
+      "type": "string",
+      "description": "Company email address to send emails from (e.g. john@arriv.com)"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Full name of sales team member"
+    },
+    "title": {
+      "type": "string",
+      "description": "Job title (e.g. Sales Representative)"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Personal cell phone number"
+    },
+    "work_phone": {
+      "type": "string",
+      "description": "Work phone number"
+    },
+    "twilio_phone_number": {
+      "type": "string",
+      "description": "Assigned Twilio phone number for this rep (e.g. +15551234567)"
+    },
+    "extension": {
+      "type": "integer",
+      "description": "Internal extension (100-999)",
+      "minimum": 100,
+      "maximum": 999
+    },
+    "password_hash": {
+      "type": "string",
+      "description": "Hashed password"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether sales team member can log in"
+    },
+    "force_password_change": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether sales rep must change password on next login"
+    },
+    "profile_picture_url": {
+      "type": "string",
+      "description": "URL of the rep's profile picture"
+    },
+    "chat_status": {
+      "type": "string",
+      "enum": [
+        "online",
+        "available",
+        "busy",
+        "in_meeting",
+        "away",
+        "lunch",
+        "break",
+        "offline"
+      ],
+      "default": "online",
+      "description": "Current chat status"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user",
+      "description": "Role of the sales team member"
+    }
+  },
+  "required": [
+    "email",
+    "full_name",
+    "password_hash"
+  ]
+}
