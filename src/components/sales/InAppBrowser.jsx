@@ -33,11 +33,13 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
 
   const handleDirectLoad = () => {
     // Sites that block embedding (X-Frame-Options / CSP) make the browser render its
-    // "refused to connect" error page, which fires onLoad almost instantly. A real
-    // embedded page takes meaningfully longer. Treat a sub-600ms load as "blocked"
-    // and auto-open the URL in the user's browser instead of showing the error.
+    // "refused to connect" error page, which fires onLoad almost instantly (well under
+    // 200ms — there's no real document to fetch/parse). A page that embeds successfully
+    // still has to fetch and parse real HTML, which takes longer even on a fast/cached
+    // connection. Only treat a sub-200ms load as "blocked" so successful embeds stay
+    // in the app's browser.
     const elapsed = Date.now() - loadStart;
-    if (elapsed < 600) {
+    if (elapsed < 200) {
       const win = window.open(url, "_blank", "noopener,noreferrer");
       setOpenedExternally(true);
       setLoading(false);
