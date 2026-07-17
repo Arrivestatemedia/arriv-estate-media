@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Minus, Maximize2, Minimize2, X, Loader2, Globe, ExternalLink, ArrowLeft, ArrowRight, Zap } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
@@ -22,6 +22,13 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
   const [forceError, setForceError] = useState("");
   const [loadStart, setLoadStart] = useState(0);
   const [openedExternally, setOpenedExternally] = useState(false);
+
+  // Per-URL cache of previously fetched results so Back/Forward return instantly
+  // without re-fetching or re-running block detection. Entries:
+  //   { forced: {html} }            — proxy-forced HTML, render via srcDoc
+  //   { openedExternally: true }    — site was auto-opened in the browser
+  //   { loaded: true }              — direct iframe load succeeded (browser cache serves it)
+  const cacheRef = useRef({});
 
   // Real-estate portals known to send X-Frame-Options / CSP frame-ancestors that
   // prevent embedding. Timing-based detection alone is unreliable for these (the
@@ -48,10 +55,22 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
     const win = window.open(target, "_blank", "noopener,noreferrer");
     setOpenedExternally(true);
     setLoading(false);
+    cacheRef.current[target] = { openedExternally: true };
     if (!win) setForceError("Popup blocked — tap below to open the website.");
   };
 
   useEffect(() => {
+    // Reuse a cached result instantly on Back/Forward — no refetch, no spinner,
+    // no re-running of the block-detection timing heuristic.
+    const cached = cacheRef.current[url];
+    if (cached) {
+      setForced(cached.forced || null);
+      setOpenedExternally(!!cached.openedExternally);
+      setForceError("");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setForced(null);
     setForceError("");
@@ -65,6 +84,8 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
   }, [url]);
 
   const handleDirectLoad = () => {
+    // Already served from cache — nothing to detect.
+    if (cacheRef.current[url]?.loaded) return;
     // For unknown sites: blocked iframes render the browser's "refused to connect"
     // error page, which loads far faster than a real page (no document to parse).
     // Treat a sub-1200ms load as blocked; real embedded pages take longer to
@@ -73,6 +94,7 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
     if (elapsed < 1200) {
       openExternally(url);
     } else {
+      cacheRef.current[url] = { loaded: true };
       setLoading(false);
     }
   };
@@ -85,6 +107,7 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
       const data = res.data || {};
       if (data.error) throw new Error(data.error);
       setForced({ html: data.html });
+      cacheRef.current[url] = { forced: { html: data.html } };
       setLoading(false);
     } catch (e) {
       setForceError(e?.message || "Could not force-load this site");
