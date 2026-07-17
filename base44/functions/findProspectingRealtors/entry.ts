@@ -141,7 +141,7 @@ ACCURACY REQUIREMENT — CRITICAL: Only include a social_media_links entry OR a 
 
 ${minP != null || maxP != null ? `PRICE FILTER: Only include listings whose listed price is between ${minP != null ? '$' + minP.toLocaleString() : 'no min'} and ${maxP != null ? '$' + maxP.toLocaleString() : 'no max'}. If a listing's price is outside this range, skip it.` : ''}
 ${kw ? `KEYWORD FOCUS: Prioritize listings/realtors matching these keywords: "${kw}". For example: property types (e.g. "new construction", "luxury", "condo"), neighborhoods, or agent specialties.` : ''}
-PRICE PRIORITY: Prioritize and surface higher-priced listings first — especially homes priced at $1,000,000 and above — then include other qualifying listings. The final results are ordered with the highest-priced homes first.
+PRICE RANGE — MANDATORY COVERAGE: You MUST include qualifying listings across the FULL price spectrum in the area, not just the top of the market. Explicitly search for and include listings at every price tier: luxury ($1M+), mid-tier ($600K–$1M), and especially entry-level / affordable homes priced as low as $300,000. Do NOT focus only on the most expensive listings — affordable listings under $500K (down to ~$300K) are equally valuable prospects and MUST be represented in your results. Aim for a balanced mix of price points in the first page of results, ordered highest price first but including the lower-priced homes too.
 
 For EACH realtor, gather:
 - name: full name of the listing agent
