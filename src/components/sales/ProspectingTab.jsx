@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X } from "lucide-react";
+import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus } from "lucide-react";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
 
@@ -22,6 +22,8 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   const [callState, setCallState] = useState(CALL_STATES.IDLE);
   const [callingName, setCallingName] = useState("");
   const [callError, setCallError] = useState("");
+  const [claimingId, setClaimingId] = useState(null);
+  const [claimError, setClaimError] = useState("");
 
   // Search-tailoring controls
   const [radius, setRadius] = useState(100);
@@ -103,6 +105,38 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   };
 
   const hangUp = () => { try { callRef.current?.disconnect?.(); } catch {} };
+
+  const handleClaim = async (r, idx) => {
+    setClaimError("");
+    setClaimingId(idx);
+    try {
+      const res = await base44.functions.invoke('claimProspectingContact', {
+        salesMemberId,
+        realtor: {
+          name: r.name,
+          email: r.email && !r.email.toLowerCase().includes('not found') ? r.email : '',
+          phone: r.phone && !r.phone.toLowerCase().includes('not found') ? r.phone : '',
+          brokerage: r.brokerage || '',
+          listing_address: r.listing_address || '',
+          listing_status: r.listing_status || '',
+          price: r.price || ''
+        }
+      });
+      const data = res.data || {};
+      setRealtors(prev => prev.map((it, i) => i === idx ? {
+        ...it,
+        db_exists: true,
+        contact_id: data.contact?.id || it.contact_id,
+        owner_id: data.contact?.owner_id || it.owner_id,
+        owner_name: data.owner_name || it.owner_name,
+        owned_by_me: data.owned_by_me ?? it.owned_by_me
+      } : it));
+    } catch (e) {
+      setClaimError(e?.message || 'Failed to claim contact');
+    } finally {
+      setClaimingId(null);
+    }
+  };
 
   // ── Geolocation + reverse geocode ───────────────────────────────────
   const reverseGeocode = async (lat, lng) => {
@@ -202,7 +236,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
               <div>
                 <h2 className="font-bold text-lg" style={{ color: '#1A1A1A' }}>Prospecting</h2>
                 <p className="text-xs" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                  {locationLabel ? `Realtors near ${locationLabel} (${radius} mi)` : 'AI finds realtors with photo/video-less listings near you'}
+                  {locationLabel ? `Realtors near ${locationLabel} (${radius} mi)` : 'AI finds realtors with photo- and video-less listings near you'}
                 </p>
               </div>
             </div>
@@ -278,6 +312,9 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
           {callState === CALL_STATES.IDLE && callError && (
             <p className="text-xs text-red-600">{callError}</p>
           )}
+          {claimError && (
+            <p className="text-xs text-red-600">{claimError}</p>
+          )}
         </CardContent>
       </Card>
 
@@ -285,7 +322,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
       {loading && (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#B8956A' }} />
-          <p className="mt-3 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>AI is finding realtors with photo-less listings near you…</p>
+          <p className="mt-3 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>AI is finding realtors with photo- and video-less listings near you…</p>
         </div>
       )}
 
@@ -346,6 +383,42 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                       )}
                     </div>
                   </div>
+
+                  {/* Database ownership status */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {r.db_exists && r.owned_by_me && (
+                      <Badge className="gap-1" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+                        <UserCheck className="w-3 h-3" /> Owned by you
+                      </Badge>
+                    )}
+                    {r.db_exists && !r.owned_by_me && r.owner_name && (
+                      <Badge className="gap-1" style={{ backgroundColor: '#fef3c7', color: '#b45309' }}>
+                        <Users className="w-3 h-3" /> In database · {r.owner_name}
+                      </Badge>
+                    )}
+                    {r.db_exists && !r.owned_by_me && !r.owner_name && (
+                      <>
+                        <Badge className="gap-1" style={{ backgroundColor: '#f1f5f9', color: 'rgba(26,26,26,0.6)' }}>
+                          <Users className="w-3 h-3" /> In database · unassigned
+                        </Badge>
+                        <Button size="sm" variant="outline" onClick={() => handleClaim(r, idx)} disabled={claimingId === idx} className="gap-1 h-7 text-xs" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+                          {claimingId === idx ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />} Take Ownership
+                        </Button>
+                      </>
+                    )}
+                    {!r.db_exists && (
+                      <Button size="sm" variant="outline" onClick={() => handleClaim(r, idx)} disabled={claimingId === idx} className="gap-1 h-7 text-xs" style={{ borderColor: '#B8956A', color: '#B8956A' }}>
+                        {claimingId === idx ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />} Add to My Contacts
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Media verification notes */}
+                  {r.verification_notes && (
+                    <p className="mt-2 text-xs" style={{ color: 'rgba(26,26,26,0.55)' }}>
+                      Verified: {r.verification_notes}
+                    </p>
+                  )}
 
                   {/* Call script */}
                   <div className="mt-3 rounded-lg border" style={{ borderColor: 'rgba(184,149,106,0.25)', backgroundColor: 'rgba(184,149,106,0.05)' }}>
