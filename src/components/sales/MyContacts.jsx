@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Mail, Calendar, Building2, User, Plus, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp } from "lucide-react";
+import { Phone, Mail, Calendar, Building2, User, Plus, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp, Home } from "lucide-react";
+import RealtorListingsPage from "@/components/sales/RealtorListingsPage";
 import { format, formatDistanceToNow } from "date-fns";
 import { createPageUrl } from "@/utils";
 
@@ -21,6 +22,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [saving, setSaving] = useState(false);
   const [secondaryInfo, setSecondaryInfo] = useState({});
+  const [listingsContact, setListingsContact] = useState(null);
 
   useEffect(() => {
     loadActivities();
@@ -371,19 +373,31 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                         </div>
                       </div>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-2 w-full"
-                        style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                        onClick={() => {
-                          setShowFollowUpForm(contact.key);
-                          setFollowUpData({ notes: "", activity_date: "", activity_type: "call" });
-                        }}
-                      >
-                        <Plus className="w-3 h-3" />
-                        Schedule Follow-up
-                      </Button>
+                      <div className="space-y-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2 w-full"
+                          style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                          onClick={() => setListingsContact(contact)}
+                        >
+                          <Home className="w-3 h-3" />
+                          View Other Listings
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2 w-full"
+                          style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                          onClick={() => {
+                            setShowFollowUpForm(contact.key);
+                            setFollowUpData({ notes: "", activity_date: "", activity_type: "call" });
+                          }}
+                        >
+                          <Plus className="w-3 h-3" />
+                          Schedule Follow-up
+                        </Button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -410,6 +424,14 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
           </div>
         );
       })()}
+
+      {listingsContact && (
+        <RealtorListingsPage
+          realtor={{ name: listingsContact.name, brokerage: listingsContact.company || '' }}
+          salesMemberId={salesMemberId}
+          onClose={() => setListingsContact(null)}
+        />
+      )}
     </div>
   );
 }

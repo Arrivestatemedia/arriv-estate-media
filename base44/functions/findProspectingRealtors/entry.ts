@@ -85,6 +85,14 @@ function looksLikeSocialProfile(url) {
   } catch { return false; }
 }
 
+// Parse a price string like "$1,250,000" or "1250000" into a number (0 if unknown).
+const priceToNumber = (p) => {
+  if (!p) return 0;
+  const s = String(p).replace(/[^0-9.]/g, '');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+};
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -133,6 +141,7 @@ ACCURACY REQUIREMENT — CRITICAL: Only include a social_media_links entry OR a 
 
 ${minP != null || maxP != null ? `PRICE FILTER: Only include listings whose listed price is between ${minP != null ? '$' + minP.toLocaleString() : 'no min'} and ${maxP != null ? '$' + maxP.toLocaleString() : 'no max'}. If a listing's price is outside this range, skip it.` : ''}
 ${kw ? `KEYWORD FOCUS: Prioritize listings/realtors matching these keywords: "${kw}". For example: property types (e.g. "new construction", "luxury", "condo"), neighborhoods, or agent specialties.` : ''}
+PRICE PRIORITY: Prioritize and surface higher-priced listings first — especially homes priced at $1,000,000 and above — then include other qualifying listings. The final results are ordered with the highest-priced homes first.
 
 For EACH realtor, gather:
 - name: full name of the listing agent
@@ -218,7 +227,12 @@ Return only valid JSON matching the schema.`;
       r.social_media_links = profileLinks.filter((_, i) => linkOks[i]);
     }));
 
-    realtors.sort((a, b) => (a.distance_miles ?? 999) - (b.distance_miles ?? 999));
+    // Prioritize highest-priced listings first (homes in the millions), then by distance.
+    realtors.sort((a, b) => {
+      const pd = priceToNumber(b.price) - priceToNumber(a.price);
+      if (pd !== 0) return pd;
+      return (a.distance_miles ?? 999) - (b.distance_miles ?? 999);
+    });
 
     // ── Match each realtor against the local Contact database ──────────
     let ownerNameMap = {};
