@@ -9,7 +9,7 @@ async function isUrlReachable(url) {
   } catch { return false; }
   const tryFetch = (method) => new Promise((resolve) => {
     const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 5000);
+    const to = setTimeout(() => ctrl.abort(), 3500);
     fetch(url, { method, redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': BROWSER_UA, 'Accept': 'text/html,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' } })
       .then(res => { clearTimeout(to); resolve(res ? res.status : 0); })
       .catch(() => { clearTimeout(to); resolve(0); });
@@ -47,26 +47,14 @@ Deno.serve(async (req) => {
       ? locationLabel.trim()
       : (lat != null && lng != null ? `latitude ${lat}, longitude ${lng}` : '');
 
-    const prompt = `You are a real estate research assistant. Find ALL current and recent property listings represented by the real estate agent "${name}"${brokerage ? ` (brokerage: ${brokerage})` : ''}${area ? ` in the ${area} area` : ''}.
+    const prompt = `Find property listings represented by real estate agent "${name}"${brokerage ? ` (${brokerage})` : ''}${area ? ` near ${area}` : ''}. Search Zillow, Realtor.com, Redfin, and the agent's brokerage site/profile. Match on the agent's full name AND brokerage to avoid same-name confusion.
 
-Search the web (Zillow, Realtor.com, Redfin, the brokerage's site, MLS portals, and the agent's own site/profile) and return every listing you can confirm belongs to THIS specific agent. Match on the agent's full name AND brokerage to avoid confusing them with another agent of the same name.
-
-For each listing return:
-- listing_address: full property address
-- listing_status: "Active", "Coming Soon", "Pending", "Sold", or "Off Market"
-- price: listed/sold price as a string e.g. "$450,000", or "Unknown"
-- property_type: e.g. "Single Family", "Condo", "Townhouse", "Land", "Multi-Family"
-- listing_url: a direct URL to THAT specific listing page that you actually found in your search results. Only include a URL you verified exists. Omit if unsure.
-- has_professional_media: boolean — true if the listing has professional photos and/or a professional video tour; false if it only has agent-phone snapshots or no media.
-
-Return up to 20 listings. Do NOT fabricate listings or URLs — only return listings you actually found for this exact agent. If you find none, return an empty list.
-
-Return only valid JSON matching the schema.`;
+Return up to 10 listings you actually found for THIS agent. For each: listing_address, listing_status (Active/Coming Soon/Pending/Sold/Off Market), price (e.g. "$450,000" or "Unknown"), property_type, listing_url (direct listing URL you verified; omit if unsure), has_professional_media (boolean). Do not fabricate. Return only valid JSON.`;
 
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: true,
-      model: 'gemini_3_1_pro',
+      model: 'gemini_3_flash',
       response_json_schema: {
         type: 'object',
         properties: {

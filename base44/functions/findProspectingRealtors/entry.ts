@@ -14,7 +14,7 @@ async function isUrlReachable(url) {
   } catch { return false; }
   const tryFetch = (method) => new Promise((resolve) => {
     const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 5000);
+    const to = setTimeout(() => ctrl.abort(), 3500);
     fetch(url, { method, redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': BROWSER_UA, 'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' } })
       .then(res => { clearTimeout(to); resolve(res ? res.status : 0); })
       .catch(() => { clearTimeout(to); resolve(0); });
@@ -30,7 +30,7 @@ async function isUrlReachable(url) {
 async function fetchPageText(url) {
   try {
     const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 6000);
+    const to = setTimeout(() => ctrl.abort(), 4000);
     const res = await fetch(url, { method: 'GET', redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': BROWSER_UA, 'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' } });
     clearTimeout(to);
     if (!res || !res.ok) return null;
@@ -54,7 +54,10 @@ async function verifyWebsiteOwned(url, agentName) {
     if (isBigRoot && (path === '/' || path === '' || path.length < 4)) return false;
     if (tokens.some(t => path.includes(t))) return true;
     const text = await fetchPageText(url);
-    if (!text) return false;
+    if (!text) {
+      // Couldn't fetch (e.g. bot-blocked) — trust only if the domain itself contains an agent name token
+      return tokens.some(t => host.includes(t));
+    }
     const low = text.toLowerCase();
     const last = tokens.length ? tokens[tokens.length - 1] : '';
     const first = tokens.length ? tokens[0] : '';
@@ -154,7 +157,7 @@ Return only valid JSON matching the schema.`;
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: true,
-      model: 'gemini_3_1_pro',
+      model: 'gemini_3_flash',
       response_json_schema: {
         type: 'object',
         properties: {
@@ -205,20 +208,14 @@ Return only valid JSON matching the schema.`;
       const seen = new Set();
       const uniqLinks = [];
       for (const l of rawLinks) { if (!seen.has(l)) { seen.add(l); uniqLinks.push(l); } }
-      // Website: reachable AND confirmed to belong to this agent (name in path or on page), never a generic brokerage homepage
-      let finalSite = '';
-      if (site && await checkReachable(site)) {
-        finalSite = await verifyWebsiteOwned(site, r.name) ? site : '';
-      }
-      // Socials: reachable AND looks like a real per-agent profile page (not a homepage/search/post/company page)
-      const finalLinks = [];
-      for (const l of uniqLinks) {
-        if (!looksLikeSocialProfile(l)) continue;
-        if (!(await checkReachable(l))) continue;
-        finalLinks.push(l);
-      }
-      r.website = finalSite;
-      r.social_media_links = finalLinks;
+      const profileLinks = uniqLinks.filter(looksLikeSocialProfile);
+      // Run website ownership check + all social reachability checks in parallel (big speedup)
+      const [siteOk, ...linkOks] = await Promise.all([
+        site ? verifyWebsiteOwned(site, r.name) : Promise.resolve(false),
+        ...profileLinks.map(l => checkReachable(l))
+      ]);
+      r.website = site && siteOk ? site : '';
+      r.social_media_links = profileLinks.filter((_, i) => linkOks[i]);
     }));
 
     realtors.sort((a, b) => (a.distance_miles ?? 999) - (b.distance_miles ?? 999));

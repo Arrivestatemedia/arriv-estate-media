@@ -638,7 +638,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
 
       {/* Other listings for a realtor (click their name) */}
       <Dialog open={!!listingsRealtor} onOpenChange={(o) => { if (!o) closeListings(); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg z-[100000]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Home className="w-4 h-4" style={{ color: '#B8956A' }} />
