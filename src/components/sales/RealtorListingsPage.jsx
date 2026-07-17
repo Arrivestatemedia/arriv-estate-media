@@ -263,7 +263,7 @@ export default function RealtorListingsPage({
                   backgroundColor: "rgba(184,149,106,0.05)",
                 }}
               >
-                Load 2 more
+                Load more
               </button>
             )}
             {loadingMore && (
