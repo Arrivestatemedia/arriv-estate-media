@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2, Globe } from "lucide-react";
+import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2, Globe, History } from "lucide-react";
 import InAppBrowser from "@/components/sales/InAppBrowser";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
@@ -29,44 +29,57 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   // In-app website browser
   const [browserUrl, setBrowserUrl] = useState(null);
   const [browserMode, setBrowserMode] = useState("inTab");
-  const [browserIdx, setBrowserIdx] = useState(null); // which card the browser replaces (null = standalone)
-  const [savedSites, setSavedSites] = useState([]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('prospect_saved_sites');
-      if (raw) setSavedSites(JSON.parse(raw));
-    } catch {}
-  }, []);
-
-  const persistSites = (list) => {
-    setSavedSites(list);
-    try { localStorage.setItem('prospect_saved_sites', JSON.stringify(list)); } catch {}
-  };
-
+  const [browserIdx, setBrowserIdx] = useState(null); // which card the browser replaces
+  const closeBrowser = () => { setBrowserUrl(null); setBrowserIdx(null); };
+  const toggleFullPage = () => setBrowserMode(m => (m === "fullPage" ? "inTab" : "fullPage"));
   const hostLabel = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-
-  const openWebsite = (url, idx, realtorName = '') => {
+  const openWebsite = (url, idx) => {
     if (!url) return;
     setBrowserUrl(url);
     setBrowserIdx(idx);
     setBrowserMode("inTab");
-    setSavedSites(prev => {
-      const filtered = prev.filter(s => s.url !== url);
-      const next = [{ url, label: hostLabel(url), realtorName, openedAt: Date.now() }, ...filtered].slice(0, 30);
-      persistSites(next);
+  };
+
+  // Saved prospecting searches (each fetch) — persisted locally so you can pull them back up
+  const [savedSearches, setSavedSearches] = useState([]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('prospect_saved_searches');
+      if (raw) setSavedSearches(JSON.parse(raw));
+    } catch {}
+  }, []);
+  const persistSearches = (list) => {
+    setSavedSearches(list);
+    try { localStorage.setItem('prospect_saved_searches', JSON.stringify(list)); } catch {}
+  };
+  const saveSearch = (entry) => {
+    setSavedSearches(prev => {
+      const filtered = prev.filter(s => s.id !== entry.id);
+      const next = [entry, ...filtered].slice(0, 12);
+      persistSearches(next);
       return next;
     });
   };
-
-  const openSaved = (entry) => {
-    setBrowserUrl(entry.url);
-    setBrowserIdx(null);
-    setBrowserMode("inTab");
+  const loadSearch = (entry) => {
+    setCoords(entry.coords);
+    setLocationLabel(entry.locationLabel || '');
+    setRadius(entry.radius ?? 100);
+    setKeywords(entry.keywords ?? '');
+    setMinPrice(entry.minPrice ?? '');
+    setMaxPrice(entry.maxPrice ?? '');
+    setRealtors(entry.realtors || []);
+    setPage(1);
+    setError('');
+    setGeoError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const closeBrowser = () => { setBrowserUrl(null); setBrowserIdx(null); };
-  const toggleFullPage = () => setBrowserMode(m => (m === "fullPage" ? "inTab" : "fullPage"));
+  const deleteSearch = (id) => {
+    setSavedSearches(prev => {
+      const next = prev.filter(s => s.id !== id);
+      persistSearches(next);
+      return next;
+    });
+  };
 
   // Search-tailoring controls
   const [radius, setRadius] = useState(100);
@@ -216,6 +229,21 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
       const list = data.realtors || [];
       setRealtors(prev => append ? [...prev, ...list] : list);
       setPage(nextPage);
+      // Save each fresh fetch (page 1, not "load more") so it can be pulled back up later
+      if (!append && list.length > 0) {
+        saveSearch({
+          id: `${lat},${lng},${radius},${keywords || ''},${minPrice || ''},${maxPrice || ''}`,
+          locationLabel: label,
+          coords: { lat, lng },
+          radius,
+          keywords,
+          minPrice,
+          maxPrice,
+          realtors: list,
+          count: list.length,
+          timestamp: Date.now()
+        });
+      }
     } catch (e) {
       setError(e?.message || 'Failed to find realtors');
     } finally {
@@ -377,38 +405,33 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
             <p className="text-sm font-medium" style={{ color: 'rgba(26,26,26,0.7)' }}>{realtors.length} realtor{realtors.length !== 1 ? 's' : ''} found</p>
           </div>
 
-          {/* Saved sites — click to reopen in the in-app browser */}
-          {savedSites.length > 0 && (
+          {/* Recent searches — each saved fetch; click to restore that batch of realtors */}
+          {savedSearches.length > 0 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-xs font-medium flex-shrink-0" style={{ color: 'rgba(26,26,26,0.5)' }}>Saved sites:</span>
-              {savedSites.map((s, si) => (
+              <span className="text-xs font-medium flex-shrink-0 flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                <History className="w-3.5 h-3.5" /> Recent:
+              </span>
+              {savedSearches.map((s, si) => (
                 <button
                   key={si}
-                  onClick={() => openSaved(s)}
+                  onClick={() => loadSearch(s)}
                   className="text-xs px-2.5 py-1.5 rounded-full border flex items-center gap-1.5 flex-shrink-0 hover:bg-[rgba(184,149,106,0.1)] transition-colors"
                   style={{ borderColor: 'rgba(184,149,106,0.35)', color: '#B8956A', backgroundColor: 'rgba(184,149,106,0.06)' }}
-                  title={s.realtorName ? `${s.realtorName} — ${s.url}` : s.url}
+                  title={new Date(s.timestamp).toLocaleString()}
                 >
-                  <Globe className="w-3 h-3" />
-                  <span className="font-medium">{s.label}</span>
-                  {s.realtorName && <span className="opacity-60">· {s.realtorName.split(' ')[0]}</span>}
+                  <MapPin className="w-3 h-3" />
+                  <span className="font-medium max-w-[140px] truncate">{s.locationLabel || 'Search'}</span>
+                  <span className="opacity-60">· {s.radius}mi · {s.count}</span>
+                  <span
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); deleteSearch(s.id); }}
+                    className="ml-0.5 opacity-50 hover:opacity-100"
+                  >
+                    <X className="w-3 h-3" />
+                  </span>
                 </button>
               ))}
-              <button onClick={() => persistSites([])} className="text-xs px-2 py-1.5 flex-shrink-0 hover:underline" style={{ color: 'rgba(26,26,26,0.4)' }}>
-                Clear
-              </button>
             </div>
-          )}
-
-          {/* Standalone in-app browser (opened from a saved site, not tied to a card) */}
-          {browserUrl && browserIdx === null && (
-            <InAppBrowser
-              url={browserUrl}
-              mode={browserMode}
-              onMinimize={closeBrowser}
-              onClose={closeBrowser}
-              onToggleFull={toggleFullPage}
-            />
           )}
 
           <div className="grid gap-3">
