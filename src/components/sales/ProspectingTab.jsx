@@ -542,9 +542,15 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                         <Phone className="w-4 h-4" /> Call
                       </Button>
                       {r.email && !r.email.toLowerCase().includes('not found') && (
-                        <a href={`mailto:${r.email}`} className="text-xs flex items-center gap-1 hover:underline" style={{ color: '#B8956A' }}>
+                        <button
+                          type="button"
+                          onClick={() => window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: r.email } }))}
+                          className="text-xs flex items-center gap-1 hover:underline"
+                          style={{ color: '#B8956A', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+                          title="Open Email Hub with this address filled in"
+                        >
                           <Mail className="w-3.5 h-3.5" /> {r.email}
-                        </a>
+                        </button>
                       )}
                       {r.phone && !r.phone.toLowerCase().includes('not found') && (
                         <p className="text-xs" style={{ color: 'rgba(26,26,26,0.6)' }}>{r.phone}</p>

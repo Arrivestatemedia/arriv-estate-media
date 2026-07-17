@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Phone, Mail, Calendar, Building2, User, Plus, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp, Home } from "lucide-react";
 import RealtorListingsPage from "@/components/sales/RealtorListingsPage";
 import { format, formatDistanceToNow } from "date-fns";
-import { createPageUrl } from "@/utils";
 
 export default function MyContacts({ salesMemberId, salesMemberEmail }) {
   const [activities, setActivities] = useState([]);
@@ -204,13 +203,8 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                  {/* Header row */}
                  <button
                    className="w-full text-left flex items-start justify-between gap-3"
-                   onClick={() => {
-                     // Determine the right back URL based on current page
-                     const isAdminHub = window.location.pathname.includes('AdminHub');
-                     const backUrl = window.location.pathname + (isAdminHub ? '?tab=activity&subtab=mycontacts' : '?tab=mycontacts');
-                     window.history.pushState(null, '', backUrl);
-                     window.location.href = createPageUrl('ContactDetailPage') + '?contact=' + encodeURIComponent(contact.key);
-                   }}
+                   onClick={() => setListingsContact(contact)}
+                   title="View this contact's other listings"
                  >
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="p-2 rounded-full shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.12)' }}>
