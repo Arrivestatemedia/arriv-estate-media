@@ -26,6 +26,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   const [callError, setCallError] = useState("");
   const [claimingId, setClaimingId] = useState(null);
   const [claimError, setClaimError] = useState("");
+  const [elapsed, setElapsed] = useState(0);
 
   // In-app navigation history: one stack so Back/Forward move between the
   // listings view and any opened listing/website pages, exactly like a browser.
@@ -241,6 +242,12 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
     setError("");
     hasFetchedRef.current = true;
     paramsRef.current = { radius, keywords, minPrice, maxPrice };
+    let timer = null;
+    if (!append) {
+      setElapsed(0);
+      const start = Date.now();
+      timer = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    }
     try {
       const res = await base44.functions.invoke('findProspectingRealtors', {
         salesMemberId, lat, lng, locationLabel: label, page: nextPage, ...currentParams()
@@ -268,6 +275,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
     } catch (e) {
       setError(e?.message || 'Failed to find realtors');
     } finally {
+      if (timer) clearInterval(timer);
       append ? setLoadingMore(false) : setLoading(false);
     }
   };
@@ -416,6 +424,11 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#B8956A' }} />
           <p className="mt-3 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>AI is finding realtors with photo- and video-less listings near you…</p>
+          {elapsed > 0 && (
+            <p className="mt-1 text-xs" style={{ color: 'rgba(26,26,26,0.45)' }}>
+              {elapsed}s — this scans live listing sites for each agent, so it can take ~45–60s
+            </p>
+          )}
         </div>
       )}
 
