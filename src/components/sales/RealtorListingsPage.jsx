@@ -33,6 +33,7 @@ export default function RealtorListingsPage({
   const [error, setError] = useState("");
   const [loadingMore, setLoadingMore] = useState(false);
   const [noMore, setNoMore] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     // Restore cached listings instantly on remount (e.g. when navigating back
@@ -45,11 +46,20 @@ export default function RealtorListingsPage({
       return;
     }
     let active = true;
+    let timer = null;
+    if (!Array.isArray(cachedListings) || cachedListings.length === 0) {
+      const start = Date.now();
+      timer = setInterval(() => {
+        if (!active) return;
+        setElapsed(Math.floor((Date.now() - start) / 1000));
+      }, 1000);
+    }
     (async () => {
       setLoading(true);
       setError("");
       setListings([]);
       setNoMore(false);
+      setElapsed(0);
       try {
         const res = await base44.functions.invoke("findRealtorListings", {
           salesMemberId,
@@ -69,10 +79,12 @@ export default function RealtorListingsPage({
         if (active) setError(e?.message || "Failed to load listings");
       } finally {
         if (active) setLoading(false);
+        if (timer) clearInterval(timer);
       }
     })();
     return () => {
       active = false;
+      if (timer) clearInterval(timer);
     };
   }, [realtor?.name, realtor?.brokerage]);
 
@@ -186,8 +198,13 @@ export default function RealtorListingsPage({
           <div className="flex flex-col items-center justify-center py-16 gap-2">
             <Loader2 className="w-7 h-7 animate-spin" style={{ color: "#B8956A" }} />
             <p className="text-xs" style={{ color: "rgba(26,26,26,0.55)" }}>
-              Searching for this agent's listings…
+              Searching the web for this agent's listings…
             </p>
+            {elapsed > 0 && (
+              <p className="text-[11px]" style={{ color: "rgba(26,26,26,0.4)" }}>
+                {elapsed}s — this scans live listing sites, so it can take ~30–45s
+              </p>
+            )}
           </div>
         )}
 

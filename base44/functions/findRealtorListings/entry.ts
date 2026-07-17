@@ -11,16 +11,11 @@ async function getUrlStatus(url) {
     const u = new URL(url);
     if (!/^https?:$/.test(u.protocol)) return 0;
   } catch { return 0; }
-  const tryFetch = (method) => new Promise((resolve) => {
-    const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 3500);
-    fetch(url, { method, redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': BROWSER_UA, 'Accept': 'text/html,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' } })
-      .then(res => { clearTimeout(to); resolve(res ? res.status : 0); })
-      .catch(() => { clearTimeout(to); resolve(0); });
-  });
-  let status = await tryFetch('HEAD');
-  if (!status) status = await tryFetch('GET');
-  return status || 0;
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 1200);
+  return await fetch(url, { method: 'HEAD', redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': BROWSER_UA, 'Accept': 'text/html,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' } })
+    .then(res => { clearTimeout(to); return res ? res.status : 0; })
+    .catch(() => { clearTimeout(to); return 0; });
 }
 
 Deno.serve(async (req) => {
@@ -28,7 +23,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const { salesMemberId, name, brokerage, locationLabel, lat, lng, exclude, limit } = body;
-    const maxListings = Math.min(Number(limit) || 6, 10);
+    const maxListings = Math.min(Number(limit) || 4, 10);
     const excludeList = Array.isArray(exclude)
       ? exclude.map((x) => String(x || '').trim().toLowerCase()).filter(Boolean)
       : [];
@@ -59,7 +54,7 @@ Deno.serve(async (req) => {
 
     const prompt = `List property listings represented by real estate agent "${name}"${brokerage ? ` (${brokerage})` : ''}${area ? ` near ${area}` : ''}. Match on the agent's full name AND brokerage to avoid same-name confusion.
 
-IMPORTANT for speed: do AT MOST 2 web searches (e.g. "${name}" ${brokerage || ''} listings on Zillow/Realtor.com/Redfin). Do NOT open or visit individual listing pages — gather the listings straight from the search-result snippets. Return up to ${maxListings} listings for THIS agent.${excludeClause} For each listing, extract every detail visible in the search-result snippet:
+SPEED: Do exactly ONE web search (e.g. "${name}" ${brokerage || ''} active listings). Do NOT open individual listing pages — read only the search-result snippets. Return up to ${maxListings} listings for THIS agent.${excludeClause} For each listing, extract every detail visible in the search-result snippet:
 - listing_address
 - listing_status (Active/Coming Soon/Pending/Sold/Off Market)
 - price (e.g. "$450,000" or "Unknown")
