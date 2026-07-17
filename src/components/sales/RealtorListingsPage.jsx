@@ -194,65 +194,101 @@ export default function RealtorListingsPage({
             <p className="text-xs" style={{ color: "rgba(26,26,26,0.5)" }}>
               {listings.length} listing{listings.length !== 1 ? "s" : ""} found
             </p>
-            {listings.map((l, li) => (
+            {listings.map((l, li) => {
+              const specs = [
+                l.beds != null && `${l.beds} bd`,
+                l.baths != null && `${l.baths} ba`,
+                l.sqft != null && `${Number(l.sqft).toLocaleString()} sqft`,
+              ].filter(Boolean);
+              return (
               <div
                 key={li}
-                className="rounded-lg border p-3"
+                className="rounded-lg border overflow-hidden"
                 style={{ borderColor: "rgba(184,149,106,0.25)", backgroundColor: "#FFFFFF" }}
               >
-                <p
-                  className="text-sm font-medium flex items-start gap-1.5"
-                  style={{ color: "#1A1A1A" }}
-                >
-                  <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "#B8956A" }} />
-                  <span>{l.listing_address || "Address unavailable"}</span>
-                </p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {l.listing_status && (
-                    <Badge variant="outline" className="text-xs">{l.listing_status}</Badge>
-                  )}
-                  {l.price && l.price !== "Unknown" && (
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <Tag className="w-3 h-3" />{l.price}
-                    </Badge>
-                  )}
-                  {l.property_type && (
-                    <Badge variant="outline" className="text-xs">{l.property_type}</Badge>
-                  )}
-                  {typeof l.has_professional_media === "boolean" && (
-                    <Badge
-                      className="text-xs"
-                      style={{
-                        backgroundColor: l.has_professional_media ? "#dcfce7" : "#fee2e2",
-                        color: l.has_professional_media ? "#15803d" : "#b91c1c",
-                      }}
+                <div className="flex">
+                  {l.photo_url ? (
+                    <img
+                      src={l.photo_url}
+                      alt=""
+                      className="w-24 h-24 object-cover flex-shrink-0"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
+                  ) : (
+                    <div
+                      className="w-24 h-24 flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: "rgba(184,149,106,0.08)" }}
                     >
-                      {l.has_professional_media ? "Has pro media" : "Needs media"}
-                    </Badge>
+                      <Home className="w-8 h-8 opacity-30" style={{ color: "#B8956A" }} />
+                    </div>
                   )}
+                  <div className="p-3 flex-1 min-w-0">
+                    <p
+                      className="text-sm font-medium flex items-start gap-1.5"
+                      style={{ color: "#1A1A1A" }}
+                    >
+                      <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "#B8956A" }} />
+                      <span className="truncate">{l.listing_address || "Address unavailable"}</span>
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {l.listing_status && (
+                        <Badge variant="outline" className="text-xs">{l.listing_status}</Badge>
+                      )}
+                      {l.price && l.price !== "Unknown" && (
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <Tag className="w-3 h-3" />{l.price}
+                        </Badge>
+                      )}
+                      {l.property_type && (
+                        <Badge variant="outline" className="text-xs">{l.property_type}</Badge>
+                      )}
+                      {typeof l.has_professional_media === "boolean" && (
+                        <Badge
+                          className="text-xs"
+                          style={{
+                            backgroundColor: l.has_professional_media ? "#dcfce7" : "#fee2e2",
+                            color: l.has_professional_media ? "#15803d" : "#b91c1c",
+                          }}
+                        >
+                          {l.has_professional_media ? "Has pro media" : "Needs media"}
+                        </Badge>
+                      )}
+                    </div>
+                    {specs.length > 0 && (
+                      <p className="mt-1.5 text-xs" style={{ color: "rgba(26,26,26,0.65)" }}>
+                        {specs.join(" • ")}
+                      </p>
+                    )}
+                    {l.description && (
+                      <p className="mt-1 text-xs leading-snug line-clamp-2" style={{ color: "rgba(26,26,26,0.55)" }}>
+                        {l.description}
+                      </p>
+                    )}
+                    {l.listing_url && onOpenListing && (
+                      <button
+                        onClick={() => onOpenListing(l.listing_url)}
+                        className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
+                        style={{ color: "#B8956A" }}
+                      >
+                        <ExternalLink className="w-3 h-3" /> View listing
+                      </button>
+                    )}
+                    {l.listing_url && !onOpenListing && (
+                      <a
+                        href={l.listing_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
+                        style={{ color: "#B8956A" }}
+                      >
+                        <ExternalLink className="w-3 h-3" /> View listing
+                      </a>
+                    )}
+                  </div>
                 </div>
-                {l.listing_url && onOpenListing && (
-                  <button
-                    onClick={() => onOpenListing(l.listing_url)}
-                    className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
-                    style={{ color: "#B8956A" }}
-                  >
-                    <ExternalLink className="w-3 h-3" /> View listing
-                  </button>
-                )}
-                {l.listing_url && !onOpenListing && (
-                  <a
-                    href={l.listing_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
-                    style={{ color: "#B8956A" }}
-                  >
-                    <ExternalLink className="w-3 h-3" /> View listing
-                  </a>
-                )}
               </div>
-            ))}
+              );
+            })}
             {!loadingMore && !noMore && (
               <button
                 onClick={loadMore}

@@ -57,7 +57,18 @@ Deno.serve(async (req) => {
 
     const prompt = `List property listings represented by real estate agent "${name}"${brokerage ? ` (${brokerage})` : ''}${area ? ` near ${area}` : ''}. Match on the agent's full name AND brokerage to avoid same-name confusion.
 
-IMPORTANT for speed: do AT MOST 2 web searches (e.g. "${name}" ${brokerage || ''} listings on Zillow/Realtor.com/Redfin). Do NOT open or visit individual listing pages — gather the listings straight from the search-result snippets. Return up to ${maxListings} listings for THIS agent.${excludeClause} For each: listing_address, listing_status (Active/Coming Soon/Pending/Sold/Off Market), price (e.g. "$450,000" or "Unknown"), property_type, listing_url (the direct URL shown in the search result; omit if none). Only include has_professional_media if it is explicitly visible in a snippet; otherwise omit it. Do not fabricate listings or URLs. Return only valid JSON.`;
+IMPORTANT for speed: do AT MOST 2 web searches (e.g. "${name}" ${brokerage || ''} listings on Zillow/Realtor.com/Redfin). Do NOT open or visit individual listing pages — gather the listings straight from the search-result snippets. Return up to ${maxListings} listings for THIS agent.${excludeClause} For each listing, extract every detail visible in the search-result snippet:
+- listing_address
+- listing_status (Active/Coming Soon/Pending/Sold/Off Market)
+- price (e.g. "$450,000" or "Unknown")
+- property_type
+- beds (number, or null if not shown)
+- baths (number, or null if not shown)
+- sqft (integer, or null if not shown)
+- description (one short sentence/phrase summarizing the listing from the snippet; "" if none)
+- photo_url (a thumbnail image URL for the listing if one is visible in the snippet; "" if none)
+- listing_url (the direct URL shown in the search result; omit if none)
+Only include has_professional_media if it is explicitly visible in a snippet; otherwise omit it. Do not fabricate listings, URLs, numbers, or photos — if a field isn't in the snippet, leave it empty/null. Return only valid JSON.`;
 
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
@@ -75,6 +86,11 @@ IMPORTANT for speed: do AT MOST 2 web searches (e.g. "${name}" ${brokerage || ''
                 listing_status: { type: 'string' },
                 price: { type: 'string' },
                 property_type: { type: 'string' },
+                beds: { type: ['integer', 'null'] },
+                baths: { type: ['integer', 'null'] },
+                sqft: { type: ['integer', 'null'] },
+                description: { type: 'string' },
+                photo_url: { type: 'string' },
                 listing_url: { type: 'string' },
                 has_professional_media: { type: 'boolean' }
               },
