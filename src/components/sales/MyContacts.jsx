@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Mail, Calendar, Building2, User, Plus, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp, Home } from "lucide-react";
 import RealtorListingsPage from "@/components/sales/RealtorListingsPage";
+import InAppBrowser from "@/components/sales/InAppBrowser";
 import { format, formatDistanceToNow } from "date-fns";
 import { createPageUrl } from "@/utils";
 
@@ -23,6 +24,32 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
   const [saving, setSaving] = useState(false);
   const [secondaryInfo, setSecondaryInfo] = useState({});
   const [listingsContact, setListingsContact] = useState(null);
+
+  // In-app navigation stack: clicking a contact's NAME opens their listings
+  // inline, replacing that contact's card — identical functioning to the
+  // prospect page (back/forward, minimize, close, toggle full-page).
+  const [nav, setNav] = useState({ stack: [], index: -1 });
+  const current = nav.index >= 0 ? nav.stack[nav.index] : null;
+  const canBack = nav.index > 0;
+  const canForward = nav.index >= 0 && nav.index < nav.stack.length - 1;
+  const pushView = (entry) => setNav(prev => {
+    const stack = prev.stack.slice(0, prev.index + 1);
+    stack.push({ ...entry, mode: entry.mode || "inTab" });
+    return { stack, index: stack.length - 1 };
+  });
+  const navBack = () => setNav(prev => prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev);
+  const navForward = () => setNav(prev => (prev.index >= 0 && prev.index < prev.stack.length - 1) ? { ...prev, index: prev.index + 1 } : prev);
+  const closeView = () => setNav({ stack: [], index: -1 });
+  const toggleCurrentMode = () => setNav(prev => ({
+    ...prev,
+    stack: prev.stack.map((e, i) => i === prev.index ? { ...e, mode: e.mode === "fullPage" ? "inTab" : "fullPage" } : e)
+  }));
+  const showListingsForContact = (contact) => pushView({
+    kind: "listings",
+    contactKey: contact.key,
+    realtor: { name: contact.name, brokerage: contact.company || '' }
+  });
+  const openListingFromListings = (url, contactKey) => pushView({ kind: "website", contactKey, url });
 
   useEffect(() => {
     loadActivities();
@@ -193,6 +220,42 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
           const isExpanded = expandedContact === contact.key;
           const lastActivity = contact.past[0];
           const nextActivity = contact.upcoming[0];
+          const isCurrentView = current && current.contactKey === contact.key;
+
+          if (isCurrentView && current.kind === "website") {
+            return (
+              <InAppBrowser
+                key={contact.key}
+                url={current.url}
+                mode={current.mode}
+                onMinimize={closeView}
+                onClose={closeView}
+                onToggleFull={toggleCurrentMode}
+                onBack={navBack}
+                onForward={navForward}
+                canBack={canBack}
+                canForward={canForward}
+              />
+            );
+          }
+          if (isCurrentView && current.kind === "listings") {
+            return (
+              <RealtorListingsPage
+                key={contact.key}
+                realtor={current.realtor}
+                salesMemberId={salesMemberId}
+                mode={current.mode}
+                onMinimize={closeView}
+                onClose={closeView}
+                onToggleFull={toggleCurrentMode}
+                onBack={navBack}
+                onForward={navForward}
+                canBack={canBack}
+                canForward={canForward}
+                onOpenListing={(url) => openListingFromListings(url, contact.key)}
+              />
+            );
+          }
 
           return (
             <Card
@@ -218,8 +281,14 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold" style={{ color: '#1A1A1A' }}>
+                        <p
+                          className="font-semibold hover:underline cursor-pointer inline-flex items-center gap-1"
+                          style={{ color: '#1A1A1A' }}
+                          title="View this contact's other listings"
+                          onClick={(e) => { e.stopPropagation(); showListingsForContact(contact); }}
+                        >
                           {contact.name || contact.email || 'Unknown Contact'}
+                          <Home className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
                         </p>
                         {contact.upcoming.length > 0 && (
                           <Badge className="text-xs" style={{ backgroundColor: '#B8956A', color: '#fff', border: 'none' }}>
