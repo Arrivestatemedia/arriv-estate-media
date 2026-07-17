@@ -25,7 +25,11 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { salesMemberId, name, brokerage, locationLabel, lat, lng } = body;
+    const { salesMemberId, name, brokerage, locationLabel, lat, lng, exclude, limit } = body;
+    const maxListings = Math.min(Number(limit) || 6, 10);
+    const excludeList = Array.isArray(exclude)
+      ? exclude.map((x) => String(x || '').trim().toLowerCase()).filter(Boolean)
+      : [];
 
     if (!name || !name.trim()) {
       return Response.json({ error: 'Agent name is required' }, { status: 400 });
@@ -47,9 +51,13 @@ Deno.serve(async (req) => {
       ? locationLabel.trim()
       : (lat != null && lng != null ? `latitude ${lat}, longitude ${lng}` : '');
 
+    const excludeClause = excludeList.length
+      ? `\nEXCLUDE these addresses already found (return DIFFERENT listings, not these): ${excludeList.map((a) => `"${a}"`).join(', ')}.`
+      : '';
+
     const prompt = `List property listings represented by real estate agent "${name}"${brokerage ? ` (${brokerage})` : ''}${area ? ` near ${area}` : ''}. Match on the agent's full name AND brokerage to avoid same-name confusion.
 
-IMPORTANT for speed: do AT MOST 2 web searches (e.g. "${name}" ${brokerage || ''} listings on Zillow/Realtor.com/Redfin). Do NOT open or visit individual listing pages — gather the listings straight from the search-result snippets. Return up to 6 listings for THIS agent. For each: listing_address, listing_status (Active/Coming Soon/Pending/Sold/Off Market), price (e.g. "$450,000" or "Unknown"), property_type, listing_url (the direct URL shown in the search result; omit if none). Only include has_professional_media if it is explicitly visible in a snippet; otherwise omit it. Do not fabricate listings or URLs. Return only valid JSON.`;
+IMPORTANT for speed: do AT MOST 2 web searches (e.g. "${name}" ${brokerage || ''} listings on Zillow/Realtor.com/Redfin). Do NOT open or visit individual listing pages — gather the listings straight from the search-result snippets. Return up to ${maxListings} listings for THIS agent.${excludeClause} For each: listing_address, listing_status (Active/Coming Soon/Pending/Sold/Off Market), price (e.g. "$450,000" or "Unknown"), property_type, listing_url (the direct URL shown in the search result; omit if none). Only include has_professional_media if it is explicitly visible in a snippet; otherwise omit it. Do not fabricate listings or URLs. Return only valid JSON.`;
 
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,

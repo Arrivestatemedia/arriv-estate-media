@@ -29,6 +29,8 @@ export default function RealtorListingsPage({
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [noMore, setNoMore] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -36,6 +38,7 @@ export default function RealtorListingsPage({
       setLoading(true);
       setError("");
       setListings([]);
+      setNoMore(false);
       try {
         const res = await base44.functions.invoke("findRealtorListings", {
           salesMemberId,
@@ -59,6 +62,38 @@ export default function RealtorListingsPage({
       active = false;
     };
   }, [realtor?.name, realtor?.brokerage]);
+
+  const loadMore = async () => {
+    if (loadingMore || noMore) return;
+    setLoadingMore(true);
+    try {
+      const existing = listings.map((l) => l.listing_address).filter(Boolean);
+      const res = await base44.functions.invoke("findRealtorListings", {
+        salesMemberId,
+        name: realtor?.name,
+        brokerage: realtor?.brokerage || "",
+        locationLabel: locationLabel || "",
+        lat,
+        lng,
+        exclude: existing,
+        limit: 2,
+      });
+      const data = res.data || {};
+      const more = Array.isArray(data.listings) ? data.listings : [];
+      // dedupe by address (case-insensitive)
+      const seen = new Set(listings.map((l) => (l.listing_address || "").toLowerCase()));
+      const fresh = more.filter((l) => {
+        const k = (l.listing_address || "").toLowerCase();
+        return k && !seen.has(k) && !seen.has(k + (l.listing_url || ""));
+      });
+      if (fresh.length === 0) setNoMore(true);
+      setListings((prev) => [...prev, ...fresh]);
+    } catch (e) {
+      setError(e?.message || "Failed to load more listings");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const isFull = mode === "fullPage";
   const containerClass = isFull
@@ -218,6 +253,32 @@ export default function RealtorListingsPage({
                 )}
               </div>
             ))}
+            {!loadingMore && !noMore && (
+              <button
+                onClick={loadMore}
+                className="w-full mt-1 py-2 rounded-lg text-xs font-medium border transition-colors"
+                style={{
+                  borderColor: "rgba(184,149,106,0.4)",
+                  color: "#B8956A",
+                  backgroundColor: "rgba(184,149,106,0.05)",
+                }}
+              >
+                Load 2 more
+              </button>
+            )}
+            {loadingMore && (
+              <div className="flex items-center justify-center gap-2 py-2">
+                <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#B8956A" }} />
+                <span className="text-xs" style={{ color: "rgba(26,26,26,0.55)" }}>
+                  Finding more listings…
+                </span>
+              </div>
+            )}
+            {noMore && (
+              <p className="text-center text-xs py-2" style={{ color: "rgba(26,26,26,0.45)" }}>
+                No more listings found for this agent.
+              </p>
+            )}
           </div>
         )}
       </div>
