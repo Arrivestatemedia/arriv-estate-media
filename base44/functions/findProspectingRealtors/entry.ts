@@ -157,9 +157,9 @@ For EACH realtor, gather:
 - verification_notes: short string summarizing what you checked (e.g. "Checked MLS, YouTube, Instagram, agent website — no pro photo or video found")
 - website: the agent's PERSONAL website (e.g. janedoe.realtor) OR their DIRECT personal profile/bio/listings page on a brokerage site (a URL whose path includes their name and which shows THIS agent's photo, bio, and listings). Do NOT return the brokerage's generic homepage (e.g. https://www.exprealty.com/, https://www.kw.com/, https://www.remax.com/) — that is NOT this agent's page. If you cannot find a page that directly features this specific agent, return "Not found".
 - social_media_links: array of URL strings for the agent's professional social media profiles found during the scrub (empty array if none found)
-- call_script: a short, friendly cold-call script (3-5 sentences) personalized to this realtor and this specific listing. It should mention that their listing at the address appears to be missing professional photos and/or video, introduce Arriv Estate Media's photography & videography services, and ask for a brief conversation or a quick quote. Keep it natural and conversational.
+- call_script: a short, friendly cold-call opener (1-2 sentences) personalized to this realtor and this listing — mention their listing appears to be missing professional photos/video, introduce Arriv Estate Media, and ask for a quick quote. Keep it natural and brief.
 
-Return up to 25 realtors for page ${page}. Prioritize REAL, verifiable realtors and listings near the location. Do NOT fabricate people or listings — if you cannot find 25, return fewer. For page > 1, return a DIFFERENT set of realtors than earlier pages (skip ones already covered).
+Return up to 15 realtors for page ${page}. Prioritize REAL, verifiable realtors and listings near the location. Do NOT fabricate people or listings — if you cannot find 15, return fewer. For page > 1, return a DIFFERENT set of realtors than earlier pages (skip ones already covered). Be efficient with your web searches — do not over-search for any single listing.
 
 Return only valid JSON matching the schema.`;
 

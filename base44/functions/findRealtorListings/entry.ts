@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
     const prompt = `Find property listings represented by real estate agent "${name}"${brokerage ? ` (${brokerage})` : ''}${area ? ` near ${area}` : ''}. Search Zillow, Realtor.com, Redfin, and the agent's brokerage site/profile. Match on the agent's full name AND brokerage to avoid same-name confusion.
 
-Return up to 10 listings you actually found for THIS agent. For each: listing_address, listing_status (Active/Coming Soon/Pending/Sold/Off Market), price (e.g. "$450,000" or "Unknown"), property_type, listing_url (direct listing URL you verified; omit if unsure), has_professional_media (boolean). Do not fabricate. Return only valid JSON.`;
+Return up to 8 listings you actually found for THIS agent. Be efficient with web searches — do a couple of targeted searches (agent name + brokerage on Zillow/Realtor.com/Redfin), don't over-search. For each: listing_address, listing_status (Active/Coming Soon/Pending/Sold/Off Market), price (e.g. "$450,000" or "Unknown"), property_type, listing_url (direct listing URL you verified; omit if unsure), has_professional_media (boolean). Do not fabricate. Return only valid JSON.`;
 
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
