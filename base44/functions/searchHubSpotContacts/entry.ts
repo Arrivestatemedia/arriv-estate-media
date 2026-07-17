@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 
 Deno.serve(async (req) => {
   try {
@@ -10,40 +10,35 @@ Deno.serve(async (req) => {
       return Response.json({ contacts: [] });
     }
 
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('hubspot');
-    
-    const searchBody = {
-      query: query.trim(),
-      limit: 10,
-      properties: ['firstname', 'lastname', 'email', 'phone', 'company', 'jobtitle', 'hs_lead_status', 'lifecyclestage']
-    };
+    // Search the local Contact entity
+    const allContacts = await base44.asServiceRole.entities.Contact.list('-created_date', 2000);
+    const q = query.trim().toLowerCase();
 
-    const contactResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(searchBody)
-    });
-
-    const contactData = await contactResponse.json();
-    
-    const contacts = contactData.results?.map(result => ({
-      id: result.id,
-      email: result.properties.email || '',
-      firstname: result.properties.firstname || '',
-      lastname: result.properties.lastname || '',
-      phone: result.properties.phone || '',
-      company: result.properties.company || '',
-      jobtitle: result.properties.jobtitle || '',
-      lead_status: result.properties.hs_lead_status || '',
-      lifecycle_stage: result.properties.lifecyclestage || ''
-    })) || [];
+    const contacts = allContacts.filter(c => {
+      const fullName = `${c.firstname || ''} ${c.lastname || ''}`.trim().toLowerCase();
+      return (
+        (c.email && c.email.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.includes(q)) ||
+        (fullName && fullName.includes(q)) ||
+        (c.company && c.company.toLowerCase().includes(q))
+      );
+    })
+    .slice(0, 10)
+    .map(c => ({
+      id: c.id,
+      email: c.email || '',
+      firstname: c.firstname || '',
+      lastname: c.lastname || '',
+      phone: c.phone || '',
+      company: c.company || '',
+      jobtitle: c.job_title || '',
+      lead_status: c.lead_status || '',
+      lifecycle_stage: c.lifecycle_stage || ''
+    }));
 
     return Response.json({ contacts });
   } catch (error) {
-    console.error('Search HubSpot error:', error);
+    console.error('Search contacts error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

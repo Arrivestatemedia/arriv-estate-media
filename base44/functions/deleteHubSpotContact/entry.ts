@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 
 Deno.serve(async (req) => {
   try {
@@ -9,20 +9,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'contactId required' }, { status: 400 });
     }
 
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('hubspot');
-
-    const deleteRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!deleteRes.ok) {
-      const errData = await deleteRes.json();
-      return Response.json({ error: errData.message || 'HubSpot delete failed' }, { status: 400 });
-    }
+    // Delete from local Contact entity
+    await base44.asServiceRole.entities.Contact.delete(contactId);
 
     // Log deletion as activity
     if (salesMemberId) {
@@ -34,7 +22,6 @@ Deno.serve(async (req) => {
         contact_email: '',
         activity_date: new Date().toISOString(),
         notes: `Deleted contact ${contactId}`,
-        hubspot_synced: true,
         sales_member_id: salesMemberId,
         sales_member_email: salesMemberEmail
       });
@@ -42,7 +29,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ success: true });
   } catch (error) {
-    console.error('Delete HubSpot contact error:', error);
+    console.error('Delete contact error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

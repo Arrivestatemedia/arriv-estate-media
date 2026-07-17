@@ -406,7 +406,6 @@ export default function HubSpotActivityLog() {
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
       const result = await base44.entities.ActivityLog.create(data);
-      await base44.functions.invoke('syncActivityToHubSpot', { activityId: result.id });
       return result;
     },
     onSuccess: () => {

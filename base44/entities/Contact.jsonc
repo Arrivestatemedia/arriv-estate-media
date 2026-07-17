@@ -1,0 +1,46 @@
+{
+  "name": "Contact",
+  "type": "object",
+  "properties": {
+    "firstname": {
+      "type": "string",
+      "description": "First name"
+    },
+    "lastname": {
+      "type": "string",
+      "description": "Last name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "job_title": {
+      "type": "string",
+      "description": "Job title"
+    },
+    "lead_status": {
+      "type": "string",
+      "description": "Lead status (NEW, OPEN, IN_PROGRESS, OPEN_DEAL, UNQUALIFIED, ATTEMPTED_TO_CONTACT, CONNECTED, BAD_TIMING)"
+    },
+    "lifecycle_stage": {
+      "type": "string",
+      "description": "Lifecycle stage (subscriber, lead, mql, sql, opportunity, customer)"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "ID of the sales rep who owns this contact"
+    },
+    "hubspot_id": {
+      "type": "string",
+      "description": "Original HubSpot contact ID (for migration mapping)"
+    }
+  }
+}

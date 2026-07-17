@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 
 Deno.serve(async (req) => {
   try {
@@ -9,70 +9,38 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'properties required' }, { status: 400 });
     }
 
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection('hubspot');
+    // Map HubSpot-style property keys to local Contact entity fields
+    const localData = {};
+    if (properties.firstname !== undefined) localData.firstname = properties.firstname;
+    if (properties.lastname !== undefined) localData.lastname = properties.lastname;
+    if (properties.email !== undefined) localData.email = properties.email;
+    if (properties.phone !== undefined) localData.phone = properties.phone;
+    if (properties.company !== undefined) localData.company = properties.company;
+    if (properties.jobtitle !== undefined) localData.job_title = properties.jobtitle;
+    if (properties.hs_lead_status !== undefined) localData.lead_status = properties.hs_lead_status;
+    if (properties.lifecyclestage !== undefined) localData.lifecycle_stage = properties.lifecyclestage;
+    if (salesMemberId) localData.owner_id = salesMemberId;
 
     let result;
 
     if (!contactId || createIfNotFound) {
-      // Create a new contact in HubSpot
-      const createRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ properties })
-      });
-
-      if (!createRes.ok) {
-        const errData = await createRes.json();
-        return Response.json({ error: errData.message || 'HubSpot create failed' }, { status: 400 });
+      // Check if a contact with this email already exists before creating
+      if (localData.email) {
+        const existing = await base44.asServiceRole.entities.Contact.filter({ email: localData.email });
+        if (existing && existing.length > 0) {
+          // Update the existing contact instead of creating a duplicate
+          result = await base44.asServiceRole.entities.Contact.update(existing[0].id, localData);
+          return Response.json({ success: true, contact: { id: result.id, ...result } });
+        }
       }
-      result = await createRes.json();
+      result = await base44.asServiceRole.entities.Contact.create(localData);
     } else {
-      // Update existing contact
-      let updateRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ properties })
-      });
-
-      // If update fails with 400 and email is in properties, retry without email (it likely exists elsewhere)
-      if (!updateRes.ok && updateRes.status === 400 && properties.email) {
-        const { email, ...propertiesWithoutEmail } = properties;
-        updateRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ properties: propertiesWithoutEmail })
-        });
-      }
-
-      if (!updateRes.ok) {
-        const errData = await updateRes.json();
-        return Response.json({ error: errData.message || 'HubSpot update failed' }, { status: 400 });
-      }
-      result = await updateRes.json();
+      result = await base44.asServiceRole.entities.Contact.update(contactId, localData);
     }
 
-    // Look up sales member email for attribution
-    let salesMemberEmail = '';
-    if (salesMemberId) {
-      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
-      if (members[0]) salesMemberEmail = members[0].email;
-    }
-
-    // Do not log HubSpot contact updates as ActivityLog entries — they are not real activities
-    // and confuse the AI call queue analysis.
-
-    return Response.json({ success: true, contact: result });
+    return Response.json({ success: true, contact: { id: result.id, ...result } });
   } catch (error) {
-    console.error('Update/Create HubSpot contact error:', error);
+    console.error('Update/Create contact error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
