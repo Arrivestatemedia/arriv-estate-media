@@ -34,6 +34,11 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   const current = nav.index >= 0 ? nav.stack[nav.index] : null;
   const canBack = nav.index > 0;
   const canForward = nav.index >= 0 && nav.index < nav.stack.length - 1;
+
+  // Cache of already-fetched listings per realtor, so navigating back from an
+  // opened listing restores the list instantly without re-fetching.
+  const listingsCacheRef = useRef({});
+  const realtorKey = (r) => `${r?.name || ""}||${r?.brokerage || ""}`;
   const pushView = (entry) => setNav(prev => {
     const stack = prev.stack.slice(0, prev.index + 1);
     stack.push({ ...entry, mode: entry.mode || "inTab" });
@@ -474,6 +479,11 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                   lat={coords?.lat}
                   lng={coords?.lng}
                   mode={current.mode}
+                  cachedListings={listingsCacheRef.current[realtorKey(current.realtor)]}
+                  onCacheListings={(list) => {
+                    const k = realtorKey(current.realtor);
+                    listingsCacheRef.current[k] = list;
+                  }}
                   onMinimize={closeView}
                   onClose={closeView}
                   onToggleFull={toggleCurrentMode}

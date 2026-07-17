@@ -25,14 +25,25 @@ export default function RealtorListingsPage({
   onForward,
   canBack,
   canForward,
+  cachedListings,
+  onCacheListings,
 }) {
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [listings, setListings] = useState(Array.isArray(cachedListings) ? cachedListings : []);
+  const [loading, setLoading] = useState(!Array.isArray(cachedListings) || cachedListings.length === 0);
   const [error, setError] = useState("");
   const [loadingMore, setLoadingMore] = useState(false);
   const [noMore, setNoMore] = useState(false);
 
   useEffect(() => {
+    // Restore cached listings instantly on remount (e.g. when navigating back
+    // from an opened listing) — no re-fetch, no "Searching…" spinner.
+    if (Array.isArray(cachedListings) && cachedListings.length > 0) {
+      setListings(cachedListings);
+      setLoading(false);
+      setError("");
+      setNoMore(false);
+      return;
+    }
     let active = true;
     (async () => {
       setLoading(true);
@@ -51,7 +62,9 @@ export default function RealtorListingsPage({
         if (!active) return;
         const data = res.data || {};
         if (data.error) setError(data.error);
-        setListings(Array.isArray(data.listings) ? data.listings : []);
+        const fetched = Array.isArray(data.listings) ? data.listings : [];
+        setListings(fetched);
+        if (onCacheListings) onCacheListings(fetched);
       } catch (e) {
         if (active) setError(e?.message || "Failed to load listings");
       } finally {
