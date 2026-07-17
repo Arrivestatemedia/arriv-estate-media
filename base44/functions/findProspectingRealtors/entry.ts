@@ -3,6 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 const normalizeEmail = (e) => (e || '').toLowerCase().trim();
 const digitsOnly = (p) => (p || '').replace(/\D/g, '').slice(-10);
 
+const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
+
 // Verify a URL actually resolves (drops fabricated / 404 links) while keeping
 // login-walled social profiles (401/403) that are still real pages.
 async function isUrlReachable(url) {
@@ -12,8 +14,8 @@ async function isUrlReachable(url) {
   } catch { return false; }
   const tryFetch = (method) => new Promise((resolve) => {
     const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 4500);
-    fetch(url, { method, redirect: 'follow', signal: ctrl.signal })
+    const to = setTimeout(() => ctrl.abort(), 5000);
+    fetch(url, { method, redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': BROWSER_UA, 'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' } })
       .then(res => { clearTimeout(to); resolve(res ? res.status : 0); })
       .catch(() => { clearTimeout(to); resolve(0); });
   });
@@ -22,6 +24,62 @@ async function isUrlReachable(url) {
   if (!status) return false;                 // network / DNS / timeout → dead
   if (status === 404 || status === 410) return false;  // page does not exist
   return true;
+}
+
+// Fetch page text (for ownership verification). Returns null if unreachable/undecodable.
+async function fetchPageText(url) {
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(url, { method: 'GET', redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': BROWSER_UA, 'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' } });
+    clearTimeout(to);
+    if (!res || !res.ok) return null;
+    const buf = await res.text();
+    return buf ? buf : null;
+  } catch { return null; }
+}
+
+const NAME_STOP = new Set(['agent','realtors','realtor','realty','estate','real','properties','group','the','and','llc','inc','team','homes','realestate','buyers','seller','sales','assoc','associates','brokerage','broker']);
+const nameTokens = (name) => (name || '').toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length > 2 && !NAME_STOP.has(t));
+
+// Confirm a website belongs to THIS agent (not a generic brokerage homepage).
+async function verifyWebsiteOwned(url, agentName) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '').toLowerCase();
+    const path = u.pathname.toLowerCase();
+    const tokens = nameTokens(agentName);
+    const bigRoots = ['exprealty.com','kw.com','remax.com','compass.com','coldwellbanker.com','century21.com','zillow.com','realtor.com','redfin.com','sothebysrealty.com','homes.com','trulia.com','homesnap.com','estately.com'];
+    const isBigRoot = bigRoots.some(d => host === d || host.endsWith('.' + d));
+    if (isBigRoot && (path === '/' || path === '' || path.length < 4)) return false;
+    if (tokens.some(t => path.includes(t))) return true;
+    const text = await fetchPageText(url);
+    if (!text) return false;
+    const low = text.toLowerCase();
+    const last = tokens.length ? tokens[tokens.length - 1] : '';
+    const first = tokens.length ? tokens[0] : '';
+    if (last && low.includes(last)) return true;
+    if (first && low.includes(first)) return true;
+    return false;
+  } catch { return false; }
+}
+
+// Reject non-profile social URLs (homepages, search/hashtag/post pages) that don't represent a specific person.
+function looksLikeSocialProfile(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '').toLowerCase();
+    const path = u.pathname.toLowerCase();
+    const socialDomains = ['instagram.com','facebook.com','tiktok.com','youtube.com','youtu.be','linkedin.com','x.com','twitter.com','linktr.ee','pinterest.com'];
+    const isSocial = socialDomains.some(d => host === d || host.endsWith('.' + d));
+    if (!isSocial) return true;
+    if (path === '/' || path === '') return false;
+    if (/\/(search|hashtag|explore|directory|p\/|posts|reel|reels|watch)\b/.test(path)) return false;
+    if (/[/?]search\b/.test(u.href.toLowerCase())) return false;
+    if (host.endsWith('linkedin.com') && !path.startsWith('/in/')) return false;
+    if (host.endsWith('facebook.com') && /\/(groups|marketplace|pages)\b/.test(path)) return false;
+    return true;
+  } catch { return false; }
 }
 
 Deno.serve(async (req) => {
@@ -66,9 +124,9 @@ CRITICAL MEDIA VERIFICATION — for EACH listing you return, you MUST perform a 
 
 INCLUSION RULE: Include the realtor if the listing is missing professional photos, OR missing professional video, OR missing both. EXCLUDE the realtor ONLY if the listing already has BOTH professional photos AND professional video (they have no need for Arriv's services). Set "no_photo_confirmed" (true = listing has no professional photos) and "no_video_confirmed" (true = no professional video found) to reflect your findings, and use "verification_notes" to briefly note which platforms you checked.
 
-SOCIAL MEDIA DISCOVERY — while scrubbing, also collect any professional social media profile links for the agent (e.g. their YouTube channel, Facebook business page, Instagram profile, TikTok, LinkedIn profile, brokerage profile page, or personal agent website). Return these as "social_media_links" (array of URL strings). These help the sales rep research the realtor before reaching out.
+SOCIAL MEDIA DISCOVERY — while scrubbing, also collect this agent's OWN professional social media profile links. ONLY return profile pages that belong to THIS specific agent: their personal YouTube channel, their Facebook business/page profile, their Instagram profile, their TikTok profile, their personal LinkedIn profile (/in/...), or their personal agent website / direct brokerage bio page. Do NOT return: the brokerage's company Facebook/LinkedIn page, search-results URLs, hashtag pages, individual posts or reels, directory/lead-capture pages, or any profile whose display name does not match this agent. Every link must take the user directly to that agent's profile page. Return these as "social_media_links" (array of URL strings). It is far better to return an empty array than a wrong or generic link.
 
-ACCURACY REQUIREMENT — CRITICAL: Only include a social_media_links entry OR a website URL if you actually found it in your web search results AND it clearly belongs to THIS specific agent (the profile name or handle matches the agent's name or their brokerage). Do NOT guess, construct, or fabricate URLs. If you cannot verify a link is real and belongs to this exact agent, omit it entirely. Every link must be a complete, well-formed https:// URL that takes the user directly to that profile/page. It is far better to return an empty social_media_links list and website "Not found" than to return a wrong or broken link.
+ACCURACY REQUIREMENT — CRITICAL: Only include a social_media_links entry OR a website URL if you actually found it in your web search results AND it clearly belongs to THIS specific agent. For each link, open/verify in your search that the page exists and features THIS agent (the profile display name or page title matches the agent's name or their brokerage). Do NOT guess, construct, or fabricate URLs. Do NOT return a brokerage company homepage as the agent's "website". Do NOT return a company-wide social page as the agent's profile. If you cannot confirm a link is real and belongs to this exact agent, OMIT it entirely — do not include it. Every link must be a complete, well-formed https:// URL that opens directly to that agent's profile/page. Returning zero links is strongly preferred over returning a wrong, generic, or broken link.
 
 ${minP != null || maxP != null ? `PRICE FILTER: Only include listings whose listed price is between ${minP != null ? '$' + minP.toLocaleString() : 'no min'} and ${maxP != null ? '$' + maxP.toLocaleString() : 'no max'}. If a listing's price is outside this range, skip it.` : ''}
 ${kw ? `KEYWORD FOCUS: Prioritize listings/realtors matching these keywords: "${kw}". For example: property types (e.g. "new construction", "luxury", "condo"), neighborhoods, or agent specialties.` : ''}
@@ -85,7 +143,7 @@ For EACH realtor, gather:
 - no_photo_confirmed: boolean — true if you confirmed the listing has no professional photos
 - no_video_confirmed: boolean — true if you confirmed no professional video exists on social media / web
 - verification_notes: short string summarizing what you checked (e.g. "Checked MLS, YouTube, Instagram, agent website — no pro photo or video found")
-- website: the agent's primary website URL (their personal agent site or brokerage profile page) if found, otherwise "Not found"
+- website: the agent's PERSONAL website (e.g. janedoe.realtor) OR their DIRECT personal profile/bio/listings page on a brokerage site (a URL whose path includes their name and which shows THIS agent's photo, bio, and listings). Do NOT return the brokerage's generic homepage (e.g. https://www.exprealty.com/, https://www.kw.com/, https://www.remax.com/) — that is NOT this agent's page. If you cannot find a page that directly features this specific agent, return "Not found".
 - social_media_links: array of URL strings for the agent's professional social media profiles found during the scrub (empty array if none found)
 - call_script: a short, friendly cold-call script (3-5 sentences) personalized to this realtor and this specific listing. It should mention that their listing at the address appears to be missing professional photos and/or video, introduce Arriv Estate Media's photography & videography services, and ask for a brief conversation or a quick quote. Keep it natural and conversational.
 
@@ -96,7 +154,7 @@ Return only valid JSON matching the schema.`;
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
       add_context_from_internet: true,
-      model: 'gemini_3_flash',
+      model: 'gemini_3_1_pro',
       response_json_schema: {
         type: 'object',
         properties: {
@@ -130,9 +188,9 @@ Return only valid JSON matching the schema.`;
 
     let realtors = (llmRes && llmRes.realtors) ? llmRes.realtors : [];
 
-    // ── Verify website + social links are real/reachable (drop dead/fabricated links) ──
+    // ── Verify website + social links are real AND belong to this agent ──
     const urlCache = new Map();
-    const checkUrl = async (url) => {
+    const checkReachable = async (url) => {
       if (!url || typeof url !== 'string') return false;
       const key = url.trim();
       if (!key) return false;
@@ -147,12 +205,20 @@ Return only valid JSON matching the schema.`;
       const seen = new Set();
       const uniqLinks = [];
       for (const l of rawLinks) { if (!seen.has(l)) { seen.add(l); uniqLinks.push(l); } }
-      const [siteOk, ...linkResults] = await Promise.all([
-        site ? checkUrl(site) : Promise.resolve(false),
-        ...uniqLinks.map(l => checkUrl(l))
-      ]);
-      r.website = site && siteOk ? site : '';
-      r.social_media_links = uniqLinks.filter((_, i) => linkResults[i]);
+      // Website: reachable AND confirmed to belong to this agent (name in path or on page), never a generic brokerage homepage
+      let finalSite = '';
+      if (site && await checkReachable(site)) {
+        finalSite = await verifyWebsiteOwned(site, r.name) ? site : '';
+      }
+      // Socials: reachable AND looks like a real per-agent profile page (not a homepage/search/post/company page)
+      const finalLinks = [];
+      for (const l of uniqLinks) {
+        if (!looksLikeSocialProfile(l)) continue;
+        if (!(await checkReachable(l))) continue;
+        finalLinks.push(l);
+      }
+      r.website = finalSite;
+      r.social_media_links = finalLinks;
     }));
 
     realtors.sort((a, b) => (a.distance_miles ?? 999) - (b.distance_miles ?? 999));

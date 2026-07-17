@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2, Globe, History } from "lucide-react";
+import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2, Globe, History, Home, ExternalLink } from "lucide-react";
 import InAppBrowser from "@/components/sales/InAppBrowser";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
 
@@ -80,6 +81,37 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
       return next;
     });
   };
+
+  // Realtor's other listings (click their name)
+  const [listingsRealtor, setListingsRealtor] = useState(null);
+  const [listings, setListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
+  const [listingsError, setListingsError] = useState('');
+
+  const showListings = async (r) => {
+    setListingsRealtor(r);
+    setListings([]);
+    setListingsError('');
+    setListingsLoading(true);
+    try {
+      const res = await base44.functions.invoke('findRealtorListings', {
+        salesMemberId,
+        name: r.name,
+        brokerage: r.brokerage || '',
+        locationLabel: locationLabel || '',
+        lat: coords?.lat,
+        lng: coords?.lng
+      });
+      const data = res.data || {};
+      if (data.error) setListingsError(data.error);
+      setListings(Array.isArray(data.listings) ? data.listings : []);
+    } catch (e) {
+      setListingsError(e?.message || 'Failed to load listings');
+    } finally {
+      setListingsLoading(false);
+    }
+  };
+  const closeListings = () => { setListingsRealtor(null); setListings([]); setListingsError(''); setListingsLoading(false); };
 
   // Search-tailoring controls
   const [radius, setRadius] = useState(100);
@@ -451,7 +483,15 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-base" style={{ color: '#1A1A1A' }}>{r.name || 'Unknown agent'}</h3>
+                        <button
+                          onClick={() => showListings(r)}
+                          className="font-semibold text-base text-left inline-flex items-center gap-1.5 hover:underline"
+                          style={{ color: '#1A1A1A' }}
+                          title="View this agent's other listings"
+                        >
+                          {r.name || 'Unknown agent'}
+                          <Home className="w-3.5 h-3.5" style={{ color: '#B8956A' }} />
+                        </button>
                         {r.distance_miles != null && (
                           <Badge className="gap-1" style={{ backgroundColor: 'rgba(184,149,106,0.15)', color: '#B8956A' }}>
                             <MapPin className="w-3 h-3" /> {Math.round(r.distance_miles)} mi
@@ -595,6 +635,62 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
       )}
 
       {/* browser renders inline within the results grid (or standalone above when opened from saved sites) */}
+
+      {/* Other listings for a realtor (click their name) */}
+      <Dialog open={!!listingsRealtor} onOpenChange={(o) => { if (!o) closeListings(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Home className="w-4 h-4" style={{ color: '#B8956A' }} />
+              {listingsRealtor?.name || 'Agent'} — Other Listings
+            </DialogTitle>
+            <DialogDescription>
+              {listingsRealtor?.brokerage ? `${listingsRealtor.brokerage} · ` : ''}Active & recent listings for this agent.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-2">
+            {listingsLoading && (
+              <div className="flex items-center justify-center py-8 gap-2 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                <Loader2 className="w-4 h-4 animate-spin" /> Searching for this agent's listings…
+              </div>
+            )}
+            {listingsError && (
+              <p className="text-sm text-red-600">{listingsError}</p>
+            )}
+            {!listingsLoading && !listingsError && listings.length === 0 && (
+              <p className="text-sm py-6 text-center" style={{ color: 'rgba(26,26,26,0.6)' }}>No other listings found for this agent.</p>
+            )}
+            {!listingsLoading && listings.length > 0 && (
+              <>
+                <p className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>{listings.length} listing{listings.length !== 1 ? 's' : ''} found</p>
+                {listings.map((l, li) => (
+                  <div key={li} className="rounded-lg border p-3" style={{ borderColor: 'rgba(184,149,106,0.25)', backgroundColor: 'rgba(184,149,106,0.04)' }}>
+                    <p className="text-sm font-medium flex items-start gap-1.5" style={{ color: '#1A1A1A' }}>
+                      <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: '#B8956A' }} />
+                      <span>{l.listing_address || 'Address unavailable'}</span>
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {l.listing_status && <Badge variant="outline" className="text-xs">{l.listing_status}</Badge>}
+                      {l.price && l.price !== 'Unknown' && <Badge variant="outline" className="text-xs gap-1"><Tag className="w-3 h-3" />{l.price}</Badge>}
+                      {l.property_type && <Badge variant="outline" className="text-xs">{l.property_type}</Badge>}
+                      {typeof l.has_professional_media === 'boolean' && (
+                        <Badge className="text-xs" style={{ backgroundColor: l.has_professional_media ? '#dcfce7' : '#fee2e2', color: l.has_professional_media ? '#15803d' : '#b91c1c' }}>
+                          {l.has_professional_media ? 'Has pro media' : 'Needs media'}
+                        </Badge>
+                      )}
+                    </div>
+                    {l.listing_url && (
+                      <a href={l.listing_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs hover:underline" style={{ color: '#B8956A' }}>
+                        <ExternalLink className="w-3 h-3" /> View listing
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
