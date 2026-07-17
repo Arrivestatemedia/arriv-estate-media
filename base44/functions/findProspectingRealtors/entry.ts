@@ -159,7 +159,7 @@ For EACH realtor, gather:
 - social_media_links: array of URL strings for the agent's professional social media profiles found during the scrub (empty array if none found)
 - call_script: a short, friendly cold-call opener (1-2 sentences) personalized to this realtor and this listing — mention their listing appears to be missing professional photos/video, introduce Arriv Estate Media, and ask for a quick quote. Keep it natural and brief.
 
-Return up to 10 realtors for page ${page}. Prioritize REAL, verifiable realtors and listings near the location. Do NOT fabricate people or listings — if you cannot find 10, return fewer. For page > 1, return a DIFFERENT set of realtors than earlier pages (skip ones already covered). Be efficient with your web searches — do not over-search for any single listing.
+Return up to 8 realtors for page ${page}. Prioritize REAL, verifiable realtors and listings near the location. Do NOT fabricate people or listings — if you cannot find 8, return fewer. For page > 1, return a DIFFERENT set of realtors than earlier pages (skip ones already covered). Be efficient with your web searches — do not over-search for any single listing.
 
 Return only valid JSON matching the schema.`;
 
