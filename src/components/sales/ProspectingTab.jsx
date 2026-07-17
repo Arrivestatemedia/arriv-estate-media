@@ -425,9 +425,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
           <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#B8956A' }} />
           <p className="mt-3 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>AI is finding realtors with photo- and video-less listings near you…</p>
           {elapsed > 0 && (
-            <p className="mt-1 text-xs" style={{ color: 'rgba(26,26,26,0.45)' }}>
-              {elapsed}s — this scans live listing sites for each agent, so it can take ~45–60s
-            </p>
+            <p className="mt-1 text-xs" style={{ color: 'rgba(26,26,26,0.45)' }}>{elapsed}s · typically ~45–60s</p>
           )}
         </div>
       )}
