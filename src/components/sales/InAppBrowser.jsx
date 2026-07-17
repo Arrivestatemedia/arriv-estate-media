@@ -20,12 +20,32 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
   const [forced, setForced] = useState(null); // { html } when loaded through the proxy
   const [forcing, setForcing] = useState(false);
   const [forceError, setForceError] = useState("");
+  const [loadStart, setLoadStart] = useState(0);
+  const [openedExternally, setOpenedExternally] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     setForced(null);
     setForceError("");
+    setOpenedExternally(false);
+    setLoadStart(Date.now());
   }, [url]);
+
+  const handleDirectLoad = () => {
+    // Sites that block embedding (X-Frame-Options / CSP) make the browser render its
+    // "refused to connect" error page, which fires onLoad almost instantly. A real
+    // embedded page takes meaningfully longer. Treat a sub-600ms load as "blocked"
+    // and auto-open the URL in the user's browser instead of showing the error.
+    const elapsed = Date.now() - loadStart;
+    if (elapsed < 600) {
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      setOpenedExternally(true);
+      setLoading(false);
+      if (!win) setForceError("Popup blocked — tap below to open the website.");
+    } else {
+      setLoading(false);
+    }
+  };
 
   const forceLoad = async () => {
     setForcing(true);
@@ -109,7 +129,26 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
             <p className="mt-2 text-xs" style={{ color: "rgba(26,26,26,0.55)" }}>Force-loading this site…</p>
           </div>
         )}
-        {forced ? (
+        {openedExternally ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 text-center px-6">
+            <ExternalLink className="w-9 h-9" style={{ color: "#B8956A" }} />
+            <p className="mt-3 text-sm font-medium" style={{ color: "#1A1A1A" }}>
+              Website opened in browser window
+            </p>
+            <p className="mt-1 text-xs" style={{ color: "rgba(26,26,26,0.55)" }}>
+              This site doesn't allow embedding, so it was opened in a new tab.
+            </p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full shadow-md hover:opacity-90"
+              style={{ backgroundColor: "#B8956A", color: "#FFFBF5" }}
+            >
+              <ExternalLink className="w-3 h-3" /> Open again
+            </a>
+          </div>
+        ) : forced ? (
           <iframe
             srcDoc={forced.html}
             title="Realtor website (forced)"
@@ -121,7 +160,7 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
             src={url}
             title="Realtor website"
             className="w-full h-full border-0"
-            onLoad={() => setLoading(false)}
+            onLoad={handleDirectLoad}
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
             referrerPolicy="no-referrer"
           />
