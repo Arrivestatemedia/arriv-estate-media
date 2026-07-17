@@ -82,10 +82,19 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
     });
   };
 
-  // Realtor's other listings (click their name) — opens a full page like the website browser
+  // Realtor's other listings (click their name) — opens inline like the in-app website browser
   const [listingsRealtor, setListingsRealtor] = useState(null);
-  const showListings = (r) => { setListingsRealtor(r); };
-  const closeListings = () => { setListingsRealtor(null); };
+  const [listingsIdx, setListingsIdx] = useState(null);
+  const [listingsMode, setListingsMode] = useState("inTab");
+  const showListings = (r, idx) => { setListingsRealtor(r); setListingsIdx(idx); setListingsMode("inTab"); };
+  const closeListings = () => { setListingsRealtor(null); setListingsIdx(null); setListingsMode("inTab"); };
+  const openListingFromListings = (url, idx) => {
+    setBrowserUrl(url);
+    setBrowserIdx(idx);
+    setListingsRealtor(null);
+    setListingsIdx(null);
+    setListingsMode("inTab");
+  };
 
   // Search-tailoring controls
   const [radius, setRadius] = useState(100);
@@ -451,6 +460,20 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                   onClose={closeBrowser}
                   onToggleFull={toggleFullPage}
                 />
+              ) : listingsRealtor && listingsIdx === idx ? (
+                <RealtorListingsPage
+                  key={idx}
+                  realtor={listingsRealtor}
+                  salesMemberId={salesMemberId}
+                  locationLabel={locationLabel}
+                  lat={coords?.lat}
+                  lng={coords?.lng}
+                  mode={listingsMode}
+                  onMinimize={closeListings}
+                  onClose={closeListings}
+                  onToggleFull={() => setListingsMode(m => (m === "fullPage" ? "inTab" : "fullPage"))}
+                  onOpenListing={(url) => openListingFromListings(url, idx)}
+                />
               ) : (
               <Card key={idx} className="overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
                 <CardContent className="pt-4 pb-4">
@@ -458,7 +481,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <button
-                          onClick={() => showListings(r)}
+                          onClick={() => showListings(r, idx)}
                           className="font-semibold text-base text-left inline-flex items-center gap-1.5 hover:underline"
                           style={{ color: '#1A1A1A' }}
                           title="View this agent's other listings"
@@ -610,17 +633,6 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
 
       {/* browser renders inline within the results grid (or standalone above when opened from saved sites) */}
 
-      {/* Other listings for a realtor — full-page overlay like the website browser */}
-      {listingsRealtor && (
-        <RealtorListingsPage
-          realtor={listingsRealtor}
-          salesMemberId={salesMemberId}
-          locationLabel={locationLabel}
-          lat={coords?.lat}
-          lng={coords?.lng}
-          onClose={closeListings}
-        />
-      )}
     </div>
   );
 }

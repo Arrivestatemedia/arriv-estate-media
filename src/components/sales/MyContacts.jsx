@@ -429,6 +429,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
         <RealtorListingsPage
           realtor={{ name: listingsContact.name, brokerage: listingsContact.company || '' }}
           salesMemberId={salesMemberId}
+          mode="fullPage"
           onClose={() => setListingsContact(null)}
         />
       )}
