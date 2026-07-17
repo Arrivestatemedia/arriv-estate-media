@@ -864,9 +864,9 @@ export default function HubSpotActivityLog() {
           <AiAssistantTab repName={user?.full_name} />
         )}
 
-        {activeTab === "prospect" && (
-          <ProspectingTab salesMemberId={user?.id} />
-        )}
+        <div className={activeTab === "prospect" ? "" : "hidden"}>
+          <ProspectingTab salesMemberId={user?.id} active={activeTab === "prospect"} />
+        </div>
 
         {activeTab === "chat" && !isInLiveCall && (
            <div style={{ height: '600px' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">

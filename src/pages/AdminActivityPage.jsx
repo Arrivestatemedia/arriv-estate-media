@@ -903,9 +903,9 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           <AiAssistantTab repName={user?.full_name} />
         )}
 
-        {activeTab === "prospect" && (
-          <ProspectingTab salesMemberId={user?.id} />
-        )}
+        <div className={activeTab === "prospect" ? "" : "hidden"}>
+          <ProspectingTab salesMemberId={user?.id} active={activeTab === "prospect"} />
+        </div>
 
         {activeTab === "activity" && showArchive && (
           <ActivityArchive

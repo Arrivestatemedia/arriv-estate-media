@@ -5,7 +5,12 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     const body = await req.json();
-    const { salesMemberId, lat, lng, locationLabel, radiusMiles = 100, page = 1 } = body;
+    const { salesMemberId, lat, lng, locationLabel, radiusMiles = 100, page = 1, keywords = '', minPrice, maxPrice } = body;
+
+    const radius = Math.max(5, Math.min(500, Number(radiusMiles) || 100));
+    const kw = (keywords || '').trim();
+    const minP = minPrice != null && minPrice !== '' && !isNaN(Number(minPrice)) ? Number(minPrice) : null;
+    const maxP = maxPrice != null && maxPrice !== '' && !isNaN(Number(maxPrice)) ? Number(maxPrice) : null;
 
     if (lat == null || lng == null) {
       return Response.json({ error: 'lat and lng are required' }, { status: 400 });
@@ -30,7 +35,9 @@ Deno.serve(async (req) => {
 
     const prompt = `You are a real estate media sales prospecting assistant for "Arriv Estate Media", a professional property photography & videography company.
 
-GOAL: Find real estate agents (realtors) near ${areaLabel} (within ${radiusMiles} miles — center coordinates lat ${lat}, lng ${lng}) who currently have property listings that are "Active" or "Coming Soon" and that DO NOT have professional photos and/or video media associated with the listing. We are looking for listings with no photos, only a few poor-quality photos, or no video — these are prime prospects for media services.
+GOAL: Find real estate agents (realtors) near ${areaLabel} (within ${radius} miles — center coordinates lat ${lat}, lng ${lng}) who currently have property listings that are "Active" or "Coming Soon" and that DO NOT have professional photos and/or video media associated with the listing. We are looking for listings with no photos, only a few poor-quality photos, or no video — these are prime prospects for media services.
+${minP != null || maxP != null ? `PRICE FILTER: Only include listings whose listed price is between ${minP != null ? '$' + minP.toLocaleString() : 'no min'} and ${maxP != null ? '$' + maxP.toLocaleString() : 'no max'}. If a listing's price is outside this range, skip it.` : ''}
+${kw ? `KEYWORD FOCUS: Prioritize listings/realtors matching these keywords: "${kw}". For example: property types (e.g. "new construction", "luxury", "condo"), neighborhoods, or agent specialties.` : ''}
 
 For EACH realtor, gather:
 - name: full name of the listing agent

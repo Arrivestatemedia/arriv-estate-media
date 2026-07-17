@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles } from "lucide-react";
+import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X } from "lucide-react";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
 
-export default function ProspectingTab({ salesMemberId }) {
+export default function ProspectingTab({ salesMemberId, active = true }) {
   const [coords, setCoords] = useState(null);
   const [locationLabel, setLocationLabel] = useState("");
   const [customLocation, setCustomLocation] = useState("");
@@ -23,8 +23,17 @@ export default function ProspectingTab({ salesMemberId }) {
   const [callingName, setCallingName] = useState("");
   const [callError, setCallError] = useState("");
 
+  // Search-tailoring controls
+  const [radius, setRadius] = useState(100);
+  const [keywords, setKeywords] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+
   const deviceRef = useRef(null);
   const callRef = useRef(null);
+  const hasFetchedRef = useRef(false);
+  const paramsRef = useRef({ radius: 100, keywords: "", minPrice: "", maxPrice: "" });
 
   // ── Twilio Device for click-to-call ──────────────────────────────────
   const loadTwilioSdk = () => new Promise((resolve, reject) => {
@@ -109,12 +118,21 @@ export default function ProspectingTab({ salesMemberId }) {
     } catch { return ''; }
   };
 
+  const currentParams = () => ({
+    radiusMiles: radius,
+    keywords,
+    minPrice: minPrice === '' ? undefined : minPrice,
+    maxPrice: maxPrice === '' ? undefined : maxPrice
+  });
+
   const fetchRealtors = async (lat, lng, label, nextPage, append) => {
     (append ? setLoadingMore : setLoading)(true);
     setError("");
+    hasFetchedRef.current = true;
+    paramsRef.current = { radius, keywords, minPrice, maxPrice };
     try {
       const res = await base44.functions.invoke('findProspectingRealtors', {
-        salesMemberId, lat, lng, locationLabel: label, page: nextPage
+        salesMemberId, lat, lng, locationLabel: label, page: nextPage, ...currentParams()
       });
       const data = res.data || {};
       const list = data.realtors || [];
@@ -141,12 +159,14 @@ export default function ProspectingTab({ salesMemberId }) {
     }, { enableHighAccuracy: true, timeout: 15000 });
   };
 
-  // Auto-pull on mount using the rep's GPS
-  useEffect(() => { pullNearby(); }, []);
+  // Fetch once on first activation only (not on every tab click)
+  useEffect(() => {
+    if (!active || hasFetchedRef.current) return;
+    pullNearby();
+  }, [active]);
 
   const handleSearchCustom = () => {
     if (!customLocation.trim()) return;
-    // Geocode the typed location
     setGeoError("");
     fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(customLocation)}`)
       .then(r => r.json())
@@ -159,6 +179,12 @@ export default function ProspectingTab({ salesMemberId }) {
         fetchRealtors(parseFloat(lat), parseFloat(lon), label, 1, false);
       })
       .catch(() => setGeoError("Location lookup failed"));
+  };
+
+  // Re-run search using the current location with the latest filter values
+  const applyFilters = () => {
+    if (!coords) { pullNearby(); return; }
+    fetchRealtors(coords.lat, coords.lng, locationLabel, 1, false);
   };
 
   const toggle = (idx) => setExpanded(p => ({ ...p, [idx]: !p[idx] }));
@@ -176,19 +202,55 @@ export default function ProspectingTab({ salesMemberId }) {
               <div>
                 <h2 className="font-bold text-lg" style={{ color: '#1A1A1A' }}>Prospecting</h2>
                 <p className="text-xs" style={{ color: 'rgba(26,26,26,0.6)' }}>
-                  {locationLabel ? `Realtors near ${locationLabel} (100 mi)` : 'AI finds realtors with photo/video-less listings near you'}
+                  {locationLabel ? `Realtors near ${locationLabel} (${radius} mi)` : 'AI finds realtors with photo/video-less listings near you'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <Button size="sm" variant="outline" onClick={() => setShowFilters(s => !s)} disabled={loading} className="gap-2">
+                <SlidersHorizontal className="w-4 h-4" /> Filters
+              </Button>
               <Button size="sm" variant="outline" onClick={pullNearby} disabled={loading} className="gap-2">
                 <MapPin className="w-4 h-4" /> My Location
               </Button>
-              <Button size="sm" onClick={() => coords && fetchRealtors(coords.lat, coords.lng, locationLabel, 1, false)} disabled={loading || !coords} className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
+              <Button size="sm" onClick={applyFilters} disabled={loading || !coords} className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
               </Button>
             </div>
           </div>
+
+          {/* Refine search panel */}
+          {showFilters && (
+            <div className="rounded-lg border p-3 space-y-3" style={{ borderColor: 'rgba(184,149,106,0.25)', backgroundColor: 'rgba(184,149,106,0.05)' }}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold" style={{ color: '#1A1A1A' }}>Refine search</span>
+                <button onClick={() => setShowFilters(false)} className="opacity-60 hover:opacity-100"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>Radius (miles): {radius}</label>
+                  <input type="range" min={5} max={500} step={5} value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="w-full accent-[#B8956A]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>Keywords</label>
+                  <Input placeholder="e.g. new construction, luxury, condo" value={keywords} onChange={(e) => setKeywords(e.target.value)} className="h-9" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>Min price ($)</label>
+                  <Input type="number" min={0} placeholder="0" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="h-9" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'rgba(26,26,26,0.7)' }}>Max price ($)</label>
+                  <Input type="number" min={0} placeholder="No limit" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="h-9" />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button size="sm" onClick={applyFilters} disabled={loading || !coords} className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>
+                  Apply &amp; Search
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Manual location search */}
           <div className="flex gap-2">
