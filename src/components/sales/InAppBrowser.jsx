@@ -22,6 +22,8 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
   const [forceError, setForceError] = useState("");
   const [loadStart, setLoadStart] = useState(0);
   const [openedExternally, setOpenedExternally] = useState(false);
+  const [blocked, setBlocked] = useState(false); // iframe never fired onLoad → likely blocks framing
+  const embedTimeoutRef = useRef(null);
 
   // Per-URL cache of previously fetched results so Back/Forward return instantly
   // without re-fetching or re-running block detection. Entries:
@@ -66,6 +68,7 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
     if (cached) {
       setForced(cached.forced || null);
       setOpenedExternally(!!cached.openedExternally);
+      setBlocked(!!cached.blocked);
       setForceError("");
       setLoading(false);
       return;
@@ -75,15 +78,30 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
     setForced(null);
     setForceError("");
     setOpenedExternally(false);
+    setBlocked(false);
     // Known-blocking portals: skip the iframe entirely and open in the browser.
     if (isKnownBlocked(url)) {
       openExternally(url);
       return;
     }
     setLoadStart(Date.now());
+    // Safety net: if the iframe's onLoad never fires (many listing pages block
+    // framing silently and the load event is simply never emitted), stop
+    // showing the spinner after a few seconds and offer open/force-load instead
+    // of hanging on "Loading website…" forever.
+    if (embedTimeoutRef.current) clearTimeout(embedTimeoutRef.current);
+    embedTimeoutRef.current = setTimeout(() => {
+      setLoading(false);
+      setBlocked(true);
+      cacheRef.current[url] = { blocked: true };
+    }, 7000);
+    return () => {
+      if (embedTimeoutRef.current) { clearTimeout(embedTimeoutRef.current); embedTimeoutRef.current = null; }
+    };
   }, [url]);
 
   const handleDirectLoad = () => {
+    if (embedTimeoutRef.current) { clearTimeout(embedTimeoutRef.current); embedTimeoutRef.current = null; }
     // Already served from cache — nothing to detect.
     if (cacheRef.current[url]?.loaded) return;
     // For unknown sites: blocked iframes render the browser's "refused to connect"
@@ -95,12 +113,15 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
       openExternally(url);
     } else {
       cacheRef.current[url] = { loaded: true };
+      setBlocked(false);
       setLoading(false);
     }
   };
 
   const forceLoad = async () => {
+    if (embedTimeoutRef.current) { clearTimeout(embedTimeoutRef.current); embedTimeoutRef.current = null; }
     setForcing(true);
+    setBlocked(false);
     setForceError("");
     try {
       const res = await base44.functions.invoke("proxyEmbed", { url });
@@ -170,10 +191,40 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
 
       {/* Browser body */}
       <div className="relative flex-1 min-h-0 bg-white">
-        {loading && !forced && (
+        {loading && !forced && !blocked && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-10">
             <Loader2 className="w-7 h-7 animate-spin" style={{ color: "#B8956A" }} />
             <p className="mt-2 text-xs" style={{ color: "rgba(26,26,26,0.55)" }}>Loading website…</p>
+          </div>
+        )}
+        {blocked && !forced && !openedExternally && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 text-center px-6">
+            <Globe className="w-9 h-9" style={{ color: "#B8956A" }} />
+            <p className="mt-3 text-sm font-medium" style={{ color: "#1A1A1A" }}>
+              This site couldn't be embedded
+            </p>
+            <p className="mt-1 text-xs" style={{ color: "rgba(26,26,26,0.55)" }}>
+              It likely blocks framing. Open it in a new tab or force-load it below.
+            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full shadow-md hover:opacity-90"
+                style={{ backgroundColor: "#B8956A", color: "#FFFBF5" }}
+              >
+                <ExternalLink className="w-3 h-3" /> Open in new tab
+              </a>
+              <button
+                onClick={forceLoad}
+                disabled={forcing}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full shadow-md hover:opacity-90 disabled:opacity-60"
+                style={{ backgroundColor: "rgba(184,149,106,0.95)", color: "#FFFBF5" }}
+              >
+                <Zap className="w-3 h-3" /> Force load
+              </button>
+            </div>
           </div>
         )}
         {forcing && (
