@@ -19,6 +19,7 @@ import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
+import ProspectingTab from "@/components/sales/ProspectingTab";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import CallMapModal from "@/components/sales/CallMapModal";
@@ -790,6 +791,7 @@ export default function HubSpotActivityLog() {
             { id: "mycontacts", label: "My Contacts" },
             { id: "queue", label: "Call Queue" },
             { id: "calendar", label: "Calendar" },
+            { id: "prospect", label: "Prospecting" },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="shrink-0 px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
               {tab.label}
@@ -860,6 +862,10 @@ export default function HubSpotActivityLog() {
 
         {activeTab === "ai" && (
           <AiAssistantTab repName={user?.full_name} />
+        )}
+
+        {activeTab === "prospect" && (
+          <ProspectingTab salesMemberId={user?.id} />
         )}
 
         {activeTab === "chat" && !isInLiveCall && (

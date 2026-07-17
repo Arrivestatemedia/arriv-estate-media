@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Phone, Mail, Calendar, Clock, Zap, MessageSquare, Sparkles, Archive, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Phone, Mail, Calendar, Clock, Zap, MessageSquare, Sparkles, Archive, ChevronDown, ChevronUp, Navigation } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { format } from "date-fns";
 import EmailComposer from "@/components/sales/EmailComposer";
@@ -20,6 +20,7 @@ import MyContacts from "@/components/sales/MyContacts";
 import ChatTab from "@/components/sales/ChatTab";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
+import ProspectingTab from "@/components/sales/ProspectingTab";
 import ActivityArchive from "@/components/sales/ActivityArchive";
 import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import CallMapModal from "@/components/sales/CallMapModal";
@@ -816,6 +817,16 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
           >
             <span className="flex items-center gap-1"><Sparkles className="w-4 h-4" />AI Assistant</span>
           </button>
+          <button
+            onClick={() => setActiveTab("prospect")}
+            className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap"
+            style={{
+              color: activeTab === "prospect" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "prospect" ? '#B8956A' : 'transparent'
+            }}
+          >
+            <span className="flex items-center gap-1"><Navigation className="w-4 h-4" />Prospecting</span>
+          </button>
         </div>
 
         {activeTab === "email" && (
@@ -890,6 +901,10 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
 
         {activeTab === "ai" && (
           <AiAssistantTab repName={user?.full_name} />
+        )}
+
+        {activeTab === "prospect" && (
+          <ProspectingTab salesMemberId={user?.id} />
         )}
 
         {activeTab === "activity" && showArchive && (
