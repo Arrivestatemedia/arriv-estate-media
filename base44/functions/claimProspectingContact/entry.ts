@@ -66,6 +66,9 @@ Deno.serve(async (req) => {
       if (!contact.job_title) updates.job_title = 'Real Estate Agent';
       if (!contact.lead_status) updates.lead_status = 'NEW';
       if (!contact.lifecycle_stage) updates.lifecycle_stage = 'lead';
+      if ((!contact.social_media || contact.social_media.length === 0) && Array.isArray(realtor.social_media) && realtor.social_media.length > 0) {
+        updates.social_media = realtor.social_media;
+      }
       const wasAlreadyMine = contact.owner_id === salesMemberId;
       const updated = await base44.asServiceRole.entities.Contact.update(contact.id, updates);
       return Response.json({
@@ -87,6 +90,7 @@ Deno.serve(async (req) => {
       job_title: 'Real Estate Agent',
       lead_status: 'NEW',
       lifecycle_stage: 'lead',
+      social_media: Array.isArray(realtor.social_media) ? realtor.social_media : [],
       owner_id: salesMemberId
     });
 

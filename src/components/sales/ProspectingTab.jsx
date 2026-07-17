@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus } from "lucide-react";
+import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2 } from "lucide-react";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
 
@@ -119,7 +119,8 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
           brokerage: r.brokerage || '',
           listing_address: r.listing_address || '',
           listing_status: r.listing_status || '',
-          price: r.price || ''
+          price: r.price || '',
+          social_media: r.social_media || []
         }
       });
       const data = res.data || {};
@@ -418,6 +419,21 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                     <p className="mt-2 text-xs" style={{ color: 'rgba(26,26,26,0.55)' }}>
                       Verified: {r.verification_notes}
                     </p>
+                  )}
+
+                  {/* Social media */}
+                  {r.social_media_links && r.social_media_links.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {r.social_media_links.map((link, li) => {
+                        let label = link;
+                        try { label = new URL(link).hostname.replace(/^www\./, ''); } catch {}
+                        return (
+                          <a key={li} href={link} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 rounded-md border flex items-center gap-1 hover:underline" style={{ borderColor: 'rgba(184,149,106,0.3)', color: '#B8956A' }}>
+                            <Share2 className="w-3 h-3" /> {label}
+                          </a>
+                        );
+                      })}
+                    </div>
                   )}
 
                   {/* Call script */}

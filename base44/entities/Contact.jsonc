@@ -41,6 +41,14 @@
     "hubspot_id": {
       "type": "string",
       "description": "Original HubSpot contact ID (for migration mapping)"
+    },
+    "social_media": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Social media / profile URLs found for this contact (YouTube, Facebook, Instagram, TikTok, LinkedIn, website, etc.)"
     }
-  }
+  },
+  "required": []
 }

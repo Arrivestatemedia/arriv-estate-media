@@ -37,13 +37,15 @@ Deno.serve(async (req) => {
 
     const prompt = `You are a real estate media sales prospecting assistant for "Arriv Estate Media", a professional property photography & videography company.
 
-GOAL: Find real estate agents (realtors) near ${areaLabel} (within ${radius} miles — center coordinates lat ${lat}, lng ${lng}) who currently have property listings that are "Active" or "Coming Soon" and that DO NOT have professional photos AND DO NOT have professional video media associated with the listing. We are ONLY interested in listings that lack BOTH professional photography AND professional videography. These are prime prospects for Arriv's media services.
+GOAL: Find real estate agents (realtors) near ${areaLabel} (within ${radius} miles — center coordinates lat ${lat}, lng ${lng}) who currently have property listings that are "Active" or "Coming Soon" and that are missing professional media — meaning the listing has NO professional photos, OR NO professional video, OR BOTH. Any one of these gaps makes them a prospect for Arriv's photography & videography services.
 
-CRITICAL MEDIA VERIFICATION — for EACH listing you return, you MUST perform a web search and a social media scrub to confirm BOTH of the following before including the realtor:
-1. The MLS / listing portal itself has NO professional photos (only a few poor-quality or agent-phone snapshots, or no photos at all).
-2. The listing agent has NOT posted any professional video walk-through, cinematic tour, drone video, or promo video for THIS property on any platform — including YouTube, Facebook, Instagram, TikTok, LinkedIn, and the brokerage's own website. Search the agent's name together with the property address on those platforms to check for property video content.
+CRITICAL MEDIA VERIFICATION — for EACH listing you return, you MUST perform a web search and a social media scrub to check the following before including the realtor:
+1. Does the MLS / listing portal have professional photos? (only a few poor-quality / agent-phone snapshots, or no photos at all, counts as "no professional photos").
+2. Has the listing agent posted any professional video walk-through, cinematic tour, drone video, or promo video for THIS property on any platform — including YouTube, Facebook, Instagram, TikTok, LinkedIn, and the brokerage's own website? Search the agent's name together with the property address on those platforms to check for property video content.
 
-EXCLUSION RULE: If you find that the agent HAS professional photos OR professional video for the listing, EXCLUDE that realtor entirely — they are not a prospect. Only return realtors whose listing genuinely lacks both professional photos and professional video. Set "no_photo_confirmed" and "no_video_confirmed" to reflect your verification, and use "verification_notes" to briefly note which platforms you checked.
+INCLUSION RULE: Include the realtor if the listing is missing professional photos, OR missing professional video, OR missing both. EXCLUDE the realtor ONLY if the listing already has BOTH professional photos AND professional video (they have no need for Arriv's services). Set "no_photo_confirmed" (true = listing has no professional photos) and "no_video_confirmed" (true = no professional video found) to reflect your findings, and use "verification_notes" to briefly note which platforms you checked.
+
+SOCIAL MEDIA DISCOVERY — while scrubbing, also collect any professional social media profile links for the agent (e.g. their YouTube channel, Facebook business page, Instagram profile, TikTok, LinkedIn profile, brokerage profile page, or personal agent website). Return these as "social_media_links" (array of URL strings). These help the sales rep research the realtor before reaching out.
 
 ${minP != null || maxP != null ? `PRICE FILTER: Only include listings whose listed price is between ${minP != null ? '$' + minP.toLocaleString() : 'no min'} and ${maxP != null ? '$' + maxP.toLocaleString() : 'no max'}. If a listing's price is outside this range, skip it.` : ''}
 ${kw ? `KEYWORD FOCUS: Prioritize listings/realtors matching these keywords: "${kw}". For example: property types (e.g. "new construction", "luxury", "condo"), neighborhoods, or agent specialties.` : ''}
@@ -60,7 +62,8 @@ For EACH realtor, gather:
 - no_photo_confirmed: boolean — true if you confirmed the listing has no professional photos
 - no_video_confirmed: boolean — true if you confirmed no professional video exists on social media / web
 - verification_notes: short string summarizing what you checked (e.g. "Checked MLS, YouTube, Instagram, agent website — no pro photo or video found")
-- call_script: a short, friendly cold-call script (3-5 sentences) personalized to this realtor and this specific listing. It should mention that their listing at the address appears to lack both professional photos and video, introduce Arriv Estate Media's photography & videography services, and ask for a brief conversation or a quick quote. Keep it natural and conversational.
+- social_media_links: array of URL strings for the agent's professional social media profiles found during the scrub (empty array if none found)
+- call_script: a short, friendly cold-call script (3-5 sentences) personalized to this realtor and this specific listing. It should mention that their listing at the address appears to be missing professional photos and/or video, introduce Arriv Estate Media's photography & videography services, and ask for a brief conversation or a quick quote. Keep it natural and conversational.
 
 Return up to 25 realtors for page ${page}. Prioritize REAL, verifiable realtors and listings near the location. Do NOT fabricate people or listings — if you cannot find 25, return fewer. For page > 1, return a DIFFERENT set of realtors than earlier pages (skip ones already covered).
 
@@ -89,6 +92,7 @@ Return only valid JSON matching the schema.`;
                 no_photo_confirmed: { type: 'boolean' },
                 no_video_confirmed: { type: 'boolean' },
                 verification_notes: { type: 'string' },
+                social_media_links: { type: 'array', items: { type: 'string' } },
                 call_script: { type: 'string' }
               },
               required: ['name', 'listing_address', 'call_script']
