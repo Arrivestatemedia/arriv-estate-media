@@ -152,6 +152,7 @@ For EACH realtor, gather:
 - listing_address: the property address that lacks media
 - listing_status: "Active" or "Coming Soon"
 - price: listed price if known (e.g. "$450,000") or "Unknown"
+- listing_url: a direct URL to THIS specific property's listing page on a major portal (Zillow, Realtor.com, Redfin, Homes.com, or the brokerage's property detail page). Must be the actual property detail page for THIS address, not a search results page and not the agent's homepage. Use "Not found" only if you genuinely cannot find one.
 - no_photo_confirmed: boolean — true if you confirmed the listing has no professional photos
 - no_video_confirmed: boolean — true if you confirmed no professional video exists on social media / web
 - verification_notes: short string summarizing what you checked (e.g. "Checked MLS, YouTube, Instagram, agent website — no pro photo or video found")
@@ -183,6 +184,7 @@ Return only valid JSON matching the schema.`;
                 listing_address: { type: 'string' },
                 listing_status: { type: 'string' },
                 price: { type: 'string' },
+                listing_url: { type: 'string' },
                 no_photo_confirmed: { type: 'boolean' },
                 no_video_confirmed: { type: 'boolean' },
                 verification_notes: { type: 'string' },

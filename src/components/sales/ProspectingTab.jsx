@@ -539,12 +539,23 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                             <span>{r.listing_address}</span>
                           </p>
                         )}
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {r.listing_status && (
                             <Badge variant="outline" className="text-xs">{r.listing_status}</Badge>
                           )}
                           {r.price && r.price !== 'Unknown' && (
                             <Badge variant="outline" className="text-xs gap-1"><Tag className="w-3 h-3" />{r.price}</Badge>
+                          )}
+                          {r.listing_url && !String(r.listing_url).toLowerCase().includes('not found') && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openWebsite(r.listing_url, idx, r.listing_address || r.name)}
+                              className="gap-1.5 h-7 text-xs"
+                              style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" /> View Listing
+                            </Button>
                           )}
                         </div>
                       </div>
