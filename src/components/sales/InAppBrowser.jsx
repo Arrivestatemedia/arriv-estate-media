@@ -23,27 +23,55 @@ export default function InAppBrowser({ url, mode, onMinimize, onClose, onToggleF
   const [loadStart, setLoadStart] = useState(0);
   const [openedExternally, setOpenedExternally] = useState(false);
 
+  // Real-estate portals known to send X-Frame-Options / CSP frame-ancestors that
+  // prevent embedding. Timing-based detection alone is unreliable for these (the
+  // block response still requires a network round-trip), so we hard-shortcut them.
+  const BLOCKED_HOSTS = [
+    "zillow.com", "realtor.com", "redfin.com", "trulia.com", "homes.com",
+    "century21.com", "kw.com", "kellerwilliams.com", "remax.com",
+    "coldwellbanker.com", "compass.com", "estately.com", "movoto.com",
+    "opendoor.com", "homesnap.com", "har.com", "fidelitynationalhome warranty.com",
+    "homesforsale.com", "buyowner.com", "for-sale-byowner.com", "landwatch.com",
+    "loopnet.com", "apartments.com", "apartmentlist.com", "rent.com",
+    "realtor.org", "brightmls.com", "primeMLS.com", "flexmls.com",
+    "paragonfmls.com", " matrixmls.com", "mls.com",
+  ];
+
+  const isKnownBlocked = (rawUrl) => {
+    try {
+      const host = (new URL(rawUrl)).hostname.toLowerCase();
+      return BLOCKED_HOSTS.some((h) => host === h || host.endsWith("." + h));
+    } catch { return false; }
+  };
+
+  const openExternally = (target) => {
+    const win = window.open(target, "_blank", "noopener,noreferrer");
+    setOpenedExternally(true);
+    setLoading(false);
+    if (!win) setForceError("Popup blocked — tap below to open the website.");
+  };
+
   useEffect(() => {
     setLoading(true);
     setForced(null);
     setForceError("");
     setOpenedExternally(false);
+    // Known-blocking portals: skip the iframe entirely and open in the browser.
+    if (isKnownBlocked(url)) {
+      openExternally(url);
+      return;
+    }
     setLoadStart(Date.now());
   }, [url]);
 
   const handleDirectLoad = () => {
-    // Sites that block embedding (X-Frame-Options / CSP) make the browser render its
-    // "refused to connect" error page, which fires onLoad almost instantly (well under
-    // 200ms — there's no real document to fetch/parse). A page that embeds successfully
-    // still has to fetch and parse real HTML, which takes longer even on a fast/cached
-    // connection. Only treat a sub-200ms load as "blocked" so successful embeds stay
-    // in the app's browser.
+    // For unknown sites: blocked iframes render the browser's "refused to connect"
+    // error page, which loads far faster than a real page (no document to parse).
+    // Treat a sub-1200ms load as blocked; real embedded pages take longer to
+    // fetch + parse + render even on a fast connection.
     const elapsed = Date.now() - loadStart;
-    if (elapsed < 200) {
-      const win = window.open(url, "_blank", "noopener,noreferrer");
-      setOpenedExternally(true);
-      setLoading(false);
-      if (!win) setForceError("Popup blocked — tap below to open the website.");
+    if (elapsed < 1200) {
+      openExternally(url);
     } else {
       setLoading(false);
     }
