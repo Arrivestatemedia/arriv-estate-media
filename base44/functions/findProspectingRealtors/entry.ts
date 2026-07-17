@@ -62,6 +62,7 @@ For EACH realtor, gather:
 - no_photo_confirmed: boolean — true if you confirmed the listing has no professional photos
 - no_video_confirmed: boolean — true if you confirmed no professional video exists on social media / web
 - verification_notes: short string summarizing what you checked (e.g. "Checked MLS, YouTube, Instagram, agent website — no pro photo or video found")
+- website: the agent's primary website URL (their personal agent site or brokerage profile page) if found, otherwise "Not found"
 - social_media_links: array of URL strings for the agent's professional social media profiles found during the scrub (empty array if none found)
 - call_script: a short, friendly cold-call script (3-5 sentences) personalized to this realtor and this specific listing. It should mention that their listing at the address appears to be missing professional photos and/or video, introduce Arriv Estate Media's photography & videography services, and ask for a brief conversation or a quick quote. Keep it natural and conversational.
 
@@ -92,6 +93,7 @@ Return only valid JSON matching the schema.`;
                 no_photo_confirmed: { type: 'boolean' },
                 no_video_confirmed: { type: 'boolean' },
                 verification_notes: { type: 'string' },
+                website: { type: 'string' },
                 social_media_links: { type: 'array', items: { type: 'string' } },
                 call_script: { type: 'string' }
               },

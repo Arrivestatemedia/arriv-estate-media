@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2 } from "lucide-react";
+import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2, Globe } from "lucide-react";
+import InAppBrowser from "@/components/sales/InAppBrowser";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
 
@@ -24,6 +25,13 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   const [callError, setCallError] = useState("");
   const [claimingId, setClaimingId] = useState(null);
   const [claimError, setClaimError] = useState("");
+
+  // In-app website browser
+  const [browserUrl, setBrowserUrl] = useState(null);
+  const [browserMode, setBrowserMode] = useState("inTab");
+  const openWebsite = (url) => { setBrowserUrl(url); setBrowserMode("inTab"); };
+  const closeBrowser = () => setBrowserUrl(null);
+  const toggleFullPage = () => setBrowserMode(m => (m === "fullPage" ? "inTab" : "fullPage"));
 
   // Search-tailoring controls
   const [radius, setRadius] = useState(100);
@@ -382,6 +390,17 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                       {r.phone && !r.phone.toLowerCase().includes('not found') && (
                         <p className="text-xs" style={{ color: 'rgba(26,26,26,0.6)' }}>{r.phone}</p>
                       )}
+                      {r.website && !r.website.toLowerCase().includes('not found') && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openWebsite(r.website)}
+                          className="gap-1.5 h-8 text-xs"
+                          style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
+                        >
+                          <Globe className="w-3.5 h-3.5" /> View Website
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -468,6 +487,17 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
           <Navigation className="w-10 h-10 mx-auto opacity-30" />
           <p className="mt-3 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>No realtors found yet. Try refreshing or searching a different area.</p>
         </div>
+      )}
+
+      {/* In-app website browser (renders within prospecting tab; can expand to full app) */}
+      {browserUrl && (
+        <InAppBrowser
+          url={browserUrl}
+          mode={browserMode}
+          onMinimize={closeBrowser}
+          onClose={closeBrowser}
+          onToggleFull={toggleFullPage}
+        />
       )}
     </div>
   );
