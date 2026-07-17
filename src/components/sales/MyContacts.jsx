@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,12 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
     realtor: { name: contact.name, brokerage: contact.company || '' }
   });
   const openListingFromListings = (url, contactKey) => pushView({ kind: "website", contactKey, url });
+
+  // Cache fetched listings per contact so navigating back from an opened
+  // listing restores the list instantly — no "Searching…" spinner (matches
+  // the prospecting tab's listingsCacheRef behavior).
+  const listingsCacheRef = useRef({});
+  const contactListingsKey = (c) => `${c.name || ''}||${c.company || ''}`;
 
   useEffect(() => {
     loadActivities();
@@ -245,6 +251,10 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                 realtor={current.realtor}
                 salesMemberId={salesMemberId}
                 mode={current.mode}
+                cachedListings={listingsCacheRef.current[contactListingsKey(contact)]}
+                onCacheListings={(list) => {
+                  listingsCacheRef.current[contactListingsKey(contact)] = list;
+                }}
                 onMinimize={closeView}
                 onClose={closeView}
                 onToggleFull={toggleCurrentMode}

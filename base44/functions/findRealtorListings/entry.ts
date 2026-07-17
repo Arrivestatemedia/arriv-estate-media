@@ -2,11 +2,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 
 const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
 
-async function isUrlReachable(url) {
+// Returns the HTTP status code for a URL (0 if the request failed entirely).
+// We only use this to drop definitively-dead links (404/410); a connection
+// failure (bot-blocked HEAD/GET, timeout) does NOT count as dead, since most
+// real-estate portals block bot requests but still load fine in a real browser.
+async function getUrlStatus(url) {
   try {
     const u = new URL(url);
-    if (!/^https?:$/.test(u.protocol)) return false;
-  } catch { return false; }
+    if (!/^https?:$/.test(u.protocol)) return 0;
+  } catch { return 0; }
   const tryFetch = (method) => new Promise((resolve) => {
     const ctrl = new AbortController();
     const to = setTimeout(() => ctrl.abort(), 3500);
@@ -16,9 +20,7 @@ async function isUrlReachable(url) {
   });
   let status = await tryFetch('HEAD');
   if (!status) status = await tryFetch('GET');
-  if (!status) return false;
-  if (status === 404 || status === 410) return false;
-  return true;
+  return status || 0;
 }
 
 Deno.serve(async (req) => {
@@ -67,7 +69,7 @@ IMPORTANT for speed: do AT MOST 2 web searches (e.g. "${name}" ${brokerage || ''
 - sqft (integer, or null if not shown)
 - description (one short sentence/phrase summarizing the listing from the snippet; "" if none)
 - photo_url (a thumbnail image URL for the listing if one is visible in the snippet; "" if none)
-- listing_url (the direct URL shown in the search result; omit if none)
+- listing_url (the DIRECT URL to this specific listing's property-detail page — e.g. the exact Zillow/Realtor.com/Redfin property URL. It MUST point to this one property, NOT a search-results page, NOT the agent's profile, NOT a broker directory. If you only have a search-results URL or the agent's profile URL, leave listing_url empty.)
 Only include has_professional_media if it is explicitly visible in a snippet; otherwise omit it. Do not fabricate listings, URLs, numbers, or photos — if a field isn't in the snippet, leave it empty/null. Return only valid JSON.`;
 
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -104,21 +106,32 @@ Only include has_professional_media if it is explicitly visible in a snippet; ot
 
     let listings = (llmRes && llmRes.listings) ? llmRes.listings : [];
 
-    // Drop dead/fabricated listing URLs
-    const cache = new Map();
-    const reachable = async (url) => {
-      if (!url || typeof url !== 'string') return false;
+    // Only show listings a realtor could still need media for: Active and
+    // Coming Soon. Drop Sold, Off Market, Pending, Closed, Withdrawn, Expired,
+    // Contingent, etc.
+    listings = listings.filter((l) => {
+      const s = String(l.listing_status || '').toLowerCase();
+      return /active|coming\s*soon/i.test(s);
+    });
+
+    // Drop only definitively-dead listing URLs (404/410). A connection failure
+    // (bot-blocked request/timeout) is NOT enough to strip — the page often
+    // loads fine in a real browser, so we keep the URL and let the user open it.
+    const statusCache = new Map();
+    const statusOf = async (url) => {
+      if (!url || typeof url !== 'string') return 0;
       const k = url.trim();
-      if (!k) return false;
-      if (cache.has(k)) return cache.get(k);
-      const ok = await isUrlReachable(k);
-      cache.set(k, ok);
-      return ok;
+      if (!k) return 0;
+      if (statusCache.has(k)) return statusCache.get(k);
+      const s = await getUrlStatus(k);
+      statusCache.set(k, s);
+      return s;
     };
     await Promise.all(listings.map(async (l) => {
       const u = l.listing_url && String(l.listing_url).trim();
-      if (u && /^https?:\/\//i.test(u) && !(await reachable(u))) {
-        l.listing_url = '';
+      if (u && /^https?:\/\//i.test(u)) {
+        const s = await statusOf(u);
+        if (s === 404 || s === 410) l.listing_url = '';
       }
     }));
 
