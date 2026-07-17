@@ -732,6 +732,16 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
             Activity Log
           </button>
           <button
+            onClick={() => setActiveTab("prospect")}
+            className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap"
+            style={{
+              color: activeTab === "prospect" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
+              borderBottomColor: activeTab === "prospect" ? '#B8956A' : 'transparent'
+            }}
+          >
+            <span className="flex items-center gap-1"><Navigation className="w-4 h-4" />Prospecting</span>
+          </button>
+          <button
             onClick={() => setActiveTab("email")}
             className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap"
             style={{
@@ -816,16 +826,6 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
             }}
           >
             <span className="flex items-center gap-1"><Sparkles className="w-4 h-4" />AI Assistant</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("prospect")}
-            className="px-4 py-3 font-medium border-b-2 transition whitespace-nowrap"
-            style={{
-              color: activeTab === "prospect" ? '#B8956A' : 'rgba(26, 26, 26, 0.6)',
-              borderBottomColor: activeTab === "prospect" ? '#B8956A' : 'transparent'
-            }}
-          >
-            <span className="flex items-center gap-1"><Navigation className="w-4 h-4" />Prospecting</span>
           </button>
         </div>
 

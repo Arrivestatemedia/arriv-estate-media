@@ -785,12 +785,12 @@ export default function HubSpotActivityLog() {
         <div className="flex gap-2 mb-8 border-b border-[#B8956A]/20 overflow-x-auto whitespace-nowrap">
           {[
             { id: "activity", label: "Activity Log" },
+            { id: "prospect", label: "Prospecting" },
             { id: "email", label: "Email Hub" },
             { id: "contacts", label: "Search/Add Contacts" },
             { id: "mycontacts", label: "My Contacts" },
             { id: "queue", label: "Call Queue" },
             { id: "calendar", label: "Calendar" },
-            { id: "prospect", label: "Prospecting" },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="shrink-0 px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
               {tab.label}
