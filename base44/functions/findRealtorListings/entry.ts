@@ -64,7 +64,7 @@ SPEED: Do exactly ONE web search (e.g. "${name}" ${brokerage || ''} active listi
 - sqft (integer, or null if not shown)
 - description (one short sentence/phrase summarizing the listing from the snippet; "" if none)
 - photo_url (a thumbnail image URL for the listing if one is visible in the snippet; "" if none)
-- listing_url (the DIRECT URL to this specific listing's property-detail page — e.g. the exact Zillow/Realtor.com/Redfin property URL. It MUST point to this one property, NOT a search-results page, NOT the agent's profile, NOT a broker directory. If you only have a search-results URL or the agent's profile URL, leave listing_url empty.)
+- listing_url (the best available URL for THIS listing, in priority order: (1) the DIRECT property-detail page URL — e.g. the exact Zillow/Realtor.com/Redfin property URL; (2) if no direct property URL is visible, a search-results URL that shows this listing (e.g. a Zillow/Realtor.com search results URL for this address); (3) if neither is available, the agent's active-listings page URL. Only leave listing_url empty if you have NO relevant URL at all. Prefer the most specific URL you can see in the snippet.)
 Only include has_professional_media if it is explicitly visible in a snippet; otherwise omit it. Do not fabricate listings, URLs, numbers, or photos — if a field isn't in the snippet, leave it empty/null. Return only valid JSON.`;
 
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({

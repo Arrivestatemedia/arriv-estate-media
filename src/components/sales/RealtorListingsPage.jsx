@@ -294,26 +294,38 @@ export default function RealtorListingsPage({
                         {l.description}
                       </p>
                     )}
-                    {l.listing_url && onOpenListing && (
-                      <button
-                        onClick={() => onOpenListing(l.listing_url)}
-                        className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
-                        style={{ color: "#B8956A" }}
-                      >
-                        <ExternalLink className="w-3 h-3" /> View listing
-                      </button>
-                    )}
-                    {l.listing_url && !onOpenListing && (
-                      <a
-                        href={l.listing_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
-                        style={{ color: "#B8956A" }}
-                      >
-                        <ExternalLink className="w-3 h-3" /> View listing
-                      </a>
-                    )}
+                    {(() => {
+                      const direct = l.listing_url && String(l.listing_url).trim();
+                      // Fallback: when no direct URL came back, link to a search for
+                      // this address + agent so the user can always open something.
+                      const fallback = !direct && l.listing_address
+                        ? `https://www.google.com/search?q=${encodeURIComponent(
+                            `${l.listing_address} ${realtor?.name || ""} ${realtor?.brokerage || ""} for sale`
+                          )}`
+                        : "";
+                      const href = direct || fallback;
+                      if (!href) return null;
+                      const label = direct ? "View listing" : "Search listing";
+                      return onOpenListing ? (
+                        <button
+                          onClick={() => onOpenListing(href)}
+                          className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
+                          style={{ color: "#B8956A" }}
+                        >
+                          <ExternalLink className="w-3 h-3" /> {label}
+                        </button>
+                      ) : (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
+                          style={{ color: "#B8956A" }}
+                        >
+                          <ExternalLink className="w-3 h-3" /> {label}
+                        </a>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
