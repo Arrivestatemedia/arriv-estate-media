@@ -27,19 +27,29 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   const [claimingId, setClaimingId] = useState(null);
   const [claimError, setClaimError] = useState("");
 
-  // In-app website browser
-  const [browserUrl, setBrowserUrl] = useState(null);
-  const [browserMode, setBrowserMode] = useState("inTab");
-  const [browserIdx, setBrowserIdx] = useState(null); // which card the browser replaces
-  const closeBrowser = () => { setBrowserUrl(null); setBrowserIdx(null); };
-  const toggleFullPage = () => setBrowserMode(m => (m === "fullPage" ? "inTab" : "fullPage"));
+  // In-app navigation history: one stack so Back/Forward move between the
+  // listings view and any opened listing/website pages, exactly like a browser.
+  // Each entry renders inline replacing its card.
+  const [nav, setNav] = useState({ stack: [], index: -1 });
+  const current = nav.index >= 0 ? nav.stack[nav.index] : null;
+  const canBack = nav.index > 0;
+  const canForward = nav.index >= 0 && nav.index < nav.stack.length - 1;
+  const pushView = (entry) => setNav(prev => {
+    const stack = prev.stack.slice(0, prev.index + 1);
+    stack.push({ ...entry, mode: entry.mode || "inTab" });
+    return { stack, index: stack.length - 1 };
+  });
+  const navBack = () => setNav(prev => prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev);
+  const navForward = () => setNav(prev => (prev.index >= 0 && prev.index < prev.stack.length - 1) ? { ...prev, index: prev.index + 1 } : prev);
+  const closeView = () => setNav({ stack: [], index: -1 });
+  const toggleCurrentMode = () => setNav(prev => ({
+    ...prev,
+    stack: prev.stack.map((e, i) => i === prev.index ? { ...e, mode: e.mode === "fullPage" ? "inTab" : "fullPage" } : e)
+  }));
   const hostLabel = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
-  const openWebsite = (url, idx) => {
-    if (!url) return;
-    setBrowserUrl(url);
-    setBrowserIdx(idx);
-    setBrowserMode("inTab");
-  };
+  const openWebsite = (url, idx) => { if (!url) return; pushView({ kind: "website", url, idx }); };
+  const showListings = (r, idx) => pushView({ kind: "listings", realtor: r, idx });
+  const openListingFromListings = (url, idx) => pushView({ kind: "website", url, idx });
 
   // Saved prospecting searches (each fetch) — persisted locally so you can pull them back up
   const [savedSearches, setSavedSearches] = useState([]);
@@ -70,6 +80,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
     setMaxPrice(entry.maxPrice ?? '');
     setRealtors(entry.realtors || []);
     setPage(1);
+    setNav({ stack: [], index: -1 });
     setError('');
     setGeoError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -82,19 +93,8 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
     });
   };
 
-  // Realtor's other listings (click their name) — opens inline like the in-app website browser
-  const [listingsRealtor, setListingsRealtor] = useState(null);
-  const [listingsIdx, setListingsIdx] = useState(null);
-  const [listingsMode, setListingsMode] = useState("inTab");
-  const showListings = (r, idx) => { setListingsRealtor(r); setListingsIdx(idx); setListingsMode("inTab"); };
-  const closeListings = () => { setListingsRealtor(null); setListingsIdx(null); setListingsMode("inTab"); };
-  const openListingFromListings = (url, idx) => {
-    setBrowserUrl(url);
-    setBrowserIdx(idx);
-    setListingsRealtor(null);
-    setListingsIdx(null);
-    setListingsMode("inTab");
-  };
+  // Listings + listing-detail navigation are handled by the nav stack above
+  // (showListings / openListingFromListings).
 
   // Search-tailoring controls
   const [radius, setRadius] = useState(100);
@@ -243,6 +243,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
       const data = res.data || {};
       const list = data.realtors || [];
       setRealtors(prev => append ? [...prev, ...list] : list);
+      if (!append) setNav({ stack: [], index: -1 });
       setPage(nextPage);
       // Save each fresh fetch (page 1, not "load more") so it can be pulled back up later
       if (!append && list.length > 0) {
@@ -451,27 +452,35 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
 
           <div className="grid gap-3">
             {realtors.map((r, idx) => (
-              browserUrl && browserIdx === idx ? (
+              current && current.idx === idx && current.kind === "website" ? (
                 <InAppBrowser
                   key={idx}
-                  url={browserUrl}
-                  mode={browserMode}
-                  onMinimize={closeBrowser}
-                  onClose={closeBrowser}
-                  onToggleFull={toggleFullPage}
+                  url={current.url}
+                  mode={current.mode}
+                  onMinimize={closeView}
+                  onClose={closeView}
+                  onToggleFull={toggleCurrentMode}
+                  onBack={navBack}
+                  onForward={navForward}
+                  canBack={canBack}
+                  canForward={canForward}
                 />
-              ) : listingsRealtor && listingsIdx === idx ? (
+              ) : current && current.idx === idx && current.kind === "listings" ? (
                 <RealtorListingsPage
                   key={idx}
-                  realtor={listingsRealtor}
+                  realtor={current.realtor}
                   salesMemberId={salesMemberId}
                   locationLabel={locationLabel}
                   lat={coords?.lat}
                   lng={coords?.lng}
-                  mode={listingsMode}
-                  onMinimize={closeListings}
-                  onClose={closeListings}
-                  onToggleFull={() => setListingsMode(m => (m === "fullPage" ? "inTab" : "fullPage"))}
+                  mode={current.mode}
+                  onMinimize={closeView}
+                  onClose={closeView}
+                  onToggleFull={toggleCurrentMode}
+                  onBack={navBack}
+                  onForward={navForward}
+                  canBack={canBack}
+                  canForward={canForward}
                   onOpenListing={(url) => openListingFromListings(url, idx)}
                 />
               ) : (

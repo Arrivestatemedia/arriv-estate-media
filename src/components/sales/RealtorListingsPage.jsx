@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Minus, Maximize2, Minimize2, X, Loader2, MapPin, Tag, ExternalLink, Home } from "lucide-react";
+import { Minus, Maximize2, Minimize2, X, Loader2, MapPin, Tag, ExternalLink, Home, ArrowLeft, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 /**
@@ -21,6 +21,10 @@ export default function RealtorListingsPage({
   onClose,
   onToggleFull,
   onOpenListing,
+  onBack,
+  onForward,
+  canBack,
+  canForward,
 }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +79,23 @@ export default function RealtorListingsPage({
         className="flex items-center gap-2 px-3 py-2 flex-shrink-0 select-none"
         style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}
       >
-        <Home className="w-4 h-4 flex-shrink-0" style={{ color: "#B8956A" }} />
+        <button
+          onClick={onBack}
+          disabled={!canBack}
+          title="Back"
+          className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${!canBack ? "opacity-30 cursor-default" : "hover:bg-white/10"}`}
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <button
+          onClick={onForward}
+          disabled={!canForward}
+          title="Forward"
+          className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${!canForward ? "opacity-30 cursor-default" : "hover:bg-white/10"}`}
+        >
+          <ArrowRight className="w-4 h-4" />
+        </button>
+        <Home className="w-4 h-4 flex-shrink-0 ml-1" style={{ color: "#B8956A" }} />
         <div
           className="flex-1 min-w-0 truncate text-xs font-medium px-2 py-1 rounded-md"
           style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
