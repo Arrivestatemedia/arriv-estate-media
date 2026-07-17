@@ -29,8 +29,43 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   // In-app website browser
   const [browserUrl, setBrowserUrl] = useState(null);
   const [browserMode, setBrowserMode] = useState("inTab");
-  const openWebsite = (url) => { setBrowserUrl(url); setBrowserMode("inTab"); };
-  const closeBrowser = () => setBrowserUrl(null);
+  const [browserIdx, setBrowserIdx] = useState(null); // which card the browser replaces (null = standalone)
+  const [savedSites, setSavedSites] = useState([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('prospect_saved_sites');
+      if (raw) setSavedSites(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  const persistSites = (list) => {
+    setSavedSites(list);
+    try { localStorage.setItem('prospect_saved_sites', JSON.stringify(list)); } catch {}
+  };
+
+  const hostLabel = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+
+  const openWebsite = (url, idx, realtorName = '') => {
+    if (!url) return;
+    setBrowserUrl(url);
+    setBrowserIdx(idx);
+    setBrowserMode("inTab");
+    setSavedSites(prev => {
+      const filtered = prev.filter(s => s.url !== url);
+      const next = [{ url, label: hostLabel(url), realtorName, openedAt: Date.now() }, ...filtered].slice(0, 30);
+      persistSites(next);
+      return next;
+    });
+  };
+
+  const openSaved = (entry) => {
+    setBrowserUrl(entry.url);
+    setBrowserIdx(null);
+    setBrowserMode("inTab");
+  };
+
+  const closeBrowser = () => { setBrowserUrl(null); setBrowserIdx(null); };
   const toggleFullPage = () => setBrowserMode(m => (m === "fullPage" ? "inTab" : "fullPage"));
 
   // Search-tailoring controls
@@ -341,8 +376,53 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium" style={{ color: 'rgba(26,26,26,0.7)' }}>{realtors.length} realtor{realtors.length !== 1 ? 's' : ''} found</p>
           </div>
+
+          {/* Saved sites — click to reopen in the in-app browser */}
+          {savedSites.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <span className="text-xs font-medium flex-shrink-0" style={{ color: 'rgba(26,26,26,0.5)' }}>Saved sites:</span>
+              {savedSites.map((s, si) => (
+                <button
+                  key={si}
+                  onClick={() => openSaved(s)}
+                  className="text-xs px-2.5 py-1.5 rounded-full border flex items-center gap-1.5 flex-shrink-0 hover:bg-[rgba(184,149,106,0.1)] transition-colors"
+                  style={{ borderColor: 'rgba(184,149,106,0.35)', color: '#B8956A', backgroundColor: 'rgba(184,149,106,0.06)' }}
+                  title={s.realtorName ? `${s.realtorName} — ${s.url}` : s.url}
+                >
+                  <Globe className="w-3 h-3" />
+                  <span className="font-medium">{s.label}</span>
+                  {s.realtorName && <span className="opacity-60">· {s.realtorName.split(' ')[0]}</span>}
+                </button>
+              ))}
+              <button onClick={() => persistSites([])} className="text-xs px-2 py-1.5 flex-shrink-0 hover:underline" style={{ color: 'rgba(26,26,26,0.4)' }}>
+                Clear
+              </button>
+            </div>
+          )}
+
+          {/* Standalone in-app browser (opened from a saved site, not tied to a card) */}
+          {browserUrl && browserIdx === null && (
+            <InAppBrowser
+              url={browserUrl}
+              mode={browserMode}
+              onMinimize={closeBrowser}
+              onClose={closeBrowser}
+              onToggleFull={toggleFullPage}
+            />
+          )}
+
           <div className="grid gap-3">
             {realtors.map((r, idx) => (
+              browserUrl && browserIdx === idx ? (
+                <InAppBrowser
+                  key={idx}
+                  url={browserUrl}
+                  mode={browserMode}
+                  onMinimize={closeBrowser}
+                  onClose={closeBrowser}
+                  onToggleFull={toggleFullPage}
+                />
+              ) : (
               <Card key={idx} className="overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
                 <CardContent className="pt-4 pb-4">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
@@ -394,7 +474,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => openWebsite(r.website)}
+                          onClick={() => openWebsite(r.website, idx, r.name)}
                           className="gap-1.5 h-8 text-xs"
                           style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
                         >
@@ -443,15 +523,16 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                   {/* Social media */}
                   {r.social_media_links && r.social_media_links.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {r.social_media_links.map((link, li) => {
-                        let label = link;
-                        try { label = new URL(link).hostname.replace(/^www\./, ''); } catch {}
-                        return (
-                          <a key={li} href={link} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 rounded-md border flex items-center gap-1 hover:underline" style={{ borderColor: 'rgba(184,149,106,0.3)', color: '#B8956A' }}>
-                            <Share2 className="w-3 h-3" /> {label}
-                          </a>
-                        );
-                      })}
+                      {r.social_media_links.map((link, li) => (
+                        <button
+                          key={li}
+                          onClick={() => openWebsite(link, idx, r.name)}
+                          className="text-xs px-2 py-1 rounded-md border flex items-center gap-1 hover:bg-[rgba(184,149,106,0.1)] transition-colors"
+                          style={{ borderColor: 'rgba(184,149,106,0.3)', color: '#B8956A' }}
+                        >
+                          <Share2 className="w-3 h-3" /> {hostLabel(link)}
+                        </button>
+                      ))}
                     </div>
                   )}
 
@@ -469,6 +550,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                   </div>
                 </CardContent>
               </Card>
+              )
             ))}
           </div>
 
@@ -489,16 +571,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
         </div>
       )}
 
-      {/* In-app website browser (renders within prospecting tab; can expand to full app) */}
-      {browserUrl && (
-        <InAppBrowser
-          url={browserUrl}
-          mode={browserMode}
-          onMinimize={closeBrowser}
-          onClose={closeBrowser}
-          onToggleFull={toggleFullPage}
-        />
-      )}
+      {/* browser renders inline within the results grid (or standalone above when opened from saved sites) */}
     </div>
   );
 }

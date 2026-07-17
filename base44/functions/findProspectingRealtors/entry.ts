@@ -3,6 +3,27 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 const normalizeEmail = (e) => (e || '').toLowerCase().trim();
 const digitsOnly = (p) => (p || '').replace(/\D/g, '').slice(-10);
 
+// Verify a URL actually resolves (drops fabricated / 404 links) while keeping
+// login-walled social profiles (401/403) that are still real pages.
+async function isUrlReachable(url) {
+  try {
+    const u = new URL(url);
+    if (!/^https?:$/.test(u.protocol)) return false;
+  } catch { return false; }
+  const tryFetch = (method) => new Promise((resolve) => {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 4500);
+    fetch(url, { method, redirect: 'follow', signal: ctrl.signal })
+      .then(res => { clearTimeout(to); resolve(res ? res.status : 0); })
+      .catch(() => { clearTimeout(to); resolve(0); });
+  });
+  let status = await tryFetch('HEAD');
+  if (!status) status = await tryFetch('GET');
+  if (!status) return false;                 // network / DNS / timeout → dead
+  if (status === 404 || status === 410) return false;  // page does not exist
+  return true;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -46,6 +67,8 @@ CRITICAL MEDIA VERIFICATION — for EACH listing you return, you MUST perform a 
 INCLUSION RULE: Include the realtor if the listing is missing professional photos, OR missing professional video, OR missing both. EXCLUDE the realtor ONLY if the listing already has BOTH professional photos AND professional video (they have no need for Arriv's services). Set "no_photo_confirmed" (true = listing has no professional photos) and "no_video_confirmed" (true = no professional video found) to reflect your findings, and use "verification_notes" to briefly note which platforms you checked.
 
 SOCIAL MEDIA DISCOVERY — while scrubbing, also collect any professional social media profile links for the agent (e.g. their YouTube channel, Facebook business page, Instagram profile, TikTok, LinkedIn profile, brokerage profile page, or personal agent website). Return these as "social_media_links" (array of URL strings). These help the sales rep research the realtor before reaching out.
+
+ACCURACY REQUIREMENT — CRITICAL: Only include a social_media_links entry OR a website URL if you actually found it in your web search results AND it clearly belongs to THIS specific agent (the profile name or handle matches the agent's name or their brokerage). Do NOT guess, construct, or fabricate URLs. If you cannot verify a link is real and belongs to this exact agent, omit it entirely. Every link must be a complete, well-formed https:// URL that takes the user directly to that profile/page. It is far better to return an empty social_media_links list and website "Not found" than to return a wrong or broken link.
 
 ${minP != null || maxP != null ? `PRICE FILTER: Only include listings whose listed price is between ${minP != null ? '$' + minP.toLocaleString() : 'no min'} and ${maxP != null ? '$' + maxP.toLocaleString() : 'no max'}. If a listing's price is outside this range, skip it.` : ''}
 ${kw ? `KEYWORD FOCUS: Prioritize listings/realtors matching these keywords: "${kw}". For example: property types (e.g. "new construction", "luxury", "condo"), neighborhoods, or agent specialties.` : ''}
@@ -106,6 +129,32 @@ Return only valid JSON matching the schema.`;
     });
 
     let realtors = (llmRes && llmRes.realtors) ? llmRes.realtors : [];
+
+    // ── Verify website + social links are real/reachable (drop dead/fabricated links) ──
+    const urlCache = new Map();
+    const checkUrl = async (url) => {
+      if (!url || typeof url !== 'string') return false;
+      const key = url.trim();
+      if (!key) return false;
+      if (urlCache.has(key)) return urlCache.get(key);
+      const ok = await isUrlReachable(key);
+      urlCache.set(key, ok);
+      return ok;
+    };
+    await Promise.all(realtors.map(async (r) => {
+      const site = r.website && !String(r.website).toLowerCase().includes('not found') ? String(r.website).trim() : '';
+      const rawLinks = Array.isArray(r.social_media_links) ? r.social_media_links.filter(Boolean).map(l => String(l).trim()) : [];
+      const seen = new Set();
+      const uniqLinks = [];
+      for (const l of rawLinks) { if (!seen.has(l)) { seen.add(l); uniqLinks.push(l); } }
+      const [siteOk, ...linkResults] = await Promise.all([
+        site ? checkUrl(site) : Promise.resolve(false),
+        ...uniqLinks.map(l => checkUrl(l))
+      ]);
+      r.website = site && siteOk ? site : '';
+      r.social_media_links = uniqLinks.filter((_, i) => linkResults[i]);
+    }));
+
     realtors.sort((a, b) => (a.distance_miles ?? 999) - (b.distance_miles ?? 999));
 
     // ── Match each realtor against the local Contact database ──────────
