@@ -129,6 +129,8 @@ Deno.serve(async (req) => {
 
 GOAL: Find real estate agents (realtors) near ${areaLabel} (within ${radius} miles — center coordinates lat ${lat}, lng ${lng}) who currently have property listings that are "Active" or "Coming Soon" and that are missing professional media — meaning the listing has NO professional photos, OR NO professional video, OR BOTH. Any one of these gaps makes them a prospect for Arriv's photography & videography services.
 
+HARD STATUS RULE — ABSOLUTE REQUIREMENT: You may ONLY include listings whose current status is exactly "Active" (on the market / for sale) or "Coming Soon". You MUST EXCLUDE any listing that is Off Market, Sold, Pending, Contingent, Under Contract, Withdrawn, Expired, or "Closed". Before including a listing, confirm on the source page (Zillow / Realtor.com / Redfin / Homes.com / brokerage site) that it is currently labeled Active or Coming Soon. If the listing shows as Sold, Pending, Under Contract, Off Market, or any past-closed status, DO NOT include that realtor for that listing — skip it entirely and find a different one. There is one strict test: the listing URL you return MUST currently show the property as Active or Coming Soon when opened. If it does not, that listing is invalid.
+
 CRITICAL MEDIA VERIFICATION — for EACH listing you return, you MUST perform a web search and a social media scrub to check the following before including the realtor:
 1. Does the MLS / listing portal have professional photos? (only a few poor-quality / agent-phone snapshots, or no photos at all, counts as "no professional photos").
 2. Has the listing agent posted any professional video walk-through, cinematic tour, drone video, or promo video for THIS property on any platform — including YouTube, Facebook, Instagram, TikTok, LinkedIn, and the brokerage's own website? Search the agent's name together with the property address on those platforms to check for property video content.
@@ -150,9 +152,9 @@ For EACH realtor, gather:
 - phone: best phone number, preferably mobile/office (E.164 +1 format if possible; "Not found" if unavailable)
 - distance_miles: approximate distance in miles from the center location
 - listing_address: the property address that lacks media
-- listing_status: "Active" or "Coming Soon"
+- listing_status: "Active" or "Coming Soon" (MUST be one of these two; never Sold/Pending/Off Market)
 - price: listed price if known (e.g. "$450,000") or "Unknown"
-- listing_url: a direct URL to THIS specific property's listing page on a major portal (Zillow, Realtor.com, Redfin, Homes.com, or the brokerage's property detail page). Must be the actual property detail page for THIS address, not a search results page and not the agent's homepage. Use "Not found" only if you genuinely cannot find one.
+- listing_url: THE EXACT source URL you used to find THIS listing's data — the direct property detail page on Zillow, Realtor.com, Redfin, Homes.com, or the brokerage's own property detail page that you actually visited and read. This URL MUST be the page that shows THIS property (matching the listing_address), MUST currently display the property as Active or Coming Soon, and clicking it MUST open the correct listing (not a different property, not a search-results page, not the agent's homepage). If you cannot find a direct detail URL for THIS property, return "Not found" — never guess or construct a URL. This is the link the sales rep will click to view the listing, so it must be the precise page you sourced the data from.
 - no_photo_confirmed: boolean — true if you confirmed the listing has no professional photos
 - no_video_confirmed: boolean — true if you confirmed no professional video exists on social media / web
 - verification_notes: short string summarizing what you checked (e.g. "Checked MLS, YouTube, Instagram, agent website — no pro photo or video found")
@@ -182,7 +184,7 @@ Return only valid JSON matching the schema.`;
                 phone: { type: 'string' },
                 distance_miles: { type: 'number' },
                 listing_address: { type: 'string' },
-                listing_status: { type: 'string' },
+                listing_status: { type: 'string', enum: ['Active', 'Coming Soon'] },
                 price: { type: 'string' },
                 listing_url: { type: 'string' },
                 no_photo_confirmed: { type: 'boolean' },
@@ -229,6 +231,28 @@ Return only valid JSON matching the schema.`;
       r.social_media_links = profileLinks.filter((_, i) => linkOks[i]);
     }));
 
+    // ── Enforce Active/Coming-Soon status + verify the listing source URL resolves ──
+    const VALID_STATUS = new Set(['active', 'coming soon', 'comingsoon', 'coming-soon', 'new', 'new listing']);
+    const listingUrlCache = new Map();
+    const checkListingUrl = async (url) => {
+      if (!url || typeof url !== 'string') return false;
+      const key = url.trim().toLowerCase();
+      if (!key || key.includes('not found')) return false;
+      if (listingUrlCache.has(key)) return listingUrlCache.get(key);
+      const ok = await isUrlReachable(url.trim());
+      listingUrlCache.set(key, ok);
+      return ok;
+    };
+    await Promise.all(realtors.map(async (r) => {
+      const statusRaw = String(r.listing_status || '').toLowerCase().trim();
+      r.status_ok = VALID_STATUS.has(statusRaw);
+      r.listing_url_ok = r.listing_url ? await checkListingUrl(String(r.listing_url)) : false;
+    }));
+
+    // Drop listings that are off-market/sold, or whose source URL is missing/broken
+    // (the rep needs a working "View Listing" link to the correct property)
+    realtors = realtors.filter(r => r.status_ok && r.listing_url_ok);
+
     // Prioritize highest-priced listings first (homes in the millions), then by distance.
     realtors.sort((a, b) => {
       const pd = priceToNumber(b.price) - priceToNumber(a.price);
@@ -260,6 +284,8 @@ Return only valid JSON matching the schema.`;
     }
 
     realtors = realtors.map(r => {
+      delete r.status_ok;
+      delete r.listing_url_ok;
       const rEmail = normalizeEmail(r.email);
       const rDigits = digitsOnly(r.phone);
       let match = null;
