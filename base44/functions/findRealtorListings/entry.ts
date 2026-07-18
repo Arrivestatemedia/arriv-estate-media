@@ -64,7 +64,7 @@ SPEED: Do exactly ONE web search (e.g. "${name}" ${brokerage || ''} active listi
 - sqft (integer, or null if not shown)
 - description (one short sentence/phrase summarizing the listing from the snippet; "" if none)
 - photo_url (a thumbnail image URL for the listing if one is visible in the snippet; "" if none)
-- listing_url (the best available URL for THIS listing, in priority order: (1) the DIRECT property-detail page URL — e.g. the exact Zillow/Realtor.com/Redfin property URL; (2) if no direct property URL is visible, a search-results URL that shows this listing (e.g. a Zillow/Realtor.com search results URL for this address); (3) if neither is available, the agent's active-listings page URL. Only leave listing_url empty if you have NO relevant URL at all. Prefer the most specific URL you can see in the snippet.)
+- listing_url (MUST be the DIRECT property-detail page URL for THIS specific listing — e.g. the exact Zillow/Realtor.com/Redfin/Trulia/Homes.com/ brokerage property URL, which always contains the property's street number and street name in the URL path). Do NOT use a generic city/state search-results page, an agent's listings page, or a homepage. If you cannot find a direct property-detail URL that contains this listing's street address in the path, leave listing_url EMPTY — do not guess or substitute a generic URL.
 Only include has_professional_media if it is explicitly visible in a snippet; otherwise omit it. Do not fabricate listings, URLs, numbers, or photos — if a field isn't in the snippet, leave it empty/null. Return only valid JSON.`;
 
     const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -107,6 +107,32 @@ Only include has_professional_media if it is explicitly visible in a snippet; ot
     listings = listings.filter((l) => {
       const s = String(l.listing_status || '').toLowerCase();
       return /active|coming\s*soon/i.test(s);
+    });
+
+    // Verify each listing_url actually corresponds to THIS property: all major
+    // portals (Zillow, Realtor.com, Redfin, Trulia, Homes.com, brokerages) embed
+    // the property's street number + street name in the URL path. A correct
+    // property-detail URL MUST contain this listing's street number (as a whole
+    // path token) AND at least one street-name token. This drops LLM-returned
+    // links that point to a generic city search page or a DIFFERENT property.
+    const urlAddressMatches = (url, addr) => {
+      try {
+        const u = String(url || '').toLowerCase();
+        if (!u || u.includes('not found')) return false;
+        const street = String(addr || '').toLowerCase().split(',')[0].trim();
+        const number = (street.match(/\d+/) || [])[0] || '';
+        const toks = street.split(/[^a-z0-9]+/).filter(t => t.length >= 3);
+        const pathTokens = u.split(/[^a-z0-9]+/).filter(Boolean);
+        const hasNumber = number && pathTokens.includes(number);
+        const hasName = toks.length === 0 ? true : toks.some(t => pathTokens.some(pt => pt.includes(t)));
+        return !!(hasNumber && hasName);
+      } catch { return false; }
+    };
+    listings = listings.map((l) => {
+      const u = l.listing_url && String(l.listing_url).trim();
+      if (!u || !/^https?:\/\//i.test(u)) { l.listing_url = ''; return l; }
+      if (!urlAddressMatches(u, l.listing_address)) l.listing_url = '';
+      return l;
     });
 
     // Drop only definitively-dead listing URLs (404/410). A connection failure
