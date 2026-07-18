@@ -335,15 +335,10 @@ export default function RealtorListingsPage({
                       const href = direct || fallback;
                       if (!href) return null;
                       const label = direct ? "View listing" : "Search listing";
-                      return onOpenListing ? (
-                        <button
-                          onClick={() => onOpenListing(href)}
-                          className="mt-2 inline-flex items-center gap-1 text-xs hover:underline"
-                          style={{ color: "#B8956A" }}
-                        >
-                          <ExternalLink className="w-3 h-3" /> {label}
-                        </button>
-                      ) : (
+                      // Direct anchor (target=_blank): synchronous user-gesture
+                      // navigation — never popup-blocked (the InAppBrowser's async
+                      // window.open in a useEffect gets blocked for Zillow/Realtor.com).
+                      return (
                         <a
                           href={href}
                           target="_blank"

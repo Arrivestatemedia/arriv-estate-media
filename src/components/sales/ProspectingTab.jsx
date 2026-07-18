@@ -579,26 +579,31 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                               : "";
                             const href = direct || google;
                             if (!href) return null;
+                            // Direct anchor (target=_blank): a synchronous user-gesture
+                            // navigation, so it is never popup-blocked (unlike the
+                            // InAppBrowser's async window.open in a useEffect, which
+                            // browsers block for Zillow/Realtor.com). Opens the exact
+                            // trusted Zillow/Realtor.com page or a Google search.
                             return direct ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openWebsite(direct, idx, r.listing_address || r.name)}
-                                className="gap-1.5 h-7 text-xs"
+                              <a
+                                href={direct}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 h-7 px-3 text-xs font-medium rounded-md border hover:bg-[rgba(184,149,106,0.1)] transition-colors"
                                 style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
                               >
                                 <ExternalLink className="w-3.5 h-3.5" /> View Listing
-                              </Button>
+                              </a>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openWebsite(google, idx, r.listing_address || r.name)}
-                                className="gap-1.5 h-7 text-xs"
+                              <a
+                                href={google}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 h-7 px-3 text-xs font-medium rounded-md border hover:bg-[rgba(184,149,106,0.08)] transition-colors"
                                 style={{ borderColor: 'rgba(184,149,106,0.3)', color: 'rgba(26,26,26,0.6)' }}
                               >
                                 <ExternalLink className="w-3.5 h-3.5" /> Search Listing
-                              </Button>
+                              </a>
                             );
                           })()}
                         </div>
