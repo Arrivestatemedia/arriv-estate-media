@@ -158,9 +158,40 @@ Only include has_professional_media if it is explicitly visible in a snippet; ot
       return l;
     });
 
-    // Drop only definitively-dead listing URLs (404/410). A connection failure
-    // (bot-blocked request/timeout) is NOT enough to strip — the page often
-    // loads fine in a real browser, so we keep the URL and let the user open it.
+    // CRITICAL: the LLM frequently FABRICATES listings — plausible addresses that
+    // have nothing to do with the searched realtor. The only reliable way to tie
+    // a listing to THIS agent is to fetch the listing page and confirm the agent's
+    // name (or brokerage) actually appears on it. Keep ONLY verified listings.
+    // If a page can't be fetched or doesn't mention the agent, DROP it — showing
+    // nothing is better than showing an unrelated address. The frontend always
+    // also gets a realtor_search_url so the user can browse the agent's real
+    // listings even when verification strips everything.
+    const lastName = (name || '').trim().toLowerCase().split(/\s+/).filter(t => /^[a-z]+$/.test(t) && t.length >= 3).pop() || '';
+    const brokerageTok = (brokerage || '').trim().toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 4).pop() || '';
+
+    const pageMentionsAgent = async (url) => {
+      try {
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 6000);
+        const res = await fetch(url, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: ctrl.signal,
+          headers: { 'User-Agent': BROWSER_UA, 'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' },
+        });
+        clearTimeout(to);
+        if (!res || !res.ok) return false;
+        const html = await res.text();
+        const text = html.toLowerCase()
+          .replace(/<script[\s\S]*?<\/script>/g, ' ')
+          .replace(/<style[\s\S]*?<\/style>/g, ' ')
+          .replace(/<[^>]+>/g, ' ');
+        const has = (tok) => tok && text.includes(tok);
+        return !!(has(lastName) || has(brokerageTok));
+      } catch { return false; }
+    };
+
+    // First drop definitively-dead URLs (404/410).
     const statusCache = new Map();
     const statusOf = async (url) => {
       if (!url || typeof url !== 'string') return 0;
@@ -179,7 +210,22 @@ Only include has_professional_media if it is explicitly visible in a snippet; ot
       }
     }));
 
-    return Response.json({ listings, count: listings.length, name });
+    // Now verify each remaining listing actually belongs to this realtor by
+    // fetching the listing page and checking the agent name appears on it.
+    await Promise.all(listings.map(async (l) => {
+      const u = l.listing_url && String(l.listing_url).trim();
+      if (!u || !/^https?:\/\//i.test(u)) { l._verified = false; return; }
+      l._verified = await pageMentionsAgent(u);
+    }));
+    listings = listings.filter((l) => l._verified);
+    listings.forEach((l) => { delete l._verified; });
+
+    // Reliable fallback: a Google search for this agent's active listings, so the
+    // user can always reach the realtor's actual listings even when verification
+    // strips everything (Zillow/Realtor.com often block bot fetches).
+    const realtorSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`${name}${brokerage ? ` ${brokerage}` : ''}${area ? ` ${area}` : ''} real estate agent active listings for sale`)}`;
+
+    return Response.json({ listings, count: listings.length, name, realtor_search_url: realtorSearchUrl });
   } catch (error) {
     console.error('findRealtorListings error:', error);
     return Response.json({ error: error.message }, { status: 500 });

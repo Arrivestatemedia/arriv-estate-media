@@ -34,6 +34,7 @@ export default function RealtorListingsPage({
   const [loadingMore, setLoadingMore] = useState(false);
   const [noMore, setNoMore] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [realtorSearchUrl, setRealtorSearchUrl] = useState("");
 
   useEffect(() => {
     // Restore cached listings instantly on remount (e.g. when navigating back
@@ -74,6 +75,7 @@ export default function RealtorListingsPage({
         if (data.error) setError(data.error);
         const fetched = Array.isArray(data.listings) ? data.listings : [];
         setListings(fetched);
+        setRealtorSearchUrl(data.realtor_search_url || "");
         if (onCacheListings) onCacheListings(fetched);
       } catch (e) {
         if (active) setError(e?.message || "Failed to load listings");
@@ -211,19 +213,43 @@ export default function RealtorListingsPage({
         {error && <p className="text-sm text-red-600 text-center py-12">{error}</p>}
 
         {!loading && !error && listings.length === 0 && (
-          <div className="text-center py-16">
+          <div className="text-center py-12">
             <Home className="w-10 h-10 mx-auto opacity-30" />
             <p className="mt-3 text-sm" style={{ color: "rgba(26,26,26,0.6)" }}>
-              No other listings found for this agent.
+              No verified listings found for this agent.
             </p>
+            {realtorSearchUrl && (
+              <a
+                href={realtorSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium hover:underline"
+                style={{ backgroundColor: "#B8956A", color: "#1A1A1A" }}
+              >
+                <ExternalLink className="w-4 h-4" /> View {realtor?.name?.split(" ")[0] || "agent"}'s listings
+              </a>
+            )}
           </div>
         )}
 
         {!loading && listings.length > 0 && (
           <div className="space-y-3">
-            <p className="text-xs" style={{ color: "rgba(26,26,26,0.5)" }}>
-              {listings.length} listing{listings.length !== 1 ? "s" : ""} found
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs" style={{ color: "rgba(26,26,26,0.5)" }}>
+                {listings.length} verified listing{listings.length !== 1 ? "s" : ""} found
+              </p>
+              {realtorSearchUrl && (
+                <a
+                  href={realtorSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+                  style={{ color: "#B8956A" }}
+                >
+                  <ExternalLink className="w-3 h-3" /> View all listings
+                </a>
+              )}
+            </div>
             {listings.map((l, li) => {
               const specs = [
                 l.beds != null && `${l.beds} bd`,
