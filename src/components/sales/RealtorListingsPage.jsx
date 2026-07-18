@@ -295,8 +295,26 @@ export default function RealtorListingsPage({
                       </p>
                     )}
                     {(() => {
-                      const direct = l.listing_url && String(l.listing_url).trim();
-                      // Fallback: when no direct URL came back, link to a search for
+                      // A correct property-detail URL must contain this listing's
+                      // street number (whole path token) + a street-name token.
+                      // Reject generic city-search pages / wrong-property URLs (even
+                      // from cached data) so "View listing" never opens the wrong home.
+                      const urlMatchesAddress = (url, addr) => {
+                        try {
+                          const u = String(url || "").toLowerCase();
+                          if (!u || u.includes("not found")) return false;
+                          const street = String(addr || "").toLowerCase().split(",")[0].trim();
+                          const number = (street.match(/\d+/) || [])[0] || "";
+                          const toks = street.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
+                          const pathTokens = u.split(/[^a-z0-9]+/).filter(Boolean);
+                          const hasNumber = number && pathTokens.includes(number);
+                          const hasName = toks.length === 0 ? true : toks.some((t) => pathTokens.some((pt) => pt.includes(t)));
+                          return !!(hasNumber && hasName);
+                        } catch { return false; }
+                      };
+                      const rawUrl = l.listing_url && String(l.listing_url).trim();
+                      const direct = rawUrl && /^https?:\/\//i.test(rawUrl) && urlMatchesAddress(rawUrl, l.listing_address) ? rawUrl : "";
+                      // Fallback: when no valid direct URL came back, link to a search for
                       // this address + agent so the user can always open something.
                       const fallback = !direct && l.listing_address
                         ? `https://www.google.com/search?q=${encodeURIComponent(
