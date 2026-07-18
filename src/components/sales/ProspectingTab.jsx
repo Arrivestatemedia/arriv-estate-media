@@ -546,17 +546,54 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                           {r.price && r.price !== 'Unknown' && (
                             <Badge variant="outline" className="text-xs gap-1"><Tag className="w-3 h-3" />{r.price}</Badge>
                           )}
-                          {r.listing_url && !String(r.listing_url).toLowerCase().includes('not found') && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openWebsite(r.listing_url, idx, r.listing_address || r.name)}
-                              className="gap-1.5 h-7 text-xs"
-                              style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" /> View Listing
-                            </Button>
-                          )}
+                          {(() => {
+                            // A correct property-detail URL must contain this listing's
+                            // street number (whole path token) + a street-name token.
+                            // Reject generic city-search pages / wrong-property URLs
+                            // (even from cached/saved-search data) so "View Listing"
+                            // never opens the wrong home — fall back to a search link.
+                            const urlMatchesAddress = (url, addr) => {
+                              try {
+                                const u = String(url || "").toLowerCase();
+                                if (!u || u.includes("not found")) return false;
+                                const street = String(addr || "").toLowerCase().split(",")[0].trim();
+                                const number = (street.match(/\d+/) || [])[0] || "";
+                                const toks = street.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
+                                const pathTokens = u.split(/[^a-z0-9]+/).filter(Boolean);
+                                const hasNumber = number && pathTokens.includes(number);
+                                const hasName = toks.length === 0 ? true : toks.some((t) => pathTokens.some((pt) => pt.includes(t)));
+                                return !!(hasNumber && hasName);
+                              } catch { return false; }
+                            };
+                            const rawUrl = r.listing_url && String(r.listing_url).trim();
+                            const direct = rawUrl && /^https?:\/\//i.test(rawUrl) && urlMatchesAddress(rawUrl, r.listing_address) ? rawUrl : "";
+                            const fallback = !direct && r.listing_address
+                              ? `https://www.google.com/search?q=${encodeURIComponent(`${r.listing_address} ${r.name || ""} ${r.brokerage || ""} for sale`)}`
+                              : "";
+                            const href = direct || fallback;
+                            if (!href) return null;
+                            return direct ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openWebsite(direct, idx, r.listing_address || r.name)}
+                                className="gap-1.5 h-7 text-xs"
+                                style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" /> View Listing
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openWebsite(fallback, idx, r.listing_address || r.name)}
+                                className="gap-1.5 h-7 text-xs"
+                                style={{ borderColor: 'rgba(184,149,106,0.3)', color: 'rgba(26,26,26,0.6)' }}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" /> Search Listing
+                              </Button>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
