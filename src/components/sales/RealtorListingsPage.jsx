@@ -299,13 +299,21 @@ export default function RealtorListingsPage({
                       // street number (whole path token) + a street-name token.
                       // Reject generic city-search pages / wrong-property URLs (even
                       // from cached data) so "View listing" never opens the wrong home.
-                      const urlMatchesAddress = (url, addr) => {
+                      // STRICT: only a verified Zillow.com or Realtor.com property-DETAIL
+                      // page whose path matches this listing's address opens as "View
+                      // listing". Anything else falls back to a Google search. NO EXCEPTIONS.
+                      const trustedDetail = (url, addr) => {
                         try {
-                          const u = String(url || "").toLowerCase();
-                          if (!u || u.includes("not found")) return false;
-                          const searchIndicators = ["_rb", "searchquerystate", "/search", "?query=", "&query=", "/for_sale", "/for-sale", "/for_rent", "/for-rent", "/recentlysold", "/recently_sold", "/sold", "hasphoto", "mapresults", "/listings/", "/agents/", "/realtor/"];
-                          if (searchIndicators.some((s) => u.includes(s))) return false;
-                          if (u.includes("/homes/") && !u.includes("/homedetails/")) return false;
+                          const raw = String(url || "").trim();
+                          if (!raw || raw.toLowerCase().includes("not found")) return false;
+                          const u = raw.toLowerCase();
+                          const host = new URL(raw).hostname.replace(/^www\./, "");
+                          const isZillow = host === "zillow.com" || host.endsWith(".zillow.com");
+                          const isRealtor = host === "realtor.com" || host.endsWith(".realtor.com");
+                          if (!isZillow && !isRealtor) return false;
+                          const path = new URL(raw).pathname.toLowerCase();
+                          if (isZillow && !path.includes("/homedetails/")) return false;
+                          if (isRealtor && !path.includes("/realestateandhomes-detail/")) return false;
                           const street = String(addr || "").toLowerCase().split(",")[0].trim();
                           const number = (street.match(/\d+/) || [])[0] || "";
                           const toks = street.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
@@ -316,12 +324,12 @@ export default function RealtorListingsPage({
                         } catch { return false; }
                       };
                       const rawUrl = l.listing_url && String(l.listing_url).trim();
-                      const direct = rawUrl && /^https?:\/\//i.test(rawUrl) && urlMatchesAddress(rawUrl, l.listing_address) ? rawUrl : "";
-                      // Fallback: when no valid direct URL came back, link to a search for
-                      // this address + agent so the user can always open something.
+                      const direct = rawUrl && /^https?:\/\//i.test(rawUrl) && trustedDetail(rawUrl, l.listing_address) ? rawUrl : "";
+                      // Fallback: when no valid Zillow/Realtor.com URL came back, link to a
+                      // search for this address so the user can always find the property.
                       const fallback = !direct && l.listing_address
                         ? `https://www.google.com/search?q=${encodeURIComponent(
-                            `${l.listing_address} ${realtor?.name || ""} ${realtor?.brokerage || ""} for sale`
+                            `${l.listing_address} ${realtor?.name || ""} ${realtor?.brokerage || ""} for sale zillow`
                           )}`
                         : "";
                       const href = direct || fallback;

@@ -154,7 +154,7 @@ For EACH realtor, gather:
 - listing_address: the property address that lacks media
 - listing_status: "Active" or "Coming Soon" (MUST be one of these two; never Sold/Pending/Off Market)
 - price: listed price if known (e.g. "$450,000") or "Unknown"
-- listing_url: THE EXACT source URL you used to find THIS listing's data — the direct property detail page on Zillow, Realtor.com, Redfin, Homes.com, or the brokerage's own property detail page that you actually visited and read. This URL MUST be the page that shows THIS property (matching the listing_address), MUST currently display the property as Active or Coming Soon, and clicking it MUST open the correct listing (not a different property, not a search-results page, not the agent's homepage). If you cannot find a direct detail URL for THIS property, return "Not found" — never guess or construct a URL. This is the link the sales rep will click to view the listing, so it must be the precise page you sourced the data from.
+- listing_url: THE EXACT Zillow.com OR Realtor.com property-DETAIL page URL for THIS specific property. ONLY these two sites are accepted — do NOT return Redfin, Trulia, Homes.com, or any brokerage-site URL. The URL MUST be a property detail page (Zillow URLs contain "/homedetails/", Realtor.com URLs contain "/realestateandhomes-detail/"), and the URL path MUST contain THIS listing's street number and street name. It MUST show THIS property (matching the listing_address) and currently display it as Active or Coming Soon. If you cannot find a Zillow OR Realtor.com detail page for THIS exact property, return "Not found" — never guess, never substitute a different property, a search-results page, or the agent's homepage. This link is what the sales rep clicks to view the listing, so it must be the precise Zillow/Realtor.com detail page for THIS property.
 - no_photo_confirmed: boolean — true if you confirmed the listing has no professional photos
 - no_video_confirmed: boolean — true if you confirmed no professional video exists on social media / web
 - verification_notes: short string summarizing what you checked (e.g. "Checked MLS, YouTube, Instagram, agent website — no pro photo or video found")
@@ -231,21 +231,23 @@ Return only valid JSON matching the schema.`;
       r.social_media_links = profileLinks.filter((_, i) => linkOks[i]);
     }));
 
-    // ── Enforce Active/Coming-Soon status + verify the listing source URL matches THIS property ──
+    // ── Enforce Active/Coming-Soon status; only KEEP a listing_url that is a verified
+    // Zillow or Realtor.com property-DETAIL page matching THIS address. Any other URL
+    // (Redfin, Homes.com, brokerage site, search page, wrong property) is BLANKED — the
+    // realtor stays in results but the frontend falls back to a Google search. NO EXCEPTIONS.
     const VALID_STATUS = new Set(['active', 'coming soon', 'comingsoon', 'coming-soon', 'new', 'new listing']);
-    // All major portals (Zillow, Realtor.com, Redfin, Trulia, Homes.com, brokerages) embed the
-    // property's street number + street name in the URL path. A correct listing_url MUST contain
-    // this listing's street number (as a whole path token) AND at least one street-name token.
-    // This catches LLM-hallucinated links that point to a real but DIFFERENT property.
-    const urlAddressMatches = (url, addr) => {
+    const trustedDetailMatch = (url, addr) => {
       try {
-        const u = String(url || '').toLowerCase();
-        if (!u || u.includes('not found')) return false;
-        // Reject search-results / listing-LIST pages (not a specific property detail)
-        const searchIndicators = ['_rb', 'searchquerystate', '/search', '?query=', '&query=', '/for_sale', '/for-sale', '/for_rent', '/for-rent', '/recentlysold', '/recently_sold', '/sold', 'hasphoto', 'mapresults', '/listings/', '/agents/', '/realtor/'];
-        if (searchIndicators.some(s => u.includes(s))) return false;
-        // Zillow: /homes/... is search results; /homedetails/... is a property detail page
-        if (u.includes('/homes/') && !u.includes('/homedetails/')) return false;
+        const raw = String(url || '').trim();
+        if (!raw || raw.toLowerCase().includes('not found')) return false;
+        const u = raw.toLowerCase();
+        const host = new URL(raw).hostname.replace(/^www\./, '');
+        const isZillow = host === 'zillow.com' || host.endsWith('.zillow.com');
+        const isRealtor = host === 'realtor.com' || host.endsWith('.realtor.com');
+        if (!isZillow && !isRealtor) return false;
+        const path = new URL(raw).pathname.toLowerCase();
+        if (isZillow && !path.includes('/homedetails/')) return false;
+        if (isRealtor && !path.includes('/realestateandhomes-detail/')) return false;
         const street = String(addr || '').toLowerCase().split(',')[0].trim();
         const number = (street.match(/\d+/) || [])[0] || '';
         const toks = street.split(/[^a-z0-9]+/).filter(t => t.length >= 3);
@@ -255,20 +257,12 @@ Return only valid JSON matching the schema.`;
         return !!(hasNumber && hasName);
       } catch { return false; }
     };
-    realtors = realtors.map(r => {
-      const statusRaw = String(r.listing_status || '').toLowerCase().trim();
-      const statusOk = VALID_STATUS.has(statusRaw);
-      const urlOk = urlAddressMatches(r.listing_url, r.listing_address);
-      return { ...r, _status_ok: statusOk, _url_ok: urlOk };
-    });
-
-    // Drop listings that are off-market/sold, or whose source URL doesn't match this property
-    // (the rep needs a working "View Listing" link to the CORRECT property)
-    realtors = realtors.filter(r => r._status_ok && r._url_ok).map(r => {
-      delete r._status_ok;
-      delete r._url_ok;
-      return r;
-    });
+    realtors = realtors
+      .filter(r => VALID_STATUS.has(String(r.listing_status || '').toLowerCase().trim()))
+      .map(r => {
+        if (!trustedDetailMatch(r.listing_url, r.listing_address)) r.listing_url = '';
+        return r;
+      });
 
     // Prioritize highest-priced listings first (homes in the millions), then by distance.
     realtors.sort((a, b) => {

@@ -547,18 +547,23 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                             <Badge variant="outline" className="text-xs gap-1"><Tag className="w-3 h-3" />{r.price}</Badge>
                           )}
                           {(() => {
-                            // A correct property-detail URL must contain this listing's
-                            // street number (whole path token) + a street-name token.
-                            // Reject generic city-search pages / wrong-property URLs
-                            // (even from cached/saved-search data) so "View Listing"
-                            // never opens the wrong home — fall back to a search link.
-                            const urlMatchesAddress = (url, addr) => {
+                            // STRICT: "View Listing" ONLY opens a verified Zillow.com or
+                            // Realtor.com property-DETAIL page whose path matches this
+                            // listing's address. ANYTHING else (other sites, search pages,
+                            // wrong property, or stale cached links) falls back to a Google
+                            // search for the exact address. NO EXCEPTIONS.
+                            const trustedDetail = (url, addr) => {
                               try {
-                                const u = String(url || "").toLowerCase();
-                                if (!u || u.includes("not found")) return false;
-                                const searchIndicators = ["_rb", "searchquerystate", "/search", "?query=", "&query=", "/for_sale", "/for-sale", "/for_rent", "/for-rent", "/recentlysold", "/recently_sold", "/sold", "hasphoto", "mapresults", "/listings/", "/agents/", "/realtor/"];
-                                if (searchIndicators.some((s) => u.includes(s))) return false;
-                                if (u.includes("/homes/") && !u.includes("/homedetails/")) return false;
+                                const raw = String(url || "").trim();
+                                if (!raw || raw.toLowerCase().includes("not found")) return false;
+                                const u = raw.toLowerCase();
+                                const host = new URL(raw).hostname.replace(/^www\./, "");
+                                const isZillow = host === "zillow.com" || host.endsWith(".zillow.com");
+                                const isRealtor = host === "realtor.com" || host.endsWith(".realtor.com");
+                                if (!isZillow && !isRealtor) return false;
+                                const path = new URL(raw).pathname.toLowerCase();
+                                if (isZillow && !path.includes("/homedetails/")) return false;
+                                if (isRealtor && !path.includes("/realestateandhomes-detail/")) return false;
                                 const street = String(addr || "").toLowerCase().split(",")[0].trim();
                                 const number = (street.match(/\d+/) || [])[0] || "";
                                 const toks = street.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
@@ -568,12 +573,11 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                                 return !!(hasNumber && hasName);
                               } catch { return false; }
                             };
-                            const rawUrl = r.listing_url && String(r.listing_url).trim();
-                            const direct = rawUrl && /^https?:\/\//i.test(rawUrl) && urlMatchesAddress(rawUrl, r.listing_address) ? rawUrl : "";
-                            const fallback = !direct && r.listing_address
-                              ? `https://www.google.com/search?q=${encodeURIComponent(`${r.listing_address} ${r.name || ""} ${r.brokerage || ""} for sale`)}`
+                            const direct = trustedDetail(r.listing_url, r.listing_address) ? String(r.listing_url).trim() : "";
+                            const google = r.listing_address
+                              ? `https://www.google.com/search?q=${encodeURIComponent(`${r.listing_address} ${r.name || ""} ${r.brokerage || ""} for sale zillow`)}`
                               : "";
-                            const href = direct || fallback;
+                            const href = direct || google;
                             if (!href) return null;
                             return direct ? (
                               <Button
@@ -589,7 +593,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => openWebsite(fallback, idx, r.listing_address || r.name)}
+                                onClick={() => openWebsite(google, idx, r.listing_address || r.name)}
                                 className="gap-1.5 h-7 text-xs"
                                 style={{ borderColor: 'rgba(184,149,106,0.3)', color: 'rgba(26,26,26,0.6)' }}
                               >
