@@ -119,6 +119,11 @@ Only include has_professional_media if it is explicitly visible in a snippet; ot
       try {
         const u = String(url || '').toLowerCase();
         if (!u || u.includes('not found')) return false;
+        // Reject search-results / listing-LIST pages (not a specific property detail)
+        const searchIndicators = ['_rb', 'searchquerystate', '/search', '?query=', '&query=', '/for_sale', '/for-sale', '/for_rent', '/for-rent', '/recentlysold', '/recently_sold', '/sold', 'hasphoto', 'mapresults', '/listings/', '/agents/', '/realtor/'];
+        if (searchIndicators.some(s => u.includes(s))) return false;
+        // Zillow: /homes/... is search results; /homedetails/... is a property detail page
+        if (u.includes('/homes/') && !u.includes('/homedetails/')) return false;
         const street = String(addr || '').toLowerCase().split(',')[0].trim();
         const number = (street.match(/\d+/) || [])[0] || '';
         const toks = street.split(/[^a-z0-9]+/).filter(t => t.length >= 3);
