@@ -314,13 +314,20 @@ export default function RealtorListingsPage({
                           const path = new URL(raw).pathname.toLowerCase();
                           if (isZillow && !path.includes("/homedetails/")) return false;
                           if (isRealtor && !path.includes("/realestateandhomes-detail/")) return false;
-                          const street = String(addr || "").toLowerCase().split(",")[0].trim();
+                          const full = String(addr || "").toLowerCase();
+                          const street = full.split(",")[0].trim();
                           const number = (street.match(/\d+/) || [])[0] || "";
                           const toks = street.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
+                          const stateMatch = full.match(/,\s*([a-z]{2})\s+\d{5}/);
+                          const state = stateMatch ? stateMatch[1] : "";
+                          const zipMatch = full.match(/\b(\d{5})\b/);
+                          const zip = zipMatch ? zipMatch[1] : "";
                           const pathTokens = u.split(/[^a-z0-9]+/).filter(Boolean);
                           const hasNumber = number && pathTokens.includes(number);
                           const hasName = toks.length === 0 ? true : toks.some((t) => pathTokens.some((pt) => pt.includes(t)));
-                          return !!(hasNumber && hasName);
+                          const hasState = state && pathTokens.includes(state);
+                          const hasZip = zip && pathTokens.includes(zip);
+                          return !!(hasNumber && hasName && hasState && hasZip);
                         } catch { return false; }
                       };
                       const rawUrl = l.listing_url && String(l.listing_url).trim();

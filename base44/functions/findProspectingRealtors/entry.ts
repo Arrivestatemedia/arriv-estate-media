@@ -236,6 +236,11 @@ Return only valid JSON matching the schema.`;
     // (Redfin, Homes.com, brokerage site, search page, wrong property) is BLANKED — the
     // realtor stays in results but the frontend falls back to a Google search. NO EXCEPTIONS.
     const VALID_STATUS = new Set(['active', 'coming soon', 'comingsoon', 'coming-soon', 'new', 'new listing']);
+    // A trusted URL must be a Zillow/Realtor.com property-DETAIL page whose path
+    // contains THIS listing's street number + street name + STATE + ZIP. Requiring
+    // state + zip kills "unrelated address" matches (same street name in a
+    // different city). If anything is missing, the URL is blanked and the
+    // frontend falls back to a Google search for the exact full address.
     const trustedDetailMatch = (url, addr) => {
       try {
         const raw = String(url || '').trim();
@@ -248,13 +253,20 @@ Return only valid JSON matching the schema.`;
         const path = new URL(raw).pathname.toLowerCase();
         if (isZillow && !path.includes('/homedetails/')) return false;
         if (isRealtor && !path.includes('/realestateandhomes-detail/')) return false;
-        const street = String(addr || '').toLowerCase().split(',')[0].trim();
+        const full = String(addr || '').toLowerCase();
+        const street = full.split(',')[0].trim();
         const number = (street.match(/\d+/) || [])[0] || '';
         const toks = street.split(/[^a-z0-9]+/).filter(t => t.length >= 3);
+        const stateMatch = full.match(/,\s*([a-z]{2})\s+\d{5}/);
+        const state = stateMatch ? stateMatch[1] : '';
+        const zipMatch = full.match(/\b(\d{5})\b/);
+        const zip = zipMatch ? zipMatch[1] : '';
         const pathTokens = u.split(/[^a-z0-9]+/).filter(Boolean);
         const hasNumber = number && pathTokens.includes(number);
         const hasName = toks.length === 0 ? true : toks.some(t => pathTokens.some(pt => pt.includes(t)));
-        return !!(hasNumber && hasName);
+        const hasState = state && pathTokens.includes(state);
+        const hasZip = zip && pathTokens.includes(zip);
+        return !!(hasNumber && hasName && hasState && hasZip);
       } catch { return false; }
     };
     realtors = realtors
