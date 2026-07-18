@@ -231,27 +231,39 @@ Return only valid JSON matching the schema.`;
       r.social_media_links = profileLinks.filter((_, i) => linkOks[i]);
     }));
 
-    // ── Enforce Active/Coming-Soon status + verify the listing source URL resolves ──
+    // ── Enforce Active/Coming-Soon status + verify the listing source URL matches THIS property ──
     const VALID_STATUS = new Set(['active', 'coming soon', 'comingsoon', 'coming-soon', 'new', 'new listing']);
-    const listingUrlCache = new Map();
-    const checkListingUrl = async (url) => {
-      if (!url || typeof url !== 'string') return false;
-      const key = url.trim().toLowerCase();
-      if (!key || key.includes('not found')) return false;
-      if (listingUrlCache.has(key)) return listingUrlCache.get(key);
-      const ok = await isUrlReachable(url.trim());
-      listingUrlCache.set(key, ok);
-      return ok;
+    // All major portals (Zillow, Realtor.com, Redfin, Trulia, Homes.com, brokerages) embed the
+    // property's street number + street name in the URL path. A correct listing_url MUST contain
+    // this listing's street number (as a whole path token) AND at least one street-name token.
+    // This catches LLM-hallucinated links that point to a real but DIFFERENT property.
+    const urlAddressMatches = (url, addr) => {
+      try {
+        const u = String(url || '').toLowerCase();
+        if (!u || u.includes('not found')) return false;
+        const street = String(addr || '').toLowerCase().split(',')[0].trim();
+        const number = (street.match(/\d+/) || [])[0] || '';
+        const toks = street.split(/[^a-z0-9]+/).filter(t => t.length >= 3);
+        const pathTokens = u.split(/[^a-z0-9]+/).filter(Boolean);
+        const hasNumber = number && pathTokens.includes(number);
+        const hasName = toks.length === 0 ? true : toks.some(t => pathTokens.some(pt => pt.includes(t)));
+        return !!(hasNumber && hasName);
+      } catch { return false; }
     };
-    await Promise.all(realtors.map(async (r) => {
+    realtors = realtors.map(r => {
       const statusRaw = String(r.listing_status || '').toLowerCase().trim();
-      r.status_ok = VALID_STATUS.has(statusRaw);
-      r.listing_url_ok = r.listing_url ? await checkListingUrl(String(r.listing_url)) : false;
-    }));
+      const statusOk = VALID_STATUS.has(statusRaw);
+      const urlOk = urlAddressMatches(r.listing_url, r.listing_address);
+      return { ...r, _status_ok: statusOk, _url_ok: urlOk };
+    });
 
-    // Drop listings that are off-market/sold, or whose source URL is missing/broken
-    // (the rep needs a working "View Listing" link to the correct property)
-    realtors = realtors.filter(r => r.status_ok && r.listing_url_ok);
+    // Drop listings that are off-market/sold, or whose source URL doesn't match this property
+    // (the rep needs a working "View Listing" link to the CORRECT property)
+    realtors = realtors.filter(r => r._status_ok && r._url_ok).map(r => {
+      delete r._status_ok;
+      delete r._url_ok;
+      return r;
+    });
 
     // Prioritize highest-priced listings first (homes in the millions), then by distance.
     realtors.sort((a, b) => {
@@ -284,8 +296,6 @@ Return only valid JSON matching the schema.`;
     }
 
     realtors = realtors.map(r => {
-      delete r.status_ok;
-      delete r.listing_url_ok;
       const rEmail = normalizeEmail(r.email);
       const rDigits = digitsOnly(r.phone);
       let match = null;
