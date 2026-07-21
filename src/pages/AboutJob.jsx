@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
@@ -10,12 +10,16 @@ import {
   CalendarClock,
   Wallet,
   ShieldCheck,
-  MessageSquare,
   CheckCircle2,
   ArrowRight,
   MapPin,
   Clock,
   Users,
+  Star,
+  ChevronDown,
+  FileText,
+  UserCheck,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -28,30 +32,54 @@ const PROJECTS = [
   { icon: Users, label: "Floor plans & other property marketing services" },
 ];
 
-const OFFERS = [
-  { icon: CalendarClock, label: "Flexible schedule", desc: "Accept only the jobs you want" },
-  { icon: Wallet, label: "Additional income opportunities", desc: "Fill gaps in your schedule" },
-  { icon: ShieldCheck, label: "No monthly fees", desc: "Keep more of what you earn" },
-  { icon: MessageSquare, label: "Simple communication", desc: "Easy project management built in" },
+const WHY_JOIN = [
+  { icon: CalendarClock, label: "Flexible Schedule", desc: "Choose the projects you want." },
+  { icon: Wallet, label: "Additional Income", desc: "Earn extra money without replacing your existing clients." },
+  { icon: Users, label: "Grow With Us", desc: "Become part of our expanding media network." },
+  { icon: ShieldCheck, label: "No Exclusivity", desc: "Continue working with your own clients while accepting Arriv projects." },
 ];
 
-const QUALIFICATIONS = [
-  "Experience photographing residential real estate",
-  "Professional camera equipment",
-  "Reliable transportation",
-  "Strong communication skills",
-  "Ability to meet deadlines",
-  "Attention to detail",
+const STEPS = [
+  { icon: FileText, label: "Apply to join the network." },
+  { icon: ClipboardList, label: "Our team reviews your portfolio." },
+  { icon: UserCheck, label: "Get approved as an Arriv Media Specialist." },
+  { icon: MapPin, label: "Receive project opportunities in your area." },
+  { icon: CalendarClock, label: "Accept only the jobs you want." },
+  { icon: Wallet, label: "Complete the project and get paid." },
 ];
 
-const PREFERRED = [
-  "HDR Photography",
-  "Adobe Lightroom",
-  "Photoshop",
-  "Matterport",
-  "Zillow 3D Home",
-  "Real estate video editing",
-  "Drone photography",
+const FAQ = [
+  {
+    q: "Is this full-time?",
+    a: "No. This is an independent contractor role. You choose which projects to accept, so you can work as much or as little as fits your schedule.",
+  },
+  {
+    q: "Do I have to accept every project?",
+    a: "Never. You only accept the projects you want. There's no penalty for declining, and you keep full control of your calendar.",
+  },
+  {
+    q: "How do I get paid?",
+    a: "You're paid a fixed rate per completed project, based on the services requested. Payouts are issued after the project is completed and the media is delivered.",
+  },
+  {
+    q: "Can I continue working with my own clients?",
+    a: "Absolutely. There's no exclusivity. Arriv projects are meant to fill the gaps in your schedule while you keep growing your own business.",
+  },
+  {
+    q: "Do I need drone experience?",
+    a: "Drone experience is preferred but not required. You'll still receive plenty of photo and video projects without it.",
+  },
+  {
+    q: "How quickly will projects become available?",
+    a: "As we launch in Maryland, we're building out our founding network now. Approved specialists receive opportunities as projects come online in their area.",
+  },
+];
+
+const TRUST = [
+  "Independent Contractor",
+  "Flexible Schedule",
+  "No Monthly Fees",
+  "Keep Your Existing Clients",
 ];
 
 function Section({ eyebrow, title, children, id }) {
@@ -72,6 +100,33 @@ function Section({ eyebrow, title, children, id }) {
   );
 }
 
+function FaqItem({ q, a }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-4 text-left px-5 py-4"
+      >
+        <span className="text-sm sm:text-base font-semibold" style={{ color: "#1A1A1A" }}>{q}</span>
+        <ChevronDown
+          className="w-5 h-5 flex-shrink-0 transition-transform"
+          style={{ color: "#B8956A", transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+      {open && (
+        <p className="px-5 pb-5 text-sm leading-relaxed" style={{ color: "rgba(26,26,26,0.7)" }}>
+          {a}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function AboutJob() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FFFBF5", color: "#1A1A1A" }}>
@@ -81,6 +136,15 @@ export default function AboutJob() {
         style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}
       >
         <div className="max-w-5xl mx-auto">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
+            style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}
+          >
+            <Star className="w-3.5 h-3.5" style={{ color: "#B8956A" }} />
+            <span className="text-xs font-semibold tracking-wide" style={{ color: "#B8956A" }}>
+              Founding Media Specialist – Maryland Launch
+            </span>
+          </div>
           <div className="flex items-center gap-2 mb-6">
             <Camera className="w-4 h-4" style={{ color: "#B8956A" }} />
             <span className="text-xs font-semibold tracking-[0.18em] uppercase" style={{ color: "#B8956A" }}>
@@ -88,12 +152,11 @@ export default function AboutJob() {
             </span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-bold leading-tight max-w-3xl">
-            Become a Media Specialist with{" "}
-            <span style={{ color: "#B8956A" }}>Arriv Estate Media</span>
+            Get paid for additional real estate media projects on your schedule.
           </h1>
           <p className="mt-5 text-base sm:text-lg max-w-2xl" style={{ color: "rgba(255,251,245,0.78)" }}>
-            We're expanding our network of photographers and videographers as we prepare to launch in
-            <span style={{ color: "#B8956A" }}> Maryland</span>. Work as an independent contractor on your own schedule.
+            Join Arriv Estate Media's growing network of professional photographers and videographers.
+            Accept only the projects you want while continuing to grow your own business.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button
@@ -106,7 +169,7 @@ export default function AboutJob() {
               </Link>
             </Button>
             <a
-              href="#about"
+              href="#how-it-works"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
               style={{ color: "#FFFBF5", border: "1px solid rgba(184,149,106,0.4)" }}
             >
@@ -116,12 +179,59 @@ export default function AboutJob() {
         </div>
       </header>
 
+      {/* Trust badges */}
+      <div style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}>
+        <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 pb-10 -mt-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            {TRUST.map((t) => (
+              <div key={t} className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" style={{ color: "#B8956A" }} />
+                <span className="text-sm font-medium" style={{ color: "rgba(255,251,245,0.9)" }}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Goal statement — moved higher */}
+      <Section id="goal">
+        <div
+          className="rounded-2xl p-6 sm:p-8"
+          style={{ backgroundColor: "rgba(184,149,106,0.1)", border: "1px solid rgba(184,149,106,0.3)" }}
+        >
+          <p className="text-base sm:text-lg leading-relaxed" style={{ color: "#1A1A1A" }}>
+            <strong>Our goal:</strong> help fill gaps in your schedule while allowing you to continue growing
+            your own business. Consistent project opportunities as our platform grows.
+          </p>
+        </div>
+      </Section>
+
+      {/* How It Works */}
+      <Section eyebrow="How It Works" id="how-it-works">
+        <div className="grid sm:grid-cols-2 gap-4">
+          {STEPS.map(({ icon: Icon, label }, i) => (
+            <div
+              key={label}
+              className="flex items-center gap-4 rounded-2xl p-5"
+              style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}
+            >
+              <span
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm"
+                style={{ backgroundColor: "#1A1A1A", color: "#B8956A" }}
+              >
+                {i + 1}
+              </span>
+              <span className="text-sm font-medium" style={{ color: "#1A1A1A" }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       {/* About */}
       <Section eyebrow="About Arriv Estate Media" id="about">
         <p className="text-lg leading-relaxed max-w-3xl" style={{ color: "rgba(26,26,26,0.78)" }}>
-          Arriv Estate Media is building the future of real estate media management. Our platform connects
-          real estate agents, builders, and property managers with talented photographers and videographers
-          while simplifying scheduling, communication, project management, and media delivery.
+          Arriv Estate Media connects real estate agents, builders, and property managers with trusted media
+          specialists. We handle the booking and project management so you can focus on creating great content.
         </p>
         <div
           className="mt-8 rounded-2xl p-6 sm:p-8"
@@ -169,10 +279,10 @@ export default function AboutJob() {
         </p>
       </Section>
 
-      {/* What We Offer */}
-      <Section eyebrow="What We Offer" title="Built for independent professionals">
+      {/* Why Join Arriv */}
+      <Section eyebrow="Why Join Arriv?" title="Built for independent professionals">
         <div className="grid sm:grid-cols-2 gap-4">
-          {OFFERS.map(({ icon: Icon, label, desc }) => (
+          {WHY_JOIN.map(({ icon: Icon, label, desc }) => (
             <div
               key={label}
               className="rounded-2xl p-6"
@@ -189,21 +299,19 @@ export default function AboutJob() {
             </div>
           ))}
         </div>
-        <div
-          className="mt-6 rounded-2xl p-6"
-          style={{ backgroundColor: "rgba(184,149,106,0.1)", border: "1px solid rgba(184,149,106,0.3)" }}
-        >
-          <p className="text-sm leading-relaxed" style={{ color: "#1A1A1A" }}>
-            <strong>Our goal:</strong> help fill gaps in your schedule while allowing you to continue growing
-            your own business. Consistent project opportunities as our platform grows.
-          </p>
-        </div>
       </Section>
 
       {/* Qualifications + Preferred */}
       <Section eyebrow="Qualifications" title="What we're looking for">
         <div className="grid sm:grid-cols-2 gap-x-10 gap-y-3">
-          {QUALIFICATIONS.map((q) => (
+          {[
+            "Experience photographing residential real estate",
+            "Professional camera equipment",
+            "Reliable transportation",
+            "Strong communication skills",
+            "Ability to meet deadlines",
+            "Attention to detail",
+          ].map((q) => (
             <div key={q} className="flex items-start gap-2.5 py-1">
               <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: "#B8956A" }} />
               <span className="text-sm" style={{ color: "rgba(26,26,26,0.8)" }}>{q}</span>
@@ -215,7 +323,15 @@ export default function AboutJob() {
           Preferred Experience
         </h3>
         <div className="flex flex-wrap gap-2">
-          {PREFERRED.map((p) => (
+          {[
+            "HDR Photography",
+            "Adobe Lightroom",
+            "Photoshop",
+            "Matterport",
+            "Zillow 3D Home",
+            "Real estate video editing",
+            "Drone photography",
+          ].map((p) => (
             <span
               key={p}
               className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-medium"
@@ -256,12 +372,30 @@ export default function AboutJob() {
         </div>
       </Section>
 
+      {/* FAQ */}
+      <Section eyebrow="FAQ" title="Frequently asked questions">
+        <div className="space-y-3">
+          {FAQ.map((item) => (
+            <FaqItem key={item.q} q={item.q} a={item.a} />
+          ))}
+        </div>
+      </Section>
+
       {/* CTA */}
       <section style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}>
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 py-14 text-center">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
+            style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}
+          >
+            <Star className="w-3.5 h-3.5" style={{ color: "#B8956A" }} />
+            <span className="text-xs font-semibold tracking-wide" style={{ color: "#B8956A" }}>
+              Limited onboarding spots available during our Maryland launch
+            </span>
+          </div>
           <h2 className="text-2xl sm:text-3xl font-bold">Ready to join the network?</h2>
           <p className="mt-3 text-sm sm:text-base" style={{ color: "rgba(255,251,245,0.7)" }}>
-            Apply today and start accepting projects that fit your schedule.
+            We're currently onboarding our founding network of media specialists in Maryland.
           </p>
           <div className="mt-7">
             <Button
