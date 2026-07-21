@@ -22,7 +22,6 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AnimatedApertureLogo from "@/components/AnimatedApertureLogo";
 
 const PROJECTS = [
   { icon: Building2, label: "Residential real estate photography" },
@@ -136,8 +135,7 @@ export default function AboutJob() {
         className="px-5 sm:px-6 lg:px-8 pt-16 pb-14 sm:pt-20 sm:pb-20"
         style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}
       >
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-[1fr_auto] gap-12 items-center">
-          <div>
+        <div className="max-w-5xl mx-auto">
           <div
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
             style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}
@@ -177,10 +175,6 @@ export default function AboutJob() {
             >
               Learn more
             </a>
-          </div>
-          </div>
-          <div className="hidden lg:flex justify-center">
-            <AnimatedApertureLogo size={280} />
           </div>
         </div>
       </header>
