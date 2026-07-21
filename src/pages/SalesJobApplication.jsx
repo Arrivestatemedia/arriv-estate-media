@@ -110,7 +110,8 @@ export default function SalesJobApplication() {
         eEOCagreed: formData.eEOCagreed,
         signature: formData.signature,
         videoUrls: [],
-        pictureUrls: []
+        pictureUrls: [],
+        position: 'Sales Growth Advisor'
       };
 
       const response = await base44.functions.invoke('uploadJobApplicationFiles', payload);

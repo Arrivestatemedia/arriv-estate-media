@@ -24,8 +24,11 @@ Deno.serve(async (req) => {
       videoUrls = [],
       pictureUrls = [],
       resumeUrl,
-      resumeFileName
+      resumeFileName,
+      position
     } = body;
+
+    const positionLabel = position || 'Media Specialist';
 
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
@@ -70,7 +73,7 @@ Deno.serve(async (req) => {
     }
 
     // Create a text file with application information instead of a Google Doc
-    const content = `Arriv Estate Media LLC - Media Partner Application
+    const content = `Arriv Estate Media LLC - ${positionLabel} Application
 
 --- APPLICATION DETAILS ---
 
@@ -111,7 +114,7 @@ Signature: ${signature}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: `Job Application - ${fullName}.txt`,
+        name: `Job Application - ${positionLabel} - ${fullName}.txt`,
         mimeType: 'text/plain',
         parents: [folderId],
       }),
@@ -225,7 +228,7 @@ Signature: ${signature}
       const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
       if (adminPhone && twilioPhone && accountSid && authToken) {
-        const smsBody = `New media specialist application received: ${fullName} (${email}). Review it in the Arriv dashboard.`;
+        const smsBody = `New ${positionLabel} application received: ${fullName} (${email}). Review it in the Arriv dashboard.`;
         await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
           method: 'POST',
           headers: {
