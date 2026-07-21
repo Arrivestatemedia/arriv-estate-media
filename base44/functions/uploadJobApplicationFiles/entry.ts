@@ -166,6 +166,27 @@ Signature: ${signature}
       picture_samples: pictureUrls,
     });
 
+    // Notify admin by text about the new application
+    try {
+      const adminPhone = Deno.env.get('ADMIN_PHONE');
+      const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+      const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      if (adminPhone && twilioPhone && accountSid && authToken) {
+        const smsBody = `New media specialist application received: ${fullName} (${email}). Review it in the Arriv dashboard.`;
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({ From: twilioPhone, To: adminPhone, Body: smsBody }).toString(),
+        });
+      }
+    } catch (smsError) {
+      console.error('Failed to send admin SMS notification:', smsError.message);
+    }
+
     return Response.json({ 
       success: true, 
       applicationId: application.id,
