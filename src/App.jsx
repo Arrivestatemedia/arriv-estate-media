@@ -6,6 +6,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import AboutJob from './pages/AboutJob';
+import AboutSalesJob from './pages/AboutSalesJob';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -64,6 +65,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="MediaSpecialist">
             <AboutJob />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/SalesGrowthAdvisor"
+        element={
+          <LayoutWrapper currentPageName="SalesGrowthAdvisor">
+            <AboutSalesJob />
           </LayoutWrapper>
         }
       />
