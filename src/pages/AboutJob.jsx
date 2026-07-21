@@ -43,7 +43,7 @@ const STEPS = [
   { icon: FileText, label: "Apply to join the network." },
   { icon: ClipboardList, label: "Our team reviews your portfolio." },
   { icon: UserCheck, label: "Get approved as an Arriv Media Specialist." },
-  { icon: MapPin, label: "Receive project opportunities in your area." },
+  { icon: MapPin, label: "Receive project requests from real estate professionals in your area." },
   { icon: CalendarClock, label: "Accept only the jobs you want." },
   { icon: Wallet, label: "Complete the project and get paid." },
 ];
@@ -355,9 +355,9 @@ export default function AboutJob() {
           </div>
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
             <Wallet className="w-5 h-5 mb-3" style={{ color: "#B8956A" }} />
-            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>Competitive Compensation</h3>
+            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>Get Paid Per Project</h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-              Per-project payouts based on the services requested.
+              Transparent per-project payouts based on the services requested.
             </p>
           </div>
         </div>
