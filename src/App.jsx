@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import AboutJob from './pages/AboutJob';
 import AboutSalesJob from './pages/AboutSalesJob';
+import SalesJobApplication from './pages/SalesJobApplication';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -73,6 +74,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="SalesGrowthAdvisor">
             <AboutSalesJob />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/SalesJobApplication"
+        element={
+          <LayoutWrapper currentPageName="SalesJobApplication">
+            <SalesJobApplication />
           </LayoutWrapper>
         }
       />

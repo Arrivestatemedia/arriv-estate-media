@@ -199,7 +199,7 @@ export default function AboutSalesJob() {
               className="rounded-lg font-semibold"
               style={{ backgroundColor: "#B8956A", color: "#1A1A1A" }}
             >
-              <Link to={createPageUrl("JobApplication")}>
+              <Link to={createPageUrl("SalesJobApplication")}>
                 Apply Now <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>
@@ -420,7 +420,7 @@ export default function AboutSalesJob() {
               className="rounded-lg font-semibold"
               style={{ backgroundColor: "#B8956A", color: "#1A1A1A" }}
             >
-              <Link to={createPageUrl("JobApplication")}>
+              <Link to={createPageUrl("SalesJobApplication")}>
                 Apply Now <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>
