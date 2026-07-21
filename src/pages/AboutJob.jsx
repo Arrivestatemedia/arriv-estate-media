@@ -43,7 +43,7 @@ const STEPS = [
   { icon: FileText, label: "Apply to join the network." },
   { icon: ClipboardList, label: "Our team reviews your portfolio." },
   { icon: UserCheck, label: "Get approved as an Arriv Media Specialist." },
-  { icon: MapPin, label: "Receive project requests from real estate professionals in your area." },
+  { icon: MapPin, label: "Receive project opportunities in your area." },
   { icon: CalendarClock, label: "Accept only the jobs you want." },
   { icon: Wallet, label: "Complete the project and get paid." },
 ];
@@ -152,11 +152,11 @@ export default function AboutJob() {
             </span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-bold leading-tight max-w-3xl">
-            Grow your real estate photography business with{" "}
-            <span style={{ color: "#B8956A" }}>Arriv Estate Media</span>.
+            Get paid for additional real estate media projects on your schedule.
           </h1>
           <p className="mt-5 text-base sm:text-lg max-w-2xl" style={{ color: "rgba(255,251,245,0.78)" }}>
-            Accept the projects you want, earn additional income, and let Arriv handle the client experience.
+            Join Arriv Estate Media's growing network of professional photographers and videographers.
+            Accept only the projects you want while continuing to grow your own business.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button
@@ -355,9 +355,9 @@ export default function AboutJob() {
           </div>
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
             <Wallet className="w-5 h-5 mb-3" style={{ color: "#B8956A" }} />
-            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>Get Paid Per Project</h3>
+            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>Competitive Compensation</h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-              Transparent per-project payouts based on the services requested.
+              Per-project payouts based on the services requested.
             </p>
           </div>
         </div>
