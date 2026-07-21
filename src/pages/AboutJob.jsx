@@ -35,7 +35,7 @@ const PROJECTS = [
 const WHY_JOIN = [
   { icon: CalendarClock, label: "Flexible Schedule", desc: "Choose the projects you want." },
   { icon: Wallet, label: "Additional Income", desc: "Earn extra money without replacing your existing clients." },
-  { icon: Users, label: "Grow With Us", desc: "Become part of our expanding media network." },
+  { icon: Users, label: "Grow With Us", desc: "Become part of Arriv's trusted network of media specialists as we expand into new markets." },
   { icon: ShieldCheck, label: "No Exclusivity", desc: "Continue working with your own clients while accepting Arriv projects." },
 ];
 
