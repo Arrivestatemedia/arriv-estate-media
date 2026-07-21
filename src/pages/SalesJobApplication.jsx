@@ -24,13 +24,15 @@ export default function SalesJobApplication() {
     signature: '',
   });
   const [resumeFile, setResumeFile] = useState(null);
+  const [resumeUrl, setResumeUrl] = useState('');
+  const [extracting, setExtracting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10MB
 
-  const handleResumeUpload = (e) => {
+  const handleResumeUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_RESUME_SIZE) {
@@ -39,6 +41,43 @@ export default function SalesJobApplication() {
     }
     setError('');
     setResumeFile(file);
+    setExtracting(true);
+    try {
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const url = uploadRes.file_url;
+      setResumeUrl(url);
+
+      const extractRes = await base44.integrations.Core.ExtractDataFromUploadedFile({
+        file_url: url,
+        json_schema: {
+          type: "object",
+          properties: {
+            fullName: { type: "string" },
+            email: { type: "string" },
+            phone: { type: "string" },
+            address: { type: "string" },
+            linkedin: { type: "string" },
+            lastRelatedJob: { type: "string" },
+          }
+        }
+      });
+
+      const raw = extractRes.output;
+      const out = Array.isArray(raw) ? (raw[0] || {}) : (raw || {});
+      setFormData(prev => ({
+        ...prev,
+        fullName: out.fullName || prev.fullName,
+        email: out.email || prev.email,
+        phone: out.phone || prev.phone,
+        address: out.address || prev.address,
+        linkedin: out.linkedin || prev.linkedin,
+        lastRelatedJob: out.lastRelatedJob || prev.lastRelatedJob,
+      }));
+    } catch (err) {
+      setError('Could not read your resume — please fill in the fields manually.');
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -52,12 +91,6 @@ export default function SalesJobApplication() {
     setError('');
 
     try {
-      let resumeUrl = '';
-      if (resumeFile) {
-        const uploadRes = await base44.integrations.Core.UploadFile({ file: resumeFile });
-        resumeUrl = uploadRes.file_url;
-      }
-
       const payload = {
         fullName: formData.fullName,
         email: formData.email,
@@ -83,6 +116,7 @@ export default function SalesJobApplication() {
         setSubmitted(true);
         setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, ssnDisclosureAgreed: false, eEOCagreed: false, signature: '' });
         setResumeFile(null);
+        setResumeUrl('');
       }
     } catch (err) {
       setError(err.message || 'Failed to submit application');
@@ -119,6 +153,32 @@ export default function SalesJobApplication() {
               <p className="text-sm text-yellow-800">
                 <strong>Important Notice:</strong> This application is not a contract of employment. Submission of this application does not guarantee a position or establishment of an employment relationship. You are applying to work as an independent contractor.
               </p>
+            </div>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Resume *</label>
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-slate-400 transition-colors">
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={handleResumeUpload}
+                  className="hidden"
+                  id="resume-input"
+                />
+                <label htmlFor="resume-input" className="cursor-pointer block">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                  <p className="text-sm text-slate-700 font-medium">Click to upload your resume</p>
+                  <p className="text-xs text-slate-500">PDF, DOC, DOCX (max 10MB) — we'll try to pre-fill the form for you</p>
+                </label>
+              </div>
+              {extracting && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Reading your resume and pre-filling...
+                </div>
+              )}
+              {resumeFile && !extracting && (
+                <p className="mt-2 text-xs text-slate-600">✓ {resumeFile.name}</p>
+              )}
             </div>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Information */}
@@ -194,27 +254,6 @@ export default function SalesJobApplication() {
                     required
                     placeholder="https://linkedin.com/in/yourprofile"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Resume *</label>
-                  <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-slate-400 transition-colors">
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx,.txt"
-                      onChange={handleResumeUpload}
-                      className="hidden"
-                      id="resume-input"
-                    />
-                    <label htmlFor="resume-input" className="cursor-pointer block">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm text-slate-700 font-medium">Click to upload your resume</p>
-                      <p className="text-xs text-slate-500">PDF, DOC, DOCX (max 10MB)</p>
-                    </label>
-                  </div>
-                  {resumeFile && (
-                    <p className="mt-2 text-xs text-slate-600">✓ {resumeFile.name}</p>
-                  )}
                 </div>
 
                 <div>
