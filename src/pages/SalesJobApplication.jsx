@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function SalesJobApplication() {
   const [formData, setFormData] = useState({
@@ -23,9 +23,23 @@ export default function SalesJobApplication() {
     eEOCagreed: false,
     signature: '',
   });
+  const [resumeFile, setResumeFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+  const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10MB
+
+  const handleResumeUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_RESUME_SIZE) {
+      setError(`Resume "${file.name}" is too large (max 10MB)`);
+      return;
+    }
+    setError('');
+    setResumeFile(file);
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -38,6 +52,12 @@ export default function SalesJobApplication() {
     setError('');
 
     try {
+      let resumeUrl = '';
+      if (resumeFile) {
+        const uploadRes = await base44.integrations.Core.UploadFile({ file: resumeFile });
+        resumeUrl = uploadRes.file_url;
+      }
+
       const payload = {
         fullName: formData.fullName,
         email: formData.email,
@@ -46,7 +66,7 @@ export default function SalesJobApplication() {
         dob: formData.dob,
         ssn: formData.ssn,
         linkedin: formData.linkedin,
-        portfolioLink: formData.portfolioLink,
+        portfolioLink: resumeUrl,
         lastRelatedJob: formData.lastRelatedJob,
         whyGoodFit: formData.whyGoodFit,
         race: formData.race || '',
@@ -62,6 +82,7 @@ export default function SalesJobApplication() {
       if (response.data.success) {
         setSubmitted(true);
         setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, ssnDisclosureAgreed: false, eEOCagreed: false, signature: '' });
+        setResumeFile(null);
       }
     } catch (err) {
       setError(err.message || 'Failed to submit application');
@@ -176,15 +197,24 @@ export default function SalesJobApplication() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Resume Link *</label>
-                  <Input
-                    type="url"
-                    name="portfolioLink"
-                    value={formData.portfolioLink}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="https://your-resume-link.com (Google Drive, Dropbox, or website)"
-                  />
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Resume *</label>
+                  <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-slate-400 transition-colors">
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={handleResumeUpload}
+                      className="hidden"
+                      id="resume-input"
+                    />
+                    <label htmlFor="resume-input" className="cursor-pointer block">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                      <p className="text-sm text-slate-700 font-medium">Click to upload your resume</p>
+                      <p className="text-xs text-slate-500">PDF, DOC, DOCX (max 10MB)</p>
+                    </label>
+                  </div>
+                  {resumeFile && (
+                    <p className="mt-2 text-xs text-slate-600">✓ {resumeFile.name}</p>
+                  )}
                 </div>
 
                 <div>
@@ -314,7 +344,7 @@ export default function SalesJobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed || !formData.ssnDisclosureAgreed || !formData.eEOCagreed || !formData.signature}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !resumeFile || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed || !formData.ssnDisclosureAgreed || !formData.eEOCagreed || !formData.signature}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
