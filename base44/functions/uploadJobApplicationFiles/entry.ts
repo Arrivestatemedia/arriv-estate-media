@@ -11,14 +11,11 @@ Deno.serve(async (req) => {
       phone, 
       address, 
       dob, 
-      ssn, 
       linkedin, 
       portfolioLink, 
       lastRelatedJob, 
       whyGoodFit, 
       race,
-      backgroundCheckAgreed,
-      ssnDisclosureAgreed,
       eEOCagreed,
       signature,
       videoUrls = [],
@@ -82,7 +79,6 @@ Email: ${email}
 Phone: ${phone}
 Address: ${address}
 Date of Birth: ${dob}
-SSN (Last 4): ${ssn.slice(-4)}
 LinkedIn: ${linkedin}
 Portfolio: ${portfolioLink}
 
@@ -100,8 +96,6 @@ ${lastRelatedJob}
 ${whyGoodFit}
 
 --- AGREEMENTS ---
-Background Check Agreed: ${backgroundCheckAgreed}
-SSN Disclosure Agreed: ${ssnDisclosureAgreed}
 EEOC Agreement: ${eEOCagreed}
 Signature: ${signature}
 `;
@@ -207,14 +201,11 @@ Signature: ${signature}
       phone,
       address,
       dob,
-      ssn: ssn,
       linkedin,
       portfolio_link: portfolioLink,
       last_related_job: lastRelatedJob,
       why_good_fit: whyGoodFit,
       race: race || '',
-      background_check_agreed: backgroundCheckAgreed,
-      ssn_disclosure_agreed: ssnDisclosureAgreed,
       eeoc_agreed: eEOCagreed,
       signature,
       video_samples: videoUrls,

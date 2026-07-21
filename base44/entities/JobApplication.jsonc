@@ -23,10 +23,6 @@
       "format": "date",
       "description": "Applicant's date of birth"
     },
-    "ssn": {
-      "type": "string",
-      "description": "Last 4 digits of SSN (encrypted)"
-    },
     "linkedin": {
       "type": "string",
       "description": "LinkedIn profile URL"
@@ -56,16 +52,6 @@
         "prefer_not_to_answer"
       ],
       "description": "Applicant's race/ethnicity (EEOC)"
-    },
-    "background_check_agreed": {
-      "type": "boolean",
-      "description": "Applicant agrees to background check",
-      "default": false
-    },
-    "ssn_disclosure_agreed": {
-      "type": "boolean",
-      "description": "Applicant acknowledges SSN disclosure notice",
-      "default": false
     },
     "eeoc_agreed": {
       "type": "boolean",
@@ -108,13 +94,10 @@
     "phone",
     "address",
     "dob",
-    "ssn",
     "linkedin",
     "portfolio_link",
     "last_related_job",
     "why_good_fit",
-    "background_check_agreed",
-    "ssn_disclosure_agreed",
     "eeoc_agreed",
     "signature"
   ]

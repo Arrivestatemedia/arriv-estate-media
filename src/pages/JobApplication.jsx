@@ -12,14 +12,11 @@ export default function JobApplication() {
     phone: '',
     address: '',
     dob: '',
-    ssn: '',
     linkedin: '',
     portfolioLink: '',
     lastRelatedJob: '',
     whyGoodFit: '',
     race: '',
-    backgroundCheckAgreed: false,
-    ssnDisclosureAgreed: false,
     eEOCagreed: false,
     signature: '',
   });
@@ -76,14 +73,11 @@ export default function JobApplication() {
           phone: formData.phone,
           address: formData.address,
           dob: formData.dob,
-          ssn: formData.ssn,
           linkedin: formData.linkedin,
           portfolioLink: formData.portfolioLink,
           lastRelatedJob: formData.lastRelatedJob,
           whyGoodFit: formData.whyGoodFit,
           race: formData.race || '',
-          backgroundCheckAgreed: formData.backgroundCheckAgreed,
-          ssnDisclosureAgreed: formData.ssnDisclosureAgreed,
           eEOCagreed: formData.eEOCagreed,
           signature: formData.signature,
           videoUrls: [],
@@ -93,7 +87,7 @@ export default function JobApplication() {
         const response = await base44.functions.invoke('uploadJobApplicationFiles', payload);
         if (response.data.success) {
           setSubmitted(true);
-          setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, ssnDisclosureAgreed: false, eEOCagreed: false, signature: '' });
+          setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', eEOCagreed: false, signature: '' });
           setVideoFiles([]);
           setPictureFiles([]);
         }
@@ -116,14 +110,11 @@ export default function JobApplication() {
         phone: formData.phone,
         address: formData.address,
         dob: formData.dob,
-        ssn: formData.ssn,
         linkedin: formData.linkedin,
         portfolioLink: formData.portfolioLink,
         lastRelatedJob: formData.lastRelatedJob,
         whyGoodFit: formData.whyGoodFit,
         race: formData.race || '',
-        backgroundCheckAgreed: formData.backgroundCheckAgreed,
-        ssnDisclosureAgreed: formData.ssnDisclosureAgreed,
         eEOCagreed: formData.eEOCagreed,
         signature: formData.signature,
         videoUrls,
@@ -133,7 +124,7 @@ export default function JobApplication() {
       const response = await base44.functions.invoke('uploadJobApplicationFiles', payload);
       if (response.data.success) {
         setSubmitted(true);
-        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', ssn: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', backgroundCheckAgreed: false, ssnDisclosureAgreed: false, eEOCagreed: false, signature: '' });
+        setFormData({ fullName: '', email: '', phone: '', address: '', dob: '', linkedin: '', portfolioLink: '', lastRelatedJob: '', whyGoodFit: '', race: '', eEOCagreed: false, signature: '' });
         setVideoFiles([]);
         setPictureFiles([]);
       }
@@ -165,7 +156,7 @@ export default function JobApplication() {
         <Card>
           <CardHeader>
             <CardTitle>Arriv Estate Media LLC Media Partner Application</CardTitle>
-            <CardDescription>Submit your application with your SSN and portfolio samples</CardDescription>
+            <CardDescription>Submit your application and portfolio samples</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
@@ -306,34 +297,6 @@ export default function JobApplication() {
                   </select>
                 </div>
 
-                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <input
-                    type="checkbox"
-                    name="backgroundCheckAgreed"
-                    checked={formData.backgroundCheckAgreed}
-                    onChange={handleInputChange}
-                    className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                    id="bgCheck"
-                  />
-                  <label htmlFor="bgCheck" className="text-xs text-slate-700 leading-relaxed">
-                    I hereby authorize Arriv Estate Media LLC and its designees to conduct a comprehensive background check, including but not limited to criminal history, employment verification, and financial history. I understand that any misrepresentation or omission of material facts may result in immediate termination of this application or any resulting employment. I acknowledge that this authorization is valid for one year from the date hereof.
-                  </label>
-                </div>
-
-                <div className="flex items-start gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <input
-                    type="checkbox"
-                    name="ssnDisclosureAgreed"
-                    checked={formData.ssnDisclosureAgreed}
-                    onChange={handleInputChange}
-                    className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                    id="ssnDisclosure"
-                  />
-                  <label htmlFor="ssnDisclosure" className="text-xs text-slate-700 leading-relaxed">
-                    <strong>Independent Contractor Background Check & SSN Disclosure:</strong> The Social Security number requested is collected solely for the purpose of conducting a background check in connection with consideration for engagement as an independent contractor. Providing your Social Security number is voluntary; however, failure to provide it may prevent completion of the background screening process and affect eligibility for engagement. This information will not be used for employment purposes and does not create an employer-employee relationship. All personal information will be maintained securely and accessed only by authorized personnel or third-party background screening providers with a legitimate business need. By submitting this information, you acknowledge and consent to the collection, use, and limited disclosure of your Social Security number as described above.
-                  </label>
-                </div>
-
                 <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <input
                     type="checkbox"
@@ -348,19 +311,6 @@ export default function JobApplication() {
                   </label>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Social Security Number (Full) *</label>
-                  <Input
-                    type="password"
-                    name="ssn"
-                    value={formData.ssn}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="XXX-XX-XXXX"
-                    maxLength="11"
-                  />
-
-                </div>
               </div>
 
               {/* File Uploads */}
@@ -446,7 +396,7 @@ export default function JobApplication() {
 
               <Button
                 type="submit"
-                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.ssn || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.backgroundCheckAgreed || !formData.ssnDisclosureAgreed || !formData.eEOCagreed || !formData.signature}
+                disabled={loading || !formData.fullName || !formData.email || !formData.phone || !formData.address || !formData.dob || !formData.linkedin || !formData.portfolioLink || !formData.lastRelatedJob || !formData.whyGoodFit || !formData.eEOCagreed || !formData.signature}
                 className="w-full bg-slate-900 hover:bg-slate-800"
               >
                 {loading ? (
