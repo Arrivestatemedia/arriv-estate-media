@@ -22,7 +22,9 @@ Deno.serve(async (req) => {
       eEOCagreed,
       signature,
       videoUrls = [],
-      pictureUrls = []
+      pictureUrls = [],
+      resumeUrl,
+      resumeFileName
     } = body;
 
     // Get Google Drive access token
@@ -145,6 +147,56 @@ Signature: ${signature}
       return Response.json({ error: 'Failed to create application file' }, { status: 500 });
     }
 
+    // Upload resume file into the same folder (if provided)
+    let resumeFileId;
+    let resumeFileLink;
+    if (resumeUrl) {
+      try {
+        const resumeRes = await fetch(resumeUrl);
+        if (resumeRes.ok) {
+          const resumeBytes = new Uint8Array(await resumeRes.arrayBuffer());
+          const resumeName = resumeFileName || `Resume - ${fullName}`;
+          const ext = resumeName.toLowerCase().split('.').pop() || '';
+          let mt = 'application/octet-stream';
+          if (ext === 'pdf') mt = 'application/pdf';
+          else if (ext === 'doc') mt = 'application/msword';
+          else if (ext === 'docx') mt = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          else if (ext === 'txt') mt = 'text/plain';
+          const metadata = JSON.stringify({ name: resumeName, parents: [folderId] });
+          const boundary = 'arriv_boundary_' + Math.random().toString(36).slice(2);
+          const pre = new TextEncoder().encode(
+            `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: ${mt}\r\n\r\n`
+          );
+          const post = new TextEncoder().encode(`\r\n--${boundary}--\r\n`);
+          const merged = new Uint8Array(pre.length + resumeBytes.length + post.length);
+          merged.set(pre, 0);
+          merged.set(resumeBytes, pre.length);
+          merged.set(post, pre.length + resumeBytes.length);
+          const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': `multipart/related; boundary=${boundary}`,
+            },
+            body: merged,
+          });
+          if (uploadRes.ok) {
+            const upData = await uploadRes.json();
+            resumeFileId = upData.id;
+            resumeFileLink = upData.webViewLink;
+            console.log('Resume uploaded to folder:', resumeFileId);
+          } else {
+            const err = await uploadRes.text();
+            console.error('Failed to upload resume:', err);
+          }
+        } else {
+          console.error('Failed to fetch resume file:', resumeRes.status);
+        }
+      } catch (resumeErr) {
+        console.error('Failed to fetch/upload resume:', resumeErr.message);
+      }
+    }
+
     // Create job application record
     const application = await base44.entities.JobApplication.create({
       full_name: fullName,
@@ -191,7 +243,9 @@ Signature: ${signature}
       success: true, 
       applicationId: application.id,
       fileId: fileId,
-      fileLink: fileLink
+      fileLink: fileLink,
+      resumeFileId: resumeFileId,
+      resumeFileLink: resumeFileLink
     });
   } catch (error) {
     console.error('Upload error:', error);

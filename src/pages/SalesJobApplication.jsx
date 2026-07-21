@@ -100,6 +100,8 @@ export default function SalesJobApplication() {
         ssn: formData.ssn,
         linkedin: formData.linkedin,
         portfolioLink: resumeUrl,
+        resumeUrl: resumeUrl,
+        resumeFileName: resumeFile?.name || '',
         lastRelatedJob: formData.lastRelatedJob,
         whyGoodFit: formData.whyGoodFit,
         race: formData.race || '',
