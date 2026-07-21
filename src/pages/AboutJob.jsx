@@ -282,22 +282,34 @@ export default function AboutJob() {
       {/* Why Join Arriv */}
       <Section eyebrow="Why Join Arriv?" title="Built for independent professionals">
         <div className="grid sm:grid-cols-2 gap-4">
-          {WHY_JOIN.map(({ icon: Icon, label, desc }) => (
-            <div
-              key={label}
-              className="rounded-2xl p-6"
-              style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}
-            >
-              <span
-                className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                style={{ backgroundColor: "#1A1A1A" }}
+          {WHY_JOIN.map(({ icon: Icon, label, desc }) => {
+            const isGrow = label === "Grow With Us";
+            const Card = (
+              <div
+                className="rounded-2xl p-6 h-full transition-transform"
+                style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}
               >
-                <Icon className="w-5 h-5" style={{ color: "#B8956A" }} />
-              </span>
-              <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>{label}</h3>
-              <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>{desc}</p>
-            </div>
-          ))}
+                <span
+                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+                  style={{ backgroundColor: "#1A1A1A" }}
+                >
+                  <Icon className="w-5 h-5" style={{ color: "#B8956A" }} />
+                </span>
+                <h3 className="font-semibold flex items-center gap-1.5" style={{ color: "#1A1A1A" }}>
+                  {label}
+                  {isGrow && <ArrowRight className="w-4 h-4" style={{ color: "#B8956A" }} />}
+                </h3>
+                <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>{desc}</p>
+              </div>
+            );
+            return isGrow ? (
+              <Link key={label} to={createPageUrl("JobApplication")} className="block hover:-translate-y-0.5">
+                {Card}
+              </Link>
+            ) : (
+              <div key={label}>{Card}</div>
+            );
+          })}
         </div>
       </Section>
 
