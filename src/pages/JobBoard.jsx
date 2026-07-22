@@ -62,7 +62,7 @@ export default function JobBoard() {
   });
 
   const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ["jobs", filter, user?.email, userEmail, user?.state],
+    queryKey: ["jobs", filter, user?.email, userEmail, user?.state, user?.coverage_lat, user?.max_travel_distance],
     queryFn: async () => {
       if (filter === "booked") {
         const email = user?.email || userEmail;
@@ -90,6 +90,94 @@ export default function JobBoard() {
     },
     enabled: filter !== "booked" || !!user?.email || !!userEmail,
   });
+
+  const [jobDistances, setJobDistances] = useState({});
+  const [filteringByDistance, setFilteringByDistance] = useState(false);
+  const geocodeCache = useRef({});
+
+  const coverageLat = user?.coverage_lat;
+  const coverageLng = user?.coverage_lng;
+  const maxDistance = user?.max_travel_distance;
+  const hasCoverage =
+    coverageLat != null && coverageLng != null && maxDistance != null;
+
+  const waitForGoogle = () =>
+    new Promise((resolve) => {
+      if (window.google?.maps?.Geocoder) return resolve(true);
+      let tries = 0;
+      const iv = setInterval(() => {
+        if (window.google?.maps?.Geocoder || tries > 25) {
+          clearInterval(iv);
+          resolve(!!window.google?.maps?.Geocoder);
+        }
+        tries++;
+      }, 200);
+    });
+
+  const geocodeAddress = async (address) => {
+    const ok = await waitForGoogle();
+    if (!ok) return null;
+    return new Promise((resolve) => {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === "OK" && results && results[0]) {
+          const loc = results[0].geometry.location;
+          resolve({ lat: loc.lat(), lng: loc.lng() });
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  };
+
+  const haversineMiles = (lat1, lng1, lat2, lng2) => {
+    const toRad = (d) => (d * Math.PI) / 180;
+    const R = 3958.8;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  };
+
+  useEffect(() => {
+    if (!hasCoverage) {
+      setJobDistances({});
+      setFilteringByDistance(false);
+      return;
+    }
+    let cancelled = false;
+    setFilteringByDistance(true);
+    (async () => {
+      const coordsByLocation = {};
+      const uniqueLocations = [
+        ...new Set(jobs.map((j) => j.location).filter(Boolean)),
+      ];
+      for (const loc of uniqueLocations) {
+        if (geocodeCache.current[loc]) {
+          coordsByLocation[loc] = geocodeCache.current[loc];
+          continue;
+        }
+        const coords = await geocodeAddress(loc);
+        geocodeCache.current[loc] = coords;
+        coordsByLocation[loc] = coords;
+      }
+      if (cancelled) return;
+      const distMap = {};
+      for (const job of jobs) {
+        const coords = job.location ? coordsByLocation[job.location] : null;
+        distMap[job.id] = coords
+          ? haversineMiles(coverageLat, coverageLng, coords.lat, coords.lng)
+          : null;
+      }
+      setJobDistances(distMap);
+      setFilteringByDistance(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [jobs, hasCoverage, coverageLat, coverageLng]);
 
   useEffect(() => {
     const unsubscribe = base44.entities.Job.subscribe((event) => {
@@ -300,6 +388,11 @@ export default function JobBoard() {
        job.location?.toLowerCase().includes(search) ||
        job.description?.toLowerCase().includes(search)
      );
+   })
+   .filter((job) => {
+     if (!hasCoverage) return true;
+     const d = jobDistances[job.id];
+     return d != null && d <= maxDistance;
    });
 
   return (
@@ -369,7 +462,13 @@ export default function JobBoard() {
             <CardContent className="text-center py-12">
               <Briefcase className="w-12 h-12 mx-auto mb-4 text-[#B8956A]/40" />
               <p className="text-[#1A1A1A]/60">
-                {searchQuery ? "No jobs match your search." : "No jobs available at the moment."}
+                {filteringByDistance
+                  ? "Filtering gigs by your coverage area..."
+                  : searchQuery
+                  ? "No jobs match your search."
+                  : hasCoverage
+                  ? "No gigs available within your coverage area. Try increasing your travel distance in your dashboard."
+                  : "No jobs available at the moment."}
               </p>
             </CardContent>
           </Card>

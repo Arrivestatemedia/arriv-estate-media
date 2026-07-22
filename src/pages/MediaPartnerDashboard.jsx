@@ -10,6 +10,7 @@ import PayoutHistoryList from "../components/mediapartner/PayoutHistoryList";
 import BookedJobsList from "../components/mediapartner/BookedJobsList";
 import EarningsBreakdown from "../components/mediapartner/EarningsBreakdown";
 import PackageInfoDropdown from "../components/mediapartner/PackageInfoDropdown";
+import CoverageAreaSettings from "../components/mediapartner/CoverageAreaSettings";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 
 export default function MediaPartnerDashboard() {
@@ -174,6 +175,9 @@ export default function MediaPartnerDashboard() {
               </CardContent>
             </Card>
           </div>
+
+        {/* Coverage Area Settings */}
+        <CoverageAreaSettings />
 
         {/* Package Info */}
         <PackageInfoDropdown />
