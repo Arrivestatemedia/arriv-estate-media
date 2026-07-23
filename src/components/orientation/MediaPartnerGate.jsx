@@ -27,6 +27,19 @@ export default function MediaPartnerGate({ children }) {
           return;
         }
 
+        // If returning from a Stripe purchase, record it (does not gate access)
+        const urlParams = new URLSearchParams(window.location.search);
+        const isPaymentSuccess = urlParams.get('payment_success') === 'true';
+        const paymentIntentId = urlParams.get('payment_intent');
+        if (isPaymentSuccess && paymentIntentId) {
+          try {
+            await base44.functions.invoke('confirmPaymentAndMarkComplete', { email, paymentIntentId });
+          } catch (err) {
+            console.error('Error confirming payment:', err);
+          }
+          window.history.replaceState({}, document.title, createPageUrl('MediaPartnerDashboard'));
+        }
+
         const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
         const orientationCompleted = checkResponse?.data?.orientationCompleted || false;
 
