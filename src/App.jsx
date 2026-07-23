@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import AboutJob from './pages/AboutJob';
 import AboutSalesJob from './pages/AboutSalesJob';
 import SalesJobApplication from './pages/SalesJobApplication';
+import PurchaseApparel from './pages/PurchaseApparel';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -82,6 +83,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="SalesJobApplication">
             <SalesJobApplication />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/PurchaseApparel"
+        element={
+          <LayoutWrapper currentPageName="PurchaseApparel">
+            <PurchaseApparel />
           </LayoutWrapper>
         }
       />

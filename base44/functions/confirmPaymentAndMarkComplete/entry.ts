@@ -50,8 +50,10 @@ Deno.serve(async (req) => {
         }
 
         const paidAt = new Date().toISOString();
+        const apparelSelected = !!(record.shirtFit && record.shirtSize && record.jacketSize);
         await base44.asServiceRole.entities[entity].update(record.id, {
-            onboardingFeePaid: true
+            onboardingFeePaid: true,
+            apparelPurchased: apparelSelected
         });
 
         // Generate a PDF receipt and email/SMS it to the partner

@@ -54,6 +54,11 @@
       "default": false,
       "description": "Whether media partner paid onboarding fee"
     },
+    "apparelPurchased": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the media partner purchased the shirt & jacket"
+    },
     "shirtFit": {
       "type": "string",
       "description": "Shirt fit preference (MEN or WOMEN)"

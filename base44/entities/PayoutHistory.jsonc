@@ -39,6 +39,15 @@
       ],
       "default": "pending",
       "description": "Status of payout"
+    },
+    "payout_type": {
+      "type": "string",
+      "enum": [
+        "payout",
+        "apparel_deduction"
+      ],
+      "default": "payout",
+      "description": "Type of payout entry (regular payout or apparel purchase deduction)"
     }
   },
   "required": [

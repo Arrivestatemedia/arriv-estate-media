@@ -53,6 +53,11 @@
       "format": "date-time",
       "description": "Onboarding fee payment timestamp"
     },
+    "apparelPurchased": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the media partner purchased the shirt & jacket"
+    },
     "stripeCustomerId": {
       "type": "string",
       "description": "Stripe customer ID"

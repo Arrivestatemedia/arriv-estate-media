@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { userId, pendingSignupId, userEmail, receiptUrl } = await req.json();
+    const { userId, pendingSignupId, userEmail, receiptUrl, onlyApparel } = await req.json();
 
     // Get user data — try User entity first, fall back to PendingSignup
     let user = null;
@@ -31,11 +31,11 @@ Deno.serve(async (req) => {
     const emailSubject = 'Media Partner Onboarding Receipt';
     const firstName = user.full_name.split(' ')[0];
     const apparelSelected = !!(user.shirtFit && user.shirtSize && user.jacketSize);
-    const totalAmount = (apparelSelected ? 50 : 0) + (user.addGearBag ? 50 : 0) + (user.addWaterBottle ? 40 : 0);
+    const totalAmount = (apparelSelected ? 50 : 0) + (!onlyApparel && user.addGearBag ? 50 : 0) + (!onlyApparel && user.addWaterBottle ? 40 : 0);
     const orderLines = [
       ...(apparelSelected ? [`Shirt: ${user.shirtFit} - Size ${user.shirtSize}`, `Jacket: Size ${user.jacketSize}`] : []),
-      ...(user.addGearBag ? ['Gear Bag'] : []),
-      ...(user.addWaterBottle ? ['Water Bottle'] : [])
+      ...(!onlyApparel && user.addGearBag ? ['Gear Bag'] : []),
+      ...(!onlyApparel && user.addWaterBottle ? ['Water Bottle'] : [])
     ].map(line => `<li>${line}</li>`).join('');
 
     const htmlEmailBody = `<!DOCTYPE html>

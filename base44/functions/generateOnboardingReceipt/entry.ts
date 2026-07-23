@@ -4,7 +4,7 @@ import { jsPDF } from 'npm:jspdf@2.5.1';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { userId, pendingSignupId, userEmail, paymentIntentId, paidAt } = await req.json();
+    const { userId, pendingSignupId, userEmail, paymentIntentId, paidAt, onlyApparel } = await req.json();
 
     // Get user data — try User entity first, fall back to PendingSignup
     let user = null;
@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
     // Calculate amounts (apparel is optional)
     const apparelSelected = !!(user.shirtFit && user.shirtSize && user.jacketSize);
     const baseAmount = apparelSelected ? 50 : 0;
-    const gearBagAmount = user.addGearBag ? 50 : 0;
-    const waterBottleAmount = user.addWaterBottle ? 40 : 0;
+    const gearBagAmount = (!onlyApparel && user.addGearBag) ? 50 : 0;
+    const waterBottleAmount = (!onlyApparel && user.addWaterBottle) ? 40 : 0;
     const totalAmount = baseAmount + gearBagAmount + waterBottleAmount;
 
     const paidDate = new Date(paidAt);
@@ -130,13 +130,13 @@ Deno.serve(async (req) => {
       y += 16;
     };
 
-    if (user.addGearBag) {
+    if (!onlyApparel && user.addGearBag) {
       doc.text('Gear Bag', margin, y);
       doc.text('$50.00', pageWidth - margin, y, { align: 'right' });
       y += 16;
     }
 
-    if (user.addWaterBottle) {
+    if (!onlyApparel && user.addWaterBottle) {
       doc.text('Water Bottle', margin, y);
       doc.text('$40.00', pageWidth - margin, y, { align: 'right' });
       y += 16;
@@ -174,8 +174,8 @@ Deno.serve(async (req) => {
         doc.text(`Jacket: Size ${user.jacketSize}`, margin, y);
         y += 14;
       }
-      if (user.addGearBag) { doc.text('Gear Bag: Included', margin, y); y += 14; }
-      if (user.addWaterBottle) { doc.text('Water Bottle: Included', margin, y); y += 14; }
+      if (!onlyApparel && user.addGearBag) { doc.text('Gear Bag: Included', margin, y); y += 14; }
+      if (!onlyApparel && user.addWaterBottle) { doc.text('Water Bottle: Included', margin, y); y += 14; }
     }
 
     // Footer

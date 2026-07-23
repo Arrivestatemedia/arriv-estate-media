@@ -29,14 +29,24 @@ export default function MediaPartnerGate({ children }) {
 
         // If returning from a Stripe purchase, record it (does not gate access)
         const urlParams = new URLSearchParams(window.location.search);
-        const isPaymentSuccess = urlParams.get('payment_success') === 'true';
         const paymentIntentId = urlParams.get('payment_intent');
-        if (isPaymentSuccess && paymentIntentId) {
+        let didRedirect = false;
+        if (urlParams.get('payment_success') === 'true' && paymentIntentId) {
           try {
             await base44.functions.invoke('confirmPaymentAndMarkComplete', { email, paymentIntentId });
           } catch (err) {
             console.error('Error confirming payment:', err);
           }
+          didRedirect = true;
+        } else if (urlParams.get('apparel_success') === 'true' && paymentIntentId) {
+          try {
+            await base44.functions.invoke('confirmApparelPurchase', { email, paymentIntentId });
+          } catch (err) {
+            console.error('Error confirming apparel purchase:', err);
+          }
+          didRedirect = true;
+        }
+        if (didRedirect) {
           window.history.replaceState({}, document.title, createPageUrl('MediaPartnerDashboard'));
         }
 

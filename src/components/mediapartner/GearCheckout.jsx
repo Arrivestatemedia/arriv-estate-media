@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { createPageUrl } from "@/utils";
 
-function PayForm({ totalAmount }) {
+function PayForm({ totalAmount, successParam }) {
+  const successQuery = successParam || "payment_success";
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -21,7 +22,7 @@ function PayForm({ totalAmount }) {
       const result = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}${createPageUrl("MediaPartnerDashboard")}?payment_success=true&payment_intent={PAYMENT_INTENT_ID}`,
+          return_url: `${window.location.origin}${createPageUrl("MediaPartnerDashboard")}?${successQuery}=true&payment_intent={PAYMENT_INTENT_ID}`,
         },
       });
       if (result.error) {
@@ -54,7 +55,7 @@ function PayForm({ totalAmount }) {
   );
 }
 
-export default function GearCheckout({ stripePromise, clientSecret, totalAmount }) {
+export default function GearCheckout({ stripePromise, clientSecret, totalAmount, successParam }) {
   if (!clientSecret || !stripePromise) {
     return (
       <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
@@ -65,7 +66,7 @@ export default function GearCheckout({ stripePromise, clientSecret, totalAmount 
   }
   return (
     <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <PayForm totalAmount={totalAmount} />
+      <PayForm totalAmount={totalAmount} successParam={successParam} />
     </Elements>
   );
 }
