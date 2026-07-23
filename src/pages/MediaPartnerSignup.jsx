@@ -14,12 +14,26 @@ export default function MediaPartnerSignup() {
   const urlParams = new URLSearchParams(window.location.search);
   const roleFromUrl = urlParams.get('role') || 'user';
   
+  const prefilledFullName = urlParams.get('full_name') || "";
+  const prefilledEmail = urlParams.get('email') || "";
+  const prefilledPhone = urlParams.get('phone_number') || "";
+  const isPrefilled = Boolean(prefilledFullName || prefilledEmail);
+
   const [formData, setFormData] = useState(() => {
+    if (isPrefilled) {
+      return {
+        full_name: prefilledFullName,
+        email: prefilledEmail,
+        phone_number: prefilledPhone,
+        password: "",
+        password_confirmation: ""
+      };
+    }
     const saved = localStorage.getItem('mediaPartnerSignupFormData');
     return saved ? JSON.parse(saved) : { 
       email: "", 
       full_name: "", 
-      phone_number: urlParams.get('phone_number') || "",
+      phone_number: prefilledPhone,
       password: "",
       password_confirmation: ""
     };
@@ -95,6 +109,11 @@ export default function MediaPartnerSignup() {
           <p className="text-[#1A1A1A]/60 mt-2">
             Sign up to become a media partner and start taking jobs
           </p>
+          {isPrefilled && (
+            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mt-3 text-left">
+              Welcome back! Your details from your application have been pre-filled. Just set your password to continue.
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -107,7 +126,8 @@ export default function MediaPartnerSignup() {
                 required
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                readOnly={isPrefilled}
+                className={`border-[#B8956A]/30 focus:border-[#B8956A] ${isPrefilled ? "bg-gray-100 text-[#1A1A1A]/70 cursor-not-allowed" : ""}`}
                 placeholder="John Doe"
               />
             </div>
@@ -120,7 +140,8 @@ export default function MediaPartnerSignup() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                readOnly={isPrefilled}
+                className={`border-[#B8956A]/30 focus:border-[#B8956A] ${isPrefilled ? "bg-gray-100 text-[#1A1A1A]/70 cursor-not-allowed" : ""}`}
                 placeholder="john@example.com"
               />
             </div>
@@ -134,7 +155,8 @@ export default function MediaPartnerSignup() {
                 required
                 value={formData.phone_number}
                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                className="border-[#B8956A]/30 focus:border-[#B8956A]"
+                readOnly={isPrefilled}
+                className={`border-[#B8956A]/30 focus:border-[#B8956A] ${isPrefilled ? "bg-gray-100 text-[#1A1A1A]/70 cursor-not-allowed" : ""}`}
                 placeholder="+1 (555) 123-4567"
               />
             </div>

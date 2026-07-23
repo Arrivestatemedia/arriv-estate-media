@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createPageUrl } from "../utils";
+import { Link } from "react-router-dom";
 import { getStatusLabel, getStatusColor } from "@/lib/applicationStatus";
 import { Search, Link2, Plus, X, Clock, FileText, ArrowLeft, CheckCircle2 } from "lucide-react";
 
@@ -205,6 +206,27 @@ export default function ApplicationPortal() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Accepted — continue to account setup */}
+            {application.status === "accepted" && (
+              <Card className="border-2 border-green-300 bg-green-50/50">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-8 h-8 text-green-600 shrink-0" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-[var(--text-primary)]">You've been accepted!</h3>
+                      <p className="text-sm text-[var(--text-secondary)]">Complete your account setup to start taking jobs.</p>
+                    </div>
+                  </div>
+                  <Link
+                    to={`/MediaPartnerSignup?full_name=${encodeURIComponent(application.full_name || "")}&email=${encodeURIComponent(application.email || "")}&phone_number=${encodeURIComponent(application.phone || "")}`}
+                    className="block w-full text-center px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
+                  >
+                    Continue to Create Your Account
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Submitted information */}
             <Card className="border-2 border-[var(--border-color)] bg-[var(--card-bg)]">
