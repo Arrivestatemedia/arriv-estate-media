@@ -198,6 +198,11 @@ export default function ApplicationPortal() {
                     Submitted {new Date(application.created_date).toLocaleDateString()}
                   </span>
                 </div>
+                {application.status === "reviewing" && (
+                  <div className="mt-3 text-sm text-[var(--text-secondary)]">
+                    Your application is under review — you should hear something from us within 24–48 hours.
+                  </div>
+                )}
               </CardContent>
             </Card>
 
