@@ -11,8 +11,12 @@ export function deriveFirstName(fullName) {
 }
 
 export function buildWelcomeHtml(firstName) {
-  const rawDomain = Deno.env.get("BASE44_APP_DOMAIN") || "app.arrivestatemedia.com";
-  const appDomain = rawDomain.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  let appDomain = Deno.env.get("BASE44_APP_DOMAIN") || "app.arrivestatemedia.com";
+  // Strip any leading protocol (handles doubled/duplicated protocols like "https://https://...")
+  while (/^https?:\/\//i.test(appDomain)) {
+    appDomain = appDomain.replace(/^https?:\/\//i, "");
+  }
+  appDomain = appDomain.replace(/\/+$/, "");
   const portalUrl = `https://${appDomain}/ApplicationPortal`;
   return `<!DOCTYPE html>
 <html lang="en">
