@@ -26,6 +26,18 @@ export default function AdminApplications() {
   const updateApp = async (id, data) => {
     await base44.entities.JobApplication.update(id, data);
     queryClient.invalidateQueries({ queryKey: ["job-applications"] });
+
+    // Send the acceptance email when transitioning into "accepted"
+    if (data.status === 'accepted') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'accepted') {
+        try {
+          await base44.functions.invoke('sendApplicationAcceptedEmail', { applicationId: id });
+        } catch (err) {
+          console.error('Acceptance email failed:', err);
+        }
+      }
+    }
   };
 
   const filtered = applications.filter((a) => {

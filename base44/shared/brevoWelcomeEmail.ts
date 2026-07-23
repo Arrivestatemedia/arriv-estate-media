@@ -1,5 +1,4 @@
-const SENDER_EMAIL = "careers@arrivestatemedia.com";
-const SENDER_NAME = "Arriv Estate Media";
+import { sendBrevoEmail } from "./brevoClient.ts";
 
 export function deriveFirstName(fullName) {
   if (!fullName) return "there";
@@ -100,27 +99,11 @@ export function buildWelcomeHtml(firstName) {
 }
 
 export async function sendWelcomeEmail(toEmail, fullName) {
-  const apiKey = Deno.env.get("BREVO_API_KEY");
-  if (!apiKey) throw new Error("BREVO_API_KEY not configured");
   const firstName = deriveFirstName(fullName);
   const html = buildWelcomeHtml(firstName);
-  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      "api-key": apiKey,
-    },
-    body: JSON.stringify({
-      sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-      to: [{ email: toEmail }],
-      subject: "Thank you for applying to Arriv Estate Media",
-      htmlContent: html,
-    }),
+  return sendBrevoEmail({
+    to: toEmail,
+    subject: "Thank you for applying to Arriv Estate Media",
+    htmlContent: html,
   });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Brevo error ${res.status}: ${errText}`);
-  }
-  return { ok: true };
 }

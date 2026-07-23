@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,15 +68,17 @@ export default function ApplicationPortal() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
-  const handleLookup = async (e) => {
-    e.preventDefault();
+  const handleLookup = async (e, nameArg, addrArg) => {
+    if (e) e.preventDefault();
+    const name = nameArg ?? fullName;
+    const addr = addrArg ?? addressPrefix;
     setLooking(true);
     setNotFound(false);
     setLookupError("");
     setApplication(null);
     setSaveMsg("");
     try {
-      const res = await base44.functions.invoke("lookupApplication", { fullName, addressPrefix });
+      const res = await base44.functions.invoke("lookupApplication", { fullName: name, addressPrefix: addr });
       if (res.data?.notFound) {
         setNotFound(true);
       } else if (res.data?.application) {
@@ -94,6 +96,18 @@ export default function ApplicationPortal() {
       setLooking(false);
     }
   };
+
+  // Auto-lookup when arriving from an acceptance email link (?name=...&addr=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nameParam = params.get("name");
+    const addrParam = params.get("addr");
+    if (nameParam && addrParam) {
+      setFullName(nameParam);
+      setAddressPrefix(addrParam);
+      handleLookup(null, nameParam, addrParam);
+    }
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
