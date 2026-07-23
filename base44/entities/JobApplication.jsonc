@@ -120,6 +120,16 @@
     "documents_requested_note": {
       "type": "string",
       "description": "Note describing what documents are needed"
+    },
+    "portal_viewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the applicant last viewed their portal"
+    },
+    "portal_view_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "How many times the applicant has looked up their application in the portal"
     }
   },
   "required": [

@@ -25,7 +25,19 @@ Deno.serve(async (req) => {
     }
 
     // Most recent match (filter already sorted by created_date desc)
-    return Response.json({ application: matches[0] });
+    const app = matches[0];
+
+    // Record that this applicant checked their portal (best-effort; never blocks the lookup)
+    try {
+      await base44.asServiceRole.entities.JobApplication.update(app.id, {
+        portal_viewed_at: new Date().toISOString(),
+        portal_view_count: (app.portal_view_count || 0) + 1,
+      });
+    } catch (e) {
+      console.error('lookupApplication: failed to stamp portal view:', e.message);
+    }
+
+    return Response.json({ application: app });
 
   } catch (error) {
     console.error('lookupApplication error:', error);

@@ -43,11 +43,16 @@ export default function AdminApplications() {
     return acc;
   }, {});
 
+  const viewedCount = applications.filter((a) => a.portal_viewed_at).length;
+
   return (
     <div className="min-h-screen bg-[#FFFBF5] py-8 px-4">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold text-[#1A1A1A] mb-1">Job Applications</h1>
-        <p className="text-[#1A1A1A]/60 mb-6">Review applicants and update their status</p>
+        <p className="text-[#1A1A1A]/60 mb-6">
+          Review applicants and update their status ·{" "}
+          <span className="text-[#B8956A] font-medium">{viewedCount} of {applications.length}</span> have checked their portal
+        </p>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {APPLICATION_STATUSES.map((s) => (

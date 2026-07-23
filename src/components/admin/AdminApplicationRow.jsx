@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { APPLICATION_STATUSES, getStatusLabel, getStatusColor } from "@/lib/applicationStatus";
-import { ChevronDown, ChevronRight, MessageSquarePlus, Trash2, Mail, Phone, MapPin } from "lucide-react";
+import { ChevronDown, ChevronRight, MessageSquarePlus, Trash2, Mail, Phone, MapPin, Eye } from "lucide-react";
 import moment from "moment";
 
 export default function AdminApplicationRow({ app, onUpdate }) {
@@ -63,6 +63,17 @@ export default function AdminApplicationRow({ app, onUpdate }) {
                 {app.email} · Submitted {moment(app.created_date).format("MMM D, YYYY")}
               </p>
             </div>
+            {app.portal_viewed_at ? (
+              <div className="flex items-center gap-1 text-xs text-[var(--accent-color)] bg-[var(--accent-color)]/10 px-2 py-1 rounded-full">
+                <Eye className="w-3 h-3" />
+                Viewed {moment(app.portal_viewed_at).fromNow()}
+                {app.portal_view_count > 1 && <span className="opacity-70">· {app.portal_view_count}×</span>}
+              </div>
+            ) : (
+              <div className="text-xs text-[var(--text-secondary)] bg-[var(--text-secondary)]/10 px-2 py-1 rounded-full">
+                Not viewed
+              </div>
+            )}
           </div>
           <span
             className="px-3 py-1 rounded-full text-xs font-semibold text-white"
