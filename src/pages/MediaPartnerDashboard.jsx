@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Briefcase, DollarSign, TrendingUp, Calendar, Zap } from "lucide-react";
 import { createPageUrl } from "../utils";
-import PayoutSettings from "../components/mediapartner/PayoutSettings";
-import PayoutMethodInfo from "../components/mediapartner/PayoutMethodInfo";
 import InstantPayoutDialog from "../components/mediapartner/InstantPayoutDialog";
 import PayoutHistoryList from "../components/mediapartner/PayoutHistoryList";
 import BookedJobsList from "../components/mediapartner/BookedJobsList";
@@ -211,70 +209,51 @@ export default function MediaPartnerDashboard() {
         {/* Earnings Breakdown */}
         <EarningsBreakdown jobs={jobs} payoutHistory={payoutHistory} />
 
-        {/* Payout Method Info - Show only if payout method is already set */}
-        {userRecord?.payout_method && (
-          <Card className="border-[#B8956A]/20">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-[#B8956A]" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-[#1A1A1A]">Payout Method</CardTitle>
-                    <CardDescription>
-                      {userRecord.payout_method === "stripe_connect"
-                        ? "Direct Deposit (Stripe)"
-                        : userRecord.payout_method === "zelle"
-                          ? "Zelle"
-                          : "Bank Account"}
-                    </CardDescription>
-                  </div>
-                </div>
+        {/* Payout Method - Stripe Connect */}
+        <Card className="border-[#B8956A]/20">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#B8956A]/10 rounded-full flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-[#B8956A]" />
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {userRecord.payout_method === "stripe_connect" ? (
-                <>
-                  <div className={`flex items-center gap-2 text-sm ${userRecord.stripe_payouts_enabled ? "text-green-700" : "text-amber-700"}`}>
-                    <span className={`w-2 h-2 rounded-full ${userRecord.stripe_payouts_enabled ? "bg-green-500" : "bg-amber-500"}`} />
-                    {userRecord.stripe_payouts_enabled
-                      ? "Payouts enabled — you're all set for automatic Friday payouts."
-                      : "Stripe setup incomplete — finish onboarding to receive automatic payouts."}
-                  </div>
-                  <Button
-                    onClick={handleStripeOnboard}
-                    disabled={stripeOnboarding}
-                    className="bg-[#B8956A] hover:bg-[#A68559]"
-                  >
-                    {stripeOnboarding
-                      ? "Opening Stripe..."
-                      : userRecord.stripe_payouts_enabled
-                        ? "Update bank info"
-                        : "Finish Stripe setup"}
-                  </Button>
-                  {userRecord.stripe_payouts_enabled && currentBalance > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setInstantPayoutOpen(true)}
-                      className="border-[#B8956A]/40 text-[#B8956A] hover:bg-[#B8956A]/10"
-                    >
-                      <Zap className="w-4 h-4 mr-2" />
-                      Instant Payout · ${currentBalance.toFixed(2)}
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-[#1A1A1A]/70">
-                  To change your account information go to your <a href={`/PublicAccountSettings`} className="text-[#B8956A] font-medium hover:underline">Account Settings</a>.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Payout Settings - Show only if payout method hasn't been set yet */}
-        {!userRecord?.payout_method && <PayoutSettings user={user} onSave={handlePayoutSave} />}
+              <div>
+                <CardTitle className="text-[#1A1A1A]">Payout Method</CardTitle>
+                <CardDescription>Direct Deposit via Stripe</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className={`flex items-center gap-2 text-sm ${userRecord?.stripe_payouts_enabled ? "text-green-700" : "text-amber-700"}`}>
+              <span className={`w-2 h-2 rounded-full ${userRecord?.stripe_payouts_enabled ? "bg-green-500" : "bg-amber-500"}`} />
+              {userRecord?.stripe_payouts_enabled
+                ? "Payouts enabled — you're all set for automatic Friday payouts."
+                : userRecord?.stripe_account_id
+                  ? "Stripe setup incomplete — finish onboarding to receive payouts."
+                  : "No payout account yet — set up direct deposit to get paid."}
+            </div>
+            <Button
+              onClick={handleStripeOnboard}
+              disabled={stripeOnboarding}
+              className="bg-[#B8956A] hover:bg-[#A68559]"
+            >
+              {stripeOnboarding
+                ? "Opening Stripe..."
+                : userRecord?.stripe_payouts_enabled
+                  ? "Update bank info"
+                  : "Set up direct deposit"}
+            </Button>
+            {userRecord?.stripe_payouts_enabled && currentBalance > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setInstantPayoutOpen(true)}
+                className="border-[#B8956A]/40 text-[#B8956A] hover:bg-[#B8956A]/10"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Instant Payout · ${currentBalance.toFixed(2)}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Payout History */}
         <PayoutHistoryList payoutHistory={payoutHistory} />
