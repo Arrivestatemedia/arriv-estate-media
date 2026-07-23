@@ -231,12 +231,12 @@ export default function JobApplication() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">LinkedIn Profile URL *</label>
                   <Input
-                    type="url"
+                    type="text"
                     name="linkedin"
                     value={formData.linkedin}
                     onChange={handleInputChange}
                     required
-                    placeholder="https://linkedin.com/in/yourprofile"
+                    placeholder="https://linkedin.com/in/yourprofile (or type N/A if you don't have one)"
                   />
                 </div>
 
