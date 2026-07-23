@@ -17,14 +17,14 @@ Deno.serve(async (req) => {
     });
 
     const now = new Date();
-    const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
+    const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
     
     const jobsNeedingReminder = jobs.filter(job => {
       if (!job.completed_at) return false;
       if (job.footage_reminder_sent_at) return false; // Already sent reminder
       
       const completedAt = new Date(job.completed_at);
-      return completedAt <= twoHoursAgo;
+      return completedAt <= twentyFourHoursAgo;
     });
 
     console.log(`Found ${jobsNeedingReminder.length} jobs needing footage upload reminders`);
