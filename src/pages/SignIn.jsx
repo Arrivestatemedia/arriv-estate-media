@@ -170,7 +170,17 @@ export default function SignIn() {
             </Button>
 
           </form>
-        </CardContent>
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-[#B8956A]/40 text-[#B8956A] hover:bg-[#B8956A]/10"
+              onClick={() => navigate(createPageUrl("ApplicationPortal"))}
+            >
+              Check Application Status
+            </Button>
+          </div>
+          </CardContent>
       </Card>
     </div>
   );

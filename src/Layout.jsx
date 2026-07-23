@@ -94,6 +94,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
             { label: "Scheduled Bookings", page: "AdminScheduledBookings", icon: CalendarClock },
             { label: "Send Media", page: "SendMediaToClient", icon: Send },
+            { label: "Applications", page: "AdminApplications", icon: FileText },
           ]
       : isClient
     ? [

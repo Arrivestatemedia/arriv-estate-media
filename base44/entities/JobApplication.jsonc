@@ -76,16 +76,50 @@
       },
       "description": "Google Drive URLs of picture samples"
     },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Additional document links the applicant uploaded"
+    },
     "status": {
       "type": "string",
       "enum": [
-        "pending",
-        "reviewed",
-        "approved",
-        "rejected"
+        "received",
+        "reviewing",
+        "accepted",
+        "denied"
       ],
-      "default": "pending",
+      "default": "received",
       "description": "Application status"
+    },
+    "updates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Update message shown to the applicant"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the update was posted"
+          }
+        }
+      },
+      "description": "Admin-posted updates visible to the applicant"
+    },
+    "documents_requested": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the admin requested additional documents"
+    },
+    "documents_requested_note": {
+      "type": "string",
+      "description": "Note describing what documents are needed"
     }
   },
   "required": [

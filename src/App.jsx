@@ -9,6 +9,8 @@ import AboutJob from './pages/AboutJob';
 import AboutSalesJob from './pages/AboutSalesJob';
 import SalesJobApplication from './pages/SalesJobApplication';
 import PurchaseApparel from './pages/PurchaseApparel';
+import ApplicationPortal from './pages/ApplicationPortal';
+import AdminApplications from './pages/AdminApplications';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -91,6 +93,22 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="PurchaseApparel">
             <PurchaseApparel />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/ApplicationPortal"
+        element={
+          <LayoutWrapper currentPageName="ApplicationPortal">
+            <ApplicationPortal />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminApplications"
+        element={
+          <LayoutWrapper currentPageName="AdminApplications">
+            <AdminApplications />
           </LayoutWrapper>
         }
       />
