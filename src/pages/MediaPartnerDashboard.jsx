@@ -3,10 +3,11 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Briefcase, DollarSign, TrendingUp, Calendar } from "lucide-react";
+import { Briefcase, DollarSign, TrendingUp, Calendar, Zap } from "lucide-react";
 import { createPageUrl } from "../utils";
 import PayoutSettings from "../components/mediapartner/PayoutSettings";
 import PayoutMethodInfo from "../components/mediapartner/PayoutMethodInfo";
+import InstantPayoutDialog from "../components/mediapartner/InstantPayoutDialog";
 import PayoutHistoryList from "../components/mediapartner/PayoutHistoryList";
 import BookedJobsList from "../components/mediapartner/BookedJobsList";
 import EarningsBreakdown from "../components/mediapartner/EarningsBreakdown";
@@ -98,6 +99,7 @@ export default function MediaPartnerDashboard() {
   };
 
   const [stripeOnboarding, setStripeOnboarding] = useState(false);
+  const [instantPayoutOpen, setInstantPayoutOpen] = useState(false);
 
   const handleStripeOnboard = async () => {
     setStripeOnboarding(true);
@@ -251,6 +253,16 @@ export default function MediaPartnerDashboard() {
                         ? "Update bank info"
                         : "Finish Stripe setup"}
                   </Button>
+                  {userRecord.stripe_payouts_enabled && currentBalance > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setInstantPayoutOpen(true)}
+                      className="border-[#B8956A]/40 text-[#B8956A] hover:bg-[#B8956A]/10"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      Instant Payout · ${currentBalance.toFixed(2)}
+                    </Button>
+                  )}
                 </>
               ) : (
                 <p className="text-sm text-[#1A1A1A]/70">
@@ -270,6 +282,13 @@ export default function MediaPartnerDashboard() {
         {/* Booked Jobs */}
         <BookedJobsList jobs={jobs} loading={jobsLoading} />
         </div>
+
+      <InstantPayoutDialog
+        open={instantPayoutOpen}
+        onClose={() => setInstantPayoutOpen(false)}
+        balance={currentBalance}
+        onSuccess={handleRefresh}
+      />
       </div>
     </PullToRefresh>
   );
