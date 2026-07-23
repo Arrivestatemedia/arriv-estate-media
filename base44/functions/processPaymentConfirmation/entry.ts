@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import Stripe from 'npm:stripe@17.5.0';
 import { addBusinessDays, CLIENT_PAYMENT_CLEARANCE_BUSINESS_DAYS } from '../../shared/stripeConnect.ts';
 
 Deno.serve(async (req) => {
@@ -16,7 +17,20 @@ Deno.serve(async (req) => {
     // Stamp the related job(s) with a client-payment clearance window so partner
     // payouts wait until the client's Stripe payment settles into our balance.
     try {
-      const clearanceDate = addBusinessDays(new Date(), CLIENT_PAYMENT_CLEARANCE_BUSINESS_DAYS);
+      // Prefer Stripe's actual settlement date; fall back to a business-day timer.
+      let clearanceDate = addBusinessDays(new Date(), CLIENT_PAYMENT_CLEARANCE_BUSINESS_DAYS);
+      if (invoice.stripe_payment_intent_id) {
+        try {
+          const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
+          const pi = await stripe.paymentIntents.retrieve(invoice.stripe_payment_intent_id, {
+            expand: ['latest_charge.balance_transaction']
+          });
+          const availableOn = pi.latest_charge?.balance_transaction?.available_on;
+          if (availableOn) clearanceDate = new Date(availableOn * 1000);
+        } catch (e) {
+          console.warn('Could not read balance_transaction available_on, using timer:', e.message);
+        }
+      }
       let relatedJobs = [];
       if (invoice.job_id) {
         const j = await base44.asServiceRole.entities.Job.get(invoice.job_id);

@@ -65,6 +65,17 @@ Deno.serve(async (req) => {
     const fee = Math.max(grossAmount * INSTANT_PAYOUT_FEE_RATE, INSTANT_PAYOUT_MIN_FEE);
     const netAmount = grossAmount - fee;
 
+    // Hard guarantee: never attempt a transfer the platform's available Stripe
+    // balance can't cover. If a client's payment hasn't settled yet, block the
+    // payout rather than fail mid-transfer.
+    const balance = await stripe.balance.retrieve();
+    const availableCents = (balance.available || []).reduce((sum, b) => sum + b.amount, 0);
+    if (availableCents < Math.round(grossAmount * 100)) {
+      return Response.json({
+        error: `The client's payment is still settling in our payment processor (typically 1–2 business days). Your balance will be available for instant payout once it clears.`
+      }, { status: 400 });
+    }
+
     // Transfer balance to the partner's Connect account.
     const transfer = await stripe.transfers.create({
       amount: Math.round(grossAmount * 100),
