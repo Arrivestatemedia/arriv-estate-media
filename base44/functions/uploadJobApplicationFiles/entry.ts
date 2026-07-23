@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendWelcomeEmail } from '../../shared/brevoWelcomeEmail.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -231,6 +232,13 @@ Signature: ${signature}
       }
     } catch (smsError) {
       console.error('Failed to send admin SMS notification:', smsError.message);
+    }
+
+    // Send welcome email to the applicant via Brevo (non-blocking on failure)
+    try {
+      await sendWelcomeEmail(email, fullName);
+    } catch (welcomeErr) {
+      console.error('Failed to send applicant welcome email:', welcomeErr.message);
     }
 
     return Response.json({ 
