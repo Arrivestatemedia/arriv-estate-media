@@ -29,7 +29,7 @@ export function buildWelcomeHtml(firstName) {
           </td>
         </tr>
         <tr><td style="padding:40px 44px;">
-          <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1A1A1A;">Hi ${firstName},</h1>
+          <h1 style="margin:0 0 8px;font-size:18px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Thank you for applying to become a Media Specialist with Arriv Estate Media!</p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We're excited that you're interested in joining our growing network of photographers, videographers, drone pilots, and other real estate media professionals.</p>
 
@@ -85,7 +85,7 @@ export function buildWelcomeHtml(firstName) {
           <p style="margin:0;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Brad Burke</strong><br/>Founder &amp; CEO<br/>Arriv Estate Media</p>
         </td></tr>
         <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
-          <p style="margin:0;font-size:12px;color:#9a8560;">© Arriv Estate Media · careers@arrivestatemedia.com</p>
+          <p style="margin:0;font-size:12px;color:#9a8560;">© Arriv Estate Media, LLC · careers@arrivestatemedia.com</p>
         </td></tr>
       </table>
     </td></tr>
