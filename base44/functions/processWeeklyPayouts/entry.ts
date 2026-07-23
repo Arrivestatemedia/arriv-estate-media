@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import Stripe from 'npm:stripe@17.5.0';
-import { findPartnerRecord, getPayPeriodStartUTC } from '../../shared/stripeConnect.ts';
+import { findPartnerRecord, getPayPeriodStartUTC, clientPaymentCleared } from '../../shared/stripeConnect.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -20,7 +20,8 @@ Deno.serve(async (req) => {
       j.booked_by &&
       j.completed_at &&
       new Date(j.completed_at) >= periodStart &&
-      !j.paid_out_at
+      !j.paid_out_at &&
+      clientPaymentCleared(j)
     );
 
     // Group amounts by partner email.

@@ -161,6 +161,11 @@
       "type": "string",
       "format": "date-time",
       "description": "When this job's pay was disbursed to the media partner (Stripe Connect payout)"
+    },
+    "client_payment_clears_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the client's Stripe payment settles into the platform balance and partner funds become available for payout. null means already cleared or not applicable."
     }
   },
   "required": [

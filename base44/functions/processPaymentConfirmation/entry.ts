@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { addBusinessDays, CLIENT_PAYMENT_CLEARANCE_BUSINESS_DAYS } from '../../shared/stripeConnect.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -10,6 +11,28 @@ Deno.serve(async (req) => {
 
     if (!invoice) {
       return Response.json({ error: 'Invoice not found' }, { status: 404 });
+    }
+
+    // Stamp the related job(s) with a client-payment clearance window so partner
+    // payouts wait until the client's Stripe payment settles into our balance.
+    try {
+      const clearanceDate = addBusinessDays(new Date(), CLIENT_PAYMENT_CLEARANCE_BUSINESS_DAYS);
+      let relatedJobs = [];
+      if (invoice.job_id) {
+        const j = await base44.asServiceRole.entities.Job.get(invoice.job_id);
+        if (j) relatedJobs.push(j);
+      }
+      if (relatedJobs.length === 0 && invoice.booking_id) {
+        relatedJobs = await base44.asServiceRole.entities.Job.filter({ booking_id: invoice.booking_id });
+      }
+      for (const j of relatedJobs) {
+        await base44.asServiceRole.entities.Job.update(j.id, {
+          client_payment_clears_at: clearanceDate.toISOString()
+        });
+      }
+      console.log(`Set client_payment_clears_at for ${relatedJobs.length} job(s) → ${clearanceDate.toISOString()}`);
+    } catch (e) {
+      console.warn('Could not set client_payment_clears_at:', e.message);
     }
 
     const driveToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');

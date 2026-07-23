@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import Stripe from 'npm:stripe@17.5.0';
-import { findPartnerRecord, getPayPeriodStartUTC } from '../../shared/stripeConnect.ts';
+import { findPartnerRecord, getPayPeriodStartUTC, clientPaymentCleared } from '../../shared/stripeConnect.ts';
 
 // Stripe instant payout fee: 1.5% with a $0.50 minimum.
 const INSTANT_PAYOUT_FEE_RATE = 0.015;
@@ -38,12 +38,27 @@ Deno.serve(async (req) => {
       j.from_booking === true &&
       j.completed_at &&
       new Date(j.completed_at) >= periodStart &&
-      !j.paid_out_at
+      !j.paid_out_at &&
+      clientPaymentCleared(j)
     );
+
+    // Jobs that are complete but whose client payment hasn't settled yet.
+    const pendingJobs = completedJobs.filter(j =>
+      j.from_booking === true &&
+      j.completed_at &&
+      new Date(j.completed_at) >= periodStart &&
+      !j.paid_out_at &&
+      !clientPaymentCleared(j)
+    );
+    const pendingAmount = pendingJobs.reduce((sum, j) => sum + (j.pay_rate || 0), 0);
 
     const grossAmount = eligible.reduce((sum, j) => sum + (j.pay_rate || 0), 0);
     if (grossAmount <= 0) {
-      return Response.json({ error: 'No balance available for instant payout.' }, { status: 400 });
+      return Response.json({
+        error: pendingAmount > 0
+          ? `Your funds are still clearing. $${pendingAmount.toFixed(2)} will be available for instant payout within 1–2 business days.`
+          : 'No balance available for instant payout.'
+      }, { status: 400 });
     }
 
     // Calculate fee and net amount.

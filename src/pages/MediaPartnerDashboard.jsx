@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Briefcase, DollarSign, TrendingUp, Calendar, Zap } from "lucide-react";
+import { Briefcase, DollarSign, TrendingUp, Calendar, Zap, Clock } from "lucide-react";
 import { createPageUrl } from "../utils";
 import InstantPayoutDialog from "../components/mediapartner/InstantPayoutDialog";
 import PayoutHistoryList from "../components/mediapartner/PayoutHistoryList";
@@ -77,8 +77,17 @@ export default function MediaPartnerDashboard() {
   };
 
   const startOfPayPeriod = getPayPeriodStart();
-  const completedJobs = jobs.filter(j => j.status === 'completed' && new Date(j.completed_at) >= startOfPayPeriod);
-  const currentBalance = completedJobs.reduce((sum, job) => sum + (job.pay_rate || 0), 0);
+  const now = new Date();
+  const unpaidCompletedJobs = jobs.filter(j =>
+    j.status === 'completed' &&
+    new Date(j.completed_at) >= startOfPayPeriod &&
+    !j.paid_out_at
+  );
+  const availableJobs = unpaidCompletedJobs.filter(j => !j.client_payment_clears_at || new Date(j.client_payment_clears_at) <= now);
+  const pendingJobs = unpaidCompletedJobs.filter(j => j.client_payment_clears_at && new Date(j.client_payment_clears_at) > now);
+  const availableBalance = availableJobs.reduce((sum, job) => sum + (job.pay_rate || 0), 0);
+  const pendingBalance = pendingJobs.reduce((sum, job) => sum + (job.pay_rate || 0), 0);
+  const currentBalance = availableBalance;
   const bookedJobs = jobs.filter(j => j.status === 'booked' || j.status === 'in_progress');
   const bookedJobsCount = bookedJobs.length;
   const bookedAmount = bookedJobs.reduce((sum, job) => sum + (job.pay_rate || 0), 0);
@@ -140,11 +149,18 @@ export default function MediaPartnerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-[var(--text-primary)]">
-                  ${currentBalance.toFixed(2)}
+                  ${availableBalance.toFixed(2)}
                 </div>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  Pays out Friday at 4am
-                </p>
+                {pendingBalance > 0 ? (
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    +${pendingBalance.toFixed(2)} clearing (1–2 business days)
+                  </p>
+                ) : (
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    Pays out Friday at 4am
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -242,14 +258,17 @@ export default function MediaPartnerDashboard() {
                   ? "Update bank info"
                   : "Set up direct deposit"}
             </Button>
-            {userRecord?.stripe_payouts_enabled && currentBalance > 0 && (
+            {userRecord?.stripe_payouts_enabled && (availableBalance > 0 || pendingBalance > 0) && (
               <Button
                 variant="outline"
-                onClick={() => setInstantPayoutOpen(true)}
-                className="border-[#B8956A]/40 text-[#B8956A] hover:bg-[#B8956A]/10"
+                onClick={() => availableBalance > 0 && setInstantPayoutOpen(true)}
+                disabled={availableBalance <= 0}
+                className="border-[#B8956A]/40 text-[#B8956A] hover:bg-[#B8956A]/10 disabled:opacity-60"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                Instant Payout · ${currentBalance.toFixed(2)}
+                {availableBalance > 0
+                  ? `Instant Payout · $${availableBalance.toFixed(2)}`
+                  : `$${pendingBalance.toFixed(2)} clearing…`}
               </Button>
             )}
           </CardContent>
@@ -265,7 +284,7 @@ export default function MediaPartnerDashboard() {
       <InstantPayoutDialog
         open={instantPayoutOpen}
         onClose={() => setInstantPayoutOpen(false)}
-        balance={currentBalance}
+        balance={availableBalance}
         onSuccess={handleRefresh}
       />
       </div>
