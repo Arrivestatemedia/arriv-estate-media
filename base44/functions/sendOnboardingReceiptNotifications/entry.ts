@@ -30,9 +30,10 @@ Deno.serve(async (req) => {
     // Send email to media partner
     const emailSubject = 'Media Partner Onboarding Receipt';
     const firstName = user.full_name.split(' ')[0];
-    const apparelLines = [
-      `Shirt: ${user.shirtFit} - Size ${user.shirtSize}`,
-      `Jacket: Size ${user.jacketSize}`,
+    const apparelSelected = !!(user.shirtFit && user.shirtSize && user.jacketSize);
+    const totalAmount = (apparelSelected ? 50 : 0) + (user.addGearBag ? 50 : 0) + (user.addWaterBottle ? 40 : 0);
+    const orderLines = [
+      ...(apparelSelected ? [`Shirt: ${user.shirtFit} - Size ${user.shirtSize}`, `Jacket: Size ${user.jacketSize}`] : []),
       ...(user.addGearBag ? ['Gear Bag'] : []),
       ...(user.addWaterBottle ? ['Water Bottle'] : [])
     ].map(line => `<li>${line}</li>`).join('');
@@ -40,14 +41,13 @@ Deno.serve(async (req) => {
     const htmlEmailBody = `<!DOCTYPE html>
 <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <p>Hi ${firstName},</p>
-  <p>Thank you for completing your onboarding with Arriv Estate Media!</p>
-  <p>We've received your $50 onboarding fee payment. Please find your receipt attached below.</p>
+  <p>Thank you for your purchase with Arriv Estate Media!</p>
+  <p>We've received your payment of $${totalAmount.toFixed(2)}. Please find your receipt attached below.</p>
   <p style="text-align: center; margin: 30px 0;">
     <a href="${receiptUrl}" style="background-color: #B8956A; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">View Receipt</a>
   </p>
-  <p>Your required apparel will be ordered shortly:</p>
-  <ul>${apparelLines}</ul>
-  <p>You're now fully onboarded and can access the job board.</p>
+  ${orderLines ? `<p>Your order:</p><ul>${orderLines}</ul>` : ''}
+  <p>You're all set and can access the job board.</p>
   <p>Best regards,<br><strong>Arriv Estate Media Team</strong></p>
 </body></html>`;
 
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
 
-    const smsMessage = `Arriv Estate Media: We've received your $50 onboarding fee. Your receipt has been emailed. You're now fully onboarded.`;
+    const smsMessage = `Arriv Estate Media: We've received your payment of $${totalAmount.toFixed(2)}. Your receipt has been emailed. You're now fully onboarded.`;
 
     await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
       method: 'POST',
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
 
     // Send SMS to admin
     const adminPhone = Deno.env.get('BRADLEY_PHONE');
-    const adminSmsMessage = `Onboarding fee received: $50 paid by ${user.full_name}.`;
+    const adminSmsMessage = `Gear purchase received: $${totalAmount.toFixed(2)} paid by ${user.full_name}.`;
 
     await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
       method: 'POST',

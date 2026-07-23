@@ -25,8 +25,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Calculate amounts
-    const baseAmount = 50;
+    // Calculate amounts (apparel is optional)
+    const apparelSelected = !!(user.shirtFit && user.shirtSize && user.jacketSize);
+    const baseAmount = apparelSelected ? 50 : 0;
     const gearBagAmount = user.addGearBag ? 50 : 0;
     const waterBottleAmount = user.addWaterBottle ? 40 : 0;
     const totalAmount = baseAmount + gearBagAmount + waterBottleAmount;
@@ -123,9 +124,11 @@ Deno.serve(async (req) => {
     // Line items
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
-    doc.text('Media Partner Onboarding Fee (Shirt & Jacket)', margin, y);
-    doc.text(`$${baseAmount}.00`, pageWidth - margin, y, { align: 'right' });
-    y += 16;
+    if (apparelSelected) {
+      doc.text('Shirt & Jacket', margin, y);
+      doc.text(`$${baseAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+      y += 16;
+    };
 
     if (user.addGearBag) {
       doc.text('Gear Bag', margin, y);
@@ -148,7 +151,7 @@ Deno.serve(async (req) => {
     doc.setTextColor(26, 26, 26);
     doc.text('TOTAL PAID:', margin, y);
     doc.setTextColor(184, 149, 106);
-    doc.text(`$${totalAmount}.00`, pageWidth - margin, y, { align: 'right' });
+    doc.text(`$${totalAmount.toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
     y += 30;
 
     // Apparel details
@@ -156,20 +159,24 @@ Deno.serve(async (req) => {
     doc.line(margin, y, pageWidth - margin, y);
     y += 20;
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(184, 149, 106);
-    doc.text('APPAREL ORDER DETAILS', margin, y);
-    y += 16;
+    if (totalAmount > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(184, 149, 106);
+      doc.text('ORDER DETAILS', margin, y);
+      y += 16;
 
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Shirt: ${user.shirtFit || ''} - Size ${user.shirtSize || ''}`, margin, y);
-    y += 14;
-    doc.text(`Jacket: Size ${user.jacketSize || ''}`, margin, y);
-    y += 14;
-    if (user.addGearBag) { doc.text('Gear Bag: Included', margin, y); y += 14; }
-    if (user.addWaterBottle) { doc.text('Water Bottle: Included', margin, y); y += 14; }
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      if (apparelSelected) {
+        doc.text(`Shirt: ${user.shirtFit} - Size ${user.shirtSize}`, margin, y);
+        y += 14;
+        doc.text(`Jacket: Size ${user.jacketSize}`, margin, y);
+        y += 14;
+      }
+      if (user.addGearBag) { doc.text('Gear Bag: Included', margin, y); y += 14; }
+      if (user.addWaterBottle) { doc.text('Water Bottle: Included', margin, y); y += 14; }
+    }
 
     // Footer
     const pageHeight = doc.internal.pageSize.getHeight();
