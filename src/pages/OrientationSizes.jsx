@@ -37,11 +37,6 @@ export default function OrientationSizes() {
   }, [navigate]);
 
   const handleContinue = async () => {
-    if (!shirtFit || !shirtSize || !jacketSize) {
-      alert("Please select your shirt fit, shirt size, and jacket size.");
-      return;
-    }
-
     setSaving(true);
     try {
       const userEmail = localStorage.getItem('user_email');
@@ -52,7 +47,7 @@ export default function OrientationSizes() {
         shirtFit, shirtSize, jacketSize, addGearBag, addWaterBottle
       });
 
-      navigate(createPageUrl("OrientationOnboardingFee"));
+      navigate(createPageUrl("MediaPartnerDashboard"));
     } catch (error) {
       console.error("Error saving sizes:", error);
       alert("Failed to save sizes. Please try again.");
@@ -108,11 +103,11 @@ export default function OrientationSizes() {
           <CardContent className="space-y-6">
             {/* Required Apparel */}
             <div className="space-y-4 pb-6 border-b border-[var(--border-color)]">
-              <h3 className="text-xl font-semibold text-[var(--text-primary)]">Required Apparel</h3>
+              <h3 className="text-xl font-semibold text-[var(--text-primary)]">Apparel (Optional)</h3>
               
               {/* Shirt Fit */}
               <div className="space-y-2">
-                <Label className="text-[var(--text-primary)]">Shirt Fit *</Label>
+                <Label className="text-[var(--text-primary)]">Shirt Fit (Optional)</Label>
                 <NativeSelect
                   value={shirtFit}
                   onChange={(val) => { setShirtFit(val); setShirtSize(""); }}
@@ -123,7 +118,7 @@ export default function OrientationSizes() {
 
               {/* Shirt Size */}
               <div className="space-y-2">
-                <Label className="text-[var(--text-primary)]">Shirt Size *</Label>
+                <Label className="text-[var(--text-primary)]">Shirt Size (Optional)</Label>
                 <NativeSelect
                   value={shirtSize}
                   onChange={setShirtSize}
@@ -135,7 +130,7 @@ export default function OrientationSizes() {
 
               {/* Jacket Size */}
               <div className="space-y-2">
-                <Label className="text-[var(--text-primary)]">Jacket Size *</Label>
+                <Label className="text-[var(--text-primary)]">Jacket Size (Optional)</Label>
                 <NativeSelect
                   value={jacketSize}
                   onChange={setJacketSize}
@@ -204,7 +199,7 @@ export default function OrientationSizes() {
 
             <Button
               onClick={handleContinue}
-              disabled={!shirtFit || !shirtSize || !jacketSize || saving}
+              disabled={saving}
               className="w-full bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
               size="lg"
             >
