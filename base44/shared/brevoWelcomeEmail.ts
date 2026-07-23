@@ -25,7 +25,7 @@ export function buildWelcomeHtml(firstName) {
       <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
         <tr>
           <td style="background-color:#1A1A1A;padding:24px 32px;text-align:center;">
-            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="34" style="height:34px;width:auto;display:block;margin:0 auto;" />
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="56" style="height:56px;width:auto;display:block;margin:0 auto;" />
           </td>
         </tr>
         <tr><td style="padding:40px 44px;">
