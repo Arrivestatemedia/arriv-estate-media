@@ -156,6 +156,11 @@
       "type": "string",
       "format": "date-time",
       "description": "When footage upload reminder was sent"
+    },
+    "paid_out_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this job's pay was disbursed to the media partner (Stripe Connect payout)"
     }
   },
   "required": [

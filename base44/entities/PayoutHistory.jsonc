@@ -18,13 +18,14 @@
       "type": "string",
       "enum": [
         "zelle",
-        "bank_account"
+        "bank_account",
+        "stripe_connect"
       ],
       "description": "Method used for payout"
     },
     "payout_destination": {
       "type": "string",
-      "description": "Zelle info or bank account last 4"
+      "description": "Zelle info, bank account last 4, or Stripe Connect account ID"
     },
     "payout_date": {
       "type": "string",
@@ -48,6 +49,10 @@
       ],
       "default": "payout",
       "description": "Type of payout entry (regular payout or apparel purchase deduction)"
+    },
+    "stripe_transfer_id": {
+      "type": "string",
+      "description": "Stripe Transfer ID (Stripe Connect payouts)"
     }
   },
   "required": [

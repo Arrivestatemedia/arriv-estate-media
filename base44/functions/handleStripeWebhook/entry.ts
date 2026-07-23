@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import Stripe from 'npm:stripe@17.5.0';
+import { findPartnerRecord, updatePartnerRecord } from '../../shared/stripeConnect.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -190,9 +191,28 @@ Deno.serve(async (req) => {
           console.warn('No invoice matched for session:', session.id, 'Payment link:', session.payment_link);
         }
     }
-    
+
+    // Stripe Connect: keep each partner's payout/onboarding status in sync.
+    if (event.type === 'account.updated') {
+      const acct = event.data.object;
+      const email = acct.email || acct.metadata?.base44_email;
+      if (email) {
+        try {
+          const rec = await findPartnerRecord(base44, email);
+          if (rec) {
+            await updatePartnerRecord(base44, rec, {
+              stripe_payouts_enabled: !!acct.payouts_enabled,
+              stripe_details_submitted: !!acct.details_submitted
+            });
+          }
+        } catch (e) {
+          console.warn('account.updated: could not sync partner record:', e.message);
+        }
+      }
+    }
+
     return Response.json({ received: true });
-    
+
   } catch (error) {
     console.error('Webhook error:', error);
     return Response.json({ error: error.message }, { status: 400 });

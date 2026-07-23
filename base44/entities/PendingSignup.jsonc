@@ -99,7 +99,8 @@
       "type": "string",
       "enum": [
         "zelle",
-        "bank_account"
+        "bank_account",
+        "stripe_connect"
       ],
       "description": "Payout method for media partners"
     },
@@ -118,6 +119,20 @@
     "bank_routing_number": {
       "type": "string",
       "description": "Bank routing number"
+    },
+    "stripe_account_id": {
+      "type": "string",
+      "description": "Stripe Connect account ID for direct-deposit payouts"
+    },
+    "stripe_payouts_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the Stripe Connect account can receive payouts"
+    },
+    "stripe_details_submitted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the partner completed Stripe Connect onboarding details"
     }
   },
   "required": [

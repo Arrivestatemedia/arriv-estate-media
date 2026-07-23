@@ -113,7 +113,8 @@
       "type": "string",
       "enum": [
         "zelle",
-        "bank_account"
+        "bank_account",
+        "stripe_connect"
       ],
       "description": "Preferred payout method"
     },
@@ -124,6 +125,20 @@
     "bank_account_last4": {
       "type": "string",
       "description": "Last 4 digits of bank account"
+    },
+    "stripe_account_id": {
+      "type": "string",
+      "description": "Stripe Connect account ID for direct-deposit payouts"
+    },
+    "stripe_payouts_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the Stripe Connect account can receive payouts"
+    },
+    "stripe_details_submitted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the partner completed Stripe Connect onboarding details"
     },
     "weekly_earnings": {
       "type": "number",

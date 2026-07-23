@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { AlertCircle, CheckCircle2, Wallet } from "lucide-react";
+import { AlertCircle, CheckCircle2, Wallet, Zap } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function PayoutSettings({ user, onSave }) {
@@ -14,8 +14,26 @@ export default function PayoutSettings({ user, onSave }) {
   const [bankAccountNumber, setBankAccountNumber] = useState(user?.bank_account_number || "");
   const [routingNumber, setRoutingNumber] = useState(user?.bank_routing_number || "");
   const [loading, setLoading] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  const handleStripeOnboard = async () => {
+    setStripeLoading(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke('stripeConnectOnboard', {});
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        setError("Could not start Stripe onboarding");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to start Stripe onboarding");
+    } finally {
+      setStripeLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -44,7 +62,7 @@ export default function PayoutSettings({ user, onSave }) {
         bank_account_number: bankAccountNumber,
         bank_routing_number: routingNumber
       });
-      
+
       setSuccess(true);
       if (onSave) onSave();
       setTimeout(() => setSuccess(false), 3000);
@@ -74,8 +92,9 @@ export default function PayoutSettings({ user, onSave }) {
         <Alert className="bg-blue-50 border-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-sm text-blue-900">
-            <strong>Bank account payouts</strong> take 3-5 business days to deposit. 
-            <strong> Zelle payouts</strong> are typically instant.
+            <strong>Direct Deposit (Stripe)</strong> is automatic and pays out every Friday. 
+            <strong> Bank account</strong> payouts take 3-5 business days. 
+            <strong> Zelle</strong> payouts are instant but processed manually.
           </AlertDescription>
         </Alert>
 
@@ -84,15 +103,37 @@ export default function PayoutSettings({ user, onSave }) {
             <Label className="mb-2 block">Payout Method</Label>
             <RadioGroup value={payoutMethod} onValueChange={setPayoutMethod}>
               <div className="flex items-center space-x-2">
+                <RadioGroupItem value="stripe_connect" id="stripe_connect" />
+                <Label htmlFor="stripe_connect" className="font-normal cursor-pointer flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 text-[#B8956A]" /> Direct Deposit via Stripe (Automatic)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
                 <RadioGroupItem value="zelle" id="zelle" />
-                <Label htmlFor="zelle" className="font-normal cursor-pointer">Zelle (Instant)</Label>
+                <Label htmlFor="zelle" className="font-normal cursor-pointer">Zelle (Instant, manual)</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="bank_account" id="bank_account" />
-                <Label htmlFor="bank_account" className="font-normal cursor-pointer">Bank Account (3-5 days)</Label>
+                <Label htmlFor="bank_account" className="font-normal cursor-pointer">Bank Account (Manual, 3-5 days)</Label>
               </div>
             </RadioGroup>
           </div>
+
+          {payoutMethod === "stripe_connect" && (
+            <div className="space-y-3 p-4 rounded-lg bg-[#B8956A]/5 border border-[#B8956A]/20">
+              <p className="text-sm text-[#1A1A1A]/80">
+                We'll pay your balance straight to your bank account automatically every Friday via Stripe.
+                You'll complete a quick one-time setup with Stripe to verify your identity and link your bank.
+              </p>
+              <Button
+                onClick={handleStripeOnboard}
+                disabled={stripeLoading}
+                className="w-full bg-[#B8956A] hover:bg-[#A68559]"
+              >
+                {stripeLoading ? "Starting setup..." : "Set up direct deposit with Stripe"}
+              </Button>
+            </div>
+          )}
 
           {payoutMethod === "zelle" && (
             <div>
@@ -136,6 +177,16 @@ export default function PayoutSettings({ user, onSave }) {
             </>
           )}
 
+          {payoutMethod !== "stripe_connect" && (
+            <Button
+              onClick={handleSave}
+              disabled={loading || !payoutMethod}
+              className="w-full bg-[#B8956A] hover:bg-[#A68559]"
+            >
+              {loading ? "Saving..." : "Save Payout Settings"}
+            </Button>
+          )}
+
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -151,14 +202,6 @@ export default function PayoutSettings({ user, onSave }) {
               </AlertDescription>
             </Alert>
           )}
-
-          <Button
-            onClick={handleSave}
-            disabled={loading || !payoutMethod}
-            className="w-full bg-[#B8956A] hover:bg-[#A68559]"
-          >
-            {loading ? "Saving..." : "Save Payout Settings"}
-          </Button>
         </div>
       </CardContent>
     </Card>

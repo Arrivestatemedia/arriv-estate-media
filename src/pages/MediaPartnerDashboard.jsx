@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Briefcase, DollarSign, TrendingUp, Calendar } from "lucide-react";
 import { createPageUrl } from "../utils";
 import PayoutSettings from "../components/mediapartner/PayoutSettings";
@@ -95,6 +96,29 @@ export default function MediaPartnerDashboard() {
   const handlePayoutSave = () => {
     queryClient.invalidateQueries({ queryKey: ['user-record', user?.email] });
   };
+
+  const [stripeOnboarding, setStripeOnboarding] = useState(false);
+
+  const handleStripeOnboard = async () => {
+    setStripeOnboarding(true);
+    try {
+      const res = await base44.functions.invoke('stripeConnectOnboard', {});
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      }
+    } catch (e) {
+      console.error('Stripe onboarding failed:', e);
+    } finally {
+      setStripeOnboarding(false);
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('stripe_done') || params.get('stripe_refresh')) {
+      queryClient.invalidateQueries({ queryKey: ['user-record', user?.email] });
+    }
+  }, [queryClient, user?.email]);
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -197,16 +221,42 @@ export default function MediaPartnerDashboard() {
                   <div>
                     <CardTitle className="text-[#1A1A1A]">Payout Method</CardTitle>
                     <CardDescription>
-                      {userRecord.payout_method === "zelle" ? "Zelle" : "Bank Account"}
+                      {userRecord.payout_method === "stripe_connect"
+                        ? "Direct Deposit (Stripe)"
+                        : userRecord.payout_method === "zelle"
+                          ? "Zelle"
+                          : "Bank Account"}
                     </CardDescription>
                   </div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-[#1A1A1A]/70">
-                To change your account information go to your <a href={`/PublicAccountSettings`} className="text-[#B8956A] font-medium hover:underline">Account Settings</a>.
-              </p>
+            <CardContent className="space-y-3">
+              {userRecord.payout_method === "stripe_connect" ? (
+                <>
+                  <div className={`flex items-center gap-2 text-sm ${userRecord.stripe_payouts_enabled ? "text-green-700" : "text-amber-700"}`}>
+                    <span className={`w-2 h-2 rounded-full ${userRecord.stripe_payouts_enabled ? "bg-green-500" : "bg-amber-500"}`} />
+                    {userRecord.stripe_payouts_enabled
+                      ? "Payouts enabled — you're all set for automatic Friday payouts."
+                      : "Stripe setup incomplete — finish onboarding to receive automatic payouts."}
+                  </div>
+                  <Button
+                    onClick={handleStripeOnboard}
+                    disabled={stripeOnboarding}
+                    className="bg-[#B8956A] hover:bg-[#A68559]"
+                  >
+                    {stripeOnboarding
+                      ? "Opening Stripe..."
+                      : userRecord.stripe_payouts_enabled
+                        ? "Update bank info"
+                        : "Finish Stripe setup"}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-[#1A1A1A]/70">
+                  To change your account information go to your <a href={`/PublicAccountSettings`} className="text-[#B8956A] font-medium hover:underline">Account Settings</a>.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
