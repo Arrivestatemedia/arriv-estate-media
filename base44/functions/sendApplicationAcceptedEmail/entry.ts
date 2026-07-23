@@ -36,12 +36,9 @@ function buildAcceptedHtml(firstName, portalUrl) {
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">The next step is to complete your onboarding and create your Media Specialist account.</p>
 
           <h2 style="margin:28px 0 12px;font-size:18px;color:#B8956A;">Complete Your Onboarding</h2>
-          <p style="margin:0 0 10px;font-size:16px;line-height:1.6;color:#1A1A1A;">Please click the link below to begin your onboarding process:</p>
           <p style="margin:0 0 20px;">
             <a href="${portalUrl}" style="display:inline-block;background-color:#B8956A;color:#FFFFFF;font-weight:600;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:16px;">Complete Onboarding</a>
           </p>
-          <p style="margin:0 0 6px;font-size:15px;color:#1A1A1A;"><strong>Complete Onboarding:</strong></p>
-          <p style="margin:0 0 20px;"><a href="${portalUrl}" style="color:#B8956A;font-weight:600;text-decoration:none;word-break:break-all;">${portalUrl}</a></p>
 
           <h2 style="margin:28px 0 12px;font-size:18px;color:#B8956A;">During Onboarding, You'll:</h2>
           <ul style="margin:0 0 20px;padding-left:22px;font-size:16px;line-height:1.7;color:#1A1A1A;">
