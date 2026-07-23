@@ -143,16 +143,16 @@ export default function ApplicationPortal() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[var(--text-primary)]">First 4 Digits of Street Address</Label>
+                  <Label className="text-[var(--text-primary)]">Street Address Number</Label>
                   <Input
                     value={addressPrefix}
-                    onChange={(e) => setAddressPrefix(e.target.value.replace(/[^0-9a-zA-Z]/g, "").slice(0, 4))}
+                    onChange={(e) => setAddressPrefix(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
                     placeholder="e.g. 1234"
                     required
                     inputMode="numeric"
                   />
                   <p className="text-xs text-[var(--text-secondary)]">
-                    The first 4 characters of the street address you used on your application.
+                    Enter the digits at the start of your street address (your house number). If your address has fewer than 4 digits, just enter what you have — e.g. "12" for 12 Main St.
                   </p>
                 </div>
                 {lookupError && <p className="text-sm text-red-600">{lookupError}</p>}
