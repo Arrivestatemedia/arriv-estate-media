@@ -71,6 +71,18 @@ export default function AdminApplications() {
         }
       }
     }
+
+    // Send the sales interview invitation email when transitioning into "interview_invitation"
+    if (data.status === 'interview_invitation') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'interview_invitation') {
+        try {
+          await base44.functions.invoke('sendSalesInterviewInvitation', { applicationId: id });
+        } catch (err) {
+          console.error('Sales interview invitation email failed:', err);
+        }
+      }
+    }
   };
 
   const activeTab = POSITION_TABS.find((t) => t.value === positionTab);
