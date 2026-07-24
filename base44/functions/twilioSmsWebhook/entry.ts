@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
           const counterpartE164 = e164(counterpart);
           const clientE164 = e164(relayJob.client_phone);
           const companyE164 = e164(to);
+          const adminPhone = Deno.env.get('ADMIN_PHONE') ? e164(Deno.env.get('ADMIN_PHONE')) : '';
 
           // One conversation per client (the thread anchor).
           const existing = await base44.asServiceRole.entities.SmsConversation.filter({
@@ -95,6 +96,7 @@ Deno.serve(async (req) => {
               unread_count: 1,
               job_id: relayJob.id,
               media_partner_phone: relayJob.booked_by_phone,
+              routing_preference: 'unset',
             });
           }
 
@@ -108,31 +110,107 @@ Deno.serve(async (req) => {
             twilio_sid: twilioSid,
           });
 
-          // Prefix the relayed message so the recipient knows who it's from.
-          let forwardedBody = messageBody;
-          if (isClient) {
-            const clientName = (relayJob.client_name || '').trim();
-            forwardedBody = clientName ? `[Client: ${clientName}] ${messageBody}` : messageBody;
-          } else {
-            const specialistFirst = ((relayJob.booked_by_name || '').trim().split(/\s+/)[0]) || '';
-            forwardedBody = specialistFirst
-              ? `[Media Specialist: ${specialistFirst}] ${messageBody}`
-              : messageBody;
-          }
-
-          // Relay to the counterpart on their phone.
-          try {
-            const sent = await sendTwilioSms(counterpartE164, forwardedBody);
+          const recordOutbound = async (toNum, body, sid) => {
             await base44.asServiceRole.entities.SmsMessage.create({
               conversation_id: conversation.id,
               from_number: companyE164,
-              to_number: counterpartE164,
-              body: forwardedBody,
+              to_number: toNum,
+              body,
               direction: 'outbound',
-              twilio_sid: sent?.sid || '',
+              twilio_sid: sid || '',
             });
-          } catch (e) {
-            console.error('Relay SMS send failed:', e.message);
+          };
+
+          if (isClient) {
+            // --- Client texting in: route by their chosen preference. ---
+            const lower = (messageBody || '').toLowerCase().trim();
+            const isSupportKeyword = lower === 'support';
+            const isPartnerKeyword =
+              lower === 'media partner' || lower === 'media' || lower === 'partner';
+            let preference = conversation.routing_preference || 'unset';
+
+            if (isSupportKeyword) preference = 'support';
+            else if (isPartnerKeyword) preference = 'media_partner';
+
+            if (isSupportKeyword || isPartnerKeyword) {
+              await base44.asServiceRole.entities.SmsConversation.update(conversation.id, {
+                routing_preference: preference,
+              });
+              const confirm =
+                preference === 'media_partner'
+                  ? "Got it — you're now texting your media partner. Text 'Support' anytime to switch."
+                  : "Got it — you're now texting support. Text 'Media Partner' anytime to switch.";
+              try {
+                const sent = await sendTwilioSms(clientE164, confirm);
+                await recordOutbound(clientE164, confirm, sent?.sid);
+              } catch (e) {
+                console.error('Confirm SMS send failed:', e.message);
+              }
+              return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+                headers: { 'Content-Type': 'text/xml' },
+              });
+            }
+
+            // First contact with no preference → ask who they want to reach.
+            if (preference === 'unset') {
+              const prompt =
+                "Are you trying to contact your media partner or support? Reply 'Media Partner' or 'Support'. You can change your choice anytime by texting 'Media Partner' or 'Support'.";
+              try {
+                const sent = await sendTwilioSms(clientE164, prompt);
+                await recordOutbound(clientE164, prompt, sent?.sid);
+              } catch (e) {
+                console.error('Prompt SMS send failed:', e.message);
+              }
+              return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+                headers: { 'Content-Type': 'text/xml' },
+              });
+            }
+
+            if (preference === 'media_partner') {
+              const clientName = (relayJob.client_name || '').trim();
+              const forwardedBody = clientName
+                ? `[Client: ${clientName}] ${messageBody}`
+                : messageBody;
+              try {
+                const sent = await sendTwilioSms(counterpartE164, forwardedBody);
+                await recordOutbound(counterpartE164, forwardedBody, sent?.sid);
+              } catch (e) {
+                console.error('Relay SMS send failed:', e.message);
+              }
+            } else if (preference === 'support') {
+              const clientName = (relayJob.client_name || '').trim();
+              const toSupport = clientName ? `[Client: ${clientName}] ${messageBody}` : messageBody;
+              if (adminPhone) {
+                try {
+                  const sent = await sendTwilioSms(adminPhone, toSupport);
+                  await recordOutbound(adminPhone, toSupport, sent?.sid);
+                } catch (e) {
+                  console.error('Support SMS send failed:', e.message);
+                }
+              }
+            }
+          } else {
+            // --- Media partner texting in: relay to the client. ---
+            const specialistFirst = ((relayJob.booked_by_name || '').trim().split(/\s+/)[0]) || '';
+            const forwardedBody = specialistFirst
+              ? `[Media Specialist: ${specialistFirst}] ${messageBody}`
+              : messageBody;
+            try {
+              const sent = await sendTwilioSms(counterpartE164, forwardedBody);
+              await recordOutbound(counterpartE164, forwardedBody, sent?.sid);
+            } catch (e) {
+              console.error('Relay SMS send failed:', e.message);
+            }
+            // Copy all texts to the client from the partner to the admin.
+            if (adminPhone) {
+              try {
+                const copy = `[Copy to client] ${forwardedBody}`;
+                const sentCopy = await sendTwilioSms(adminPhone, copy);
+                await recordOutbound(adminPhone, copy, sentCopy?.sid);
+              } catch (e) {
+                console.error('Admin copy SMS send failed:', e.message);
+              }
+            }
           }
 
           return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {

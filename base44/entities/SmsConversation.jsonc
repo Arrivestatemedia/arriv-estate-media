@@ -35,6 +35,16 @@
     "media_partner_phone": {
       "type": "string",
       "description": "Confirmed media specialist's phone number for this relay thread"
+    },
+    "routing_preference": {
+      "type": "string",
+      "enum": [
+        "unset",
+        "media_partner",
+        "support"
+      ],
+      "default": "unset",
+      "description": "Client's chosen destination for their outbound texts (media partner or support)"
     }
   },
   "required": [
