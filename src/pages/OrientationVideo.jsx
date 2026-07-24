@@ -51,6 +51,21 @@ const formatTime = (s) => {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 };
 
+// Force subtitles/closed captions off. The cc_load_policy var is unreliable on
+// the HTML5 player, so we also disable the captions module after ready/play.
+// Everything is wrapped so a failure can never break playback (black screen).
+function disableCaptions(player) {
+  try {
+    if (!player) return;
+    try { player.setOption("captions", "track", {}); } catch {}
+    try { player.setOption("cc", "track", {}); } catch {}
+    try { player.unloadModule && player.unloadModule("captions"); } catch {}
+    try { player.unloadModule && player.unloadModule("cc"); } catch {}
+  } catch {
+    // ignore — playback must never break
+  }
+}
+
 export default function OrientationVideo() {
   const navigate = useNavigate();
   const [videoUrl, setVideoUrl] = useState("");
@@ -92,6 +107,11 @@ export default function OrientationVideo() {
               iframe.style.width = "100%";
               iframe.style.height = "100%";
             }
+            disableCaptions(e.target);
+          },
+          onStateChange: (e) => {
+            // 1 = playing — captions can re-engage when playback starts
+            if (e.data === 1) disableCaptions(e.target);
           },
         },
       });
