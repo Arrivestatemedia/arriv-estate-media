@@ -75,6 +75,37 @@ export default function MediaPartnerSignup() {
       if (response.data?.success) {
         localStorage.removeItem('mediaPartnerSignupFormData');
         localStorage.removeItem('mediaPartnerTermsScrolled');
+
+        // Auto sign-in: establish a session and go straight to orientation
+        try {
+          const signInResp = await base44.functions.invoke('verifySignIn', {
+            email: formData.email.toLowerCase(),
+            password: formData.password
+          });
+          if (signInResp.data?.success) {
+            const userData = {
+              user_email: signInResp.data.email,
+              user_name: signInResp.data.full_name,
+              user_type: signInResp.data.user_type,
+              user_role: signInResp.data.user_role,
+              user_phone: signInResp.data.phone_number,
+            };
+            Object.entries(userData).forEach(([k, v]) => {
+              localStorage.setItem(k, v);
+              sessionStorage.setItem(k, v);
+            });
+            if (signInResp.data.user_type === 'media_partner') {
+              base44.analytics.track({
+                eventName: 'first_media_partner_login',
+                properties: { userId: signInResp.data.id }
+              });
+            }
+            window.location.href = '/OrientationVideo';
+            return;
+          }
+        } catch (autoErr) {
+          console.error('Auto sign-in error:', autoErr);
+        }
         window.location.href = '/SignIn';
       } else {
         setError(response.data?.error || "Failed to create account");
