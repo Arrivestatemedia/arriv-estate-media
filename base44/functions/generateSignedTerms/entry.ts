@@ -136,10 +136,11 @@ Deno.serve(async (req) => {
     ensureSpace(5);
     doc.text(`Date: ${new Date().toLocaleString()}`, margin, y);
 
-    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+    const pdfArrayBuffer = doc.output('arraybuffer');
+    const pdfFile = new File([pdfArrayBuffer], `signed_terms_${Date.now()}.pdf`, { type: 'application/pdf' });
 
     const uploadRes = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
-      file: pdfBuffer
+      file: pdfFile
     });
 
     if (!uploadRes.file_uri) {
