@@ -111,11 +111,23 @@ export default function JobBoard() {
   const [filteringByDistance, setFilteringByDistance] = useState(false);
   const geocodeCache = useRef({});
 
-  const coverageLat = user?.coverage_lat;
-  const coverageLng = user?.coverage_lng;
-  const maxDistance = user?.max_travel_distance;
+  const partnerEmail = user?.email || userEmail;
+  const { data: coverage } = useQuery({
+    queryKey: ["coverage-area", partnerEmail],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getCoverageArea', { email: partnerEmail });
+      return res.data;
+    },
+    enabled: !!partnerEmail,
+  });
+
+  const maxDistance = coverage?.max_travel_distance;
+  // Filter once we know the coverage center + max distance. The center may be
+  // stored as lat/lng, or geocoded from coverage_area on the fly (see effect below).
   const hasCoverage =
-    coverageLat != null && coverageLng != null && maxDistance != null;
+    maxDistance != null &&
+    (coverage?.coverage_area != null ||
+      (coverage?.coverage_lat != null && coverage?.coverage_lng != null));
 
   const waitForGoogle = () =>
     new Promise((resolve) => {
@@ -166,6 +178,22 @@ export default function JobBoard() {
     let cancelled = false;
     setFilteringByDistance(true);
     (async () => {
+      // Resolve the coverage center: use stored lat/lng, otherwise geocode coverage_area.
+      let cLat = coverage?.coverage_lat;
+      let cLng = coverage?.coverage_lng;
+      if ((cLat == null || cLng == null) && coverage?.coverage_area) {
+        const center = await geocodeAddress(coverage.coverage_area);
+        if (center) {
+          cLat = center.lat;
+          cLng = center.lng;
+        }
+      }
+      if (cancelled) return;
+      if (cLat == null || cLng == null) {
+        setJobDistances({});
+        setFilteringByDistance(false);
+        return;
+      }
       const coordsByLocation = {};
       const uniqueLocations = [
         ...new Set(jobs.map((j) => j.location).filter(Boolean)),
@@ -184,7 +212,7 @@ export default function JobBoard() {
       for (const job of jobs) {
         const coords = job.location ? coordsByLocation[job.location] : null;
         distMap[job.id] = coords
-          ? haversineMiles(coverageLat, coverageLng, coords.lat, coords.lng)
+          ? haversineMiles(cLat, cLng, coords.lat, coords.lng)
           : null;
       }
       setJobDistances(distMap);
@@ -193,7 +221,7 @@ export default function JobBoard() {
     return () => {
       cancelled = true;
     };
-  }, [jobs, hasCoverage, coverageLat, coverageLng]);
+  }, [jobs, hasCoverage, coverage?.coverage_area, coverage?.coverage_lat, coverage?.coverage_lng]);
 
   useEffect(() => {
     const unsubscribe = base44.entities.Job.subscribe((event) => {

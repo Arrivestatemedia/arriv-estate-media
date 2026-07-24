@@ -32,14 +32,9 @@ export default function CoverageAreaSettings() {
         return;
       }
       try {
-        // Stored emails may use mixed case — match case-insensitively.
-        const normalized = email.toLowerCase();
-        const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const results = await base44.entities.PendingSignup.filter({
-          email: { $regex: `^${escaped}$`, $options: "i" },
-        });
+        const res = await base44.functions.invoke("getCoverageArea", { email });
         if (!mounted) return;
-        const rec = results[0];
+        const rec = res?.data;
         setCoverageArea(rec?.coverage_area || "");
         setMaxDistance(
           rec?.max_travel_distance ? String(rec.max_travel_distance) : ""
