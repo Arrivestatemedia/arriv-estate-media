@@ -52,6 +52,7 @@ export default function MediaPartnerGate({ children }) {
 
         const checkResponse = await base44.functions.invoke('checkOrientationStatus', { email }).catch(() => null);
         const orientationCompleted = checkResponse?.data?.orientationCompleted || false;
+        const termsSigned = checkResponse?.data?.termsSigned || false;
 
         // Orientation completed – let through
         if (orientationCompleted) {
@@ -61,11 +62,21 @@ export default function MediaPartnerGate({ children }) {
         }
 
         const currentPath = location.pathname;
-        const orientationRoutes = ['OrientationVideo', 'OrientationSizes'];
-        const isOnOrientationRoute = orientationRoutes.some(route => currentPath.includes(route));
+        const allowedRoutes = ['OrientationVideo', 'OrientationSizes', 'MediaPartnerTermsConditions'];
+
+        // Terms must be signed before any other onboarding step
+        if (!termsSigned) {
+          if (!currentPath.includes('MediaPartnerTermsConditions')) {
+            navigate(createPageUrl('MediaPartnerTermsConditions'), { replace: true });
+          }
+          setIsReady(true);
+          return;
+        }
+
+        const isOnAllowedRoute = allowedRoutes.some(route => currentPath.includes(route));
 
         // Not onboarded – block access unless on an orientation route
-        if (!isOnOrientationRoute) {
+        if (!isOnAllowedRoute) {
           navigate(createPageUrl('OrientationVideo'), { replace: true });
           setIsReady(true);
           return;

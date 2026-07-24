@@ -28,9 +28,21 @@ Deno.serve(async (req) => {
             record = users[0] || null;
         }
 
+        let termsSigned = false;
+        try {
+            let signed = await base44.asServiceRole.entities.SignedTerms.filter({ media_partner_email: emailTrimmed });
+            if (!signed.length && emailTrimmed !== emailLower) {
+                signed = await base44.asServiceRole.entities.SignedTerms.filter({ media_partner_email: emailLower });
+            }
+            termsSigned = signed.length > 0;
+        } catch (e) {
+            console.error('termsSigned check error:', e);
+        }
+
         return Response.json({
             orientationCompleted: record?.orientationCompleted || false,
-            onboardingFeePaid: record?.onboardingFeePaid || false
+            onboardingFeePaid: record?.onboardingFeePaid || false,
+            termsSigned
         });
     } catch (error) {
         console.error('checkOrientationStatus error:', error);
