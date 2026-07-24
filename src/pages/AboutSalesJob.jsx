@@ -71,7 +71,7 @@ const TRAINING_TOPICS = [
 const WHY_JOIN = [
   { icon: Wallet, label: "$500 Training Bonus", desc: "Earn a bonus after completing our two-week onboarding and training program." },
   { icon: TrendingUp, label: "Uncapped Commission", desc: "Your earning potential is based entirely on the business you generate." },
-  { icon: CalendarClock, label: "Flexible Schedule", desc: "Work from anywhere and set your own hours." },
+  { icon: CalendarClock, label: "Flexible Schedule", desc: "This is a 100% remote role — work from anywhere and set your own hours." },
   { icon: GraduationCap, label: "Comprehensive Training", desc: "Full training provided — no real estate experience necessary." },
   { icon: TrendingUp, label: "Career Growth", desc: "Join the founding sales team and grow as Arriv expands." },
   { icon: Star, label: "Shape the Future", desc: "Help build an innovative real estate technology company from the ground up." },
@@ -92,7 +92,7 @@ const FAQ = [
   },
   {
     q: "Where is this role based?",
-    a: "This is a hybrid/remote role. Atlanta, GA is preferred, but you can work from anywhere.",
+    a: "This is a 100% remote role. You can work from anywhere — no office or hybrid requirements.",
   },
   {
     q: "What does the training cover?",
@@ -109,7 +109,7 @@ const TRUST = [
   "100% Commission",
   "$500 Training Bonus",
   "Uncapped Earning Potential",
-  "Remote / Hybrid",
+  "100% Remote",
 ];
 
 function Section({ eyebrow, title, children, id }) {
@@ -172,7 +172,7 @@ export default function AboutSalesJob() {
           >
             <Star className="w-3.5 h-3.5" style={{ color: "#B8956A" }} />
             <span className="text-xs font-semibold tracking-wide" style={{ color: "#B8956A" }}>
-              Founding Sales Team – Remote / Atlanta, GA
+              Founding Sales Team – 100% Remote
             </span>
           </div>
           <div className="flex items-center gap-2 mb-6">
@@ -190,7 +190,7 @@ export default function AboutSalesJob() {
           </p>
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm" style={{ color: "rgba(255,251,245,0.7)" }}>
             <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" style={{ color: "#B8956A" }} /> Independent Contractor (1099)</span>
-            <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" style={{ color: "#B8956A" }} /> Hybrid / Remote – Atlanta, GA Preferred</span>
+            <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" style={{ color: "#B8956A" }} /> 100% Remote – Work From Anywhere</span>
             <span className="flex items-center gap-1.5"><Wallet className="w-4 h-4" style={{ color: "#B8956A" }} /> 100% Commission + $500 Training Bonus</span>
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-3">
