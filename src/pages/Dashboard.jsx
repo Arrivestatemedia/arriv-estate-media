@@ -9,6 +9,7 @@ import JobCard from "../components/jobs/JobCard";
 import PendingBookingCard from "../components/booking/PendingBookingCard";
 import InviteUsersCard from "../components/dashboard/InviteUsersCard";
 import OrientationVideoSetting from "../components/dashboard/OrientationVideoSetting";
+import CompletedJobsSection from "../components/dashboard/CompletedJobsSection";
 import { AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
@@ -302,7 +303,15 @@ export default function Dashboard() {
               <JobCard key={job.id} job={job} isAdmin={true} onManage={handleEdit} onBook={handleBook} onBookBackup={handleBookBackup} onUpdateBackup={handleUpdateBackup} currentUserEmail={user?.email} userRole="admin" />
             ))}
           </div>
-        )}
+          )}
+
+          <CompletedJobsSection
+          jobs={jobs}
+          user={user}
+          onEdit={handleEdit}
+          onBook={handleBook}
+          onUpdateBackup={handleUpdateBackup}
+          />
       </div>
     </div>
   );
