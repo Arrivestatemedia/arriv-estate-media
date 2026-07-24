@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -220,6 +220,18 @@ export default function MediaPartnerTermsConditions() {
   const [signature, setSignature] = useState(expectedName);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [partnerName, setPartnerName] = useState(expectedName);
+
+  useEffect(() => {
+    let active = true;
+    base44.auth.isAuthenticated().then((isAuth) => {
+      if (!isAuth) return;
+      base44.auth.me().then((u) => {
+        if (active && u?.full_name) setPartnerName(u.full_name);
+      }).catch(() => {});
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const effectiveDate = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -290,7 +302,7 @@ export default function MediaPartnerTermsConditions() {
 
         <p className="text-[#1A1A1A]/80">
           This Media Partner Agreement ("Agreement") is entered into between Arriv Estate
-          Media, LLC ("Arriv") and the undersigned independent contractor ("Media Partner").
+          Media, LLC ("Arriv") and {partnerName || "the undersigned independent contractor"} ("Media Partner").
           By accepting this Agreement, the Media Partner agrees to the following terms.
         </p>
 
