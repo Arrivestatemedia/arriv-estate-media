@@ -4,7 +4,7 @@
   "properties": {
     "from_number": {
       "type": "string",
-      "description": "The external phone number"
+      "description": "The external phone number (the client's number for media-specialist relay threads)"
     },
     "contact_name": {
       "type": "string",
@@ -27,6 +27,14 @@
     "sales_member_id": {
       "type": "string",
       "description": "Assigned sales member ID (optional)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Active job this conversation is relaying texts for (media-specialist relay)"
+    },
+    "media_partner_phone": {
+      "type": "string",
+      "description": "Confirmed media specialist's phone number for this relay thread"
     }
   },
   "required": [

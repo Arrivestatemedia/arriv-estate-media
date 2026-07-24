@@ -215,6 +215,70 @@ Deno.serve(async (req) => {
         }
       }
 
+      // --- Client IVR ---
+      // If the caller is a client with a confirmed media specialist on an active
+      // job, offer to bridge them to their specialist (press 1) or support (2).
+      // Falls through to the support routing below otherwise.
+      const cnorm = (n) => {
+        if (!n) return '';
+        let d = String(n).replace(/\D/g, '');
+        if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
+        return d;
+      };
+      const clientNorm = cnorm(from);
+      if (clientNorm && defaultCallerId) {
+        try {
+          const today = new Date().toISOString().slice(0, 10);
+          const cBooked = await base44.asServiceRole.entities.Job.filter({ status: 'booked' });
+          const cInProg = await base44.asServiceRole.entities.Job.filter({ status: 'in_progress' });
+          const cCandidates = [...(cBooked || []), ...(cInProg || [])];
+          const clientJobs = cCandidates.filter(
+            (j) => j.client_phone && cnorm(j.client_phone) === clientNorm
+          );
+          let clientJob = clientJobs.find((j) => j.status === 'in_progress');
+          if (!clientJob) clientJob = clientJobs.find((j) => (j.date || '').slice(0, 10) === today);
+          if (!clientJob) {
+            clientJob = clientJobs
+              .filter((j) => j.status === 'booked' && (j.date || '').slice(0, 10) >= today)
+              .sort((a, b) => (a.date || '').localeCompare(b.date || ''))[0];
+          }
+
+          if (clientJob && clientJob.booked_by_phone) {
+            const partnerNumber = clientJob.booked_by_phone.startsWith('+')
+              ? clientJob.booked_by_phone
+              : '+1' + clientJob.booked_by_phone.replace(/\D/g, '');
+
+            if (digits === '1') {
+              console.log('Client pressed 1 → bridging to media specialist', partnerNumber, 'for job', clientJob.id);
+              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="45">
+    <Number>${partnerNumber}</Number>
+  </Dial>
+</Response>`);
+            }
+
+            const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
+            const actionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=1` : '';
+
+            if (menu === '1') {
+              console.log('Client menu → routing to support (digit:', digits, ')');
+            } else {
+              console.log('Client inbound → presenting IVR menu for job', clientJob.id);
+              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
+    <Say voice="Polly.Joanna">To reach your media specialist, press 1. To reach support, press 2.</Say>
+  </Gather>
+  <Say voice="Polly.Joanna">Connecting you to support.</Say>
+</Response>`);
+            }
+          }
+        } catch (e) {
+          console.error('Client IVR lookup failed:', e.message);
+        }
+      }
+
       let activeMembers = [];
       try {
         activeMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
