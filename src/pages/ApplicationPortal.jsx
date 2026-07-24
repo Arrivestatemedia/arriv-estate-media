@@ -8,6 +8,7 @@ import { createPageUrl } from "../utils";
 import { Link } from "react-router-dom";
 import { getStatusLabel, getStatusColor } from "@/lib/applicationStatus";
 import { Search, Link2, Plus, X, Clock, FileText, ArrowLeft, CheckCircle2 } from "lucide-react";
+import SalesOfferCard from "@/components/portal/SalesOfferCard";
 
 function LinkList({ items, setItems, placeholder, editable }) {
   const [value, setValue] = useState("");
@@ -239,6 +240,17 @@ export default function ApplicationPortal() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Sales offer — review / accept / decline / onboarding roadmap */}
+            {application.position === "sales_growth_advisor" &&
+              ["offer_extended", "hired", "offer_not_extended"].includes(application.status) && (
+              <SalesOfferCard
+                application={application}
+                fullName={fullName}
+                addressPrefix={addressPrefix}
+                onResponded={(updated) => setApplication(updated)}
+              />
             )}
 
             {/* Accepted — continue to account setup */}

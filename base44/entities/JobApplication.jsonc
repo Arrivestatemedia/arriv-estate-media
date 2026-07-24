@@ -146,6 +146,21 @@
       "type": "integer",
       "default": 0,
       "description": "How many times the applicant has looked up their application in the portal"
+    },
+    "offer_extended_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the offer was extended to the applicant"
+    },
+    "offer_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the applicant accepted their offer (sales growth advisor)"
+    },
+    "offer_declined_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the applicant declined their offer (sales growth advisor)"
     }
   },
   "required": [
