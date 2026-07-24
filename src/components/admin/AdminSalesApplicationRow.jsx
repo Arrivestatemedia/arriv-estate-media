@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SALES_STATUSES, getStatusLabel, getStatusColor, POSITION_LABELS } from "@/lib/applicationStatus";
-import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase } from "lucide-react";
+import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus } from "lucide-react";
 import moment from "moment";
+import InterviewSchedulerModal from "./InterviewSchedulerModal";
 
 export default function AdminSalesApplicationRow({ app, onUpdate }) {
   const [expanded, setExpanded] = useState(false);
+  const [showScheduler, setShowScheduler] = useState(false);
   const isSales = (app.position || "media_specialist") === "sales_growth_advisor";
   if (!isSales) return null;
 
@@ -84,7 +86,26 @@ export default function AdminSalesApplicationRow({ app, onUpdate }) {
             <p className="font-medium text-[var(--text-primary)] mt-2">Why a Good Fit</p>
             <p className="text-[var(--text-secondary)] whitespace-pre-wrap">{app.why_good_fit}</p>
           </div>
+
+          {/* Schedule interview */}
+          <div className="border-t border-[var(--border-color)] pt-3">
+            <button
+              onClick={() => setShowScheduler(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#B8956A] text-white hover:bg-[#A68559] transition-colors"
+            >
+              <CalendarPlus className="w-4 h-4" />
+              Schedule Interview
+            </button>
+          </div>
         </CardContent>
+      )}
+
+      {showScheduler && (
+        <InterviewSchedulerModal
+          app={app}
+          onClose={() => setShowScheduler(false)}
+          onScheduled={(conference) => onUpdate(app.id, { status: "interview_invitation" })}
+        />
       )}
     </Card>
   );
