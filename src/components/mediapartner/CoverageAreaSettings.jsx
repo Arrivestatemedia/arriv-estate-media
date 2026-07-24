@@ -103,6 +103,7 @@ export default function CoverageAreaSettings() {
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["user-record"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -144,6 +145,7 @@ export default function CoverageAreaSettings() {
       setCoverageArea("");
       setMaxDistance("");
       queryClient.invalidateQueries({ queryKey: ["user-record"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     } catch (e) {
       setError(e.response?.data?.error || e.message || "Failed to clear coverage area.");

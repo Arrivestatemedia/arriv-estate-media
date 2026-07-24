@@ -55,13 +55,22 @@ Deno.serve(async (req) => {
       console.error('Job geocode failed:', e.message);
     }
 
+    // State filter: if the job has a state, only notify partners in that state
+    // (partners with no state set see all jobs on the board, so they pass through).
+    let stateFiltered = mediaPartners;
+    if (job.state) {
+      stateFiltered = mediaPartners.filter(
+        (p) => !p.state || String(p.state).toUpperCase() === String(job.state).toUpperCase()
+      );
+    }
+
     let eligiblePartners;
     if (!jobCoords) {
-      // Can't determine job location → fall back to notifying everyone.
-      eligiblePartners = mediaPartners;
+      // Can't determine job location for radius → notify all state-matched partners.
+      eligiblePartners = stateFiltered;
     } else {
       eligiblePartners = [];
-      for (const p of mediaPartners) {
+      for (const p of stateFiltered) {
         const maxDist = p.max_travel_distance;
         // No coverage set → they see all jobs on the board, so notify them too.
         if (maxDist == null || (p.coverage_lat == null && p.coverage_lng == null && !p.coverage_area)) {

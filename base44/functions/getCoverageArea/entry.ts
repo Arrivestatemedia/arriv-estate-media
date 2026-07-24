@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const emailQuery = { $regex: `^${escaped}$`, $options: 'i' };
 
-    const empty = { coverage_area: null, coverage_lat: null, coverage_lng: null, max_travel_distance: null };
+    const empty = { coverage_area: null, coverage_lat: null, coverage_lng: null, max_travel_distance: null, state: null };
 
     const pending = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailQuery });
     if (pending.length > 0) {
@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
         coverage_area: r.coverage_area || null,
         coverage_lat: r.coverage_lat ?? null,
         coverage_lng: r.coverage_lng ?? null,
-        max_travel_distance: r.max_travel_distance ?? null
+        max_travel_distance: r.max_travel_distance ?? null,
+        state: r.state || null
       });
     }
 

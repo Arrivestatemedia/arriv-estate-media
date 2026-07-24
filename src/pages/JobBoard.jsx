@@ -90,18 +90,11 @@ export default function JobBoard() {
         }, "-created_date");
       }
       
-      // Get user's state for filtering
-      const userState = user?.state;
       const baseQuery = {
         status: filter === "open" ? "open" : { $in: ["open", "booked"] },
         from_booking: true
       };
-      
-      // For media partners, filter by state
-      if (user?.user_type === "media_partner" && userState) {
-        baseQuery.state = userState;
-      }
-      
+
       return base44.entities.Job.filter(baseQuery, "-created_date");
     },
     enabled: filter !== "booked" || !!user?.email || !!userEmail,
@@ -484,6 +477,11 @@ export default function JobBoard() {
      if (!hasCoverage) return true;
      const d = jobDistances[job.id];
      return d != null && d <= maxDistance;
+   })
+   .filter((job) => {
+     // Only show jobs in the partner's state (when they've set a coverage state).
+     if (!coverage?.state) return true;
+     return !!job.state && String(job.state).toUpperCase() === String(coverage.state).toUpperCase();
    });
 
   return (

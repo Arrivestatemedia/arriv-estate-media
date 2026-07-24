@@ -39,6 +39,10 @@
       "type": "number",
       "description": "Maximum distance (miles) the media partner will travel from their coverage area"
     },
+    "state": {
+      "type": "string",
+      "description": "US state (2-letter abbreviation) the media partner works in"
+    },
     "hasLoggedInBefore": {
       "type": "boolean",
       "default": false,

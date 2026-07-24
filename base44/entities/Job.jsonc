@@ -23,6 +23,10 @@
       "type": "string",
       "description": "Job location"
     },
+    "state": {
+      "type": "string",
+      "description": "US state (2-letter abbreviation) of the job location"
+    },
     "date": {
       "type": "string",
       "format": "date",

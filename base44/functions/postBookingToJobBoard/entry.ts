@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
         type: 'photo',
         description: `Property: ${propertyAddress}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
         location: propertyAddress,
+        state: booking.state,
         date: booking.preferred_date,
         start_time: booking.preferred_time,
         duration_hours: 2,
