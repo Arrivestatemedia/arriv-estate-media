@@ -149,6 +149,47 @@
       "type": "number",
       "default": 0,
       "description": "Total unpaid balance"
+    },
+    "background_check_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "pending",
+        "clear",
+        "failed"
+      ],
+      "default": "not_started",
+      "description": "One-time background check status (Checkr)"
+    },
+    "checkr_candidate_id": {
+      "type": "string",
+      "description": "Checkr candidate ID"
+    },
+    "checkr_invitation_id": {
+      "type": "string",
+      "description": "Checkr invitation ID"
+    },
+    "checkr_invitation_url": {
+      "type": "string",
+      "description": "Checkr hosted candidate invitation URL"
+    },
+    "checkr_report_id": {
+      "type": "string",
+      "description": "Checkr report ID"
+    },
+    "background_check_authorized_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the partner authorized the background check"
+    },
+    "background_check_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the background check result was received"
+    },
+    "background_check_pending_job_id": {
+      "type": "string",
+      "description": "Job ID the partner was booking when they initiated the background check"
     }
   },
   "required": [

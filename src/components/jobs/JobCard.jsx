@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film } from "lucide-react";
+import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film, ShieldCheck } from "lucide-react";
 import { format, parse as parseDate } from "date-fns";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
@@ -24,7 +24,7 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "bg-red-50 text-red-600 border-red-300" },
 };
 
-export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole, isMediaPartner, onJobUpdate }) {
+export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBookBackup, currentUserEmail, onUpdateBackup, userRole, isMediaPartner, onJobUpdate, backgroundCheckStatus, onCompleteBackgroundCheck }) {
   const type = typeConfig[job.type] || typeConfig.photo;
   const status = statusConfig[job.status] || statusConfig.open;
   const TypeIcon = type.icon;
@@ -272,6 +272,14 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
                 className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
               >
                 Book This Gig
+              </Button>
+            ) : isBookedByMe && backgroundCheckStatus && backgroundCheckStatus !== "clear" ? (
+              <Button
+                onClick={() => onCompleteBackgroundCheck && onCompleteBackgroundCheck(job)}
+                className="w-full bg-[#B8956A] hover:bg-[#A68559] text-white text-sm font-medium"
+              >
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Complete Background Check
               </Button>
             ) : isBookedByMe && job.media_partner_status === 'job_completed' && !job.footage_uploaded ? (
               <Button

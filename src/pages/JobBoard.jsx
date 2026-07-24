@@ -10,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import JobCard from "../components/jobs/JobCard";
 import CancelJobDialog from "../components/jobs/CancelJobDialog";
+import BackgroundCheckAuthorizationModal from "../components/backgroundcheck/BackgroundCheckAuthorizationModal";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,10 @@ export default function JobBoard() {
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [cancelSuccess, setCancelSuccess] = useState(false);
     const [showApparelRequired, setShowApparelRequired] = useState(false);
+  const [bgAuthOpen, setBgAuthOpen] = useState(false);
+  const [bgAuthContext, setBgAuthContext] = useState(null);
+  const [bgPendingOpen, setBgPendingOpen] = useState(false);
+  const [bgFailedOpen, setBgFailedOpen] = useState(false);
     const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const touchStartY = useRef(0);
@@ -329,11 +334,46 @@ export default function JobBoard() {
       booked_by_phone: phone,
     };
 
+    const bgStatus = user?.background_check_status;
+    if (bgStatus === "pending") {
+      setBgPendingOpen(true);
+      return;
+    }
+    if (bgStatus === "failed") {
+      setBgFailedOpen(true);
+      return;
+    }
+    if (bgStatus !== "clear") {
+      setBgAuthContext({ jobId: bookingJob.id, jobData, mediaPartnerEmail: email, bookJob: true });
+      setBgAuthOpen(true);
+      setBookingJob(null);
+      return;
+    }
+
     bookMutation.mutate({
       id: bookingJob.id,
       data: jobData,
       mediaPartnerEmail: email,
     });
+  };
+
+  const handleBgAuthorized = (invitationUrl) => {
+    setBgAuthOpen(false);
+    setBgAuthContext(null);
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+    if (invitationUrl) {
+      navigate(createPageUrl("BackgroundCheck"), { state: { invitationUrl } });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      navigate(createPageUrl("MediaPartnerDashboard"));
+    }
+  };
+
+  const handleCompleteBackgroundCheck = (job) => {
+    const storedEmail = localStorage.getItem('user_email');
+    const email = user?.email || storedEmail;
+    setBgAuthContext({ jobId: job.id, mediaPartnerEmail: email, bookJob: false });
+    setBgAuthOpen(true);
   };
 
   const handleCancel = (job) => {
@@ -508,6 +548,8 @@ export default function JobBoard() {
                   onBookBackup={handleBookBackup}
                   onUpdateBackup={handleBookBackup}
                   currentUserEmail={userEmail || user?.email}
+                  backgroundCheckStatus={user?.background_check_status}
+                  onCompleteBackgroundCheck={handleCompleteBackgroundCheck}
                   onJobUpdate={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
                 />
               );
@@ -604,6 +646,42 @@ export default function JobBoard() {
             }
           }}
         />
+
+        <BackgroundCheckAuthorizationModal
+          open={bgAuthOpen}
+          onOpenChange={setBgAuthOpen}
+          context={bgAuthContext}
+          onAuthorized={handleBgAuthorized}
+        />
+
+        <Dialog open={bgPendingOpen} onOpenChange={setBgPendingOpen}>
+          <DialogContent className="border-2 border-[#B8956A]/30">
+            <DialogHeader>
+              <DialogTitle className="text-[#1A1A1A]">Background Check In Progress</DialogTitle>
+              <DialogDescription className="text-[#1A1A1A]/60">
+                Your background check is already in progress. You'll be able to book new gigs once it clears. You can finish your background check any time.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBgPendingOpen(false)} className="border-[#1A1A1A]/20">Close</Button>
+              <Button onClick={() => { setBgPendingOpen(false); navigate(createPageUrl("BackgroundCheck"), { state: {} }); }} className="bg-[#B8956A] hover:bg-[#A68559] text-white">Resume Background Check</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={bgFailedOpen} onOpenChange={setBgFailedOpen}>
+          <DialogContent className="border-2 border-[#B8956A]/30">
+            <DialogHeader>
+              <DialogTitle className="text-[#1A1A1A]">Background Check Required</DialogTitle>
+              <DialogDescription className="text-[#1A1A1A]/60">
+                We weren't able to clear your background check. Please contact Arriv support to resolve this before booking gigs.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setBgFailedOpen(false)} className="bg-[#B8956A] hover:bg-[#A68559] text-white">OK</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

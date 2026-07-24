@@ -10,6 +10,7 @@ import AboutSalesJob from './pages/AboutSalesJob';
 import SalesJobApplication from './pages/SalesJobApplication';
 import PurchaseApparel from './pages/PurchaseApparel';
 import ApplicationPortal from './pages/ApplicationPortal';
+import BackgroundCheck from './pages/BackgroundCheck';
 import AdminApplications from './pages/AdminApplications';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -101,6 +102,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="ApplicationPortal">
             <ApplicationPortal />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/BackgroundCheck"
+        element={
+          <LayoutWrapper currentPageName="BackgroundCheck">
+            <BackgroundCheck />
           </LayoutWrapper>
         }
       />
