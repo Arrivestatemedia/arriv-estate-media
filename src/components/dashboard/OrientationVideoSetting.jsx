@@ -32,11 +32,12 @@ export default function OrientationVideoSetting() {
     setMessage("");
     try {
       const res = await base44.functions.invoke("setOrientationVideoUrl", { videoUrl: url.trim() });
-      if (res?.success) {
+      const result = res?.data || {};
+      if (result.success) {
         setSavedUrl(url.trim());
         setMessage("Saved — media partners will now see this video.");
       } else {
-        setMessage(res?.error || "Failed to save.");
+        setMessage(result.error || "Failed to save.");
       }
     } catch (e) {
       setMessage(e.message || "Failed to save.");
