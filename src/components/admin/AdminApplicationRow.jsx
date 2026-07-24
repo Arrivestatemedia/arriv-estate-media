@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { APPLICATION_STATUSES, getStatusLabel, getStatusColor } from "@/lib/applicationStatus";
-import { ChevronDown, ChevronRight, MessageSquarePlus, Trash2, Mail, Phone, MapPin, Eye } from "lucide-react";
+import { ChevronDown, ChevronRight, MessageSquarePlus, Trash2, Mail, Phone, MapPin, Eye, Send } from "lucide-react";
 import moment from "moment";
 
 export default function AdminApplicationRow({ app, onUpdate }) {
@@ -15,8 +15,21 @@ export default function AdminApplicationRow({ app, onUpdate }) {
   const [newUpdate, setNewUpdate] = useState("");
   const [docNote, setDocNote] = useState(app.documents_requested_note || "");
   const [posting, setPosting] = useState(false);
+  const [sendingWelcome, setSendingWelcome] = useState(false);
 
   const setStatus = (status) => onUpdate(app.id, { status });
+
+  const sendInvitationComing = async () => {
+    setSendingWelcome(true);
+    try {
+      await base44.functions.invoke("sendApplicationInvitationComing", { applicationId: app.id });
+      alert("Invitation-coming email sent to " + app.email);
+    } catch (err) {
+      alert("Failed to send email: " + (err?.message || "Unknown error"));
+    } finally {
+      setSendingWelcome(false);
+    }
+  };
 
   const addUpdate = async () => {
     if (!newUpdate.trim()) return;
@@ -105,6 +118,16 @@ export default function AdminApplicationRow({ app, onUpdate }) {
                 </button>
               ))}
             </div>
+            <Button
+              onClick={sendInvitationComing}
+              disabled={sendingWelcome}
+              size="sm"
+              variant="outline"
+              className="border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10"
+            >
+              <Send className="w-4 h-4 mr-1" />
+              {sendingWelcome ? "Sending…" : "Send Invitation-Coming Email"}
+            </Button>
           </div>
 
           {/* Contact info */}
