@@ -18,18 +18,10 @@ export default function OrientationVideo() {
     setLoading(false);
   }, [navigate]);
 
-  const handleNext = async () => {
-    setSaving(true);
-    try {
-      const email = localStorage.getItem('user_email');
-      // Mark orientation as completed so the gate allows through to the payment page
-      await base44.functions.invoke('markOrientationComplete', { email });
-    } catch (err) {
-      console.error('Failed to mark orientation complete:', err);
-    } finally {
-      setSaving(false);
-    }
-    navigate(createPageUrl("OrientationSizes"));
+  const handleNext = () => {
+    // Send the partner to sign the Media Partner Agreement next.
+    // Orientation is marked complete only after the agreement is signed.
+    navigate(createPageUrl("MediaPartnerTermsConditions"));
   };
 
   if (loading) {

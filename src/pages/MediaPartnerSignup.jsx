@@ -75,8 +75,7 @@ export default function MediaPartnerSignup() {
       if (response.data?.success) {
         localStorage.removeItem('mediaPartnerSignupFormData');
         localStorage.removeItem('mediaPartnerTermsScrolled');
-        const params = new URLSearchParams({ email: formData.email, full_name: formData.full_name });
-        window.location.href = `/MediaPartnerTermsConditions?${params.toString()}`;
+        window.location.href = '/SignIn';
       } else {
         setError(response.data?.error || "Failed to create account");
         setLoading(false);

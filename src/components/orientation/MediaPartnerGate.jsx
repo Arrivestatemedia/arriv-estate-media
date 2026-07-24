@@ -64,15 +64,6 @@ export default function MediaPartnerGate({ children }) {
         const currentPath = location.pathname;
         const allowedRoutes = ['OrientationVideo', 'OrientationSizes', 'MediaPartnerTermsConditions'];
 
-        // Terms must be signed before any other onboarding step
-        if (!termsSigned) {
-          if (!currentPath.includes('MediaPartnerTermsConditions')) {
-            navigate(createPageUrl('MediaPartnerTermsConditions'), { replace: true });
-          }
-          setIsReady(true);
-          return;
-        }
-
         const isOnAllowedRoute = allowedRoutes.some(route => currentPath.includes(route));
 
         // Not onboarded – block access unless on an orientation route

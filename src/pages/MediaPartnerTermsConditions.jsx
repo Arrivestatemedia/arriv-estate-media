@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { createPageUrl } from "../utils";
 
 const SECTIONS = [
   {
@@ -264,7 +265,12 @@ export default function MediaPartnerTermsConditions() {
       });
       if (res.data?.success) {
         localStorage.removeItem("mediaPartnerSignupFormData");
-        window.location.href = "/SignIn";
+        try {
+          await base44.functions.invoke("markOrientationComplete", { email: expectedEmail });
+        } catch (e) {
+          console.error("markOrientationComplete failed:", e);
+        }
+        navigate(createPageUrl("OrientationSizes"));
       } else {
         setError(res.data?.error || "Failed to record your agreement. Please try again.");
         setSubmitting(false);
