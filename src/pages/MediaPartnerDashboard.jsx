@@ -113,7 +113,7 @@ export default function MediaPartnerDashboard() {
     setStripeOnboarding(true);
     setStripeError("");
     try {
-      const res = await base44.functions.invoke('stripeConnectOnboard', {});
+      const res = await base44.functions.invoke('stripeConnectOnboard', { email: user?.email });
       if (res.data?.url) {
         window.location.href = res.data.url;
       } else {

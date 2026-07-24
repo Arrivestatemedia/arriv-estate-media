@@ -5,11 +5,19 @@ import { findPartnerRecord, updatePartnerRecord } from '../../shared/stripeConne
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const email = user.email;
-    if (!email) return Response.json({ error: 'No email on account' }, { status: 400 });
+    // Prefer the email passed from the frontend (the app uses custom auth with
+    // the email in localStorage) so onboarding doesn't depend on a base44 session.
+    const body = await req.json().catch(() => ({}));
+    let email = body.email;
+    let userId = '';
+
+    if (!email) {
+      const user = await base44.auth.me();
+      email = user?.email;
+      userId = user?.id || '';
+    }
+    if (!email) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
     const rec = await findPartnerRecord(base44, email);
@@ -24,7 +32,7 @@ Deno.serve(async (req) => {
         email,
         metadata: {
           base44_email: email,
-          base44_user_id: user.id || ''
+          base44_user_id: userId
         }
       });
       accountId = account.id;

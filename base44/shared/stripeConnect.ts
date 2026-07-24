@@ -15,9 +15,13 @@ export async function findPartnerRecord(base44, email) {
   if (signups && signups.length > 0) {
     return { collection: 'PendingSignup', id: signups[0].id, record: signups[0] };
   }
-  const users = await base44.asServiceRole.entities.User.filter({ email: emailQuery });
-  if (users && users.length > 0) {
-    return { collection: 'User', id: users[0].id, record: users[0] };
+  try {
+    const users = await base44.asServiceRole.entities.User.filter({ email: emailQuery });
+    if (users && users.length > 0) {
+      return { collection: 'User', id: users[0].id, record: users[0] };
+    }
+  } catch (_e) {
+    // Non-admin callers can't list users — return null instead of throwing.
   }
   return null;
 }

@@ -22,15 +22,27 @@ export default function CoverageAreaSettings() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  const email = localStorage.getItem("user_email");
+
   useEffect(() => {
     let mounted = true;
     (async () => {
+      if (!email) {
+        if (mounted) setLoading(false);
+        return;
+      }
       try {
-        const me = await base44.auth.me();
+        // Stored emails may use mixed case — match case-insensitively.
+        const normalized = email.toLowerCase();
+        const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const results = await base44.entities.PendingSignup.filter({
+          email: { $regex: `^${escaped}$`, $options: "i" },
+        });
         if (!mounted) return;
-        setCoverageArea(me?.coverage_area || "");
+        const rec = results[0];
+        setCoverageArea(rec?.coverage_area || "");
         setMaxDistance(
-          me?.max_travel_distance ? String(me.max_travel_distance) : ""
+          rec?.max_travel_distance ? String(rec.max_travel_distance) : ""
         );
       } catch (e) {
         // ignore — user may not be loaded yet
@@ -41,7 +53,7 @@ export default function CoverageAreaSettings() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [email]);
 
   const geocode = (address) =>
     new Promise((resolve, reject) => {
@@ -69,6 +81,10 @@ export default function CoverageAreaSettings() {
   const handleSave = async () => {
     setError("");
     setSuccess(false);
+    if (!email) {
+      setError("Please sign in to save your coverage area.");
+      return;
+    }
     if (!coverageArea.trim()) {
       setError("Please enter a coverage area.");
       return;
@@ -80,14 +96,18 @@ export default function CoverageAreaSettings() {
     }
     setSaving(true);
     try {
-      // Save the preference immediately so the user is never blocked
-      await base44.auth.updateMe({
+      const res = await base44.functions.invoke("saveCoverageArea", {
+        email,
         coverage_area: coverageArea.trim(),
         coverage_lat: null,
         coverage_lng: null,
         max_travel_distance: distance,
       });
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+      if (!res?.data?.success) {
+        setError(res?.data?.error || "Failed to save coverage area.");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["user-record"] });
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -95,33 +115,43 @@ export default function CoverageAreaSettings() {
       // Best-effort geocoding in the background to populate lat/lng
       geocode(coverageArea.trim())
         .then(async ({ lat, lng }) => {
-          await base44.auth.updateMe({ coverage_lat: lat, coverage_lng: lng });
+          await base44.functions.invoke("saveCoverageArea", {
+            email,
+            coverage_lat: lat,
+            coverage_lng: lng,
+          });
           queryClient.invalidateQueries({ queryKey: ["jobs"] });
         })
         .catch(() => {});
     } catch (e) {
-      setError(e.message || "Failed to save coverage area.");
+      setError(e.response?.data?.error || e.message || "Failed to save coverage area.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleClear = async () => {
+    if (!email) return;
     setSaving(true);
     setError("");
     try {
-      await base44.auth.updateMe({
+      const res = await base44.functions.invoke("saveCoverageArea", {
+        email,
         coverage_area: "",
         coverage_lat: null,
         coverage_lng: null,
         max_travel_distance: null,
       });
+      if (!res?.data?.success) {
+        setError(res?.data?.error || "Failed to clear coverage area.");
+        return;
+      }
       setCoverageArea("");
       setMaxDistance("");
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["user-record"] });
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     } catch (e) {
-      setError(e.message || "Failed to clear coverage area.");
+      setError(e.response?.data?.error || e.message || "Failed to clear coverage area.");
     } finally {
       setSaving(false);
     }
