@@ -104,10 +104,11 @@
         "interview_invitation",
         "final_review",
         "offer_extended",
-        "hired"
+        "hired",
+        "offer_not_extended"
       ],
       "default": "received",
-      "description": "Application status (media specialist uses received/reviewing/accepted/accepted_waitlist/denied; sales growth advisor uses received/under_review/interview_invitation/final_review/offer_extended/hired)"
+      "description": "Application status (media specialist uses received/reviewing/accepted/accepted_waitlist/denied; sales growth advisor uses received/under_review/interview_invitation/final_review/offer_extended/hired/offer_not_extended)"
     },
     "updates": {
       "type": "array",

@@ -13,6 +13,7 @@ export const SALES_STATUSES = [
   { value: "final_review", label: "Final Review", color: "#f59e0b" },
   { value: "offer_extended", label: "Offer Extended", color: "#06b6d4" },
   { value: "hired", label: "Hired", color: "#10b981" },
+  { value: "offer_not_extended", label: "Offer Not Extended", color: "#ef4444" },
 ];
 
 export const POSITION_LABELS = {
