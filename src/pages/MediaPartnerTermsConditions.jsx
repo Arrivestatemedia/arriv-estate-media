@@ -180,8 +180,9 @@ const SECTIONS = [
   {
     title: "14. Governing Law",
     paras: [
-      "This Agreement shall be governed by the laws of the State of Georgia without regard to conflict of law principles.",
-      "Any legal disputes shall be resolved in the appropriate courts located in Georgia.",
+      "This Agreement shall be governed by and construed in accordance with the laws of the State of Georgia, without regard to its conflict of law principles.",
+      "The parties agree that any legal action or proceeding arising out of or relating to this Agreement shall be brought exclusively in the state or federal courts located in Gwinnett County, Georgia, and each party irrevocably submits to the jurisdiction of such courts.",
+      "The Media Partner acknowledges and agrees that they are solely responsible for complying with all applicable federal, state, and local laws, regulations, licensing requirements, tax obligations, and professional requirements in each jurisdiction where they perform services under this Agreement.",
     ],
   },
   {
