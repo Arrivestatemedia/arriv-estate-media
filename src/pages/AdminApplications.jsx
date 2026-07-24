@@ -6,6 +6,7 @@ import { APPLICATION_STATUSES, SALES_STATUSES } from "@/lib/applicationStatus";
 import AdminApplicationRow from "@/components/admin/AdminApplicationRow";
 import AdminSalesApplicationRow from "@/components/admin/AdminSalesApplicationRow";
 import SalesWelcomeVideoControl from "@/components/admin/SalesWelcomeVideoControl";
+import SalesTrainingVideosControl from "@/components/admin/SalesTrainingVideosControl";
 import { Search, Briefcase, Camera } from "lucide-react";
 
 const POSITION_TABS = [
@@ -158,7 +159,12 @@ export default function AdminApplications() {
           })}
         </div>
 
-        {positionTab === "sales_growth_advisor" && <SalesWelcomeVideoControl />}
+        {positionTab === "sales_growth_advisor" && (
+          <>
+            <SalesWelcomeVideoControl />
+            <SalesTrainingVideosControl />
+          </>
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {statuses.map((s) => (

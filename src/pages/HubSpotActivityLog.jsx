@@ -25,6 +25,7 @@ import PoweredByFooter from "@/components/PoweredByFooter";
 import CallMapModal from "@/components/sales/CallMapModal";
 import ActivityArchive from "@/components/sales/ActivityArchive";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+import TrainingTab from "@/components/sales/TrainingTab";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
@@ -791,6 +792,7 @@ export default function HubSpotActivityLog() {
             { id: "queue", label: "Call Queue" },
             { id: "calendar", label: "Calendar" },
             { id: "prospect", label: "Prospecting" },
+            { id: "training", label: "Training" },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="shrink-0 px-4 py-3 font-medium border-b-2 transition" style={{ color: activeTab === tab.id ? '#B8956A' : 'rgba(26,26,26,0.6)', borderBottomColor: activeTab === tab.id ? '#B8956A' : 'transparent' }}>
               {tab.label}
@@ -866,6 +868,8 @@ export default function HubSpotActivityLog() {
         <div className={activeTab === "prospect" ? "" : "hidden"}>
           <ProspectingTab salesMemberId={user?.id} active={activeTab === "prospect"} />
         </div>
+
+        {activeTab === "training" && <TrainingTab />}
 
         {activeTab === "chat" && !isInLiveCall && (
            <div style={{ height: '600px' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">

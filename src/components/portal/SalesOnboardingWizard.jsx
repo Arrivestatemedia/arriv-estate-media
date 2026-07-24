@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, ArrowRight, FileText, PenLine, Receipt, CreditCard, Video, GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 import StepPersonalInfo from "./onboarding/StepPersonalInfo";
 import StepICA from "./onboarding/StepICA";
 import StepW9 from "./onboarding/StepW9";
@@ -114,7 +115,12 @@ export default function SalesOnboardingWizard({ application, fullName, addressPr
               <CheckCircle2 className="w-6 h-6" />
               <span className="font-semibold text-[var(--text-primary)]">Onboarding complete!</span>
             </div>
-            <p className="text-sm text-[var(--text-secondary)]">You've finished every step. Your Arriv team will reach out with your training schedule. Welcome to the team!</p>
+            <p className="text-sm text-[var(--text-secondary)]">You've finished every step. Your Arriv sales account has been activated and your training videos are ready in the Arriv Sales System.</p>
+            <Link to="/SalesLogin?tab=training">
+              <Button className="bg-[#10b981] hover:bg-[#0f9f72] text-white">
+                Go to the Sales System <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (

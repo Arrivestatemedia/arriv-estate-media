@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { verifyAndGet, computeStep } from "../../shared/salesOnboardingShared.ts";
+import { sendSalesAccountReadyEmail } from "../../shared/brevoSalesAccountReady.ts";
 
 const STEP_FIELDS = {
   personal_info: ["mailing_address", "city", "state", "zip", "phone", "emergency_contact_name", "emergency_contact_phone"],
@@ -67,6 +68,33 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error("training admin notify failed:", e.message);
+      }
+
+      // Provision the sales account + send the "Sales Account Is Ready" email (idempotent)
+      try {
+        const existingMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: v.app.email });
+        let tempPassword = null;
+        if (!existingMembers || existingMembers.length === 0) {
+          // Generate a temporary password and create the sales account
+          tempPassword = (Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 8).toUpperCase());
+          const encoder = new TextEncoder();
+          const data = encoder.encode(tempPassword);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const passwordHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+          await base44.asServiceRole.entities.SalesTeamMember.create({
+            email: v.app.email,
+            full_name: v.app.full_name,
+            phone_number: v.app.phone || '',
+            password_hash: passwordHash,
+            is_active: true,
+            force_password_change: true,
+          });
+        }
+        // Always send the ready email (temp password line only included if newly created)
+        await sendSalesAccountReadyEmail(v.app.email, v.app.full_name, tempPassword);
+      } catch (e) {
+        console.error("training sales account provisioning failed:", e.message);
       }
     }
 

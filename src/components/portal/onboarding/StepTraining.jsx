@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, GraduationCap } from "lucide-react";
+import { Loader2, CheckCircle2, GraduationCap, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function StepTraining({ onboarding, identity, onUpdated }) {
   const started = !!onboarding.training_started_at;
@@ -24,12 +25,17 @@ export default function StepTraining({ onboarding, identity, onUpdated }) {
 
   if (started) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center gap-2 text-green-600">
           <CheckCircle2 className="w-5 h-5" />
-          <span className="text-sm font-medium">Onboarding complete — training begins!</span>
+          <span className="text-sm font-medium">Onboarding complete — your sales account is ready!</span>
         </div>
-        <p className="text-sm text-[var(--text-secondary)]">You've completed every onboarding step. Your Arriv team will reach out with your training schedule and everything you need to get started. Welcome aboard!</p>
+        <p className="text-sm text-[var(--text-secondary)]">We've activated your Arriv sales account and emailed your login details. Your training videos are waiting in the Arriv Sales System.</p>
+        <Link to="/SalesLogin?tab=training">
+          <Button className="bg-[#10b981] hover:bg-[#0f9f72] text-white">
+            Go to the Sales System <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </Link>
       </div>
     );
   }

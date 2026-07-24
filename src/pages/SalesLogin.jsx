@@ -58,7 +58,10 @@ export default function SalesLogin() {
         });
         // Route admins to AdminHub, others to HubSpotActivityLog
         const redirectPage = result.data.role === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
-        navigate(createPageUrl(redirectPage));
+        // Preserve a ?tab= hint (e.g. newly-onboarded hires land on the Training tab)
+        const tabHint = new URLSearchParams(window.location.search).get('tab');
+        const target = createPageUrl(redirectPage) + (result.data.role !== 'admin' && tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '');
+        navigate(target);
       } else {
         setError("Incorrect email or password. Please try again.");
       }
