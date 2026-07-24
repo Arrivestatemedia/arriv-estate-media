@@ -80,17 +80,25 @@ export default function CoverageAreaSettings() {
     }
     setSaving(true);
     try {
-      const { lat, lng } = await geocode(coverageArea.trim());
+      // Save the preference immediately so the user is never blocked
       await base44.auth.updateMe({
         coverage_area: coverageArea.trim(),
-        coverage_lat: lat,
-        coverage_lng: lng,
+        coverage_lat: null,
+        coverage_lng: null,
         max_travel_distance: distance,
       });
       queryClient.invalidateQueries({ queryKey: ["user"] });
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
+
+      // Best-effort geocoding in the background to populate lat/lng
+      geocode(coverageArea.trim())
+        .then(async ({ lat, lng }) => {
+          await base44.auth.updateMe({ coverage_lat: lat, coverage_lng: lng });
+          queryClient.invalidateQueries({ queryKey: ["jobs"] });
+        })
+        .catch(() => {});
     } catch (e) {
       setError(e.message || "Failed to save coverage area.");
     } finally {
