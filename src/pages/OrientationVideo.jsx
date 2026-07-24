@@ -23,6 +23,25 @@ export default function OrientationVideo() {
     })();
   }, [navigate]);
 
+  // Normalize a YouTube URL (youtu.be / watch?v= / embed) into an embeddable URL.
+  // Direct video file URLs and other providers are returned unchanged.
+  const normalizeVideoUrl = (url) => {
+    if (!url) return "";
+    try {
+      const u = new URL(url);
+      if (u.hostname === "youtu.be") {
+        return `https://www.youtube.com/embed/${u.pathname.replace("/", "")}`;
+      }
+      if (u.hostname.endsWith("youtube.com")) {
+        const v = u.searchParams.get("v");
+        if (u.pathname === "/watch" && v) return `https://www.youtube.com/embed/${v}`;
+      }
+      return url;
+    } catch {
+      return url;
+    }
+  };
+
   const handleNext = () => {
     // Send the partner to sign the Media Partner Agreement next.
     // Orientation is marked complete only after the agreement is signed.
@@ -48,7 +67,7 @@ export default function OrientationVideo() {
             {videoUrl ? (
               <div className="aspect-video bg-black rounded-lg overflow-hidden">
                 <iframe
-                  src={videoUrl}
+                  src={normalizeVideoUrl(videoUrl)}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
