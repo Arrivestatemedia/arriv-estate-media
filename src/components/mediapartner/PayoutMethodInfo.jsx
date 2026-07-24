@@ -6,9 +6,19 @@ import { Wallet } from "lucide-react";
 export default function PayoutMethodInfo({ user }) {
   if (!user?.payout_method) return null;
 
-  const payoutInfo = user.payout_method === "zelle" 
-    ? { method: "Zelle (Instant)", info: user.zelle_info }
-    : { method: "Bank Account (3-5 days)", info: `****${user.bank_account_last4}` };
+  // All payouts go through Stripe Connect.
+  const isStripe = user.payout_method === "stripe_connect";
+  const payoutInfo = isStripe
+    ? {
+        method: "Stripe Connect",
+        info: user.stripe_payouts_enabled
+          ? "Direct deposit active — payouts every Friday"
+          : "Setup incomplete — finish Stripe onboarding"
+      }
+    : {
+        method: "Stripe Connect (required)",
+        info: "Zelle/bank payouts are no longer supported. Set up Stripe direct deposit."
+      };
 
   return (
     <Card className="border-[#B8956A]/20">

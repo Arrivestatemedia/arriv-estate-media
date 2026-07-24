@@ -8,9 +8,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Email is required' }, { status: 400 });
     }
 
+    // All payouts must go through Stripe Connect — Zelle and bank transfers are no longer supported.
+    if (payout_method && payout_method !== 'stripe_connect') {
+      return Response.json(
+        { error: 'Zelle and bank transfer payouts are no longer supported. Please use Stripe Connect direct deposit.' },
+        { status: 400 }
+      );
+    }
+
     const base44 = createClientFromRequest(req);
 
-    const updateData = { payout_method };
+    const updateData = { payout_method: 'stripe_connect' };
 
     if (payout_method === "zelle") {
       updateData.zelle_info = zelle_info;
