@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { sendWelcomeEmail } from '../../shared/brevoWelcomeEmail.ts';
+import { sendSalesWelcomeEmail } from '../../shared/brevoSalesWelcomeEmail.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -237,8 +238,13 @@ Signature: ${signature}
     }
 
     // Send welcome email to the applicant via Brevo (non-blocking on failure)
+    // Sales Growth Advisor applicants receive a sales-specific welcome email
     try {
-      await sendWelcomeEmail(email, fullName);
+      if (positionValue === 'sales_growth_advisor') {
+        await sendSalesWelcomeEmail(email, fullName);
+      } else {
+        await sendWelcomeEmail(email, fullName);
+      }
     } catch (welcomeErr) {
       console.error('Failed to send applicant welcome email:', welcomeErr.message);
     }
