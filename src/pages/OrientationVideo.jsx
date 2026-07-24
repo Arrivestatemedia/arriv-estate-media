@@ -37,8 +37,8 @@ function loadYouTubeAPI() {
       tag.src = "https://www.youtube.com/iframe_api";
       document.head.appendChild(tag);
     }
-    const prev = window.onYouTubeIframeReady;
-    window.onYouTubeIframeReady = () => {
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
       if (typeof prev === "function") prev();
       resolve(window.YT);
     };
