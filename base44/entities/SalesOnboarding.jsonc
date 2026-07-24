@@ -1,0 +1,118 @@
+{
+  "name": "SalesOnboarding",
+  "type": "object",
+  "properties": {
+    "application_id": {
+      "type": "string",
+      "description": "ID of the JobApplication this onboarding tracks"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Candidate's full name (denormalized)"
+    },
+    "email": {
+      "type": "string",
+      "description": "Candidate's email (denormalized)"
+    },
+    "current_step": {
+      "type": "integer",
+      "default": 1,
+      "description": "First incomplete onboarding step (1=offer accepted, 2=personal info, 3=ICA, 4=W-9, 5=Stripe, 6=welcome video, 7=training)"
+    },
+    "personal_info_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mailing_address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "zip": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "emergency_contact_name": {
+      "type": "string"
+    },
+    "emergency_contact_phone": {
+      "type": "string"
+    },
+    "ica_signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ica_signature": {
+      "type": "string"
+    },
+    "ica_version": {
+      "type": "string"
+    },
+    "w9_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "w9_legal_name": {
+      "type": "string"
+    },
+    "w9_business_name": {
+      "type": "string"
+    },
+    "w9_address": {
+      "type": "string"
+    },
+    "w9_tax_classification": {
+      "type": "string",
+      "enum": [
+        "individual_sole",
+        "c_corp",
+        "s_corp",
+        "partnership",
+        "trust_estate",
+        "llc"
+      ]
+    },
+    "w9_llc_classification": {
+      "type": "string"
+    },
+    "w9_tin": {
+      "type": "string"
+    },
+    "w9_signature": {
+      "type": "string"
+    },
+    "stripe_account_id": {
+      "type": "string"
+    },
+    "stripe_connected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stripe_details_submitted": {
+      "type": "boolean",
+      "default": false
+    },
+    "welcome_video_watched_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "training_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When all onboarding steps were completed"
+    }
+  },
+  "required": [
+    "application_id"
+  ]
+}
