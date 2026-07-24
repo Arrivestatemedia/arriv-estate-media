@@ -89,6 +89,7 @@
         "received",
         "reviewing",
         "accepted",
+        "accepted_waitlist",
         "denied"
       ],
       "default": "received",

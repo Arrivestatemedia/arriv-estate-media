@@ -221,6 +221,26 @@ export default function ApplicationPortal() {
               </CardContent>
             </Card>
 
+            {/* Accepted - Waitlist */}
+            {application.status === "accepted_waitlist" && (
+              <Card className="border-2 border-amber-300 bg-amber-50/50">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-8 h-8 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold text-[var(--text-primary)]">You've been approved!</h3>
+                      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                        Great news! You've been approved to join Arriv Estate Media! We've reserved a future spot for you on the Arriv platform.
+                      </p>
+                      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                        Due to our phased rollout, you're currently on our approved waitlist. We'll contact you as soon as a spot becomes available and we're ready to activate your account.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Accepted — continue to account setup */}
             {application.status === "accepted" && (
               <Card className="border-2 border-green-300 bg-green-50/50">

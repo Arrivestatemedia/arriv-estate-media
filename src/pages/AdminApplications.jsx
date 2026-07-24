@@ -38,6 +38,18 @@ export default function AdminApplications() {
         }
       }
     }
+
+    // Send the waitlist email when transitioning into "accepted_waitlist"
+    if (data.status === 'accepted_waitlist') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'accepted_waitlist') {
+        try {
+          await base44.functions.invoke('sendApplicationWaitlistEmail', { applicationId: id });
+        } catch (err) {
+          console.error('Waitlist email failed:', err);
+        }
+      }
+    }
   };
 
   const filtered = applications.filter((a) => {
