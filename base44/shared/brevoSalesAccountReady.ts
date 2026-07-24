@@ -1,11 +1,16 @@
 import { sendBrevoEmail } from "./brevoClient.ts";
 import { deriveFirstName } from "./brevoWelcomeEmail.ts";
 
-export function buildSalesAccountReadyHtml(firstName, tempPassword) {
+export function buildSalesAccountReadyHtml(firstName, tempPassword, email) {
   let appDomain = Deno.env.get("BASE44_APP_DOMAIN") || "app.arrivestatemedia.com";
   while (/^https?:\/\//i.test(appDomain)) appDomain = appDomain.replace(/^https?:\/\//i, "");
   appDomain = appDomain.replace(/\/+$/, "");
-  const loginUrl = `https://${appDomain}/SalesLogin?tab=training`;
+  // When a temporary password is available, embed it so the email button auto-logs the rep in
+  // and routes them straight to the forced password-change screen.
+  const autoParams = tempPassword && email
+    ? `&auto=1&email=${encodeURIComponent(email)}&pw=${encodeURIComponent(tempPassword)}`
+    : "";
+  const loginUrl = `https://${appDomain}/SalesLogin?tab=training${autoParams}`;
 
   const credsHtml = tempPassword
     ? `<p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your temporary login password is: <strong style="color:#B8956A;">${tempPassword}</strong></p>`
@@ -71,7 +76,7 @@ export function buildSalesAccountReadyHtml(firstName, tempPassword) {
 
 export async function sendSalesAccountReadyEmail(toEmail, fullName, tempPassword) {
   const firstName = deriveFirstName(fullName);
-  const html = buildSalesAccountReadyHtml(firstName, tempPassword);
+  const html = buildSalesAccountReadyHtml(firstName, tempPassword, toEmail);
   return sendBrevoEmail({
     to: toEmail,
     subject: "Welcome to Arriv! Your Sales Account Is Ready",

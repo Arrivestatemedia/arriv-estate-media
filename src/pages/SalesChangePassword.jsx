@@ -19,12 +19,16 @@ export default function SalesChangePassword() {
   const [showNew, setShowNew] = useState(false);
 
   const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+  // Auto mode: arrived via the email auto-login button — the temp password is held in session
+  // storage, so we don't ask for it again.
+  const autoMode = new URLSearchParams(window.location.search).get('auto') === '1'
+    && !!sessionStorage.getItem('sales_temp_password');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    const cur = e.target.currentPassword?.value || currentPassword;
+    const cur = autoMode ? sessionStorage.getItem('sales_temp_password') : (e.target.currentPassword?.value || currentPassword);
     const next = e.target.newPassword?.value || newPassword;
     const conf = e.target.confirmPassword?.value || confirmPassword;
 
@@ -51,6 +55,7 @@ export default function SalesChangePassword() {
       if (result.data?.success) {
         localStorage.removeItem('sales_force_password_change');
         sessionStorage.removeItem('sales_force_password_change');
+        sessionStorage.removeItem('sales_temp_password');
         const tabHint = new URLSearchParams(window.location.search).get('tab');
         const target = createPageUrl('HubSpotActivityLog') + (tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '');
         navigate(target, { replace: true });
@@ -91,6 +96,7 @@ export default function SalesChangePassword() {
                 </div>
               )}
 
+              {autoMode ? null : (
               <div>
                 <label className="block text-sm font-medium mb-2">Current Password</label>
                 <div className="relative">
@@ -109,6 +115,7 @@ export default function SalesChangePassword() {
                   </button>
                 </div>
               </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-2">New Password</label>

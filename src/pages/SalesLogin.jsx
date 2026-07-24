@@ -39,6 +39,56 @@ export default function SalesLogin() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState(null);
+  const [autoLoading, setAutoLoading] = useState(false);
+
+  // Auto-login via the email button (embeds a one-time temporary password)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auto') !== '1') return;
+    const emailParam = params.get('email');
+    const pwParam = params.get('pw');
+    if (!emailParam || !pwParam) return;
+    const salesId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+    if (salesId) return; // already logged in — the redirect effect handles it
+
+    setAutoLoading(true);
+    base44.functions.invoke('salesTeamLogin', { email: emailParam, password: pwParam })
+      .then((result) => {
+        if (result.data?.success) {
+          const salesData = {
+            sales_member_id: result.data.memberId,
+            sales_member_name: result.data.name,
+            sales_member_email: result.data.email,
+            sales_member_role: result.data.role || 'user',
+          };
+          Object.entries(salesData).forEach(([k, v]) => {
+            localStorage.setItem(k, v);
+            sessionStorage.setItem(k, v);
+          });
+          sessionStorage.setItem('sales_temp_password', pwParam);
+          const tabHint = params.get('tab');
+          const tabSuffix = tabHint ? `?tab=${encodeURIComponent(tabHint)}&auto=1` : '?auto=1';
+          if (result.data.forcePasswordChange && result.data.role !== 'admin') {
+            localStorage.setItem('sales_force_password_change', 'true');
+            sessionStorage.setItem('sales_force_password_change', 'true');
+            navigate(createPageUrl('SalesChangePassword') + tabSuffix);
+          } else {
+            localStorage.removeItem('sales_force_password_change');
+            sessionStorage.removeItem('sales_force_password_change');
+            sessionStorage.removeItem('sales_temp_password');
+            const redirectPage = result.data.role === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
+            navigate(createPageUrl(redirectPage) + (tabHint ? `?tab=${encodeURIComponent(tabHint)}` : ''));
+          }
+        } else {
+          setAutoLoading(false);
+          setError("This sign-in link is no longer valid. Please sign in manually below.");
+        }
+      })
+      .catch(() => {
+        setAutoLoading(false);
+        setError("This sign-in link is no longer valid. Please sign in manually below.");
+      });
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -113,6 +163,12 @@ export default function SalesLogin() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      {autoLoading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-50/90">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-[#B8956A] rounded-full animate-spin mb-4"></div>
+          <p className="text-sm text-gray-600">Signing you in…</p>
+        </div>
+      )}
       <div className="flex-1 flex items-center justify-center w-full">
         <Card className="w-full max-w-md">
         <CardHeader>
