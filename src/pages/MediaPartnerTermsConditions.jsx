@@ -106,7 +106,6 @@ const SECTIONS = [
     paras: [
       "All photographs, videos, drone footage, floor plans, and other media created for Arriv assignments become the property of Arriv Estate Media upon payment.",
       "The Media Partner grants Arriv a perpetual, worldwide, royalty-free license to use, edit, reproduce, distribute, market, and sublicense the media.",
-      "Media Partners may include completed work in personal portfolios unless prohibited by a client or applicable law.",
     ],
   },
   {
