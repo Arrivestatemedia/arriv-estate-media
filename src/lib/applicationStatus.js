@@ -3,7 +3,7 @@ export const APPLICATION_STATUSES = [
   { value: "reviewing", label: "Under Review", color: "#3b82f6" },
   { value: "accepted", label: "Accepted to Platform", color: "#10b981" },
   { value: "accepted_waitlist", label: "Accepted - Waitlist", color: "#f59e0b" },
-  { value: "denied", label: "Access Denied", color: "#ef4444" },
+  { value: "denied", label: "Launch Full - Application Closed", color: "#ef4444" },
 ];
 
 export const getStatusLabel = (value) =>

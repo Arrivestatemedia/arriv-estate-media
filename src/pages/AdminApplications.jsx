@@ -50,6 +50,18 @@ export default function AdminApplications() {
         }
       }
     }
+
+    // Send the application-closed email when transitioning into "denied"
+    if (data.status === 'denied') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'denied') {
+        try {
+          await base44.functions.invoke('sendApplicationClosedEmail', { applicationId: id });
+        } catch (err) {
+          console.error('Closed email failed:', err);
+        }
+      }
+    }
   };
 
   const filtered = applications.filter((a) => {
