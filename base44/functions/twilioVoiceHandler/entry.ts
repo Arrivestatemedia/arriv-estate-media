@@ -13,24 +13,38 @@ Deno.serve(async (req) => {
     console.log('Content-Type:', contentType, 'Body:', body.substring(0, 300));
 
     // Parse body — Twilio sends application/x-www-form-urlencoded
-    let to, from;
+    let to, from, digits;
     try {
       if (body.trim().startsWith('{')) {
         const json = JSON.parse(body);
         to = json.To;
         from = json.From;
+        digits = json.Digits;
       } else {
         const params = new URLSearchParams(body);
         to = params.get('To');
         from = params.get('From');
+        digits = params.get('Digits');
       }
     } catch (_) {
       const params = new URLSearchParams(body);
       to = params.get('To');
       from = params.get('From');
+      digits = params.get('Digits');
     }
 
-    console.log('to:', to, 'from:', from);
+    // "menu" flag: set via query string on the Gather action URL (real Twilio flow),
+    // with a body fallback for robustness/testing.
+    const urlObj = new URL(req.url);
+    let menu = urlObj.searchParams.get('menu');
+    if (!menu) {
+      try {
+        const p = body.trim().startsWith('{') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
+        if (p && p.menu) menu = String(p.menu);
+      } catch (_) {}
+    }
+
+    console.log('to:', to, 'from:', from, 'digits:', digits, 'menu:', menu);
 
     if (!to) {
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>No destination provided.</Say></Response>`);
@@ -165,13 +179,36 @@ Deno.serve(async (req) => {
             const clientNumber = job.client_phone.startsWith('+')
               ? job.client_phone
               : '+1' + job.client_phone.replace(/\D/g, '');
-            console.log('Media partner inbound → bridging to client', clientNumber, 'for job', job.id);
-            return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+
+            // Digit selection from the IVR menu
+            if (digits === '1') {
+              console.log('Media partner pressed 1 → bridging to client', clientNumber, 'for job', job.id);
+              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="45">
     <Number>${clientNumber}</Number>
   </Dial>
 </Response>`);
+            }
+
+            const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || '';
+            const actionUrl = appDomain ? `${appDomain}/functions/twilioVoiceHandler?menu=1` : '';
+
+            // If this is a Gather result that wasn't "1" (pressed 2 or timed out),
+            // fall through to the support / sales-rep routing below.
+            if (menu === '1') {
+              console.log('Media partner menu → routing to support (digit:', digits, ')');
+            } else {
+              // First contact — present the IVR menu
+              console.log('Media partner inbound → presenting IVR menu for job', job.id);
+              return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
+    <Say voice="Polly.Joanna">To reach your client, press 1. To reach support, press 2.</Say>
+  </Gather>
+  <Say voice="Polly.Joanna">Connecting you to support.</Say>
+</Response>`);
+            }
           }
         } catch (e) {
           console.error('Media partner bridge lookup failed:', e.message);
