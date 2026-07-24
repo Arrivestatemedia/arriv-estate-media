@@ -42,7 +42,8 @@ Deno.serve(async (req) => {
       memberId: member.id,
       name: member.full_name,
       email: member.email,
-      role: member.role || 'user'
+      role: member.role || 'user',
+      forcePasswordChange: member.force_password_change === true
     });
 
   } catch (error) {

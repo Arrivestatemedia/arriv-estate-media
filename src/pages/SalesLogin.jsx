@@ -17,7 +17,14 @@ export default function SalesLogin() {
   useEffect(() => {
     const salesId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
     if (salesId) {
-      navigate(createPageUrl("HubSpotActivityLog"), { replace: true });
+      const forcePw = localStorage.getItem('sales_force_password_change') || sessionStorage.getItem('sales_force_password_change');
+      if (forcePw === 'true') {
+        const tabHint = new URLSearchParams(window.location.search).get('tab');
+        const target = createPageUrl("SalesChangePassword") + (tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '');
+        navigate(target, { replace: true });
+      } else {
+        navigate(createPageUrl("HubSpotActivityLog"), { replace: true });
+      }
       return;
     }
     // Don't touch Base44 auth here — just show the login form
@@ -56,12 +63,20 @@ export default function SalesLogin() {
           localStorage.setItem(k, v);
           sessionStorage.setItem(k, v);
         });
+        const tabHint = new URLSearchParams(window.location.search).get('tab');
+        const tabSuffix = tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '';
+        // Force a password change before anything else (newly-onboarded reps)
+        if (result.data.forcePasswordChange && result.data.role !== 'admin') {
+          localStorage.setItem('sales_force_password_change', 'true');
+          sessionStorage.setItem('sales_force_password_change', 'true');
+          navigate(createPageUrl("SalesChangePassword") + tabSuffix);
+          return;
+        }
+        localStorage.removeItem('sales_force_password_change');
+        sessionStorage.removeItem('sales_force_password_change');
         // Route admins to AdminHub, others to HubSpotActivityLog
         const redirectPage = result.data.role === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
-        // Preserve a ?tab= hint (e.g. newly-onboarded hires land on the Training tab)
-        const tabHint = new URLSearchParams(window.location.search).get('tab');
-        const target = createPageUrl(redirectPage) + (result.data.role !== 'admin' && tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '');
-        navigate(target);
+        navigate(createPageUrl(redirectPage) + tabSuffix);
       } else {
         setError("Incorrect email or password. Please try again.");
       }

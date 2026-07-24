@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import AboutJob from './pages/AboutJob';
 import AboutSalesJob from './pages/AboutSalesJob';
 import SalesJobApplication from './pages/SalesJobApplication';
+import SalesChangePassword from './pages/SalesChangePassword';
 import PurchaseApparel from './pages/PurchaseApparel';
 import ApplicationPortal from './pages/ApplicationPortal';
 import BackgroundCheck from './pages/BackgroundCheck';
@@ -87,6 +88,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="SalesJobApplication">
             <SalesJobApplication />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/SalesChangePassword"
+        element={
+          <LayoutWrapper currentPageName="SalesChangePassword">
+            <SalesChangePassword />
           </LayoutWrapper>
         }
       />

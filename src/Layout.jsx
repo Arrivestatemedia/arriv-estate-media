@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
 import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck } from "lucide-react";
@@ -18,8 +18,20 @@ import AdminNotificationPanel from "@/components/sales/AdminNotificationPanel";
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Force password change gate for newly-onboarded sales reps
+  useEffect(() => {
+    const salesId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+    const forcePw = localStorage.getItem('sales_force_password_change') || sessionStorage.getItem('sales_force_password_change');
+    if (salesId && forcePw === 'true' && currentPageName !== "SalesChangePassword" && currentPageName !== "SalesLogin") {
+      const tabHint = new URLSearchParams(window.location.search).get('tab');
+      const target = createPageUrl("SalesChangePassword") + (tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '');
+      navigate(target, { replace: true });
+    }
+  }, [currentPageName, navigate]);
 
   useEffect(() => {
     // Helper: read from localStorage with sessionStorage fallback (Safari ITP)

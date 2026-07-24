@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     // Hash new password
     const newHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(newPassword)))).map(b => b.toString(16).padStart(2, '0')).join('');
 
-    await base44.asServiceRole.entities.SalesTeamMember.update(salesMemberId, { password_hash: newHash });
+    await base44.asServiceRole.entities.SalesTeamMember.update(salesMemberId, { password_hash: newHash, force_password_change: false });
 
     return Response.json({ success: true });
   } catch (error) {
