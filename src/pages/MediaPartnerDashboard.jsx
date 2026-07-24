@@ -106,17 +106,22 @@ export default function MediaPartnerDashboard() {
   };
 
   const [stripeOnboarding, setStripeOnboarding] = useState(false);
+  const [stripeError, setStripeError] = useState("");
   const [instantPayoutOpen, setInstantPayoutOpen] = useState(false);
 
   const handleStripeOnboard = async () => {
     setStripeOnboarding(true);
+    setStripeError("");
     try {
       const res = await base44.functions.invoke('stripeConnectOnboard', {});
       if (res.data?.url) {
         window.location.href = res.data.url;
+      } else {
+        setStripeError(res.data?.error || "Could not start Stripe onboarding. Please try again.");
       }
     } catch (e) {
       console.error('Stripe onboarding failed:', e);
+      setStripeError(e.response?.data?.error || e.message || "Failed to start Stripe onboarding.");
     } finally {
       setStripeOnboarding(false);
     }
@@ -258,6 +263,11 @@ export default function MediaPartnerDashboard() {
                   ? "Update bank info"
                   : "Set up direct deposit"}
             </Button>
+            {stripeError && (
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                {stripeError}
+              </div>
+            )}
             {userRecord?.stripe_payouts_enabled && (availableBalance > 0 || pendingBalance > 0) && (
               <Button
                 variant="outline"

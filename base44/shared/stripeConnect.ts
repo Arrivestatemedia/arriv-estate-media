@@ -1,14 +1,21 @@
 // Shared helpers for the Stripe Connect payout flow.
 // Used by stripeConnectOnboard, processWeeklyPayouts, and handleStripeWebhook.
 
+function escapeRegex(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function findPartnerRecord(base44, email) {
   if (!email) return null;
   const normalized = String(email).toLowerCase();
-  const signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: normalized });
+  // Stored emails may use mixed case — match case-insensitively so we don't
+  // miss the record and fall through to the admin-only User lookup.
+  const emailQuery = { $regex: `^${escapeRegex(normalized)}$`, $options: 'i' };
+  const signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailQuery });
   if (signups && signups.length > 0) {
     return { collection: 'PendingSignup', id: signups[0].id, record: signups[0] };
   }
-  const users = await base44.asServiceRole.entities.User.filter({ email: normalized });
+  const users = await base44.asServiceRole.entities.User.filter({ email: emailQuery });
   if (users && users.length > 0) {
     return { collection: 'User', id: users[0].id, record: users[0] };
   }
