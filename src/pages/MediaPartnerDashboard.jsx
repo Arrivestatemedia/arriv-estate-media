@@ -154,7 +154,7 @@ export default function MediaPartnerDashboard() {
                 {pendingBalance > 0 ? (
                   <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    +${pendingBalance.toFixed(2)} clearing (1–2 business days)
+                    +${pendingBalance.toFixed(2)} processing (1–2 business days)
                   </p>
                 ) : (
                   <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -268,7 +268,7 @@ export default function MediaPartnerDashboard() {
                 <Zap className="w-4 h-4 mr-2" />
                 {availableBalance > 0
                   ? `Instant Payout · $${availableBalance.toFixed(2)}`
-                  : `$${pendingBalance.toFixed(2)} clearing…`}
+                  : `$${pendingBalance.toFixed(2)} processing…`}
               </Button>
             )}
           </CardContent>
