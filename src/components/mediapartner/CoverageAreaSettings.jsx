@@ -45,6 +45,7 @@ export default function CoverageAreaSettings() {
 
   const geocode = (address) =>
     new Promise((resolve, reject) => {
+      const startedAt = Date.now();
       const tryGeocode = () => {
         if (window.google?.maps?.Geocoder) {
           const geocoder = new window.google.maps.Geocoder();
@@ -56,6 +57,8 @@ export default function CoverageAreaSettings() {
               reject(new Error("Could not find that address. Try being more specific."));
             }
           });
+        } else if (Date.now() - startedAt > 10000) {
+          reject(new Error("Maps failed to load. Please refresh the page and try again."));
         } else {
           setTimeout(tryGeocode, 400);
         }
