@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -95,6 +95,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Scheduled Bookings", page: "AdminScheduledBookings", icon: CalendarClock },
             { label: "Send Media", page: "SendMediaToClient", icon: Send },
             { label: "Applications", page: "AdminApplications", icon: FileText },
+            { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck },
           ]
       : isClient
     ? [

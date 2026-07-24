@@ -23,10 +23,8 @@ export default function BackgroundCheckAuthorizationModal({ open, onOpenChange, 
     try {
       const res = await base44.functions.invoke("initiateBackgroundCheck", context || {});
       const data = res.data || {};
-      if (data.invitation_url) {
-        onAuthorized(data.invitation_url);
-      } else if (data.alreadyCleared) {
-        onAuthorized(null);
+      if (data.invitation_url || data.manual || data.alreadyCleared) {
+        onAuthorized(data);
       } else {
         throw new Error(data.error || "Failed to start background check");
       }

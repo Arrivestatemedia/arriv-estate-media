@@ -357,12 +357,14 @@ export default function JobBoard() {
     });
   };
 
-  const handleBgAuthorized = (invitationUrl) => {
+  const handleBgAuthorized = (data) => {
     setBgAuthOpen(false);
     setBgAuthContext(null);
     queryClient.invalidateQueries({ queryKey: ["user"] });
-    if (invitationUrl) {
-      navigate(createPageUrl("BackgroundCheck"), { state: { invitationUrl } });
+    if (data?.invitation_url) {
+      navigate(createPageUrl("BackgroundCheck"), { state: { invitationUrl: data.invitation_url } });
+    } else if (data?.manual) {
+      navigate(createPageUrl("BackgroundCheck"), { state: { manual: true } });
     } else {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       navigate(createPageUrl("MediaPartnerDashboard"));

@@ -12,6 +12,7 @@ import PurchaseApparel from './pages/PurchaseApparel';
 import ApplicationPortal from './pages/ApplicationPortal';
 import BackgroundCheck from './pages/BackgroundCheck';
 import AdminApplications from './pages/AdminApplications';
+import AdminBackgroundChecks from './pages/AdminBackgroundChecks';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -118,6 +119,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminApplications">
             <AdminApplications />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminBackgroundChecks"
+        element={
+          <LayoutWrapper currentPageName="AdminBackgroundChecks">
+            <AdminBackgroundChecks />
           </LayoutWrapper>
         }
       />
