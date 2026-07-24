@@ -23,6 +23,22 @@
       "type": "string",
       "description": "User's phone number"
     },
+    "coverage_area": {
+      "type": "string",
+      "description": "Preferred coverage area (city, ZIP, or address) the media partner works in"
+    },
+    "coverage_lat": {
+      "type": "number",
+      "description": "Latitude of the coverage area center"
+    },
+    "coverage_lng": {
+      "type": "number",
+      "description": "Longitude of the coverage area center"
+    },
+    "max_travel_distance": {
+      "type": "number",
+      "description": "Maximum distance (miles) the media partner will travel from their coverage area"
+    },
     "hasLoggedInBefore": {
       "type": "boolean",
       "default": false,

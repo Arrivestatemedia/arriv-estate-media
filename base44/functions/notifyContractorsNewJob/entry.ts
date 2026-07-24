@@ -20,6 +20,74 @@ Deno.serve(async (req) => {
       return Response.json({ message: 'No media partners to notify' });
     }
 
+    // --- Radius filtering: only notify partners whose coverage includes the job. ---
+    const gmapsKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_MAPS_API_KEY');
+    const geocode = async (address) => {
+      if (!gmapsKey || !address) return null;
+      try {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${gmapsKey}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.status === 'OK' && json.results && json.results[0]) {
+          const loc = json.results[0].geometry.location;
+          return { lat: loc.lat, lng: loc.lng };
+        }
+      } catch (e) {
+        console.error('Geocode failed:', e.message);
+      }
+      return null;
+    };
+    const haversineMiles = (lat1, lng1, lat2, lng2) => {
+      const toRad = (d) => (d * Math.PI) / 180;
+      const R = 3958.8;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(a));
+    };
+
+    let jobCoords = null;
+    try {
+      jobCoords = await geocode(job.location);
+    } catch (e) {
+      console.error('Job geocode failed:', e.message);
+    }
+
+    let eligiblePartners;
+    if (!jobCoords) {
+      // Can't determine job location → fall back to notifying everyone.
+      eligiblePartners = mediaPartners;
+    } else {
+      eligiblePartners = [];
+      for (const p of mediaPartners) {
+        const maxDist = p.max_travel_distance;
+        // No coverage set → they see all jobs on the board, so notify them too.
+        if (maxDist == null || (p.coverage_lat == null && p.coverage_lng == null && !p.coverage_area)) {
+          eligiblePartners.push(p);
+          continue;
+        }
+        let cLat = p.coverage_lat;
+        let cLng = p.coverage_lng;
+        if ((cLat == null || cLng == null) && p.coverage_area) {
+          const c = await geocode(p.coverage_area);
+          if (c) { cLat = c.lat; cLng = c.lng; }
+        }
+        if (cLat == null || cLng == null) {
+          // Can't resolve center → notify to be safe (matches board's show-all fallback).
+          eligiblePartners.push(p);
+          continue;
+        }
+        const dist = haversineMiles(jobCoords.lat, jobCoords.lng, cLat, cLng);
+        if (dist <= maxDist) eligiblePartners.push(p);
+      }
+    }
+
+    if (eligiblePartners.length === 0) {
+      return Response.json({ message: 'No media partners in radius' });
+    }
+
     // Twilio SMS helper (company number -> partner)
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
@@ -40,7 +108,7 @@ Deno.serve(async (req) => {
     };
 
     // Send email + SMS to each media partner
-    const notifyPromises = mediaPartners.map(async (mediaPartner) => {
+    const notifyPromises = eligiblePartners.map(async (mediaPartner) => {
       const jobType = job.type === 'photo' ? 'Photography' : job.type === 'video' ? 'Videography' : 'Photo & Video';
       const jobDate = new Date(job.date).toLocaleDateString('en-US', { 
         weekday: 'long', 
@@ -132,7 +200,7 @@ The Arriv Team
 
     return Response.json({ 
       message: 'Notifications sent', 
-      media_partners_notified: mediaPartners.length 
+      media_partners_notified: eligiblePartners.length 
     });
   } catch (error) {
     console.error('Error notifying contractors:', error);
