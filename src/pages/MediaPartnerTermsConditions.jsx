@@ -298,7 +298,7 @@ export default function MediaPartnerTermsConditions() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-6 space-y-6 text-[#1A1A1A] pb-40">
+      <div className="max-w-4xl mx-auto p-6 space-y-6 text-[#1A1A1A] pb-60">
         <div>
           <h2 className="text-2xl font-bold">ARRIV ESTATE MEDIA</h2>
           <h3 className="text-lg font-semibold mt-1">Media Partner Agreement</h3>
@@ -331,7 +331,7 @@ export default function MediaPartnerTermsConditions() {
         <div className="h-8" />
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 bg-[#FFFBF5] border-t border-[#B8956A]/20 p-4 z-10">
+      <div className="fixed bottom-16 inset-x-0 bg-[#FFFBF5] border-t border-[#B8956A]/20 p-4 z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
         <div className="max-w-4xl mx-auto space-y-3">
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</div>
