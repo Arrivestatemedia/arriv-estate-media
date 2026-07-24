@@ -84,7 +84,7 @@ export default function OrientationVideo() {
       if (cancelled || !playerRef.current) return;
       player = new YT.Player(playerRef.current, {
         videoId,
-        playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+        playerVars: { rel: 0, modestbranding: 1, playsinline: 1, cc_load_policy: 0 },
         events: {
           onReady: (e) => {
             const iframe = e.target.getIframe();
