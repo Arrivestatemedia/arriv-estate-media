@@ -128,6 +128,56 @@ Deno.serve(async (req) => {
       console.log('Inbound from:', from, 'to:', to);
 
       const base44 = createClientFromRequest(req);
+
+      // --- Media-partner shortcut ---
+      // If the caller is a media partner booked on an active job, auto-bridge them
+      // to that job's client. The client sees the company 800 number as caller ID.
+      // Once the job is completed/cancelled it no longer matches, so the bridge
+      // effectively lasts "until the job is over."
+      const norm = (n) => {
+        if (!n) return '';
+        let d = String(n).replace(/\D/g, '');
+        if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
+        return d;
+      };
+      const callerNorm = norm(from);
+
+      if (callerNorm && defaultCallerId) {
+        try {
+          const today = new Date().toISOString().slice(0, 10);
+          const booked = await base44.asServiceRole.entities.Job.filter({ status: 'booked' });
+          const inProg = await base44.asServiceRole.entities.Job.filter({ status: 'in_progress' });
+          const candidates = [...(booked || []), ...(inProg || [])];
+          const matches = candidates.filter(j =>
+            j.client_phone &&
+            (norm(j.booked_by_phone) === callerNorm || norm(j.backup_booked_by_phone) === callerNorm)
+          );
+          // Priority: in_progress job → booked job today → next upcoming booked job
+          let job = matches.find(j => j.status === 'in_progress');
+          if (!job) job = matches.find(j => (j.date || '').slice(0, 10) === today);
+          if (!job) {
+            job = matches
+              .filter(j => j.status === 'booked' && (j.date || '').slice(0, 10) >= today)
+              .sort((a, b) => (a.date || '').localeCompare(b.date || ''))[0];
+          }
+
+          if (job) {
+            const clientNumber = job.client_phone.startsWith('+')
+              ? job.client_phone
+              : '+1' + job.client_phone.replace(/\D/g, '');
+            console.log('Media partner inbound → bridging to client', clientNumber, 'for job', job.id);
+            return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${defaultCallerId}" answerOnBridge="true" timeout="45">
+    <Number>${clientNumber}</Number>
+  </Dial>
+</Response>`);
+          }
+        } catch (e) {
+          console.error('Media partner bridge lookup failed:', e.message);
+        }
+      }
+
       let activeMembers = [];
       try {
         activeMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({ is_active: true });
