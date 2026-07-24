@@ -82,7 +82,6 @@ const SECTIONS = [
       "Memory cards",
       "Batteries",
       "Computer",
-      "Editing software",
     ],
     after: "Arriv does not provide equipment unless otherwise agreed in writing.",
   },
