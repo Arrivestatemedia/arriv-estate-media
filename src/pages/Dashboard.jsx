@@ -10,6 +10,7 @@ import PendingBookingCard from "../components/booking/PendingBookingCard";
 import InviteUsersCard from "../components/dashboard/InviteUsersCard";
 import OrientationVideoSetting from "../components/dashboard/OrientationVideoSetting";
 import CompletedJobsSection from "../components/dashboard/CompletedJobsSection";
+import UngeocodableJobs from "../components/dashboard/UngeocodableJobs";
 import { AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
@@ -266,6 +267,8 @@ export default function Dashboard() {
             <OrientationVideoSetting />
           </div>
         </div>
+
+        <UngeocodableJobs jobs={jobs} />
 
         <AnimatePresence>
           {showForm && (
