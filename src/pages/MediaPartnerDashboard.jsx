@@ -129,9 +129,28 @@ export default function MediaPartnerDashboard() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('stripe_done') || params.get('stripe_refresh')) {
-      queryClient.invalidateQueries({ queryKey: ['user-record', user?.email] });
-    }
+    const done = params.get('stripe_done');
+    const refresh = params.get('stripe_refresh');
+    if (!(done || refresh) || !user?.email) return;
+    let cancelled = false;
+    // Pull the live Stripe account status and persist it, then refetch the
+    // record so the dashboard reflects completion without relying on the
+    // account.updated webhook having arrived yet.
+    base44.functions
+      .invoke('refreshStripeStatus', { email: user.email })
+      .catch(() => null)
+      .finally(() => {
+        if (!cancelled)
+          queryClient.invalidateQueries({ queryKey: ['user-record', user?.email] });
+      });
+    // Clean the query params so this only runs once.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('stripe_done');
+    url.searchParams.delete('stripe_refresh');
+    window.history.replaceState({}, '', url.toString());
+    return () => {
+      cancelled = true;
+    };
   }, [queryClient, user?.email]);
 
   return (
