@@ -7,15 +7,20 @@ import { createPageUrl } from "../utils";
 
 export default function OrientationVideo() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const [videoUrl, setVideoUrl] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const email = localStorage.getItem('user_email');
-    const name = localStorage.getItem('user_name');
-    if (email) setUser({ email, full_name: name });
-    setLoading(false);
+    (async () => {
+      try {
+        const rows = await base44.entities.AppSetting.filter({ key: "orientation_video_url" });
+        if (rows && rows[0]?.value) setVideoUrl(rows[0].value);
+      } catch (e) {
+        // ignore — fall back to "coming soon"
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [navigate]);
 
   const handleNext = () => {
@@ -40,10 +45,10 @@ export default function OrientationVideo() {
             <CardTitle className="text-3xl text-[var(--text-primary)]">Orientation</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {user?.orientationVideoUrl ? (
+            {videoUrl ? (
               <div className="aspect-video bg-black rounded-lg overflow-hidden">
                 <iframe
-                  src={user.orientationVideoUrl}
+                  src={videoUrl}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -57,11 +62,10 @@ export default function OrientationVideo() {
 
             <Button
               onClick={handleNext}
-              disabled={saving}
               className="w-full bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white"
               size="lg"
             >
-              {saving ? "Loading..." : "Next"}
+              Next
             </Button>
           </CardContent>
         </Card>

@@ -15,13 +15,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Video URL is required' }, { status: 400 });
     }
 
-    // Update all media partner users with the new video URL
-    // This sets a default for new signups
-    // Note: In production, this might be stored as a global setting instead
+    // Upsert the global orientation video URL shown to all media partners
+    const existing = await base44.asServiceRole.entities.AppSetting.filter({ key: 'orientation_video_url' });
+    if (existing && existing.length > 0) {
+      await base44.asServiceRole.entities.AppSetting.update(existing[0].id, { value: videoUrl });
+    } else {
+      await base44.asServiceRole.entities.AppSetting.create({ key: 'orientation_video_url', value: videoUrl });
+    }
 
-    return Response.json({ 
+    return Response.json({
       success: true,
-      message: 'Orientation video URL updated. This will be shown to new media partners during orientation.'
+      message: 'Orientation video URL updated. This will be shown to all media partners during orientation.'
     });
 
   } catch (error) {

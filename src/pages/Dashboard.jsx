@@ -8,6 +8,7 @@ import JobForm from "../components/jobs/JobForm";
 import JobCard from "../components/jobs/JobCard";
 import PendingBookingCard from "../components/booking/PendingBookingCard";
 import InviteUsersCard from "../components/dashboard/InviteUsersCard";
+import OrientationVideoSetting from "../components/dashboard/OrientationVideoSetting";
 import { AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
@@ -259,8 +260,9 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <InviteUsersCard />
+            <OrientationVideoSetting />
           </div>
         </div>
 
