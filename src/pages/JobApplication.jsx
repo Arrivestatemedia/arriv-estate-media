@@ -80,6 +80,7 @@ export default function JobApplication() {
           race: formData.race || '',
           eEOCagreed: formData.eEOCagreed,
           signature: formData.signature,
+          position: 'Media Specialist',
           videoUrls: [],
           pictureUrls: []
         };
@@ -117,6 +118,7 @@ export default function JobApplication() {
         race: formData.race || '',
         eEOCagreed: formData.eEOCagreed,
         signature: formData.signature,
+        position: 'Media Specialist',
         videoUrls,
         pictureUrls
       };

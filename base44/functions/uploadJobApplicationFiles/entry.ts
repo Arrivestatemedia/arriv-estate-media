@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
     } = body;
 
     const positionLabel = position || 'Media Specialist';
+    const positionValue = position === 'Sales Growth Advisor' ? 'sales_growth_advisor' : 'media_specialist';
 
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googledrive');
@@ -211,6 +212,7 @@ Signature: ${signature}
       signature,
       video_samples: videoUrls,
       picture_samples: pictureUrls,
+      position: positionValue,
     });
 
     // Notify admin by text about the new application

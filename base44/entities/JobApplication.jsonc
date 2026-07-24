@@ -83,6 +83,15 @@
       },
       "description": "Additional document links the applicant uploaded"
     },
+    "position": {
+      "type": "string",
+      "enum": [
+        "media_specialist",
+        "sales_growth_advisor"
+      ],
+      "default": "media_specialist",
+      "description": "Which role the applicant applied for"
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -90,10 +99,15 @@
         "reviewing",
         "accepted",
         "accepted_waitlist",
-        "denied"
+        "denied",
+        "under_review",
+        "interview_invitation",
+        "final_review",
+        "offer_extended",
+        "hired"
       ],
       "default": "received",
-      "description": "Application status"
+      "description": "Application status (media specialist uses received/reviewing/accepted/accepted_waitlist/denied; sales growth advisor uses received/under_review/interview_invitation/final_review/offer_extended/hired)"
     },
     "updates": {
       "type": "array",
