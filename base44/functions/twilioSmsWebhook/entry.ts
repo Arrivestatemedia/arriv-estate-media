@@ -108,14 +108,26 @@ Deno.serve(async (req) => {
             twilio_sid: twilioSid,
           });
 
+          // Prefix the relayed message so the recipient knows who it's from.
+          let forwardedBody = messageBody;
+          if (isClient) {
+            const clientName = (relayJob.client_name || '').trim();
+            forwardedBody = clientName ? `[Client: ${clientName}] ${messageBody}` : messageBody;
+          } else {
+            const specialistFirst = ((relayJob.booked_by_name || '').trim().split(/\s+/)[0]) || '';
+            forwardedBody = specialistFirst
+              ? `[Media Specialist: ${specialistFirst}] ${messageBody}`
+              : messageBody;
+          }
+
           // Relay to the counterpart on their phone.
           try {
-            const sent = await sendTwilioSms(counterpartE164, messageBody);
+            const sent = await sendTwilioSms(counterpartE164, forwardedBody);
             await base44.asServiceRole.entities.SmsMessage.create({
               conversation_id: conversation.id,
               from_number: companyE164,
               to_number: counterpartE164,
-              body: messageBody,
+              body: forwardedBody,
               direction: 'outbound',
               twilio_sid: sent?.sid || '',
             });
