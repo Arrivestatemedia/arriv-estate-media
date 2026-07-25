@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { ArrowLeft, Camera } from "lucide-react";
+import { Camera } from "lucide-react";
 
 export default function ApplicationPreview() {
   const [data, setData] = useState(null);
@@ -35,14 +33,7 @@ export default function ApplicationPreview() {
     <div className="min-h-screen bg-[#FFFBF5]">
       <header className="sticky top-0 z-10 bg-[#1A1A1A] border-b border-[#B8956A]/20">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-3">
-          <Link
-            to={createPageUrl("AdminApplications")}
-            className="flex items-center gap-2 text-[#FFFBF5]/70 hover:text-[#FFFBF5] text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Applications
-          </Link>
-          <div className="ml-auto flex items-center gap-2 text-[#B8956A] text-sm font-medium">
+          <div className="flex items-center gap-2 text-[#B8956A] text-sm font-medium">
             <Camera className="w-4 h-4" />
             Applicant Preview
           </div>
