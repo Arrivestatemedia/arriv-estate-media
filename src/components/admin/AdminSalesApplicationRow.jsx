@@ -2,15 +2,30 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SALES_STATUSES, getStatusLabel, getStatusColor, POSITION_LABELS } from "@/lib/applicationStatus";
-import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus } from "lucide-react";
+import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus, Trash2 } from "lucide-react";
 import moment from "moment";
 import InterviewSchedulerModal from "./InterviewSchedulerModal";
+import DeleteApplicationDialog from "./DeleteApplicationDialog";
 
-export default function AdminSalesApplicationRow({ app, onUpdate }) {
+export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const isSales = (app.position || "media_specialist") === "sales_growth_advisor";
   if (!isSales) return null;
+
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(app.id);
+      setShowDelete(false);
+    } catch (err) {
+      alert("Failed to delete applicant: " + (err?.message || "Unknown error"));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const setStatus = (status) => onUpdate(app.id, { status });
 
@@ -88,13 +103,20 @@ export default function AdminSalesApplicationRow({ app, onUpdate }) {
           </div>
 
           {/* Schedule interview */}
-          <div className="border-t border-[var(--border-color)] pt-3">
+          <div className="border-t border-[var(--border-color)] pt-3 flex flex-wrap items-center gap-3">
             <button
               onClick={() => setShowScheduler(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#B8956A] text-white hover:bg-[#A68559] transition-colors"
             >
               <CalendarPlus className="w-4 h-4" />
               Schedule Interview
+            </button>
+            <button
+              onClick={() => setShowDelete(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-red-400 text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete Applicant
             </button>
           </div>
         </CardContent>
@@ -107,6 +129,14 @@ export default function AdminSalesApplicationRow({ app, onUpdate }) {
           onScheduled={(conference) => onUpdate(app.id, { status: "interview_invitation" })}
         />
       )}
+
+      <DeleteApplicationDialog
+        open={showDelete}
+        onOpenChange={setShowDelete}
+        appName={app.full_name}
+        onConfirm={confirmDelete}
+        deleting={deleting}
+      />
     </Card>
   );
 }

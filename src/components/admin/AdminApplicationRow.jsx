@@ -9,8 +9,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { APPLICATION_STATUSES, getStatusLabel, getStatusColor } from "@/lib/applicationStatus";
 import { ChevronDown, ChevronRight, MessageSquarePlus, Trash2, Mail, Phone, MapPin, Eye, Send } from "lucide-react";
 import moment from "moment";
+import DeleteApplicationDialog from "./DeleteApplicationDialog";
 
-export default function AdminApplicationRow({ app, onUpdate }) {
+export default function AdminApplicationRow({ app, onUpdate, onDelete }) {
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(app.id);
+      setShowDelete(false);
+    } catch (err) {
+      alert("Failed to delete applicant: " + (err?.message || "Unknown error"));
+    } finally {
+      setDeleting(false);
+    }
+  };
   const [expanded, setExpanded] = useState(false);
   const [newUpdate, setNewUpdate] = useState("");
   const [docNote, setDocNote] = useState(app.documents_requested_note || "");
@@ -119,16 +134,27 @@ export default function AdminApplicationRow({ app, onUpdate }) {
                 </button>
               ))}
             </div>
-            <Button
-              onClick={sendInvitationComing}
-              disabled={sendingWelcome}
-              size="sm"
-              variant="outline"
-              className="border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10"
-            >
-              <Send className="w-4 h-4 mr-1" />
-              {sendingWelcome ? "Sending…" : "Send Invitation-Coming Email"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                onClick={sendInvitationComing}
+                disabled={sendingWelcome}
+                size="sm"
+                variant="outline"
+                className="border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10"
+              >
+                <Send className="w-4 h-4 mr-1" />
+                {sendingWelcome ? "Sending…" : "Send Invitation-Coming Email"}
+              </Button>
+              <Button
+                onClick={() => setShowDelete(true)}
+                size="sm"
+                variant="outline"
+                className="border-red-400 text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete Applicant
+              </Button>
+            </div>
           </div>
 
           {/* Contact info */}
@@ -233,6 +259,14 @@ export default function AdminApplicationRow({ app, onUpdate }) {
           </div>
         </CardContent>
       )}
+
+      <DeleteApplicationDialog
+        open={showDelete}
+        onOpenChange={setShowDelete}
+        appName={app.full_name}
+        onConfirm={confirmDelete}
+        deleting={deleting}
+      />
     </Card>
   );
 }

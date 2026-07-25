@@ -35,6 +35,11 @@ export default function AdminApplications() {
     return unsub;
   }, [queryClient]);
 
+  const deleteApp = async (id) => {
+    await base44.entities.JobApplication.delete(id);
+    queryClient.invalidateQueries({ queryKey: ["job-applications"] });
+  };
+
   const updateApp = async (id, data) => {
     await base44.entities.JobApplication.update(id, data);
     queryClient.invalidateQueries({ queryKey: ["job-applications"] });
@@ -220,9 +225,9 @@ export default function AdminApplications() {
           <div className="space-y-4">
             {filtered.map((app) =>
               positionOf(app) === "sales_growth_advisor" ? (
-                <AdminSalesApplicationRow key={app.id} app={app} onUpdate={updateApp} />
+                <AdminSalesApplicationRow key={app.id} app={app} onUpdate={updateApp} onDelete={deleteApp} />
               ) : (
-                <AdminApplicationRow key={app.id} app={app} onUpdate={updateApp} />
+                <AdminApplicationRow key={app.id} app={app} onUpdate={updateApp} onDelete={deleteApp} />
               )
             )}
           </div>
