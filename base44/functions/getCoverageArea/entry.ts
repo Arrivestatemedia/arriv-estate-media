@@ -47,6 +47,18 @@ Deno.serve(async (req) => {
 
     if (!record) return Response.json(empty);
 
+    // Fetch the job application once — used to expose the raw address (so the
+    // orientation address step can prefill from it) and to derive a state when
+    // the record doesn't already have one.
+    let applicationAddress = null;
+    try {
+      const apps = await base44.asServiceRole.entities.JobApplication.filter({ email: emailQuery });
+      const app = apps[0];
+      applicationAddress = app?.address || null;
+    } catch (e) {
+      console.error('Fetch application address failed:', e.message);
+    }
+
     const response = {
       coverage_area: record.coverage_area || null,
       coverage_lat: record.coverage_lat ?? null,
@@ -55,28 +67,25 @@ Deno.serve(async (req) => {
       state: record.state || null,
       mailing_address: record.mailing_address || null,
       city: record.city || null,
-      zip: record.zip || null
+      zip: record.zip || null,
+      application_address: applicationAddress
     };
 
     // Derive the partner's state from the address on their job application if the
     // record doesn't already have one — so even partners who never set a coverage
     // area are filtered to jobs in their state. Persist it so the new-job message
     // (which reads User.state) and future board loads have it.
-    if (!response.state) {
+    if (!response.state && applicationAddress) {
       let derived = null;
       try {
-        const apps = await base44.asServiceRole.entities.JobApplication.filter({ email: emailQuery });
-        const app = apps[0];
-        if (app?.address) {
-          const gmapsKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_MAPS_API_KEY');
-          if (gmapsKey) {
-            const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(app.address)}&key=${gmapsKey}`;
-            const res = await fetch(url);
-            const json = await res.json();
-            if (json.status === 'OK' && json.results?.[0]) {
-              const c = (json.results[0].address_components || []).find((comp) => comp.types?.includes('administrative_area_level_1'));
-              if (c?.short_name) derived = String(c.short_name).toUpperCase();
-            }
+        const gmapsKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_MAPS_API_KEY');
+        if (gmapsKey) {
+          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(applicationAddress)}&key=${gmapsKey}`;
+          const res = await fetch(url);
+          const json = await res.json();
+          if (json.status === 'OK' && json.results?.[0]) {
+            const c = (json.results[0].address_components || []).find((comp) => comp.types?.includes('administrative_area_level_1'));
+            if (c?.short_name) derived = String(c.short_name).toUpperCase();
           }
         }
       } catch (e) {
