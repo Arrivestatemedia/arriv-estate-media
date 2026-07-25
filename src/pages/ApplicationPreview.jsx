@@ -20,10 +20,11 @@ export default function ApplicationPreview() {
     base44.functions
       .invoke("getApplicationPreview", { applicationId: id })
       .then((res) => {
-        if (res?.error) {
-          setError(res.error);
+        const payload = res?.data ?? res;
+        if (payload?.error) {
+          setError(payload.error);
         } else {
-          setData(res);
+          setData(payload);
         }
       })
       .catch((e) => setError(e?.message || "Failed to load preview."))
