@@ -97,6 +97,18 @@ export default function AdminApplications() {
         }
       }
     }
+
+    // Send the sales offer-not-extended email when transitioning into "offer_not_extended"
+    if (data.status === 'offer_not_extended') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'offer_not_extended') {
+        try {
+          await base44.functions.invoke('sendSalesOfferNotExtendedEmail', { applicationId: id });
+        } catch (err) {
+          console.error('Sales offer-not-extended email failed:', err);
+        }
+      }
+    }
   };
 
   const activeTab = POSITION_TABS.find((t) => t.value === positionTab);
