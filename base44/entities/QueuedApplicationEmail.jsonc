@@ -1,0 +1,58 @@
+{
+  "name": "QueuedApplicationEmail",
+  "type": "object",
+  "properties": {
+    "recipient_email": {
+      "type": "string",
+      "description": "Recipient email address"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "html_content": {
+      "type": "string",
+      "description": "Full HTML email body to send"
+    },
+    "scheduled_for": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When to send this email (next 8:00 AM Eastern Time)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Delivery status of the queued email"
+    },
+    "attempts": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of send attempts made"
+    },
+    "max_attempts": {
+      "type": "integer",
+      "default": 5,
+      "description": "Maximum send attempts before giving up"
+    },
+    "last_error": {
+      "type": "string",
+      "description": "Last error message from a failed send attempt"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the email was successfully sent"
+    }
+  },
+  "required": [
+    "recipient_email",
+    "subject",
+    "html_content",
+    "scheduled_for"
+  ]
+}

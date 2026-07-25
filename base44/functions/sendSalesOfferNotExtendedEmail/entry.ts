@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { sendBrevoEmail } from "../../shared/brevoClient.ts";
+import { sendBusinessEmailOrQueue } from "../../shared/businessEmailQueue.ts";
 import { deriveFirstName } from "../../shared/brevoWelcomeEmail.ts";
 
 function buildOfferNotExtendedHtml(firstName) {
@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.JobApplication.update(applicationId, { status: "offer_not_extended" });
     }
 
-    await sendBrevoEmail({
+    await sendBusinessEmailOrQueue(base44, {
       to: app.email,
       subject: "Update on Your Application – Arriv Sales Growth Advisor",
       htmlContent: html,

@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { sendBrevoEmail } from "../../shared/brevoClient.ts";
+import { sendBusinessEmailOrQueue } from "../../shared/businessEmailQueue.ts";
 import { deriveFirstName } from "../../shared/brevoWelcomeEmail.ts";
 
 function buildPortalLink(app) {
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     const portalUrl = buildPortalLink(app);
     const html = buildAcceptedHtml(firstName, portalUrl);
 
-    await sendBrevoEmail({
+    await sendBusinessEmailOrQueue(base44, {
       to: app.email,
       subject: "Congratulations — You've been accepted to Arriv Estate Media",
       htmlContent: html,
