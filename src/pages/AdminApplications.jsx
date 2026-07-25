@@ -22,6 +22,7 @@ export default function AdminApplications() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [positionTab, setPositionTab] = useState("media_specialist");
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ["job-applications"],
@@ -74,6 +75,8 @@ export default function AdminApplications() {
       if (!prev || prev.status !== 'denied') {
         try {
           await base44.functions.invoke('sendApplicationClosedEmail', { applicationId: id });
+          await base44.entities.JobApplication.update(id, { archived: true });
+          queryClient.invalidateQueries({ queryKey: ["job-applications"] });
         } catch (err) {
           console.error('Closed email failed:', err);
         }
@@ -104,12 +107,14 @@ export default function AdminApplications() {
       }
     }
 
-    // Send the sales offer-not-extended email when transitioning into "offer_not_extended"
+    // Send the sales offer-not-extended email when transitioning into "offer_not_extended", then archive
     if (data.status === 'offer_not_extended') {
       const prev = applications.find((a) => a.id === id);
       if (!prev || prev.status !== 'offer_not_extended') {
         try {
           await base44.functions.invoke('sendSalesOfferNotExtendedEmail', { applicationId: id });
+          await base44.entities.JobApplication.update(id, { archived: true });
+          queryClient.invalidateQueries({ queryKey: ["job-applications"] });
         } catch (err) {
           console.error('Sales offer-not-extended email failed:', err);
         }
@@ -120,7 +125,9 @@ export default function AdminApplications() {
   const activeTab = POSITION_TABS.find((t) => t.value === positionTab);
   const statuses = activeTab.statuses;
 
-  const tabApps = applications.filter((a) => positionOf(a) === positionTab);
+  const tabApps = applications.filter(
+    (a) => positionOf(a) === positionTab && (!!a.archived) === showArchived
+  );
 
   const filtered = tabApps.filter((a) => {
     if (statusFilter !== "all" && a.status !== statusFilter) return false;
@@ -215,6 +222,17 @@ export default function AdminApplications() {
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
+          <label className="flex items-center gap-2 h-11 px-3 rounded-md border border-[#B8956A]/30 bg-white cursor-pointer whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="w-4 h-4 accent-[#B8956A]"
+            />
+            <span className="text-sm font-medium text-[#1A1A1A]/70">
+              {showArchived ? "Showing Archived" : "Show Archived"}
+            </span>
+          </label>
         </div>
 
         {isLoading ? (

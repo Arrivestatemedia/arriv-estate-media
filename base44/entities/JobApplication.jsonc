@@ -162,6 +162,11 @@
       "type": "string",
       "format": "date-time",
       "description": "When the applicant declined their offer (sales growth advisor)"
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this application has been archived after closure (denied or offer not extended)"
     }
   },
   "required": [
