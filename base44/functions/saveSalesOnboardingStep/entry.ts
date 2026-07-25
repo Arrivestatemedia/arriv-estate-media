@@ -55,8 +55,13 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.SalesOnboarding.update(rec.id, { current_step: nextStep });
     rec.current_step = nextStep;
 
-    // Notify admin when onboarding is fully completed
+    // Archive the job application once onboarding is fully completed
     if (step === "training") {
+      try {
+        await base44.asServiceRole.entities.JobApplication.update(applicationId, { archived: true });
+      } catch (e) {
+        console.error("archive application after onboarding failed:", e.message);
+      }
       try {
         const adminEmail = Deno.env.get("ADMIN_EMAIL");
         if (adminEmail) {
