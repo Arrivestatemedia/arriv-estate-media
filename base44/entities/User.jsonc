@@ -23,6 +23,18 @@
       "type": "string",
       "description": "User's phone number"
     },
+    "mailing_address": {
+      "type": "string",
+      "description": "Media partner's home/street mailing address"
+    },
+    "city": {
+      "type": "string",
+      "description": "City from the media partner's mailing address"
+    },
+    "zip": {
+      "type": "string",
+      "description": "ZIP code from the media partner's mailing address"
+    },
     "coverage_area": {
       "type": "string",
       "description": "Preferred coverage area (city, ZIP, or address) the media partner works in"

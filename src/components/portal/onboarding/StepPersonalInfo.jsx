@@ -34,30 +34,38 @@ export default function StepPersonalInfo({ onboarding, application, identity, on
     }
   };
 
+  const addressIncomplete =
+    !data.mailing_address?.trim() || !data.city?.trim() || !data.state?.trim() || !data.zip?.trim();
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-[var(--text-secondary)]">Confirm or update your contact details so we can reach you and send paperwork.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Mailing Address" value={data.mailing_address} onChange={(v) => set("mailing_address", v)} full />
-        <Field label="City" value={data.city} onChange={(v) => set("city", v)} />
-        <Field label="State" value={data.state} onChange={(v) => set("state", v)} />
-        <Field label="ZIP" value={data.zip} onChange={(v) => set("zip", v)} />
+        <Field label="Mailing Address" required value={data.mailing_address} onChange={(v) => set("mailing_address", v)} full />
+        <Field label="City" required value={data.city} onChange={(v) => set("city", v)} />
+        <Field label="State" required value={data.state} onChange={(v) => set("state", v)} />
+        <Field label="ZIP" required value={data.zip} onChange={(v) => set("zip", v)} />
         <Field label="Phone" value={data.phone} onChange={(v) => set("phone", v)} />
         <Field label="Emergency Contact Name" value={data.emergency_contact_name} onChange={(v) => set("emergency_contact_name", v)} />
         <Field label="Emergency Contact Phone" value={data.emergency_contact_phone} onChange={(v) => set("emergency_contact_phone", v)} full />
       </div>
+      {addressIncomplete && (
+        <p className="text-sm text-red-600">Please complete your mailing address, city, state, and ZIP to continue.</p>
+      )}
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button onClick={save} disabled={saving} className="bg-[#B8956A] hover:bg-[#A68559] text-white">
+      <Button onClick={save} disabled={saving || addressIncomplete} className="bg-[#B8956A] hover:bg-[#A68559] text-white">
         {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : "Save & Continue"}
       </Button>
     </div>
   );
 }
 
-function Field({ label, value, onChange, full }) {
+function Field({ label, value, onChange, full, required }) {
   return (
     <div className={full ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}>
-      <Label className="text-[var(--text-primary)] text-xs">{label}</Label>
+      <Label className="text-[var(--text-primary)] text-xs">
+        {label}{required && <span className="text-red-500"> *</span>}
+      </Label>
       <Input value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );

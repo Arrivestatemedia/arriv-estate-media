@@ -106,6 +106,18 @@
       "type": "string",
       "description": "US state (2-letter abbreviation) derived from the coverage area"
     },
+    "mailing_address": {
+      "type": "string",
+      "description": "Media partner's home/street mailing address"
+    },
+    "city": {
+      "type": "string",
+      "description": "City from the media partner's mailing address"
+    },
+    "zip": {
+      "type": "string",
+      "description": "ZIP code from the media partner's mailing address"
+    },
     "deletion_requested_date": {
       "type": "string",
       "format": "date-time",
