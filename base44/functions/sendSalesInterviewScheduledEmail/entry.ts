@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { sendBrevoEmail } from "../../shared/brevoClient.ts";
+import { sendBusinessEmailOrQueue } from "../../shared/businessEmailQueue.ts";
 import { deriveFirstName } from "../../shared/brevoWelcomeEmail.ts";
 
 function formatWhen(scheduledDate, scheduledTime) {
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     const durationLabel = formatDuration(durationMinutes);
     const html = buildHtml(firstName, whenLabel, durationLabel, meetingLink);
 
-    await sendBrevoEmail({
+    await sendBusinessEmailOrQueue(base44, {
       to: app.email,
       subject: "Your Interview is Scheduled \u2013 Arriv Sales Growth Advisor",
       htmlContent: html,

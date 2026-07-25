@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { sendBrevoEmail } from "../../shared/brevoClient.ts";
+import { sendBusinessEmailOrQueue } from "../../shared/businessEmailQueue.ts";
 import { deriveFirstName } from "../../shared/brevoWelcomeEmail.ts";
 
 function buildInvitationComingHtml(firstName) {
@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     const firstName = deriveFirstName(app.full_name);
     const html = buildInvitationComingHtml(firstName);
 
-    await sendBrevoEmail({
+    await sendBusinessEmailOrQueue(base44, {
       to: app.email,
       subject: "Welcome to Arriv Estate Media – Your Invitation Is Coming Soon!",
       htmlContent: html,
