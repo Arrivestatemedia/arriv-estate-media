@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const emailQuery = { $regex: `^${escaped}$`, $options: 'i' };
 
-    const empty = { coverage_area: null, coverage_lat: null, coverage_lng: null, max_travel_distance: null, state: null };
+    const empty = { coverage_area: null, coverage_lat: null, coverage_lng: null, max_travel_distance: null, state: null, mailing_address: null, city: null, zip: null };
 
     // Find the partner's record (PendingSignup first, then User).
     let record = null;
@@ -52,7 +52,10 @@ Deno.serve(async (req) => {
       coverage_lat: record.coverage_lat ?? null,
       coverage_lng: record.coverage_lng ?? null,
       max_travel_distance: record.max_travel_distance ?? null,
-      state: record.state || null
+      state: record.state || null,
+      mailing_address: record.mailing_address || null,
+      city: record.city || null,
+      zip: record.zip || null
     };
 
     // Derive the partner's state from the address on their job application if the

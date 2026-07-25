@@ -62,7 +62,7 @@ export default function MediaPartnerGate({ children }) {
         }
 
         const currentPath = location.pathname;
-        const allowedRoutes = ['OrientationVideo', 'OrientationSizes', 'MediaPartnerTermsConditions'];
+        const allowedRoutes = ['OrientationVideo', 'OrientationAddress', 'OrientationSizes', 'MediaPartnerTermsConditions'];
 
         const isOnAllowedRoute = allowedRoutes.some(route => currentPath.includes(route));
 

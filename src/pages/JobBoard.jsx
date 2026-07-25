@@ -11,7 +11,6 @@ import { createPageUrl } from "../utils";
 import JobCard from "../components/jobs/JobCard";
 import CancelJobDialog from "../components/jobs/CancelJobDialog";
 import BackgroundCheckAuthorizationModal from "../components/backgroundcheck/BackgroundCheckAuthorizationModal";
-import MediaPartnerAddressGate from "../components/mediapartner/MediaPartnerAddressGate";
 import {
   Dialog,
   DialogContent,
@@ -106,7 +105,7 @@ export default function JobBoard() {
   const geocodeCache = useRef({});
 
   const partnerEmail = user?.email || userEmail;
-  const { data: coverage, isLoading: coverageLoading } = useQuery({
+  const { data: coverage } = useQuery({
     queryKey: ["coverage-area", partnerEmail],
     queryFn: async () => {
       const res = await base44.functions.invoke('getCoverageArea', { email: partnerEmail });
@@ -116,14 +115,6 @@ export default function JobBoard() {
   });
 
   const maxDistance = coverage?.max_travel_distance;
-  const [addressGateOpen, setAddressGateOpen] = useState(false);
-  useEffect(() => {
-    if (user?.user_type === "media_partner" && !coverageLoading && coverage && !coverage.state) {
-      setAddressGateOpen(true);
-    } else {
-      setAddressGateOpen(false);
-    }
-  }, [user?.user_type, coverageLoading, coverage]);
   // Filter once we know the coverage center + max distance. The center may be
   // stored as lat/lng, or geocoded from coverage_area on the fly (see effect below).
   const hasCoverage =
@@ -689,16 +680,6 @@ export default function JobBoard() {
           onOpenChange={setBgAuthOpen}
           context={bgAuthContext}
           onAuthorized={handleBgAuthorized}
-        />
-
-        <MediaPartnerAddressGate
-          open={addressGateOpen}
-          email={partnerEmail}
-          onSaved={() => {
-            setAddressGateOpen(false);
-            queryClient.invalidateQueries({ queryKey: ["coverage-area", partnerEmail] });
-            queryClient.invalidateQueries({ queryKey: ["user"] });
-          }}
         />
 
         <Dialog open={bgPendingOpen} onOpenChange={setBgPendingOpen}>

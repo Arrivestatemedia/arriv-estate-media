@@ -5,6 +5,7 @@ import { createPageUrl } from "../../utils";
 
 const ALLOWED_ROUTES_DURING_ORIENTATION = [
   "/OrientationVideo",
+  "/OrientationAddress",
   "/OrientationSizes",
   "/OrientationOnboardingFee",
   "/SignIn"

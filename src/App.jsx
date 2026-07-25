@@ -15,6 +15,7 @@ import BackgroundCheck from './pages/BackgroundCheck';
 import AdminApplications from './pages/AdminApplications';
 import AdminBackgroundChecks from './pages/AdminBackgroundChecks';
 import ApplicationPreview from './pages/ApplicationPreview';
+import OrientationAddress from './pages/OrientationAddress';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -145,6 +146,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="ApplicationPreview">
             <ApplicationPreview />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/OrientationAddress"
+        element={
+          <LayoutWrapper currentPageName="OrientationAddress">
+            <OrientationAddress />
           </LayoutWrapper>
         }
       />
