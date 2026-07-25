@@ -14,6 +14,7 @@ import ApplicationPortal from './pages/ApplicationPortal';
 import BackgroundCheck from './pages/BackgroundCheck';
 import AdminApplications from './pages/AdminApplications';
 import AdminBackgroundChecks from './pages/AdminBackgroundChecks';
+import ApplicationPreview from './pages/ApplicationPreview';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -136,6 +137,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminBackgroundChecks">
             <AdminBackgroundChecks />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/ApplicationPreview"
+        element={
+          <LayoutWrapper currentPageName="ApplicationPreview">
+            <ApplicationPreview />
           </LayoutWrapper>
         }
       />

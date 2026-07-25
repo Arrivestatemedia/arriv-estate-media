@@ -8,6 +8,7 @@ import AdminSalesApplicationRow from "@/components/admin/AdminSalesApplicationRo
 import SalesWelcomeVideoControl from "@/components/admin/SalesWelcomeVideoControl";
 import SalesTrainingVideosControl from "@/components/admin/SalesTrainingVideosControl";
 import QueuedApplicationEmails from "@/components/admin/QueuedApplicationEmails";
+import AcceptedPendingPreviewLinks from "@/components/admin/AcceptedPendingPreviewLinks";
 import { Search, Briefcase, Camera } from "lucide-react";
 
 const POSITION_TABS = [
@@ -185,6 +186,10 @@ export default function AdminApplications() {
         </div>
 
         <QueuedApplicationEmails />
+
+        {positionTab === "media_specialist" && (
+          <AcceptedPendingPreviewLinks applications={applications} />
+        )}
 
         {positionTab === "sales_growth_advisor" && (
           <>
