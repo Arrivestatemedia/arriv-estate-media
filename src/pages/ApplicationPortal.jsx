@@ -253,6 +253,29 @@ export default function ApplicationPortal() {
               />
             )}
 
+            {/* Accepted - Pending */}
+            {application.status === "accepted_pending" && (
+              <Card className="border-2 border-sky-300 bg-sky-50/50">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-8 h-8 text-sky-600 shrink-0 mt-0.5" />
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold text-[var(--text-primary)]">You've been accepted!</h3>
+                      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                        Great news — you've been approved to join Arriv Estate Media as one of our Media Partners.
+                        Your official invitation to create your account is on its way. Keep an eye on your inbox over
+                        the next few days.
+                      </p>
+                      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                        As a startup, we're activating new Media Partners in phases, so your account setup link will
+                        arrive shortly. Thanks for your patience — we can't wait to welcome you aboard.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Accepted — continue to account setup */}
             {application.status === "accepted" && (
               <Card className="border-2 border-green-300 bg-green-50/50">

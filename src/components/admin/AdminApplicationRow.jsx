@@ -23,6 +23,7 @@ export default function AdminApplicationRow({ app, onUpdate }) {
     setSendingWelcome(true);
     try {
       await base44.functions.invoke("sendApplicationInvitationComing", { applicationId: app.id });
+      onUpdate(app.id, { status: "accepted_pending" });
       alert("Invitation-coming email sent to " + app.email);
     } catch (err) {
       alert("Failed to send email: " + (err?.message || "Unknown error"));

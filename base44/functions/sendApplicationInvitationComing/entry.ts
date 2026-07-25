@@ -78,7 +78,12 @@ Deno.serve(async (req) => {
       htmlContent: html,
     });
 
-    return Response.json({ success: true, sentTo: app.email });
+    // Mark the applicant as accepted-but-pending so their portal reflects this state.
+    await base44.asServiceRole.entities.JobApplication.update(applicationId, {
+      status: "accepted_pending",
+    });
+
+    return Response.json({ success: true, sentTo: app.email, status: "accepted_pending" });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
