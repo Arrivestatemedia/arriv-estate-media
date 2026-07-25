@@ -17,10 +17,24 @@ Deno.serve(async (req) => {
             signups = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower });
         }
 
+        const archiveApplication = async (appEmail) => {
+            try {
+                const apps = await base44.asServiceRole.entities.JobApplication.filter({ email: appEmail.trim().toLowerCase(), position: 'media_specialist' });
+                for (const a of apps) {
+                    if (!a.archived) {
+                        await base44.asServiceRole.entities.JobApplication.update(a.id, { archived: true });
+                    }
+                }
+            } catch (e) {
+                console.error("archive application after orientation failed:", e.message);
+            }
+        };
+
         if (signups.length > 0) {
             await base44.asServiceRole.entities.PendingSignup.update(signups[0].id, {
                 orientationCompleted: true
             });
+            await archiveApplication(signups[0].email);
             return Response.json({ success: true });
         }
 
@@ -33,6 +47,7 @@ Deno.serve(async (req) => {
             await base44.asServiceRole.entities.User.update(users[0].id, {
                 orientationCompleted: true
             });
+            await archiveApplication(users[0].email);
             return Response.json({ success: true });
         }
 
