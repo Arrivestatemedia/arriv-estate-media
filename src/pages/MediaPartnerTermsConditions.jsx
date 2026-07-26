@@ -265,12 +265,7 @@ export default function MediaPartnerTermsConditions() {
       });
       if (res.data?.success) {
         localStorage.removeItem("mediaPartnerSignupFormData");
-        try {
-          await base44.functions.invoke("markOrientationComplete", { email: expectedEmail });
-        } catch (e) {
-          console.error("markOrientationComplete failed:", e);
-        }
-        navigate(createPageUrl("OrientationSizes"));
+        navigate(createPageUrl("OrientationAddress"));
       } else {
         setError(res.data?.error || "Failed to record your agreement. Please try again.");
         setSubmitting(false);

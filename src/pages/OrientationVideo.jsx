@@ -143,7 +143,7 @@ export default function OrientationVideo() {
   }, [videoId]);
 
   const handleNext = () => {
-    navigate(createPageUrl("OrientationAddress"));
+    navigate(createPageUrl("MediaPartnerTermsConditions"));
   };
 
   if (loading) {

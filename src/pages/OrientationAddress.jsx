@@ -143,7 +143,12 @@ export default function OrientationAddress() {
     try {
       const res = await base44.functions.invoke("saveMediaPartnerAddress", { email, ...data });
       if (res?.data?.success) {
-        navigate(createPageUrl("MediaPartnerTermsConditions"));
+        try {
+          await base44.functions.invoke("markOrientationComplete", { email });
+        } catch (e) {
+          console.error("markOrientationComplete failed:", e);
+        }
+        navigate(createPageUrl("OrientationSizes"));
         return;
       }
       setError(res?.data?.error || "Could not save your address.");
