@@ -37,15 +37,21 @@ export default function BackToMainSiteButton() {
   if (!referrer) return null;
 
   const handleBack = () => {
-    // Return to the exact main-site page they came from.
-    window.location.href = referrer;
+    // Use real browser history so visitors return to the exact page they
+    // came from — the referrer header from the main site can be limited to
+    // just the origin (domain), which would otherwise drop them on the home page.
+    if (window.history.length > 1) {
+      window.history.back();
+    } else if (referrer) {
+      window.location.href = referrer;
+    }
   };
 
   return (
     <button
       type="button"
       onClick={handleBack}
-      className="inline-flex items-center gap-2 text-sm font-medium transition-colors mb-6 hover:opacity-100"
+      className="flex w-fit items-center gap-2 text-sm font-medium transition-colors mb-6 hover:opacity-100"
       style={{ color: "rgba(255,251,245,0.85)" }}
     >
       <ArrowLeft className="w-4 h-4" style={{ color: "#B8956A" }} />
