@@ -22,6 +22,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BackToMainSiteButton from "@/components/BackToMainSiteButton";
 
 const PROJECTS = [
   { icon: Building2, label: "Residential real estate photography" },
@@ -136,6 +137,7 @@ export default function AboutJob() {
         style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}
       >
         <div className="max-w-5xl mx-auto">
+          <BackToMainSiteButton />
           <div
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
             style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}
