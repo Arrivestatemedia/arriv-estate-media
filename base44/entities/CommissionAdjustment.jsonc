@@ -1,0 +1,77 @@
+{
+  "name": "CommissionAdjustment",
+  "type": "object",
+  "properties": {
+    "adjustment_id": {
+      "type": "string",
+      "description": "Unique adjustment ID"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Employee the adjustment applies to"
+    },
+    "adjustment_type": {
+      "type": "string",
+      "enum": [
+        "bonus",
+        "spiff",
+        "correction",
+        "clawback",
+        "manual"
+      ],
+      "description": "Type of adjustment"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Adjustment amount (positive or negative)"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for the adjustment"
+    },
+    "related_source_record_id": {
+      "type": "string",
+      "description": "CommissionSourceRecord this adjustment relates to, if any"
+    },
+    "payroll_period_id": {
+      "type": "string",
+      "description": "Pay period this adjustment targets"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "included",
+        "voided"
+      ],
+      "default": "pending",
+      "description": "Adjustment lifecycle"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Owner/admin who approved the adjustment"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the adjustment was approved"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Actor who created the adjustment"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the adjustment was created"
+    }
+  },
+  "required": [
+    "adjustment_id",
+    "arriv_employee_id",
+    "adjustment_type",
+    "amount",
+    "reason"
+  ]
+}

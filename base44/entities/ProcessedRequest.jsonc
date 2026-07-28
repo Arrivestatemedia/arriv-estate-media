@@ -1,0 +1,32 @@
+{
+  "name": "ProcessedRequest",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "description": "Unique request ID (replay protection)"
+    },
+    "source_application_id": {
+      "type": "string",
+      "description": "Source application that issued the request"
+    },
+    "endpoint": {
+      "type": "string",
+      "description": "Endpoint the request targeted"
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the request was first processed"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this record can be purged (processed_at + retention window)"
+    }
+  },
+  "required": [
+    "request_id",
+    "processed_at"
+  ]
+}

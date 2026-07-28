@@ -1,0 +1,87 @@
+{
+  "name": "PayrollPeriodSnapshot",
+  "type": "object",
+  "properties": {
+    "snapshot_id": {
+      "type": "string",
+      "description": "Unique snapshot ID"
+    },
+    "pay_period_id": {
+      "type": "string",
+      "description": "PayrollPeriod this snapshot belongs to"
+    },
+    "payroll_version": {
+      "type": "integer",
+      "description": "PayrollPeriod version this snapshot reflects"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Employee this per-employee snapshot covers"
+    },
+    "commission_source_record_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Source record IDs included for this employee"
+    },
+    "commission_plan_id": {
+      "type": "string",
+      "description": "Commission plan applied"
+    },
+    "commission_plan_version": {
+      "type": "integer",
+      "description": "Commission plan version applied"
+    },
+    "commissionable_amounts": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Per-source-record commissionable amounts"
+    },
+    "commission_rates": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Per-source-record commission rates"
+    },
+    "adjustment_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Adjustment IDs included for this employee"
+    },
+    "employee_gross_commission": {
+      "type": "number",
+      "description": "Employee gross commission total for this period"
+    },
+    "company_gross_commission_total": {
+      "type": "number",
+      "description": "Company-level gross commission total (same across all snapshots for this period/version)"
+    },
+    "source_record_count": {
+      "type": "integer",
+      "description": "Number of source records for this employee"
+    },
+    "snapshot_checksum": {
+      "type": "string",
+      "description": "SHA-256 checksum of the snapshot payload"
+    },
+    "created_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the snapshot was created (immutable after creation)"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "pay_period_id",
+    "payroll_version",
+    "arriv_employee_id",
+    "employee_gross_commission",
+    "snapshot_checksum"
+  ]
+}

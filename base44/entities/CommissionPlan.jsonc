@@ -1,0 +1,74 @@
+{
+  "name": "CommissionPlan",
+  "type": "object",
+  "properties": {
+    "plan_id": {
+      "type": "string",
+      "description": "Unique commission plan identifier (e.g. plan_w2_sales_2026)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human description of the plan"
+    },
+    "current_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Latest CommissionPlanVersion version number"
+    },
+    "calculation_method": {
+      "type": "string",
+      "enum": [
+        "flat_rate",
+        "tiered",
+        "fixed_per_deal",
+        "custom"
+      ],
+      "description": "How commission is calculated"
+    },
+    "default_rate": {
+      "type": "number",
+      "description": "Default commission rate as a decimal (e.g. 0.15 = 15%)"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Plan effective date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Plan end/retirement date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "retired"
+      ],
+      "default": "draft",
+      "description": "Plan lifecycle status"
+    },
+    "department": {
+      "type": "string",
+      "description": "Owning department (e.g. Sales)"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Actor who created the plan"
+    },
+    "last_modified_by": {
+      "type": "string",
+      "description": "Actor who last modified the plan"
+    }
+  },
+  "required": [
+    "plan_id",
+    "name",
+    "calculation_method"
+  ]
+}

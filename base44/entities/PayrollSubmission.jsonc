@@ -1,0 +1,112 @@
+{
+  "name": "PayrollSubmission",
+  "type": "object",
+  "properties": {
+    "submission_id": {
+      "type": "string",
+      "description": "Unique submission ID"
+    },
+    "pay_period_id": {
+      "type": "string",
+      "description": "Pay period submitted"
+    },
+    "payroll_version": {
+      "type": "integer",
+      "description": "PayrollPeriod version submitted"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Unique request ID used for replay protection"
+    },
+    "source_application_id": {
+      "type": "string",
+      "description": "Source application ID (Arriv One)"
+    },
+    "submitted_gross_total": {
+      "type": "number",
+      "description": "Gross total submitted to Arriv Payroll"
+    },
+    "source_record_count": {
+      "type": "integer",
+      "description": "Number of source records submitted"
+    },
+    "employee_count": {
+      "type": "integer",
+      "description": "Number of employees in the submission"
+    },
+    "snapshot_checksum": {
+      "type": "string",
+      "description": "Aggregate checksum of submitted snapshots"
+    },
+    "submission_payload": {
+      "type": "object",
+      "description": "Full signed submission payload sent to Arriv Payroll"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "submitted",
+        "accepted",
+        "rejected",
+        "failed",
+        "requires_review"
+      ],
+      "default": "pending",
+      "description": "Submission lifecycle"
+    },
+    "non_retryable": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when Arriv Payroll reported a non-retryable error"
+    },
+    "response_code": {
+      "type": "string",
+      "description": "HTTP-style response code from Arriv Payroll"
+    },
+    "response_message": {
+      "type": "string",
+      "description": "Response message from Arriv Payroll"
+    },
+    "response_payload": {
+      "type": "object",
+      "description": "Raw last response payload from Arriv Payroll"
+    },
+    "attempt_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of send attempts"
+    },
+    "max_attempts": {
+      "type": "integer",
+      "default": 5,
+      "description": "Maximum automatic attempts before requiring review"
+    },
+    "last_attempt_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last attempt was made"
+    },
+    "next_attempt_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the next retry is scheduled (exponential backoff)"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the submission was first sent"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the submission reached a terminal state"
+    }
+  },
+  "required": [
+    "submission_id",
+    "pay_period_id",
+    "payroll_version",
+    "request_id"
+  ]
+}

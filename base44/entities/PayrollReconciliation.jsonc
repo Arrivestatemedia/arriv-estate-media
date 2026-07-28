@@ -1,0 +1,88 @@
+{
+  "name": "PayrollReconciliation",
+  "type": "object",
+  "properties": {
+    "reconciliation_id": {
+      "type": "string",
+      "description": "Unique reconciliation ID"
+    },
+    "pay_period_id": {
+      "type": "string",
+      "description": "Pay period being reconciled"
+    },
+    "payroll_version": {
+      "type": "integer",
+      "description": "PayrollPeriod version reconciled"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Employee reconciled"
+    },
+    "received_source_record_count": {
+      "type": "integer",
+      "description": "Source record count reported received by Arriv Payroll"
+    },
+    "payroll_recalculated_gross": {
+      "type": "number",
+      "description": "Gross amount Arriv Payroll independently recalculated"
+    },
+    "arriv_one_submitted_gross": {
+      "type": "number",
+      "description": "Gross amount Arriv One submitted"
+    },
+    "variance": {
+      "type": "number",
+      "description": "Recalculated minus submitted gross"
+    },
+    "rounding_tolerance": {
+      "type": "number",
+      "default": 0.01,
+      "description": "Allowed per-employee rounding tolerance (max $0.01)"
+    },
+    "validation_status": {
+      "type": "string",
+      "enum": [
+        "matched",
+        "mismatched",
+        "pending"
+      ],
+      "default": "pending",
+      "description": "Reconciliation result"
+    },
+    "validation_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Validation error descriptions"
+    },
+    "payroll_snapshot_checksum": {
+      "type": "string",
+      "description": "Snapshot checksum reported by Arriv Payroll"
+    },
+    "response_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Arriv Payroll returned this reconciliation"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Owner/admin who reviewed a discrepancy"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the discrepancy was reviewed"
+    },
+    "resolution_notes": {
+      "type": "string",
+      "description": "Manual resolution notes"
+    }
+  },
+  "required": [
+    "reconciliation_id",
+    "pay_period_id",
+    "payroll_version",
+    "arriv_employee_id"
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "name": "PayrollPeriod",
+  "type": "object",
+  "properties": {
+    "pay_period_id": {
+      "type": "string",
+      "description": "Unique pay period identifier"
+    },
+    "period_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Period start date"
+    },
+    "period_end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Period end date"
+    },
+    "commission_cutoff_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Commission cutoff timestamp"
+    },
+    "validation_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date validation runs"
+    },
+    "scheduled_payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Scheduled payment date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "upcoming",
+        "collecting",
+        "cutoff_reached",
+        "preparing",
+        "validation_failed",
+        "ready_to_lock",
+        "locked",
+        "submitted_to_payroll",
+        "payroll_validated",
+        "payroll_rejected",
+        "payment_processing",
+        "completed",
+        "correction_required",
+        "reopened_by_owner"
+      ],
+      "default": "upcoming",
+      "description": "Pay period lifecycle status"
+    },
+    "source_record_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Count of source records included"
+    },
+    "employee_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Count of employees included"
+    },
+    "expected_gross_commission_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Expected gross commission total"
+    },
+    "payroll_confirmed_gross_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Gross total confirmed by Arriv Payroll"
+    },
+    "variance": {
+      "type": "number",
+      "default": 0,
+      "description": "Confirmed minus expected gross total"
+    },
+    "version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Pay period version, incremented on corrections/reopen"
+    },
+    "locked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the period was locked"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the period was submitted to payroll"
+    },
+    "automatic_payroll_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether automatic submission is permitted for this period (mirrors the global setting at lock time)"
+    },
+    "rounding_tolerance": {
+      "type": "number",
+      "default": 0.01,
+      "description": "Per-employee rounding tolerance for reconciliation (max $0.01)"
+    }
+  },
+  "required": [
+    "pay_period_id",
+    "period_start_date",
+    "period_end_date",
+    "commission_cutoff_at",
+    "scheduled_payment_date"
+  ]
+}

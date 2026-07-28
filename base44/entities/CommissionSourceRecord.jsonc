@@ -1,0 +1,184 @@
+{
+  "name": "CommissionSourceRecord",
+  "type": "object",
+  "properties": {
+    "source_record_id": {
+      "type": "string",
+      "description": "Unique source record ID (component of the payroll idempotency key)"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "ARRIV_EMPLOYEE_ID of the employee earning this commission"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Client/contact ID"
+    },
+    "client_account_id": {
+      "type": "string",
+      "description": "Client account ID"
+    },
+    "customer_invoice_id": {
+      "type": "string",
+      "description": "Related Invoice entity ID / invoice number"
+    },
+    "stripe_payment_id": {
+      "type": "string",
+      "description": "Stripe PaymentIntent/charge ID when the customer paid via Stripe"
+    },
+    "sale_id": {
+      "type": "string",
+      "description": "Related sale / deal / booking ID"
+    },
+    "service_or_product": {
+      "type": "string",
+      "description": "Service or product sold (e.g. package name)"
+    },
+    "contract_value": {
+      "type": "number",
+      "description": "Contracted sale value"
+    },
+    "amount_collected": {
+      "type": "number",
+      "description": "Amount actually collected from the customer"
+    },
+    "commissionable_amount": {
+      "type": "number",
+      "description": "Portion of collected amount eligible for commission"
+    },
+    "commission_plan_id": {
+      "type": "string",
+      "description": "CommissionPlan plan_id applied"
+    },
+    "commission_plan_version": {
+      "type": "integer",
+      "description": "CommissionPlanVersion version applied"
+    },
+    "commission_rate": {
+      "type": "number",
+      "description": "Commission rate used (decimal)"
+    },
+    "commission_calculation_method": {
+      "type": "string",
+      "enum": [
+        "flat_rate",
+        "tiered",
+        "fixed_per_deal",
+        "custom"
+      ],
+      "description": "Method used to calculate the commission"
+    },
+    "calculated_commission_amount": {
+      "type": "number",
+      "description": "Calculated commission dollar amount"
+    },
+    "eligibility_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the commission became eligible"
+    },
+    "payment_cleared_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the customer payment cleared"
+    },
+    "refund_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "partial",
+        "full"
+      ],
+      "default": "none",
+      "description": "Customer refund status"
+    },
+    "chargeback_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "resolved",
+        "upheld"
+      ],
+      "default": "none",
+      "description": "Chargeback status"
+    },
+    "cancellation_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "cancelled"
+      ],
+      "default": "none",
+      "description": "Cancellation status"
+    },
+    "adjustment_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "adjusted",
+        "voided"
+      ],
+      "default": "none",
+      "description": "Whether an adjustment was applied"
+    },
+    "previous_payroll_inclusion_status": {
+      "type": "string",
+      "enum": [
+        "never_included",
+        "included",
+        "excluded"
+      ],
+      "default": "never_included",
+      "description": "Whether this source record was included in a prior payroll period"
+    },
+    "previous_payroll_period_id": {
+      "type": "string",
+      "description": "Payroll period this was previously included in, if any"
+    },
+    "payroll_inclusion_status": {
+      "type": "string",
+      "enum": [
+        "not_included",
+        "eligible",
+        "locked",
+        "submitted",
+        "paid",
+        "excluded",
+        "voided"
+      ],
+      "default": "not_included",
+      "description": "Current payroll inclusion lifecycle"
+    },
+    "payroll_period_id": {
+      "type": "string",
+      "description": "Pay period this record is locked into"
+    },
+    "record_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Source record version, incremented on corrections"
+    },
+    "created_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the source record was created"
+    },
+    "modified_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the source record was last modified"
+    }
+  },
+  "required": [
+    "source_record_id",
+    "arriv_employee_id",
+    "commission_plan_id",
+    "commission_plan_version",
+    "commissionable_amount",
+    "calculated_commission_amount",
+    "eligibility_date"
+  ]
+}

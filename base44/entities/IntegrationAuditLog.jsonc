@@ -1,0 +1,70 @@
+{
+  "name": "IntegrationAuditLog",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique event ID"
+    },
+    "actor": {
+      "type": "string",
+      "description": "User or system that performed the action"
+    },
+    "action": {
+      "type": "string",
+      "description": "Action performed (e.g. commission_plan_updated, pay_period_locked, payroll_resubmitted)"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Entity type affected"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "Entity ID affected"
+    },
+    "before_values": {
+      "type": "object",
+      "description": "Field values before the change"
+    },
+    "after_values": {
+      "type": "object",
+      "description": "Field values after the change"
+    },
+    "source_application": {
+      "type": "string",
+      "description": "Source application (e.g. arriv_one)"
+    },
+    "destination_application": {
+      "type": "string",
+      "description": "Destination application (e.g. arriv_payroll)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Request ID associated with the event"
+    },
+    "session_metadata": {
+      "type": "object",
+      "description": "IP address / session metadata when available"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure",
+        "warning"
+      ],
+      "description": "Outcome of the action"
+    }
+  },
+  "required": [
+    "event_id",
+    "actor",
+    "action",
+    "timestamp"
+  ]
+}

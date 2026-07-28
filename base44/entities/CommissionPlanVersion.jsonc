@@ -1,0 +1,80 @@
+{
+  "name": "CommissionPlanVersion",
+  "type": "object",
+  "properties": {
+    "plan_id": {
+      "type": "string",
+      "description": "Parent CommissionPlan plan_id"
+    },
+    "version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Immutable version number for this plan"
+    },
+    "calculation_method": {
+      "type": "string",
+      "enum": [
+        "flat_rate",
+        "tiered",
+        "fixed_per_deal",
+        "custom"
+      ],
+      "description": "Calculation method for this version"
+    },
+    "rate": {
+      "type": "number",
+      "description": "Commission rate as a decimal for this version (e.g. 0.15)"
+    },
+    "fixed_amount": {
+      "type": "number",
+      "description": "Fixed dollar amount per deal (fixed_per_deal method)"
+    },
+    "tiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "rate": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Tier definitions for tiered calculation method"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this version becomes effective"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this version is superseded"
+    },
+    "change_reason": {
+      "type": "string",
+      "description": "Why this version was created"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Actor who created this version"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this version was created"
+    }
+  },
+  "required": [
+    "plan_id",
+    "version",
+    "calculation_method",
+    "effective_date"
+  ]
+}

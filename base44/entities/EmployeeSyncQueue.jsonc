@@ -1,0 +1,122 @@
+{
+  "name": "EmployeeSyncQueue",
+  "type": "object",
+  "properties": {
+    "sync_id": {
+      "type": "string",
+      "description": "Unique sync ID"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "ARRIV_EMPLOYEE_ID being synchronized"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "offer_accepted",
+        "employee_activated",
+        "legal_name_change",
+        "address_change",
+        "phone_change",
+        "personal_email_change",
+        "work_state_change",
+        "job_title_change",
+        "employment_status_change",
+        "commission_plan_change",
+        "commission_rate_change",
+        "termination_entered",
+        "stripe_account_created",
+        "stripe_onboarding_change",
+        "stripe_payouts_change"
+      ],
+      "description": "Event that triggered the sync"
+    },
+    "event_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the triggering event occurred"
+    },
+    "source_version": {
+      "type": "integer",
+      "description": "Employee record version at the time of the event"
+    },
+    "changed_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Fields that changed in this event"
+    },
+    "current_field_values": {
+      "type": "object",
+      "description": "Snapshot of current field values to sync"
+    },
+    "destination": {
+      "type": "string",
+      "default": "arriv_payroll",
+      "description": "Sync destination"
+    },
+    "processing_status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "processing",
+        "synchronized",
+        "failed",
+        "requires_review",
+        "superseded"
+      ],
+      "default": "queued",
+      "description": "Sync processing status"
+    },
+    "attempt_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of processing attempts"
+    },
+    "max_attempts": {
+      "type": "integer",
+      "default": 5,
+      "description": "Maximum automatic attempts"
+    },
+    "last_attempt_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last attempt ran"
+    },
+    "next_attempt_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the next retry is scheduled (exponential backoff)"
+    },
+    "non_retryable": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when Arriv Payroll reported a non-retryable error (auth failed, invalid signature, employee mismatch, duplicate, locked conflict, etc.)"
+    },
+    "response_code": {
+      "type": "string",
+      "description": "Response code from Arriv Payroll"
+    },
+    "response_message": {
+      "type": "string",
+      "description": "Response message from Arriv Payroll"
+    },
+    "completed_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the sync reached a terminal state"
+    },
+    "supersedes_sync_id": {
+      "type": "string",
+      "description": "Older sync ID this record superseded"
+    }
+  },
+  "required": [
+    "sync_id",
+    "arriv_employee_id",
+    "event_type",
+    "event_timestamp",
+    "source_version"
+  ]
+}
