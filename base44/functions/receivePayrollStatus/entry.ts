@@ -1,17 +1,25 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { verifySignature } from "../../shared/payrollCrypto.ts";
+import { verifySignature, isTimestampFresh } from "../../shared/payrollCrypto.ts";
+import { isReplay, markProcessed } from "../../shared/payrollReplay.ts";
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const rawBody = await req.text();
     const signature = req.headers.get("X-Arriv-Signature") || "";
+    const tsHeader = req.headers.get("X-Arriv-Timestamp") || "";
+    const requestId = req.headers.get("X-Arriv-Request-Id") || "";
+    const sourceAppId = req.headers.get("X-Arriv-Source-App") || "arriv_payroll";
     const webhookSecret = Deno.env.get("ARRIV_PAYROLL_WEBHOOK_SECRET") || "";
 
     if (!webhookSecret) return Response.json({ error: "Webhook secret not configured" }, { status: 500 });
+    if (!isTimestampFresh(tsHeader)) return Response.json({ error: "Stale or missing timestamp" }, { status: 401 });
 
     const valid = await verifySignature(webhookSecret, rawBody, signature);
     if (!valid) return Response.json({ error: "Invalid signature" }, { status: 401 });
+
+    const replay = await isReplay(base44, requestId, sourceAppId, "receivePayrollStatus");
+    if (replay.replay) return Response.json({ received: true, duplicate: true, reason: replay.reason });
 
     let data;
     try {
@@ -79,6 +87,7 @@ Deno.serve(async (req) => {
     }
 
     await base44.asServiceRole.entities.Commission.update(commission.id, update);
+    await markProcessed(base44, requestId, sourceAppId, "receivePayrollStatus");
 
     // Reflect terminal payroll lifecycle on the linked CommissionSourceRecord
     // (best-effort: commission.deal_id holds the source_record_id when generated
