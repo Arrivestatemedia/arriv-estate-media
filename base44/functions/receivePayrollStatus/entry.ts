@@ -79,6 +79,27 @@ Deno.serve(async (req) => {
     }
 
     await base44.asServiceRole.entities.Commission.update(commission.id, update);
+
+    // Reflect terminal payroll lifecycle on the linked CommissionSourceRecord
+    // (best-effort: commission.deal_id holds the source_record_id when generated
+    // from the source-of-truth pipeline).
+    if (["paid", "voided", "corrected"].includes(payroll_status) && commission.deal_id) {
+      try {
+        const srcRows = await base44.asServiceRole.entities.CommissionSourceRecord.filter({
+          source_record_id: commission.deal_id,
+        });
+        if (srcRows && srcRows[0]) {
+          await base44.asServiceRole.entities.CommissionSourceRecord.update(srcRows[0].id, {
+            payroll_inclusion_status:
+              payroll_status === "paid" ? "paid" : payroll_status === "voided" ? "voided" : "excluded",
+            modified_timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (_e) {
+        // ignore — source record linkage is best-effort
+      }
+    }
+
     return Response.json({ success: true, commission_id: commission.id, payroll_status });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
