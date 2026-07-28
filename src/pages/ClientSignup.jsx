@@ -7,12 +7,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera } from "lucide-react";
 import { createPageUrl } from "../utils";
+import { addOnNames } from "@/lib/services";
 
 
 export default function ClientSignup() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const roleFromUrl = urlParams.get('role') || 'user';
+  const inviteToken = urlParams.get('invite');
   
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem('clientSignupFormData');
@@ -26,6 +28,25 @@ export default function ClientSignup() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [invite, setInvite] = useState(null);
+
+  React.useEffect(() => {
+    if (!inviteToken) return;
+    base44.functions.invoke('getSignupInvite', { token: inviteToken })
+      .then(res => {
+        const inv = res?.data;
+        if (inv && inv.package) {
+          setInvite(inv);
+          setFormData(prev => ({
+            ...prev,
+            full_name: inv.client_name || prev.full_name,
+            email: inv.client_email || prev.email,
+            phone_number: inv.client_phone || prev.phone_number,
+          }));
+        }
+      })
+      .catch(err => console.error('Invite load error:', err));
+  }, [inviteToken]);
   const [termsScrolled, setTermsScrolled] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [smsConsented, setSmsConsented] = useState(false);
@@ -74,11 +95,13 @@ export default function ClientSignup() {
         phone_number: formData.phone_number,
         password: formData.password,
         user_type: "client",
-        user_role: roleFromUrl
+        user_role: roleFromUrl,
+        invite_token: inviteToken || undefined,
       });
       
       if (response.data?.success) {
         localStorage.removeItem('clientSignupFormData');
+        if (inviteToken) localStorage.setItem('pending_invite_token', inviteToken);
         window.location.href = createPageUrl('SignIn');
       } else {
         setError(response.data?.error || "Failed to create account");
@@ -105,6 +128,22 @@ export default function ClientSignup() {
           </p>
         </CardHeader>
         <CardContent>
+          {invite && (
+            <div className="mb-4 rounded-lg border-2 border-[#B8956A]/40 bg-[#B8956A]/10 p-4 space-y-2">
+              <p className="text-sm font-semibold text-[#B8956A]">
+                {invite.sales_member_name ? `${invite.sales_member_name} prepared a package for you` : 'Your sales rep prepared a package for you'}
+              </p>
+              <div className="text-sm text-[#1A1A1A]/80 space-y-1">
+                <p><span className="font-medium">Package:</span> {invite.package_name || invite.package}</p>
+                {invite.locked_add_ons && invite.locked_add_ons.length > 0 && (
+                  <p><span className="font-medium">Included add-ons:</span> {invite.locked_add_ons.map(id => addOnNames[id] || id).join(', ')}</p>
+                )}
+              </div>
+              <p className="text-xs text-[#1A1A1A]/60">
+                Your info is pre-filled. After you create your account and sign in, your package will be ready — you can add more services, but contact your rep to remove anything.
+              </p>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#1A1A1A] mb-2">

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Mail, Building2, User, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus, Trash2, Pencil } from "lucide-react";
+import { Phone, Mail, Building2, User, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus, Trash2, Pencil, Briefcase } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { createPortal } from "react-dom";
@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import LogActivityModal from "@/components/sales/LogActivityModal";
+import ConvertToJobModal from "@/components/sales/ConvertToJobModal";
 import { CallStatusProvider } from "@/components/CallStatusContext";
 import CallMapModal from "@/components/sales/CallMapModal";
 
@@ -37,6 +38,7 @@ export default function ContactDetailPage() {
   const [followUpData, setFollowUpData] = useState({ notes: "", activity_date: "", activity_type: "call" });
   const [saving, setSaving] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -248,6 +250,15 @@ export default function ContactDetailPage() {
              >
                <Plus className="w-4 h-4" />
                Log Activity
+             </Button>
+             <Button
+               size="sm"
+               className="gap-2"
+               style={{ backgroundColor: '#1A1A1A', color: '#fff' }}
+               onClick={() => setShowConvertModal(true)}
+             >
+               <Briefcase className="w-4 h-4" />
+               Convert to Job
              </Button>
              {contact.phone && (
                <TooltipProvider>
@@ -660,6 +671,14 @@ export default function ContactDetailPage() {
            />
          );
        })()}
+
+      {/* Convert to Job Modal */}
+      <ConvertToJobModal
+        open={showConvertModal}
+        onClose={() => setShowConvertModal(false)}
+        contact={contact}
+        onSent={() => setShowConvertModal(false)}
+      />
 
       {/* Log Activity Modal */}
       <LogActivityModal

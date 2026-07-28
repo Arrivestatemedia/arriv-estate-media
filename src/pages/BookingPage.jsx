@@ -5,64 +5,12 @@ import { createPageUrl } from "../utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChevronDown, ChevronUp, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
+import { packages, addOns } from "@/lib/services";
 
-const packages = [
-  {
-    id: "mls_walkthrough",
-    name: "MLS Walkthrough",
-    tag: "Most Popular",
-    price: 100,
-    features: [
-      "2-3 minute unbranded MLS-ready walkthrough (MLS & GAMLS compliant)",
-      "Bonus vertical social clip (Instagram/Reels ready)",
-    ],
-  },
-  {
-    id: "photo_essentials",
-    name: "Photo Essentials",
-    price: 275,
-    features: [
-      "50-150 edited photos (interior + exterior)",
-      "True-to-life color + straight verticals",
-      "1 vertical teaser (9:16, 30-45 sec)",
-    ],
-  },
-  {
-    id: "photo_cinematic",
-    name: "Photo + Cinematic Walkthrough",
-    price: 475,
-    features: [
-      "Everything in Photo Essentials",
-      "2 - 3 Minute walkthrough video (MLS-friendly export)",
-      "2 vertical reels",
-    ],
-  },
-  {
-    id: "premium_bundle",
-    name: "Premium Media Bundle",
-    price: 675,
-    features: [
-      "Everything in Photo + Cinematic Walkthrough",
-      "3D Tour",
-      "Twilight exterior edits (up to 5 photos)",
-      "AI Staging (if needed)",
-    ],
-  },
-];
-
-const addOns = [
-  { id: "drone", name: "Drone add-on (photos + short clips)", price: 125 },
-  { id: "3d_tour", name: "3D Tour", price: 125 },
-  { id: "twilight", name: "Twilight exterior edits (up to 5 photos)", price: 125 },
-  { id: "rush_delivery", name: "Next-day rush delivery (when available)", price: 100 },
-  { id: "vertical_reel", name: "Additional vertical reel", price: 40 },
-  { id: "ai_staging", name: "AI Staging", price: 125 },
-];
-
-function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected }) {
+function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -103,13 +51,19 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected }) {
                   <span className="text-sm">{feature}</span>
                 </div>
               ))}
-              <Button
-                onClick={() => onSelect(pkg)}
-                variant={isSelected ? "outline" : "default"}
-                className={isSelected ? "w-full border-red-300 text-red-600 hover:bg-red-50 mt-4" : "w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white mt-4"}
-              >
-                {isSelected ? "Remove from Cart" : "Select Package"}
-              </Button>
+              {isLocked ? (
+                <div className="w-full mt-4 flex items-center justify-center gap-2 py-2 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/40 text-[#B8956A] text-sm font-medium">
+                  <Lock className="w-4 h-4" /> Selected by your sales rep
+                </div>
+              ) : (
+                <Button
+                  onClick={() => onSelect(pkg)}
+                  variant={isSelected ? "outline" : "default"}
+                  className={isSelected ? "w-full border-red-300 text-red-600 hover:bg-red-50 mt-4" : "w-full bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white mt-4"}
+                >
+                  {isSelected ? "Remove from Cart" : "Select Package"}
+                </Button>
+              )}
             </div>
           </motion.div>
         )}
@@ -127,6 +81,7 @@ export default function BookingPage() {
   const [editingBooking, setEditingBooking] = useState(null);
   const [requestPayAtClosing, setRequestPayAtClosing] = useState(false);
   const [showPayAtClosingDialog, setShowPayAtClosingDialog] = useState(false);
+  const [lockedInvite, setLockedInvite] = useState(null);
 
   useEffect(() => {
     // Check if we're editing a booking
@@ -140,12 +95,31 @@ export default function BookingPage() {
         console.error('Failed to load booking:', err);
         window.location.href = createPageUrl('ClientBookings');
       });
+      return;
+    }
+
+    // Load a sales-rep invite (convert-to-job) if present
+    const inviteToken = urlParams.get('invite') || localStorage.getItem('pending_invite_token');
+    if (inviteToken) {
+      base44.functions.invoke('getSignupInvite', { token: inviteToken }).then(res => {
+        const inv = res?.data;
+        if (inv && inv.package) {
+          const pkg = packages.find(p => p.id === inv.package);
+          const lockedAddOnObjs = (inv.locked_add_ons || [])
+            .map(id => addOns.find(a => a.id === id))
+            .filter(Boolean);
+          if (pkg) setSelectedPackage(pkg);
+          if (lockedAddOnObjs.length) setCartAddOns(lockedAddOnObjs);
+          setLockedInvite({ ...inv, token: inviteToken });
+        }
+      }).catch(err => console.error('Failed to load invite:', err));
     }
   }, []);
 
   const createBookingMutation = useMutation({
     mutationFn: (data) => base44.functions.invoke('handleBookingSubmission', { booking: data }),
     onSuccess: () => {
+      localStorage.removeItem('pending_invite_token');
       setShowBookingForm(false);
       setSelectedPackage(null);
       window.location.href = createPageUrl('ClientBookings');
@@ -166,6 +140,7 @@ export default function BookingPage() {
   });
 
   const handleSelectPackage = (pkg) => {
+    if (lockedInvite && lockedInvite.package === pkg.id) return; // can't remove rep's package
     if (selectedPackage?.id === pkg.id) {
       setSelectedPackage(null);
     } else {
@@ -180,6 +155,7 @@ export default function BookingPage() {
   };
 
   const handleRemoveFromCart = (addonId) => {
+    if (lockedInvite && (lockedInvite.locked_add_ons || []).includes(addonId)) return; // locked
     setCartAddOns(cartAddOns.filter(a => a.id !== addonId));
   };
 
@@ -189,7 +165,14 @@ export default function BookingPage() {
     return new Promise((resolve) => {
       createBookingMutation.mutate({
         ...bookingData,
-        request_pay_at_closing: requestPayAtClosing
+        request_pay_at_closing: requestPayAtClosing,
+        ...(lockedInvite ? {
+          sales_member_id: lockedInvite.sales_member_id,
+          sales_member_name: lockedInvite.sales_member_name,
+          locked_add_ons: lockedInvite.locked_add_ons,
+          services_locked: true,
+          invite_token: lockedInvite.token,
+        } : {}),
       }, {
         onSettled: () => resolve(),
       });
@@ -248,6 +231,16 @@ export default function BookingPage() {
 
       <div className="min-h-screen bg-[#FFFBF5]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {lockedInvite && (
+          <div className="mb-6 rounded-lg border-2 border-[#B8956A]/40 bg-[#B8956A]/10 p-4">
+            <p className="text-sm font-semibold text-[#B8956A]">
+              {lockedInvite.sales_member_name ? `${lockedInvite.sales_member_name} selected your package.` : 'Your sales rep selected your package.'}
+            </p>
+            <p className="text-xs text-[#1A1A1A]/70 mt-1">
+              You can add more services below, but to remove anything please contact your sales rep.
+            </p>
+          </div>
+        )}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-[#1A1A1A] mb-4">
             TRANSPARENT PRICING FOR PROFESSIONAL REAL ESTATE MEDIA
@@ -278,6 +271,7 @@ export default function BookingPage() {
               onToggle={() => setExpandedPackage(expandedPackage === pkg.id ? null : pkg.id)}
               onSelect={handleSelectPackage}
               isSelected={selectedPackage?.id === pkg.id}
+              isLocked={lockedInvite?.package === pkg.id}
             />
           ))}
         </div>
@@ -305,6 +299,7 @@ export default function BookingPage() {
                 <div className="px-6 pb-6 space-y-2">
                   {addOns.map((addon) => {
                     const isInCart = cartAddOns.find(a => a.id === addon.id);
+                    const isLockedAddOn = lockedInvite && (lockedInvite.locked_add_ons || []).includes(addon.id);
                     
                     // Check if add-on requires a package
                     const requiresPackage = ['ai_staging', 'twilight', 'rush_delivery'].includes(addon.id);
@@ -338,14 +333,20 @@ export default function BookingPage() {
                           ${addon.price}
                         </span>
                         {isInCart ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRemoveFromCart(addon.id)}
-                            className="border-red-300 text-red-600 hover:bg-red-50"
-                          >
-                            Remove
-                          </Button>
+                          isLockedAddOn ? (
+                            <span className="text-xs font-medium px-2 py-1 rounded-md bg-[#B8956A]/10 text-[#B8956A] border border-[#B8956A]/30 flex items-center gap-1">
+                              <Lock className="w-3 h-3" /> Locked
+                            </span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRemoveFromCart(addon.id)}
+                              className="border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              Remove
+                            </Button>
+                          )
                         ) : isDisabled ? (
                           <TooltipProvider>
                             <Tooltip>

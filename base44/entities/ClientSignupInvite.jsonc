@@ -1,0 +1,117 @@
+{
+  "name": "ClientSignupInvite",
+  "type": "object",
+  "properties": {
+    "token": {
+      "type": "string",
+      "description": "Unique invite token used in the /ClientSignup?invite=<token> link"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "ID of the sales rep who created this invite (commission owner)"
+    },
+    "sales_member_name": {
+      "type": "string",
+      "description": "Sales rep name (denormalized)"
+    },
+    "sales_member_email": {
+      "type": "string",
+      "description": "Sales rep email (denormalized)"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Prospect/contact display name this invite was created from"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Prospect/contact email this invite was created from"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Pre-filled client full name"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Pre-filled client email (recipient of the invite)"
+    },
+    "client_phone": {
+      "type": "string",
+      "description": "Pre-filled client phone"
+    },
+    "company": {
+      "type": "string",
+      "description": "Prospect company (denormalized)"
+    },
+    "package": {
+      "type": "string",
+      "enum": [
+        "mls_walkthrough",
+        "photo_essentials",
+        "photo_cinematic",
+        "premium_bundle"
+      ],
+      "description": "Package the rep chose for this job"
+    },
+    "package_name": {
+      "type": "string",
+      "description": "Package display name (denormalized)"
+    },
+    "locked_add_ons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Add-on IDs the rep chose \u2014 locked; the client may add but not remove these"
+    },
+    "locked_total_price": {
+      "type": "number",
+      "description": "Total price of the rep's chosen package + locked add-ons"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "signed_up",
+        "converted",
+        "expired",
+        "cancelled"
+      ],
+      "default": "sent",
+      "description": "Lifecycle: sent \u2192 signed_up (client created account) \u2192 converted (booking created)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Rep notes included with the invite"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the invite was created"
+    },
+    "used_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the client signed up using this invite"
+    },
+    "converted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a booking was created from this invite"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Booking created from this invite (set when converted)"
+    },
+    "email_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the invite email was sent"
+    }
+  },
+  "required": [
+    "token",
+    "sales_member_id",
+    "client_email",
+    "package"
+  ]
+}

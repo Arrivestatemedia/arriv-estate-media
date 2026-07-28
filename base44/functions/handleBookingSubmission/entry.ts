@@ -20,6 +20,42 @@ Deno.serve(async (req) => {
       status: isPastShoot ? 'approved' : 'pending'
     });
 
+    // If this booking came from a sales-rep invite, create a pending 15% commission
+    // tied to that rep so the sale is credited (commission flows through approval → payroll).
+    if (booking.sales_member_id) {
+      try {
+        let repData = null;
+        try {
+          const reps = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: booking.sales_member_id });
+          repData = reps && reps[0] ? reps[0] : null;
+        } catch (e) { /* ignore */ }
+
+        const baseAmount = parseFloat(booking.total_price) || 0;
+        const commissionAmount = Math.round(baseAmount * 0.15 * 100) / 100;
+        if (commissionAmount > 0) {
+          await base44.asServiceRole.entities.Commission.create({
+            employee_id: booking.sales_member_id,
+            employee_email: repData?.email || booking.sales_member_email || '',
+            employee_name: repData?.full_name || booking.sales_member_name || '',
+            payroll_employee_id: repData?.payroll_employee_id || '',
+            compensation_type: 'commission',
+            commission_plan_id: 'standard_15',
+            deal_id: createdBooking.id,
+            customer_name: booking.client_name,
+            description: `15% commission on ${booking.package} booking`,
+            gross_amount: commissionAmount,
+            earned_date: new Date().toISOString().slice(0, 10),
+            intended_pay_period: new Date().toISOString().slice(0, 7),
+            approval_status: 'pending',
+            payroll_status: 'not_sent',
+            compensation_version: 1,
+          });
+        }
+      } catch (commissionErr) {
+        console.error('Commission creation error:', commissionErr.message);
+      }
+    }
+
     // For past shoots: create a Job assigned to admin (Bradley) and skip all client/admin notifications
     if (isPastShoot) {
       const packagePrices = { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 };
