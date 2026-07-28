@@ -1,0 +1,65 @@
+{
+  "name": "PayrollReadinessEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique event ID from Arriv Payroll (dedup key)"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Unique request ID from Arriv Payroll (dedup key)"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Employee the readiness event concerns"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Readiness event type (e.g. payroll_employee_created, federal_tax_setup_complete, stripe_payouts_enabled, payroll_ready, payroll_readiness_revoked, payroll_hold_applied, payroll_hold_released)"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Safe status payload only \u2014 never tax answers, full SSNs or banking details"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "processed": {
+      "type": "boolean",
+      "default": false
+    },
+    "source_application": {
+      "type": "string",
+      "default": "arriv_payroll"
+    }
+  },
+  "required": [
+    "event_id",
+    "arriv_employee_id",
+    "event_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "name": "OrientationDocumentTemplate",
+  "type": "object",
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "description": "Stable document identifier (e.g. employment_agreement)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Document display title"
+    },
+    "version": {
+      "type": "string",
+      "description": "Document version label (e.g. 1.1). Increasing this triggers re-acknowledgment for all employees."
+    },
+    "body_ref": {
+      "type": "string",
+      "description": "Reference to stored document content (never the full body)"
+    },
+    "required": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether acknowledgement is mandatory"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "change_summary": {
+      "type": "string",
+      "description": "What changed in this version"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "published_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "document_id",
+    "title",
+    "version"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

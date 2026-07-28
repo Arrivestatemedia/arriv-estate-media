@@ -1,0 +1,319 @@
+{
+  "name": "SalesOrientation",
+  "type": "object",
+  "properties": {
+    "orientation_id": {
+      "type": "string",
+      "description": "Unique orientation ID"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Immutable ARRIV_EMPLOYEE_ID joining Arriv One, Arriv Payroll, orientation, commission, training and Stripe"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember id"
+    },
+    "application_id": {
+      "type": "string",
+      "description": "JobApplication id the orientation originated from"
+    },
+    "employee_email": {
+      "type": "string",
+      "description": "Employee email (denormalized)"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Employee full name (denormalized)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "invited",
+        "in_progress",
+        "awaiting_payroll_enrollment",
+        "awaiting_tax_forms",
+        "awaiting_identity_verification",
+        "awaiting_direct_deposit",
+        "awaiting_employer_verification",
+        "awaiting_documents",
+        "awaiting_training",
+        "ready_for_review",
+        "completed",
+        "blocked",
+        "expired",
+        "cancelled"
+      ],
+      "default": "not_started",
+      "description": "Orientation lifecycle status"
+    },
+    "employment_classification": {
+      "type": "string",
+      "description": "Snapshot of employment classification"
+    },
+    "anticipated_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Confirmed start date"
+    },
+    "orientation_deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Date by which orientation must be complete"
+    },
+    "expected_first_payroll_date": {
+      "type": "string",
+      "format": "date",
+      "description": "First eligible payroll date, when known"
+    },
+    "manager": {
+      "type": "string",
+      "description": "Manager name or id"
+    },
+    "department": {
+      "type": "string",
+      "default": "Sales"
+    },
+    "job_title": {
+      "type": "string"
+    },
+    "welcome_acknowledged_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the employee acknowledged Section 1 welcome"
+    },
+    "personal_info_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "reviewed",
+        "submitted"
+      ],
+      "default": "not_started"
+    },
+    "personal_info_submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "employee_record_synced": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the payroll profile was synchronized to Arriv Payroll"
+    },
+    "background_check_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "pending",
+        "clear",
+        "failed",
+        "requires_review"
+      ],
+      "default": "not_started"
+    },
+    "background_check_initiated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "background_check_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "checkr_candidate_id": {
+      "type": "string"
+    },
+    "checkr_invitation_url": {
+      "type": "string"
+    },
+    "i9_status": {
+      "type": "string",
+      "enum": [
+        "employee_section_not_started",
+        "employee_section_complete",
+        "documents_pending",
+        "employer_review_scheduled",
+        "employer_review_complete",
+        "reverification_required",
+        "complete",
+        "rejected",
+        "requires_review"
+      ],
+      "default": "employee_section_not_started"
+    },
+    "i9_employee_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "i9_employer_reviewer_id": {
+      "type": "string"
+    },
+    "i9_employer_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "i9_reverification_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "payroll_profile_created": {
+      "type": "boolean",
+      "default": false
+    },
+    "federal_tax_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "complete",
+        "requires_review"
+      ],
+      "default": "not_started"
+    },
+    "state_tax_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "state_tax_status": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "not_started",
+        "in_progress",
+        "complete",
+        "requires_review"
+      ],
+      "default": "not_required"
+    },
+    "tax_setup_complete": {
+      "type": "boolean",
+      "default": false
+    },
+    "tax_requires_review": {
+      "type": "boolean",
+      "default": false
+    },
+    "stripe_onboarding_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "onboarding_started",
+        "information_required",
+        "verification_pending",
+        "restricted",
+        "payouts_disabled",
+        "payouts_enabled",
+        "complete",
+        "requires_review"
+      ],
+      "default": "not_started"
+    },
+    "payouts_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "stripe_account_id": {
+      "type": "string"
+    },
+    "documents_complete": {
+      "type": "boolean",
+      "default": false
+    },
+    "documents_completed_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "documents_required_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "training_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "complete"
+      ],
+      "default": "not_started"
+    },
+    "training_completion_percent": {
+      "type": "number",
+      "default": 0
+    },
+    "final_review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "final_reviewed_by": {
+      "type": "string"
+    },
+    "final_reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payroll_ready": {
+      "type": "boolean",
+      "default": false,
+      "description": "Set only when Arriv Payroll returns payroll_ready"
+    },
+    "payroll_ready_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payroll_hold": {
+      "type": "boolean",
+      "default": false
+    },
+    "payroll_hold_reason": {
+      "type": "string"
+    },
+    "readiness_percent": {
+      "type": "number",
+      "default": 0
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "orientation_id",
+    "arriv_employee_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

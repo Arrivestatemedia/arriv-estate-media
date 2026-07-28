@@ -109,6 +109,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Applications", page: "AdminApplications", icon: FileText },
             { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck },
         { label: "Commissions", page: "AdminCommissions", icon: Wallet },
+        { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },
         { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark },
         { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
           ]

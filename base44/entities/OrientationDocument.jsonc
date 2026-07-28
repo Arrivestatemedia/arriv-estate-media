@@ -1,0 +1,97 @@
+{
+  "name": "OrientationDocument",
+  "type": "object",
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "description": "Configured document identifier (e.g. employment_agreement)"
+    },
+    "document_version": {
+      "type": "string",
+      "description": "Document version acknowledged"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Employee who signed/acknowledged"
+    },
+    "orientation_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "displayed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the document was displayed to the employee"
+    },
+    "signed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the employee acknowledged/signed"
+    },
+    "signature_method": {
+      "type": "string",
+      "enum": [
+        "typed",
+        "clickwrap"
+      ],
+      "default": "clickwrap"
+    },
+    "signature_value": {
+      "type": "string",
+      "description": "Typed name or acknowledgement token (never the full document content)"
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "session_metadata": {
+      "type": "object",
+      "description": "Session metadata when available"
+    },
+    "signed_document_reference": {
+      "type": "string",
+      "description": "Reference/hash to the signed document content stored securely"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "signed",
+        "voided"
+      ],
+      "default": "pending"
+    },
+    "superseded_by": {
+      "type": "string",
+      "description": "Newer OrientationDocument record id that superseded this one"
+    }
+  },
+  "required": [
+    "document_id",
+    "document_version",
+    "arriv_employee_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

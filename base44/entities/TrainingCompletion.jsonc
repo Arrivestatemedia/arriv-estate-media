@@ -1,0 +1,72 @@
+{
+  "name": "TrainingCompletion",
+  "type": "object",
+  "properties": {
+    "completion_id": {
+      "type": "string",
+      "description": "Unique completion record ID"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Employee this completion belongs to"
+    },
+    "orientation_id": {
+      "type": "string"
+    },
+    "module_id": {
+      "type": "string",
+      "description": "TrainingModule module_id"
+    },
+    "module_version": {
+      "type": "integer",
+      "default": 1
+    },
+    "score": {
+      "type": "number",
+      "description": "Score percentage (0-100)"
+    },
+    "passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "last_answer_summary": {
+      "type": "object",
+      "description": "Safe per-question correct/incorrect summary only \u2014 never full answers or PII"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "completion_id",
+    "arriv_employee_id",
+    "module_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
