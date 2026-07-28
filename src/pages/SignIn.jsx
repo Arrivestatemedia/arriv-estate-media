@@ -1,14 +1,10 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, Eye, EyeOff } from "lucide-react";
-import { createPageUrl } from "../utils";
-
 export default function SignIn() {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -170,16 +166,6 @@ export default function SignIn() {
             </Button>
 
           </form>
-          <div className="mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-[#B8956A]/40 text-[#B8956A] hover:bg-[#B8956A]/10"
-              onClick={() => navigate(createPageUrl("ApplicationPortal"))}
-            >
-              Check Application Status
-            </Button>
-          </div>
           </CardContent>
       </Card>
     </div>
