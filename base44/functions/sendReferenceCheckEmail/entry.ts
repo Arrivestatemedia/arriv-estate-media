@@ -25,7 +25,7 @@ function deadlineDisplayAndDate() {
   return { dateStr, display };
 }
 
-function buildReferenceEmailHtml(firstName, submitUrl, deadlineDisplay) {
+export function buildReferenceEmailHtml(firstName, submitUrl, deadlineDisplay) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
