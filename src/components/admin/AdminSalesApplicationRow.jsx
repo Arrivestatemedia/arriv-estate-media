@@ -7,6 +7,8 @@ import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus
 import moment from "moment";
 import InterviewSchedulerModal from "./InterviewSchedulerModal";
 import DeleteApplicationDialog from "./DeleteApplicationDialog";
+import ReferenceCheckModal from "./ReferenceCheckModal";
+import { Users } from "lucide-react";
 
 export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
@@ -15,6 +17,7 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
   const [deleting, setDeleting] = useState(false);
   const [sendingRefs, setSendingRefs] = useState(false);
   const [refsMsg, setRefsMsg] = useState(null);
+  const [showRefs, setShowRefs] = useState(false);
   const isSales = (app.position || "media_specialist") === "sales_growth_advisor";
   if (!isSales) return null;
 
@@ -138,6 +141,13 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
               <span className={`text-xs ${refsMsg.type === "success" ? "text-green-600" : "text-red-600"}`}>{refsMsg.text}</span>
             )}
             <button
+              onClick={() => setShowRefs(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-[#1A1A1A]/20 text-[#1A1A1A] hover:bg-[#1A1A1A]/5 transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              View References
+            </button>
+            <button
               onClick={() => setShowDelete(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-red-400 text-red-600 hover:bg-red-50 transition-colors"
             >
@@ -163,6 +173,10 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
         onConfirm={confirmDelete}
         deleting={deleting}
       />
+
+      {showRefs && (
+        <ReferenceCheckModal applicationId={app.id} applicantName={app.full_name} onClose={() => setShowRefs(false)} />
+      )}
     </Card>
   );
 }
