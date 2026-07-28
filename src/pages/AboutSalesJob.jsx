@@ -72,7 +72,7 @@ const TRAINING_TOPICS = [
 const WHY_JOIN = [
   { icon: Wallet, label: "$500 Training Bonus", desc: "Earn a bonus after completing our two-week onboarding and training program." },
   { icon: TrendingUp, label: "Uncapped Commission", desc: "Your earning potential is based entirely on the business you generate." },
-  { icon: CalendarClock, label: "Flexible Schedule", desc: "This is a 100% remote role — work from anywhere and set your own hours." },
+  { icon: CalendarClock, label: "Flexible", desc: "This is a 100% remote role — work from anywhere." },
   { icon: GraduationCap, label: "Comprehensive Training", desc: "Full training provided — no real estate experience necessary." },
   { icon: TrendingUp, label: "Career Growth", desc: "Join the founding sales team and grow as Arriv expands." },
   { icon: Star, label: "Shape the Future", desc: "Help build an innovative real estate technology company from the ground up." },
@@ -81,7 +81,7 @@ const WHY_JOIN = [
 const FAQ = [
   {
     q: "Is this a salaried position?",
-    a: "No. This is a 100% commission-based Independent Contractor (1099) opportunity. There is no salary cap — your earning potential is based entirely on the business you generate.",
+    a: "No. This is a commission-based W-2 position. Your earning potential is uncapped — your income is directly tied to the relationships you build and the revenue you generate.",
   },
   {
     q: "Do I need real estate experience?",
@@ -106,7 +106,7 @@ const FAQ = [
 ];
 
 const TRUST = [
-  "Independent Contractor (1099)",
+  "Commission-Based W-2",
   "100% Commission",
   "$500 Training Bonus",
   "Uncapped Earning Potential",
@@ -191,7 +191,7 @@ export default function AboutSalesJob() {
             professionals while growing your income through uncapped commissions.
           </p>
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm" style={{ color: "rgba(255,251,245,0.7)" }}>
-            <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" style={{ color: "#B8956A" }} /> Independent Contractor (1099)</span>
+            <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" style={{ color: "#B8956A" }} /> Commission-Based W-2</span>
             <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" style={{ color: "#B8956A" }} /> 100% Remote – Work From Anywhere</span>
             <span className="flex items-center gap-1.5"><Wallet className="w-4 h-4" style={{ color: "#B8956A" }} /> 100% Commission + $500 Training Bonus</span>
           </div>
@@ -326,19 +326,26 @@ export default function AboutSalesJob() {
 
       {/* Compensation */}
       <Section eyebrow="Compensation" title="Uncapped earning potential">
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
-            <Wallet className="w-5 h-5 mb-3" style={{ color: "#B8956A" }} />
-            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>100% Commission (1099)</h3>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>💰</span>
+            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>Commission-Based W-2 Position</h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-              Independent Contractor opportunity with no salary cap — your earning potential is based entirely on the business you generate.
+              Earn uncapped commissions by helping real estate professionals grow their business through Arriv Estate Media. Your income is directly tied to the relationships you build and the revenue you generate.
             </p>
           </div>
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
-            <Award className="w-5 h-5 mb-3" style={{ color: "#B8956A" }} />
-            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>$500 Training Bonus</h3>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>🎯</span>
+            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>$500 Paid Training Bonus</h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-              New Sales Growth Advisors who complete our two-week onboarding and training program receive a $500 bonus.
+              Complete our two-week onboarding and training program and receive a $500 Training Bonus. We'll teach you our sales process, CRM, products, objection handling, and how to build a successful real estate client portfolio.
+            </p>
+          </div>
+          <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>📈</span>
+            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>Career Growth</h3>
+            <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
+              This position is designed to grow with Arriv. As the company expands, high-performing Sales Growth Advisors may have the opportunity to transition into salary + commission compensation, leadership opportunities, and expanded employee benefits based on business needs and performance.
             </p>
           </div>
         </div>
