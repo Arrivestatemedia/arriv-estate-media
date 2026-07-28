@@ -29,7 +29,7 @@ function isoDate(d) {
 
 // Find or create the biweekly PayrollPeriod containing `now`.
 export async function resolveCurrentPayPeriod(base44, now = new Date()) {
-  const anchorStr = await getPayrollSettingValue(base44, "payroll_period_anchor_date", "2026-08-14");
+  const anchorStr = await getPayrollSettingValue(base44, "payroll_period_anchor_date", "2026-01-05");
   const anchor = new Date(anchorStr + "T00:00:00Z");
   if (isNaN(anchor.getTime())) return null;
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
