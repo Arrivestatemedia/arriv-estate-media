@@ -82,8 +82,12 @@ export default function BookingPage() {
   const [requestPayAtClosing, setRequestPayAtClosing] = useState(false);
   const [showPayAtClosingDialog, setShowPayAtClosingDialog] = useState(false);
   const [lockedInvite, setLockedInvite] = useState(null);
+  const [salesReps, setSalesReps] = useState([]);
 
   useEffect(() => {
+    // Load active sales reps for the "Who did you work with?" dropdown
+    base44.functions.invoke('listSalesReps', {}).then(res => setSalesReps(res?.data?.reps || [])).catch(() => {});
+
     // Check if we're editing a booking
     const urlParams = new URLSearchParams(window.location.search);
     const bookingId = urlParams.get('booking_id');
@@ -203,6 +207,9 @@ export default function BookingPage() {
         }}
         isEditing={!!editingBooking}
         editingBooking={editingBooking}
+        salesReps={salesReps}
+        lockedSalesRepId={lockedInvite?.sales_member_id || null}
+        lockedSalesRepName={lockedInvite?.sales_member_name || null}
       />
     );
   }

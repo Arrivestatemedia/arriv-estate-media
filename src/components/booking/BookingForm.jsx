@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, Lock } from "lucide-react";
 import { format, isWeekend, setHours, setMinutes, parse } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const inputStyles = "";
 
@@ -35,7 +36,7 @@ const timeSlots = {
   ],
 };
 
-export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking }) {
+export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null }) {
   const totalPrice = (selectedPackage?.price || 0) + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
   
   const [formData, setFormData] = useState({
@@ -51,6 +52,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
     is_cancellation: false,
     package: selectedPackage?.id || (editingBooking?.package || ""),
     add_ons: (cartAddOns || []).map(a => a.id),
+    sales_member_id: lockedSalesRepId || editingBooking?.sales_member_id || "",
     total_price: totalPrice,
   });
 
@@ -286,6 +288,34 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
                   onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
                   className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                  Who did you work with?
+                </label>
+                {lockedSalesRepId ? (
+                  <div className="flex items-center gap-2 rounded-md border border-[#B8956A]/30 bg-[#B8956A]/5 px-3 py-2.5 text-sm text-[#1A1A1A]/70">
+                    <span className="flex-1">{lockedSalesRepName || 'Your sales rep'}</span>
+                    <Lock className="w-4 h-4 text-[#B8956A]" />
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.sales_member_id || '__none__'}
+                    onValueChange={(v) => setFormData({ ...formData, sales_member_id: v === '__none__' ? '' : v })}
+                  >
+                    <SelectTrigger className={cn("border-[#B8956A]/30 focus:border-[#B8956A]", inputStyles)}>
+                      <SelectValue placeholder="Select your sales rep (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No one / I found you myself</SelectItem>
+                      {salesReps.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <p className="text-xs text-[#1A1A1A]/50 mt-1">So we can credit your sales rep's commission.</p>
               </div>
 
               <div className="space-y-4">
