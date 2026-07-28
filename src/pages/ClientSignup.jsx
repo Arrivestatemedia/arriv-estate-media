@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera } from "lucide-react";
+import { Camera, Lock } from "lucide-react";
 import { createPageUrl } from "../utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addOnNames } from "@/lib/services";
 
 
@@ -23,12 +24,14 @@ export default function ClientSignup() {
       full_name: "", 
       phone_number: urlParams.get('phone_number') || "",
       password: "",
-      password_confirmation: ""
+      password_confirmation: "",
+      sales_member_id: ""
     };
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [invite, setInvite] = useState(null);
+  const [salesReps, setSalesReps] = useState([]);
 
   React.useEffect(() => {
     if (!inviteToken) return;
@@ -42,11 +45,16 @@ export default function ClientSignup() {
             full_name: inv.client_name || prev.full_name,
             email: inv.client_email || prev.email,
             phone_number: inv.client_phone || prev.phone_number,
+            sales_member_id: inv.sales_member_id || prev.sales_member_id,
           }));
         }
       })
       .catch(err => console.error('Invite load error:', err));
   }, [inviteToken]);
+  React.useEffect(() => {
+    base44.functions.invoke('listSalesReps', {}).then(res => setSalesReps(res?.data?.reps || [])).catch(() => {});
+  }, []);
+
   const [termsScrolled, setTermsScrolled] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [smsConsented, setSmsConsented] = useState(false);
@@ -102,6 +110,11 @@ export default function ClientSignup() {
       if (response.data?.success) {
         localStorage.removeItem('clientSignupFormData');
         if (inviteToken) localStorage.setItem('pending_invite_token', inviteToken);
+        if (!inviteToken && formData.sales_member_id) {
+          localStorage.setItem('selected_sales_member_id', formData.sales_member_id);
+          const rep = salesReps.find(r => r.id === formData.sales_member_id);
+          if (rep) localStorage.setItem('selected_sales_member_name', rep.full_name);
+        }
         window.location.href = createPageUrl('SignIn');
       } else {
         setError(response.data?.error || "Failed to create account");
@@ -184,6 +197,33 @@ export default function ClientSignup() {
                 className="border-[#B8956A]/30 focus:border-[#B8956A]"
                 placeholder="+1 (555) 123-4567"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                Who did you work with?
+              </label>
+              {invite ? (
+                <div className="flex items-center gap-2 rounded-md border border-[#B8956A]/30 bg-[#B8956A]/5 px-3 py-2.5 text-sm text-[#1A1A1A]/70">
+                  <span className="flex-1">{invite.sales_member_name || 'Your sales rep'}</span>
+                  <Lock className="w-4 h-4 text-[#B8956A]" />
+                </div>
+              ) : (
+                <Select
+                  value={formData.sales_member_id || '__none__'}
+                  onValueChange={(v) => setFormData({ ...formData, sales_member_id: v === '__none__' ? '' : v })}
+                >
+                  <SelectTrigger className="border-[#B8956A]/30 focus:border-[#B8956A]">
+                    <SelectValue placeholder="Select your sales rep (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No one / I found you myself</SelectItem>
+                    {salesReps.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <p className="text-xs text-[#1A1A1A]/50 mt-1">So we can credit your sales rep's commission.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
