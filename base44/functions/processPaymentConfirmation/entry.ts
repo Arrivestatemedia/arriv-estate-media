@@ -483,7 +483,14 @@ Deno.serve(async (req) => {
       console.warn('Auto-send media message error:', e.message);
     }
 
-    // ── 10. Log to HubSpot ────────────────────────────────────────────────────
+    // ── 10. Generate Arriv Payroll commission source record (best-effort) ────
+    try {
+      await base44.asServiceRole.functions.invoke('generateCommissionSourceRecord', { invoiceId: invoice.id });
+    } catch (e) {
+      console.warn('Commission source record generation failed:', e.message);
+    }
+
+    // ── 11. Log to HubSpot ────────────────────────────────────────────────────
     try {
       await base44.asServiceRole.functions.invoke('logHubSpotEvent', {
         contactEmail: invoice.client_email,
