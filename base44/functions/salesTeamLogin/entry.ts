@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20'; // v2
+import { handleSalesBackgroundCheckFailure } from '../../shared/orientationEngine.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -27,14 +28,38 @@ Deno.serve(async (req) => {
 
     const member = members[0];
 
-    // Check if member is active
-    if (member.is_active === false) {
-      return Response.json({ error: 'This account is inactive' }, { status: 403 });
-    }
-
     // Verify password
     if (member.password_hash !== passwordHash) {
       return Response.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
+
+    // Background check gate: sales reps cannot access the system until their background
+    // check clears. Admins bypass. A failed background check rescinds the offer and
+    // deactivates the account (idempotent). Reps without an orientation record (legacy)
+    // are allowed through.
+    if (member.role !== 'admin') {
+      let bgStatus = null;
+      let bgOrientation = null;
+      try {
+        const orientations = await base44.asServiceRole.entities.SalesOrientation.filter({ sales_member_id: member.id });
+        if (orientations && orientations[0]) {
+          bgStatus = orientations[0].background_check_status;
+          bgOrientation = orientations[0];
+        }
+      } catch (e) { /* no orientation = legacy rep, allow */ }
+
+      if (bgStatus === 'failed') {
+        try { if (bgOrientation) await handleSalesBackgroundCheckFailure(base44, bgOrientation); } catch (e) { /* ignore */ }
+        return Response.json({ error: 'Your background check did not pass. We are unable to move forward with your offer at this time. You will receive an email with more information.', background_check_failed: true }, { status: 403 });
+      }
+      if (bgStatus === 'pending' || bgStatus === 'not_started' || bgStatus === 'requires_review') {
+        return Response.json({ error: "Your background check is still being processed. You'll be able to access the sales system once it clears. If you have questions, contact careers@arrivestatemedia.com.", background_check_pending: true }, { status: 403 });
+      }
+    }
+
+    // Check if member is active
+    if (member.is_active === false) {
+      return Response.json({ error: 'This account is inactive' }, { status: 403 });
     }
 
     return Response.json({

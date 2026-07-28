@@ -318,6 +318,9 @@ export async function adminReviewOrientation(base44, orientation, action, extra 
     update.background_check_completed_at = now;
   } else throw new Error("Unknown action: " + action);
   await base44.asServiceRole.entities.SalesOrientation.update(orientation.id, update);
+  if (action === "background_result" && extra.background_result === "failed") {
+    try { await handleSalesBackgroundCheckFailure(base44, { ...orientation, ...update }); } catch (e) { /* ignore */ }
+  }
   await writeOrientationAudit(base44, { arriv_employee_id: orientation.arriv_employee_id, actor: actor || "admin", role: "admin", action: "admin_review_" + action, affected_record: orientation.id, previous_status: prev, new_status: update.status || prev });
   const refreshed = await base44.asServiceRole.entities.SalesOrientation.get(orientation.id);
   return recomputeOrientation(base44, refreshed);
@@ -485,9 +488,77 @@ export async function applyCheckrResultToOrientation(base44, { candidateId, stat
     await base44.asServiceRole.entities.SalesOrientation.update(o.id, { background_check_status: "clear", background_check_completed_at: now });
   } else if (status === "consider" || status === "suspended") {
     await base44.asServiceRole.entities.SalesOrientation.update(o.id, { background_check_status: "failed", background_check_completed_at: now });
+    try { await handleSalesBackgroundCheckFailure(base44, o); } catch (e) { /* ignore */ }
   }
   await writeOrientationAudit(base44, { arriv_employee_id: o.arriv_employee_id, actor: "checkr", role: "system", action: "background_check_result", section: "background_check", new_status: status });
   return { applied: true, status };
+}
+
+function buildBackgroundRescindedHtml(firstName) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
+        <tr>
+          <td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
+          </td>
+        </tr>
+        <tr><td style="padding:40px 44px;">
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Thank you again for the time you invested in the interview process for the Sales Growth Advisor position with Arriv Estate Media.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">As part of our standard hiring process, we conduct background checks for all new team members. Unfortunately, your background check did not meet the requirements we need to move forward, and as a result we are rescinding our offer of employment at this time.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">This decision was not made lightly, and we genuinely appreciate the time, effort, and interest you showed throughout the process. We wish you the very best in your career and future endeavors.</p>
+        </td></tr>
+        <tr><td style="padding:0 44px 36px;">
+          <p style="margin:0 0 4px;font-size:16px;line-height:1.6;color:#1A1A1A;">Best,</p>
+          <p style="margin:0;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Brad Burke</strong><br/>Founder<br/>Arriv Estate Media<br/>careers@arrivestatemedia.com</p>
+        </td></tr>
+        <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9a8560;">© Arriv Estate Media, LLC · careers@arrivestatemedia.com</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function handleSalesBackgroundCheckFailure(base44, orientation) {
+  let member = null;
+  if (orientation.sales_member_id) {
+    try {
+      const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: orientation.sales_member_id });
+      member = members && members[0];
+    } catch (e) {}
+  }
+  const alreadyInactive = !member || member.is_active === false;
+  const now = new Date().toISOString();
+  if (member && !alreadyInactive) {
+    await base44.asServiceRole.entities.SalesTeamMember.update(member.id, {
+      is_active: false,
+      employment_status: "terminated",
+      termination_date: now.slice(0, 10),
+    });
+    const firstName = (member.legal_first_name || member.full_name || "").split(/\s+/)[0] || "there";
+    try {
+      await sendBrevoEmail({
+        to: member.personal_email || member.email,
+        senderEmail: "careers@arrivestatemedia.com",
+        senderName: "Arriv Estate Media",
+        subject: "Update on Your Offer – Arriv Estate Media",
+        htmlContent: buildBackgroundRescindedHtml(firstName),
+      });
+    } catch (e) { console.error("rescind email failed:", e.message); }
+  }
+  await writeOrientationAudit(base44, { arriv_employee_id: orientation.arriv_employee_id, actor: "system", role: "system", action: "offer_rescinded_background_check_failed", section: "background_check", new_status: "failed", result: "warning" });
+  return { rescinded: !alreadyInactive };
 }
 
 export async function sendDeadlineReminders(base44) {

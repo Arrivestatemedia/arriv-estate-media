@@ -21,6 +21,7 @@ import AdminPayrollDashboard from './pages/AdminPayrollDashboard';
 import AdminCommissions from './pages/AdminCommissions';
 import AdminSalesOrientation from './pages/AdminSalesOrientation';
 import SalesOrientationDashboard from './pages/SalesOrientationDashboard';
+import SubmitReferences from './pages/SubmitReferences';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -201,6 +202,10 @@ const AuthenticatedApp = () => {
             <SalesOrientationDashboard />
           </LayoutWrapper>
         }
+      />
+      <Route
+        path="/SubmitReferences"
+        element={<SubmitReferences />}
       />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

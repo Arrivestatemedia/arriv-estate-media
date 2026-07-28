@@ -1,0 +1,96 @@
+{
+  "name": "ApplicantReference",
+  "type": "object",
+  "properties": {
+    "reference_id": {
+      "type": "string",
+      "description": "Unique, unguessable token used in the references submission link"
+    },
+    "application_id": {
+      "type": "string",
+      "description": "JobApplication this reference request belongs to"
+    },
+    "applicant_email": {
+      "type": "string",
+      "description": "Applicant email the request was sent to"
+    },
+    "applicant_name": {
+      "type": "string",
+      "description": "Applicant full name"
+    },
+    "position": {
+      "type": "string",
+      "description": "Position applied for (e.g. sales_growth_advisor)"
+    },
+    "references": {
+      "type": "array",
+      "description": "Submitted references (2 professional + 1 character)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Reference full name"
+          },
+          "email": {
+            "type": "string",
+            "description": "Reference email"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Reference phone"
+          },
+          "relationship": {
+            "type": "string",
+            "description": "Relationship to applicant"
+          },
+          "company": {
+            "type": "string",
+            "description": "Company (professional references)"
+          },
+          "years_known": {
+            "type": "string",
+            "description": "How long the reference has known the applicant"
+          },
+          "reference_type": {
+            "type": "string",
+            "enum": [
+              "professional",
+              "character"
+            ],
+            "description": "Professional or character reference"
+          }
+        }
+      }
+    },
+    "request_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the reference-request email was sent"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Deadline to submit references"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the applicant submitted their references"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "submitted"
+      ],
+      "default": "requested",
+      "description": "Whether the reference request is still pending or has been submitted"
+    }
+  },
+  "required": [
+    "reference_id",
+    "application_id",
+    "applicant_email"
+  ]
+}

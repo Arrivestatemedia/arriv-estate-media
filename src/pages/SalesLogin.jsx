@@ -81,12 +81,12 @@ export default function SalesLogin() {
           }
         } else {
           setAutoLoading(false);
-          setError("This sign-in link is no longer valid. Please sign in manually below.");
+          setError(result.data?.error || "This sign-in link is no longer valid. Please sign in manually below.");
         }
       })
-      .catch(() => {
+      .catch((err) => {
         setAutoLoading(false);
-        setError("This sign-in link is no longer valid. Please sign in manually below.");
+        setError(err?.data?.error || "This sign-in link is no longer valid. Please sign in manually below.");
       });
   }, [navigate]);
 
@@ -131,7 +131,7 @@ export default function SalesLogin() {
         setError("Incorrect email or password. Please try again.");
       }
     } catch (err) {
-      setError("Incorrect email or password. Please try again.");
+      setError(err?.data?.error || "Incorrect email or password. Please try again.");
     } finally {
       setLoading(false);
     }

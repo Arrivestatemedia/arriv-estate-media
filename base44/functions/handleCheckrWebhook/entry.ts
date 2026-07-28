@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { processBackgroundCheckFailure } from '../../shared/backgroundCheck.ts';
+import { applyCheckrResultToOrientation } from '../../shared/orientationEngine.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -25,7 +26,9 @@ Deno.serve(async (req) => {
     const partners = await base44.asServiceRole.entities.User.filter({ checkr_candidate_id: candidateId });
     const partner = partners && partners[0];
     if (!partner) {
-      return Response.json({ received: true, partnerNotFound: true });
+      // Not a media partner — try a sales rep (SalesOrientation stores checkr_candidate_id).
+      const oResult = await applyCheckrResultToOrientation(base44, { candidateId, status, reportId });
+      return Response.json({ received: true, partnerNotFound: !oResult, salesOrientation: oResult });
     }
 
     const nowIso = new Date().toISOString();

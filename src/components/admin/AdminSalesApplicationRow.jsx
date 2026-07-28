@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SALES_STATUSES, getStatusLabel, getStatusColor, POSITION_LABELS } from "@/lib/applicationStatus";
-import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus, Trash2, UserCheck } from "lucide-react";
 import moment from "moment";
 import InterviewSchedulerModal from "./InterviewSchedulerModal";
 import DeleteApplicationDialog from "./DeleteApplicationDialog";
@@ -12,6 +13,8 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sendingRefs, setSendingRefs] = useState(false);
+  const [refsMsg, setRefsMsg] = useState(null);
   const isSales = (app.position || "media_specialist") === "sales_growth_advisor";
   if (!isSales) return null;
 
@@ -111,6 +114,29 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
               <CalendarPlus className="w-4 h-4" />
               Schedule Interview
             </button>
+            <button
+              onClick={async () => {
+                setSendingRefs(true);
+                setRefsMsg(null);
+                try {
+                  const res = await base44.functions.invoke("sendReferenceCheckEmail", { applicationId: app.id });
+                  if (res.data?.success) setRefsMsg({ type: "success", text: `Reference request sent to ${app.email}` });
+                  else setRefsMsg({ type: "error", text: res.data?.error || "Failed to send." });
+                } catch (err) {
+                  setRefsMsg({ type: "error", text: err?.data?.error || err?.message || "Failed to send." });
+                } finally {
+                  setSendingRefs(false);
+                }
+              }}
+              disabled={sendingRefs}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-[#B8956A] text-[#B8956A] hover:bg-[#B8956A]/10 transition-colors disabled:opacity-60"
+            >
+              <UserCheck className="w-4 h-4" />
+              {sendingRefs ? "Sending…" : "Reference Check"}
+            </button>
+            {refsMsg && (
+              <span className={`text-xs ${refsMsg.type === "success" ? "text-green-600" : "text-red-600"}`}>{refsMsg.text}</span>
+            )}
             <button
               onClick={() => setShowDelete(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-red-400 text-red-600 hover:bg-red-50 transition-colors"
