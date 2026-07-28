@@ -1,6 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { ensureEmployeeId, enqueueSync, runSyncAttempt } from "../../shared/payrollEmployeeSync.ts";
 import { writeAuditLog } from "../../shared/payrollAudit.ts";
+import { startOrientation } from "../../shared/salesOrientationEngine.ts";
 
 // Entity automation handler: fires on every SalesTeamMember create/update.
 // Maps changed fields to Arriv Payroll sync events and triggers the sync.
@@ -114,6 +115,15 @@ Deno.serve(async (req) => {
       destinationApplication: "arriv_payroll",
       result: result.ok ? "success" : result.nonRetryable ? "failure" : "warning",
     });
+
+    // Auto-start W-2 orientation on first creation (offer accepted). Contractors skip.
+    if (type === "create" && (versioned.employment_classification || "w2_employee") === "w2_employee") {
+      try {
+        await startOrientation(base44, versioned, { actor: "system", actorRole: "system", applicationId: versioned.application_id || "" });
+      } catch (e) {
+        console.error("auto orientation start failed:", e.message);
+      }
+    }
 
     return Response.json({ success: true, events, primary, sync: result });
   } catch (error) {

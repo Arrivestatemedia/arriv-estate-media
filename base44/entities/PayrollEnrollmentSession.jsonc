@@ -1,0 +1,73 @@
+{
+  "name": "PayrollEnrollmentSession",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Unique session ID"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Employee the session is for"
+    },
+    "orientation_id": {
+      "type": "string"
+    },
+    "session_type": {
+      "type": "string",
+      "enum": [
+        "payroll_tax_enrollment",
+        "direct_deposit"
+      ],
+      "description": "Whether this is a tax-enrollment or Stripe direct-deposit session"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Unique request ID for replay protection"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "issued",
+        "redirected",
+        "completed",
+        "expired",
+        "consumed",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "enrollment_url": {
+      "type": "string",
+      "description": "Short-lived hosted URL returned by Arriv Payroll (no secrets embedded)"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the session expires"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "consumed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "issuer_actor": {
+      "type": "string",
+      "description": "Actor who requested the session"
+    },
+    "return_url": {
+      "type": "string",
+      "description": "Where Arriv Payroll returns the employee after completion"
+    }
+  },
+  "required": [
+    "session_id",
+    "arriv_employee_id",
+    "session_type",
+    "request_id"
+  ]
+}

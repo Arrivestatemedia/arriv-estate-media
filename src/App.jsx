@@ -19,6 +19,8 @@ import OrientationAddress from './pages/OrientationAddress';
 import AdminPayrollSettings from './pages/AdminPayrollSettings';
 import AdminPayrollDashboard from './pages/AdminPayrollDashboard';
 import AdminCommissions from './pages/AdminCommissions';
+import AdminSalesOrientation from './pages/AdminSalesOrientation';
+import SalesOrientationDashboard from './pages/SalesOrientationDashboard';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -181,6 +183,22 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminCommissions">
             <AdminCommissions />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminSalesOrientation"
+        element={
+          <LayoutWrapper currentPageName="AdminSalesOrientation">
+            <AdminSalesOrientation />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/SalesOrientationDashboard"
+        element={
+          <LayoutWrapper currentPageName="SalesOrientationDashboard">
+            <SalesOrientationDashboard />
           </LayoutWrapper>
         }
       />
