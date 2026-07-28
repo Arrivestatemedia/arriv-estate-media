@@ -77,6 +77,30 @@
       ],
       "default": "user",
       "description": "Role of the sales team member"
+    },
+    "payroll_employee_id": {
+      "type": "string",
+      "description": "Arriv Payroll employee ID mapping for this sales team member"
+    },
+    "payroll_sync_status": {
+      "type": "string",
+      "enum": [
+        "not_synced",
+        "syncing",
+        "synced",
+        "error"
+      ],
+      "default": "not_synced",
+      "description": "Payroll employee mapping synchronization status"
+    },
+    "payroll_last_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this employee was last synced to Arriv Payroll"
+    },
+    "payroll_sync_error": {
+      "type": "string",
+      "description": "Last payroll mapping sync error, if any"
     }
   },
   "required": [

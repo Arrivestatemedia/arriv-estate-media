@@ -1,0 +1,167 @@
+{
+  "name": "Commission",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the employee earning this compensation"
+    },
+    "employee_email": {
+      "type": "string",
+      "description": "Employee email (denormalized for display/lookup)"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Employee full name (denormalized for display)"
+    },
+    "payroll_employee_id": {
+      "type": "string",
+      "description": "Arriv Payroll employee ID mapping (denormalized from SalesTeamMember)"
+    },
+    "compensation_type": {
+      "type": "string",
+      "enum": [
+        "commission",
+        "bonus",
+        "spiff",
+        "override",
+        "draw"
+      ],
+      "default": "commission",
+      "description": "Type of compensation"
+    },
+    "commission_plan_id": {
+      "type": "string",
+      "description": "Commission plan identifier"
+    },
+    "deal_id": {
+      "type": "string",
+      "description": "Related deal / source record ID"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Customer / contact ID"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Customer name (denormalized)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the compensation"
+    },
+    "gross_amount": {
+      "type": "number",
+      "description": "Gross compensation amount. Arriv One never computes withholding, employer taxes or net pay."
+    },
+    "earned_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the compensation was earned"
+    },
+    "approved_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the compensation was owner-approved"
+    },
+    "intended_pay_period": {
+      "type": "string",
+      "description": "Intended pay period label (e.g. 2026-08)"
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "manager_reviewed",
+        "owner_approved"
+      ],
+      "default": "pending",
+      "description": "Internal approval gate. Only owner-approved compensation may be sent to Arriv Payroll."
+    },
+    "manager_reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When a manager reviewed the compensation"
+    },
+    "manager_reviewed_by": {
+      "type": "string",
+      "description": "Who performed the manager review"
+    },
+    "owner_approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the owner approved the compensation"
+    },
+    "owner_approved_by": {
+      "type": "string",
+      "description": "Who performed the owner approval"
+    },
+    "payroll_status": {
+      "type": "string",
+      "enum": [
+        "not_sent",
+        "sending",
+        "sent",
+        "accepted",
+        "scheduled",
+        "processed",
+        "paid",
+        "rejected",
+        "voided",
+        "corrected",
+        "failed"
+      ],
+      "default": "not_sent",
+      "description": "Payroll synchronization / payment lifecycle. Driven by Arriv Payroll responses and status webhooks."
+    },
+    "payroll_compensation_import_id": {
+      "type": "string",
+      "description": "compensation_import_id returned by Arriv Payroll on acceptance"
+    },
+    "payroll_pay_period_id": {
+      "type": "string",
+      "description": "Pay period ID assigned by Arriv Payroll"
+    },
+    "scheduled_pay_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Scheduled pay date reported by Arriv Payroll"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Payment reference reported by Arriv Payroll once paid"
+    },
+    "net_pay": {
+      "type": "number",
+      "description": "Net pay returned by Arriv Payroll for employee-facing display only. Arriv One never computes this."
+    },
+    "payroll_sync_error": {
+      "type": "string",
+      "description": "Last synchronization error message, if any"
+    },
+    "payroll_last_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the commission was last synchronized with Arriv Payroll"
+    },
+    "payroll_response": {
+      "type": "object",
+      "description": "Raw last response payload received from Arriv Payroll"
+    },
+    "compensation_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Version number, incremented on corrections. Used to build the idempotency key."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key = source_record_id-v<version>. Prevents the same compensation from being paid twice."
+    }
+  },
+  "required": [
+    "employee_id",
+    "compensation_type",
+    "gross_amount",
+    "earned_date"
+  ]
+}

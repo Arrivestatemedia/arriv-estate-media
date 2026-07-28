@@ -16,6 +16,9 @@ import AdminApplications from './pages/AdminApplications';
 import AdminBackgroundChecks from './pages/AdminBackgroundChecks';
 import ApplicationPreview from './pages/ApplicationPreview';
 import OrientationAddress from './pages/OrientationAddress';
+import AdminPayrollSettings from './pages/AdminPayrollSettings';
+import AdminPayrollDashboard from './pages/AdminPayrollDashboard';
+import AdminCommissions from './pages/AdminCommissions';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -154,6 +157,30 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="OrientationAddress">
             <OrientationAddress />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminPayrollSettings"
+        element={
+          <LayoutWrapper currentPageName="AdminPayrollSettings">
+            <AdminPayrollSettings />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminPayrollDashboard"
+        element={
+          <LayoutWrapper currentPageName="AdminPayrollDashboard">
+            <AdminPayrollDashboard />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminCommissions"
+        element={
+          <LayoutWrapper currentPageName="AdminCommissions">
+            <AdminCommissions />
           </LayoutWrapper>
         }
       />
