@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { ensureEmployeeId, enqueueSync, runSyncAttempt } from "../../shared/payrollEmployeeSync.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -45,20 +44,12 @@ Deno.serve(async (req) => {
       is_active: true
     });
 
-    // Auto-sync the new employee to Arriv Payroll (assign ARRIV_EMPLOYEE_ID + enqueue first sync).
-    // Best-effort: never blocks member creation.
-    try {
-      const withId = await ensureEmployeeId(base44, member);
-      const queueRecord = await enqueueSync(base44, withId, "offer_accepted", []);
-      await runSyncAttempt(base44, queueRecord);
-    } catch (syncErr) {
-      console.error("Initial employee payroll sync failed:", syncErr.message);
-    }
+    // The SalesTeamMember entity automation (handleSalesTeamMemberChange) auto-syncs
+    // the new employee to Arriv Payroll on create — no explicit sync needed here.
 
     return Response.json({ 
       success: true,
       memberId: member.id,
-      arriv_employee_id: member.arriv_employee_id,
       message: 'Sales team member created successfully'
     });
 
