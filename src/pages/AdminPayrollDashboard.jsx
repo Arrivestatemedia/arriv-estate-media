@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, AlertTriangle, CheckCircle2, CalendarClock, Wallet, Send } from "lucide-react";
+import PayrollPeriodsPanel from "@/components/payroll/PayrollPeriodsPanel";
+import PayrollReconciliationQueue from "@/components/payroll/PayrollReconciliationQueue";
 
 const payrollStatusVariant = (status) => {
   switch (status) {
@@ -44,6 +46,7 @@ function CommissionRow({ c }) {
 export default function AdminPayrollDashboard() {
   const [loading, setLoading] = useState(true);
   const [commissions, setCommissions] = useState([]);
+  const [needsReview, setNeedsReview] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -109,6 +112,9 @@ export default function AdminPayrollDashboard() {
           </Link>
         </div>
       </div>
+
+      <PayrollPeriodsPanel onNeedsReview={setNeedsReview} />
+      <PayrollReconciliationQueue hasNeeds={needsReview} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>

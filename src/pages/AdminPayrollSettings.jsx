@@ -201,16 +201,28 @@ export default function AdminPayrollSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-2">
-          <div className="flex items-center justify-between rounded-md border p-3">
-            <span className="text-muted-foreground">Endpoint</span>
-            <code className="text-xs">
-              POST {(endpoint || "<endpoint>").replace(/\/functions\/.*$/i, "").replace(/\/$/, "")}/functions/receivePayrollStatus
-            </code>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <span className="text-muted-foreground">Per-compensation status</span>
+              <code className="text-xs">
+                POST {(endpoint || "<endpoint>").replace(/\/functions\/.*$/i, "").replace(/\/$/, "")}/functions/receivePayrollStatus
+              </code>
+            </div>
+            <p className="text-xs text-muted-foreground pl-1">
+              compensation_import_id, source_record_id, payroll_status (accepted | scheduled | processed | paid |
+              voided | corrected | rejected), pay_period_id, pay_date, payment_reference, net_pay, timestamp.
+            </p>
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <span className="text-muted-foreground">Period reconciliation</span>
+              <code className="text-xs">
+                POST {(endpoint || "<endpoint>").replace(/\/functions\/.*$/i, "").replace(/\/$/, "")}/functions/receivePayrollReconciliation
+              </code>
+            </div>
+            <p className="text-xs text-muted-foreground pl-1">
+              pay_period_id, payroll_version, employees[{`{arriv_employee_id, received_source_record_count,
+              payroll_recalculated_gross, arriv_one_submitted_gross, payroll_snapshot_checksum}`}], company_snapshot_checksum.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Payload: compensation_import_id, source_record_id, payroll_status (accepted | scheduled | processed |
-            paid | voided | corrected | rejected), pay_period_id, pay_date, payment_reference, net_pay, timestamp.
-          </p>
         </CardContent>
       </Card>
     </div>
