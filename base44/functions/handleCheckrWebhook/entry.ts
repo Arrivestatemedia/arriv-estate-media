@@ -25,25 +25,7 @@ Deno.serve(async (req) => {
     const partners = await base44.asServiceRole.entities.User.filter({ checkr_candidate_id: candidateId });
     const partner = partners && partners[0];
     if (!partner) {
-      // Sales rep path: match the Checkr candidate to a SalesOrientation instead.
-      const orientRows = await base44.asServiceRole.entities.SalesOrientation.filter({ checkr_candidate_id: candidateId });
-      const orientation = orientRows && orientRows[0];
-      if (!orientation) return Response.json({ received: true, partnerNotFound: true });
-
-      const nowIso2 = new Date().toISOString();
-      if (status === "clear") {
-        await base44.asServiceRole.entities.SalesOrientation.update(orientation.id, {
-          background_check_status: "clear", background_check_completed_at: nowIso2,
-        });
-        return Response.json({ received: true, result: "clear", salesRep: true });
-      }
-      if (status === "consider" || status === "suspended") {
-        await base44.asServiceRole.entities.SalesOrientation.update(orientation.id, {
-          background_check_status: "failed", background_check_completed_at: nowIso2,
-        });
-        return Response.json({ received: true, result: "failed", salesRep: true });
-      }
-      return Response.json({ received: true, result: status, salesRep: true });
+      return Response.json({ received: true, partnerNotFound: true });
     }
 
     const nowIso = new Date().toISOString();
