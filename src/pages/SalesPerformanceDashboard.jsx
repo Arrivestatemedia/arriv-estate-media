@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Phone, Mail, MessageSquare, Calendar, Users, DollarSign, Wallet, TrendingUp, Sparkles, Sun, Target, Award, Loader2, RefreshCw, ChevronRight } from "lucide-react";
+import { Phone, Mail, MessageSquare, Calendar, Users, DollarSign, Wallet, TrendingUp, Sparkles, Sun, Target, Award, Loader2, RefreshCw, ChevronRight, X, BookOpen } from "lucide-react";
 import MetricCard from "@/components/performance/MetricCard";
 import PipelineFunnel from "@/components/performance/PipelineFunnel";
 import HealthScoreGauge from "@/components/performance/HealthScoreGauge";
@@ -48,6 +48,7 @@ export default function SalesPerformanceDashboard() {
   const [healthScore, setHealthScore] = useState(null);
   const [coaching, setCoaching] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [verseModal, setVerseModal] = useState(null);
 
   useEffect(() => {
     const id = localStorage.getItem('sales_member_id');
@@ -192,7 +193,37 @@ Be specific and data-driven. Reference actual numbers. Keep each item to one sen
         {todayBanner && (
           <div className="mb-6 rounded-xl p-4 flex items-center gap-3" style={{ backgroundColor: 'rgba(184,149,106,0.1)', border: '1px solid rgba(184,149,106,0.3)' }}>
             <Sparkles className="w-5 h-5 flex-shrink-0" style={{ color: '#B8956A' }} />
-            <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>{todayBanner.message}</p>
+            <div className="flex-1">
+              <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>{todayBanner.message}</p>
+              {todayBanner.verse_reference && (
+                <button
+                  onClick={() => setVerseModal({ reference: todayBanner.verse_reference, text: todayBanner.verse_text })}
+                  className="text-xs mt-1 flex items-center gap-1 hover:underline"
+                  style={{ color: '#B8956A' }}
+                >
+                  <BookOpen className="w-3 h-3" />
+                  {todayBanner.verse_reference}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Verse Modal */}
+        {verseModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setVerseModal(null)}>
+            <div className="max-w-md w-full rounded-2xl p-6 relative" style={{ backgroundColor: '#FFFBF5', border: '1px solid rgba(184,149,106,0.3)' }} onClick={e => e.stopPropagation()}>
+              <button onClick={() => setVerseModal(null)} className="absolute top-3 right-3 p-1 rounded-lg" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="w-5 h-5" style={{ color: '#B8956A' }} />
+                <h3 className="text-lg font-bold" style={{ color: '#1A1A1A' }}>{verseModal.reference}</h3>
+              </div>
+              <p className="text-base leading-relaxed italic" style={{ color: 'rgba(26,26,26,0.8)' }}>
+                "{verseModal.text || 'Verse text not available.'}"
+              </p>
+            </div>
           </div>
         )}
 

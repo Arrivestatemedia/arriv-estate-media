@@ -42,7 +42,7 @@ export default function OwnerDashboard() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showBannerModal, setShowBannerModal] = useState(false);
   const [newGoal, setNewGoal] = useState({ metric: 'calls', period: 'daily', target_value: 60 });
-  const [newBanner, setNewBanner] = useState('');
+  const [newBanner, setNewBanner] = useState({ message: '', verse_reference: '', verse_text: '' });
   const [rankingKey, setRankingKey] = useState('calls_completed');
   const [rankingPeriod, setRankingPeriod] = useState('weekly');
 
@@ -88,16 +88,18 @@ export default function OwnerDashboard() {
   };
 
   const handleCreateBanner = async () => {
-    if (!newBanner.trim()) return;
+    if (!newBanner.message.trim()) return;
     try {
       await base44.entities.CultureBanner.create({
-        message: newBanner.trim(),
+        message: newBanner.message.trim(),
+        verse_reference: newBanner.verse_reference.trim(),
+        verse_text: newBanner.verse_text.trim(),
         is_active: true,
         display_order: banners.length,
         created_by: localStorage.getItem('sales_member_email') || 'admin',
       });
       setShowBannerModal(false);
-      setNewBanner('');
+      setNewBanner({ message: '', verse_reference: '', verse_text: '' });
       loadData();
     } catch (e) { alert('Failed to create banner: ' + e.message); }
   };
@@ -327,8 +329,21 @@ export default function OwnerDashboard() {
                 <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-2"><Plus className="w-4 h-4" /> Add Message</Button></DialogTrigger>
                 <DialogContent>
                   <DialogHeader><DialogTitle>Add Culture Message</DialogTitle></DialogHeader>
-                  <Textarea value={newBanner} onChange={e => setNewBanner(e.target.value)} rows={3} placeholder="e.g. Relationships first. Results follow." />
-                  <Button onClick={handleCreateBanner} className="w-full" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>Add</Button>
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Message</Label>
+                      <Textarea value={newBanner.message} onChange={e => setNewBanner({ ...newBanner, message: e.target.value })} rows={2} placeholder="e.g. Relationships first. Results follow." />
+                    </div>
+                    <div>
+                      <Label>Bible Verse Reference</Label>
+                      <Input value={newBanner.verse_reference} onChange={e => setNewBanner({ ...newBanner, verse_reference: e.target.value })} placeholder="e.g. Acts 28:19" />
+                    </div>
+                    <div>
+                      <Label>Full Verse Text</Label>
+                      <Textarea value={newBanner.verse_text} onChange={e => setNewBanner({ ...newBanner, verse_text: e.target.value })} rows={3} placeholder="e.g. I have done this and have not been disobedient to the heavenly vision." />
+                    </div>
+                    <Button onClick={handleCreateBanner} className="w-full" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>Add</Button>
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>
@@ -340,7 +355,10 @@ export default function OwnerDashboard() {
               <div className="space-y-2">
                 {banners.map(b => (
                   <div key={b.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.05)' }}>
-                    <span className="text-sm" style={{ color: '#1A1A1A' }}>{b.message}</span>
+                    <div>
+                      <span className="text-sm" style={{ color: '#1A1A1A' }}>{b.message}</span>
+                      {b.verse_reference && <span className="text-xs ml-2" style={{ color: '#B8956A' }}>· {b.verse_reference}</span>}
+                    </div>
                     <button onClick={() => handleDeleteBanner(b.id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 ))}

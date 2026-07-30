@@ -6,6 +6,14 @@
       "type": "string",
       "description": "Motivational message text displayed to reps"
     },
+    "verse_reference": {
+      "type": "string",
+      "description": "Bible verse reference (e.g. Acts 28:19)"
+    },
+    "verse_text": {
+      "type": "string",
+      "description": "Full text of the Bible verse"
+    },
     "is_active": {
       "type": "boolean",
       "default": true
