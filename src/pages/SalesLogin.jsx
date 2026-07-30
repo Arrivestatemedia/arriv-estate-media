@@ -23,7 +23,9 @@ export default function SalesLogin() {
         const target = createPageUrl("SalesChangePassword") + (tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '');
         navigate(target, { replace: true });
       } else {
-        navigate(createPageUrl("HubSpotActivityLog"), { replace: true });
+        const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+        const redirectPage = salesRole === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
+        navigate(createPageUrl(redirectPage), { replace: true });
       }
       return;
     }
@@ -76,7 +78,7 @@ export default function SalesLogin() {
             localStorage.removeItem('sales_force_password_change');
             sessionStorage.removeItem('sales_force_password_change');
             sessionStorage.removeItem('sales_temp_password');
-            const redirectPage = result.data.role === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
+            const redirectPage = result.data.role === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
             navigate(createPageUrl(redirectPage) + (tabHint ? `?tab=${encodeURIComponent(tabHint)}` : ''));
           }
         } else {
@@ -124,8 +126,8 @@ export default function SalesLogin() {
         }
         localStorage.removeItem('sales_force_password_change');
         sessionStorage.removeItem('sales_force_password_change');
-        // Route admins to AdminHub, others to HubSpotActivityLog
-        const redirectPage = result.data.role === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
+        // Route admins to Dashboard, others to HubSpotActivityLog
+        const redirectPage = result.data.role === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
         navigate(createPageUrl(redirectPage) + tabSuffix);
       } else {
         setError("Incorrect email or password. Please try again.");

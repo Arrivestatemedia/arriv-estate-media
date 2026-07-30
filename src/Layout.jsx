@@ -101,6 +101,7 @@ function LayoutContent({ children, currentPageName }) {
         ]
       : isSalesAdmin
         ? [
+            { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "My Profile", page: "EmployeeProfile", icon: Award },
