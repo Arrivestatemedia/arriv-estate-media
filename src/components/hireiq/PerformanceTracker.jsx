@@ -25,8 +25,9 @@ export default function PerformanceTracker({ candidate, job, onSaved }) {
 
   const loadRecords = async () => {
     try {
-      const list = await base44.entities.HirePerformance.filter({ candidate_id: candidate.id }, "-created_date", 20);
-      setRecords(list || []);
+      const res = await base44.entities.HirePerformance.filter({ candidate_id: candidate.id }, "-created_date", 20);
+      const list = res?.data ?? res;
+      setRecords(Array.isArray(list) ? list : []);
     } catch (_) {}
     setLoading(false);
   };
@@ -36,7 +37,7 @@ export default function PerformanceTracker({ candidate, job, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const record = await base44.entities.HirePerformance.create({
+      const res = await base44.entities.HirePerformance.create({
         ...form,
         candidate_id: candidate.id,
         job_id: candidate.job_id,
@@ -44,6 +45,7 @@ export default function PerformanceTracker({ candidate, job, onSaved }) {
         job_title: job?.title,
         recorded_at: new Date().toISOString(),
       });
+      const record = res?.data ?? res;
       setRecords(prev => [record, ...prev]);
       setForm(prev => ({ ...prev, notes: "" }));
       if (onSaved) onSaved(record);

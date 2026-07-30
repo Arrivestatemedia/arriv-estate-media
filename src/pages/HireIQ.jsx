@@ -15,8 +15,9 @@ export default function HireIQ() {
 
   const loadJobs = async () => {
     try {
-      const list = await base44.entities.HireJob.list("-created_date", 50);
-      setJobs(list || []);
+      const res = await base44.entities.HireJob.list("-created_date", 50);
+      const list = res?.data ?? res;
+      setJobs(Array.isArray(list) ? list : []);
     } catch (_) {}
     setLoading(false);
   };
@@ -26,12 +27,13 @@ export default function HireIQ() {
   const handleCreate = async (jobData) => {
     setCreating(true);
     try {
-      const job = await base44.entities.HireJob.create({
+      const res = await base44.entities.HireJob.create({
         ...jobData,
         status: "draft",
         role_profile_approved: false,
         created_by_name: localStorage.getItem("sales_member_name") || localStorage.getItem("user_name") || "Admin",
       });
+      const job = res?.data ?? res;
       setShowCreate(false);
       navigate(createPageUrl("HireIQJobDetail") + `?id=${job.id}`);
     } catch (err) {

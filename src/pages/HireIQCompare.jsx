@@ -15,7 +15,10 @@ export default function HireIQCompare() {
   useEffect(() => {
     if (!jobId) { setLoading(false); return; }
     base44.entities.HireCandidate.filter({ job_id: jobId }, "-created_date", 100)
-      .then(list => setCandidates((list || []).filter(c => c.evaluation)))
+      .then(res => {
+        const list = res?.data ?? res;
+        setCandidates((Array.isArray(list) ? list : []).filter(c => c.evaluation));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [jobId]);

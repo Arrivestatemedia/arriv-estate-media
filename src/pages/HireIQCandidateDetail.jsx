@@ -24,29 +24,30 @@ export default function HireIQCandidateDetail() {
   const id = new URLSearchParams(window.location.search).get("id");
 
   const [error, setError] = useState(null);
-  const [debug, setDebug] = useState("");
 
   useEffect(() => {
-    if (!id) { setLoading(false); setDebug("No id in URL"); return; }
-    setDebug("id=" + id);
-    base44.entities.HireCandidate.list("-created_date", 50)
-      .then(list => {
-        setDebug(d => d + " | list=" + JSON.stringify((list || []).map(c => c.id)));
-        const c = (list || []).find(x => x.id === id);
-        setDebug(d => d + " | found=" + !!c);
+    if (!id) { setLoading(false); return; }
+    base44.entities.HireCandidate.get(id)
+      .then(res => {
+        const c = res?.data ?? res;
+        if (!c || !c.id) { setCandidate(null); return; }
         setCandidate(c);
-        setNotes(c?.interview_notes || "");
-        if (c?.job_id) {
+        setNotes(c.interview_notes || "");
+        if (c.job_id) {
           return Promise.all([
-            base44.entities.HireJob.list("-created_date", 50).then(jobs => (jobs || []).find(j => j.id === c.job_id)).catch(() => null),
-            base44.entities.HireInterview.filter({ candidate_id: id }, "-created_date", 20).catch(() => []),
+            base44.entities.HireJob.get(c.job_id)
+              .then(r => { const j = r?.data ?? r; return j && j.id ? j : null; })
+              .catch(() => null),
+            base44.entities.HireInterview.filter({ candidate_id: id }, "-created_date", 20)
+              .then(r => { const ints = r?.data ?? r; return Array.isArray(ints) ? ints : []; })
+              .catch(() => []),
           ]).then(([j, ints]) => {
             setJob(j);
-            setInterviews(ints || []);
+            setInterviews(ints);
           });
         }
       })
-      .catch(e => { setError(e?.message || String(e)); setDebug(d => d + " | err=" + (e?.message || e)); })
+      .catch(e => { setError(e?.message || String(e)); setCandidate(null); })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -57,11 +58,12 @@ export default function HireIQCandidateDetail() {
         finalData.ai_summary = await analyzeInterview({ questions: finalData.questions }, job, job?.role_success_profile);
       } catch (_) {}
     }
-    const interview = await base44.entities.HireInterview.create({
+    const res = await base44.entities.HireInterview.create({
       candidate_id: id,
       job_id: candidate.job_id,
       ...finalData,
     });
+    const interview = res?.data ?? res;
     setInterviews(prev => [interview, ...prev]);
     setShowInterview(false);
     setInterviewMode("live");
@@ -73,7 +75,8 @@ export default function HireIQCandidateDetail() {
     setEvaluating(true);
     try {
       const evaluation = await evaluateCandidate(candidate, job, job.role_success_profile, interviews, candidate.resume_analysis);
-      const updated = await base44.entities.HireCandidate.update(id, { evaluation });
+      const res = await base44.entities.HireCandidate.update(id, { evaluation });
+      const updated = res?.data ?? res;
       setCandidate(updated);
     } catch (_) {}
     setEvaluating(false);
@@ -81,11 +84,12 @@ export default function HireIQCandidateDetail() {
 
   const handleDecision = async (decision) => {
     const statusMap = { advance: "advanced", hold: "hold", another_interview: "interviewing", offer: "offer", decline: "declined" };
-    const updated = await base44.entities.HireCandidate.update(id, {
+    const res = await base44.entities.HireCandidate.update(id, {
       decision,
       decision_notes: notes,
       status: statusMap[decision] || candidate.status,
     });
+    const updated = res?.data ?? res;
     setCandidate(updated);
   };
 
@@ -94,7 +98,7 @@ export default function HireIQCandidateDetail() {
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
-  if (!candidate) return <div className="text-center py-20 text-gray-500"><div>{error ? `Error: ${error}` : "Candidate not found"}</div><div className="text-xs mt-2 text-gray-400">{debug}</div></div>;
+  if (!candidate) return <div className="text-center py-20 text-gray-500">{error ? `Error: ${error}` : "Candidate not found"}</div>;
 
   const ra = candidate.resume_analysis;
   const ev = candidate.evaluation;

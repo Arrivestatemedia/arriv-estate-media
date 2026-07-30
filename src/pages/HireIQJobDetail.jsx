@@ -21,27 +21,27 @@ export default function HireIQJobDetail() {
   const id = new URLSearchParams(window.location.search).get("id");
 
   const [error, setError] = useState(null);
-  const [debug, setDebug] = useState("");
 
   useEffect(() => {
-    if (!id) { setLoading(false); setDebug("No id in URL"); return; }
-    setDebug("id=" + id);
-    base44.entities.HireJob.list("-created_date", 50)
-      .then(list => {
-        setDebug(d => d + " | list=" + JSON.stringify((list || []).map(j => j.id)));
-        const j = (list || []).find(x => x.id === id);
-        setDebug(d => d + " | found=" + !!j);
-        setJob(j);
+    if (!id) { setLoading(false); return; }
+    base44.entities.HireJob.get(id)
+      .then(res => {
+        const j = res?.data ?? res;
+        setJob(j && j.id ? j : null);
       })
-      .catch(e => { setError(e?.message || String(e)); setDebug(d => d + " | err=" + (e?.message || e)); })
+      .catch(e => { setError(e?.message || String(e)); setJob(null); })
       .finally(() => setLoading(false));
     base44.entities.HireCandidate.filter({ job_id: id }, "-created_date", 100)
-      .then(c => setCandidates(c || []))
+      .then(res => {
+        const c = res?.data ?? res;
+        setCandidates(Array.isArray(c) ? c : []);
+      })
       .catch(() => setCandidates([]));
   }, [id]);
 
   const updateJob = async (data) => {
-    const updated = await base44.entities.HireJob.update(id, data);
+    const res = await base44.entities.HireJob.update(id, data);
+    const updated = res?.data ?? res;
     setJob(updated);
   };
 
@@ -55,7 +55,7 @@ export default function HireIQJobDetail() {
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
-  if (!job) return <div className="text-center py-20 text-gray-500"><div>{error ? `Error: ${error}` : "Job not found"}</div><div className="text-xs mt-2 text-gray-400">{debug}</div></div>;
+  if (!job) return <div className="text-center py-20 text-gray-500">{error ? `Error: ${error}` : "Job not found"}</div>;
 
   const roleProfile = job.role_success_profile;
 

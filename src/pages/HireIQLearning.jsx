@@ -15,17 +15,21 @@ export default function HireIQLearning() {
 
   const loadData = async () => {
     try {
-      const [perfs, cands, allJobs] = await Promise.all([
-        base44.entities.HirePerformance.list("-created_date", 200).catch(() => []),
-        base44.entities.HireCandidate.list("-created_date", 200).catch(() => []),
-        base44.entities.HireJob.list("-created_date", 100).catch(() => []),
+      const [perfsRes, candsRes, allJobsRes] = await Promise.all([
+        base44.entities.HirePerformance.list("-created_date", 200).catch(() => null),
+        base44.entities.HireCandidate.list("-created_date", 200).catch(() => null),
+        base44.entities.HireJob.list("-created_date", 100).catch(() => null),
       ]);
-      setPerformances(perfs || []);
-      setCandidates(cands || []);
-      setJobs(allJobs || []);
+      const perfs = perfsRes?.data ?? perfsRes;
+      const cands = candsRes?.data ?? candsRes;
+      const allJobs = allJobsRes?.data ?? allJobsRes;
+      setPerformances(Array.isArray(perfs) ? perfs : []);
+      setCandidates(Array.isArray(cands) ? cands : []);
+      setJobs(Array.isArray(allJobs) ? allJobs : []);
 
-      const setting = await base44.entities.AppSetting.filter({ key: "hireiq_learning_enabled" }, null, 1).catch(() => []);
-      if (setting && setting.length > 0) setEnabled(setting[0].value === "true");
+      const settingRes = await base44.entities.AppSetting.filter({ key: "hireiq_learning_enabled" }, null, 1).catch(() => null);
+      const setting = settingRes?.data ?? settingRes;
+      if (Array.isArray(setting) && setting.length > 0) setEnabled(setting[0].value === "true");
     } catch (_) {}
     setLoading(false);
   };
@@ -36,8 +40,9 @@ export default function HireIQLearning() {
     const newVal = !enabled;
     setEnabled(newVal);
     try {
-      const existing = await base44.entities.AppSetting.filter({ key: "hireiq_learning_enabled" }, null, 1);
-      if (existing && existing.length > 0) {
+      const existingRes = await base44.entities.AppSetting.filter({ key: "hireiq_learning_enabled" }, null, 1);
+      const existing = existingRes?.data ?? existingRes;
+      if (Array.isArray(existing) && existing.length > 0) {
         await base44.entities.AppSetting.update(existing[0].id, { value: String(newVal) });
       } else {
         await base44.entities.AppSetting.create({ key: "hireiq_learning_enabled", value: String(newVal) });

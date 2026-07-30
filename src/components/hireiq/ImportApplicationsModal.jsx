@@ -12,7 +12,10 @@ export default function ImportApplicationsModal({ jobId, jobData, roleProfile, o
 
   useEffect(() => {
     base44.entities.JobApplication.list("-created_date", 100)
-      .then(list => setApplications((list || []).filter(a => !a.archived)))
+      .then(res => {
+        const list = res?.data ?? res;
+        setApplications((Array.isArray(list) ? list : []).filter(a => !a.archived));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -33,7 +36,7 @@ export default function ImportApplicationsModal({ jobId, jobData, roleProfile, o
 
       const analysis = await analyzeResumeText(resumeText, jobData, roleProfile);
 
-      const candidate = await base44.entities.HireCandidate.create({
+      const res = await base44.entities.HireCandidate.create({
         job_id: jobId,
         name: app.full_name,
         email: app.email,
@@ -45,6 +48,7 @@ export default function ImportApplicationsModal({ jobId, jobData, roleProfile, o
         decision: "pending",
         documents: (app.documents || []).map(url => ({ url, type: "application_document" })),
       });
+      const candidate = res?.data ?? res;
 
       onImported(candidate);
     } catch (err) {

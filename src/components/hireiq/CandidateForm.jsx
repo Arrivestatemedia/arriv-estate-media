@@ -33,7 +33,7 @@ export default function CandidateForm({ jobId, jobData, roleProfile, onCreated, 
         analysis = await analyzeResumeText(resumeText.trim(), jobData, roleProfile);
       }
 
-      const candidate = await base44.entities.HireCandidate.create({
+      const res = await base44.entities.HireCandidate.create({
         job_id: jobId,
         name: name.trim(),
         email: email.trim(),
@@ -45,6 +45,7 @@ export default function CandidateForm({ jobId, jobData, roleProfile, onCreated, 
         status: "applied",
         decision: "pending",
       });
+      const candidate = res?.data ?? res;
 
       onCreated(candidate);
     } catch (err) {
