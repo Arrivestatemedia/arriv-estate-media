@@ -85,9 +85,9 @@ const AuthenticatedApp = () => {
         }
       />
       <Route
-        path="/MediaSpecialistAtlanta"
+        path="/MediaSpecialistAtl"
         element={
-          <LayoutWrapper currentPageName="MediaSpecialistAtlanta">
+          <LayoutWrapper currentPageName="MediaSpecialistAtl">
             <AboutJobAtlanta />
           </LayoutWrapper>
         }
