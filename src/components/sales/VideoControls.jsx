@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, PhoneOff, Settings, MessageCircle } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, PhoneOff, Settings, MessageCircle, Circle, Film } from "lucide-react";
 
 export default function VideoControls({
   isMuted,
@@ -13,7 +13,12 @@ export default function VideoControls({
   onEndCall,
   onSettings,
   onToggleChat,
-  isChatOpen
+  isChatOpen,
+  isRecording,
+  onToggleRecord,
+  onToggleRecordings,
+  isRecordingsOpen,
+  recordingCount
 }) {
   return (
     <div className="flex items-center justify-center gap-2">
@@ -63,6 +68,37 @@ export default function VideoControls({
           className={`h-10 w-10 rounded-full ${isChatOpen ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"}`}
         >
           <MessageCircle className="w-5 h-5 text-white" />
+        </Button>
+      )}
+
+      {/* Record */}
+      {onToggleRecord && (
+        <Button
+          size="icon"
+          onClick={onToggleRecord}
+          title={isRecording ? "Stop recording" : "Start recording"}
+          className={`h-10 w-10 rounded-full ${
+            isRecording ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"
+          }`}
+        >
+          <Circle className={`w-5 h-5 text-white ${isRecording ? "fill-white" : ""}`} />
+        </Button>
+      )}
+
+      {/* Recordings */}
+      {onToggleRecordings && (
+        <Button
+          size="icon"
+          onClick={onToggleRecordings}
+          title="Recordings"
+          className={`h-10 w-10 rounded-full relative ${isRecordingsOpen ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"}`}
+        >
+          <Film className="w-5 h-5 text-white" />
+          {recordingCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+              {recordingCount > 9 ? "9+" : recordingCount}
+            </span>
+          )}
         </Button>
       )}
 

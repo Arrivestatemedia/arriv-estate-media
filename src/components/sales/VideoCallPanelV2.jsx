@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import VideoControls from "./VideoControls";
 import VideoChat from "./VideoChat";
 import VideoSettingsPanel from "./VideoSettingsPanel";
+import RecordingsPanel from "./RecordingsPanel";
 import { useBackgroundBlur } from "./useBackgroundBlur";
 import { useCallStatus } from "../CallStatusContext";
 
@@ -47,6 +48,18 @@ export default function VideoCallPanelV2({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordings, setRecordings] = useState([]);
+  const [isRecordingsOpen, setIsRecordingsOpen] = useState(false);
+
+  const mediaRecorderRef = useRef(null);
+  const recordingChunksRef = useRef([]);
+  const remoteVideoTrackRef = useRef(null);
+  const remoteAudioTrackRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const recordingStartTimeRef = useRef(null);
+  const recordingTimerRef = useRef(null);
 
   // Keep ref in sync with state
   const setScreenSharing = (val) => {
@@ -99,6 +112,7 @@ export default function VideoCallPanelV2({
     if (!track) return;
     if (track.kind === "video" && remoteVideoRef.current) {
       setHasRemoteVideo(true);
+      remoteVideoTrackRef.current = track.mediaStreamTrack;
       const el = track.attach();
       // Use contain if it looks like a screen share (name hint or wide dimensions)
       const isScreen = track.name?.includes("screen") || track.mediaStreamTrack?.label?.toLowerCase().includes("screen");
@@ -113,6 +127,7 @@ export default function VideoCallPanelV2({
         }
       });
     } else if (track.kind === "audio") {
+      remoteAudioTrackRef.current = track.mediaStreamTrack;
       const el = track.attach();
       el.autoplay = true;
       el.style.display = "none";
@@ -122,6 +137,8 @@ export default function VideoCallPanelV2({
 
   const detachTrack = useCallback((track) => {
     if (!track) return;
+    if (track.kind === "video") remoteVideoTrackRef.current = null;
+    else if (track.kind === "audio") remoteAudioTrackRef.current = null;
     track.detach().forEach(el => el.remove());
   }, []);
 
@@ -407,8 +424,88 @@ export default function VideoCallPanelV2({
     }
   }, [startBlur, stopBlur]);
 
+  // ─── Recording ──────────────────────────────────────────────────────────────
+  const toggleRecording = useCallback(() => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    const tracks = [];
+    if (remoteVideoTrackRef.current) tracks.push(remoteVideoTrackRef.current);
+
+    const audioTracks = [];
+    if (remoteAudioTrackRef.current) audioTracks.push(remoteAudioTrackRef.current);
+    const localAudio = localStreamRef.current?.getAudioTracks()[0];
+    if (localAudio) audioTracks.push(localAudio);
+
+    if (audioTracks.length > 0) {
+      try {
+        const ctx = new AudioContext();
+        audioContextRef.current = ctx;
+        const destination = ctx.createMediaStreamDestination();
+        for (const t of audioTracks) {
+          try { ctx.createMediaStreamSource(new MediaStream([t])).connect(destination); } catch (_) {}
+        }
+        const mixed = destination.stream.getAudioTracks()[0];
+        if (mixed) tracks.push(mixed);
+      } catch (_) {}
+    }
+
+    if (tracks.length === 0) { setError("No media to record"); return; }
+
+    const stream = new MediaStream(tracks);
+    let mimeType = "video/webm;codecs=vp8,opus";
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
+    const recorder = new MediaRecorder(stream, { mimeType });
+    recordingChunksRef.current = [];
+
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) recordingChunksRef.current.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(recordingChunksRef.current, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const secs = Math.round((Date.now() - recordingStartTimeRef.current) / 1000);
+      const now = new Date();
+      setRecordings(prev => [{
+        id: `rec-${Date.now()}`,
+        url,
+        label: now.toLocaleString(),
+        duration: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`,
+        size: blob.size,
+      }, ...prev]);
+      setIsRecordingsOpen(true);
+      if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
+      mediaRecorderRef.current = null;
+      recordingChunksRef.current = [];
+      if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+      setRecordingTime(0);
+      setIsRecording(false);
+    };
+
+    recorder.start(1000);
+    mediaRecorderRef.current = recorder;
+    recordingStartTimeRef.current = Date.now();
+    setIsRecording(true);
+    setRecordingTime(0);
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingTime(Math.floor((Date.now() - recordingStartTimeRef.current) / 1000));
+    }, 1000);
+  }, [isRecording]);
+
+  const deleteRecording = useCallback((id) => {
+    setRecordings(prev => {
+      const rec = prev.find(r => r.id === id);
+      if (rec) URL.revokeObjectURL(rec.url);
+      return prev.filter(r => r.id !== id);
+    });
+  }, []);
+
   // ─── End call ────────────────────────────────────────────────────────────────
   const handleEndCall = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try { mediaRecorderRef.current.stop(); } catch (_) {}
+    }
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
     stopBlur();
     blurStreamRef.current?.getTracks().forEach(t => t.stop());
     blurStreamRef.current = null;
@@ -454,7 +551,12 @@ export default function VideoCallPanelV2({
               {callState === "connected" ? "● Connected" :
                callState === "calling"   ? "● Connecting..." : "● Preview"}
             </p>
-
+            {isRecording && (
+              <span className="text-xs text-red-400 flex items-center gap-1 ml-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                REC {Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, "0")}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -557,6 +659,14 @@ export default function VideoCallPanelV2({
 
         {/* Chat sidebar — overlays video area */}
         <VideoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} currentUserName={currentUserName} roomName={roomName} currentUserId={currentUserId} />
+
+        {/* Recordings sidebar — overlays video area */}
+        <RecordingsPanel
+          isOpen={isRecordingsOpen}
+          onClose={() => setIsRecordingsOpen(false)}
+          recordings={recordings}
+          onDelete={deleteRecording}
+        />
       </div>
 
       {/* Controls bar */}
@@ -585,6 +695,11 @@ export default function VideoCallPanelV2({
              onSettings={() => setIsSettingsOpen(true)}
              onToggleChat={() => setIsChatOpen(prev => !prev)}
              isChatOpen={isChatOpen}
+             isRecording={isRecording}
+             onToggleRecord={toggleRecording}
+             onToggleRecordings={() => setIsRecordingsOpen(prev => !prev)}
+             isRecordingsOpen={isRecordingsOpen}
+             recordingCount={recordings.length}
            />
          </div>
       </div>
