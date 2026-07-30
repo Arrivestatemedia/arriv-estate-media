@@ -23,16 +23,17 @@ export default function HireIQCandidateDetail() {
   const navigate = useNavigate();
   const id = new URLSearchParams(window.location.search).get("id");
 
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     if (!id) { setLoading(false); return; }
-    base44.entities.HireCandidate.list("-created_date", 200)
-      .then(list => {
-        const c = (list || []).find(x => x.id === id);
+    base44.entities.HireCandidate.get(id)
+      .then(c => {
         setCandidate(c);
         setNotes(c?.interview_notes || "");
         if (c?.job_id) {
           return Promise.all([
-            base44.entities.HireJob.list("-created_date", 200).then(jobs => (jobs || []).find(j => j.id === c.job_id)).catch(() => null),
+            base44.entities.HireJob.get(c.job_id).catch(() => null),
             base44.entities.HireInterview.filter({ candidate_id: id }, "-created_date", 20).catch(() => []),
           ]).then(([j, ints]) => {
             setJob(j);
@@ -40,7 +41,7 @@ export default function HireIQCandidateDetail() {
           });
         }
       })
-      .catch(() => {})
+      .catch(e => { setError(e?.message || String(e)); setCandidate(null); })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -88,7 +89,7 @@ export default function HireIQCandidateDetail() {
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
-  if (!candidate) return <div className="text-center py-20 text-gray-500">Candidate not found</div>;
+  if (!candidate) return <div className="text-center py-20 text-gray-500">{error ? `Error: ${error}` : "Candidate not found"}</div>;
 
   const ra = candidate.resume_analysis;
   const ev = candidate.evaluation;

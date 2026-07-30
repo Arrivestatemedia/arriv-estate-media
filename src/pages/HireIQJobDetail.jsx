@@ -20,17 +20,17 @@ export default function HireIQJobDetail() {
   const navigate = useNavigate();
   const id = new URLSearchParams(window.location.search).get("id");
 
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     if (!id) { setLoading(false); return; }
-    Promise.all([
-      base44.entities.HireJob.list("-created_date", 200).then(list => (list || []).find(j => j.id === id)).catch(() => null),
-      base44.entities.HireCandidate.filter({ job_id: id }, "-created_date", 100).catch(() => []),
-    ])
-    .then(([j, cands]) => {
-      setJob(j);
-      setCandidates(cands || []);
-    })
-    .finally(() => setLoading(false));
+    base44.entities.HireJob.get(id)
+      .then(j => setJob(j))
+      .catch(e => { setError(e?.message || String(e)); setJob(null); })
+      .finally(() => setLoading(false));
+    base44.entities.HireCandidate.filter({ job_id: id }, "-created_date", 100)
+      .then(c => setCandidates(c || []))
+      .catch(() => setCandidates([]));
   }, [id]);
 
   const updateJob = async (data) => {
@@ -48,7 +48,7 @@ export default function HireIQJobDetail() {
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
-  if (!job) return <div className="text-center py-20 text-gray-500">Job not found</div>;
+  if (!job) return <div className="text-center py-20 text-gray-500">{error ? `Error: ${error}` : "Job not found"}</div>;
 
   const roleProfile = job.role_success_profile;
 
