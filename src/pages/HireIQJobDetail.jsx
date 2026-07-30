@@ -8,6 +8,7 @@ import RoleProfileCard from "@/components/hireiq/RoleProfileCard";
 import CandidateForm from "@/components/hireiq/CandidateForm";
 import RankingTable from "@/components/hireiq/RankingTable";
 import ImportApplicationsModal from "@/components/hireiq/ImportApplicationsModal";
+import QuestionnaireUploader from "@/components/hireiq/QuestionnaireUploader";
 
 export default function HireIQJobDetail() {
   const [job, setJob] = useState(null);
@@ -22,11 +23,11 @@ export default function HireIQJobDetail() {
   useEffect(() => {
     if (!id) { setLoading(false); return; }
     Promise.all([
-      base44.entities.HireJob.filter({ id: id }, null, 1).catch(() => []),
+      base44.entities.HireJob.list("-created_date", 200).then(list => (list || []).find(j => j.id === id)).catch(() => null),
       base44.entities.HireCandidate.filter({ job_id: id }, "-created_date", 100).catch(() => []),
     ])
-    .then(([jobs, cands]) => {
-      setJob(jobs && jobs[0]);
+    .then(([j, cands]) => {
+      setJob(j);
       setCandidates(cands || []);
     })
     .finally(() => setLoading(false));
@@ -76,6 +77,7 @@ export default function HireIQJobDetail() {
         {[
           { id: "overview", label: "Overview", icon: Briefcase },
           { id: "profile", label: "Role Success Profile", icon: Users },
+          { id: "questionnaire", label: "Questionnaire", icon: FileText },
           { id: "candidates", label: `Candidates (${candidates.length})`, icon: Users },
           { id: "ranking", label: "Ranking", icon: Users },
         ].map(t => {
@@ -110,6 +112,16 @@ export default function HireIQJobDetail() {
       )}
 
       {tab === "profile" && <RoleProfileCard job={job} onUpdate={updateJob} />}
+
+      {tab === "questionnaire" && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-semibold mb-1">Interview Questionnaire</h3>
+            <p className="text-sm text-gray-500 mb-4">Upload or paste your interview questionnaire. The AI will parse it into a scorecard template that pre-populates when creating new interviews for candidates.</p>
+          </div>
+          <QuestionnaireUploader job={job} onUpdate={updateJob} />
+        </div>
+      )}
 
       {tab === "candidates" && (
         <div className="space-y-4">

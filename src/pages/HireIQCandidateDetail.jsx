@@ -25,17 +25,17 @@ export default function HireIQCandidateDetail() {
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
-    base44.entities.HireCandidate.filter({ id: id }, null, 1)
-      .then(cands => {
-        const c = cands && cands[0];
+    base44.entities.HireCandidate.list("-created_date", 200)
+      .then(list => {
+        const c = (list || []).find(x => x.id === id);
         setCandidate(c);
         setNotes(c?.interview_notes || "");
         if (c?.job_id) {
           return Promise.all([
-            base44.entities.HireJob.filter({ id: c.job_id }, null, 1).catch(() => []),
+            base44.entities.HireJob.list("-created_date", 200).then(jobs => (jobs || []).find(j => j.id === c.job_id)).catch(() => null),
             base44.entities.HireInterview.filter({ candidate_id: id }, "-created_date", 20).catch(() => []),
-          ]).then(([jobs, ints]) => {
-            setJob(jobs && jobs[0]);
+          ]).then(([j, ints]) => {
+            setJob(j);
             setInterviews(ints || []);
           });
         }

@@ -71,6 +71,24 @@
       "type": "boolean",
       "default": false
     },
+    "scorecard_template": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "competency": {
+            "type": "string"
+          },
+          "explanation": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Parsed questionnaire questions used as interview scorecard template"
+    },
     "status": {
       "type": "string",
       "enum": [

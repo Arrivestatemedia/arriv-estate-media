@@ -197,6 +197,53 @@ export async function generateLearningInsights(performances, candidates, jobs) {
   });
 }
 
+export async function parseQuestionnaireText(text, jobData, roleProfile) {
+  return await base44.integrations.Core.InvokeLLM({
+    prompt: `You are an expert hiring analyst. Extract the interview questions from this questionnaire document and structure them as a scorecard template.\n\nJob Context:\n${JSON.stringify(jobData || {}, null, 2)}\n\nRole Success Profile:\n${JSON.stringify(roleProfile || {}, null, 2)}\n\nQuestionnaire Document:\n${text}\n\nFor each question found, extract: the question text, the competency being measured, and a brief explanation of what it measures. If the document includes rating rubrics or notes, include those in the explanation. Return all questions found in order.`,
+    response_json_schema: {
+      type: "object",
+      "properties": {
+        questions: {
+          type: "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              question: { type: "string" },
+              competency: { type: "string" },
+              explanation: { type: "string" }
+            }
+          }
+        },
+        extraction_notes: { type: "string" }
+      }
+    }
+  });
+}
+
+export async function parseQuestionnaireFile(fileUrl, jobData, roleProfile) {
+  return await base44.integrations.Core.InvokeLLM({
+    prompt: `You are an expert hiring analyst. Extract the interview questions from this uploaded questionnaire document and structure them as a scorecard template.\n\nJob Context:\n${JSON.stringify(jobData || {}, null, 2)}\n\nRole Success Profile:\n${JSON.stringify(roleProfile || {}, null, 2)}\n\nFor each question found in the document, extract: the question text, the competency being measured, and a brief explanation of what it measures. If the document includes rating rubrics or notes, include those in the explanation. Return all questions found in order.`,
+    file_urls: [fileUrl],
+    response_json_schema: {
+      type: "object",
+      "properties": {
+        questions: {
+          type: "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              question: { type: "string" },
+              competency: { type: "string" },
+              explanation: { type: "string" }
+            }
+          }
+        },
+        extraction_notes: { type: "string" }
+      }
+    }
+  });
+}
+
 export function scoreColor(score) {
   if (score >= 80) return "text-green-600 bg-green-50 border-green-200";
   if (score >= 60) return "text-yellow-600 bg-yellow-50 border-yellow-200";

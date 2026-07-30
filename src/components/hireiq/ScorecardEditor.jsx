@@ -10,7 +10,8 @@ const EMPTY_Q = { question: "", competency: "", explanation: "", rating: 0, evid
 export default function ScorecardEditor({ candidate, job, roleProfile, onComplete, onCancel }) {
   const [interviewer, setInterviewer] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [questions, setQuestions] = useState([{ ...EMPTY_Q }]);
+  const templateQuestions = (job?.scorecard_template || []).map(q => ({ ...EMPTY_Q, question: q.question, competency: q.competency, explanation: q.explanation }));
+  const [questions, setQuestions] = useState(templateQuestions.length > 0 ? templateQuestions : [{ ...EMPTY_Q }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
