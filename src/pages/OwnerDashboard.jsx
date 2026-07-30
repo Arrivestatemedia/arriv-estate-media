@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { DollarSign, Users, TrendingUp, Phone, Mail, Calendar, Target, Plus, Trash2, Sparkles, Award, Loader2, RefreshCw, ArrowUpDown, MapPin } from "lucide-react";
 import PipelineFunnel from "@/components/performance/PipelineFunnel";
 
@@ -45,18 +46,24 @@ export default function OwnerDashboard() {
   const [newBanner, setNewBanner] = useState({ message: '', verse_reference: '', verse_text: '' });
   const [rankingKey, setRankingKey] = useState('calls_completed');
   const [rankingPeriod, setRankingPeriod] = useState('weekly');
+  const [bannerMode, setBannerMode] = useState('manual');
+  const [bannerSource, setBannerSource] = useState('bible');
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [perfRes, goalsRes, bannersRes] = await Promise.all([
+      const [perfRes, goalsRes, bannersRes, settingsRes] = await Promise.all([
         base44.functions.invoke('computeSalesPerformance', {}),
         base44.entities.SalesGoal.list(),
         base44.entities.CultureBanner.list(),
+        base44.entities.AppSetting.list(),
       ]);
       setPerfData(perfRes.data);
       setGoals(goalsRes || []);
       setBanners(bannersRes || []);
+      const settings = settingsRes || [];
+      setBannerMode(settings.find(s => s.key === 'culture_banner_mode')?.value || 'manual');
+      setBannerSource(settings.find(s => s.key === 'culture_banner_source')?.value || 'bible');
     } catch (e) {
       console.error('Owner dashboard load error:', e);
     } finally {
@@ -109,6 +116,28 @@ export default function OwnerDashboard() {
       await base44.entities.CultureBanner.delete(id);
       loadData();
     } catch (e) { alert('Failed to delete banner: ' + e.message); }
+  };
+
+  const upsertSetting = async (key, value) => {
+    try {
+      const existing = await base44.entities.AppSetting.filter({ key });
+      if (existing && existing.length > 0) {
+        await base44.entities.AppSetting.update(existing[0].id, { value });
+      } else {
+        await base44.entities.AppSetting.create({ key, value });
+      }
+    } catch (e) { console.error('Setting save error:', e); }
+  };
+
+  const handleToggleBannerMode = async (checked) => {
+    const newMode = checked ? 'automated' : 'manual';
+    setBannerMode(newMode);
+    await upsertSetting('culture_banner_mode', newMode);
+  };
+
+  const handleSetBannerSource = async (value) => {
+    setBannerSource(value);
+    await upsertSetting('culture_banner_source', value);
   };
 
   if (loading || !perfData) {
@@ -349,7 +378,31 @@ export default function OwnerDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {banners.length === 0 ? (
+            {/* Automation Toggle */}
+            <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.05)', border: '1px solid rgba(184,149,106,0.15)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>AI Automation</p>
+                  <p className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                    {bannerMode === 'automated' ? 'AI generates a daily quote & verse automatically' : 'Manual — you create each banner'}
+                  </p>
+                </div>
+                <Switch checked={bannerMode === 'automated'} onCheckedChange={handleToggleBannerMode} />
+              </div>
+              {bannerMode === 'automated' && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>Source:</span>
+                  <Select value={bannerSource} onValueChange={handleSetBannerSource}>
+                    <SelectTrigger className="w-40 h-7 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bible">Bible Verses</SelectItem>
+                      <SelectItem value="secular">Secular (No Religion)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            {bannerMode === 'manual' && banners.filter(b => !b.auto_generated).length === 0 ? (
               <p className="text-sm" style={{ color: 'rgba(26,26,26,0.4)' }}>No culture messages yet.</p>
             ) : (
               <div className="space-y-2">
@@ -358,6 +411,7 @@ export default function OwnerDashboard() {
                     <div>
                       <span className="text-sm" style={{ color: '#1A1A1A' }}>{b.message}</span>
                       {b.verse_reference && <span className="text-xs ml-2" style={{ color: '#B8956A' }}>· {b.verse_reference}</span>}
+                      {b.auto_generated && <span className="text-xs ml-2 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}>AI</span>}
                     </div>
                     <button onClick={() => handleDeleteBanner(b.id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
                   </div>

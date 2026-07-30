@@ -65,14 +65,14 @@ export default function SalesPerformanceDashboard() {
     if (!repId) return;
     setLoading(true);
     try {
-      const [perfRes, goalsRes, bannersRes] = await Promise.all([
+      const [perfRes, goalsRes, bannerRes] = await Promise.all([
         base44.functions.invoke('computeSalesPerformance', { sales_member_id: repId }),
         base44.entities.SalesGoal.list(),
-        base44.entities.CultureBanner.filter({ is_active: true }, 'display_order', 20),
+        base44.functions.invoke('getDailyCultureBanner', {}),
       ]);
       setPerfData(perfRes.data);
       setGoals((goalsRes || []).filter(g => g.is_active && (!g.sales_member_id || g.sales_member_id === repId)));
-      setBanners(bannersRes || []);
+      setBanners(bannerRes.data?.banners || []);
     } catch (e) {
       console.error('Performance load error:', e);
     } finally {
