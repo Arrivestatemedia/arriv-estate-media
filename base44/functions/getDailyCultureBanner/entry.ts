@@ -21,8 +21,8 @@ export default async function(req) {
       return Response.json({ mode, source, banners: manualBanners });
     }
 
-    // Automated mode — look for today's AI banner
-    const today = new Date().toISOString().slice(0, 10);
+    // Automated mode — look for today's AI banner (America/New_York local day)
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
     const todayAi = (allBanners || []).find(b => b.auto_generated && b.generated_date === today);
     if (todayAi) {
       return Response.json({ mode, source, banners: [todayAi] });
@@ -59,10 +59,10 @@ export default async function(req) {
       created_by: 'ai_automation',
     });
 
-    // Cleanup AI banners older than 7 days
+    // Cleanup AI banners older than 7 days (America/New_York local day)
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 7);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const cutoffStr = cutoff.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
     for (const b of (allBanners || [])) {
       if (b.auto_generated && b.generated_date && b.generated_date < cutoffStr) {
         try { await base44.asServiceRole.entities.CultureBanner.delete(b.id); } catch (e) {}
