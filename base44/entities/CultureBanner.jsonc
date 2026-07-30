@@ -1,0 +1,25 @@
+{
+  "name": "CultureBanner",
+  "type": "object",
+  "properties": {
+    "message": {
+      "type": "string",
+      "description": "Motivational message text displayed to reps"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "display_order": {
+      "type": "integer",
+      "default": 0,
+      "description": "Sort order for rotation"
+    },
+    "created_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "message"
+  ]
+}

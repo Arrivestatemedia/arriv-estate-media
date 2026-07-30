@@ -1,0 +1,46 @@
+{
+  "name": "ManagerNote",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "The rep this note is about"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "ID of the manager/admin who wrote the note"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Name of the manager who wrote the note"
+    },
+    "note_type": {
+      "type": "string",
+      "enum": [
+        "coaching",
+        "recognition",
+        "review",
+        "general"
+      ],
+      "default": "general",
+      "description": "Type of manager note"
+    },
+    "content": {
+      "type": "string",
+      "description": "The note content"
+    },
+    "is_recognition": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this note is a recognition/award"
+    },
+    "award_title": {
+      "type": "string",
+      "description": "Title of the award if this is a recognition"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "content"
+  ]
+}

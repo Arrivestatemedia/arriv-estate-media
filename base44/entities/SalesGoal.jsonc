@@ -1,0 +1,59 @@
+{
+  "name": "SalesGoal",
+  "type": "object",
+  "properties": {
+    "metric": {
+      "type": "string",
+      "enum": [
+        "calls",
+        "emails",
+        "texts",
+        "meaningful_conversations",
+        "appointments",
+        "deals_closed",
+        "revenue",
+        "commission",
+        "new_contacts",
+        "follow_ups",
+        "meetings",
+        "talk_time"
+      ],
+      "description": "The metric being tracked"
+    },
+    "period": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly",
+        "quarterly",
+        "yearly"
+      ],
+      "description": "Goal period"
+    },
+    "target_value": {
+      "type": "number",
+      "description": "Target value for the goal"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "Rep this goal applies to (null/empty = team-wide goal)"
+    },
+    "market": {
+      "type": "string",
+      "description": "Market this goal applies to (e.g. Atlanta, Maryland). null = all markets."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "metric",
+    "period",
+    "target_value"
+  ]
+}

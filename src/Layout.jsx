@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Wallet, Landmark } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Wallet, Landmark, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -91,7 +91,10 @@ function LayoutContent({ children, currentPageName }) {
   const isSalesTeam = localStorage.getItem('sales_member_id');
 
   const navItems = isSalesTeam
-      ? []
+      ? [
+          { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
+          { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
+        ]
       : isAdmin
         ? [
             { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
@@ -112,6 +115,7 @@ function LayoutContent({ children, currentPageName }) {
         { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },
         { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark },
         { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
+        { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
           ]
       : isClient
     ? [

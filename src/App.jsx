@@ -23,6 +23,9 @@ import AdminCommissions from './pages/AdminCommissions';
 import AdminSalesOrientation from './pages/AdminSalesOrientation';
 import SalesOrientationDashboard from './pages/SalesOrientationDashboard';
 import SubmitReferences from './pages/SubmitReferences';
+import SalesPerformanceDashboard from './pages/SalesPerformanceDashboard';
+import OwnerDashboard from './pages/OwnerDashboard';
+import EmployeeProfile from './pages/EmployeeProfile';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -215,6 +218,30 @@ const AuthenticatedApp = () => {
       <Route
         path="/SubmitReferences"
         element={<SubmitReferences />}
+      />
+      <Route
+        path="/SalesPerformanceDashboard"
+        element={
+          <LayoutWrapper currentPageName="SalesPerformanceDashboard">
+            <SalesPerformanceDashboard />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/OwnerDashboard"
+        element={
+          <LayoutWrapper currentPageName="OwnerDashboard">
+            <OwnerDashboard />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/EmployeeProfile"
+        element={
+          <LayoutWrapper currentPageName="EmployeeProfile">
+            <EmployeeProfile />
+          </LayoutWrapper>
+        }
       />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
