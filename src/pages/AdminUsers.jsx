@@ -26,17 +26,21 @@ export default function AdminUsers() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const userRole = localStorage.getItem('user_role');
-    if (userRole !== 'admin') {
+    const userRole = localStorage.getItem('user_role') || sessionStorage.getItem('user_role');
+    const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+    if (userRole !== 'admin' && salesRole !== 'admin') {
       window.location.href = "/";
     } else {
-      setUser({ role: userRole });
+      setUser({ role: 'admin' });
     }
   }, []);
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["all-users"],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listAllUsers');
+      return res.data?.users || [];
+    },
   });
 
   const { data: users = [] } = useQuery({
