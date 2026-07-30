@@ -391,11 +391,15 @@ export default function OwnerDashboard() {
               </div>
               {bannerMode === 'automated' && (
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>Source:</span>
+                  <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>Wisdom Source:</span>
                   <Select value={bannerSource} onValueChange={handleSetBannerSource}>
-                    <SelectTrigger className="w-40 h-7 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-48 h-7 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="bible">Bible Verses</SelectItem>
+                      <SelectItem value="bible">Bible</SelectItem>
+                      <SelectItem value="quran">Quran</SelectItem>
+                      <SelectItem value="torah">Torah / Tanakh</SelectItem>
+                      <SelectItem value="buddhist">Buddhist Teachings</SelectItem>
+                      <SelectItem value="hindu">Hindu Texts</SelectItem>
                       <SelectItem value="secular">Secular (No Religion)</SelectItem>
                     </SelectContent>
                   </Select>

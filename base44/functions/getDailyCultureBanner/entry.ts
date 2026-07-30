@@ -29,9 +29,15 @@ export default async function(req) {
     }
 
     // Generate a new AI banner
-    const prompt = source === 'secular'
-      ? `Generate a short motivational message for a real estate media sales team. No religious content. Return JSON with: message (1-2 sentence motivational quote about relationships, persistence, and serving clients well), verse_reference (empty string), verse_text (empty string).`
-      : `Generate a short motivational message for a real estate media sales team, tied to a Bible verse. Return JSON with: message (1-2 sentence motivational quote inspired by the verse, relevant to sales professionals who build relationships and serve clients), verse_reference (a real Bible reference like "Acts 28:19" or "Philippians 4:13"), verse_text (the actual text of that verse from the Bible).`;
+    const sourcePrompts = {
+      bible: `Generate a short motivational message for a real estate media sales team, tied to a Bible verse. Return JSON with: message (1-2 sentence motivational quote inspired by the verse, relevant to sales professionals who build relationships and serve clients), verse_reference (a real Bible reference like "Acts 28:19" or "Philippians 4:13"), verse_text (the actual text of that verse from the Bible).`,
+      quran: `Generate a short motivational message for a real estate media sales team, tied to a Quran verse. Return JSON with: message (1-2 sentence motivational quote inspired by the verse, relevant to sales professionals who build relationships and serve clients), verse_reference (a real Quran reference like "Surah Al-Baqarah 2:153" or "Surah Az-Zumar 39:53"), verse_text (the actual text of that verse from the Quran).`,
+      torah: `Generate a short motivational message for a real estate media sales team, tied to a Torah/Tanakh verse. Return JSON with: message (1-2 sentence motivational quote inspired by the verse, relevant to sales professionals who build relationships and serve clients), verse_reference (a real Torah/Tanakh reference like "Proverbs 16:3" or "Psalms 37:5"), verse_text (the actual text of that verse from the Torah/Tanakh).`,
+      buddhist: `Generate a short motivational message for a real estate media sales team, tied to a Buddhist teaching. Return JSON with: message (1-2 sentence motivational quote inspired by the teaching, relevant to sales professionals who build relationships and serve clients), verse_reference (a real Buddhist text reference like "Dhammapada 1:1" or "Majjhima Nikaya 21"), verse_text (the actual text of that teaching).`,
+      hindu: `Generate a short motivational message for a real estate media sales team, tied to a Hindu text. Return JSON with: message (1-2 sentence motivational quote inspired by the text, relevant to sales professionals who build relationships and serve clients), verse_reference (a real Hindu text reference like "Bhagavad Gita 2:47" or "Upanishads Isha 1"), verse_text (the actual text of that passage).`,
+      secular: `Generate a short motivational message for a real estate media sales team. No religious content — pull from philosophers, authors, or leaders instead. Return JSON with: message (1-2 sentence motivational quote about relationships, persistence, and serving clients well), verse_reference (the author/leader name and source, e.g. "Maya Angelou" or "Marcus Aurelius, Meditations"), verse_text (the actual quote text).`,
+    };
+    const prompt = sourcePrompts[source] || sourcePrompts.bible;
 
     const result = await base44.integrations.Core.InvokeLLM({
       prompt,
