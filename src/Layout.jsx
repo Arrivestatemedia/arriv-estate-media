@@ -103,7 +103,7 @@ function LayoutContent({ children, currentPageName }) {
         ? [
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
-            { label: "My Profile", page: "EmployeeProfile", icon: Award, alwaysShow: true },
+            { label: "My Profile", page: "EmployeeProfile", icon: Award },
           ]
       : isAdmin
         ? [
