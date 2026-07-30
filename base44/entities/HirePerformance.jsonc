@@ -1,0 +1,70 @@
+{
+  "name": "HirePerformance",
+  "type": "object",
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "description": "HireCandidate ID"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "HireJob ID"
+    },
+    "candidate_name": {
+      "type": "string"
+    },
+    "job_title": {
+      "type": "string"
+    },
+    "hire_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "performance_rating": {
+      "type": "number",
+      "description": "1-5 overall performance rating"
+    },
+    "goal_completion": {
+      "type": "number",
+      "description": "Percentage of goals completed (0-100)"
+    },
+    "retention_months": {
+      "type": "number",
+      "description": "Months employed"
+    },
+    "promoted": {
+      "type": "boolean",
+      "default": false
+    },
+    "training_completion": {
+      "type": "number",
+      "description": "Percentage of training completed (0-100)"
+    },
+    "attendance_rating": {
+      "type": "number",
+      "description": "1-5 attendance rating"
+    },
+    "manager_evaluation": {
+      "type": "string"
+    },
+    "customer_satisfaction": {
+      "type": "number",
+      "description": "0-100 CSAT score"
+    },
+    "sales_performance": {
+      "type": "number",
+      "description": "Sales performance metric if applicable"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "job_id"
+  ]
+}

@@ -148,6 +148,55 @@ export async function evaluateCandidate(candidate, jobData, roleProfile, intervi
   });
 }
 
+export async function analyzeScorecardOCR(fileUrl, jobData, roleProfile) {
+  return await base44.integrations.Core.InvokeLLM({
+    prompt: `You are an expert hiring analyst. Extract the interview scorecard data from this scanned document image or PDF.\n\nJob Context:\n${JSON.stringify(jobData || {}, null, 2)}\n\nRole Success Profile:\n${JSON.stringify(roleProfile || {}, null, 2)}\n\nExtract each question from the scorecard with: the question text, the competency being measured, an explanation of what it measures, the rating (1-5), any evidence written by the interviewer, notes, and confidence level. If any field is not legible or not present, leave it empty. Return all questions found.`,
+    file_urls: [fileUrl],
+    response_json_schema: {
+      type: "object",
+      properties: {
+        questions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string" },
+              competency: { type: "string" },
+              explanation: { type: "string" },
+              rating: { type: "number" },
+              evidence: { type: "string" },
+              notes: { type: "string" },
+              confidence: { type: "string" }
+            }
+          }
+        },
+        interviewer_name: { type: "string" },
+        interview_date: { type: "string" },
+        extraction_notes: { type: "string" }
+      }
+    }
+  });
+}
+
+export async function generateLearningInsights(performances, candidates, jobs) {
+  return await base44.integrations.Core.InvokeLLM({
+    prompt: `You are an expert organizational psychologist and hiring analytics consultant. Analyze the correlation between hiring predictions and actual job performance data.\n\nPerformance Records:\n${JSON.stringify(performances, null, 2)}\n\nCandidate Evaluations (hiring predictions):\n${JSON.stringify(candidates.map(c => ({ name: c.name, evaluation: c.evaluation, resume_analysis: c.resume_analysis })), null, 2)}\n\nJob Context:\n${JSON.stringify(jobs.map(j => ({ title: j.title, role_success_profile: j.role_success_profile })), null, 2)}\n\nAnalyze which hiring prediction factors (resume match, interview scores, competency match, specific competencies, resume characteristics) most strongly correlate with actual job performance. Identify patterns that predict success and patterns that predict poor performance. Only draw conclusions supported by the data. If there is not enough data for meaningful conclusions, say so clearly.\n\nProvide actionable insights the organization can use to improve their hiring process.`,
+    response_json_schema: {
+      type: "object",
+      properties: {
+        data_sufficiency: { type: "string", "description": "Whether there is enough data for meaningful conclusions" },
+        top_success_predictors: { type: "array", items: { type: "string" } },
+        top_risk_indicators: { type: "array", items: { type: "string" } },
+        competency_insights: { type: "array", items: { type: "string" } },
+        resume_patterns: { type: "array", items: { type: "string" } },
+        interview_patterns: { type: "array", items: { type: "string" } },
+        recommendations: { type: "array", items: { type: "string" } },
+        summary: { type: "string" }
+      }
+    }
+  });
+}
+
 export function scoreColor(score) {
   if (score >= 80) return "text-green-600 bg-green-50 border-green-200";
   if (score >= 60) return "text-yellow-600 bg-yellow-50 border-yellow-200";

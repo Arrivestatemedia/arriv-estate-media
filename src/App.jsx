@@ -31,6 +31,7 @@ import HireIQ from './pages/HireIQ';
 import HireIQJobDetail from './pages/HireIQJobDetail';
 import HireIQCandidateDetail from './pages/HireIQCandidateDetail';
 import HireIQCompare from './pages/HireIQCompare';
+import HireIQLearning from './pages/HireIQLearning';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -285,6 +286,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="HireIQCompare">
             <HireIQCompare />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/HireIQLearning"
+        element={
+          <LayoutWrapper currentPageName="HireIQLearning">
+            <HireIQLearning />
           </LayoutWrapper>
         }
       />

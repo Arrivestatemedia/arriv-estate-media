@@ -4,10 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ArrowLeft, FileText, Mic, Sparkles, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, FileText, Mic, Sparkles, CheckCircle2, Clock, AlertCircle, TrendingUp } from "lucide-react";
 import EvaluationDisplay from "@/components/hireiq/EvaluationDisplay";
 import ScorecardEditor from "@/components/hireiq/ScorecardEditor";
-import { evaluateCandidate } from "@/lib/hireiq";
+import OcrScorecardUpload from "@/components/hireiq/OcrScorecardUpload";
+import PerformanceTracker from "@/components/hireiq/PerformanceTracker";
+import { evaluateCandidate, analyzeInterview } from "@/lib/hireiq";
 
 export default function HireIQCandidateDetail() {
   const [candidate, setCandidate] = useState(null);
@@ -15,6 +17,7 @@ export default function HireIQCandidateDetail() {
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInterview, setShowInterview] = useState(false);
+  const [interviewMode, setInterviewMode] = useState("live");
   const [evaluating, setEvaluating] = useState(false);
   const [notes, setNotes] = useState("");
   const navigate = useNavigate();
@@ -39,13 +42,20 @@ export default function HireIQCandidateDetail() {
   useEffect(() => { loadData(); }, [id]);
 
   const handleInterviewComplete = async (interviewData) => {
+    let finalData = { ...interviewData };
+    if (!finalData.ai_summary && finalData.questions) {
+      try {
+        finalData.ai_summary = await analyzeInterview({ questions: finalData.questions }, job, job?.role_success_profile);
+      } catch (_) {}
+    }
     const interview = await base44.entities.HireInterview.create({
       candidate_id: id,
       job_id: candidate.job_id,
-      ...interviewData,
+      ...finalData,
     });
     setInterviews(prev => [interview, ...prev]);
     setShowInterview(false);
+    setInterviewMode("live");
     await base44.entities.HireCandidate.update(id, { status: "interviewing" });
     setCandidate(prev => ({ ...prev, status: "interviewing" }));
   };
@@ -129,7 +139,15 @@ export default function HireIQCandidateDetail() {
             </div>
             {showInterview && (
               <div className="mb-3 p-3 bg-gray-50 rounded-lg">
-                <ScorecardEditor candidate={candidate} job={job} roleProfile={job?.role_success_profile} onComplete={handleInterviewComplete} onCancel={() => setShowInterview(false)} />
+                <div className="flex gap-2 mb-3">
+                  <button onClick={() => setInterviewMode("live")} className={`px-3 py-1 rounded text-sm font-medium ${interviewMode === "live" ? "bg-[#B8956A] text-white" : "bg-white border"}`}>Live / Manual Entry</button>
+                  <button onClick={() => setInterviewMode("ocr")} className={`px-3 py-1 rounded text-sm font-medium ${interviewMode === "ocr" ? "bg-[#B8956A] text-white" : "bg-white border"}`}>OCR Upload</button>
+                </div>
+                {interviewMode === "live" ? (
+                  <ScorecardEditor candidate={candidate} job={job} roleProfile={job?.role_success_profile} onComplete={handleInterviewComplete} onCancel={() => setShowInterview(false)} />
+                ) : (
+                  <OcrScorecardUpload candidate={candidate} job={job} roleProfile={job?.role_success_profile} onComplete={handleInterviewComplete} onCancel={() => setShowInterview(false)} />
+                )}
               </div>
             )}
             {interviews.length === 0 && !showInterview ? (
@@ -192,6 +210,14 @@ export default function HireIQCandidateDetail() {
           </div>
         </div>
       </div>
+
+      {(candidate.decision === "offer" || candidate.status === "hired") && (
+        <div className="mt-6 border rounded-lg p-4">
+          <h3 className="font-semibold mb-1 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#B8956A]" /> Performance Tracking (Learning System)</h3>
+          <p className="text-xs text-gray-500 mb-3">Track actual job performance to help HireIQ learn which hiring factors predict success.</p>
+          <PerformanceTracker candidate={candidate} job={job} />
+        </div>
+      )}
     </div>
   );
 }
