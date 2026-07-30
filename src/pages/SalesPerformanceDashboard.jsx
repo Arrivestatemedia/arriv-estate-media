@@ -204,11 +204,6 @@ Be specific and data-driven. Reference actual numbers. Keep each item to one sen
             <Button variant="outline" size="sm" onClick={loadData} className="gap-2">
               <RefreshCw className="w-4 h-4" /> Refresh
             </Button>
-            <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link to={createPageUrl("EmployeeProfile")}>
-                <Award className="w-4 h-4" /> My Profile
-              </Link>
-            </Button>
           </div>
         </div>
 
