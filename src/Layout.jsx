@@ -88,7 +88,8 @@ function LayoutContent({ children, currentPageName }) {
   const isClient = user?.user_type === "client";
   const isMediaPartner = user?.user_type === "media_partner";
 
-  const isSalesTeam = localStorage.getItem('sales_member_id');
+  const salesMemberRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+  const isSalesTeam = (localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id')) && salesMemberRole !== 'admin';
 
   const navItems = isSalesTeam
       ? [

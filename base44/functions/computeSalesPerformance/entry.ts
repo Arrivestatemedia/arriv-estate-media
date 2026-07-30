@@ -102,8 +102,6 @@ function computeMetrics(activities, commissions, contacts, range) {
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const { sales_member_id } = body;
@@ -123,10 +121,11 @@ export default async function(req) {
 
     const ranges = getPeriodRanges(new Date());
 
-    const [allActivities, allCommissions, allContacts] = await Promise.all([
+    const [allActivities, allCommissions, allContacts, allGoals] = await Promise.all([
       base44.asServiceRole.entities.ActivityLog.list('-activity_date', 500),
       base44.asServiceRole.entities.CommissionSourceRecord.list('-created_date', 200),
       base44.asServiceRole.entities.Contact.list('-created_date', 500),
+      base44.asServiceRole.entities.SalesGoal.list(),
     ]);
 
     const repResults = reps.map(rep => {
@@ -190,7 +189,9 @@ export default async function(req) {
       companyMetrics[pn] = sum;
     }
 
-    return Response.json({ reps: repResults, company: companyMetrics });
+    const activeGoals = (allGoals || []).filter(g => g.is_active);
+
+    return Response.json({ reps: repResults, company: companyMetrics, goals: activeGoals });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

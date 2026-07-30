@@ -52,6 +52,7 @@ export default function SalesPerformanceDashboard() {
   const [verseModal, setVerseModal] = useState(null);
   const [repSource, setRepSource] = useState(() => localStorage.getItem('culture_banner_source') || 'bible');
   const [bannerMode, setBannerMode] = useState('manual');
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const id = localStorage.getItem('sales_member_id');
@@ -68,17 +69,18 @@ export default function SalesPerformanceDashboard() {
     if (!repId) return;
     setLoading(true);
     try {
-      const [perfRes, goalsRes, bannerRes] = await Promise.all([
+      const [perfRes, bannerRes] = await Promise.all([
         base44.functions.invoke('computeSalesPerformance', { sales_member_id: repId }),
-        base44.entities.SalesGoal.list(),
         base44.functions.invoke('getDailyCultureBanner', { source: repSource }),
       ]);
       setPerfData(perfRes.data);
-      setGoals((goalsRes || []).filter(g => g.is_active && (!g.sales_member_id || g.sales_member_id === repId)));
+      setGoals((perfRes.data?.goals || []).filter(g => !g.sales_member_id || g.sales_member_id === repId));
       setBanners(bannerRes.data?.banners || []);
       setBannerMode(bannerRes.data?.mode || 'manual');
+      setLoadError(false);
     } catch (e) {
       console.error('Performance load error:', e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -138,10 +140,27 @@ Be specific and data-driven. Reference actual numbers. Keep each item to one sen
     }).finally(() => setAiLoading(false));
   }, [perfData]);
 
-  if (loading || !perfData) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FFFBF5' }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#B8956A' }} />
+      </div>
+    );
+  }
+
+  if (loadError || !perfData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FFFBF5' }}>
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="text-sm mb-4" style={{ color: 'rgba(26,26,26,0.7)' }}>
+              {loadError ? 'Unable to load performance data. Please try again.' : 'No performance data found.'}
+            </p>
+            <Button variant="outline" size="sm" onClick={loadData} className="gap-2">
+              <RefreshCw className="w-4 h-4" /> Retry
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

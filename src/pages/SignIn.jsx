@@ -71,6 +71,11 @@ export default function SignIn() {
 
       // Route based on user type and orientation status
       if (response.data.user_role === 'admin') {
+        // Clear any stale sales-team session so admin nav shows correctly
+        ['sales_member_id', 'sales_member_name', 'sales_member_email', 'sales_member_role', 'sales_force_password_change'].forEach(k => {
+          localStorage.removeItem(k);
+          sessionStorage.removeItem(k);
+        });
         window.location.href = '/Dashboard';
       } else if (response.data.user_type === 'media_partner') {
         // Check if orientation is complete
