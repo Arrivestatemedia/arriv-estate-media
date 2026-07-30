@@ -1,0 +1,58 @@
+{
+  "name": "HireInterview",
+  "type": "object",
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "description": "HireCandidate ID"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "HireJob ID"
+    },
+    "interviewer_name": {
+      "type": "string"
+    },
+    "interview_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "interview_type": {
+      "type": "string",
+      "enum": [
+        "live",
+        "manual",
+        "ocr"
+      ],
+      "default": "live"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Scorecard questions with competency, rubric, evidence, notes, confidence"
+    },
+    "ai_summary": {
+      "type": "object",
+      "description": "AI-generated interview summary"
+    },
+    "overall_score": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "in_progress",
+        "completed"
+      ],
+      "default": "scheduled"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "job_id"
+  ]
+}

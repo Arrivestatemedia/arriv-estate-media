@@ -1,0 +1,82 @@
+{
+  "name": "HireCandidate",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "HireJob ID this candidate applied to"
+    },
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "resume_url": {
+      "type": "string",
+      "description": "Uploaded resume file URL"
+    },
+    "resume_text": {
+      "type": "string",
+      "description": "Raw or pasted resume text"
+    },
+    "cover_letter": {
+      "type": "string"
+    },
+    "resume_analysis": {
+      "type": "object",
+      "description": "AI resume analysis result"
+    },
+    "evaluation": {
+      "type": "object",
+      "description": "AI candidate evaluation result"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "applied",
+        "screening",
+        "interviewing",
+        "advanced",
+        "hold",
+        "offer",
+        "declined",
+        "hired"
+      ],
+      "default": "applied"
+    },
+    "interview_notes": {
+      "type": "string",
+      "description": "General interview notes"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Additional uploaded documents"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "advance",
+        "hold",
+        "another_interview",
+        "offer",
+        "decline"
+      ],
+      "default": "pending"
+    },
+    "decision_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "name"
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "name": "HireJob",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Job title"
+    },
+    "department": {
+      "type": "string",
+      "description": "Department or team"
+    },
+    "description": {
+      "type": "string",
+      "description": "Full job description summary"
+    },
+    "responsibilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Key responsibilities"
+    },
+    "required_qualifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "preferred_qualifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "experience_requirements": {
+      "type": "string"
+    },
+    "performance_expectations": {
+      "type": "string"
+    },
+    "compensation": {
+      "type": "string"
+    },
+    "work_schedule": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "url",
+        "text",
+        "file"
+      ],
+      "description": "How the job description was provided"
+    },
+    "source_url": {
+      "type": "string"
+    },
+    "role_success_profile": {
+      "type": "object",
+      "description": "AI-generated role success profile"
+    },
+    "role_profile_approved": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "open",
+        "closed",
+        "filled"
+      ],
+      "default": "draft"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}
