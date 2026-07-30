@@ -88,7 +88,9 @@ function LayoutContent({ children, currentPageName }) {
   const isClient = user?.user_type === "client";
   const isMediaPartner = user?.user_type === "media_partner";
 
-  const isSalesTeam = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+  const salesMemberRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+  const hasSalesSession = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+  const isSalesTeam = hasSalesSession && salesMemberRole !== 'admin';
 
   const navItems = isSalesTeam
       ? [
@@ -97,6 +99,8 @@ function LayoutContent({ children, currentPageName }) {
         ]
       : isAdmin
         ? [
+            { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
+            { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
             { label: "Job Board", page: "JobBoard", icon: Briefcase },
             { label: "Bookings", page: "AdminBookings", icon: Briefcase },
@@ -291,7 +295,7 @@ function LayoutContent({ children, currentPageName }) {
                     onClick={() => {
                       localStorage.clear();
                       sessionStorage.clear();
-                      window.location.replace(isSalesTeam ? '/SalesLogin' : createPageUrl("SignIn"));
+                      window.location.replace(hasSalesSession ? '/SalesLogin' : createPageUrl("SignIn"));
                     }}
                   >
                     <LogOut className="w-4 h-4 mr-2" />
@@ -351,7 +355,7 @@ function LayoutContent({ children, currentPageName }) {
                   onClick={() => {
                     localStorage.clear();
                     sessionStorage.clear();
-                    window.location.replace(isSalesTeam ? '/SalesLogin' : createPageUrl("SignIn"));
+                    window.location.replace(hasSalesSession ? '/SalesLogin' : createPageUrl("SignIn"));
                   }}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 w-full"
                 >
