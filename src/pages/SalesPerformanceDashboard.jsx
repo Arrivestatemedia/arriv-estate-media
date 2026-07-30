@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Phone, Mail, MessageSquare, Calendar, Users, DollarSign, Wallet, TrendingUp, Sparkles, Sun, Target, Award, Loader2, RefreshCw, ChevronRight, X, BookOpen } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MetricCard from "@/components/performance/MetricCard";
 import PipelineFunnel from "@/components/performance/PipelineFunnel";
 import HealthScoreGauge from "@/components/performance/HealthScoreGauge";
@@ -49,6 +50,8 @@ export default function SalesPerformanceDashboard() {
   const [coaching, setCoaching] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [verseModal, setVerseModal] = useState(null);
+  const [repSource, setRepSource] = useState(() => localStorage.getItem('culture_banner_source') || 'bible');
+  const [bannerMode, setBannerMode] = useState('manual');
 
   useEffect(() => {
     const id = localStorage.getItem('sales_member_id');
@@ -68,17 +71,18 @@ export default function SalesPerformanceDashboard() {
       const [perfRes, goalsRes, bannerRes] = await Promise.all([
         base44.functions.invoke('computeSalesPerformance', { sales_member_id: repId }),
         base44.entities.SalesGoal.list(),
-        base44.functions.invoke('getDailyCultureBanner', {}),
+        base44.functions.invoke('getDailyCultureBanner', { source: repSource }),
       ]);
       setPerfData(perfRes.data);
       setGoals((goalsRes || []).filter(g => g.is_active && (!g.sales_member_id || g.sales_member_id === repId)));
       setBanners(bannerRes.data?.banners || []);
+      setBannerMode(bannerRes.data?.mode || 'manual');
     } catch (e) {
       console.error('Performance load error:', e);
     } finally {
       setLoading(false);
     }
-  }, [repId]);
+  }, [repId, repSource]);
 
   useEffect(() => {
     loadData();
@@ -206,6 +210,27 @@ Be specific and data-driven. Reference actual numbers. Keep each item to one sen
                 </button>
               )}
             </div>
+            {bannerMode === 'automated' && (
+              <Select
+                value={repSource}
+                onValueChange={(v) => {
+                  setRepSource(v);
+                  localStorage.setItem('culture_banner_source', v);
+                }}
+              >
+                <SelectTrigger className="w-36 h-7 text-xs flex-shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bible">Bible</SelectItem>
+                  <SelectItem value="quran">Quran</SelectItem>
+                  <SelectItem value="torah">Torah / Tanakh</SelectItem>
+                  <SelectItem value="buddhist">Buddhist Teachings</SelectItem>
+                  <SelectItem value="hindu">Hindu Texts</SelectItem>
+                  <SelectItem value="secular">Secular</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         )}
 

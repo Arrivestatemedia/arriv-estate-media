@@ -391,7 +391,7 @@ export default function OwnerDashboard() {
               </div>
               {bannerMode === 'automated' && (
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>Wisdom Source:</span>
+                  <span className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>Default Wisdom Source:</span>
                   <Select value={bannerSource} onValueChange={handleSetBannerSource}>
                     <SelectTrigger className="w-48 h-7 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>

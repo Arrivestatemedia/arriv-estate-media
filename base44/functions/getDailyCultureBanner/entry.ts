@@ -7,9 +7,12 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Read settings
+    const body = await req.json().catch(() => ({}));
     const allSettings = await base44.asServiceRole.entities.AppSetting.list();
     const mode = (allSettings || []).find(s => s.key === 'culture_banner_mode')?.value || 'manual';
-    const source = (allSettings || []).find(s => s.key === 'culture_banner_source')?.value || 'bible';
+    const globalSource = (allSettings || []).find(s => s.key === 'culture_banner_source')?.value || 'bible';
+    // Per-rep source overrides the global default
+    const source = body.source || globalSource;
 
     // Fetch all active banners
     const allBanners = await base44.asServiceRole.entities.CultureBanner.filter(
@@ -21,9 +24,9 @@ export default async function(req) {
       return Response.json({ mode, source, banners: manualBanners });
     }
 
-    // Automated mode — look for today's AI banner (America/New_York local day)
+    // Automated mode — look for today's AI banner for this source (America/New_York local day)
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-    const todayAi = (allBanners || []).find(b => b.auto_generated && b.generated_date === today);
+    const todayAi = (allBanners || []).find(b => b.auto_generated && b.generated_date === today && b.source === source);
     if (todayAi) {
       return Response.json({ mode, source, banners: [todayAi] });
     }
@@ -58,6 +61,7 @@ export default async function(req) {
       message: data.message || 'Keep building relationships. Results will follow.',
       verse_reference: data.verse_reference || '',
       verse_text: data.verse_text || '',
+      source,
       is_active: true,
       auto_generated: true,
       generated_date: today,

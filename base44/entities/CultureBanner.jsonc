@@ -14,6 +14,18 @@
       "type": "string",
       "description": "Full text of the Bible verse"
     },
+    "source": {
+      "type": "string",
+      "enum": [
+        "bible",
+        "quran",
+        "torah",
+        "buddhist",
+        "hindu",
+        "secular"
+      ],
+      "description": "Wisdom source used for AI generation"
+    },
     "auto_generated": {
       "type": "boolean",
       "default": false,
