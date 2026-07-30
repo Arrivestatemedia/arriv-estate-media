@@ -91,12 +91,18 @@ function LayoutContent({ children, currentPageName }) {
   const salesMemberRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
   const hasSalesSession = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
   const isSalesTeam = hasSalesSession && salesMemberRole !== 'admin';
+  const isSalesAdmin = hasSalesSession && salesMemberRole === 'admin';
 
   const navItems = isSalesTeam
       ? [
           { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
           { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
         ]
+      : isSalesAdmin
+        ? [
+            { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
+            { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
+          ]
       : isAdmin
         ? [
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
