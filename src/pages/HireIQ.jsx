@@ -50,19 +50,14 @@ export default function HireIQ() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#B8956A] flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Arriv HireIQ</h1>
-            <p className="text-sm text-gray-500">AI-powered hiring & interview management</p>
-          </div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-lg bg-[#B8956A] flex items-center justify-center">
+          <Briefcase className="w-5 h-5 text-white" />
         </div>
-        <Button onClick={() => setShowCreate(true)} style={{ backgroundColor: "#B8956A" }}>
-          <Plus className="w-4 h-4 mr-2" /> Create Job Opening
-        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">Arriv HireIQ</h1>
+          <p className="text-sm text-gray-500">AI-powered hiring & interview management</p>
+        </div>
       </div>
 
       {showCreate && (
@@ -88,8 +83,17 @@ export default function HireIQ() {
           <Briefcase className="w-16 h-16 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">No job openings yet</p>
           <p className="text-sm text-gray-400 mt-1">Create your first job opening to start hiring.</p>
+          <Button onClick={() => setShowCreate(true)} className="mt-6 bg-[#1a1a1a] hover:bg-[#1a1a1a]/90 text-white">
+            <Plus className="w-4 h-4 mr-2" /> Create Job Opening
+          </Button>
         </div>
       ) : (
+        <>
+        <div className="flex justify-end mb-4">
+          <Button onClick={() => setShowCreate(true)} style={{ backgroundColor: "#B8956A" }}>
+            <Plus className="w-4 h-4 mr-2" /> Create Job Opening
+          </Button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {jobs.map(job => (
             <div key={job.id} onClick={() => navigate(createPageUrl("HireIQJobDetail") + `?id=${job.id}`)}
@@ -107,6 +111,7 @@ export default function HireIQ() {
             </div>
           ))}
         </div>
+        </>
       )}
     </div>
   );

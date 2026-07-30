@@ -19,18 +19,18 @@ export default function HireIQJobDetail() {
   const navigate = useNavigate();
   const id = new URLSearchParams(window.location.search).get("id");
 
-  const loadData = async () => {
-    if (!id) return;
-    try {
-      const j = await base44.entities.HireJob.get(id);
-      setJob(j);
-      const cands = await base44.entities.HireCandidate.filter({ job_id: id }, "-created_date", 100);
+  useEffect(() => {
+    if (!id) { setLoading(false); return; }
+    Promise.all([
+      base44.entities.HireJob.filter({ id: id }, null, 1).catch(() => []),
+      base44.entities.HireCandidate.filter({ job_id: id }, "-created_date", 100).catch(() => []),
+    ])
+    .then(([jobs, cands]) => {
+      setJob(jobs && jobs[0]);
       setCandidates(cands || []);
-    } catch (_) {}
-    setLoading(false);
-  };
-
-  useEffect(() => { loadData(); }, [id]);
+    })
+    .finally(() => setLoading(false));
+  }, [id]);
 
   const updateJob = async (data) => {
     const updated = await base44.entities.HireJob.update(id, data);

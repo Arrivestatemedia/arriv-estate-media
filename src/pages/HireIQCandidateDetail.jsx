@@ -23,23 +23,26 @@ export default function HireIQCandidateDetail() {
   const navigate = useNavigate();
   const id = new URLSearchParams(window.location.search).get("id");
 
-  const loadData = async () => {
-    if (!id) return;
-    try {
-      const c = await base44.entities.HireCandidate.get(id);
-      setCandidate(c);
-      setNotes(c.interview_notes || "");
-      if (c.job_id) {
-        const j = await base44.entities.HireJob.get(c.job_id);
-        setJob(j);
-        const ints = await base44.entities.HireInterview.filter({ candidate_id: id }, "-created_date", 20);
-        setInterviews(ints || []);
-      }
-    } catch (_) {}
-    setLoading(false);
-  };
-
-  useEffect(() => { loadData(); }, [id]);
+  useEffect(() => {
+    if (!id) { setLoading(false); return; }
+    base44.entities.HireCandidate.filter({ id: id }, null, 1)
+      .then(cands => {
+        const c = cands && cands[0];
+        setCandidate(c);
+        setNotes(c?.interview_notes || "");
+        if (c?.job_id) {
+          return Promise.all([
+            base44.entities.HireJob.filter({ id: c.job_id }, null, 1).catch(() => []),
+            base44.entities.HireInterview.filter({ candidate_id: id }, "-created_date", 20).catch(() => []),
+          ]).then(([jobs, ints]) => {
+            setJob(jobs && jobs[0]);
+            setInterviews(ints || []);
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const handleInterviewComplete = async (interviewData) => {
     let finalData = { ...interviewData };
