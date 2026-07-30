@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { X, Download, Trash2, Film } from "lucide-react";
+import { X, Download, Trash2, Film, Loader2, AlertCircle } from "lucide-react";
 
 export default function RecordingsPanel({ isOpen, onClose, recordings, onDelete }) {
   if (!isOpen) return null;
@@ -30,11 +30,23 @@ export default function RecordingsPanel({ isOpen, onClose, recordings, onDelete 
         ) : (
           recordings.map((rec) => (
             <div key={rec.id} className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
-              <video
-                src={rec.url}
-                controls
-                className="w-full h-32 bg-black object-contain"
-              />
+              {rec.uploading ? (
+                <div className="w-full h-32 bg-black flex flex-col items-center justify-center text-gray-400">
+                  <Loader2 className="w-6 h-6 animate-spin mb-1" />
+                  <span className="text-xs">Saving…</span>
+                </div>
+              ) : rec.failed ? (
+                <div className="w-full h-32 bg-black flex flex-col items-center justify-center text-red-400">
+                  <AlertCircle className="w-6 h-6 mb-1" />
+                  <span className="text-xs">Save failed</span>
+                </div>
+              ) : (
+                <video
+                  src={rec.url}
+                  controls
+                  className="w-full h-32 bg-black object-contain"
+                />
+              )}
               <div className="p-2">
                 <p className="text-xs text-gray-300 font-medium">{rec.label}</p>
                 <p className="text-[10px] text-gray-500">
@@ -46,7 +58,7 @@ export default function RecordingsPanel({ isOpen, onClose, recordings, onDelete 
                     download={`recording-${rec.id}.webm`}
                     className="flex-1"
                   >
-                    <Button size="sm" variant="outline" className="w-full h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-700">
+                    <Button size="sm" variant="outline" className="w-full h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-700" disabled={rec.uploading || rec.failed}>
                       <Download className="w-3 h-3 mr-1" /> Save
                     </Button>
                   </a>

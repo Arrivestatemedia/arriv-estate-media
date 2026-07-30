@@ -1,0 +1,39 @@
+{
+  "name": "VideoRecording",
+  "type": "object",
+  "properties": {
+    "file_url": {
+      "type": "string",
+      "description": "URL of the uploaded recording file"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "default": 0,
+      "description": "Recording duration in seconds"
+    },
+    "file_size": {
+      "type": "number",
+      "default": 0,
+      "description": "Recording file size in bytes"
+    },
+    "recorded_by_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the person who recorded"
+    },
+    "recorded_by_name": {
+      "type": "string",
+      "description": "Name of the person who recorded"
+    },
+    "participant_name": {
+      "type": "string",
+      "description": "Name of the other call participant"
+    },
+    "room_name": {
+      "type": "string",
+      "description": "Twilio room name for the call"
+    }
+  },
+  "required": [
+    "file_url"
+  ]
+}

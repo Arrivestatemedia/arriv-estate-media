@@ -26,6 +26,7 @@ import SubmitReferences from './pages/SubmitReferences';
 import SalesPerformanceDashboard from './pages/SalesPerformanceDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import EmployeeProfile from './pages/EmployeeProfile';
+import Recordings from './pages/Recordings';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -240,6 +241,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="EmployeeProfile">
             <EmployeeProfile />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/Recordings"
+        element={
+          <LayoutWrapper currentPageName="Recordings">
+            <Recordings />
           </LayoutWrapper>
         }
       />

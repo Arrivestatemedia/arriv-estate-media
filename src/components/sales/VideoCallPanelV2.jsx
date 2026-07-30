@@ -461,17 +461,18 @@ export default function VideoCallPanelV2({
     recordingChunksRef.current = [];
 
     recorder.ondataavailable = (e) => { if (e.data.size > 0) recordingChunksRef.current.push(e.data); };
-    recorder.onstop = () => {
+    recorder.onstop = async () => {
       const blob = new Blob(recordingChunksRef.current, { type: "video/webm" });
-      const url = URL.createObjectURL(blob);
       const secs = Math.round((Date.now() - recordingStartTimeRef.current) / 1000);
       const now = new Date();
+      const tempId = `rec-${Date.now()}`;
       setRecordings(prev => [{
-        id: `rec-${Date.now()}`,
-        url,
+        id: tempId,
+        url: null,
         label: now.toLocaleString(),
         duration: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`,
         size: blob.size,
+        uploading: true,
       }, ...prev]);
       setIsRecordingsOpen(true);
       if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
@@ -480,6 +481,22 @@ export default function VideoCallPanelV2({
       if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
       setRecordingTime(0);
       setIsRecording(false);
+      try {
+        const file = new File([blob], `recording-${tempId}.webm`, { type: "video/webm" });
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        await base44.entities.VideoRecording.create({
+          file_url,
+          duration_seconds: secs,
+          file_size: blob.size,
+          recorded_by_id: currentUserId,
+          recorded_by_name: currentUserName,
+          participant_name: recipientName,
+          room_name: roomName,
+        });
+        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, url: file_url, uploading: false } : r));
+      } catch (_) {
+        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, failed: true } : r));
+      }
     };
 
     recorder.start(1000);

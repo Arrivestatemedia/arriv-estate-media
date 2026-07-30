@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Wallet, Landmark, TrendingUp, Award } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Wallet, Landmark, TrendingUp, Award, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -97,6 +97,7 @@ function LayoutContent({ children, currentPageName }) {
       ? [
           { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
           { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
+          { label: "My Recordings", page: "Recordings", icon: Film },
           { label: "My Profile", page: "EmployeeProfile", icon: Award },
         ]
       : isSalesAdmin
@@ -105,6 +106,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
+            { label: "My Recordings", page: "Recordings", icon: Film },
             { label: "My Profile", page: "EmployeeProfile", icon: Award },
           ]
       : isAdmin
