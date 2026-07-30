@@ -1,11 +1,8 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 import { scoreColor } from "@/lib/hireiq";
 import { Trophy } from "lucide-react";
 
-export default function RankingTable({ candidates, jobId }) {
-  const navigate = useNavigate();
+export default function RankingTable({ candidates, jobId, onSelectCandidate }) {
   const ranked = [...candidates].sort((a, b) => {
     const aScore = a.evaluation?.estimated_success_score || 0;
     const bScore = b.evaluation?.estimated_success_score || 0;
@@ -42,7 +39,7 @@ export default function RankingTable({ candidates, jobId }) {
             const colorClass = score != null ? scoreColor(score) : "text-gray-400 bg-gray-50 border-gray-200";
             return (
               <tr key={c.id} className="border-b hover:bg-gray-50 cursor-pointer"
-                onClick={() => navigate(createPageUrl("HireIQCandidateDetail") + `?id=${c.id}`)}>
+                onClick={() => onSelectCandidate?.(c)}>
                 <td className="py-2 px-2">
                   <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
                     i === 0 ? "bg-yellow-100 text-yellow-700" : i === 1 ? "bg-gray-200 text-gray-600" : i === 2 ? "bg-orange-100 text-orange-700" : "text-gray-400"

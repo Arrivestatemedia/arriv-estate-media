@@ -106,12 +106,11 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
             { label: "HireIQ", page: "HireIQ", icon: Brain },
-            { label: "HireIQ Learning", page: "HireIQLearning", icon: Brain },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "My Recordings", page: "Recordings", icon: Film },
             { label: "My Profile", page: "EmployeeProfile", icon: Award },
-          ]
-      : isAdmin
+            ]
+            : isAdmin
         ? [
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
@@ -135,7 +134,6 @@ function LayoutContent({ children, currentPageName }) {
         { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
         { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
         { label: "HireIQ", page: "HireIQ", icon: Brain },
-        { label: "HireIQ Learning", page: "HireIQLearning", icon: Brain },
           ]
       : isClient
     ? [
