@@ -103,6 +103,7 @@ function LayoutContent({ children, currentPageName }) {
         ? [
             { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
+            { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "My Profile", page: "EmployeeProfile", icon: Award },
           ]
