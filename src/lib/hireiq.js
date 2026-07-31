@@ -244,6 +244,22 @@ export async function parseQuestionnaireFile(fileUrl, jobData, roleProfile) {
   });
 }
 
+export function computeCompositeScore(candidate) {
+  const evalScore = candidate?.evaluation?.estimated_success_score;
+  const r1Score = candidate?.round1_scorecard?.total_score;
+  const r2Score = candidate?.round2_scorecard?.total_score;
+
+  const weights = { eval: 40, r1: 30, r2: 30 };
+  let totalWeight = 0;
+  let weightedSum = 0;
+
+  if (evalScore != null) { weightedSum += evalScore * weights.eval; totalWeight += weights.eval; }
+  if (r1Score != null) { weightedSum += r1Score * weights.r1; totalWeight += weights.r1; }
+  if (r2Score != null) { weightedSum += r2Score * weights.r2; totalWeight += weights.r2; }
+
+  return totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 10) / 10 : null;
+}
+
 export function scoreColor(score) {
   if (score >= 80) return "text-amber-400 bg-amber-500/10 border-amber-500/30";
   if (score >= 60) return "text-amber-300 bg-amber-500/10 border-amber-500/30";

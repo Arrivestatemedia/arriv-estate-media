@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, FileText, Sparkles, Trash2, CheckCircle2, Download, ClipboardList, Users, ChevronDown } from "lucide-react";
-import { parseQuestionnaireText, parseQuestionnaireFile } from "@/lib/hireiq";
+import { parseQuestionnaireText, parseQuestionnaireFile, evaluateCandidate } from "@/lib/hireiq";
 import Round1ScorecardForm from "@/components/hireiq/Round1ScorecardForm";
 import Round2ScorecardForm from "@/components/hireiq/Round2ScorecardForm";
 import { downloadRound2BlankPdf, downloadRound2FilledPdf } from "@/lib/scorecardPdf";
@@ -195,16 +195,30 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
     setLoading(false);
   };
 
+  const reevaluateCandidate = async (updated) => {
+    try {
+      const interviews = [];
+      if (updated.round1_scorecard) interviews.push({ ...updated.round1_scorecard, type: "Round 1 — General Competency" });
+      if (updated.round2_scorecard) interviews.push({ ...updated.round2_scorecard, type: "Round 2 — Role-Specific" });
+      const evaluation = await evaluateCandidate(updated, job, job?.role_success_profile, interviews, updated.resume_analysis);
+      await onUpdateCandidate(updated.id, { evaluation });
+    } catch (_) {}
+  };
+
   const handleRound1Submit = async (result) => {
     if (!selectedCandidate) return;
+    const updated = { ...selectedCandidate, round1_scorecard: result };
     await onUpdateCandidate(selectedCandidate.id, { round1_scorecard: result });
     setMode(null);
+    await reevaluateCandidate(updated);
   };
 
   const handleRound2Submit = async (result) => {
     if (!selectedCandidate) return;
+    const updated = { ...selectedCandidate, round2_scorecard: result };
     await onUpdateCandidate(selectedCandidate.id, { round2_scorecard: result });
     setMode(null);
+    await reevaluateCandidate(updated);
   };
 
   // ---- Render ----
