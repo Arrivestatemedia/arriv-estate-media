@@ -136,6 +136,34 @@ export const ROUND1_SECTIONS = [
     ],
   },
   {
+    name: "Problem Solving / Judgment", weight: 10, questions: [
+      {
+        question: "Describe a time you had to make a decision with incomplete information.",
+        competencies: ["Problem Solving", "Judgment"],
+        weight: 1,
+        excellent_answer: "Explains the context clearly, describes how they assessed available information, weighed risks, and made a reasoned decision with a defensible rationale.",
+        poor_answer: "Cannot describe a specific instance, froze under uncertainty, or made a decision without any reasoning or risk awareness.",
+        why_this_matters: "Assesses ability to act decisively and thoughtfully when full information isn't available — a daily reality in most roles.",
+      },
+      {
+        question: "Tell me about a problem you solved that others couldn't.",
+        competencies: ["Problem Solving", "Initiative"],
+        weight: 1,
+        excellent_answer: "Specific problem with clear obstacles others faced, describes their unique approach or perspective, and explains the solution with measurable impact.",
+        poor_answer: "Vague problem, no distinction from what others tried, or attributes the solution to luck or outside help.",
+        why_this_matters: "Reveals creative thinking, persistence, and ability to find solutions where others stall.",
+      },
+      {
+        question: "How do you approach a problem you've never encountered before?",
+        competencies: ["Problem Solving", "Adaptability"],
+        weight: 1,
+        excellent_answer: "Describes a structured approach: assess the situation, identify what's known vs. unknown, research or ask for help, test a solution, and learn from the outcome.",
+        poor_answer: "No clear process, waits for someone else to solve it, or gives up quickly when faced with novelty.",
+        why_this_matters: "Assesses learning agility and the ability to navigate ambiguity — critical for roles that evolve over time.",
+      },
+    ],
+  },
+  {
     name: "Culture Fit", weight: 10, questions: [
       {
         question: "What kind of manager brings out your best?",
