@@ -14,24 +14,26 @@ const GOLD = "#B8956A";
 const GOLD_DARK = "#A68559";
 const TEXT_DARK = "#1A1A1A";
 const MUTED_DARK = "rgba(26,26,26,0.45)";
-const MUTED_LIGHT = "rgba(255,251,245,0.45)";
+const MUTED_LIGHT = "rgba(255,251,245,0.5)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 
 const card = {
-  backgroundColor: CREAM,
-  border: "1px solid rgba(184,149,106,0.12)",
-  borderRadius: "12px",
-  boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+  backgroundColor: "rgba(26,26,26,0.85)",
+  border: "1px solid rgba(184,149,106,0.2)",
+  borderRadius: "14px",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
 };
 
-const innerBg = "#F5F2EC";
+const innerBg = "rgba(255,251,245,0.04)";
 
 const statusStyle = (s) => ({
-  draft: { bg: "#E8E5E0", text: "#6B6B6B" },
-  open: { bg: "#B8956A", text: "#FFFBF5" },
-  closed: { bg: "#FEE2E2", text: "#991B1B" },
+  draft: { bg: "rgba(255,251,245,0.08)", text: "rgba(255,251,245,0.6)" },
+  open: { bg: "#B8956A", text: "#1A1A1A" },
+  closed: { bg: "rgba(220,38,38,0.2)", text: "#FCA5A5" },
   filled: { bg: "#A68559", text: "#FFFBF5" },
-}[s] || { bg: "#E8E5E0", text: "#6B6B6B" });
+}[s] || { bg: "rgba(255,251,245,0.08)", text: "rgba(255,251,245,0.6)" });
 
 function computeStep(job, candidates) {
   if (candidates.some(c => c.status === "hired")) return 10;
@@ -97,22 +99,22 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
       <div className="p-5 mb-5" style={card}>
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>{job?.title}</h1>
-            <p className="text-sm mt-0.5" style={{ color: MUTED_DARK }}>{job?.department}</p>
+            <h1 className="text-2xl font-bold" style={{ ...SERIF, color: CREAM }}>{job?.title}</h1>
+            <p className="text-sm mt-0.5" style={{ color: MUTED_LIGHT }}>{job?.department}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs px-2 py-0.5 rounded font-medium" style={statusStyle(job?.status)}>{job?.status}</span>
-            <select className="rounded-lg px-3 py-1.5 text-sm" style={{ borderColor: "rgba(184,149,106,0.2)", backgroundColor: CREAM, color: TEXT_DARK }}
+            <select className="rounded-lg px-3 py-1.5 text-sm" style={{ borderColor: "rgba(184,149,106,0.2)", backgroundColor: "rgba(255,251,245,0.05)", color: CREAM }}
               value={job?.status || "draft"} onChange={e => setStatus(e.target.value)}>
-              <option value="draft">Draft</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-              <option value="filled">Filled</option>
+              <option value="draft" style={{ color: "#1A1A1A" }}>Draft</option>
+              <option value="open" style={{ color: "#1A1A1A" }}>Open</option>
+              <option value="closed" style={{ color: "#1A1A1A" }}>Closed</option>
+              <option value="filled" style={{ color: "#1A1A1A" }}>Filled</option>
             </select>
           </div>
         </div>
         <div className="pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
-          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: MUTED_DARK }}>Hiring Pipeline Progress</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: MUTED_LIGHT }}>Hiring Pipeline Progress</p>
           <WorkflowStepper currentStep={currentStep} />
         </div>
       </div>
@@ -126,10 +128,11 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
             <button key={t.id} onClick={() => setTab(t.id)}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap transition-all"
               style={{
-                backgroundColor: active ? CREAM : "transparent",
-                color: active ? GOLD_DARK : MUTED_LIGHT,
-                border: active ? "1px solid rgba(184,149,106,0.12)" : "1px solid transparent",
-                boxShadow: active ? "0 4px 16px rgba(0,0,0,0.3)" : "none",
+                backgroundColor: active ? "rgba(26,26,26,0.85)" : "transparent",
+                color: active ? GOLD : MUTED_DARK,
+                border: active ? "1px solid rgba(184,149,106,0.2)" : "1px solid transparent",
+                boxShadow: active ? "0 4px 16px rgba(0,0,0,0.08)" : "none",
+                backdropFilter: active ? "blur(12px)" : "none",
               }}>
               <Icon className="w-4 h-4" /> {t.label}
             </button>
@@ -141,18 +144,18 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
       <div className="p-5" style={card}>
         {tab === "overview" && (
           <div className="space-y-4">
-            {job?.description && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_DARK }}>Description</p><p className="text-sm whitespace-pre-wrap" style={{ color: TEXT_DARK }}>{job.description}</p></div>}
+            {job?.description && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Description</p><p className="text-sm whitespace-pre-wrap" style={{ color: CREAM }}>{job.description}</p></div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {job?.responsibilities?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_DARK }}>Responsibilities</p><ul className="text-sm space-y-0.5" style={{ color: TEXT_DARK }}>{job.responsibilities.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
-              {job?.required_qualifications?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_DARK }}>Required Qualifications</p><ul className="text-sm space-y-0.5" style={{ color: TEXT_DARK }}>{job.required_qualifications.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
-              {job?.preferred_qualifications?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_DARK }}>Preferred Qualifications</p><ul className="text-sm space-y-0.5" style={{ color: TEXT_DARK }}>{job.preferred_qualifications.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
-              {job?.skills?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_DARK }}>Skills</p><div className="flex flex-wrap gap-1">{job.skills.map((s, i) => <span key={i} className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: innerBg, color: TEXT_DARK }}>{s}</span>)}</div></div>}
+              {job?.responsibilities?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Responsibilities</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{job.responsibilities.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
+              {job?.required_qualifications?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Required Qualifications</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{job.required_qualifications.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
+              {job?.preferred_qualifications?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Preferred Qualifications</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{job.preferred_qualifications.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
+              {job?.skills?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Skills</p><div className="flex flex-wrap gap-1">{job.skills.map((s, i) => <span key={i} className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: innerBg, color: CREAM }}>{s}</span>)}</div></div>}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
-              {job?.experience_requirements && <div><p className="text-xs" style={{ color: MUTED_DARK }}>Experience</p><p style={{ color: TEXT_DARK }}>{job.experience_requirements}</p></div>}
-              {job?.compensation && <div><p className="text-xs" style={{ color: MUTED_DARK }}>Compensation</p><p style={{ color: TEXT_DARK }}>{job.compensation}</p></div>}
-              {job?.work_schedule && <div><p className="text-xs" style={{ color: MUTED_DARK }}>Schedule</p><p style={{ color: TEXT_DARK }}>{job.work_schedule}</p></div>}
-              {job?.performance_expectations && <div><p className="text-xs" style={{ color: MUTED_DARK }}>Performance Expectations</p><p style={{ color: TEXT_DARK }}>{job.performance_expectations}</p></div>}
+              {job?.experience_requirements && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Experience</p><p style={{ color: CREAM }}>{job.experience_requirements}</p></div>}
+              {job?.compensation && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Compensation</p><p style={{ color: CREAM }}>{job.compensation}</p></div>}
+              {job?.work_schedule && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Schedule</p><p style={{ color: CREAM }}>{job.work_schedule}</p></div>}
+              {job?.performance_expectations && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Performance Expectations</p><p style={{ color: CREAM }}>{job.performance_expectations}</p></div>}
             </div>
           </div>
         )}
@@ -162,8 +165,8 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
         {tab === "questionnaire" && (
           <div className="space-y-4">
             <div>
-              <h3 className="font-bold mb-1" style={{ ...SERIF, color: TEXT_DARK }}>Interview Questionnaire</h3>
-              <p className="text-sm" style={{ color: MUTED_DARK }}>Upload or paste your interview questionnaire. The AI will parse it into a scorecard template that pre-populates when creating new interviews for candidates.</p>
+              <h3 className="font-bold mb-1" style={{ ...SERIF, color: CREAM }}>Interview Questionnaire</h3>
+              <p className="text-sm" style={{ color: MUTED_LIGHT }}>Upload or paste your interview questionnaire. The AI will parse it into a scorecard template that pre-populates when creating new interviews for candidates.</p>
             </div>
             <QuestionnaireUploader job={job} onUpdate={updateJob} />
           </div>
@@ -172,10 +175,10 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
         {tab === "candidates" && (
           <div className="space-y-4">
             <div className="flex flex-wrap justify-between items-center gap-2">
-              <h3 className="font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Candidates</h3>
+              <h3 className="font-bold" style={{ ...SERIF, color: CREAM }}>Candidates</h3>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowImport(true)} style={{ backgroundColor: CREAM, color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.2)" }}><FileText className="w-4 h-4 mr-2" /> Import</Button>
-                <Button variant="outline" onClick={onCompare} style={{ backgroundColor: CREAM, color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.2)" }}><GitCompare className="w-4 h-4 mr-2" /> Compare</Button>
+                <Button variant="outline" onClick={() => setShowImport(true)} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><FileText className="w-4 h-4 mr-2" /> Import</Button>
+                <Button variant="outline" onClick={onCompare} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><GitCompare className="w-4 h-4 mr-2" /> Compare</Button>
                 <Button onClick={() => setShowAddCandidate(true)} style={{ backgroundColor: GOLD, color: "#0A0A0A", border: "none", fontWeight: 600 }}><Plus className="w-4 h-4 mr-2" /> Add Candidate</Button>
               </div>
             </div>
@@ -192,7 +195,7 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
             {loadingCandidates ? (
               <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" style={{ color: GOLD }} /></div>
             ) : candidates.length === 0 ? (
-              <p className="text-sm text-center py-8" style={{ color: MUTED_DARK }}>No candidates yet</p>
+              <p className="text-sm text-center py-8" style={{ color: MUTED_LIGHT }}>No candidates yet</p>
             ) : (
               <div className="space-y-2">
                 {candidates.map(c => (
@@ -200,11 +203,11 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
                     className="p-3 cursor-pointer flex justify-between items-center rounded-lg transition-all hover:translate-x-0.5"
                     style={{ backgroundColor: innerBg, border: "1px solid rgba(184,149,106,0.1)" }}>
                     <div>
-                      <p className="font-medium" style={{ color: TEXT_DARK }}>{c.name}</p>
-                      <p className="text-xs" style={{ color: MUTED_DARK }}>{c.email} · {c.status}</p>
+                      <p className="font-medium" style={{ color: CREAM }}>{c.name}</p>
+                      <p className="text-xs" style={{ color: MUTED_LIGHT }}>{c.email} · {c.status}</p>
                     </div>
                     {c.evaluation?.estimated_success_score != null && (
-                      <span className="text-lg font-bold" style={{ color: GOLD_DARK }}>{Math.round(c.evaluation.estimated_success_score)}</span>
+                      <span className="text-lg font-bold" style={{ color: GOLD, fontFamily: "'SF Mono', 'Monaco', monospace" }}>{Math.round(c.evaluation.estimated_success_score)}</span>
                     )}
                   </div>
                 ))}
@@ -216,7 +219,7 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
         {tab === "ranking" && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <Button variant="outline" onClick={onCompare} style={{ backgroundColor: CREAM, color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.2)" }}><GitCompare className="w-4 h-4 mr-2" /> Compare Candidates</Button>
+              <Button variant="outline" onClick={onCompare} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><GitCompare className="w-4 h-4 mr-2" /> Compare Candidates</Button>
             </div>
             <RankingTable candidates={candidates} jobId={job.id} onSelectCandidate={onSelectCandidate} />
           </div>

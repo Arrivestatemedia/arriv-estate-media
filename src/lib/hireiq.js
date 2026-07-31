@@ -245,10 +245,10 @@ export async function parseQuestionnaireFile(fileUrl, jobData, roleProfile) {
 }
 
 export function scoreColor(score) {
-  if (score >= 80) return "text-amber-800 bg-amber-50 border-amber-200";
-  if (score >= 60) return "text-amber-700 bg-amber-50 border-amber-200";
-  if (score >= 40) return "text-orange-700 bg-orange-50 border-orange-200";
-  return "text-red-700 bg-red-50 border-red-200";
+  if (score >= 80) return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+  if (score >= 60) return "text-amber-300 bg-amber-500/10 border-amber-500/30";
+  if (score >= 40) return "text-orange-400 bg-orange-500/10 border-orange-500/30";
+  return "text-red-400 bg-red-500/10 border-red-500/30";
 }
 
 export function scoreBar(score) {

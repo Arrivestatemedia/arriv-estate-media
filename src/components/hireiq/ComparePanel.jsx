@@ -7,14 +7,16 @@ const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
 const MUTED_DARK = "rgba(26,26,26,0.45)";
-const MUTED_LIGHT = "rgba(255,251,245,0.45)";
+const MUTED_LIGHT = "rgba(255,251,245,0.5)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 
 const card = {
-  backgroundColor: CREAM,
-  border: "1px solid rgba(184,149,106,0.12)",
-  borderRadius: "12px",
-  boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+  backgroundColor: "rgba(26,26,26,0.85)",
+  border: "1px solid rgba(184,149,106,0.2)",
+  borderRadius: "14px",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
 };
 
 export default function ComparePanel({ job, onBack }) {
@@ -38,19 +40,19 @@ export default function ComparePanel({ job, onBack }) {
         <div className="flex items-center gap-3">
           <GitCompare className="w-6 h-6" style={{ color: GOLD }} />
           <div>
-            <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Compare Candidates</h1>
-            <p className="text-sm" style={{ color: MUTED_DARK }}>{job?.title}</p>
+            <h1 className="text-2xl font-bold" style={{ ...SERIF, color: CREAM }}>Compare Candidates</h1>
+            <p className="text-sm" style={{ color: MUTED_LIGHT }}>{job?.title}</p>
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: MUTED_LIGHT }} /></div>
+        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: MUTED_DARK }} /></div>
       ) : candidates.length === 0 ? (
         <div className="p-10 text-center" style={card}>
           <GitCompare className="w-16 h-16 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
-          <p className="font-medium text-lg" style={{ color: TEXT_DARK }}>No evaluated candidates to compare</p>
-          <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Evaluate candidates first to enable side-by-side comparison.</p>
+          <p className="font-medium text-lg" style={{ color: CREAM }}>No evaluated candidates to compare</p>
+          <p className="text-sm mt-1" style={{ color: MUTED_LIGHT }}>Evaluate candidates first to enable side-by-side comparison.</p>
         </div>
       ) : (
         <div className="p-5" style={card}>
