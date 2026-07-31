@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Users, GitCompare, Briefcase, FileText } from "lucide-react";
+import { Loader2, Plus, Users, GitCompare, Briefcase, FileText, Trash2 } from "lucide-react";
 import RoleProfileCard from "@/components/hireiq/RoleProfileCard";
 import CandidateForm from "@/components/hireiq/CandidateForm";
 import RankingTable from "@/components/hireiq/RankingTable";
@@ -46,12 +46,14 @@ function computeStep(job, candidates) {
   return 1;
 }
 
-export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompare, onJobUpdated }) {
+export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompare, onJobUpdated, onDelete }) {
   const [candidates, setCandidates] = useState([]);
   const [loadingCandidates, setLoadingCandidates] = useState(true);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [tab, setTab] = useState("overview");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadCandidates = async () => {
     if (!job?.id) return;
@@ -109,6 +111,19 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
               <option value="closed" style={{ color: "#1A1A1A" }}>Closed</option>
               <option value="filled" style={{ color: "#1A1A1A" }}>Filled</option>
             </select>
+            {confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs" style={{ color: "#FCA5A5" }}>Delete this job?</span>
+                <Button size="sm" disabled={deleting} onClick={async () => { setDeleting(true); await onDelete?.(job); setDeleting(false); }} style={{ backgroundColor: "#DC2626", color: "#FFFBF5", border: "none", fontWeight: 600 }}>
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm"}
+                </Button>
+                <Button size="sm" variant="outline" disabled={deleting} onClick={() => setConfirmDelete(false)} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>Cancel</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)} style={{ backgroundColor: "transparent", color: "#FCA5A5", border: "1px solid rgba(220,38,38,0.3)" }}>
+                <Trash2 className="w-4 h-4 mr-1" /> Delete
+              </Button>
+            )}
           </div>
         </div>
         <div className="pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>

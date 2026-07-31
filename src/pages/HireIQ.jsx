@@ -104,6 +104,15 @@ export default function HireIQ() {
 
   const goJobsHome = () => { setView("dashboard"); setSelectedJob(null); setSelectedCandidate(null); };
 
+  const handleDeleteJob = async (job) => {
+    try {
+      await base44.entities.HireCandidate.deleteMany({ job_id: job.id });
+    } catch (_) {}
+    await base44.entities.HireJob.delete(job.id);
+    setJobs(prev => prev.filter(j => j.id !== job.id));
+    goJobsHome();
+  };
+
   const sidebarItems = [
     { id: "jobs", label: "Jobs", icon: Briefcase },
     { id: "applications", label: "Applications", icon: FileText },
@@ -209,6 +218,7 @@ export default function HireIQ() {
               onSelectCandidate={handleSelectCandidate}
               onCompare={() => setView("compare")}
               onJobUpdated={handleJobUpdated}
+              onDelete={handleDeleteJob}
             />
           ) : loading ? (
             <div className="flex items-center justify-center py-20">
