@@ -73,6 +73,14 @@
     },
     "decision_notes": {
       "type": "string"
+    },
+    "round1_scorecard": {
+      "type": "object",
+      "description": "Submitted Round 1 general competency scorecard results for this candidate"
+    },
+    "round2_scorecard": {
+      "type": "object",
+      "description": "Submitted Round 2 role-specific scorecard results for this candidate"
     }
   },
   "required": [

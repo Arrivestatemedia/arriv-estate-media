@@ -74,6 +74,12 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
     onJobUpdated(updated);
   };
 
+  const updateCandidate = async (candidateId, data) => {
+    const res = await base44.entities.HireCandidate.update(candidateId, data);
+    const updated = res?.data ?? res;
+    setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, ...updated } : c));
+  };
+
   const handleCandidateCreated = (candidate) => {
     setCandidates(prev => [candidate, ...prev]);
     setShowAddCandidate(false);
@@ -184,10 +190,10 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
         {tab === "questionnaire" && (
           <div className="space-y-4">
             <div>
-              <h3 className="font-bold mb-1" style={{ ...SERIF, color: CREAM }}>Interview Questionnaire</h3>
-              <p className="text-sm" style={{ color: MUTED_LIGHT }}>Upload or paste your interview questionnaire. The AI will parse it into a scorecard template that pre-populates when creating new interviews for candidates.</p>
+              <h3 className="font-bold mb-1" style={{ ...SERIF, color: CREAM }}>Interview Scorecards</h3>
+              <p className="text-sm" style={{ color: MUTED_LIGHT }}>Select an applicant to fill out or download their Round 1 and Round 2 scorecards. Round 2 questions are AI-generated from your job description.</p>
             </div>
-            <QuestionnaireUploader job={job} onUpdate={updateJob} />
+            <QuestionnaireUploader job={job} candidates={candidates} onUpdateJob={updateJob} onUpdateCandidate={updateCandidate} />
           </div>
         )}
 
