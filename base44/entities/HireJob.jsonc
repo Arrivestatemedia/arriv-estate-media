@@ -93,10 +93,17 @@
           },
           "explanation": {
             "type": "string"
+          },
+          "section": {
+            "type": "string"
           }
         }
       },
-      "description": "Parsed questionnaire questions used as interview scorecard template"
+      "description": "Round 2 scorecard questions used as interview scorecard template"
+    },
+    "round1_scorecard": {
+      "type": "object",
+      "description": "Submitted Round 1 general competency scorecard results"
     },
     "status": {
       "type": "string",
