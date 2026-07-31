@@ -15,6 +15,19 @@
     "phone": {
       "type": "string"
     },
+    "source": {
+      "type": "string",
+      "enum": [
+        "company_career_page",
+        "linkedin",
+        "indeed",
+        "employee_referral",
+        "recruiter",
+        "other"
+      ],
+      "default": "company_career_page",
+      "description": "Where the candidate was sourced from"
+    },
     "resume_url": {
       "type": "string",
       "description": "Uploaded resume file URL"

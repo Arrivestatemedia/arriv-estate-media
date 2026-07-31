@@ -5,11 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { analyzeResumeText, analyzeResumeFile } from "@/lib/hireiq";
+import { SOURCE_LABELS, SOURCE_VALUES } from "@/lib/analyticsEngine";
 
 export default function CandidateForm({ jobId, jobData, roleProfile, onCreated, onCancel }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [source, setSource] = useState("company_career_page");
   const [resumeMode, setResumeMode] = useState("upload");
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
@@ -38,6 +40,7 @@ export default function CandidateForm({ jobId, jobData, roleProfile, onCreated, 
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),
+        source,
         resume_url: resumeUrl,
         resume_text: resumeMode === "text" ? resumeText.trim() : "",
         cover_letter: coverLetter.trim(),
@@ -70,6 +73,13 @@ export default function CandidateForm({ jobId, jobData, roleProfile, onCreated, 
       <div>
         <label className="text-sm font-medium mb-1 block">Phone</label>
         <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 123-4567" />
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1 block">Source</label>
+        <select value={source} onChange={e => setSource(e.target.value)}
+          className="w-full border rounded px-3 py-2 text-sm" style={{ borderColor: "rgba(184,149,106,0.3)" }}>
+          {SOURCE_VALUES.map(s => <option key={s} value={s}>{SOURCE_LABELS[s]}</option>)}
+        </select>
       </div>
 
       <div className="flex gap-2 border-b pb-2">
