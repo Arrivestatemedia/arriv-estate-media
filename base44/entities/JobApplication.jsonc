@@ -92,6 +92,10 @@
       "default": "media_specialist",
       "description": "Which role the applicant applied for"
     },
+    "job_id": {
+      "type": "string",
+      "description": "HireJob ID this application is for (if created from a HireIQ job posting)"
+    },
     "status": {
       "type": "string",
       "enum": [

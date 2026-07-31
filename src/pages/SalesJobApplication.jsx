@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,8 @@ export default function SalesJobApplication() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [searchParams] = useSearchParams();
+  const jobId = searchParams.get('job');
 
   const MAX_RESUME_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -105,7 +108,8 @@ export default function SalesJobApplication() {
         signature: formData.signature,
         videoUrls: [],
         pictureUrls: [],
-        position: 'Sales Growth Advisor'
+        position: 'Sales Growth Advisor',
+        jobId: jobId || null
       };
 
       const response = await base44.functions.invoke('uploadJobApplicationFiles', payload);

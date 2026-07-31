@@ -112,6 +112,13 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
           </div>
         </div>
         <div className="pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: MUTED_LIGHT }}>Application Link</p>
+          <div className="flex items-center gap-2">
+            <input readOnly value={`${window.location.origin}/JobApplication?job=${job?.id || ''}`} className="flex-1 text-xs px-3 py-1.5 rounded" style={{ backgroundColor: innerBg, color: CREAM, border: "1px solid rgba(184,149,106,0.12)" }} />
+            <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/JobApplication?job=${job?.id || ''}`)} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>Copy</Button>
+          </div>
+        </div>
+        <div className="pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
           <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: MUTED_LIGHT }}>Hiring Pipeline Progress</p>
           <WorkflowStepper currentStep={currentStep} />
         </div>

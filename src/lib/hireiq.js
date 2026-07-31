@@ -277,8 +277,10 @@ export async function syncApplicationsToHireIQ() {
   if (!Array.isArray(apps)) return { jobs: [], newCandidates: 0 };
 
   const activeApps = apps.filter(a => !a.archived);
+  const withJobId = activeApps.filter(a => a.job_id);
+  const withoutJobId = activeApps.filter(a => !a.job_id);
   const byPosition = {};
-  activeApps.forEach(app => {
+  withoutJobId.forEach(app => {
     const pos = app.position || "media_specialist";
     if (!byPosition[pos]) byPosition[pos] = [];
     byPosition[pos].push(app);
@@ -288,6 +290,36 @@ export async function syncApplicationsToHireIQ() {
   const existingJobs = jobsRes?.data ?? jobsRes;
 
   let newCandidates = 0;
+
+  // Sync apps linked to a specific HireJob via job_id
+  for (const app of withJobId) {
+    const candsRes = await base44.entities.HireCandidate.filter({ job_id: app.job_id }, null, 200);
+    const existingCands = candsRes?.data ?? candsRes;
+    const exists = Array.isArray(existingCands) && existingCands.some(c => c.email === app.email);
+    if (exists) continue;
+
+    await base44.entities.HireCandidate.create({
+      job_id: app.job_id,
+      name: app.full_name,
+      email: app.email,
+      phone: app.phone,
+      resume_text: [
+        `Name: ${app.full_name}`,
+        `Email: ${app.email}`,
+        `Phone: ${app.phone}`,
+        `LinkedIn: ${app.linkedin || "N/A"}`,
+        `Portfolio: ${app.portfolio_link || "N/A"}`,
+        `Last Related Job: ${app.last_related_job || "N/A"}`,
+        `Why Good Fit: ${app.why_good_fit || "N/A"}`,
+        app.documents?.length ? `Documents: ${app.documents.join(", ")}` : "",
+      ].filter(Boolean).join("\n"),
+      cover_letter: app.why_good_fit || "",
+      status: "applied",
+      decision: "pending",
+      documents: (app.documents || []).map(url => ({ url, type: "application_document" })),
+    });
+    newCandidates++;
+  }
 
   for (const [position, positionApps] of Object.entries(byPosition)) {
     let job = Array.isArray(existingJobs)

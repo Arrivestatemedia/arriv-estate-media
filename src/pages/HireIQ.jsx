@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Briefcase, Plus, Loader2, Users, Brain } from "lucide-react";
+import { Briefcase, Plus, Loader2, Users, Brain, FileText } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
 import CandidateDetailPanel from "@/components/hireiq/CandidateDetailPanel";
 import ComparePanel from "@/components/hireiq/ComparePanel";
 import LearningPanel from "@/components/hireiq/LearningPanel";
 import { syncApplicationsToHireIQ } from "@/lib/hireiq";
+import ApplicationsPanel from "@/components/hireiq/ApplicationsPanel";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -105,10 +106,11 @@ export default function HireIQ() {
 
   const sidebarItems = [
     { id: "jobs", label: "Jobs", icon: Briefcase },
+    { id: "applications", label: "Applications", icon: FileText },
     { id: "learning", label: "Learning", icon: Brain },
   ];
 
-  const pageTitle = topTab === "learning" ? "Learning System" : view === "job" ? (selectedJob?.title || "Job Detail") : view === "candidate" ? (selectedCandidate?.name || "Candidate") : view === "compare" ? "Compare Candidates" : "Jobs";
+  const pageTitle = topTab === "applications" ? "Job Applications" : topTab === "learning" ? "Learning System" : view === "job" ? (selectedJob?.title || "Job Detail") : view === "candidate" ? (selectedCandidate?.name || "Candidate") : view === "compare" ? "Compare Candidates" : "Jobs";
 
   return (
     <div className="flex" style={{ minHeight: "calc(100vh - 64px)", background: "radial-gradient(circle at 30% 0%, #FFFBF5 0%, #F5F2EC 60%, #FFFBF5 100%)" }}>
@@ -123,7 +125,7 @@ export default function HireIQ() {
         <nav className="flex-1 p-3 space-y-1">
           {sidebarItems.map(item => {
             const Icon = item.icon;
-            const active = topTab === item.id && (item.id === "learning" || view === "dashboard");
+            const active = topTab === item.id && (item.id === "learning" || item.id === "applications" || view === "dashboard");
             return (
               <button key={item.id}
                 onClick={() => { setTopTab(item.id); if (item.id === "jobs") goJobsHome(); }}
@@ -170,7 +172,7 @@ export default function HireIQ() {
           <div>
             <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>{pageTitle}</h1>
             <p className="text-sm mt-0.5" style={{ color: MUTED_DARK }}>
-              {topTab === "learning" ? "AI-powered analysis of hiring prediction accuracy" : view === "dashboard" ? "Manage job openings and candidates" : ""}
+              {topTab === "applications" ? "Review and manage applicant submissions" : topTab === "learning" ? "AI-powered analysis of hiring prediction accuracy" : view === "dashboard" ? "Manage job openings and candidates" : ""}
             </p>
           </div>
           {view === "dashboard" && topTab === "jobs" && !loading && (
@@ -187,7 +189,9 @@ export default function HireIQ() {
 
         {/* Content */}
         <div className="px-6 py-6">
-          {topTab === "learning" ? (
+          {topTab === "applications" ? (
+            <ApplicationsPanel />
+          ) : topTab === "learning" ? (
             <LearningPanel />
           ) : view === "candidate" && selectedCandidate ? (
             <CandidateDetailPanel

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,19 @@ export default function JobApplication() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [searchParams] = useSearchParams();
+  const jobId = searchParams.get('job');
+  const [jobInfo, setJobInfo] = useState(null);
+
+  useEffect(() => {
+    if (jobId) {
+      base44.entities.HireJob.list().then(res => {
+        const list = res?.data ?? res;
+        const job = Array.isArray(list) ? list.find(j => j.id === jobId) : null;
+        setJobInfo(job);
+      }).catch(() => {});
+    }
+  }, [jobId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -80,7 +94,8 @@ export default function JobApplication() {
           race: formData.race || '',
           eEOCagreed: formData.eEOCagreed,
           signature: formData.signature,
-          position: 'Media Specialist',
+          position: jobInfo?.title || 'Media Specialist',
+          jobId: jobId || null,
           videoUrls: [],
           pictureUrls: []
         };
@@ -118,7 +133,8 @@ export default function JobApplication() {
         race: formData.race || '',
         eEOCagreed: formData.eEOCagreed,
         signature: formData.signature,
-        position: 'Media Specialist',
+        position: jobInfo?.title || 'Media Specialist',
+        jobId: jobId || null,
         videoUrls,
         pictureUrls
       };
@@ -157,8 +173,8 @@ export default function JobApplication() {
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>Arriv Estate Media LLC Media Partner Application</CardTitle>
-            <CardDescription>Submit your application and portfolio samples</CardDescription>
+            <CardTitle>{jobInfo ? jobInfo.title : 'Arriv Estate Media LLC Media Partner Application'}</CardTitle>
+            <CardDescription>{jobInfo?.department ? `${jobInfo.department} · ` : ''}Submit your application and portfolio samples</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">

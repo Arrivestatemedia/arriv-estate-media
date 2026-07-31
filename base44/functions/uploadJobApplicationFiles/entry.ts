@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
       pictureUrls = [],
       resumeUrl,
       resumeFileName,
-      position
+      position,
+      jobId
     } = body;
 
     const positionLabel = position || 'Media Specialist';
@@ -214,6 +215,7 @@ Signature: ${signature}
       video_samples: videoUrls,
       picture_samples: pictureUrls,
       position: positionValue,
+      job_id: jobId || null,
     });
 
     // Notify admin by text about the new application
