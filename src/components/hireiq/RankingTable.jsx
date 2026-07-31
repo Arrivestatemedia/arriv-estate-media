@@ -44,7 +44,7 @@ export default function RankingTable({ candidates, jobId, onSelectCandidate }) {
             return (
               <tr key={c.id} className="cursor-pointer transition-colors"
                 style={{ borderBottom: "1px solid rgba(184,149,106,0.06)", color: CREAM }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(255,251,245,0.04)"}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#252525"}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
                 onClick={() => onSelectCandidate?.(c)}>
                 <td className="py-2 px-2">
@@ -64,7 +64,7 @@ export default function RankingTable({ candidates, jobId, onSelectCandidate }) {
                 <td className="py-2 px-2 text-center text-xs" style={{ fontFamily: "'SF Mono', monospace" }}>{ev.interview_score != null ? Math.round(ev.interview_score) : "—"}</td>
                 <td className="py-2 px-2 text-center text-xs" style={{ fontFamily: "'SF Mono', monospace" }}>{ev.resume_match != null ? Math.round(ev.resume_match) : "—"}</td>
                 <td className="py-2 px-2 text-center">
-                  <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(255,251,245,0.08)", color: CREAM }}>{c.status}</span>
+                  <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "#2A2A2A", color: CREAM }}>{c.status}</span>
                 </td>
               </tr>
             );

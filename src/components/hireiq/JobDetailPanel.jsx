@@ -18,18 +18,16 @@ const MUTED_LIGHT = "rgba(255,251,245,0.5)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 
 const card = {
-  backgroundColor: "rgba(26,26,26,0.85)",
+  backgroundColor: "#1A1A1A",
   border: "1px solid rgba(184,149,106,0.2)",
   borderRadius: "14px",
   boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-  backdropFilter: "blur(12px)",
-  WebkitBackdropFilter: "blur(12px)",
 };
 
-const innerBg = "rgba(255,251,245,0.04)";
+const innerBg = "#2A2A2A";
 
 const statusStyle = (s) => ({
-  draft: { bg: "rgba(255,251,245,0.08)", text: "rgba(255,251,245,0.6)" },
+  draft: { bg: "#2A2A2A", text: "rgba(255,251,245,0.7)" },
   open: { bg: "#B8956A", text: "#1A1A1A" },
   closed: { bg: "rgba(220,38,38,0.2)", text: "#FCA5A5" },
   filled: { bg: "#A68559", text: "#FFFBF5" },
@@ -104,7 +102,7 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs px-2 py-0.5 rounded font-medium" style={statusStyle(job?.status)}>{job?.status}</span>
-            <select className="rounded-lg px-3 py-1.5 text-sm" style={{ borderColor: "rgba(184,149,106,0.2)", backgroundColor: "rgba(255,251,245,0.05)", color: CREAM }}
+            <select className="rounded-lg px-3 py-1.5 text-sm" style={{ borderColor: "rgba(184,149,106,0.2)", backgroundColor: "#2A2A2A", color: CREAM }}
               value={job?.status || "draft"} onChange={e => setStatus(e.target.value)}>
               <option value="draft" style={{ color: "#1A1A1A" }}>Draft</option>
               <option value="open" style={{ color: "#1A1A1A" }}>Open</option>
@@ -128,11 +126,10 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
             <button key={t.id} onClick={() => setTab(t.id)}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap transition-all"
               style={{
-                backgroundColor: active ? "rgba(26,26,26,0.85)" : "transparent",
+                backgroundColor: active ? "#1A1A1A" : "transparent",
                 color: active ? GOLD : MUTED_DARK,
                 border: active ? "1px solid rgba(184,149,106,0.2)" : "1px solid transparent",
                 boxShadow: active ? "0 4px 16px rgba(0,0,0,0.08)" : "none",
-                backdropFilter: active ? "blur(12px)" : "none",
               }}>
               <Icon className="w-4 h-4" /> {t.label}
             </button>

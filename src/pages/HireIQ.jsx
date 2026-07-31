@@ -18,12 +18,10 @@ const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 const MONO = { fontFamily: "'SF Mono', 'Monaco', 'Menlo', monospace" };
 
 const card = {
-  backgroundColor: "rgba(26,26,26,0.85)",
+  backgroundColor: "#1A1A1A",
   border: "1px solid rgba(184,149,106,0.2)",
   borderRadius: "14px",
   boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-  backdropFilter: "blur(12px)",
-  WebkitBackdropFilter: "blur(12px)",
 };
 
 const statusStyle = (s) => ({

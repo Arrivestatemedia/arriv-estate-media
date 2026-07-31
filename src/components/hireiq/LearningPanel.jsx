@@ -14,12 +14,10 @@ const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 const MONO = { fontFamily: "'SF Mono', 'Monaco', 'Menlo', monospace" };
 
 const card = {
-  backgroundColor: "rgba(26,26,26,0.85)",
+  backgroundColor: "#1A1A1A",
   border: "1px solid rgba(184,149,106,0.2)",
   borderRadius: "14px",
   boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-  backdropFilter: "blur(12px)",
-  WebkitBackdropFilter: "blur(12px)",
 };
 
 export default function LearningPanel() {
@@ -145,7 +143,7 @@ export default function LearningPanel() {
                     </div>
                   )}
                   {insights.summary && (
-                    <div className="p-3 rounded-lg" style={{ backgroundColor: "rgba(255,251,245,0.04)", border: "1px solid rgba(184,149,106,0.12)" }}>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.12)" }}>
                       <p className="text-sm font-semibold mb-1" style={{ color: CREAM }}>Summary</p>
                       <p className="text-sm" style={{ color: CREAM }}>{insights.summary}</p>
                     </div>

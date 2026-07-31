@@ -14,7 +14,7 @@ function ScoreRow({ label, score }) {
         <span style={{ color: MUTED_LIGHT }}>{label}</span>
         <span className="font-semibold" style={{ color: CREAM, fontFamily: "'SF Mono', monospace" }}>{Math.round(score || 0)}/100</span>
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,251,245,0.08)" }}>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#2A2A2A" }}>
         <div className={`h-full ${scoreBar(score || 0)} rounded-full transition-all`} style={{ width: `${score || 0}%` }} />
       </div>
     </div>
@@ -89,7 +89,7 @@ export default function EvaluationDisplay({ evaluation }) {
 
       {/* Evidence Summary */}
       {ev.evidence_summary && (
-        <div className="rounded-lg p-3" style={{ backgroundColor: "rgba(255,251,245,0.04)", border: "1px solid rgba(184,149,106,0.12)" }}>
+        <div className="rounded-lg p-3" style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.12)" }}>
           <p className="text-sm font-semibold mb-1 flex items-center gap-1.5" style={{ color: CREAM }}><Info className="w-4 h-4" style={{ color: MUTED_LIGHT }} /> Evidence Summary</p>
           <p className="text-sm" style={{ color: CREAM }}>{ev.evidence_summary}</p>
         </div>

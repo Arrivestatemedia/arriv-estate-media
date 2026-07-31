@@ -43,9 +43,9 @@ export default function ComparisonTable({ candidates }) {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr>
-                <th className="p-2 text-left w-40" style={{ backgroundColor: "rgba(255,251,245,0.04)", border: "1px solid rgba(184,149,106,0.12)", color: MUTED_LIGHT }}>Metric</th>
+                <th className="p-2 text-left w-40" style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.12)", color: MUTED_LIGHT }}>Metric</th>
                 {toCompare.map(c => (
-                  <th key={c.id} className="p-2 text-center font-bold" style={{ backgroundColor: "rgba(255,251,245,0.04)", border: "1px solid rgba(184,149,106,0.12)", color: CREAM }}>{c.name}</th>
+                  <th key={c.id} className="p-2 text-center font-bold" style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.12)", color: CREAM }}>{c.name}</th>
                 ))}
               </tr>
             </thead>
