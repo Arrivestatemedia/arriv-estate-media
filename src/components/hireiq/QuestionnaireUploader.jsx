@@ -9,6 +9,7 @@ import Round2ScorecardForm from "@/components/hireiq/Round2ScorecardForm";
 import { downloadRound1BlankPdf, downloadRound1FilledPdf, downloadRound2BlankPdf, downloadRound2FilledPdf } from "@/lib/scorecardPdf";
 import { ROUND1_SECTIONS } from "@/lib/round1Questions";
 import { normalizeQuestion } from "@/lib/scorecardScoring";
+import ScorecardGuide from "@/components/hireiq/ScorecardGuide";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -300,6 +301,7 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
     return (
       <div className="space-y-4">
         {dropdownCard}
+        <ScorecardGuide />
         <div style={cardStyle} className="text-center py-8">
           <p className="text-sm" style={{ color: MUTED_LIGHT }}>Select an applicant above to view or fill out their Round 1 and Round 2 scorecards.</p>
         </div>
@@ -356,6 +358,7 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
   return (
     <div className="space-y-4">
       {dropdownCard}
+      <ScorecardGuide />
 
       {/* Round 1 Scorecard */}
       <div style={cardStyle}>

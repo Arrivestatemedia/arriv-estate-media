@@ -179,6 +179,106 @@ function drawHeader(doc, title) {
   doc.text("Arriv Estate Media — HireIQ", 20, 21);
 }
 
+function drawScorecardGuide(doc, y) {
+  y = ensureSpace(doc, y, 60);
+  doc.setFillColor(245, 239, 233);
+  doc.roundedRect(15, y - 4, 180, 4, 1, 1, "F");
+  doc.setTextColor(...DARK);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("How to Use This Scorecard", 17, y);
+  y += 6;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...GOLD);
+  doc.text("Rating Scale (1-5):", 17, y);
+  y += 4;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DARK);
+  const ratings = [
+    "1 = Poor: No evidence of this competency. Answer was vague, defensive, or missing.",
+    "2 = Below Average: Weak or inconsistent evidence. Struggled to provide concrete examples.",
+    "3 = Average: Adequate evidence. Basic example but lacked depth or impact.",
+    "4 = Good: Strong evidence with a clear, specific example. Demonstrated the competency well.",
+    "5 = Excellent: Exceptional evidence. Detailed, impactful example that exceeded expectations.",
+  ];
+  ratings.forEach(r => {
+    const lines = doc.splitTextToSize(r, 175);
+    doc.text(lines, 19, y);
+    y += lines.length * 3.5;
+  });
+  y += 2;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...GOLD);
+  doc.text("How Scores Are Calculated:", 17, y);
+  y += 4;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DARK);
+  const calc = [
+    "Section Score (0-100): (weighted avg of question ratings / 5) x 100. Only rated questions count.",
+    "Competency Score (0-100): (weighted avg of ratings from all questions measuring it / 5) x 100.",
+    "Total Score (0-100): Weighted average of all section scores using each section's weight %.",
+    "Question Weight: Default 1. Higher weights (2, 3) make critical questions count more.",
+  ];
+  calc.forEach(c => {
+    const lines = doc.splitTextToSize(c, 175);
+    doc.text(lines, 19, y);
+    y += lines.length * 3.5;
+  });
+  y += 2;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...GOLD);
+  doc.text("Evidence-Based Evaluation:", 17, y);
+  y += 4;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DARK);
+  const evalPts = [
+    "- Evidence field is mandatory for any question rated above 0. Write what the candidate said or did.",
+    "- Use the Excellent Answer and Poor Answer guidance as benchmarks for each rating.",
+    "- Rate based on demonstrated evidence only, not assumptions or potential.",
+  ];
+  evalPts.forEach(e => {
+    const lines = doc.splitTextToSize(e, 175);
+    doc.text(lines, 19, y);
+    y += lines.length * 3.5;
+  });
+  y += 2;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...GOLD);
+  doc.text("Two-Round System:", 17, y);
+  y += 4;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DARK);
+  const rounds = [
+    "Round 1 - General Competency: Same 7 sections for all candidates (Communication, Confidence,",
+    "  Coachability, Work Ethic, Professionalism, Problem Solving, Culture Fit). Assesses soft skills.",
+    "Round 2 - Role-Specific: AI-generated deep-dive questions tailored to the job. Goes beyond",
+    "  Round 1 with technical and situational questions.",
+  ];
+  rounds.forEach(r => {
+    doc.text(r, 19, y);
+    y += 3.5;
+  });
+
+  // Draw border around the whole guide
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(15, y - 52, 180, 52, 1, 1);
+
+  return y + 6;
+}
+
 function drawInfoBlock(doc, job, candidateName, scorecard) {
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
@@ -220,6 +320,8 @@ export function downloadRound1BlankPdf(candidateName) {
   doc.text(`Interviewer: ____________________________`, 20, y);
   y += 8;
 
+  y = drawScorecardGuide(doc, y);
+
   ROUND1_SECTIONS.forEach(section => {
     y = ensureSpace(doc, y, 20);
     doc.setFillColor(...GOLD);
@@ -245,6 +347,8 @@ export function downloadRound1FilledPdf(candidateName, scorecard) {
   drawHeader(doc, "Round 1 — Scorecard Results");
 
   let y = drawInfoBlock(doc, null, candidateName, scorecard);
+
+  y = drawScorecardGuide(doc, y);
 
   // Competency scores
   if (scorecard?.competency_scores && Object.keys(scorecard.competency_scores).length > 0) {
@@ -313,6 +417,8 @@ export function downloadRound2BlankPdf(job, candidateName) {
   doc.text(`Interviewer: ____________________________`, 20, y);
   y += 8;
 
+  y = drawScorecardGuide(doc, y);
+
   const template = job?.scorecard_template || [];
   if (template.length === 0) {
     doc.setFont("helvetica", "italic");
@@ -347,6 +453,8 @@ export function downloadRound2FilledPdf(job, candidateName, scorecard) {
   drawHeader(doc, "Round 2 — Scorecard Results");
 
   let y = drawInfoBlock(doc, job, candidateName, scorecard);
+
+  y = drawScorecardGuide(doc, y);
 
   // Competency scores
   if (scorecard?.competency_scores && Object.keys(scorecard.competency_scores).length > 0) {
