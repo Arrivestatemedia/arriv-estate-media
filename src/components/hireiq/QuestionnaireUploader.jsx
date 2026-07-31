@@ -6,19 +6,14 @@ import { Loader2, Upload, FileText, Sparkles, Trash2, CheckCircle2, Download, Cl
 import { parseQuestionnaireText, parseQuestionnaireFile, evaluateCandidate } from "@/lib/hireiq";
 import Round1ScorecardForm from "@/components/hireiq/Round1ScorecardForm";
 import Round2ScorecardForm from "@/components/hireiq/Round2ScorecardForm";
-import { downloadRound2BlankPdf, downloadRound2FilledPdf } from "@/lib/scorecardPdf";
+import { downloadRound1BlankPdf, downloadRound1FilledPdf, downloadRound2BlankPdf, downloadRound2FilledPdf } from "@/lib/scorecardPdf";
+import { ROUND1_SECTIONS } from "@/lib/round1Questions";
+import { normalizeQuestion } from "@/lib/scorecardScoring";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
 const MUTED_LIGHT = "rgba(255,251,245,0.5)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
-const ROUND1_PDF_URL = "https://media.base44.com/files/public/698b3b9e4b7d348873dbf213/b8f35ac95_HireHQ_Round1_Scorecard_and_Competency_Guide_v31.pdf";
-
-const ROUND1_SECTIONS = [
-  { name: "Communication", weight: 20 }, { name: "Confidence", weight: 15 },
-  { name: "Coachability", weight: 20 }, { name: "Work Ethic", weight: 15 },
-  { name: "Professionalism", weight: 10 }, { name: "Culture Fit", weight: 10 },
-];
 
 async function generateRound2Questions(job) {
   const jobContext = [
@@ -43,11 +38,16 @@ Round 2 should go deeper and be tailored to the specific job. Generate 2-3 role-
 Job Context:
 ${jobContext}
 
-Return a structured scorecard with questions per section. For each question include:
-- question (string)
-- competency (string - the main competency being assessed)
-- explanation (string - what a strong answer looks like, 1-2 sentences)
-- section (string - which section it belongs to)`,
+For EVERY question, you must include ALL of the following fields:
+- question (string): The interview question text
+- section (string): Which competency section it belongs to (Communication, Confidence, Coachability, Work Ethic, Professionalism, Culture Fit, or a job-specific section)
+- competencies (array of strings): One or more competencies this question measures
+- weight (number): Question weight for scoring (default 1, use higher for critical questions)
+- excellent_answer (string): What an excellent answer demonstrates (1-2 sentences)
+- poor_answer (string): What a poor answer looks like (1-2 sentences)
+- why_this_matters (string): Why this question is important for evaluating this role (1 sentence)
+
+The interviewer should never have to create these fields manually. Generate them all.`,
     response_json_schema: {
       type: "object",
       properties: {
@@ -57,9 +57,12 @@ Return a structured scorecard with questions per section. For each question incl
             type: "object",
             properties: {
               question: { type: "string" },
-              competency: { type: "string" },
-              explanation: { type: "string" },
               section: { type: "string" },
+              competencies: { type: "array", items: { type: "string" } },
+              weight: { type: "number" },
+              excellent_answer: { type: "string" },
+              poor_answer: { type: "string" },
+              why_this_matters: { type: "string" },
             },
           },
         },
@@ -72,9 +75,19 @@ Return a structured scorecard with questions per section. For each question incl
 const cardStyle = { backgroundColor: "#1A1A1A", border: "1px solid rgba(184,149,106,0.2)", borderRadius: "12px", padding: "16px", marginBottom: "12px" };
 const innerBg = "#2A2A2A";
 
-function ScorecardSummary({ scorecard, sections }) {
+function ScorecardSummary({ scorecard }) {
   return (
     <div className="space-y-2">
+      {scorecard.competency_scores && Object.keys(scorecard.competency_scores).length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-2">
+          {Object.entries(scorecard.competency_scores).map(([comp, score]) => (
+            <div key={comp} className="flex justify-between text-xs rounded px-2.5 py-1" style={{ backgroundColor: innerBg }}>
+              <span style={{ color: MUTED_LIGHT }}>{comp}</span>
+              <span className="font-bold" style={{ color: GOLD }}>{score}/100</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex items-center gap-3 text-sm rounded-lg p-3" style={{ backgroundColor: innerBg }}>
         <span style={{ color: MUTED_LIGHT }}>Total Score:</span>
         <span className="font-bold text-lg" style={{ color: GOLD }}>{scorecard.total_score}/100</span>
@@ -99,18 +112,48 @@ function ScorecardSummary({ scorecard, sections }) {
 function ScorecardView({ scorecard }) {
   return (
     <div className="space-y-3">
+      {scorecard.competency_scores && Object.keys(scorecard.competency_scores).length > 0 && (
+        <div className="rounded-lg p-3" style={{ backgroundColor: "rgba(184,149,106,0.08)", border: "1px solid rgba(184,149,106,0.2)" }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>Competency Scores (Auto-Calculated)</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
+            {Object.entries(scorecard.competency_scores).map(([comp, score]) => (
+              <div key={comp} className="flex justify-between text-xs rounded px-2.5 py-1" style={{ backgroundColor: innerBg }}>
+                <span style={{ color: MUTED_LIGHT }}>{comp}</span>
+                <span className="font-bold" style={{ color: GOLD }}>{score}/100</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {scorecard.sections?.map((s, i) => (
         <div key={i} className="rounded-lg p-3" style={{ backgroundColor: innerBg }}>
           <div className="flex justify-between items-center mb-2">
             <span className="font-semibold text-sm" style={{ color: CREAM }}>{s.name}</span>
             <span className="text-sm font-bold" style={{ color: GOLD }}>{s.score}/{s.weight || s.max_score || 100}</span>
           </div>
-          {s.questions?.map((q, qi) => (
-            <div key={qi} className="text-xs flex justify-between py-1" style={{ borderTop: qi > 0 ? "1px solid rgba(184,149,106,0.08)" : "none", color: MUTED_LIGHT }}>
-              <span className="flex-1 pr-4">{q.question}</span>
-              <span className="font-bold" style={{ color: q.score >= 4 ? GOLD : q.score >= 3 ? "rgba(255,251,245,0.7)" : "#FCA5A5" }}>{q.score}/5</span>
-            </div>
-          ))}
+          {s.questions?.map((q, qi) => {
+            const nq = normalizeQuestion(q);
+            const rating = nq.rating || q.score || 0;
+            return (
+              <div key={qi} className="py-2" style={{ borderTop: qi > 0 ? "1px solid rgba(184,149,106,0.08)" : "none" }}>
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-xs flex-1 pr-4" style={{ color: CREAM }}>{nq.question || q.question}</span>
+                  <span className="font-bold text-xs whitespace-nowrap" style={{ color: rating >= 4 ? GOLD : rating >= 3 ? "rgba(255,251,245,0.7)" : "#FCA5A5" }}>{rating}/5</span>
+                </div>
+                {nq.competencies.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {nq.competencies.map(c => (
+                      <span key={c} className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(184,149,106,0.12)", color: GOLD }}>{c}</span>
+                    ))}
+                  </div>
+                )}
+                {nq.excellent_answer && <p className="text-xs mb-0.5" style={{ color: "rgba(184,149,106,0.6)" }}><span className="font-semibold">Excellent:</span> {nq.excellent_answer}</p>}
+                {nq.poor_answer && <p className="text-xs mb-0.5" style={{ color: "rgba(252,165,165,0.5)" }}><span className="font-semibold">Poor:</span> {nq.poor_answer}</p>}
+                {nq.evidence && <p className="text-xs mb-0.5" style={{ color: MUTED_LIGHT }}><span className="font-semibold">Evidence:</span> {nq.evidence}</p>}
+                {nq.notes && <p className="text-xs" style={{ color: MUTED_LIGHT }}><span className="font-semibold">Notes:</span> {nq.notes}</p>}
+              </div>
+            );
+          })}
         </div>
       ))}
       <div className="flex items-center gap-4 text-sm rounded-lg p-3" style={{ backgroundColor: "rgba(184,149,106,0.1)", border: "1px solid rgba(184,149,106,0.3)" }}>
@@ -334,11 +377,9 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
             <div className="flex flex-wrap gap-2 mt-3">
               <Button size="sm" variant="outline" onClick={() => setMode("r1_view")} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>View Scorecard</Button>
               <Button size="sm" variant="outline" onClick={() => setMode("r1_fill")} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>Re-submit</Button>
-              <a href={ROUND1_PDF_URL} target="_blank" rel="noopener noreferrer" download>
-                <Button size="sm" variant="outline" style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>
-                  <Download className="w-3 h-3 mr-1" /> Download PDF
-                </Button>
-              </a>
+              <Button size="sm" variant="outline" onClick={() => downloadRound1FilledPdf(selectedCandidate.name, r1)} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>
+                <Download className="w-3 h-3 mr-1" /> Download Results PDF
+              </Button>
             </div>
           </>
         ) : mode === "r1_view" && r1 ? (
@@ -354,11 +395,9 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
             <Button onClick={() => setMode("r1_fill")} style={{ backgroundColor: GOLD, color: "#1A1A1A", fontWeight: 600 }}>
               <ClipboardList className="w-4 h-4 mr-2" /> Fill Out In System
             </Button>
-            <a href={ROUND1_PDF_URL} target="_blank" rel="noopener noreferrer" download>
-              <Button variant="outline" style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>
-                <Download className="w-4 h-4 mr-2" /> Download PDF
-              </Button>
-            </a>
+            <Button variant="outline" onClick={() => downloadRound1BlankPdf(selectedCandidate.name)} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>
+              <Download className="w-4 h-4 mr-2" /> Download PDF
+            </Button>
           </div>
         )}
       </div>

@@ -55,12 +55,14 @@ const RESUME_SCHEMA = {
 const INTERVIEW_SCHEMA = {
   type: "object",
   properties: {
-    overall_assessment: { type: "string" },
-    competencies_demonstrated: { type: "array", items: { type: "string" } },
-    strengths: { type: "array", items: { type: "string" } },
-    development_areas: { type: "array", items: { type: "string" } },
-    key_takeaways: { type: "array", items: { type: "string" } },
-    confidence: { type: "string" }
+    overall_assessment: { type: "string", description: "Based only on documented evidence" },
+    candidate_strengths: { type: "array", items: { type: "string" }, description: "Only where evidence supports them" },
+    development_areas: { type: "array", items: { type: "string" }, description: "Only where evidence supports them" },
+    competencies_demonstrated: { type: "array", items: { type: "string" }, description: "Only those backed by evidence" },
+    concerns: { type: "array", items: { type: "string" }, description: "Any concerns raised by the evidence" },
+    confidence_level: { type: "string", description: "Confidence in the assessment given evidence completeness" },
+    recommendation_explanation: { type: "string", description: "Reasoning based solely on the evidence" },
+    evidence_sufficiency: { type: "string", description: "Whether sufficient evidence was provided, or if more is needed" }
   }
 };
 
@@ -136,7 +138,7 @@ export async function analyzeResumeFile(fileUrl, jobData, roleProfile) {
 
 export async function analyzeInterview(scorecard, jobData, roleProfile) {
   return await base44.integrations.Core.InvokeLLM({
-    prompt: `You are an expert hiring analyst. Summarize this interview scorecard.\n\nJob:\n${JSON.stringify(jobData, null, 2)}\n\nRole Success Profile:\n${JSON.stringify(roleProfile || {}, null, 2)}\n\nInterview Scorecard:\n${JSON.stringify(scorecard, null, 2)}\n\nProvide a summary including overall assessment, competencies demonstrated, strengths, development areas, key takeaways, and confidence level.`,
+    prompt: `You are an expert hiring analyst. Summarize this interview scorecard using ONLY the ratings, evidence observed, and interviewer notes provided. Do not invent observations or infer behaviors that are not explicitly documented in the evidence.\n\nIf the evidence provided is insufficient to draw a conclusion, explicitly state that additional information would be required.\n\nJob:\n${JSON.stringify(jobData, null, 2)}\n\nRole Success Profile:\n${JSON.stringify(roleProfile || {}, null, 2)}\n\nInterview Scorecard (ratings, evidence, and notes only):\n${JSON.stringify(scorecard, null, 2)}\n\nProvide:\n1. Overall Assessment — based only on documented evidence\n2. Candidate Strengths — only where evidence supports them\n3. Development Areas — only where evidence supports them\n4. Competencies Demonstrated — only those backed by evidence\n5. Concerns — any concerns raised by the evidence\n6. Confidence Level — your confidence in the assessment given evidence completeness\n7. Recommendation Explanation — reasoning based solely on the evidence\n8. Evidence Sufficiency — whether sufficient evidence was provided, or if more information is needed`,
     response_json_schema: INTERVIEW_SCHEMA
   });
 }

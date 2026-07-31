@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Download } from "lucide-react";
+import { Loader2, CheckCircle2, Download, AlertCircle } from "lucide-react";
 import { downloadRound2BlankPdf } from "@/lib/scorecardPdf";
+import { computeCompetencyScores, computeSectionScores, computeOverallScore, normalizeQuestion } from "@/lib/scorecardScoring";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -10,6 +11,7 @@ const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 
 const RECOMMENDATIONS = ["Strong Hire", "Hire", "Advance", "Hold", "No Hire"];
 const CONFIDENCE_LEVELS = ["Very Confident", "Confident", "Neutral", "Unsure"];
+const RATING_LABELS = ["", "Poor", "Fair", "Good", "Very Good", "Excellent"];
 
 function groupTemplate(template) {
   const sections = {};
@@ -21,38 +23,48 @@ function groupTemplate(template) {
   return Object.values(sections);
 }
 
-function buildInitialScores(template) {
+function buildInitialScores(template, existing) {
   const scores = {};
-  (template || []).forEach((_, i) => {
-    scores[i] = { score: 0, notes: "" };
+  (template || []).forEach((q, i) => {
+    const prev = existing?.sections?.flatMap(s => s.questions || [])?.find(pq => pq.question === q.question);
+    scores[i] = {
+      rating: prev?.rating ?? prev?.score ?? 0,
+      evidence: prev?.evidence || "",
+      notes: prev?.notes || "",
+    };
   });
   return scores;
 }
 
-export default function Round2ScorecardForm({ job, candidateName, onSubmit, onCancel }) {
+export default function Round2ScorecardForm({ job, candidateName, initialData, onSubmit, onCancel }) {
   const template = job?.scorecard_template || [];
   const sections = groupTemplate(template);
-  const [scores, setScores] = useState(buildInitialScores(template));
-  const [recommendation, setRecommendation] = useState("");
-  const [confidence, setConfidence] = useState("");
-  const [overallNotes, setOverallNotes] = useState("");
+  const [scores, setScores] = useState(buildInitialScores(template, initialData));
+  const [recommendation, setRecommendation] = useState(initialData?.recommendation || "");
+  const [confidence, setConfidence] = useState(initialData?.interviewer_confidence || "");
+  const [overallNotes, setOverallNotes] = useState(initialData?.overall_notes || "");
   const [submitting, setSubmitting] = useState(false);
 
-  const setScore = (idx, score) => setScores(prev => ({ ...prev, [idx]: { ...prev[idx], score } }));
+  const setRating = (idx, rating) => setScores(prev => ({ ...prev, [idx]: { ...prev[idx], rating } }));
+  const setEvidence = (idx, evidence) => setScores(prev => ({ ...prev, [idx]: { ...prev[idx], evidence } }));
   const setNotes = (idx, notes) => setScores(prev => ({ ...prev, [idx]: { ...prev[idx], notes } }));
 
-  // Compute per-section and total (equal weight across all questions)
-  const totalQuestions = template.length;
-  const allScores = template.map((_, i) => scores[i]?.score || 0);
-  const answeredCount = allScores.filter(s => s > 0).length;
-  const overallAvg = answeredCount > 0 ? allScores.reduce((a, b) => a + b, 0) / answeredCount : 0;
-  const totalScore = Math.round((overallAvg / 5) * 100 * 10) / 10;
+  // Build flat question list with ratings for scoring
+  const scoredQuestions = useMemo(() => {
+    return template.map((q, i) => {
+      const nq = normalizeQuestion(q);
+      const s = scores[i] || {};
+      return { ...nq, rating: s.rating || 0, evidence: s.evidence || "", notes: s.notes || "" };
+    });
+  }, [template, scores]);
 
-  const sectionTotals = sections.map(sec => {
-    const sScores = sec.questions.map(q => scores[q._idx]?.score || 0).filter(s => s > 0);
-    const avg = sScores.length > 0 ? sScores.reduce((a, b) => a + b, 0) / sScores.length : 0;
-    return { name: sec.name, score: Math.round((avg / 5) * 100 * 10) / 10, count: sec.questions.length };
-  });
+  const competencyScores = useMemo(() => computeCompetencyScores(scoredQuestions), [scoredQuestions]);
+  const sectionScores = useMemo(() => computeSectionScores(scoredQuestions, null), [scoredQuestions]);
+  const totalScore = useMemo(() => computeOverallScore(sectionScores), [sectionScores]);
+
+  const answeredCount = scoredQuestions.filter(q => q.rating > 0).length;
+  const missingEvidence = scoredQuestions.filter(q => q.rating > 0 && !q.evidence.trim());
+  const canSubmit = answeredCount > 0 && missingEvidence.length === 0;
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -62,15 +74,24 @@ export default function Round2ScorecardForm({ job, candidateName, onSubmit, onCa
       sections: sections.map(sec => ({
         name: sec.name,
         max_score: 100,
-        score: sectionTotals.find(st => st.name === sec.name)?.score || 0,
-        questions: sec.questions.map(q => ({
-          question: q.question,
-          competency: q.competency,
-          explanation: q.explanation,
-          score: scores[q._idx]?.score || 0,
-          notes: scores[q._idx]?.notes || "",
-        })),
+        score: sectionScores[sec.name]?.score || 0,
+        questions: sec.questions.map(q => {
+          const sc = scores[q._idx] || {};
+          return {
+            question: q.question,
+            section: q.section || sec.name,
+            competencies: q.competencies || (q.competency ? q.competency.split(",").map(s => s.trim()).filter(Boolean) : []),
+            weight: q.weight ?? 1,
+            excellent_answer: q.excellent_answer || "",
+            poor_answer: q.poor_answer || "",
+            why_this_matters: q.why_this_matters || q.explanation || "",
+            rating: sc.rating || 0,
+            evidence: sc.evidence || "",
+            notes: sc.notes || "",
+          };
+        }),
       })),
+      competency_scores: competencyScores,
       total_score: totalScore,
       recommendation,
       interviewer_confidence: confidence,
@@ -107,21 +128,49 @@ export default function Round2ScorecardForm({ job, candidateName, onSubmit, onCa
           <div className="flex justify-between items-center mb-3">
             <h4 className="font-bold" style={{ ...SERIF, color: CREAM }}>{sec.name}</h4>
             <span className="text-sm font-bold px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>
-              {sectionTotals.find(st => st.name === sec.name)?.score || 0}/100
+              {sectionScores[sec.name]?.score || 0}/100
             </span>
           </div>
           <div className="space-y-4">
             {sec.questions.map((q) => {
               const idx = q._idx;
-              const current = scores[idx]?.score || 0;
+              const current = scores[idx]?.rating || 0;
+              const evidence = scores[idx]?.evidence || "";
+              const notes = scores[idx]?.notes || "";
+              const needsEvidence = current > 0 && !evidence.trim();
+              const competencies = q.competencies || (q.competency ? q.competency.split(",").map(s => s.trim()).filter(Boolean) : []);
               return (
-                <div key={idx} className="rounded-lg p-3" style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.1)" }}>
+                <div key={idx} className="rounded-lg p-3" style={{ backgroundColor: "#2A2A2A", border: needsEvidence ? "1px solid rgba(220,38,38,0.4)" : "1px solid rgba(184,149,106,0.1)" }}>
                   <p className="text-sm font-medium mb-1" style={{ color: CREAM }}>{q.question}</p>
-                  {q.competency && <p className="text-xs mb-1" style={{ color: MUTED_LIGHT }}>Competency: {q.competency}</p>}
-                  {q.explanation && <p className="text-xs mb-2 italic" style={{ color: "rgba(184,149,106,0.6)" }}>{q.explanation}</p>}
-                  <div className="flex gap-2 mb-2">
+                  {competencies.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {competencies.map(c => (
+                        <span key={c} className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(184,149,106,0.12)", color: GOLD }}>{c}</span>
+                      ))}
+                      <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(255,251,245,0.05)", color: MUTED_LIGHT }}>Weight: {q.weight ?? 1}</span>
+                    </div>
+                  )}
+                  {q.excellent_answer && (
+                    <p className="text-xs mb-1" style={{ color: "rgba(184,149,106,0.7)" }}>
+                      <span className="font-semibold">Excellent:</span> {q.excellent_answer}
+                    </p>
+                  )}
+                  {q.poor_answer && (
+                    <p className="text-xs mb-1" style={{ color: "rgba(252,165,165,0.6)" }}>
+                      <span className="font-semibold">Poor:</span> {q.poor_answer}
+                    </p>
+                  )}
+                  {q.why_this_matters && (
+                    <p className="text-xs mb-2 italic" style={{ color: MUTED_LIGHT }}>
+                      <span className="font-semibold not-italic">Why this matters:</span> {q.why_this_matters}
+                    </p>
+                  )}
+                  {!q.why_this_matters && q.explanation && (
+                    <p className="text-xs mb-2 italic" style={{ color: "rgba(184,149,106,0.6)" }}>{q.explanation}</p>
+                  )}
+                  <div className="flex gap-2 mb-2 items-center">
                     {[1, 2, 3, 4, 5].map(n => (
-                      <button key={n} onClick={() => setScore(idx, n)}
+                      <button key={n} onClick={() => setRating(idx, n)}
                         className="w-9 h-9 rounded-lg text-sm font-bold transition-all"
                         style={{
                           backgroundColor: current === n ? GOLD : "rgba(255,251,245,0.05)",
@@ -131,13 +180,13 @@ export default function Round2ScorecardForm({ job, candidateName, onSubmit, onCa
                         {n}
                       </button>
                     ))}
-                    {current > 0 && (
-                      <span className="ml-2 text-xs self-center" style={{ color: MUTED_LIGHT }}>
-                        {["", "Poor", "Fair", "Good", "Very Good", "Excellent"][current]}
-                      </span>
-                    )}
+                    {current > 0 && <span className="ml-2 text-xs" style={{ color: MUTED_LIGHT }}>{RATING_LABELS[current]}</span>}
                   </div>
-                  <input type="text" placeholder="Interviewer notes..." value={scores[idx]?.notes || ""}
+                  <textarea rows={2} placeholder="Evidence observed (required)..." value={evidence}
+                    onChange={e => setEvidence(idx, e.target.value)}
+                    className="w-full text-xs px-3 py-1.5 rounded mb-2"
+                    style={{ backgroundColor: "#1A1A1A", color: CREAM, border: needsEvidence ? "1px solid rgba(220,38,38,0.4)" : "1px solid rgba(184,149,106,0.1)" }} />
+                  <input type="text" placeholder="Additional notes (optional)..." value={notes}
                     onChange={e => setNotes(idx, e.target.value)}
                     className="w-full text-xs px-3 py-1.5 rounded"
                     style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.1)" }} />
@@ -150,19 +199,42 @@ export default function Round2ScorecardForm({ job, candidateName, onSubmit, onCa
 
       {/* Summary */}
       <div style={{ backgroundColor: "#1A1A1A", border: "1px solid rgba(184,149,106,0.3)", borderRadius: "12px", padding: "16px" }}>
-        <h4 className="font-bold mb-3" style={{ ...SERIF, color: CREAM }}>Overall Recommendation</h4>
+        <h4 className="font-bold mb-3" style={{ ...SERIF, color: CREAM }}>Automatic Scoring Summary</h4>
+
+        {Object.keys(competencyScores).length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-semibold mb-1.5" style={{ color: MUTED_LIGHT }}>Competency Scores (auto-calculated)</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5">
+              {Object.entries(competencyScores).map(([comp, score]) => (
+                <div key={comp} className="flex justify-between text-xs rounded px-2.5 py-1" style={{ backgroundColor: "#2A2A2A" }}>
+                  <span style={{ color: MUTED_LIGHT }}>{comp}</span>
+                  <span className="font-bold" style={{ color: GOLD }}>{score}/100</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2 mb-3">
-          {sectionTotals.map(st => (
-            <div key={st.name} className="flex justify-between text-sm rounded px-3 py-1.5" style={{ backgroundColor: "#2A2A2A" }}>
-              <span style={{ color: MUTED_LIGHT }}>{st.name}</span>
+          {Object.entries(sectionScores).map(([name, st]) => (
+            <div key={name} className="flex justify-between text-sm rounded px-3 py-1.5" style={{ backgroundColor: "#2A2A2A" }}>
+              <span style={{ color: MUTED_LIGHT }}>{name}</span>
               <span className="font-bold" style={{ color: GOLD }}>{st.score}/100</span>
             </div>
           ))}
           <div className="flex justify-between text-sm rounded px-3 py-1.5 col-span-2" style={{ backgroundColor: "rgba(184,149,106,0.1)", border: "1px solid rgba(184,149,106,0.3)" }}>
-            <span className="font-bold" style={{ color: CREAM }}>TOTAL ({answeredCount}/{totalQuestions} answered)</span>
+            <span className="font-bold" style={{ color: CREAM }}>TOTAL ({answeredCount}/{template.length} answered)</span>
             <span className="font-bold text-lg" style={{ color: GOLD }}>{totalScore}/100</span>
           </div>
         </div>
+
+        {missingEvidence.length > 0 && (
+          <div className="flex items-center gap-2 mb-3 text-xs rounded px-3 py-2" style={{ backgroundColor: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.3)" }}>
+            <AlertCircle className="w-4 h-4" style={{ color: "#FCA5A5" }} />
+            <span style={{ color: "#FCA5A5" }}>{missingEvidence.length} question(s) with a rating but no evidence. Evidence is required to submit.</span>
+          </div>
+        )}
+
         <div className="space-y-3">
           <div>
             <p className="text-xs font-semibold mb-1.5" style={{ color: MUTED_LIGHT }}>Recommendation</p>
@@ -199,7 +271,7 @@ export default function Round2ScorecardForm({ job, candidateName, onSubmit, onCa
 
       <div className="flex gap-3 pt-2">
         <Button variant="outline" onClick={onCancel} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>Cancel</Button>
-        <Button onClick={handleSubmit} disabled={submitting || answeredCount === 0} style={{ backgroundColor: GOLD, color: "#1A1A1A", fontWeight: 600 }}>
+        <Button onClick={handleSubmit} disabled={submitting || !canSubmit} style={{ backgroundColor: GOLD, color: "#1A1A1A", fontWeight: 600 }}>
           {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
           Submit Scorecard
         </Button>
