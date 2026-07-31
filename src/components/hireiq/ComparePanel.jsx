@@ -3,19 +3,18 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, GitCompare } from "lucide-react";
 import ComparisonTable from "@/components/hireiq/ComparisonTable";
 
-const LIGHT_TEXT = "#e3dfd9";
-const MUTED = "#8a9a98";
+const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
-const CREAM = "#f3efe9";
-const DARK_BORDER = "#1a2021";
-const DARK_TEXT = "#2a3536";
+const TEXT_DARK = "#1A1A1A";
+const MUTED_DARK = "rgba(26,26,26,0.45)";
+const MUTED_LIGHT = "rgba(255,251,245,0.45)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 
-const stackedCard = {
+const card = {
   backgroundColor: CREAM,
-  border: `2px solid ${DARK_BORDER}`,
-  borderRadius: "10px",
-  boxShadow: `3px 3px 0 ${DARK_BORDER}, 6px 8px 20px rgba(0,0,0,0.35)`,
+  border: "1px solid rgba(184,149,106,0.12)",
+  borderRadius: "12px",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
 };
 
 export default function ComparePanel({ job, onBack }) {
@@ -35,26 +34,26 @@ export default function ComparePanel({ job, onBack }) {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="p-5 mb-5" style={stackedCard}>
+      <div className="p-5 mb-5" style={card}>
         <div className="flex items-center gap-3">
           <GitCompare className="w-6 h-6" style={{ color: GOLD }} />
           <div>
-            <h1 className="text-2xl font-bold" style={{ ...SERIF, color: DARK_TEXT }}>Compare Candidates</h1>
-            <p className="text-sm" style={{ color: "#6b7c7a" }}>{job?.title}</p>
+            <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Compare Candidates</h1>
+            <p className="text-sm" style={{ color: MUTED_DARK }}>{job?.title}</p>
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: MUTED }} /></div>
+        <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: MUTED_LIGHT }} /></div>
       ) : candidates.length === 0 ? (
-        <div className="p-10 text-center" style={stackedCard}>
-          <GitCompare className="w-16 h-16 mx-auto mb-3 opacity-30" />
-          <p className="font-medium text-lg" style={{ color: DARK_TEXT }}>No evaluated candidates to compare</p>
-          <p className="text-sm mt-1" style={{ color: "#6b7c7a" }}>Evaluate candidates first to enable side-by-side comparison.</p>
+        <div className="p-10 text-center" style={card}>
+          <GitCompare className="w-16 h-16 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
+          <p className="font-medium text-lg" style={{ color: TEXT_DARK }}>No evaluated candidates to compare</p>
+          <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Evaluate candidates first to enable side-by-side comparison.</p>
         </div>
       ) : (
-        <div className="p-5" style={stackedCard}>
+        <div className="p-5" style={card}>
           <ComparisonTable candidates={candidates} />
         </div>
       )}
