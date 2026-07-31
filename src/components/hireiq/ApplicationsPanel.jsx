@@ -1,123 +1,219 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Search, FileText } from "lucide-react";
-import { APPLICATION_STATUSES, SALES_STATUSES, POSITION_LABELS, getStatusLabel } from "@/lib/applicationStatus";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { APPLICATION_STATUSES, SALES_STATUSES } from "@/lib/applicationStatus";
+import AdminApplicationRow from "@/components/admin/AdminApplicationRow";
+import AdminSalesApplicationRow from "@/components/admin/AdminSalesApplicationRow";
+import SalesWelcomeVideoControl from "@/components/admin/SalesWelcomeVideoControl";
+import SalesTrainingVideosControl from "@/components/admin/SalesTrainingVideosControl";
+import QueuedApplicationEmails from "@/components/admin/QueuedApplicationEmails";
+import AcceptedPendingPreviewLinks from "@/components/admin/AcceptedPendingPreviewLinks";
+import { Search, Briefcase, Camera } from "lucide-react";
 
-const CREAM = "#FFFBF5";
-const GOLD = "#B8956A";
-const TEXT_DARK = "#1A1A1A";
-const MUTED_DARK = "rgba(26,26,26,0.45)";
-const MUTED_LIGHT = "rgba(255,251,245,0.5)";
-const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
+const POSITION_TABS = [
+  { value: "media_specialist", label: "Media Specialist", icon: Camera, statuses: APPLICATION_STATUSES },
+  { value: "sales_growth_advisor", label: "Sales Growth Advisor", icon: Briefcase, statuses: SALES_STATUSES },
+];
 
-const card = {
-  backgroundColor: "#1A1A1A",
-  border: "1px solid rgba(184,149,106,0.2)",
-  borderRadius: "14px",
-  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-};
-
-const innerBg = "#2A2A2A";
+const positionOf = (app) => app.position || "media_specialist";
 
 export default function ApplicationsPanel() {
-  const [applications, setApplications] = useState([]);
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sourceFilter, setSourceFilter] = useState("all");
+  const [positionTab, setPositionTab] = useState("media_specialist");
+  const [showArchived, setShowArchived] = useState(false);
+
+  const { data: applications = [], isLoading } = useQuery({
+    queryKey: ["job-applications"],
+    queryFn: () => base44.entities.JobApplication.list("-created_date", 200),
+  });
 
   useEffect(() => {
-    Promise.all([
-      base44.entities.JobApplication.list("-created_date", 200),
-      base44.entities.HireJob.list("-created_date", 100),
-    ]).then(([appsRes, jobsRes]) => {
-      const appsList = appsRes?.data ?? appsRes;
-      const jobsList = jobsRes?.data ?? jobsRes;
-      setApplications(Array.isArray(appsList) ? appsList : []);
-      setJobs(Array.isArray(jobsList) ? jobsList : []);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+    const unsub = base44.entities.JobApplication.subscribe(() =>
+      queryClient.invalidateQueries({ queryKey: ["job-applications"] })
+    );
+    return unsub;
+  }, [queryClient]);
 
-  const jobTitleFor = (app) => {
-    if (app.job_id) {
-      const job = jobs.find(j => j.id === app.job_id);
-      return job?.title || "Unknown Job";
-    }
-    return POSITION_LABELS[app.position] || app.position || "Media Specialist";
+  const deleteApp = async (id) => {
+    await base44.entities.JobApplication.delete(id);
+    queryClient.invalidateQueries({ queryKey: ["job-applications"] });
   };
 
-  const allStatuses = [...APPLICATION_STATUSES, ...SALES_STATUSES];
-  const uniqueStatuses = [...new Map(allStatuses.map(s => [s.value, s])).values()];
+  const updateApp = async (id, data) => {
+    await base44.entities.JobApplication.update(id, data);
+    queryClient.invalidateQueries({ queryKey: ["job-applications"] });
 
-  const filtered = applications.filter(a => {
-    if (a.archived) return false;
+    if (data.status === 'accepted') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'accepted') {
+        try { await base44.functions.invoke('sendApplicationAcceptedEmail', { applicationId: id }); } catch (err) { console.error('Acceptance email failed:', err); }
+      }
+    }
+    if (data.status === 'accepted_waitlist') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'accepted_waitlist') {
+        try { await base44.functions.invoke('sendApplicationWaitlistEmail', { applicationId: id }); } catch (err) { console.error('Waitlist email failed:', err); }
+      }
+    }
+    if (data.status === 'denied') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'denied') {
+        try {
+          await base44.functions.invoke('sendApplicationClosedEmail', { applicationId: id });
+          await base44.entities.JobApplication.update(id, { archived: true });
+          queryClient.invalidateQueries({ queryKey: ["job-applications"] });
+        } catch (err) { console.error('Closed email failed:', err); }
+      }
+    }
+    if (data.status === 'interview_invitation') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'interview_invitation') {
+        try { await base44.functions.invoke('sendSalesInterviewInvitation', { applicationId: id }); } catch (err) { console.error('Sales interview invitation email failed:', err); }
+      }
+    }
+    if (data.status === 'offer_extended') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'offer_extended') {
+        try { await base44.functions.invoke('sendSalesOfferExtendedEmail', { applicationId: id }); } catch (err) { console.error('Sales offer-extended email failed:', err); }
+      }
+    }
+    if (data.status === 'offer_not_extended') {
+      const prev = applications.find((a) => a.id === id);
+      if (!prev || prev.status !== 'offer_not_extended') {
+        try {
+          await base44.functions.invoke('sendSalesOfferNotExtendedEmail', { applicationId: id });
+          await base44.entities.JobApplication.update(id, { archived: true });
+          queryClient.invalidateQueries({ queryKey: ["job-applications"] });
+        } catch (err) { console.error('Sales offer-not-extended email failed:', err); }
+      }
+    }
+  };
+
+  const activeTab = POSITION_TABS.find((t) => t.value === positionTab);
+  const statuses = activeTab.statuses;
+
+  const tabApps = applications.filter(
+    (a) => positionOf(a) === positionTab && (!!a.archived) === showArchived
+  );
+
+  const filtered = tabApps.filter((a) => {
     if (statusFilter !== "all" && a.status !== statusFilter) return false;
-    if (sourceFilter === "hireiq" && !a.job_id) return false;
-    if (sourceFilter === "legacy" && a.job_id) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return a.full_name?.toLowerCase().includes(q) || a.email?.toLowerCase().includes(q);
   });
 
-  const updateStatus = async (id, status) => {
-    await base44.entities.JobApplication.update(id, { status });
-    setApplications(prev => prev.map(a => a.id === id ? { ...a, status } : a));
-  };
+  const counts = statuses.reduce((acc, s) => {
+    acc[s.value] = tabApps.filter((a) => a.status === s.value).length;
+    return acc;
+  }, {});
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: GOLD }} /></div>;
-  }
+  const viewedCount = tabApps.filter((a) => a.portal_viewed_at).length;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: MUTED_DARK }} />
-          <input type="text" placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-3 py-2.5 rounded-lg text-sm" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)", color: TEXT_DARK }} />
-        </div>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="rounded-lg px-3 py-2.5 text-sm" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)", color: TEXT_DARK }}>
-          <option value="all">All Statuses</option>
-          {uniqueStatuses.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-        <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
-          className="rounded-lg px-3 py-2.5 text-sm" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)", color: TEXT_DARK }}>
-          <option value="all">All Sources</option>
-          <option value="hireiq">HireIQ Jobs</option>
-          <option value="legacy">Legacy Positions</option>
-        </select>
+      <p className="text-sm" style={{ color: "rgba(26,26,26,0.6)" }}>
+        Review applicants and update their status ·{" "}
+        <span className="font-medium" style={{ color: "#B8956A" }}>{viewedCount} of {tabApps.length}</span> have checked their portal
+      </p>
+
+      {/* Position tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {POSITION_TABS.map((t) => {
+          const Icon = t.icon;
+          const active = positionTab === t.value;
+          const count = applications.filter((a) => positionOf(a) === t.value).length;
+          return (
+            <button
+              key={t.value}
+              onClick={() => { setPositionTab(t.value); setStatusFilter("all"); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${
+                active
+                  ? "bg-[#1A1A1A] text-[#FFFBF5] border-[#1A1A1A]"
+                  : "bg-white text-[#1A1A1A]/70 border-[#B8956A]/20 hover:border-[#B8956A]/50"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {t.label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? "bg-[#FFFBF5]/20" : "bg-[#B8956A]/10 text-[#B8956A]"}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      <p className="text-sm" style={{ color: MUTED_DARK }}>{filtered.length} application{filtered.length !== 1 ? "s" : ""}</p>
+      <QueuedApplicationEmails />
 
-      {filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <FileText className="w-12 h-12 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
-          <p className="font-medium" style={{ color: TEXT_DARK }}>No applications found</p>
-          <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Share a job's application link to start receiving applications.</p>
+      {positionTab === "media_specialist" && (
+        <AcceptedPendingPreviewLinks applications={applications} />
+      )}
+
+      {positionTab === "sales_growth_advisor" && (
+        <>
+          <SalesWelcomeVideoControl />
+          <SalesTrainingVideosControl />
+        </>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {statuses.map((s) => (
+          <div key={s.value} className="bg-white border-2 border-[#B8956A]/20 rounded-xl p-4">
+            <p className="text-sm text-[#1A1A1A]/60">{s.label}</p>
+            <p className="text-2xl font-bold" style={{ color: s.color }}>{counts[s.value] || 0}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/40" />
+          <Input
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
         </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map(app => (
-            <div key={app.id} className="p-4" style={card}>
-              <div className="flex flex-wrap justify-between items-start gap-3">
-                <div>
-                  <h3 className="font-bold" style={{ ...SERIF, color: CREAM }}>{app.full_name}</h3>
-                  <p className="text-sm mt-0.5" style={{ color: MUTED_LIGHT }}>{app.email} · {app.phone}</p>
-                  <p className="text-xs mt-1" style={{ color: GOLD }}>{jobTitleFor(app)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-1 rounded font-medium" style={{ backgroundColor: innerBg, color: CREAM }}>{getStatusLabel(app.status)}</span>
-                  <select value={app.status || "received"} onChange={e => updateStatus(app.id, e.target.value)}
-                    className="rounded-lg px-2 py-1.5 text-xs" style={{ borderColor: "rgba(184,149,106,0.2)", backgroundColor: innerBg, color: CREAM }}>
-                    {uniqueStatuses.map(s => <option key={s.value} value={s.value} style={{ color: "#1A1A1A" }}>{s.label}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-11 rounded-md border border-[#B8956A]/30 bg-white px-3"
+        >
+          <option value="all">All Statuses</option>
+          {statuses.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
           ))}
+        </select>
+        <label className="flex items-center gap-2 h-11 px-3 rounded-md border border-[#B8956A]/30 bg-white cursor-pointer whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            className="w-4 h-4 accent-[#B8956A]"
+          />
+          <span className="text-sm font-medium text-[#1A1A1A]/70">
+            {showArchived ? "Showing Archived" : "Show Archived"}
+          </span>
+        </label>
+      </div>
+
+      {isLoading ? (
+        <p className="text-center text-[#1A1A1A]/60 py-12">Loading applications...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-[#1A1A1A]/60 py-12">No {activeTab.label} applications found.</p>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((app) =>
+            positionOf(app) === "sales_growth_advisor" ? (
+              <AdminSalesApplicationRow key={app.id} app={app} onUpdate={updateApp} onDelete={deleteApp} />
+            ) : (
+              <AdminApplicationRow key={app.id} app={app} onUpdate={updateApp} onDelete={deleteApp} />
+            )
+          )}
         </div>
       )}
     </div>
