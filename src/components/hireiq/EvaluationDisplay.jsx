@@ -2,14 +2,19 @@ import React from "react";
 import { scoreColor, scoreBar } from "@/lib/hireiq";
 import { AlertTriangle, TrendingUp, TrendingDown, Info } from "lucide-react";
 
+const DARK_TEXT = "#2a3536";
+const GOLD = "#B8956A";
+const CREAM = "#f3efe9";
+const DARK_BORDER = "#1a2021";
+
 function ScoreRow({ label, score }) {
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-600">{label}</span>
-        <span className="font-semibold">{Math.round(score || 0)}/100</span>
+        <span style={{ color: "#6b7c7a" }}>{label}</span>
+        <span className="font-semibold" style={{ color: DARK_TEXT }}>{Math.round(score || 0)}/100</span>
       </div>
-      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "#e5e7eb" }}>
         <div className={`h-full ${scoreBar(score || 0)} rounded-full transition-all`} style={{ width: `${score || 0}%` }} />
       </div>
     </div>
@@ -24,7 +29,7 @@ function ListSection({ title, items, icon, color }) {
       <p className="text-sm font-semibold mb-1 flex items-center gap-1.5" style={{ color }}>
         <Icon className="w-4 h-4" /> {title}
       </p>
-      <ul className="text-sm text-gray-700 space-y-1 ml-6">
+      <ul className="text-sm space-y-1 ml-6" style={{ color: DARK_TEXT }}>
         {items.map((item, i) => <li key={i} className="list-disc">{item}</li>)}
       </ul>
     </div>
@@ -59,17 +64,17 @@ export default function EvaluationDisplay({ evaluation }) {
           <ScoreRow label="Competency Match" score={ev.competency_match} />
           <ScoreRow label="Evidence Completeness" score={ev.evidence_completeness} />
           <div className="text-sm">
-            <span className="text-gray-600">Confidence: </span>
-            <span className="font-semibold">{ev.confidence_rating || "—"}</span>
+            <span style={{ color: "#6b7c7a" }}>Confidence: </span>
+            <span className="font-semibold" style={{ color: DARK_TEXT }}>{ev.confidence_rating || "—"}</span>
           </div>
         </div>
       </div>
 
       {/* Recommendation */}
       {ev.overall_recommendation && (
-        <div className="bg-[#B8956A]/10 border border-[#B8956A]/30 rounded-lg p-3">
-          <p className="text-sm font-semibold text-[#A68559]">AI Recommendation</p>
-          <p className="text-sm text-gray-700 mt-1">{ev.overall_recommendation}</p>
+        <div className="rounded-lg p-3" style={{ backgroundColor: "rgba(184,149,106,0.1)", border: `1px solid ${GOLD}` }}>
+          <p className="text-sm font-semibold" style={{ color: "#A68559" }}>AI Recommendation</p>
+          <p className="text-sm mt-1" style={{ color: DARK_TEXT }}>{ev.overall_recommendation}</p>
         </div>
       )}
 
@@ -84,21 +89,21 @@ export default function EvaluationDisplay({ evaluation }) {
 
       {/* Evidence Summary */}
       {ev.evidence_summary && (
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-sm font-semibold mb-1 flex items-center gap-1.5"><Info className="w-4 h-4 text-gray-500" /> Evidence Summary</p>
-          <p className="text-sm text-gray-700">{ev.evidence_summary}</p>
+        <div className="rounded-lg p-3" style={{ backgroundColor: "#ede8e0", border: `1px solid ${DARK_BORDER}` }}>
+          <p className="text-sm font-semibold mb-1 flex items-center gap-1.5" style={{ color: DARK_TEXT }}><Info className="w-4 h-4" style={{ color: "#6b7c7a" }} /> Evidence Summary</p>
+          <p className="text-sm" style={{ color: DARK_TEXT }}>{ev.evidence_summary}</p>
         </div>
       )}
 
       {/* Score Explanations */}
       {ev.score_explanations && Object.keys(ev.score_explanations).length > 0 && (
         <div>
-          <p className="text-sm font-semibold mb-2">Score Explanations</p>
+          <p className="text-sm font-semibold mb-2" style={{ color: DARK_TEXT }}>Score Explanations</p>
           <div className="space-y-2">
             {Object.entries(ev.score_explanations).map(([key, val]) => (
               <div key={key} className="text-sm">
-                <span className="font-medium capitalize text-gray-600">{key.replace(/_/g, " ")}: </span>
-                <span className="text-gray-700">{val}</span>
+                <span className="font-medium capitalize" style={{ color: "#6b7c7a" }}>{key.replace(/_/g, " ")}: </span>
+                <span style={{ color: DARK_TEXT }}>{val}</span>
               </div>
             ))}
           </div>
