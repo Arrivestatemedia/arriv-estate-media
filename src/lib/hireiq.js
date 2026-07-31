@@ -257,3 +257,109 @@ export function scoreBar(score) {
   if (score >= 40) return "bg-orange-500";
   return "bg-red-500";
 }
+
+const POSITION_META = {
+  media_specialist: {
+    title: "Media Specialist",
+    department: "Media",
+    url: "/MediaSpecialist",
+  },
+  sales_growth_advisor: {
+    title: "Sales Growth Advisor",
+    department: "Sales",
+    url: "/SalesGrowthAdvisor",
+  },
+};
+
+export async function syncApplicationsToHireIQ() {
+  const appsRes = await base44.entities.JobApplication.list("-created_date", 200);
+  const apps = appsRes?.data ?? appsRes;
+  if (!Array.isArray(apps)) return { jobs: [], newCandidates: 0 };
+
+  const activeApps = apps.filter(a => !a.archived);
+  const byPosition = {};
+  activeApps.forEach(app => {
+    const pos = app.position || "media_specialist";
+    if (!byPosition[pos]) byPosition[pos] = [];
+    byPosition[pos].push(app);
+  });
+
+  const jobsRes = await base44.entities.HireJob.list("-created_date", 100);
+  const existingJobs = jobsRes?.data ?? jobsRes;
+
+  let newCandidates = 0;
+
+  for (const [position, positionApps] of Object.entries(byPosition)) {
+    let job = Array.isArray(existingJobs)
+      ? existingJobs.find(j => j.source_application_position === position)
+      : null;
+
+    if (!job) {
+      const meta = POSITION_META[position] || POSITION_META.media_specialist;
+      const jobUrl = `${window.location.origin}${meta.url}`;
+
+      const res = await base44.entities.HireJob.create({
+        title: meta.title,
+        department: meta.department,
+        status: "open",
+        source_type: "auto",
+        source_url: jobUrl,
+        source_application_position: position,
+        role_profile_approved: false,
+        created_by_name: "Auto-Sync",
+      });
+      job = res?.data ?? res;
+
+      // Auto-pull the job description (non-blocking)
+      analyzeJobFromUrl(jobUrl).then(async (analysis) => {
+        if (analysis) {
+          await base44.entities.HireJob.update(job.id, {
+            description: analysis.description || "",
+            responsibilities: analysis.responsibilities || [],
+            required_qualifications: analysis.required_qualifications || [],
+            preferred_qualifications: analysis.preferred_qualifications || [],
+            skills: analysis.skills || [],
+            experience_requirements: analysis.experience_requirements || "",
+            performance_expectations: analysis.performance_expectations || "",
+            compensation: analysis.compensation || "",
+            work_schedule: analysis.work_schedule || "",
+          });
+        }
+      }).catch(() => {});
+    }
+
+    const candsRes = await base44.entities.HireCandidate.filter({ job_id: job.id }, null, 200);
+    const existingCands = candsRes?.data ?? candsRes;
+
+    for (const app of positionApps) {
+      const exists = Array.isArray(existingCands) && existingCands.some(c => c.email === app.email);
+      if (exists) continue;
+
+      const resumeText = [
+        `Name: ${app.full_name}`,
+        `Email: ${app.email}`,
+        `Phone: ${app.phone}`,
+        `LinkedIn: ${app.linkedin || "N/A"}`,
+        `Portfolio: ${app.portfolio_link || "N/A"}`,
+        `Last Related Job: ${app.last_related_job || "N/A"}`,
+        `Why Good Fit: ${app.why_good_fit || "N/A"}`,
+        app.documents?.length ? `Documents: ${app.documents.join(", ")}` : "",
+      ].filter(Boolean).join("\n");
+
+      await base44.entities.HireCandidate.create({
+        job_id: job.id,
+        name: app.full_name,
+        email: app.email,
+        phone: app.phone,
+        resume_text: resumeText,
+        cover_letter: app.why_good_fit || "",
+        status: "applied",
+        decision: "pending",
+        documents: (app.documents || []).map(url => ({ url, type: "application_document" })),
+      });
+      newCandidates++;
+    }
+  }
+
+  return { newCandidates };
+}

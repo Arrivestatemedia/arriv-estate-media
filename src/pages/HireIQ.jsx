@@ -7,6 +7,7 @@ import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
 import CandidateDetailPanel from "@/components/hireiq/CandidateDetailPanel";
 import ComparePanel from "@/components/hireiq/ComparePanel";
 import LearningPanel from "@/components/hireiq/LearningPanel";
+import { syncApplicationsToHireIQ } from "@/lib/hireiq";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -34,6 +35,7 @@ const statusStyle = (s) => ({
 export default function HireIQ() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [topTab, setTopTab] = useState("jobs");
@@ -43,6 +45,11 @@ export default function HireIQ() {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
 
   const loadJobs = async () => {
+    setSyncing(true);
+    try {
+      await syncApplicationsToHireIQ();
+    } catch (_) {}
+    setSyncing(false);
     try {
       const res = await base44.entities.HireJob.list("-created_date", 50);
       const list = res?.data ?? res;
@@ -200,7 +207,16 @@ export default function HireIQ() {
               onJobUpdated={handleJobUpdated}
             />
           ) : loading ? (
-            <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: MUTED_DARK }} /></div>
+            <div className="flex items-center justify-center py-20">
+              {syncing ? (
+                <>
+                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: GOLD }} />
+                  <span className="ml-3 text-sm" style={{ color: MUTED_DARK }}>Syncing jobs and candidates from applications...</span>
+                </>
+              ) : (
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: MUTED_DARK }} />
+              )}
+            </div>
           ) : jobs.length === 0 ? (
             <div className="text-center py-20">
               <Briefcase className="w-16 h-16 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />

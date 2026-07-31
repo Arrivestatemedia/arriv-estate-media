@@ -56,12 +56,21 @@
       "enum": [
         "url",
         "text",
-        "file"
+        "file",
+        "auto"
       ],
       "description": "How the job description was provided"
     },
     "source_url": {
       "type": "string"
+    },
+    "source_application_position": {
+      "type": "string",
+      "enum": [
+        "media_specialist",
+        "sales_growth_advisor"
+      ],
+      "description": "If auto-created from the application system, the position this job was created for"
     },
     "role_success_profile": {
       "type": "object",
