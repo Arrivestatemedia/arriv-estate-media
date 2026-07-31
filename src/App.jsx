@@ -28,10 +28,7 @@ import OwnerDashboard from './pages/OwnerDashboard';
 import EmployeeProfile from './pages/EmployeeProfile';
 import Recordings from './pages/Recordings';
 import HireIQ from './pages/HireIQ';
-import HireIQJobDetail from './pages/HireIQJobDetail';
-import HireIQCandidateDetail from './pages/HireIQCandidateDetail';
-import HireIQCompare from './pages/HireIQCompare';
-import HireIQLearning from './pages/HireIQLearning';
+
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -258,38 +255,7 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
-      <Route
-        path="/HireIQJobDetail"
-        element={
-          <LayoutWrapper currentPageName="HireIQJobDetail">
-            <HireIQJobDetail />
-          </LayoutWrapper>
-        }
-      />
-      <Route
-        path="/HireIQCandidateDetail"
-        element={
-          <LayoutWrapper currentPageName="HireIQCandidateDetail">
-            <HireIQCandidateDetail />
-          </LayoutWrapper>
-        }
-      />
-      <Route
-        path="/HireIQCompare"
-        element={
-          <LayoutWrapper currentPageName="HireIQCompare">
-            <HireIQCompare />
-          </LayoutWrapper>
-        }
-      />
-      <Route
-        path="/HireIQLearning"
-        element={
-          <LayoutWrapper currentPageName="HireIQLearning">
-            <HireIQLearning />
-          </LayoutWrapper>
-        }
-      />
+
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
