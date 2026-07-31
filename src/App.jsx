@@ -13,7 +13,7 @@ import SalesChangePassword from './pages/SalesChangePassword';
 import PurchaseApparel from './pages/PurchaseApparel';
 import ApplicationPortal from './pages/ApplicationPortal';
 import BackgroundCheck from './pages/BackgroundCheck';
-import AdminApplications from './pages/AdminApplications';
+
 import AdminBackgroundChecks from './pages/AdminBackgroundChecks';
 import ApplicationPreview from './pages/ApplicationPreview';
 import OrientationAddress from './pages/OrientationAddress';
@@ -149,14 +149,7 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
-      <Route
-        path="/AdminApplications"
-        element={
-          <LayoutWrapper currentPageName="AdminApplications">
-            <AdminApplications />
-          </LayoutWrapper>
-        }
-      />
+
       <Route
         path="/AdminBackgroundChecks"
         element={
