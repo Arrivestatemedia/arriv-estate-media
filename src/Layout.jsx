@@ -201,6 +201,10 @@ function LayoutContent({ children, currentPageName }) {
           user-select: none;
           -webkit-tap-highlight-color: transparent;
         }
+
+        nav::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
 
       <header 
@@ -258,7 +262,7 @@ function LayoutContent({ children, currentPageName }) {
                   </Link>
                 )}
 
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1 overflow-x-auto whitespace-nowrap flex-nowrap" style={{ scrollbarWidth: 'none' }}>
               {navItems.length > 0 && navItems.map((item) => {
                   const Icon = item.icon;
                   const active = currentPageName === item.page;
@@ -266,7 +270,7 @@ function LayoutContent({ children, currentPageName }) {
                     <Link
                       key={item.page}
                       to={createPageUrl(item.page)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
                         active
                           ? "bg-[#B8956A] text-[#1A1A1A]"
                           : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
