@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { secrets } from "base44:runtime";
+import { buildSignedHeaders } from "../../shared/payrollSigning.ts";
 
 // ─── Payroll config (single-tenant: app-level secrets) ─────────────────────
 function getPayrollConfig() {
@@ -11,48 +12,19 @@ function getPayrollConfig() {
   return { endpoint, companyId, enabled, apiSecret, webhookSecret };
 }
 
-// ─── HMAC signing ──────────────────────────────────────────────────────────
-const enc = new TextEncoder();
-
-function toHex(buf) {
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function signPayload(secret, body) {
-  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(body));
-  return toHex(sig);
-}
-
-function canonicalString({ body, timestamp, requestId, sourceAppId }) {
-  return [body || "", timestamp || "", requestId || "", sourceAppId || ""].join("\n");
-}
-
-async function signRequest(secret, { body, timestamp, requestId, sourceAppId }) {
-  return signPayload(secret, canonicalString({ body, timestamp, requestId, sourceAppId }));
-}
-
 // ─── Arriv Payroll API proxy ───────────────────────────────────────────────
 async function callPayrollApi(config, action, payload) {
   const body = { ...payload, action };
   const bodyStr = JSON.stringify(body);
-  const now = new Date().toISOString();
-  const requestId = "req_" + crypto.randomUUID();
   const sourceAppId = "arriv-estate-media";
-  const signature = await signRequest(config.apiSecret, { body: bodyStr, timestamp: now, requestId, sourceAppId });
+  const headers = await buildSignedHeaders(config.apiSecret, bodyStr, sourceAppId);
 
   const base = config.endpoint.replace(/\/functions\/.*$/i, "").replace(/\/$/, "");
   const url = base + "/functions/timeOff";
 
   const resp = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Arriv-Signature": signature,
-      "X-Arriv-Timestamp": now,
-      "X-Arriv-Request-Id": requestId,
-      "X-Arriv-Source-App": sourceAppId,
-    },
+    headers,
     body: bodyStr,
   });
   const data = await resp.json().catch(() => ({}));
