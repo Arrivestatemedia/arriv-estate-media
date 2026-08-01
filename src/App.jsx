@@ -28,6 +28,7 @@ import OwnerDashboard from './pages/OwnerDashboard';
 import EmployeeProfile from './pages/EmployeeProfile';
 import Recordings from './pages/Recordings';
 import HireIQ from './pages/HireIQ';
+import TimeOff from './pages/TimeOff';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -252,6 +253,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="HireIQ">
             <HireIQ />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/TimeOff"
+        element={
+          <LayoutWrapper currentPageName="TimeOff">
+            <TimeOff />
           </LayoutWrapper>
         }
       />

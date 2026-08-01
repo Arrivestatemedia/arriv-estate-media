@@ -1,0 +1,126 @@
+{
+  "name": "TimeOffRequest",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "description": "Stable request identifier"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "SalesTeamMember id of the requesting employee"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Employee name (denormalized)"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Arriv Payroll employee ID for sync"
+    },
+    "manager_id": {
+      "type": "string",
+      "description": "Manager SalesTeamMember id"
+    },
+    "leave_type": {
+      "type": "string",
+      "enum": [
+        "pto",
+        "sick",
+        "personal",
+        "unpaid",
+        "bereavement",
+        "jury_duty",
+        "other"
+      ],
+      "default": "pto"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_partial_day": {
+      "type": "boolean",
+      "default": false
+    },
+    "hours_requested": {
+      "type": "number"
+    },
+    "employee_note": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied",
+        "changes_requested",
+        "canceled"
+      ],
+      "default": "pending"
+    },
+    "manager_name_actioned": {
+      "type": "string"
+    },
+    "manager_note": {
+      "type": "string"
+    },
+    "actioned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payroll_request_id": {
+      "type": "string",
+      "description": "Request ID from Arriv Payroll"
+    },
+    "payroll_sync_status": {
+      "type": "string",
+      "enum": [
+        "not_synced",
+        "synced",
+        "error"
+      ],
+      "default": "not_synced"
+    },
+    "payroll_sync_error": {
+      "type": "string"
+    },
+    "projected_remaining_balance": {
+      "type": "number"
+    },
+    "balance_at_submission": {
+      "type": "number"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "request_id",
+    "employee_id",
+    "leave_type",
+    "start_date",
+    "end_date",
+    "status"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
