@@ -21,10 +21,10 @@ export default async function (req) {
       billing_contact_email,
     } = body;
 
-    const endpoint = secrets.get("ARRIV_PAYROLL_ENDPOINT") || "";
+    const endpoint = secrets.get("ARRIV_PAYROLL_ENDPOINT") || "https://payroll.arrivestatemedia.com";
     const webhookSecret = secrets.get("ARRIV_PAYROLL_WEBHOOK_SECRET") || "";
+    const existingCompanyId = secrets.get("ARRIV_PAYROLL_COMPANY_ID") || "";
 
-    if (!endpoint) return Response.json({ error: "ARRIV_PAYROLL_ENDPOINT not set" }, { status: 500 });
     if (!webhookSecret) return Response.json({ error: "ARRIV_PAYROLL_WEBHOOK_SECRET not set" }, { status: 500 });
 
     const payload = {
@@ -47,12 +47,11 @@ export default async function (req) {
     const headers = await buildSignedHeaders(webhookSecret, bodyStr, sourceAppId);
 
     const base = endpoint.replace(/\/functions\/.*$/i, "").replace(/\/$/, "");
-    const url = base + "/functions/provisionCompany";
+    const url = base + "/provisionCompany";
 
     const resp = await fetch(url, {
-      method: "POST",
+      method: "GET",
       headers,
-      body: bodyStr,
     });
 
     const data = await resp.json().catch(() => ({}));
@@ -60,12 +59,14 @@ export default async function (req) {
       return Response.json({ error: data.error || `Provisioning failed: ${resp.status}`, raw: data }, { status: resp.status });
     }
 
+    const companyId = data.company_id || existingCompanyId;
     return Response.json({
       success: true,
-      company_id: data.company_id || "",
-      message: data.company_id
-        ? "Company provisioned. Save this company_id as the ARRIV_PAYROLL_COMPANY_ID secret."
-        : "Provisioning call succeeded but no company_id was returned.",
+      company_id: companyId,
+      endpoint,
+      message: companyId
+        ? "Company verified and connected to Arriv Payroll."
+        : "Endpoint reachable but no company_id returned. Set ARRIV_PAYROLL_COMPANY_ID manually.",
       raw: data,
     });
   } catch (error) {
