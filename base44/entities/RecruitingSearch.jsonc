@@ -1,0 +1,69 @@
+{
+  "name": "RecruitingSearch",
+  "type": "object",
+  "properties": {
+    "strategy": {
+      "type": "string",
+      "description": "Search strategy used (natural_language, skills_based, company_based, location_based)"
+    },
+    "queries": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Search queries executed"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "failed"
+      ],
+      "default": "running",
+      "description": "Search execution status"
+    },
+    "results_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of fresh prospects returned"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "HireJob ID this search was for"
+    },
+    "zip_code": {
+      "type": "string",
+      "description": "Zip code used for location constraint"
+    },
+    "radius_miles": {
+      "type": "number",
+      "description": "Search radius in miles"
+    },
+    "seniority_filtered": {
+      "type": "number",
+      "default": 0,
+      "description": "Count filtered out by seniority mismatch"
+    },
+    "location_filtered": {
+      "type": "number",
+      "default": 0,
+      "description": "Count filtered out by location"
+    },
+    "natural_language_query": {
+      "type": "string",
+      "description": "The natural language query from the chat"
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message if search failed"
+    },
+    "pipeline_id": {
+      "type": "string",
+      "description": "TalentPipeline ID if search was triggered by a pipeline"
+    }
+  },
+  "required": [
+    "strategy"
+  ]
+}

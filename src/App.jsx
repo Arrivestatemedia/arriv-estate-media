@@ -30,6 +30,7 @@ import Recordings from './pages/Recordings';
 import HireIQ from './pages/HireIQ';
 import TimeOff from './pages/TimeOff';
 import Benefits from './pages/Benefits';
+import Recruiting from './pages/Recruiting';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -270,6 +271,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="Benefits">
             <Benefits />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/Recruiting"
+        element={
+          <LayoutWrapper currentPageName="Recruiting">
+            <Recruiting />
           </LayoutWrapper>
         }
       />

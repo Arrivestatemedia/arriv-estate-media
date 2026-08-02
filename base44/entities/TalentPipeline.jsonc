@@ -1,0 +1,68 @@
+{
+  "name": "TalentPipeline",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Pipeline name"
+    },
+    "target_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Roles this pipeline sources for"
+    },
+    "target_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Skills to look for"
+    },
+    "target_locations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Locations (zip codes or city names) to search"
+    },
+    "continuous_recruiting_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this pipeline auto-sources on a schedule"
+    },
+    "search_frequency_days": {
+      "type": "number",
+      "default": 7,
+      "description": "How often to run continuous sourcing (days)"
+    },
+    "last_run_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this pipeline last ran a search"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "HireJob ID this pipeline is associated with"
+    },
+    "prospect_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of saved prospects in this pipeline"
+    },
+    "max_prospects_per_cycle": {
+      "type": "number",
+      "default": 10,
+      "description": "Cap on new prospects per continuous cycle"
+    },
+    "radius_miles": {
+      "type": "number",
+      "default": 50,
+      "description": "Search radius for this pipeline"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
