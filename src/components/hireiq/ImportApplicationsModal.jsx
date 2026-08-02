@@ -64,7 +64,7 @@ export default function ImportApplicationsModal({ jobId, jobData, roleProfile, o
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500">Import existing Arriv One job applications as YouHireIQ candidates. Resume data is automatically parsed from the application.</p>
+      <p className="text-sm text-gray-500">Import existing Arriv One job applications as Khetha IQ candidates. Resume data is automatically parsed from the application.</p>
       <input type="text" placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)}
         className="w-full border rounded px-3 py-2 text-sm" />
       {loading ? (

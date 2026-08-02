@@ -13,7 +13,7 @@ const SUGGESTED = [
   "Where are candidates dropping off in our funnel?",
 ];
 
-export default function AskYouHireIQSection({ data }) {
+export default function AskKhethaIQSection({ data }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function AskYouHireIQSection({ data }) {
     setQuestion(query);
     try {
       const context = buildAIContext(data);
-      const prompt = `You are YouHireIQ, an AI hiring analytics assistant. Answer the hiring manager's question using ONLY the data provided below. If the data is insufficient to answer, explicitly state that.
+      const prompt = `You are Khetha IQ, an AI hiring analytics assistant. Answer the hiring manager's question using ONLY the data provided below. If the data is insufficient to answer, explicitly state that.
 
 ${context}
 
@@ -45,10 +45,10 @@ Answer concisely with specific numbers from the data. If the data doesn't cover 
   };
 
   return (
-    <SectionWrapper title="Ask YouHireIQ" icon={MessageCircle}>
+    <SectionWrapper title="Ask Khetha IQ" icon={MessageCircle}>
       <div className="p-5" style={card}>
         <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>
-          Ask questions about your hiring data. YouHireIQ answers using ONLY your company's hiring data — if there isn't enough data, it will tell you.
+          Ask questions about your hiring data. Khetha IQ answers using ONLY your company's hiring data — if there isn't enough data, it will tell you.
         </p>
         <div className="flex gap-2 mb-3">
           <input type="text" value={question} onChange={e => setQuestion(e.target.value)}
@@ -80,7 +80,7 @@ Answer concisely with specific numbers from the data. If the data doesn't cover 
         )}
         {!loading && answer && (
           <div className="p-4 rounded-lg" style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.15)" }}>
-            <p className="text-xs font-semibold mb-1" style={{ color: GOLD }}>YouHireIQ</p>
+            <p className="text-xs font-semibold mb-1" style={{ color: GOLD }}>Khetha IQ</p>
             <p className="text-sm whitespace-pre-wrap" style={{ color: CREAM }}>{answer}</p>
           </div>
         )}

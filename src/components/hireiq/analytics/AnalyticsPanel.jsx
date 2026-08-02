@@ -9,7 +9,7 @@ import QuestionSection from "./QuestionSection";
 import SourceSection from "./SourceSection";
 import RetentionSection from "./RetentionSection";
 import LearningSection from "./LearningSection";
-import AskYouHireIQSection from "./AskYouHireIQSection";
+import AskKhethaIQSection from "./AskKhethaIQSection";
 import AnalyticsExport from "./AnalyticsExport";
 
 export default function AnalyticsPanel() {
@@ -47,7 +47,7 @@ export default function AnalyticsPanel() {
       <SourceSection data={data} />
       <RetentionSection data={data} />
       <LearningSection data={data} />
-      <AskYouHireIQSection data={data} />
+      <AskKhethaIQSection data={data} />
     </div>
   );
 }

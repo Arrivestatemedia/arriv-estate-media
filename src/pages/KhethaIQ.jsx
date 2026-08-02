@@ -7,7 +7,7 @@ import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
 import CandidateDetailPanel from "@/components/hireiq/CandidateDetailPanel";
 import ComparePanel from "@/components/hireiq/ComparePanel";
 import LearningPanel from "@/components/hireiq/LearningPanel";
-import { syncApplicationsToYouHireIQ } from "@/lib/hireiq";
+import { syncApplicationsToKhethaIQ } from "@/lib/hireiq";
 import ApplicationsPanel from "@/components/hireiq/ApplicationsPanel";
 import ApplicantPortalPanel from "@/components/hireiq/ApplicantPortalPanel";
 import AnalyticsPanel from "@/components/hireiq/analytics/AnalyticsPanel";
@@ -37,7 +37,7 @@ const statusStyle = (s) => ({
   filled: { bg: "#A68559", text: "#FFFBF5" },
 }[s] || { bg: "rgba(255,251,245,0.08)", text: "rgba(255,251,245,0.6)" });
 
-export default function YouHireIQ() {
+export default function KhethaIQ() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -52,7 +52,7 @@ export default function YouHireIQ() {
   const loadJobs = async () => {
     setSyncing(true);
     try {
-      await syncApplicationsToYouHireIQ();
+      await syncApplicationsToKhethaIQ();
     } catch (_) {}
     setSyncing(false);
     try {
@@ -135,7 +135,7 @@ export default function YouHireIQ() {
         <div className="p-5" style={{ borderBottom: "1px solid rgba(184,149,106,0.1)" }}>
           <div className="flex items-center gap-2">
             <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv" className="h-6" />
-            <span className="text-lg font-bold" style={{ ...SERIF, color: CREAM }}>YouHireIQ</span>
+            <span className="text-lg font-bold" style={{ ...SERIF, color: CREAM }}>Khetha IQ</span>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
@@ -160,7 +160,7 @@ export default function YouHireIQ() {
         </nav>
         <div className="p-4" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
           <p className="text-xs" style={{ color: MUTED_LIGHT }}>AI-Powered Hiring</p>
-          <p className="text-xs font-medium mt-0.5" style={{ color: CREAM }}>Arriv YouHireIQ</p>
+          <p className="text-xs font-medium mt-0.5" style={{ color: CREAM }}>Khetha IQ by Arriv</p>
         </div>
       </aside>
 

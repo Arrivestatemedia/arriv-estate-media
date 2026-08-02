@@ -107,7 +107,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
-            { label: "YouHireIQ", page: "YouHireIQ", icon: Brain },
+            { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "My Recordings", page: "Recordings", icon: Film },
             { label: "My Profile", page: "EmployeeProfile", icon: Award },
@@ -137,7 +137,7 @@ function LayoutContent({ children, currentPageName }) {
         { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark },
         { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
         { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
-        { label: "YouHireIQ", page: "YouHireIQ", icon: Brain },
+        { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
           ]
       : isClient
     ? [
