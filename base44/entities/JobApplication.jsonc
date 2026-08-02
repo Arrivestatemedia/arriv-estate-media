@@ -94,7 +94,7 @@
     },
     "job_id": {
       "type": "string",
-      "description": "HireJob ID this application is for (if created from a HireIQ job posting)"
+      "description": "HireJob ID this application is for (if created from a YouHireIQ job posting)"
     },
     "status": {
       "type": "string",

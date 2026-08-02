@@ -176,7 +176,7 @@ function drawHeader(doc, title) {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...GOLD);
-  doc.text("Arriv Estate Media — HireIQ", 20, 21);
+  doc.text("Arriv Estate Media — YouHireIQ", 20, 21);
 }
 
 function drawScorecardGuide(doc, y) {

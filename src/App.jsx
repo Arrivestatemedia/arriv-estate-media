@@ -27,7 +27,7 @@ import SalesPerformanceDashboard from './pages/SalesPerformanceDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import EmployeeProfile from './pages/EmployeeProfile';
 import Recordings from './pages/Recordings';
-import HireIQ from './pages/HireIQ';
+import YouHireIQ from './pages/YouHireIQ';
 import TimeOff from './pages/TimeOff';
 import Benefits from './pages/Benefits';
 
@@ -250,10 +250,10 @@ const AuthenticatedApp = () => {
         }
       />
       <Route
-        path="/HireIQ"
+        path="/YouHireIQ"
         element={
-          <LayoutWrapper currentPageName="HireIQ">
-            <HireIQ />
+          <LayoutWrapper currentPageName="YouHireIQ">
+            <YouHireIQ />
           </LayoutWrapper>
         }
       />

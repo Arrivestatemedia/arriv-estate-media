@@ -222,7 +222,7 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
       {(candidate?.decision === "offer" || candidate?.status === "hired") && (
         <div className="mt-5 p-5" style={card}>
           <h3 className="font-bold mb-1 flex items-center gap-2" style={{ ...SERIF, color: CREAM }}><TrendingUp className="w-4 h-4" style={{ color: GOLD }} /> Performance Tracking (Learning System)</h3>
-          <p className="text-xs mb-3" style={{ color: MUTED_LIGHT }}>Track actual job performance to help HireIQ learn which hiring factors predict success.</p>
+          <p className="text-xs mb-3" style={{ color: MUTED_LIGHT }}>Track actual job performance to help YouHireIQ learn which hiring factors predict success.</p>
           <PerformanceTracker candidate={candidate} job={job} />
         </div>
       )}

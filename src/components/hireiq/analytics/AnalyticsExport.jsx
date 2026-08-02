@@ -24,7 +24,7 @@ export default function AnalyticsExport({ data }) {
     doc.setTextColor(184, 149, 106);
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text("HireIQ Analytics Report", 14, 20);
+    doc.text("YouHireIQ Analytics Report", 14, 20);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(255, 251, 245);

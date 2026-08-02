@@ -289,7 +289,7 @@ const POSITION_META = {
   },
 };
 
-export async function syncApplicationsToHireIQ() {
+export async function syncApplicationsToYouHireIQ() {
   const appsRes = await base44.entities.JobApplication.list("-created_date", 200);
   const apps = appsRes?.data ?? appsRes;
   if (!Array.isArray(apps)) return { jobs: [], newCandidates: 0 };
