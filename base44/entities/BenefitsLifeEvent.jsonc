@@ -1,0 +1,109 @@
+{
+  "name": "BenefitsLifeEvent",
+  "type": "object",
+  "properties": {
+    "life_event_id": {
+      "type": "string",
+      "description": "Stable life event identifier"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "SalesTeamMember id of the employee"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Employee name (denormalized)"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Arriv Payroll employee ID for sync"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "marriage",
+        "divorce",
+        "birth",
+        "adoption",
+        "loss_of_coverage",
+        "gain_of_coverage",
+        "death_of_dependent",
+        "other"
+      ],
+      "description": "Type of qualifying life event"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the life event occurred"
+    },
+    "affected_benefits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Benefits affected by this life event"
+    },
+    "description": {
+      "type": "string",
+      "description": "Employee description of the life event"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "submitted_to_payroll",
+        "in_review",
+        "processed",
+        "denied",
+        "canceled"
+      ],
+      "default": "pending",
+      "description": "Life event processing status"
+    },
+    "payroll_reference": {
+      "type": "string",
+      "description": "Reference ID from Arriv Payroll"
+    },
+    "secure_workflow_url": {
+      "type": "string",
+      "description": "Secure workflow URL from Arriv Payroll for the employee to complete changes"
+    },
+    "payroll_sync_status": {
+      "type": "string",
+      "enum": [
+        "not_synced",
+        "synced",
+        "error"
+      ],
+      "default": "not_synced",
+      "description": "Whether the life event was synced to Arriv Payroll"
+    },
+    "payroll_sync_error": {
+      "type": "string",
+      "description": "Last payroll sync error, if any"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the life event was submitted to payroll"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the life event record was created"
+    }
+  },
+  "required": [
+    "life_event_id",
+    "employee_id",
+    "event_type",
+    "event_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {},
+    "delete": {}
+  }
+}
