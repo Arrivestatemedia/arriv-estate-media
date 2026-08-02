@@ -11,6 +11,8 @@ import { syncApplicationsToHireIQ } from "@/lib/hireiq";
 import ApplicationsPanel from "@/components/hireiq/ApplicationsPanel";
 import ApplicantPortalPanel from "@/components/hireiq/ApplicantPortalPanel";
 import AnalyticsPanel from "@/components/hireiq/analytics/AnalyticsPanel";
+import RecruitingPanel from "@/components/recruiting/RecruitingPanel";
+import { Radar } from "lucide-react";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -121,9 +123,10 @@ export default function HireIQ() {
     { id: "portal", label: "Applicant Portal", icon: Search },
     { id: "learning", label: "Learning", icon: Brain },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "recruiting", label: "Recruiting", icon: Radar },
   ];
 
-  const pageTitle = topTab === "applications" ? "Job Applications" : topTab === "portal" ? "Applicant Portal" : topTab === "analytics" ? "Analytics" : topTab === "learning" ? "Learning System" : view === "job" ? (selectedJob?.title || "Job Detail") : view === "candidate" ? (selectedCandidate?.name || "Candidate") : view === "compare" ? "Compare Candidates" : "Jobs";
+  const pageTitle = topTab === "applications" ? "Job Applications" : topTab === "portal" ? "Applicant Portal" : topTab === "analytics" ? "Analytics" : topTab === "learning" ? "Learning System" : topTab === "recruiting" ? "AI Recruiting" : view === "job" ? (selectedJob?.title || "Job Detail") : view === "candidate" ? (selectedCandidate?.name || "Candidate") : view === "compare" ? "Compare Candidates" : "Jobs";
 
   return (
     <div className="flex" style={{ minHeight: "calc(100vh - 64px)", background: "radial-gradient(circle at 30% 0%, #FFFBF5 0%, #F5F2EC 60%, #FFFBF5 100%)" }}>
@@ -138,7 +141,7 @@ export default function HireIQ() {
         <nav className="flex-1 p-3 space-y-1">
           {sidebarItems.map(item => {
             const Icon = item.icon;
-            const active = topTab === item.id && (item.id === "learning" || item.id === "applications" || item.id === "portal" || item.id === "analytics" || view === "dashboard");
+            const active = topTab === item.id && (item.id === "learning" || item.id === "applications" || item.id === "portal" || item.id === "analytics" || item.id === "recruiting" || view === "dashboard");
             return (
               <button key={item.id}
                 onClick={() => { setTopTab(item.id); if (item.id === "jobs") goJobsHome(); }}
@@ -185,7 +188,7 @@ export default function HireIQ() {
           <div>
             <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>{pageTitle}</h1>
             <p className="text-sm mt-0.5" style={{ color: MUTED_DARK }}>
-              {topTab === "applications" ? "Review and manage applicant submissions" : topTab === "portal" ? "Look up an applicant's application status and documents" : topTab === "analytics" ? "Hiring effectiveness and AI prediction accuracy" : topTab === "learning" ? "AI-powered analysis of hiring prediction accuracy" : view === "dashboard" ? "Manage job openings and candidates" : ""}
+              {topTab === "applications" ? "Review and manage applicant submissions" : topTab === "portal" ? "Look up an applicant's application status and documents" : topTab === "analytics" ? "Hiring effectiveness and AI prediction accuracy" : topTab === "learning" ? "AI-powered analysis of hiring prediction accuracy" : topTab === "recruiting" ? "AI-powered talent sourcing and outreach" : view === "dashboard" ? "Manage job openings and candidates" : ""}
             </p>
           </div>
           {view === "dashboard" && topTab === "jobs" && !loading && (
@@ -212,6 +215,8 @@ export default function HireIQ() {
             <AnalyticsPanel />
           ) : topTab === "learning" ? (
             <LearningPanel />
+          ) : topTab === "recruiting" ? (
+            <RecruitingPanel />
           ) : view === "candidate" && selectedCandidate ? (
             <CandidateDetailPanel
               candidate={selectedCandidate}

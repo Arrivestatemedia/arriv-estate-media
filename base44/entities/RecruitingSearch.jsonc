@@ -1,0 +1,81 @@
+{
+  "name": "RecruitingSearch",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "HireJob ID this search was for (optional)"
+    },
+    "pipeline_id": {
+      "type": "string",
+      "description": "TalentPipeline ID that triggered this search (optional)"
+    },
+    "strategy": {
+      "type": "string",
+      "enum": [
+        "natural_language",
+        "job_based",
+        "pipeline_continuous",
+        "find_similar"
+      ],
+      "description": "Search strategy used"
+    },
+    "queries": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Search queries executed"
+    },
+    "natural_language_input": {
+      "type": "string",
+      "description": "Original natural language search text"
+    },
+    "zip_code": {
+      "type": "string"
+    },
+    "radius_miles": {
+      "type": "number",
+      "default": 25
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "failed",
+        "timeout"
+      ],
+      "default": "running"
+    },
+    "results_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "fresh_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "seniority_filtered_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "location_filtered_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "run_by_id": {
+      "type": "string",
+      "description": "User or sales member who ran the search"
+    },
+    "run_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "strategy"
+  ]
+}

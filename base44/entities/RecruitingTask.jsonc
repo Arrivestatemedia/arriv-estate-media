@@ -1,0 +1,67 @@
+{
+  "name": "RecruitingTask",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "follow_up",
+        "outreach",
+        "review_prospect",
+        "schedule_call",
+        "send_message",
+        "general"
+      ],
+      "default": "general"
+    },
+    "prospect_id": {
+      "type": "string",
+      "description": "RecruitingProspect ID this task is for"
+    },
+    "prospect_name": {
+      "type": "string"
+    },
+    "pipeline_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "canceled"
+      ],
+      "default": "pending"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium"
+    },
+    "assigned_to_name": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "type"
+  ]
+}

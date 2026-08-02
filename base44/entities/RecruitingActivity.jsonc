@@ -1,0 +1,53 @@
+{
+  "name": "RecruitingActivity",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "search_run",
+        "prospect_saved",
+        "prospect_dismissed",
+        "prospect_approved",
+        "outreach_drafted",
+        "outreach_sent",
+        "prospect_converted",
+        "pipeline_created",
+        "pipeline_updated",
+        "task_created",
+        "task_completed",
+        "prospect_opted_out",
+        "settings_updated"
+      ],
+      "description": "Activity type"
+    },
+    "prospect_id": {
+      "type": "string"
+    },
+    "prospect_name": {
+      "type": "string"
+    },
+    "pipeline_id": {
+      "type": "string"
+    },
+    "search_id": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string",
+      "description": "User or system that performed the action"
+    },
+    "previous_value": {
+      "type": "string"
+    },
+    "new_value": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "type"
+  ]
+}
