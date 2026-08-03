@@ -337,7 +337,7 @@ function LayoutContent({ children, currentPageName }) {
         </div>
 
         {mobileOpen && (
-          <div className="md:hidden border-t border-[#B8956A]/20 bg-[#1A1A1A] px-4 py-3 space-y-1">
+          <div className="md:hidden border-t border-[#B8956A]/20 bg-[#1A1A1A] px-4 py-3 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
             {navItems.length > 0 && navItems.map((item) => {
                 const Icon = item.icon;
                 const active = currentPageName === item.page;
