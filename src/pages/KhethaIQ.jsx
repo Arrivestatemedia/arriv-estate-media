@@ -181,7 +181,7 @@ export default function KhethaIQ() {
   };
 
   const sidebarItems = manifestTabs
-    .map(t => ({ id: t.id, view: viewMap[t.id] || t.id, label: t.label, icon: ICON_MAP[t.icon] || Briefcase }))
+    .map(t => ({ id: t.id, view: t.view || viewMap[t.id] || t.id, label: t.label, icon: ICON_MAP[t.icon] || Briefcase }))
     .filter(t => t.id);
 
   const manifestLogo = manifest?.logo_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png";
