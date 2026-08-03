@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import {
   Briefcase, Plus, Loader2, Users, Brain, FileText, Search,
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
-  MessageSquare, ClipboardList, Award, HelpCircle, LayoutDashboard,
-  Workflow, Video, Globe,
+  MessageSquare, Award, HelpCircle, LayoutDashboard,
+  GitBranch, Video, Globe, SquareCheckBig,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -18,15 +18,18 @@ import ApplicantPortalPanel from "@/components/hireiq/ApplicantPortalPanel";
 import AnalyticsPanel from "@/components/hireiq/analytics/AnalyticsPanel";
 import RecruitingPanel from "@/components/recruiting/RecruitingPanel";
 import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
+import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
 
 // Map manifest icon names to lucide-react components.
-// When the central KhethaIQ app adds a new tab with a new icon, add it here.
+// Matches the central KhethaIQ app's ICON_MAP.
 const ICON_MAP = {
-  Briefcase, FileText, Search, Brain, BarChart3, Radar, Sparkles,
-  Users, Users2, Target, TrendingUp, MessageSquare, ClipboardList,
-  Award, HelpCircle, LayoutDashboard, Plus, Workflow, Video, Globe,
+  LayoutDashboard, Sparkles, Briefcase, Users, Search, GitBranch,
+  Video, FileText, SquareCheckBig, Brain, BarChart3: BarChart3,
+  Radar, Users2, Target, TrendingUp, MessageSquare, Award,
+  HelpCircle, Plus, Globe,
 };
 
+// Estate Media color palette (kept per user request)
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
 const GOLD_DARK = "#A68559";
@@ -34,7 +37,6 @@ const TEXT_DARK = "#1A1A1A";
 const MUTED_DARK = "rgba(26,26,26,0.45)";
 const MUTED_LIGHT = "rgba(255,251,245,0.5)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
-const MONO = { fontFamily: "'SF Mono', 'Monaco', 'Menlo', monospace" };
 
 const card = {
   backgroundColor: "#1A1A1A",
@@ -56,11 +58,12 @@ export default function KhethaIQ() {
   const [syncing, setSyncing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [topTab, setTopTab] = useState("dashboard");
+  const [activeView, setActiveView] = useState("dashboard");
 
-  const [view, setView] = useState("dashboard");
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareCandidates, setCompareCandidates] = useState([]);
 
   const loadJobs = async () => {
     setSyncing(true);
@@ -78,10 +81,10 @@ export default function KhethaIQ() {
 
   useEffect(() => { loadJobs(); }, []);
 
-  // Manifest-driven layout: fetches the UI config (tabs, logo, title, style)
-  // from the central KhethaIQ app via getKhethaIQManifest. Estate Media renders
-  // the local components but adopts the main app's tab structure, labels,
-  // logo, and title — keeping Estate Media's color palette.
+  // Manifest-driven layout: fetches the UI config (tabs, logo, title) from the
+  // central KhethaIQ app via getKhethaIQManifest. Estate Media renders local
+  // components but adopts the main app's tab structure, labels, logo, and
+  // title — keeping Estate Media's color palette.
   const [manifest, setManifest] = useState(null);
 
   useEffect(() => {
@@ -103,7 +106,6 @@ export default function KhethaIQ() {
       setJobs(prev => [job, ...prev]);
       setShowCreate(false);
       setSelectedJob(job);
-      setView("job");
     } catch (err) {
       alert("Failed to create job: " + (err.message || "unknown error"));
     } finally {
@@ -114,12 +116,10 @@ export default function KhethaIQ() {
   const handleSelectJob = (job) => {
     setSelectedJob(job);
     setSelectedCandidate(null);
-    setView("job");
   };
 
   const handleSelectCandidate = (candidate) => {
     setSelectedCandidate(candidate);
-    setView("candidate");
   };
 
   const handleJobUpdated = (updatedJob) => {
@@ -127,11 +127,7 @@ export default function KhethaIQ() {
     setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
   };
 
-  const handleCandidateUpdated = (updatedCandidate) => {
-    setSelectedCandidate(updatedCandidate);
-  };
-
-  const goJobsHome = () => { setView("dashboard"); setSelectedJob(null); setSelectedCandidate(null); };
+  const goJobsHome = () => { setSelectedJob(null); setSelectedCandidate(null); };
 
   const handleDeleteJob = async (job) => {
     try {
@@ -143,7 +139,6 @@ export default function KhethaIQ() {
   };
 
   // Build sidebar items from the manifest, mapping icon names to components.
-  // Falls back to the local default if the manifest hasn't loaded yet.
   const manifestTabs = manifest?.tabs?.length ? manifest.tabs : [
     { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
     { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
@@ -151,198 +146,204 @@ export default function KhethaIQ() {
     { id: "candidates", label: "Candidates", icon: "Users" },
     { id: "talent_search", label: "Talent Search", icon: "Search" },
     { id: "talent_pools", label: "Talent Pools", icon: "Users" },
-    { id: "pipeline", label: "Pipeline", icon: "Workflow" },
+    { id: "pipeline", label: "Pipeline", icon: "GitBranch" },
     { id: "interviews", label: "Interviews", icon: "Video" },
     { id: "offers", label: "Offers", icon: "FileText" },
-    { id: "tasks", label: "Tasks", icon: "ClipboardList" },
+    { id: "tasks", label: "Tasks", icon: "SquareCheckBig" },
     { id: "applications", label: "Applications", icon: "FileText" },
     { id: "portal", label: "Applicant Portal", icon: "Search" },
     { id: "learning", label: "Learning", icon: "Brain" },
     { id: "analytics", label: "Analytics", icon: "BarChart3" },
   ];
 
+  // Map manifest tab ids to the central app's view ids
+  const viewMap = {
+    dashboard: "dashboard",
+    ask_khetha: "ask",
+    jobs: "jobs",
+    candidates: "candidates",
+    talent_search: "search",
+    talent_pools: "pools",
+    pipeline: "pipeline",
+    interviews: "interviews",
+    offers: "offers",
+    tasks: "tasks",
+    applications: "applications",
+    portal: "portal",
+    learning: "learning",
+    analytics: "analytics",
+  };
+
   const sidebarItems = manifestTabs
-    .map(t => ({ id: t.id, label: t.label, icon: ICON_MAP[t.icon] || Briefcase }))
-    .filter(t => t.id); // only tabs with a valid id
+    .map(t => ({ id: t.id, view: viewMap[t.id] || t.id, label: t.label, icon: ICON_MAP[t.icon] || Briefcase }))
+    .filter(t => t.id);
 
   const manifestLogo = manifest?.logo_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png";
-  const manifestTitle = manifest?.title || "Khetha IQ";
-
-  const pageTitle = topTab === "dashboard" ? "Dashboard" : topTab === "ask_khetha" ? "Ask Khetha" : topTab === "applications" ? "Job Applications" : topTab === "portal" ? "Applicant Portal" : topTab === "analytics" ? "Analytics" : topTab === "learning" ? "Learning System" : topTab === "talent_search" ? "Talent Search" : topTab === "talent_pools" ? "Talent Pools" : topTab === "pipeline" ? "Pipeline" : topTab === "interviews" ? "Interviews" : topTab === "offers" ? "Offers" : topTab === "tasks" ? "Tasks" : topTab === "candidates" ? "Candidates" : view === "job" ? (selectedJob?.title || "Job Detail") : view === "candidate" ? (selectedCandidate?.name || "Candidate") : view === "compare" ? "Compare Candidates" : "Jobs";
-
-  const pageSubtitle = topTab === "applications" ? "Review and manage applicant submissions" : topTab === "portal" ? "Look up an applicant's application status and documents" : topTab === "analytics" ? "Hiring effectiveness and AI prediction accuracy" : topTab === "learning" ? "AI-powered analysis of hiring prediction accuracy" : topTab === "ask_khetha" ? "Ask questions about candidates, roles, and recruiting strategy" : topTab === "dashboard" ? "Overview of your hiring pipeline" : topTab === "talent_search" ? "AI-powered talent sourcing by location and role" : topTab === "talent_pools" ? "Manage groups of sourced prospects" : topTab === "pipeline" ? "Track prospects through the recruiting pipeline" : topTab === "interviews" ? "Schedule and review candidate interviews" : topTab === "offers" ? "Manage candidate offers" : topTab === "tasks" ? "Recruiting tasks and follow-ups" : topTab === "candidates" ? "Browse and evaluate candidates across all jobs" : view === "dashboard" ? "Manage job openings and candidates" : "";
 
   // Tabs that route to the RecruitingPanel (talent sourcing features)
-  const recruitingTabs = ["talent_search", "talent_pools", "pipeline", "tasks"];
+  const recruitingTabs = ["search", "pools", "pipeline", "tasks"];
 
-  // Placeholder for tabs not yet built locally in Estate Media
-  const PlaceholderPanel = ({ tabLabel }) => (
-    <div className="text-center py-20">
-      <Briefcase className="w-16 h-16 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
-      <p className="font-medium text-lg" style={{ color: TEXT_DARK }}>{tabLabel}</p>
-      <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>This section is managed in the central Khetha IQ app.</p>
-    </div>
-  );
+  // Detail views (full-width, no sidebar) — match central app behavior
+  if (selectedCandidate) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <CandidateDetailPanel
+          candidate={selectedCandidate}
+          job={selectedJob || jobs.find(j => j.id === selectedCandidate.job_id)}
+          onBack={() => setSelectedCandidate(null)}
+          onCandidateUpdated={setSelectedCandidate}
+        />
+      </div>
+    );
+  }
+
+  if (compareMode && compareCandidates.length >= 2) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <ComparePanel candidates={compareCandidates} jobs={jobs} onBack={() => setCompareMode(false)} />
+      </div>
+    );
+  }
+
+  if (selectedJob) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <JobDetailPanel
+          job={selectedJob}
+          onBack={goJobsHome}
+          onSelectCandidate={handleSelectCandidate}
+          onCompare={() => setCompareMode(true)}
+          onJobUpdated={handleJobUpdated}
+          onDelete={handleDeleteJob}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex" style={{ minHeight: "calc(100vh - 64px)", background: "radial-gradient(circle at 30% 0%, #FFFBF5 0%, #F5F2EC 60%, #FFFBF5 100%)" }}>
-      {/* Sidebar */}
-      <aside className="hidden md:flex flex-col w-56 flex-shrink-0 sticky top-16" style={{ backgroundColor: "#0A0A0A", height: "calc(100vh - 64px)", borderRight: "1px solid rgba(184,149,106,0.15)" }}>
-        <div className="p-5" style={{ borderBottom: "1px solid rgba(184,149,106,0.1)" }}>
-          <div className="flex items-center gap-2">
-            <img src={manifestLogo} alt="Arriv" className="h-6" />
-            <span className="text-lg font-bold" style={{ ...SERIF, color: CREAM }}>{manifestTitle}</span>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Sidebar — rounded card matching central app layout */}
+        <aside className="md:w-60 shrink-0">
+          <div
+            className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 md:sticky md:top-24 md:h-[calc(100vh-7rem)] rounded-2xl p-3"
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}
+          >
+            {/* Logo — centered at top, matching central app */}
+            <div className="flex justify-center px-2 py-3 mb-2 shrink-0" style={{ borderBottom: "1px solid rgba(184,149,106,0.15)" }}>
+              <img src={manifestLogo} alt="Khetha IQ by Arriv" className="h-24 w-auto object-contain" />
+            </div>
+            {/* Nav items */}
+            <nav className="flex md:flex-col gap-1">
+              {sidebarItems.map(item => {
+                const Icon = item.icon;
+                const active = activeView === item.view;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveView(item.view)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors"
+                    style={{
+                      backgroundColor: active ? GOLD : "transparent",
+                      color: active ? "#1A1A1A" : MUTED_DARK,
+                    }}
+                    onMouseEnter={e => { if (!active) { e.currentTarget.style.backgroundColor = "rgba(184,149,106,0.1)"; e.currentTarget.style.color = TEXT_DARK; } }}
+                    onMouseLeave={e => { if (!active) { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = MUTED_DARK; } }}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
-        </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {sidebarItems.map(item => {
-            const Icon = item.icon;
-            const active = topTab === item.id;
-            return (
-              <button key={item.id}
-                onClick={() => { setTopTab(item.id); if (item.id === "jobs") goJobsHome(); }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                style={{
-                  backgroundColor: active ? GOLD : "transparent",
-                  color: active ? "#0A0A0A" : MUTED_LIGHT,
-                }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.color = CREAM; }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.color = MUTED_LIGHT; }}>
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-        <div className="p-4" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
-          <p className="text-xs" style={{ color: MUTED_LIGHT }}>AI-Powered Hiring</p>
-          <p className="text-xs font-medium mt-0.5" style={{ color: CREAM }}>{manifestTitle}</p>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 overflow-x-hidden">
-        {/* Mobile nav */}
-        <div className="md:hidden flex gap-1 p-2" style={{ backgroundColor: "#0A0A0A", borderBottom: "1px solid rgba(184,149,106,0.1)" }}>
-          {sidebarItems.map(item => {
-            const Icon = item.icon;
-            const active = topTab === item.id;
-            return (
-              <button key={item.id}
-                onClick={() => { setTopTab(item.id); if (item.id === "jobs") goJobsHome(); }}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
-                style={{ backgroundColor: active ? GOLD : "transparent", color: active ? "#0A0A0A" : CREAM }}>
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>{pageTitle}</h1>
-            <p className="text-sm mt-0.5" style={{ color: MUTED_DARK }}>
-              {pageSubtitle}
-            </p>
-          </div>
-          {view === "dashboard" && (topTab === "jobs" || topTab === "dashboard") && !loading && (
-            <Button onClick={() => setShowCreate(true)} style={{ backgroundColor: "#0A0A0A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}>
-              <Plus className="w-4 h-4 mr-2" /> Create Job Opening
-            </Button>
-          )}
-          {view !== "dashboard" && (topTab === "jobs" || topTab === "dashboard") && (
-            <Button variant="outline" onClick={goJobsHome} style={{ backgroundColor: "transparent", color: TEXT_DARK, border: "1px solid rgba(26,26,26,0.15)" }}>
-              ← Back to Jobs
-            </Button>
-          )}
-        </div>
+        </aside>
 
         {/* Content */}
-        <div className="px-6 py-6">
-          {topTab === "applications" ? (
+        <div className="flex-1 min-w-0">
+          {activeView === "applications" ? (
             <ApplicationsPanel />
-          ) : topTab === "portal" ? (
+          ) : activeView === "portal" ? (
             <div className="max-w-2xl mx-auto">
               <ApplicantPortalPanel />
             </div>
-          ) : topTab === "analytics" ? (
+          ) : activeView === "analytics" ? (
             <AnalyticsPanel />
-          ) : topTab === "learning" ? (
+          ) : activeView === "learning" ? (
             <LearningPanel />
-          ) : recruitingTabs.includes(topTab) ? (
+          ) : recruitingTabs.includes(activeView) ? (
             <RecruitingPanel />
-          ) : topTab === "ask_khetha" ? (
+          ) : activeView === "ask" ? (
             <div className="max-w-3xl mx-auto">
               <AskKhethaPanel candidate={selectedCandidate} job={selectedJob} />
             </div>
-          ) : topTab === "interviews" || topTab === "offers" || topTab === "candidates" ? (
-            <PlaceholderPanel tabLabel={pageTitle} />
-          ) : view === "candidate" && selectedCandidate ? (
-            <CandidateDetailPanel
-              candidate={selectedCandidate}
-              job={selectedJob}
-              onBack={() => setView("job")}
-              onCandidateUpdated={handleCandidateUpdated}
-            />
-          ) : view === "compare" && selectedJob ? (
-            <ComparePanel job={selectedJob} onBack={() => setView("job")} />
-          ) : view === "job" && selectedJob ? (
-            <JobDetailPanel
-              job={selectedJob}
-              onBack={goJobsHome}
-              onSelectCandidate={handleSelectCandidate}
-              onCompare={() => setView("compare")}
-              onJobUpdated={handleJobUpdated}
-              onDelete={handleDeleteJob}
-            />
-          ) : loading ? (
-            <div className="flex items-center justify-center py-20">
-              {syncing ? (
-                <>
+          ) : activeView === "candidates" ? (
+            <CandidatesView onSelectCandidate={handleSelectCandidate} />
+          ) : activeView === "interviews" ? (
+            <InterviewsView />
+          ) : activeView === "offers" ? (
+            <OffersView />
+          ) : activeView === "dashboard" || activeView === "jobs" ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Jobs</h1>
+                  <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Manage job openings and candidates</p>
+                </div>
+                <Button
+                  onClick={() => setShowCreate(true)}
+                  style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+                >
+                  <Plus className="w-4 h-4 mr-1.5" /> Create Job Opening
+                </Button>
+              </div>
+              {syncing && (
+                <div className="flex items-center gap-2 text-sm rounded-lg p-3" style={{ backgroundColor: "rgba(184,149,106,0.08)", color: MUTED_DARK }}>
+                  <Loader2 className="w-4 h-4 animate-spin" style={{ color: GOLD }} />
+                  Syncing applications to Khetha IQ...
+                </div>
+              )}
+              {loading ? (
+                <div className="flex justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin" style={{ color: GOLD }} />
-                  <span className="ml-3 text-sm" style={{ color: MUTED_DARK }}>Syncing jobs and candidates from applications...</span>
-                </>
+                </div>
+              ) : jobs.length === 0 ? (
+                <div className="text-center py-16">
+                  <Briefcase className="w-12 h-12 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
+                  <p className="font-medium" style={{ color: TEXT_DARK }}>No job openings yet</p>
+                  <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Create your first job opening to start hiring.</p>
+                </div>
               ) : (
-                <Loader2 className="w-8 h-8 animate-spin" style={{ color: MUTED_DARK }} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {jobs.map(job => {
+                    const ss = statusStyle(job.status);
+                    return (
+                      <div
+                        key={job.id}
+                        onClick={() => handleSelectJob(job)}
+                        className="p-4 cursor-pointer transition-all hover:-translate-y-0.5"
+                        style={card}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = "0 8px 32px rgba(184,149,106,0.15)"}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.12)"}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold" style={{ ...SERIF, color: CREAM }}>{job.title || "Untitled"}</h3>
+                          <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: ss.bg, color: ss.text }}>{job.status}</span>
+                        </div>
+                        <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
+                        <div className="flex items-center gap-3 text-xs" style={{ color: MUTED_LIGHT }}>
+                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Candidates</span>
+                          {job.role_profile_approved && <span className="flex items-center gap-1" style={{ color: GOLD }}><Brain className="w-3 h-3" /> Profile Approved</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
-          ) : jobs.length === 0 ? (
-            <div className="text-center py-20">
-              <Briefcase className="w-16 h-16 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
-              <p className="font-medium text-lg" style={{ color: TEXT_DARK }}>No job openings yet</p>
-              <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Create your first job opening to start hiring.</p>
-              <Button onClick={() => setShowCreate(true)} className="mt-6" style={{ backgroundColor: "#0A0A0A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}>
-                <Plus className="w-4 h-4 mr-2" /> Create Job Opening
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {jobs.map(job => {
-                const ss = statusStyle(job.status);
-                return (
-                  <div key={job.id} onClick={() => handleSelectJob(job)}
-                    className="p-5 cursor-pointer transition-all hover:-translate-y-1"
-                    style={card}
-                    onMouseEnter={e => e.currentTarget.style.boxShadow = "0 12px 40px rgba(184,149,106,0.15)"}
-                    onMouseLeave={e => e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.12)"}>
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-lg" style={{ ...SERIF, color: CREAM }}>{job.title || "Untitled"}</h3>
-                      <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: ss.bg, color: ss.text }}>{job.status}</span>
-                    </div>
-                    <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
-                    <div className="flex items-center gap-3 text-xs" style={{ color: MUTED_LIGHT }}>
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Candidates</span>
-                      {job.role_profile_approved && <span className="flex items-center gap-1" style={{ color: GOLD }}><Brain className="w-3 h-3" /> Profile Approved</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          ) : null}
         </div>
-      </main>
+      </div>
 
       {/* Create modal */}
       {showCreate && (
