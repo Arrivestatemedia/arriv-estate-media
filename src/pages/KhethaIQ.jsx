@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Briefcase, Plus, Loader2, Users, Brain, FileText, Search, BarChart3, Sparkles } from "lucide-react";
+import {
+  Briefcase, Plus, Loader2, Users, Brain, FileText, Search,
+  BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
+  MessageSquare, ClipboardList, Award, HelpCircle, LayoutDashboard,
+} from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
 import CandidateDetailPanel from "@/components/hireiq/CandidateDetailPanel";
@@ -13,8 +17,14 @@ import ApplicantPortalPanel from "@/components/hireiq/ApplicantPortalPanel";
 import AnalyticsPanel from "@/components/hireiq/analytics/AnalyticsPanel";
 import RecruitingPanel from "@/components/recruiting/RecruitingPanel";
 import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
-import { Radar } from "lucide-react";
-import KhethaIQEmbed from "@/components/khethaiq/KhethaIQEmbed";
+
+// Map manifest icon names to lucide-react components.
+// When the central KhethaIQ app adds a new tab with a new icon, add it here.
+const ICON_MAP = {
+  Briefcase, FileText, Search, Brain, BarChart3, Radar, Sparkles,
+  Users, Users2, Target, TrendingUp, MessageSquare, ClipboardList,
+  Award, HelpCircle, LayoutDashboard, Plus,
+};
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -67,16 +77,16 @@ export default function KhethaIQ() {
 
   useEffect(() => { loadJobs(); }, []);
 
-  // Feature flag: when khethaiq_embed_enabled is "true" in AppSettings,
-  // the page renders the embedded main KhethaIQ app instead of the local copy.
-  const [embedConfig, setEmbedConfig] = useState(null);
-  const [embedLoading, setEmbedLoading] = useState(true);
+  // Manifest-driven layout: fetches the UI config (tabs, logo, title, style)
+  // from the central KhethaIQ app via getKhethaIQManifest. Estate Media renders
+  // the local components but adopts the main app's tab structure, labels,
+  // logo, and title — keeping Estate Media's color palette.
+  const [manifest, setManifest] = useState(null);
 
   useEffect(() => {
-    const salesMemberId = localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
-    base44.functions.invoke("generateKhethaIQSSOToken", { sales_member_id: salesMemberId || undefined })
-      .then(res => { setEmbedConfig(res?.data ?? res); setEmbedLoading(false); })
-      .catch(() => setEmbedLoading(false));
+    base44.functions.invoke("getKhethaIQManifest", {})
+      .then(res => setManifest(res?.data ?? res))
+      .catch(() => setManifest(null));
   }, []);
 
   const handleCreate = async (jobData) => {
@@ -131,34 +141,24 @@ export default function KhethaIQ() {
     goJobsHome();
   };
 
-  // If the embed feature flag is enabled, render the main KhethaIQ app.
-  if (embedConfig?.embed_enabled) {
-    return (
-      <KhethaIQEmbed
-        appUrl={embedConfig.app_url}
-        ssoToken={embedConfig.sso_token}
-        userContext={embedConfig.user_context}
-      />
-    );
-  }
-
-  if (embedLoading) {
-    return (
-      <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 64px)", background: "#FFFBF5" }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#B8956A" }} />
-      </div>
-    );
-  }
-
-  const sidebarItems = [
-    { id: "jobs", label: "Jobs", icon: Briefcase },
-    { id: "applications", label: "Applications", icon: FileText },
-    { id: "portal", label: "Applicant Portal", icon: Search },
-    { id: "learning", label: "Learning", icon: Brain },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "recruiting", label: "Recruiting", icon: Radar },
-    { id: "ask_khetha", label: "Ask Khetha", icon: Sparkles },
+  // Build sidebar items from the manifest, mapping icon names to components.
+  // Falls back to the local default if the manifest hasn't loaded yet.
+  const manifestTabs = manifest?.tabs?.length ? manifest.tabs : [
+    { id: "jobs", label: "Jobs", icon: "Briefcase" },
+    { id: "applications", label: "Applications", icon: "FileText" },
+    { id: "portal", label: "Applicant Portal", icon: "Search" },
+    { id: "learning", label: "Learning", icon: "Brain" },
+    { id: "analytics", label: "Analytics", icon: "BarChart3" },
+    { id: "recruiting", label: "Recruiting", icon: "Radar" },
+    { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
   ];
+
+  const sidebarItems = manifestTabs
+    .map(t => ({ id: t.id, label: t.label, icon: ICON_MAP[t.icon] || Briefcase }))
+    .filter(t => t.id); // only tabs with a valid id
+
+  const manifestLogo = manifest?.logo_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png";
+  const manifestTitle = manifest?.title || "Khetha IQ";
 
   const pageTitle = topTab === "applications" ? "Job Applications" : topTab === "portal" ? "Applicant Portal" : topTab === "analytics" ? "Analytics" : topTab === "learning" ? "Learning System" : topTab === "recruiting" ? "AI Recruiting" : topTab === "ask_khetha" ? "Ask Khetha" : view === "job" ? (selectedJob?.title || "Job Detail") : view === "candidate" ? (selectedCandidate?.name || "Candidate") : view === "compare" ? "Compare Candidates" : "Jobs";
 
@@ -168,8 +168,8 @@ export default function KhethaIQ() {
       <aside className="hidden md:flex flex-col w-56 flex-shrink-0 sticky top-16" style={{ backgroundColor: "#0A0A0A", height: "calc(100vh - 64px)", borderRight: "1px solid rgba(184,149,106,0.15)" }}>
         <div className="p-5" style={{ borderBottom: "1px solid rgba(184,149,106,0.1)" }}>
           <div className="flex items-center gap-2">
-            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv" className="h-6" />
-            <span className="text-lg font-bold" style={{ ...SERIF, color: CREAM }}>Khetha IQ</span>
+            <img src={manifestLogo} alt="Arriv" className="h-6" />
+            <span className="text-lg font-bold" style={{ ...SERIF, color: CREAM }}>{manifestTitle}</span>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
