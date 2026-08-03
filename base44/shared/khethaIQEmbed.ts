@@ -174,11 +174,6 @@ export function buildEmbedContext(user: {
   full_name: string;
   role: string;
 }) {
-  const appDomain = secrets.get("BASE44_APP_DOMAIN") || "";
-  const dataEndpoint = appDomain
-    ? `${appDomain.replace(/\/$/, "")}/base44/functions/getKhethaIQEmbedData`
-    : "/base44/functions/getKhethaIQEmbedData";
-
   return {
     user: {
       user_id: user.id,
@@ -187,8 +182,5 @@ export function buildEmbedContext(user: {
       role: user.role,
     },
     ...ESTATE_MEDIA_RECRUITING_CONTEXT,
-    data_endpoint: dataEndpoint,
-    data_auth_header: "Authorization",
-    data_auth_scheme: "Bearer",
   };
 }
