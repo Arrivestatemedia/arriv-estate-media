@@ -16,11 +16,35 @@ import { generateSSOToken, buildEmbedContext } from "../../shared/khethaIQEmbed.
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const body = await req.json().catch(() => ({}));
 
-    // Only admins can access KhethaIQ
-    if (user.role !== "admin") {
+    // Resolve the calling user — support both Base44 auth (platform admin)
+    // and sales team sessions (sales admin) via sales_member_id in the body.
+    let ssoUser = null;
+    if (body.sales_member_id) {
+      try {
+        const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: body.sales_member_id });
+        const m = Array.isArray(members) && members[0];
+        if (m && m.role === "admin") {
+          ssoUser = {
+            id: m.id,
+            email: m.email,
+            full_name: m.full_name,
+            role: "admin",
+          };
+        }
+      } catch (_) {}
+    }
+
+    if (!ssoUser) {
+      const u = await base44.auth.me();
+      if (u && u.role === "admin") {
+        ssoUser = { id: u.id, email: u.email, full_name: u.full_name, role: u.role };
+      }
+    }
+
+    if (!ssoUser) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    if (ssoUser.role !== "admin") {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -42,13 +66,13 @@ export default async function(req) {
     }
 
     const ssoToken = await generateSSOToken({
-      user_id: user.id,
-      email: user.email,
-      full_name: user.full_name,
-      role: user.role,
+      user_id: ssoUser.id,
+      email: ssoUser.email,
+      full_name: ssoUser.full_name,
+      role: ssoUser.role,
     });
 
-    const userContext = buildEmbedContext(user);
+    const userContext = buildEmbedContext(ssoUser);
 
     return Response.json({
       embed_enabled: true,

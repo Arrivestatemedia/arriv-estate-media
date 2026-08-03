@@ -73,7 +73,8 @@ export default function KhethaIQ() {
   const [embedLoading, setEmbedLoading] = useState(true);
 
   useEffect(() => {
-    base44.functions.invoke("generateKhethaIQSSOToken", {})
+    const salesMemberId = localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
+    base44.functions.invoke("generateKhethaIQSSOToken", { sales_member_id: salesMemberId || undefined })
       .then(res => { setEmbedConfig(res?.data ?? res); setEmbedLoading(false); })
       .catch(() => setEmbedLoading(false));
   }, []);
