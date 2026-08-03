@@ -1,19 +1,17 @@
 // syncApplicationToKhethaIQ/entry.ts
-// Syncs a single JobApplication to the main KhethaIQ application.
+// Syncs a single JobApplication into the LOCAL KhethaIQ experience within
+// Estate Media by creating/updating a HireCandidate record.
 // Triggered automatically by an entity automation on JobApplication create,
 // or manually by passing application_id.
 //
-// The function:
-// 1. Creates/updates the local HireCandidate (for the local KhethaIQ experience
-//    during parallel validation)
-// 2. Pushes the application to the main KhethaIQ app's import endpoint
-//    (KHETHAIQ_IMPORT_ENDPOINT) so the central KhethaIQ system receives it
+// Note: This does NOT push to the main/central KhethaIQ app, which is a
+// multi-tenant host for several different clients. Estate Media applicants
+// stay local to this app only.
 //
 // Duplicate prevention: checks for an existing HireCandidate by email before
 // creating, and uses shared_person_id for cross-system linking.
 
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { secrets } from "base44:runtime";
 import { generateSharedPersonId } from "../../shared/hireHandoffShared.ts";
 
 export default async function(req) {
@@ -96,59 +94,10 @@ export default async function(req) {
       } catch (_) {}
     }
 
-    // 2. Push to the main KhethaIQ app
-    const importEndpoint = secrets.get("KHETHAIQ_IMPORT_ENDPOINT");
-    const apiKey = secrets.get("KHETHAIQ_API_KEY");
-
-    let mainSync = null;
-    if (importEndpoint) {
-      try {
-        const response = await fetch(importEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-KhethaIQ-API-Key": apiKey || "",
-            "X-Calling-Application": "ARRIV_ESTATE_MEDIA",
-          },
-          body: JSON.stringify({
-            calling_application: "ARRIV_ESTATE_MEDIA",
-            tenant_id: "arriv_estate_media",
-            event_type: "application.created",
-            application: {
-              local_id: application.id,
-              full_name: application.full_name,
-              email,
-              phone: application.phone,
-              position: application.position || "media_specialist",
-              shared_person_id: sharedPersonId,
-              linkedin: application.linkedin,
-              portfolio_link: application.portfolio_link,
-              last_related_job: application.last_related_job,
-              why_good_fit: application.why_good_fit,
-              video_samples: application.video_samples || [],
-              picture_samples: application.picture_samples || [],
-              documents: application.documents || [],
-              status: application.status || "received",
-              hire_candidate_id: localCandidate?.id,
-            },
-          }),
-        });
-
-        if (response.ok) {
-          mainSync = await response.json();
-        } else {
-          mainSync = { error: `Import returned ${response.status}`, details: (await response.text()).slice(0, 200) };
-        }
-      } catch (err) {
-        mainSync = { error: err.message };
-      }
-    }
-
     return Response.json({
       success: true,
       local_candidate_id: localCandidate?.id,
       shared_person_id: sharedPersonId,
-      main_khethaiq_sync: mainSync,
     });
   } catch (error) {
     console.error("syncApplicationToKhethaIQ error:", error.message, error.stack);
