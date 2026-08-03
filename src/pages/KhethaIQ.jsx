@@ -23,6 +23,7 @@ import PipelineMapView from "@/components/recruiting/PipelineMapView";
 import RecruitingTasksView from "@/components/recruiting/RecruitingTasksView";
 import AskKhethaChat from "@/components/khethaiq/AskKhethaChat";
 import RecruitingChat from "@/components/recruiting/RecruitingChat";
+import GlobalSearch from "@/components/khethaiq/GlobalSearch";
 import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
 
 // Map manifest icon names to lucide-react components.
@@ -224,6 +225,19 @@ export default function KhethaIQ() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Top bar — GlobalSearch + Request New Hire, matching central app */}
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <GlobalSearch />
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="gap-1.5"
+          style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+        >
+          <Sparkles className="w-4 h-4" />
+          Request New Hire
+        </Button>
+      </div>
+
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar — rounded card matching central app layout */}
         <aside className="md:w-60 shrink-0">
