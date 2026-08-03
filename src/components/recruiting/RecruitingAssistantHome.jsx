@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Briefcase, CircleAlert, Users, Clock, Send, Flame, UserCheck } from "lucide-react";
-import RecruitingChat from "@/components/recruiting/RecruitingChat";
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
@@ -39,7 +38,7 @@ const STATUS_LABELS = {
   paused: "Paused",
 };
 
-export default function RecruitingAssistantHome({ onStartSearch, onRecruitForJob, chatOpen, setChatOpen, onReviewProspects, onProspectFound, initialJobId, initialRequest }) {
+export default function RecruitingAssistantHome({ onStartSearch, onRecruitForJob }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -117,16 +116,6 @@ export default function RecruitingAssistantHome({ onStartSearch, onRecruitForJob
 
   return (
     <div className="space-y-5">
-      {chatOpen && (
-        <RecruitingChat
-          onClose={() => setChatOpen?.(false)}
-          initialJobId={initialJobId}
-          initialInput={initialRequest}
-          onProspectFound={onProspectFound}
-          onRefresh={() => { /* could re-fetch */ }}
-          onReviewProspects={onReviewProspects}
-        />
-      )}
       {/* Stats grid — matches central app's 8-card layout */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         {statCards.map((s, i) => <StatCard key={i} {...s} />)}
