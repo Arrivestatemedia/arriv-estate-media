@@ -268,7 +268,12 @@ export default function KhethaIQ() {
           ) : activeView === "ask" ? (
             <AskKhethaChat />
           ) : activeView === "search" ? (
-            <RecruitingChat onReviewProspects={() => setActiveView("candidates")} />
+            <RecruitingAssistantHome
+              chatOpen={true}
+              setChatOpen={() => setActiveView("dashboard")}
+              onReviewProspects={() => setActiveView("candidates")}
+              onProspectFound={() => setActiveView("candidates")}
+            />
           ) : activeView === "pools" ? (
             <TalentPipelinesView />
           ) : activeView === "pipeline" ? (
