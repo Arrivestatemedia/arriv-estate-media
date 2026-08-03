@@ -5,6 +5,7 @@ import {
   Briefcase, Plus, Loader2, Users, Brain, FileText, Search,
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, ClipboardList, Award, HelpCircle, LayoutDashboard,
+  Workflow, Video, Globe,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -23,7 +24,7 @@ import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
 const ICON_MAP = {
   Briefcase, FileText, Search, Brain, BarChart3, Radar, Sparkles,
   Users, Users2, Target, TrendingUp, MessageSquare, ClipboardList,
-  Award, HelpCircle, LayoutDashboard, Plus,
+  Award, HelpCircle, LayoutDashboard, Plus, Workflow, Video, Globe,
 };
 
 const CREAM = "#FFFBF5";
@@ -55,7 +56,7 @@ export default function KhethaIQ() {
   const [syncing, setSyncing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [topTab, setTopTab] = useState("jobs");
+  const [topTab, setTopTab] = useState("dashboard");
 
   const [view, setView] = useState("dashboard");
   const [selectedJob, setSelectedJob] = useState(null);
@@ -144,13 +145,20 @@ export default function KhethaIQ() {
   // Build sidebar items from the manifest, mapping icon names to components.
   // Falls back to the local default if the manifest hasn't loaded yet.
   const manifestTabs = manifest?.tabs?.length ? manifest.tabs : [
+    { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
+    { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
     { id: "jobs", label: "Jobs", icon: "Briefcase" },
+    { id: "candidates", label: "Candidates", icon: "Users" },
+    { id: "talent_search", label: "Talent Search", icon: "Search" },
+    { id: "talent_pools", label: "Talent Pools", icon: "Users" },
+    { id: "pipeline", label: "Pipeline", icon: "Workflow" },
+    { id: "interviews", label: "Interviews", icon: "Video" },
+    { id: "offers", label: "Offers", icon: "FileText" },
+    { id: "tasks", label: "Tasks", icon: "ClipboardList" },
     { id: "applications", label: "Applications", icon: "FileText" },
     { id: "portal", label: "Applicant Portal", icon: "Search" },
     { id: "learning", label: "Learning", icon: "Brain" },
     { id: "analytics", label: "Analytics", icon: "BarChart3" },
-    { id: "recruiting", label: "Recruiting", icon: "Radar" },
-    { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
   ];
 
   const sidebarItems = manifestTabs
@@ -160,7 +168,21 @@ export default function KhethaIQ() {
   const manifestLogo = manifest?.logo_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png";
   const manifestTitle = manifest?.title || "Khetha IQ";
 
-  const pageTitle = topTab === "applications" ? "Job Applications" : topTab === "portal" ? "Applicant Portal" : topTab === "analytics" ? "Analytics" : topTab === "learning" ? "Learning System" : topTab === "recruiting" ? "AI Recruiting" : topTab === "ask_khetha" ? "Ask Khetha" : view === "job" ? (selectedJob?.title || "Job Detail") : view === "candidate" ? (selectedCandidate?.name || "Candidate") : view === "compare" ? "Compare Candidates" : "Jobs";
+  const pageTitle = topTab === "dashboard" ? "Dashboard" : topTab === "ask_khetha" ? "Ask Khetha" : topTab === "applications" ? "Job Applications" : topTab === "portal" ? "Applicant Portal" : topTab === "analytics" ? "Analytics" : topTab === "learning" ? "Learning System" : topTab === "talent_search" ? "Talent Search" : topTab === "talent_pools" ? "Talent Pools" : topTab === "pipeline" ? "Pipeline" : topTab === "interviews" ? "Interviews" : topTab === "offers" ? "Offers" : topTab === "tasks" ? "Tasks" : topTab === "candidates" ? "Candidates" : view === "job" ? (selectedJob?.title || "Job Detail") : view === "candidate" ? (selectedCandidate?.name || "Candidate") : view === "compare" ? "Compare Candidates" : "Jobs";
+
+  const pageSubtitle = topTab === "applications" ? "Review and manage applicant submissions" : topTab === "portal" ? "Look up an applicant's application status and documents" : topTab === "analytics" ? "Hiring effectiveness and AI prediction accuracy" : topTab === "learning" ? "AI-powered analysis of hiring prediction accuracy" : topTab === "ask_khetha" ? "Ask questions about candidates, roles, and recruiting strategy" : topTab === "dashboard" ? "Overview of your hiring pipeline" : topTab === "talent_search" ? "AI-powered talent sourcing by location and role" : topTab === "talent_pools" ? "Manage groups of sourced prospects" : topTab === "pipeline" ? "Track prospects through the recruiting pipeline" : topTab === "interviews" ? "Schedule and review candidate interviews" : topTab === "offers" ? "Manage candidate offers" : topTab === "tasks" ? "Recruiting tasks and follow-ups" : topTab === "candidates" ? "Browse and evaluate candidates across all jobs" : view === "dashboard" ? "Manage job openings and candidates" : "";
+
+  // Tabs that route to the RecruitingPanel (talent sourcing features)
+  const recruitingTabs = ["talent_search", "talent_pools", "pipeline", "tasks"];
+
+  // Placeholder for tabs not yet built locally in Estate Media
+  const PlaceholderPanel = ({ tabLabel }) => (
+    <div className="text-center py-20">
+      <Briefcase className="w-16 h-16 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
+      <p className="font-medium text-lg" style={{ color: TEXT_DARK }}>{tabLabel}</p>
+      <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>This section is managed in the central Khetha IQ app.</p>
+    </div>
+  );
 
   return (
     <div className="flex" style={{ minHeight: "calc(100vh - 64px)", background: "radial-gradient(circle at 30% 0%, #FFFBF5 0%, #F5F2EC 60%, #FFFBF5 100%)" }}>
@@ -175,7 +197,7 @@ export default function KhethaIQ() {
         <nav className="flex-1 p-3 space-y-1">
           {sidebarItems.map(item => {
             const Icon = item.icon;
-            const active = topTab === item.id && (item.id === "learning" || item.id === "applications" || item.id === "portal" || item.id === "analytics" || item.id === "recruiting" || item.id === "ask_khetha" || view === "dashboard");
+            const active = topTab === item.id;
             return (
               <button key={item.id}
                 onClick={() => { setTopTab(item.id); if (item.id === "jobs") goJobsHome(); }}
@@ -194,7 +216,7 @@ export default function KhethaIQ() {
         </nav>
         <div className="p-4" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
           <p className="text-xs" style={{ color: MUTED_LIGHT }}>AI-Powered Hiring</p>
-          <p className="text-xs font-medium mt-0.5" style={{ color: CREAM }}>Khetha IQ by Arriv</p>
+          <p className="text-xs font-medium mt-0.5" style={{ color: CREAM }}>{manifestTitle}</p>
         </div>
       </aside>
 
@@ -222,15 +244,15 @@ export default function KhethaIQ() {
           <div>
             <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>{pageTitle}</h1>
             <p className="text-sm mt-0.5" style={{ color: MUTED_DARK }}>
-              {topTab === "applications" ? "Review and manage applicant submissions" : topTab === "portal" ? "Look up an applicant's application status and documents" : topTab === "analytics" ? "Hiring effectiveness and AI prediction accuracy" : topTab === "learning" ? "AI-powered analysis of hiring prediction accuracy" : topTab === "recruiting" ? "AI-powered talent sourcing and outreach" : topTab === "ask_khetha" ? "Ask questions about candidates, roles, and recruiting strategy" : view === "dashboard" ? "Manage job openings and candidates" : ""}
+              {pageSubtitle}
             </p>
           </div>
-          {view === "dashboard" && topTab === "jobs" && !loading && (
+          {view === "dashboard" && (topTab === "jobs" || topTab === "dashboard") && !loading && (
             <Button onClick={() => setShowCreate(true)} style={{ backgroundColor: "#0A0A0A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}>
               <Plus className="w-4 h-4 mr-2" /> Create Job Opening
             </Button>
           )}
-          {view !== "dashboard" && topTab === "jobs" && (
+          {view !== "dashboard" && (topTab === "jobs" || topTab === "dashboard") && (
             <Button variant="outline" onClick={goJobsHome} style={{ backgroundColor: "transparent", color: TEXT_DARK, border: "1px solid rgba(26,26,26,0.15)" }}>
               ← Back to Jobs
             </Button>
@@ -249,12 +271,14 @@ export default function KhethaIQ() {
             <AnalyticsPanel />
           ) : topTab === "learning" ? (
             <LearningPanel />
-          ) : topTab === "recruiting" ? (
+          ) : recruitingTabs.includes(topTab) ? (
             <RecruitingPanel />
           ) : topTab === "ask_khetha" ? (
             <div className="max-w-3xl mx-auto">
               <AskKhethaPanel candidate={selectedCandidate} job={selectedJob} />
             </div>
+          ) : topTab === "interviews" || topTab === "offers" || topTab === "candidates" ? (
+            <PlaceholderPanel tabLabel={pageTitle} />
           ) : view === "candidate" && selectedCandidate ? (
             <CandidateDetailPanel
               candidate={selectedCandidate}

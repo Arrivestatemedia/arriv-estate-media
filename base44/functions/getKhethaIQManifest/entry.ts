@@ -1,21 +1,21 @@
 // getKhethaIQManifest/entry.ts
-// Fetches the UI manifest (tabs, logo, title, style tokens) from the central
-// KhethaIQ application so Arriv Estate Media can render a local mirror that
-// stays in sync with the main app's structure while keeping Estate Media's
-// color palette.
+// Fetches the UI manifest (tabs, logo, title) from the central KhethaIQ app
+// so Arriv Estate Media can render a local mirror that stays in sync.
+//
+// The central app is a Base44 SPA — it doesn't expose a JSON manifest endpoint,
+// so this function fetches the central app's landing page HTML and extracts
+// the logo URL from the rendered <img> tags. The tab list is maintained as a
+// local default that mirrors the central app's sidebar (updated to match the
+// central app's dashboard as of 2026-08-03).
 //
 // The manifest is cached in AppSetting (1 hour TTL) to avoid hitting the
-// KhethaIQ API on every page load. If the API endpoint is not yet available
-// (or the request fails), the function falls back to the cached manifest
-// (even if stale) and then to a local default that matches the current
-// Estate Media KhethaIQ layout.
+// central app on every page load.
 //
 // Manifest shape:
 //   {
-//     title: "Khetha IQ",
+//     title: "Khetha IQ by Arriv",
 //     logo_url: "https://...",
 //     tabs: [{ id, label, icon }],
-//     style: { title_font, card_radius, ... },
 //     source: "live" | "cache" | "stale_cache" | "local_default",
 //     updated_at: ISO string
 //   }
@@ -26,25 +26,54 @@ import { secrets } from "base44:runtime";
 const CACHE_KEY = "khethaiq_manifest_cache";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+// Tab list mirroring the central KhethaIQ app's sidebar (14 tabs).
+// Icons are lucide-react component names.
+const CENTRAL_TABS = [
+  { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
+  { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
+  { id: "jobs", label: "Jobs", icon: "Briefcase" },
+  { id: "candidates", label: "Candidates", icon: "Users" },
+  { id: "talent_search", label: "Talent Search", icon: "Search" },
+  { id: "talent_pools", label: "Talent Pools", icon: "Users" },
+  { id: "pipeline", label: "Pipeline", icon: "Workflow" },
+  { id: "interviews", label: "Interviews", icon: "Video" },
+  { id: "offers", label: "Offers", icon: "FileText" },
+  { id: "tasks", label: "Tasks", icon: "ClipboardList" },
+  { id: "applications", label: "Applications", icon: "FileText" },
+  { id: "portal", label: "Applicant Portal", icon: "Search" },
+  { id: "learning", label: "Learning", icon: "Brain" },
+  { id: "analytics", label: "Analytics", icon: "BarChart3" },
+];
+
 const LOCAL_DEFAULT = {
-  title: "Khetha IQ",
+  title: "Khetha IQ by Arriv",
   logo_url:
-    "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png",
-  tabs: [
-    { id: "jobs", label: "Jobs", icon: "Briefcase" },
-    { id: "applications", label: "Applications", icon: "FileText" },
-    { id: "portal", label: "Applicant Portal", icon: "Search" },
-    { id: "learning", label: "Learning", icon: "Brain" },
-    { id: "analytics", label: "Analytics", icon: "BarChart3" },
-    { id: "recruiting", label: "Recruiting", icon: "Radar" },
-    { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
-  ],
-  style: {
-    title_font: "Georgia, 'Times New Roman', serif",
-    card_radius: "14px",
-  },
+    "https://media.base44.com/images/public/6a6f886916fd2b95386a3adc/4a507fa47_ChatGPTImageAug2202603_15_57PM.png",
+  tabs: CENTRAL_TABS,
   updated_at: new Date().toISOString(),
 };
+
+// Extract the first <img src="..."> URL from HTML that looks like a logo
+// (contains "khetha" or "arriv" in the URL, or is from media.base44.com).
+function extractLogoFromHtml(html) {
+  if (!html) return null;
+  const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+  let match;
+  while ((match = imgRegex.exec(html)) !== null) {
+    const url = match[1];
+    if (
+      url.includes("media.base44.com") ||
+      url.includes("khetha") ||
+      url.includes("arriv") ||
+      url.includes("ArrivLogo")
+    ) {
+      return url;
+    }
+  }
+  // Fallback: return the first img src found
+  const firstMatch = /<img[^>]+src=["']([^"']+)["']/i.exec(html);
+  return firstMatch ? firstMatch[1] : null;
+}
 
 export default async function (req) {
   try {
@@ -69,27 +98,35 @@ export default async function (req) {
       return Response.json({ ...cached.manifest, source: "cache" });
     }
 
-    // Try to fetch a live manifest from the central KhethaIQ app
+    // Fetch the central KhethaIQ app's landing page to extract the logo
     const appUrl = secrets.get("KHETHAIQ_APP_URL");
-    const apiKey = secrets.get("KHETHAIQ_API_KEY");
 
-    if (appUrl && apiKey) {
+    if (appUrl) {
       try {
-        const manifestUrl = appUrl.replace(/\/$/, "") + "/api/manifest";
-        const res = await fetch(manifestUrl, {
+        const res = await fetch(appUrl, {
           headers: {
-            Authorization: `Bearer ${apiKey}`,
-            Accept: "application/json",
+            Accept: "text/html",
+            "User-Agent":
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
           },
           signal: AbortSignal.timeout(8000),
         });
         if (res.ok) {
-          const manifest = await res.json();
+          const html = await res.text();
+          const logoUrl = extractLogoFromHtml(html);
+
+          // Build the manifest: use the extracted logo, keep the central tab list
+          const manifest = {
+            ...LOCAL_DEFAULT,
+            logo_url: logoUrl || LOCAL_DEFAULT.logo_url,
+            updated_at: new Date().toISOString(),
+          };
+
+          // Persist cache
           const cacheEntry = {
             manifest,
             cached_at: new Date().toISOString(),
           };
-          // Persist cache
           try {
             const existing = await base44.asServiceRole.entities.AppSetting.filter({
               key: CACHE_KEY,
@@ -106,6 +143,7 @@ export default async function (req) {
               });
             }
           } catch (_) {}
+
           return Response.json({ ...manifest, source: "live" });
         }
       } catch (_) {}
