@@ -71,7 +71,7 @@ export default function TalentPipelinesView() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Talent Pipelines</h2>
-        <Button onClick={() => { setEditing(null); setForm(EMPTY); setShowForm(true); }} style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)" }}>
+        <Button onClick={() => { setEditing(null); setForm(EMPTY); setShowForm(true); }} style={{ backgroundColor: GOLD, color: "#1A1A1A", fontWeight: 600 }}>
           <Plus className="w-4 h-4 mr-2" /> New Pipeline
         </Button>
       </div>
@@ -87,17 +87,17 @@ export default function TalentPipelinesView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {pipelines.map((p) => (
-            <div key={p.id} className="p-5 rounded-xl" style={{ backgroundColor: "#1A1A1A", border: "1px solid rgba(184,149,106,0.2)" }}>
+            <div key={p.id} className="p-5 rounded-xl" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.15)" }}>
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-bold" style={{ ...SERIF, color: CREAM }}>{p.name}</h3>
+                <h3 className="font-bold" style={{ ...SERIF, color: TEXT_DARK }}>{p.name}</h3>
                 <div className="flex gap-1">
-                  <button onClick={() => handleEdit(p)} className="p-1.5 rounded hover:bg-white/10"><Pencil className="w-3.5 h-3.5" style={{ color: GOLD }} /></button>
+                  <button onClick={() => handleEdit(p)} className="p-1.5 rounded hover:bg-[rgba(184,149,106,0.1)]"><Pencil className="w-3.5 h-3.5" style={{ color: GOLD }} /></button>
                   <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded hover:bg-red-500/10"><Trash2 className="w-3.5 h-3.5" style={{ color: "#FCA5A5" }} /></button>
                 </div>
               </div>
-              {p.target_roles?.length > 0 && <p className="text-xs mb-1" style={{ color: "rgba(255,251,245,0.5)" }}>Roles: {p.target_roles.join(", ")}</p>}
-              {p.target_locations?.length > 0 && <p className="text-xs mb-1" style={{ color: "rgba(255,251,245,0.5)" }}>Locations: {p.target_locations.join(", ")}</p>}
-              <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: "rgba(255,251,245,0.4)" }}>
+              {p.target_roles?.length > 0 && <p className="text-xs mb-1" style={{ color: MUTED }}>Roles: {p.target_roles.join(", ")}</p>}
+              {p.target_locations?.length > 0 && <p className="text-xs mb-1" style={{ color: MUTED }}>Locations: {p.target_locations.join(", ")}</p>}
+              <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: MUTED }}>
                 <span>{p.prospect_count || 0} prospects</span>
                 {p.continuous_recruiting_enabled && <span style={{ color: GOLD }}>● Continuous</span>}
               </div>

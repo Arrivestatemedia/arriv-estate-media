@@ -22,6 +22,7 @@ import TalentPipelinesView from "@/components/recruiting/TalentPipelinesView";
 import PipelineMapView from "@/components/recruiting/PipelineMapView";
 import RecruitingTasksView from "@/components/recruiting/RecruitingTasksView";
 import AskKhethaChat from "@/components/khethaiq/AskKhethaChat";
+import RecruitingChat from "@/components/recruiting/RecruitingChat";
 import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
 
 // Map manifest icon names to lucide-react components.
@@ -267,7 +268,7 @@ export default function KhethaIQ() {
           ) : activeView === "ask" ? (
             <AskKhethaChat />
           ) : activeView === "search" ? (
-            <RecruitingAssistantHome onStartSearch={() => setActiveView("search")} />
+            <RecruitingChat onProspectsFound={() => setActiveView("candidates")} />
           ) : activeView === "pools" ? (
             <TalentPipelinesView />
           ) : activeView === "pipeline" ? (

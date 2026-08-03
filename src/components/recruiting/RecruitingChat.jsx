@@ -58,17 +58,17 @@ export default function RecruitingChat({ onProspectsFound, defaultZip }) {
         <p className="text-sm" style={{ color: MUTED }}>Describe the person you're looking for. We'll search the web for real, public profiles near you.</p>
       </div>
 
-      <div className="p-5 rounded-xl mb-4" style={{ backgroundColor: "#1A1A1A", border: "1px solid rgba(184,149,106,0.2)" }}>
+      <div className="p-5 rounded-xl mb-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.15)" }}>
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="col-span-1">
-            <Label className="block text-xs font-medium mb-1" style={{ color: CREAM }}>Zip Code *</Label>
+            <Label className="block text-xs font-medium mb-1" style={{ color: TEXT_DARK }}>Zip Code *</Label>
             <div className="relative">
               <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: GOLD }} />
               <Input value={zip} onChange={(e) => setZip(e.target.value)} placeholder="30305" className="pl-8 bg-white text-[#1A1A1A]" />
             </div>
           </div>
           <div className="col-span-1">
-            <Label className="block text-xs font-medium mb-1" style={{ color: CREAM }}>Radius (mi)</Label>
+            <Label className="block text-xs font-medium mb-1" style={{ color: TEXT_DARK }}>Radius (mi)</Label>
             <Input type="number" min="5" max="100" value={radius} onChange={(e) => setRadius(parseInt(e.target.value) || 25)} className="bg-white text-[#1A1A1A]" />
           </div>
           <div className="col-span-1 flex items-end">
@@ -78,7 +78,7 @@ export default function RecruitingChat({ onProspectsFound, defaultZip }) {
           </div>
         </div>
 
-        <Label className="block text-xs font-medium mb-1" style={{ color: CREAM }}>Describe who you're looking for</Label>
+        <Label className="block text-xs font-medium mb-1" style={{ color: TEXT_DARK }}>Describe who you're looking for</Label>
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -90,7 +90,7 @@ export default function RecruitingChat({ onProspectsFound, defaultZip }) {
         <div className="mt-3 flex flex-wrap gap-2">
           {SUGGESTIONS.map((s, i) => (
             <button key={i} onClick={() => setInput(s)} className="text-xs px-3 py-1.5 rounded-full transition-colors"
-              style={{ backgroundColor: "rgba(255,251,245,0.08)", color: "rgba(255,251,245,0.7)", border: "1px solid rgba(184,149,106,0.15)" }}>
+              style={{ backgroundColor: "rgba(184,149,106,0.08)", color: GOLD, border: "1px solid rgba(184,149,106,0.15)" }}>
               {s}
             </button>
           ))}
