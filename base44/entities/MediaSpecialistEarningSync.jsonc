@@ -1,0 +1,133 @@
+{
+  "name": "MediaSpecialistEarningSync",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant ID for multi-tenant isolation"
+    },
+    "media_specialist_id": {
+      "type": "string",
+      "description": "Media specialist / contractor ID"
+    },
+    "media_specialist_email": {
+      "type": "string",
+      "description": "Media specialist email (denormalized)"
+    },
+    "media_specialist_name": {
+      "type": "string",
+      "description": "Media specialist name (denormalized)"
+    },
+    "shared_person_id": {
+      "type": "string",
+      "description": "Shared person ID linking the contractor across Estate Media and Arriv Payroll"
+    },
+    "earning_id": {
+      "type": "string",
+      "description": "Unique earning record ID (Estate Media authoritative)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job ID the earning is from"
+    },
+    "job_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the job was completed"
+    },
+    "service_type": {
+      "type": "string",
+      "description": "Type of media service performed"
+    },
+    "gross_job_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Gross amount charged to the client for the job"
+    },
+    "media_specialist_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Percentage of the job amount the media specialist earns"
+    },
+    "gross_earning": {
+      "type": "number",
+      "default": 0,
+      "description": "Gross earning before fees/adjustments"
+    },
+    "fees": {
+      "type": "number",
+      "default": 0,
+      "description": "Fees deducted from the gross earning"
+    },
+    "adjustments": {
+      "type": "number",
+      "default": 0,
+      "description": "Adjustments applied to the earning"
+    },
+    "net_earning": {
+      "type": "number",
+      "default": 0,
+      "description": "Net earning after fees and adjustments"
+    },
+    "payout_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "scheduled",
+        "paid",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Estate Media payout status (authoritative \u2014 Arriv Payroll never pays media specialists)"
+    },
+    "scheduled_payout_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Scheduled payout date by Estate Media"
+    },
+    "actual_payout_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual payout date by Estate Media"
+    },
+    "provider_transaction_reference": {
+      "type": "string",
+      "description": "Stripe Connect transfer ID or other provider reference"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "Currency code"
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "not_synced",
+        "synced",
+        "error"
+      ],
+      "default": "not_synced",
+      "description": "Arriv Payroll document/tax sync status"
+    },
+    "payroll_sync_error": {
+      "type": "string",
+      "description": "Last sync error, if any"
+    },
+    "sync_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Version incremented on re-syncs to produce a fresh idempotency key"
+    },
+    "synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the earning was last synced to Arriv Payroll (document/tax only)"
+    }
+  },
+  "required": [
+    "media_specialist_id",
+    "earning_id",
+    "gross_earning",
+    "net_earning"
+  ]
+}

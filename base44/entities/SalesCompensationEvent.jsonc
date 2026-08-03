@@ -1,0 +1,114 @@
+{
+  "name": "SalesCompensationEvent",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant ID for multi-tenant isolation"
+    },
+    "sales_rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the sales representative"
+    },
+    "sales_rep_name": {
+      "type": "string",
+      "description": "Sales rep name (denormalized)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Contact/client ID associated with the sale"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client name (denormalized)"
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "Invoice ID associated with the sale"
+    },
+    "sale_id": {
+      "type": "string",
+      "description": "Unique sale identifier (deal ID or invoice reference)"
+    },
+    "sale_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Total sale/contract amount"
+    },
+    "commissionable_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Portion of the sale amount eligible for commission"
+    },
+    "commission_plan_reference": {
+      "type": "string",
+      "description": "Commission plan/rule reference used by Arriv Payroll to determine compensation"
+    },
+    "invoice_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "paid",
+        "void",
+        "refunded"
+      ],
+      "description": "Status of the associated invoice"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "unpaid",
+        "partially_paid",
+        "paid",
+        "refunded"
+      ],
+      "default": "unpaid",
+      "description": "Client payment status"
+    },
+    "sale_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the sale was closed"
+    },
+    "client_payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the client payment was received"
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "not_synced",
+        "synced",
+        "error",
+        "corrected"
+      ],
+      "default": "not_synced",
+      "description": "Arriv Payroll sync status"
+    },
+    "payroll_compensation_import_id": {
+      "type": "string",
+      "description": "ID returned by Arriv Payroll when the event was accepted"
+    },
+    "payroll_sync_error": {
+      "type": "string",
+      "description": "Last sync error, if any"
+    },
+    "compensation_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Version incremented on corrections to produce a fresh idempotency key"
+    },
+    "synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event was last synced to Arriv Payroll"
+    }
+  },
+  "required": [
+    "sales_rep_id",
+    "sale_id",
+    "sale_amount"
+  ]
+}

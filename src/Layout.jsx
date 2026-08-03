@@ -148,6 +148,7 @@ function LayoutContent({ children, currentPageName }) {
     ? [
         { label: "Available Jobs", page: "JobBoard", icon: Briefcase, showBadge: true },
         { label: "My Dashboard", page: "MediaPartnerDashboard", icon: LayoutDashboard },
+        { label: "Payout Records", page: "PayoutRecords", icon: Wallet },
         { label: "Supra Access", page: "SupraAccess", icon: Settings },
       ]
     : [];
@@ -155,7 +156,7 @@ function LayoutContent({ children, currentPageName }) {
   const dashboardPage = isAdmin ? "Dashboard" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
   // Determine if current page is a primary route (shows bottom tabs)
-  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess"];
+  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess", "PayoutRecords"];
   const isPrimaryRoute = primaryRoutes.includes(currentPageName);
   const showBackButton = user && !isPrimaryRoute && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
 

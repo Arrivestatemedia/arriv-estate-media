@@ -30,6 +30,7 @@ import Recordings from './pages/Recordings';
 import KhethaIQ from './pages/KhethaIQ';
 import TimeOff from './pages/TimeOff';
 import Benefits from './pages/Benefits';
+import PayoutRecords from './pages/PayoutRecords';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -270,6 +271,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="Benefits">
             <Benefits />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/PayoutRecords"
+        element={
+          <LayoutWrapper currentPageName="PayoutRecords">
+            <PayoutRecords />
           </LayoutWrapper>
         }
       />
