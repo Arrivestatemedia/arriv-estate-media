@@ -14,6 +14,7 @@ import AnalyticsPanel from "@/components/hireiq/analytics/AnalyticsPanel";
 import RecruitingPanel from "@/components/recruiting/RecruitingPanel";
 import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
 import { Radar } from "lucide-react";
+import KhethaIQEmbed from "@/components/khethaiq/KhethaIQEmbed";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -66,6 +67,17 @@ export default function KhethaIQ() {
 
   useEffect(() => { loadJobs(); }, []);
 
+  // Feature flag: when khethaiq_embed_enabled is "true" in AppSettings,
+  // the page renders the embedded main KhethaIQ app instead of the local copy.
+  const [embedConfig, setEmbedConfig] = useState(null);
+  const [embedLoading, setEmbedLoading] = useState(true);
+
+  useEffect(() => {
+    base44.functions.invoke("generateKhethaIQSSOToken", {})
+      .then(res => { setEmbedConfig(res?.data ?? res); setEmbedLoading(false); })
+      .catch(() => setEmbedLoading(false));
+  }, []);
+
   const handleCreate = async (jobData) => {
     setCreating(true);
     try {
@@ -117,6 +129,25 @@ export default function KhethaIQ() {
     setJobs(prev => prev.filter(j => j.id !== job.id));
     goJobsHome();
   };
+
+  // If the embed feature flag is enabled, render the main KhethaIQ app.
+  if (embedConfig?.embed_enabled) {
+    return (
+      <KhethaIQEmbed
+        appUrl={embedConfig.app_url}
+        ssoToken={embedConfig.sso_token}
+        userContext={embedConfig.user_context}
+      />
+    );
+  }
+
+  if (embedLoading) {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 64px)", background: "#FFFBF5" }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#B8956A" }} />
+      </div>
+    );
+  }
 
   const sidebarItems = [
     { id: "jobs", label: "Jobs", icon: Briefcase },

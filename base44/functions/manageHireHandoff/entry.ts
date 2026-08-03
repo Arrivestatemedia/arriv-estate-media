@@ -5,6 +5,10 @@
 // and maintains the cross-system linking IDs.
 //
 // Also exposes the centralized Ask Khetha service with Estate Media context.
+//
+// The core handoff execution logic (creating/linking worker records) is
+// extracted to executeHandoff in hireHandoffShared.ts, shared with
+// receiveKhethaIQHireEvent (the webhook from the main KhethaIQ app).
 
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import {
@@ -12,6 +16,7 @@ import {
   generateHandoffId,
   resolveTargetRole,
   buildAskKhethaContext,
+  executeHandoff,
 } from "../../shared/hireHandoffShared.ts";
 
 // ---------------------------------------------------------------------------
@@ -58,200 +63,18 @@ async function handleProcessHire(base44, body, user) {
     handoff_status: "in_progress",
   });
 
-  try {
-    if (targetRole === "media_specialist") {
-      return await handoffMediaSpecialist(base44, candidate, job, sharedPersonId, handoffId);
-    } else if (targetRole === "sales_growth_advisor") {
-      return await handoffSalesRep(base44, candidate, job, sharedPersonId, handoffId);
-    } else {
-      // "other" — just mark as completed with no worker record
-      await base44.asServiceRole.entities.HireCandidate.update(candidateId, {
-        handoff_status: "completed",
-        handoff_completed_at: new Date().toISOString(),
-      });
-      return Response.json({
-        success: true,
-        handoff_id: handoffId,
-        target_role: targetRole,
-        status: "completed",
-        already_existed: false,
-      });
-    }
-  } catch (err) {
-    await base44.asServiceRole.entities.HireCandidate.update(candidateId, {
-      handoff_status: "failed",
-      handoff_error: err.message,
-    });
-    return Response.json({ error: err.message, handoff_id: handoffId }, { status: 500 });
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Media Specialist handoff: link or invite a User with user_type "media_partner"
-// ---------------------------------------------------------------------------
-
-async function handoffMediaSpecialist(base44, candidate, job, sharedPersonId, handoffId) {
-  const email = (candidate.email || "").toLowerCase().trim();
-  if (!email) {
-    throw new Error("Candidate email is required for media specialist handoff");
-  }
-
-  // Check for an existing User with this email
-  let existingUser = null;
-  try {
-    const users = await base44.asServiceRole.entities.User.filter({ email });
-    if (users && users.length > 0) {
-      existingUser = users[0];
-    }
-  } catch (_) {}
-
-  if (existingUser) {
-    // Link to existing user
-    await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
-      estate_media_specialist_id: existingUser.id,
-      shared_person_id: sharedPersonId,
-      handoff_id: handoffId,
-      handoff_status: "completed",
-      handoff_completed_at: new Date().toISOString(),
-    });
-
-    // Update the linked JobApplication if one exists
-    await linkJobApplication(base44, candidate, sharedPersonId);
-
-    return Response.json({
-      success: true,
-      already_existed: true,
-      handoff_id: handoffId,
-      target_role: "media_specialist",
-      estate_media_specialist_id: existingUser.id,
-      status: "completed",
-    });
-  }
-
-  // No existing user — invite them
-  try {
-    await base44.asServiceRole.users.inviteUser(email, "user");
-  } catch (err) {
-    // If invite fails (e.g. already invited), continue — the admin can resend
-    console.warn("inviteUser failed:", err.message);
-  }
-
-  await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
-    shared_person_id: sharedPersonId,
-    handoff_id: handoffId,
-    handoff_status: "invited",
-    handoff_completed_at: new Date().toISOString(),
+  const result = await executeHandoff(base44, {
+    candidateId,
+    email: candidate.email,
+    name: candidate.name,
+    phone: candidate.phone,
+    targetRole,
+    sharedPersonId,
+    handoffId,
+    jobTitle: job?.title,
   });
 
-  await linkJobApplication(base44, candidate, sharedPersonId);
-
-  return Response.json({
-    success: true,
-    already_existed: false,
-    handoff_id: handoffId,
-    target_role: "media_specialist",
-    status: "invited",
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Sales Rep handoff: create or link a SalesTeamMember
-// ---------------------------------------------------------------------------
-
-async function handoffSalesRep(base44, candidate, job, sharedPersonId, handoffId) {
-  const email = (candidate.email || "").toLowerCase().trim();
-  if (!email) {
-    throw new Error("Candidate email is required for sales rep handoff");
-  }
-
-  // Check for an existing SalesTeamMember with this email
-  let existingRep = null;
-  try {
-    const reps = await base44.asServiceRole.entities.SalesTeamMember.filter({ email });
-    if (reps && reps.length > 0) {
-      existingRep = reps[0];
-    }
-  } catch (_) {}
-
-  if (existingRep) {
-    // Link to existing rep
-    await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
-      estate_employee_id: existingRep.id,
-      shared_person_id: sharedPersonId,
-      handoff_id: handoffId,
-      handoff_status: "completed",
-      handoff_completed_at: new Date().toISOString(),
-    });
-
-    await linkJobApplication(base44, candidate, sharedPersonId);
-
-    return Response.json({
-      success: true,
-      already_existed: true,
-      handoff_id: handoffId,
-      target_role: "sales_growth_advisor",
-      estate_employee_id: existingRep.id,
-      status: "completed",
-    });
-  }
-
-  // Create a new SalesTeamMember (pending offer, not yet active)
-  const newRep = await base44.asServiceRole.entities.SalesTeamMember.create({
-    email,
-    full_name: candidate.name || "",
-    phone_number: candidate.phone || "",
-    title: job?.title || "Sales Growth Advisor",
-    department: "Sales",
-    role: "user",
-    is_active: false,
-    force_password_change: true,
-    employment_status: "pending_offer",
-    employment_classification: "contractor",
-    compensation_type: "commission_only",
-    shared_person_id: sharedPersonId,
-  });
-  const repRec = newRep?.data ?? newRep;
-
-  await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
-    estate_employee_id: repRec.id,
-    shared_person_id: sharedPersonId,
-    handoff_id: handoffId,
-    handoff_status: "completed",
-    handoff_completed_at: new Date().toISOString(),
-  });
-
-  await linkJobApplication(base44, candidate, sharedPersonId);
-
-  return Response.json({
-    success: true,
-    already_existed: false,
-    handoff_id: handoffId,
-    target_role: "sales_growth_advisor",
-    estate_employee_id: repRec.id,
-    status: "completed",
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Link the JobApplication (if any) to the candidate with shared_person_id
-// ---------------------------------------------------------------------------
-
-async function linkJobApplication(base44, candidate, sharedPersonId) {
-  if (!candidate.email) return;
-  try {
-    const apps = await base44.asServiceRole.entities.JobApplication.filter({ email: candidate.email });
-    if (apps && apps.length > 0) {
-      for (const app of apps) {
-        if (!app.hire_candidate_id || !app.shared_person_id) {
-          await base44.asServiceRole.entities.JobApplication.update(app.id, {
-            hire_candidate_id: candidate.id,
-            shared_person_id: sharedPersonId,
-            status: "hired",
-          });
-        }
-      }
-    }
-  } catch (_) {}
+  return Response.json(result, { status: result.success ? 200 : 500 });
 }
 
 // ---------------------------------------------------------------------------
@@ -329,7 +152,24 @@ async function handleLinkExisting(base44, body, user) {
   }
 
   await base44.asServiceRole.entities.HireCandidate.update(candidateId, updateData);
-  await linkJobApplication(base44, candidate, sharedPersonId);
+
+  // Link any JobApplication records
+  if (candidate.email) {
+    try {
+      const apps = await base44.asServiceRole.entities.JobApplication.filter({ email: candidate.email });
+      if (apps && apps.length > 0) {
+        for (const app of apps) {
+          if (!app.hire_candidate_id || !app.shared_person_id) {
+            await base44.asServiceRole.entities.JobApplication.update(app.id, {
+              hire_candidate_id: candidateId,
+              shared_person_id: sharedPersonId,
+              status: "hired",
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
 
   return Response.json({ success: true, handoff_id: handoffId });
 }

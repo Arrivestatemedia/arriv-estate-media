@@ -122,3 +122,220 @@ export function buildAskKhethaContext(params: {
 
   return lines.join("\n");
 }
+
+// ---------------------------------------------------------------------------
+// executeHandoff: Creates or links the Estate Media worker record for a
+// hired candidate. Used by both manageHireHandoff (local KhethaIQ) and
+// receiveKhethaIQHireEvent (webhook from the main KhethaIQ app).
+// ---------------------------------------------------------------------------
+
+export interface HandoffExecutionResult {
+  success: boolean;
+  handoff_id: string;
+  target_role: TargetRole;
+  estate_media_specialist_id?: string;
+  estate_employee_id?: string;
+  status: "invited" | "completed" | "failed";
+  already_existed: boolean;
+  error?: string;
+}
+
+async function linkJobApplicationByEmail(
+  base44,
+  email: string,
+  candidateId: string,
+  sharedPersonId: string
+): Promise<void> {
+  if (!email) return;
+  try {
+    const apps = await base44.asServiceRole.entities.JobApplication.filter({ email });
+    if (apps && apps.length > 0) {
+      for (const app of apps) {
+        if (!app.hire_candidate_id || !app.shared_person_id) {
+          await base44.asServiceRole.entities.JobApplication.update(app.id, {
+            hire_candidate_id: candidateId,
+            shared_person_id: sharedPersonId,
+            status: "hired",
+          });
+        }
+      }
+    }
+  } catch (_) {}
+}
+
+export async function executeHandoff(base44, params: {
+  candidateId?: string;
+  email: string;
+  name: string;
+  phone?: string;
+  targetRole: TargetRole;
+  sharedPersonId: string;
+  handoffId: string;
+  jobTitle?: string;
+}): Promise<HandoffExecutionResult> {
+  const { candidateId, email, name, phone, targetRole, sharedPersonId, handoffId, jobTitle } = params;
+  const normalizedEmail = (email || "").toLowerCase().trim();
+
+  if (!normalizedEmail) {
+    return {
+      success: false,
+      handoff_id: handoffId,
+      target_role: targetRole,
+      status: "failed",
+      already_existed: false,
+      error: "Candidate email is required for handoff",
+    };
+  }
+
+  try {
+    // --- Media Specialist: link or invite a User with user_type media_partner ---
+    if (targetRole === "media_specialist") {
+      let existingUser = null;
+      try {
+        const users = await base44.asServiceRole.entities.User.filter({ email: normalizedEmail });
+        if (users && users.length > 0) existingUser = users[0];
+      } catch (_) {}
+
+      if (existingUser) {
+        if (candidateId) {
+          await base44.asServiceRole.entities.HireCandidate.update(candidateId, {
+            estate_media_specialist_id: existingUser.id,
+            shared_person_id: sharedPersonId,
+            handoff_id: handoffId,
+            handoff_status: "completed",
+            handoff_completed_at: new Date().toISOString(),
+          });
+        }
+        await linkJobApplicationByEmail(base44, normalizedEmail, candidateId, sharedPersonId);
+        return {
+          success: true,
+          already_existed: true,
+          handoff_id: handoffId,
+          target_role: "media_specialist",
+          estate_media_specialist_id: existingUser.id,
+          status: "completed",
+        };
+      }
+
+      try {
+        await base44.asServiceRole.users.inviteUser(normalizedEmail, "user");
+      } catch (err) {
+        console.warn("inviteUser failed:", err.message);
+      }
+
+      if (candidateId) {
+        await base44.asServiceRole.entities.HireCandidate.update(candidateId, {
+          shared_person_id: sharedPersonId,
+          handoff_id: handoffId,
+          handoff_status: "invited",
+          handoff_completed_at: new Date().toISOString(),
+        });
+      }
+      await linkJobApplicationByEmail(base44, normalizedEmail, candidateId, sharedPersonId);
+
+      return {
+        success: true,
+        already_existed: false,
+        handoff_id: handoffId,
+        target_role: "media_specialist",
+        status: "invited",
+      };
+    }
+
+    // --- Sales Rep: create or link a SalesTeamMember ---
+    if (targetRole === "sales_growth_advisor") {
+      let existingRep = null;
+      try {
+        const reps = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: normalizedEmail });
+        if (reps && reps.length > 0) existingRep = reps[0];
+      } catch (_) {}
+
+      if (existingRep) {
+        if (candidateId) {
+          await base44.asServiceRole.entities.HireCandidate.update(candidateId, {
+            estate_employee_id: existingRep.id,
+            shared_person_id: sharedPersonId,
+            handoff_id: handoffId,
+            handoff_status: "completed",
+            handoff_completed_at: new Date().toISOString(),
+          });
+        }
+        await linkJobApplicationByEmail(base44, normalizedEmail, candidateId, sharedPersonId);
+        return {
+          success: true,
+          already_existed: true,
+          handoff_id: handoffId,
+          target_role: "sales_growth_advisor",
+          estate_employee_id: existingRep.id,
+          status: "completed",
+        };
+      }
+
+      const newRep = await base44.asServiceRole.entities.SalesTeamMember.create({
+        email: normalizedEmail,
+        full_name: name || "",
+        phone_number: phone || "",
+        title: jobTitle || "Sales Growth Advisor",
+        department: "Sales",
+        role: "user",
+        is_active: false,
+        force_password_change: true,
+        employment_status: "pending_offer",
+        employment_classification: "contractor",
+        compensation_type: "commission_only",
+        shared_person_id: sharedPersonId,
+      });
+      const repRec = newRep?.data ?? newRep;
+
+      if (candidateId) {
+        await base44.asServiceRole.entities.HireCandidate.update(candidateId, {
+          estate_employee_id: repRec.id,
+          shared_person_id: sharedPersonId,
+          handoff_id: handoffId,
+          handoff_status: "completed",
+          handoff_completed_at: new Date().toISOString(),
+        });
+      }
+      await linkJobApplicationByEmail(base44, normalizedEmail, candidateId, sharedPersonId);
+
+      return {
+        success: true,
+        already_existed: false,
+        handoff_id: handoffId,
+        target_role: "sales_growth_advisor",
+        estate_employee_id: repRec.id,
+        status: "completed",
+      };
+    }
+
+    // --- "other" — just mark completed with no worker record ---
+    if (candidateId) {
+      await base44.asServiceRole.entities.HireCandidate.update(candidateId, {
+        handoff_status: "completed",
+        handoff_completed_at: new Date().toISOString(),
+      });
+    }
+    return {
+      success: true,
+      handoff_id: handoffId,
+      target_role: targetRole,
+      status: "completed",
+      already_existed: false,
+    };
+  } catch (err) {
+    if (candidateId) {
+      await base44.asServiceRole.entities.HireCandidate.update(candidateId, {
+        handoff_status: "failed",
+        handoff_error: err.message,
+      }).catch(() => {});
+    }
+    return {
+      success: false,
+      handoff_id: handoffId,
+      target_role: targetRole,
+      status: "failed",
+      already_existed: false,
+      error: err.message,
+    };
+  }
+}
