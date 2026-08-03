@@ -17,8 +17,11 @@ import ApplicationsPanel from "@/components/hireiq/ApplicationsPanel";
 import ApplicantPortalPanel from "@/components/hireiq/ApplicantPortalPanel";
 import AnalyticsPanel from "@/components/hireiq/analytics/AnalyticsPanel";
 import RecruitingPanel from "@/components/recruiting/RecruitingPanel";
+import RecruitingAssistantHome from "@/components/recruiting/RecruitingAssistantHome";
+import TalentPipelinesView from "@/components/recruiting/TalentPipelinesView";
+import PipelineMapView from "@/components/recruiting/PipelineMapView";
+import RecruitingTasksView from "@/components/recruiting/RecruitingTasksView";
 import AskKhethaChat from "@/components/khethaiq/AskKhethaChat";
-import DashboardView from "@/components/khethaiq/DashboardView";
 import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
 
 // Map manifest icon names to lucide-react components.
@@ -181,9 +184,6 @@ export default function KhethaIQ() {
 
   const manifestLogo = manifest?.logo_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png";
 
-  // Tabs that route to the RecruitingPanel (talent sourcing features)
-  const recruitingTabs = ["search", "pools", "pipeline", "tasks"];
-
   // Detail views (full-width, no sidebar) — match central app behavior
   if (selectedCandidate) {
     return (
@@ -263,9 +263,23 @@ export default function KhethaIQ() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           {activeView === "dashboard" ? (
-            <DashboardView onSelectJob={handleSelectJob} onNavigate={setActiveView} />
+            <RecruitingAssistantHome onStartSearch={() => setActiveView("search")} />
           ) : activeView === "ask" ? (
-            <AskKhethaChat candidate={selectedCandidate} job={selectedJob} />
+            <AskKhethaChat />
+          ) : activeView === "search" ? (
+            <RecruitingAssistantHome onStartSearch={() => setActiveView("search")} />
+          ) : activeView === "pools" ? (
+            <TalentPipelinesView />
+          ) : activeView === "pipeline" ? (
+            <PipelineMapView />
+          ) : activeView === "tasks" ? (
+            <RecruitingTasksView />
+          ) : activeView === "candidates" ? (
+            <CandidatesView onSelectCandidate={handleSelectCandidate} />
+          ) : activeView === "interviews" ? (
+            <InterviewsView onSelectCandidate={handleSelectCandidate} />
+          ) : activeView === "offers" ? (
+            <OffersView onSelectCandidate={handleSelectCandidate} />
           ) : activeView === "applications" ? (
             <ApplicationsPanel />
           ) : activeView === "portal" ? (
@@ -276,14 +290,6 @@ export default function KhethaIQ() {
             <AnalyticsPanel />
           ) : activeView === "learning" ? (
             <LearningPanel />
-          ) : recruitingTabs.includes(activeView) ? (
-            <RecruitingPanel />
-          ) : activeView === "candidates" ? (
-            <CandidatesView onSelectCandidate={handleSelectCandidate} />
-          ) : activeView === "interviews" ? (
-            <InterviewsView onSelectCandidate={handleSelectCandidate} />
-          ) : activeView === "offers" ? (
-            <OffersView onSelectCandidate={handleSelectCandidate} />
           ) : activeView === "jobs" ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
