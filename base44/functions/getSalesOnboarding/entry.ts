@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { verifyAndGet } from "../../shared/salesOnboardingShared.ts";
+import { verifyAndGet, computeStep } from "../../shared/salesOnboardingShared.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -23,6 +23,14 @@ Deno.serve(async (req) => {
         email: app.email,
         current_step: 1,
       });
+    }
+
+    // Always recompute current_step from the actual completion flags so the
+    // wizard resumes at the correct step even if the stored value is stale.
+    const correctStep = computeStep(onboarding);
+    if (onboarding.current_step !== correctStep) {
+      await base44.asServiceRole.entities.SalesOnboarding.update(onboarding.id, { current_step: correctStep });
+      onboarding.current_step = correctStep;
     }
 
     // Best-effort: attach admin-configured welcome video URL
