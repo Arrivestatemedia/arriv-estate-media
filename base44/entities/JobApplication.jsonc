@@ -96,6 +96,14 @@
       "type": "string",
       "description": "HireJob ID this application is for (if created from a Khetha IQ job posting)"
     },
+    "hire_candidate_id": {
+      "type": "string",
+      "description": "KhethaIQ HireCandidate ID this application was synced to"
+    },
+    "shared_person_id": {
+      "type": "string",
+      "description": "Cross-system person identifier linking this application to KhethaIQ and Estate Media records"
+    },
     "status": {
       "type": "string",
       "enum": [

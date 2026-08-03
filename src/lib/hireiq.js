@@ -316,11 +316,14 @@ export async function syncApplicationsToKhethaIQ() {
     const exists = Array.isArray(existingCands) && existingCands.some(c => c.email === app.email);
     if (exists) continue;
 
-    await base44.entities.HireCandidate.create({
+    const sharedPersonId = `sp_${(app.email || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "")}`;
+    const candRes = await base44.entities.HireCandidate.create({
       job_id: app.job_id,
       name: app.full_name,
       email: app.email,
       phone: app.phone,
+      target_role: app.position || "media_specialist",
+      shared_person_id: sharedPersonId,
       resume_text: [
         `Name: ${app.full_name}`,
         `Email: ${app.email}`,
@@ -336,6 +339,14 @@ export async function syncApplicationsToKhethaIQ() {
       decision: "pending",
       documents: (app.documents || []).map(url => ({ url, type: "application_document" })),
     });
+    const newCand = candRes?.data ?? candRes;
+    // Link the application back to the candidate
+    if (newCand?.id) {
+      await base44.entities.JobApplication.update(app.id, {
+        hire_candidate_id: newCand.id,
+        shared_person_id: sharedPersonId,
+      }).catch(() => {});
+    }
     newCandidates++;
   }
 
@@ -396,17 +407,27 @@ export async function syncApplicationsToKhethaIQ() {
         app.documents?.length ? `Documents: ${app.documents.join(", ")}` : "",
       ].filter(Boolean).join("\n");
 
-      await base44.entities.HireCandidate.create({
+      const sharedPersonId = `sp_${(app.email || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "")}`;
+      const candRes = await base44.entities.HireCandidate.create({
         job_id: job.id,
         name: app.full_name,
         email: app.email,
         phone: app.phone,
+        target_role: position,
+        shared_person_id: sharedPersonId,
         resume_text: resumeText,
         cover_letter: app.why_good_fit || "",
         status: "applied",
         decision: "pending",
         documents: (app.documents || []).map(url => ({ url, type: "application_document" })),
       });
+      const newCand = candRes?.data ?? candRes;
+      if (newCand?.id) {
+        await base44.entities.JobApplication.update(app.id, {
+          hire_candidate_id: newCand.id,
+          shared_person_id: sharedPersonId,
+        }).catch(() => {});
+      }
       newCandidates++;
     }
   }

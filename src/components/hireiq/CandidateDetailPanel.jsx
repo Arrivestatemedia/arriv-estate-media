@@ -7,6 +7,8 @@ import EvaluationDisplay from "@/components/hireiq/EvaluationDisplay";
 import ScorecardEditor from "@/components/hireiq/ScorecardEditor";
 import OcrScorecardUpload from "@/components/hireiq/OcrScorecardUpload";
 import PerformanceTracker from "@/components/hireiq/PerformanceTracker";
+import HireHandoffSection from "@/components/hireiq/HireHandoffSection";
+import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
 import { evaluateCandidate, analyzeInterview } from "@/lib/hireiq";
 
 const CREAM = "#FFFBF5";
@@ -216,6 +218,12 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
             </div>
             {candidate?.decision !== "pending" && candidate?.decision && <p className="text-xs mt-2" style={{ color: MUTED_LIGHT }}>Current decision: <span className="font-semibold capitalize" style={{ color: CREAM }}>{candidate.decision.replace(/_/g, " ")}</span></p>}
           </div>
+
+          {/* Estate Media Handoff */}
+          <HireHandoffSection candidate={candidate} job={job} onCandidateUpdated={onCandidateUpdated} />
+
+          {/* Ask Khetha */}
+          <AskKhethaPanel candidate={candidate} job={job} />
         </div>
       </div>
 

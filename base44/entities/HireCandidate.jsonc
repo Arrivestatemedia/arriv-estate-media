@@ -94,6 +94,52 @@
     "round2_scorecard": {
       "type": "object",
       "description": "Submitted Round 2 role-specific scorecard results for this candidate"
+    },
+    "target_role": {
+      "type": "string",
+      "enum": [
+        "media_specialist",
+        "sales_growth_advisor",
+        "other"
+      ],
+      "description": "Which Estate Media role this candidate is being recruited for"
+    },
+    "shared_person_id": {
+      "type": "string",
+      "description": "Cross-system person identifier linking KhethaIQ candidate to Estate Media worker"
+    },
+    "estate_media_specialist_id": {
+      "type": "string",
+      "description": "Estate Media User ID (media_partner) created/linked after hire"
+    },
+    "estate_employee_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID created/linked after hire (for sales roles)"
+    },
+    "handoff_id": {
+      "type": "string",
+      "description": "Unique handoff record identifier"
+    },
+    "handoff_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "invited",
+        "completed",
+        "failed"
+      ],
+      "default": "not_started",
+      "description": "Status of the KhethaIQ \u2192 Estate Media handoff"
+    },
+    "handoff_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the handoff to Estate Media was completed"
+    },
+    "handoff_error": {
+      "type": "string",
+      "description": "Last handoff error, if any"
     }
   },
   "required": [
