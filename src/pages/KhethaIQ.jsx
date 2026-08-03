@@ -17,7 +17,8 @@ import ApplicationsPanel from "@/components/hireiq/ApplicationsPanel";
 import ApplicantPortalPanel from "@/components/hireiq/ApplicantPortalPanel";
 import AnalyticsPanel from "@/components/hireiq/analytics/AnalyticsPanel";
 import RecruitingPanel from "@/components/recruiting/RecruitingPanel";
-import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
+import AskKhethaChat from "@/components/khethaiq/AskKhethaChat";
+import DashboardView from "@/components/khethaiq/DashboardView";
 import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
 
 // Map manifest icon names to lucide-react components.
@@ -261,7 +262,11 @@ export default function KhethaIQ() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {activeView === "applications" ? (
+          {activeView === "dashboard" ? (
+            <DashboardView onSelectJob={handleSelectJob} onNavigate={setActiveView} />
+          ) : activeView === "ask" ? (
+            <AskKhethaChat candidate={selectedCandidate} job={selectedJob} />
+          ) : activeView === "applications" ? (
             <ApplicationsPanel />
           ) : activeView === "portal" ? (
             <div className="max-w-2xl mx-auto">
@@ -273,17 +278,13 @@ export default function KhethaIQ() {
             <LearningPanel />
           ) : recruitingTabs.includes(activeView) ? (
             <RecruitingPanel />
-          ) : activeView === "ask" ? (
-            <div className="max-w-3xl mx-auto">
-              <AskKhethaPanel candidate={selectedCandidate} job={selectedJob} />
-            </div>
           ) : activeView === "candidates" ? (
             <CandidatesView onSelectCandidate={handleSelectCandidate} />
           ) : activeView === "interviews" ? (
-            <InterviewsView />
+            <InterviewsView onSelectCandidate={handleSelectCandidate} />
           ) : activeView === "offers" ? (
-            <OffersView />
-          ) : activeView === "dashboard" || activeView === "jobs" ? (
+            <OffersView onSelectCandidate={handleSelectCandidate} />
+          ) : activeView === "jobs" ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>

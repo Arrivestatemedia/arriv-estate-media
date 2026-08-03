@@ -189,6 +189,8 @@ async function handleAskKhetha(base44, body, user) {
   let job = null;
   let application = null;
   let interviews = [];
+  let allJobs = [];
+  let recentCandidates = [];
 
   if (candidateId) {
     try {
@@ -213,7 +215,46 @@ async function handleAskKhetha(base44, body, user) {
     try { job = await base44.asServiceRole.entities.HireJob.get(jobId); } catch (_) {}
   }
 
-  const context = buildAskKhethaContext({ candidate, job, application, interviews });
+  // For general questions (no specific candidate/job), load pipeline-wide context
+  if (!candidate && !job) {
+    try {
+      const jobsRes = await base44.asServiceRole.entities.HireJob.list("-created_date", 20);
+      allJobs = (jobsRes?.data ?? jobsRes ?? []).map(j => ({
+        title: j.title, department: j.department, status: j.status,
+        skills: j.skills, experience_requirements: j.experience_requirements,
+        compensation: j.compensation,
+      }));
+    } catch (_) {}
+    try {
+      const candRes = await base44.asServiceRole.entities.HireCandidate.list("-created_date", 30);
+      recentCandidates = (candRes?.data ?? candRes ?? []).map(c => ({
+        name: c.name, status: c.status, target_role: c.target_role,
+        decision: c.decision, source: c.source,
+      }));
+    } catch (_) {}
+  }
+
+  let context = buildAskKhethaContext({ candidate, job, application, interviews });
+
+  // Append pipeline-wide context for general questions
+  if (!candidate && !job) {
+    if (allJobs.length > 0) {
+      context += "\n=== ALL OPEN JOBS ===\n";
+      for (const j of allJobs) {
+        let line = "- " + (j.title || "N/A") + " (" + (j.department || "N/A") + ") — Status: " + (j.status || "N/A");
+        if (j.skills && j.skills.length > 0) line += " | Skills: " + j.skills.join(", ");
+        if (j.experience_requirements) line += " | Exp: " + j.experience_requirements;
+        context += line + "\n";
+      }
+    }
+    if (recentCandidates.length > 0) {
+      context += "\n=== RECENT CANDIDATES (last 30) ===\n";
+      for (const c of recentCandidates) {
+        context += "- " + (c.name || "N/A") + " — Status: " + (c.status || "N/A") + ", Role: " + (c.target_role || "N/A") + ", Decision: " + (c.decision || "pending") + "\n";
+      }
+      context += "\nTotal candidates in pipeline: " + recentCandidates.length + "\n";
+    }
+  }
 
   const prompt = `You are Khetha IQ, the centralized AI recruiting assistant for Arriv Estate Media. You help hiring managers make better recruiting decisions by analyzing candidate data, job requirements, and Estate Media context.
 
