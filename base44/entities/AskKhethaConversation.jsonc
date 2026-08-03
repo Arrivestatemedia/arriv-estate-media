@@ -1,0 +1,92 @@
+{
+  "name": "AskKhethaConversation",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "Unique conversation identifier"
+    },
+    "title": {
+      "type": "string",
+      "description": "Conversation title (derived from first message)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User ID who owns this conversation"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "User email (denormalized for RLS)"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "Conversation messages"
+    },
+    "created_from": {
+      "type": "string",
+      "enum": [
+        "arriv_one",
+        "standalone"
+      ],
+      "default": "standalone",
+      "description": "Where the conversation was created from"
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last message was sent"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "title",
+    "user_id"
+  ],
+  "rls": {
+    "read": {
+      "data.user_email": "{{user.email}}"
+    },
+    "create": {
+      "data.user_email": "{{user.email}}"
+    },
+    "update": {
+      "data.user_email": "{{user.email}}"
+    },
+    "delete": {
+      "data.user_email": "{{user.email}}"
+    }
+  }
+}

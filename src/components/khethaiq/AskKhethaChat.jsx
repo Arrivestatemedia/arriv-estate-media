@@ -1,223 +1,281 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Loader2, User, RotateCcw } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import ReactMarkdown from "react-markdown";
+import { Sparkles, MessageSquarePlus, LoaderCircle, User, Bot, ArrowLeft, Send, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const CREAM = "#FFFBF5";
+// Estate Media color palette (replaces central app's green)
+const DARK = "#1A1A1A";
 const GOLD = "#B8956A";
-const TEXT_DARK = "#1A1A1A";
-const MUTED_DARK = "rgba(26,26,26,0.45)";
-const MUTED_LIGHT = "rgba(255,251,245,0.5)";
+const GOLD_DARK = "#A68559";
+const CREAM = "#FFFBF5";
+const WHITE = "#FFFFFF";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 
-const card = {
-  backgroundColor: "#1A1A1A",
-  border: "1px solid rgba(184,149,106,0.2)",
-  borderRadius: "14px",
-  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-};
-
-const SUGGESTED_PROMPTS = [
-  { icon: "📊", text: "Give me an overview of our hiring pipeline" },
-  { icon: "🎯", text: "What are the key requirements for the Media Specialist role?" },
-  { icon: "👤", text: "Who are our top candidates right now?" },
-  { icon: "💡", text: "What interview questions should I ask to assess fit?" },
-  { icon: "📈", text: "How can I improve our time-to-hire?" },
-  { icon: "🔍", text: "What skills should I look for in a Sales Growth Advisor?" },
-];
-
-export default function AskKhethaChat({ candidate, job }) {
-  const [messages, setMessages] = useState([]);
+export default function AskKhethaChat() {
+  const [conversations, setConversations] = useState([]);
+  const [activeConv, setActiveConv] = useState(null);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const scrollRef = useRef(null);
-  const inputRef = useRef(null);
+  const [loadingConv, setLoadingConv] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+  const messagesEndRef = useRef(null);
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, loading]);
-
-  // If a candidate/job is passed in, seed an initial context message
-  useEffect(() => {
-    if (candidate?.name) {
-      setMessages([{
-        role: "system",
-        content: `Context loaded: **${candidate.name}** (Status: ${candidate.status || "applied"}). Ask any question about this candidate.`,
-      }]);
-    } else if (job?.title) {
-      setMessages([{
-        role: "system",
-        content: `Context loaded: **${job.title}** job opening. Ask any question about this role.`,
-      }]);
-    }
-  }, [candidate, job]);
-
-  const handleSend = async (text) => {
-    const query = (text || input).trim();
-    if (!query || loading) return;
-
-    const userMsg = { role: "user", content: query };
-    setMessages(prev => [...prev, userMsg]);
-    setInput("");
-    setLoading(true);
-
+  const loadConversations = async () => {
+    setLoadingConv(true);
     try {
-      const res = await base44.functions.invoke("manageHireHandoff", {
-        action: "ask_khetha",
-        question: query,
-        candidateId: candidate?.id,
-        jobId: job?.id,
-      });
-      const answer = res?.data?.answer || res?.answer || "I couldn't process that question.";
-      setMessages(prev => [...prev, { role: "assistant", content: answer }]);
-    } catch (err) {
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: "Sorry, I encountered an error processing your question. Please try again.",
-      }]);
+      const res = await base44.functions.invoke("manageAskKhetha", { action: "list", data: {} });
+      const data = res?.data ?? res;
+      const convs = data?.conversations || [];
+      setConversations(convs);
+      if (convs.length && !activeConv) setActiveConv(convs[0]);
+    } catch (e) {
+      setError(e?.message || "Failed to load conversations");
+    } finally {
+      setLoadingConv(false);
     }
-    setLoading(false);
   };
 
-  const handleReset = () => {
-    setMessages(candidate?.name || job?.title ? messages.slice(0, 1) : []);
-    setInput("");
-    inputRef.current?.focus();
+  useEffect(() => { loadConversations(); }, []);
+  useEffect(() => {
+    if (messagesEndRef.current) messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+  }, [activeConv, sending]);
+
+  const selectConv = (conv) => { setActiveConv(conv); setError(null); };
+  const newConversation = () => { setActiveConv(null); setInput(""); setError(null); };
+
+  const sendMessage = async (msgText) => {
+    const text = (msgText || input).trim();
+    if (!text || sending) return;
+    setSending(true);
+    setError(null);
+    const convId = activeConv?.conversation_id || "";
+    try {
+      const res = await base44.functions.invoke("manageAskKhetha", {
+        action: "send",
+        data: { request: text, conversation_id: convId },
+      });
+      const data = res?.data ?? res;
+      if (data?.conversation) {
+        setActiveConv(data.conversation);
+        await loadConversations();
+      }
+      setInput("");
+    } catch (e) {
+      setError(e?.message || "Failed to get a response");
+    } finally {
+      setSending(false);
+    }
   };
 
-  const showSuggestions = messages.filter(m => m.role !== "system").length === 0;
+  const deleteConv = async (convId, e) => {
+    e.stopPropagation();
+    try {
+      await base44.functions.invoke("manageAskKhetha", { action: "delete", data: { conversation_id: convId } });
+      if (activeConv?.conversation_id === convId) setActiveConv(null);
+      await loadConversations();
+    } catch (e2) {}
+  };
+
+  const messages = activeConv?.messages || [];
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 8rem)", minHeight: "500px" }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "rgba(184,149,106,0.15)" }}>
-            <Sparkles className="w-5 h-5" style={{ color: GOLD }} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Ask Khetha</h1>
-            <p className="text-sm" style={{ color: MUTED_DARK }}>AI recruiting assistant with full Estate Media context</p>
-          </div>
-        </div>
-        {messages.length > 0 && (
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors"
-            style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK, backgroundColor: "#FFFFFF" }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = "rgba(184,149,106,0.08)"; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = "#FFFFFF"; }}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            New Chat
-          </button>
-        )}
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ ...SERIF, color: DARK }}>
+          <Sparkles className="w-6 h-6" style={{ color: GOLD }} /> Ask Khetha
+        </h1>
+        <p className="text-sm mt-1" style={{ color: "rgba(26,26,26,0.6)" }}>
+          Your AI recruiting assistant. Conversations are saved and shared with Arriv One.
+        </p>
       </div>
 
-      {/* Chat area */}
-      <div className="flex-1 flex flex-col" style={card}>
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4">
-          {messages.map((msg, i) => {
-            if (msg.role === "system") {
-              return (
-                <div key={i} className="flex justify-center">
-                  <div className="text-xs px-3 py-1.5 rounded-full" style={{ backgroundColor: "rgba(184,149,106,0.1)", color: GOLD }}>
-                    {msg.content}
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 h-[calc(100vh-16rem)] min-h-[420px]">
+        {/* Left sidebar - conversation list */}
+        <div className="bg-white border rounded-xl p-3 flex flex-col overflow-hidden" style={{ borderColor: "rgba(184,149,106,0.15)" }}>
+          <Button
+            onClick={newConversation}
+            variant="outline"
+            size="sm"
+            className="w-full mb-3 gap-1.5"
+            style={{ borderColor: "rgba(184,149,106,0.3)", color: DARK }}
+          >
+            <MessageSquarePlus className="w-4 h-4" /> New Conversation
+          </Button>
+          <div className="flex-1 overflow-y-auto space-y-1">
+            {loadingConv ? (
+              <div className="flex justify-center py-6">
+                <LoaderCircle className="w-5 h-5 animate-spin" style={{ color: "rgba(26,26,26,0.4)" }} />
+              </div>
+            ) : conversations.length === 0 ? (
+              <p className="text-xs text-center py-6" style={{ color: "rgba(26,26,26,0.5)" }}>
+                No conversations yet. Ask your first question.
+              </p>
+            ) : (
+              conversations.map((conv) => {
+                const isActive = activeConv?.conversation_id === conv.conversation_id;
+                return (
+                  <div key={conv.conversation_id} className="relative group">
+                    <button
+                      onClick={() => selectConv(conv)}
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors"
+                      style={{
+                        backgroundColor: isActive ? GOLD : "transparent",
+                        color: isActive ? WHITE : "rgba(26,26,26,0.8)",
+                      }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = "rgba(184,149,106,0.1)"; }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = "transparent"; }}
+                    >
+                      <div className="font-medium truncate" style={{ ...SERIF }}>{conv.title || "New conversation"}</div>
+                      <div className="text-xs truncate" style={{ color: isActive ? "rgba(255,255,255,0.7)" : "rgba(26,26,26,0.4)" }}>
+                        {conv.created_from === "arriv_one" ? "Arriv One" : "Standalone"}
+                        {conv.last_message_at ? ` · ${new Date(conv.last_message_at).toLocaleDateString()}` : ""}
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => deleteConv(conv.conversation_id, e)}
+                      className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+                      style={{ color: isActive ? WHITE : "rgba(26,26,26,0.4)" }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
-                </div>
-              );
-            }
-            const isUser = msg.role === "user";
-            return (
-              <div key={i} className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: isUser ? GOLD : "rgba(184,149,106,0.15)" }}>
-                  {isUser ? <User className="w-4 h-4" style={{ color: "#1A1A1A" }} /> : <Sparkles className="w-4 h-4" style={{ color: GOLD }} />}
-                </div>
-                <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${isUser ? "rounded-tr-sm" : "rounded-tl-sm"}`}
-                  style={{
-                    backgroundColor: isUser ? GOLD : "#2A2A2A",
-                    border: isUser ? "none" : "1px solid rgba(184,149,106,0.15)",
-                  }}>
-                  {isUser ? (
-                    <p className="text-sm whitespace-pre-wrap" style={{ color: "#1A1A1A", fontWeight: 500 }}>{msg.content}</p>
-                  ) : (
-                    <div className="text-sm prose-sm" style={{ color: CREAM }}>
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Typing indicator */}
-          {loading && (
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(184,149,106,0.15)" }}>
-                <Sparkles className="w-4 h-4" style={{ color: GOLD }} />
-              </div>
-              <div className="px-4 py-3 rounded-2xl rounded-tl-sm" style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.15)" }}>
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: GOLD, animationDelay: "0ms" }} />
-                  <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: GOLD, animationDelay: "150ms" }} />
-                  <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: GOLD, animationDelay: "300ms" }} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Suggested prompts (only when empty) */}
-          {showSuggestions && !loading && (
-            <div className="pt-2">
-              <p className="text-sm font-medium mb-3" style={{ color: MUTED_LIGHT }}>Try asking:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {SUGGESTED_PROMPTS.map((p, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSend(p.text)}
-                    className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-left text-sm transition-all hover:translate-y-[-1px]"
-                    style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.15)", color: CREAM }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(184,149,106,0.4)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(184,149,106,0.15)"; }}
-                  >
-                    <span className="text-base">{p.icon}</span>
-                    {p.text}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
 
-        {/* Input */}
-        <div className="p-4" style={{ borderTop: "1px solid rgba(184,149,106,0.15)" }}>
-          <div className="flex gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-              placeholder="Ask about candidates, roles, interview strategy, or anything recruiting..."
-              className="flex-1 px-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ backgroundColor: "#2A2A2A", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}
-              disabled={loading}
-            />
-            <button
-              onClick={() => handleSend()}
-              disabled={loading || !input.trim()}
-              className="px-5 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-opacity"
-              style={{ backgroundColor: GOLD, color: "#1A1A1A", border: "none", fontWeight: 600, opacity: (loading || !input.trim()) ? 0.5 : 1 }}
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Send
-            </button>
-          </div>
+        {/* Right - chat area */}
+        <div className="bg-white border rounded-xl flex flex-col overflow-hidden" style={{ borderColor: "rgba(184,149,106,0.15)" }}>
+          {activeConv ? (
+            <>
+              {/* Chat header */}
+              <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: "rgba(184,149,106,0.1)" }}>
+                <button onClick={newConversation} className="md:hidden p-1" style={{ color: "rgba(26,26,26,0.6)" }}>
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h3 className="font-semibold truncate" style={{ ...SERIF, color: DARK }}>
+                  {activeConv.title || "Conversation"}
+                </h3>
+              </div>
+
+              {/* Messages */}
+              <div ref={messagesEndRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: msg.role === "user" ? DARK : GOLD, color: WHITE }}
+                    >
+                      {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                    </div>
+                    <div className={`max-w-[80%] ${msg.role === "user" ? "items-end" : ""} flex flex-col`}>
+                      <div
+                        className="rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap"
+                        style={
+                          msg.role === "user"
+                            ? { backgroundColor: DARK, color: WHITE, borderRadius: "1rem 0.25rem 1rem 1rem" }
+                            : { backgroundColor: CREAM, color: DARK, borderRadius: "0.25rem 1rem 1rem 1rem" }
+                        }
+                      >
+                        {msg.content}
+                      </div>
+                      {msg.actions && msg.actions.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {msg.actions.map((action, j) => (
+                            <div
+                              key={j}
+                              className="text-xs rounded-lg px-2.5 py-1.5"
+                              style={{ color: "rgba(26,26,26,0.7)", backgroundColor: "rgba(184,149,106,0.1)" }}
+                            >
+                              <span className="font-medium uppercase" style={{ color: GOLD }}>{action.type}</span>
+                              {" · "}
+                              {action.description}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <span className="text-[10px] mt-1 px-1" style={{ color: "rgba(26,26,26,0.4)" }}>
+                        {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {sending && (
+                  <div className="flex gap-2.5">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: GOLD, color: WHITE }}>
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div className="rounded-2xl px-3.5 py-2.5" style={{ backgroundColor: CREAM, borderRadius: "0.25rem 1rem 1rem 1rem" }}>
+                      <LoaderCircle className="w-4 h-4 animate-spin" style={{ color: GOLD }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="p-3 border-t" style={{ borderColor: "rgba(184,149,106,0.1)" }}>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                    placeholder="Ask about candidates, jobs, recruiting strategy..."
+                    className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none transition-colors"
+                    style={{ borderColor: "rgba(184,149,106,0.2)" }}
+                    onFocus={e => e.target.style.borderColor = GOLD}
+                    onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+                    disabled={sending}
+                  />
+                  <Button
+                    onClick={() => sendMessage()}
+                    disabled={sending || !input.trim()}
+                    size="sm"
+                    className="px-3"
+                    style={{ backgroundColor: GOLD, color: WHITE }}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+                {error && <p className="text-xs mt-2" style={{ color: "#dc2626" }}>{error}</p>}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: "rgba(184,149,106,0.1)" }}>
+                <Sparkles className="w-7 h-7" style={{ color: GOLD }} />
+              </div>
+              <h3 className="text-lg font-semibold mb-1" style={{ ...SERIF, color: DARK }}>Ask Khetha</h3>
+              <p className="text-sm mb-4 max-w-sm" style={{ color: "rgba(26,26,26,0.6)" }}>
+                Your AI recruiting assistant. Ask about candidates, job postings, interview best practices, or recruiting strategy.
+              </p>
+              <div className="flex gap-2 w-full max-w-md">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  placeholder="Ask your first question..."
+                  className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none transition-colors"
+                  style={{ borderColor: "rgba(184,149,106,0.2)" }}
+                  onFocus={e => e.target.style.borderColor = GOLD}
+                  onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+                  disabled={sending}
+                />
+                <Button
+                  onClick={() => sendMessage()}
+                  disabled={sending || !input.trim()}
+                  size="sm"
+                  className="px-3"
+                  style={{ backgroundColor: GOLD, color: WHITE }}
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+              {error && <p className="text-xs mt-2" style={{ color: "#dc2626" }}>{error}</p>}
+            </div>
+          )}
         </div>
       </div>
     </div>
