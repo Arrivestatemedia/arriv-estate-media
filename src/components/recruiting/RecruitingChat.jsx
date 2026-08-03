@@ -1,119 +1,266 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, Search, MapPin, Users, Sparkles } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Sparkles, X, LoaderCircle, Send, Users } from "lucide-react";
 import { naturalLanguageSearch } from "@/lib/recruitingApi";
+import { base44 } from "@/api/base44Client";
 
-const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
-const MUTED = "rgba(26,26,26,0.5)";
+const CREAM = "#FFFBF5";
+const MUTED = "rgba(26,26,26,0.6)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 
+const RESEARCH_TIMEOUT_MS = 60000;
 const SUGGESTIONS = [
-  "Find real estate agents in this area who might want to transition to sales",
-  "Source sales professionals with 2-5 years of experience",
-  "Find people in real estate or property management looking for a career change",
-  "Find commission-driven salespeople near this zip code",
+  "Find candidates for this position.",
+  "Find 10 strong technology sales candidates in Atlanta.",
+  "Find people with CRM and payroll software experience.",
+  "Find real estate photographers with drone certification.",
 ];
 
-export default function RecruitingChat({ onProspectsFound, defaultZip }) {
-  const [input, setInput] = useState("");
-  const [zip, setZip] = useState(defaultZip || "");
-  const [radius, setRadius] = useState(25);
+export default function RecruitingChat({ onClose, initialJobId, onProspectFound, onRefresh, onReviewProspects, initialInput }) {
+  const [messages, setMessages] = useState([
+    { role: "assistant", text: "Hi! I'm Khetha, your Recruiting Assistant. Tell me what kind of talent you're looking for and I'll research the public market for potential candidates." },
+  ]);
+  const [input, setInput] = useState(initialInput || "");
+  const [zip, setZip] = useState("");
+  const [radius, setRadius] = useState("25");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [seconds, setSeconds] = useState(0);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [similarTo, setSimilarTo] = useState("");
+  const timerRef = useRef(null);
 
-  const handleSearch = async () => {
-    if (!zip.trim()) { setError("Zip code is required for local recruiting."); return; }
-    if (!input.trim()) { setError("Describe who you're looking for."); return; }
-    setError("");
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await base44.entities.SalesTeamMember.list("-created_date", 100);
+        const list = res?.data ?? res ?? [];
+        setTeamMembers(list.filter(m => m.is_active));
+      } catch {}
+    })();
+  }, []);
+
+  const handleSend = async () => {
+    const text = input;
+    if (!text.trim() || loading) return;
+    if (!zip.trim()) {
+      setMessages(prev => [...prev, { role: "assistant", text: "Please enter a zip code so I can find local candidates for you." }]);
+      return;
+    }
+
+    let query = text;
+    if (similarTo) {
+      const member = teamMembers.find(m => m.id === similarTo);
+      if (member) {
+        query = `${text} — find candidates similar to ${member.full_name}, who is a ${member.title || "sales rep"} in ${member.department || "Sales"}. Match their role, seniority, and skills.`;
+      }
+    }
+
+    const fullQuery = `${query} (local to ${zip}, within ${radius} mi)`;
+    setMessages(prev => [...prev, { role: "user", text: fullQuery }]);
+    setInput("");
     setLoading(true);
     setResult(null);
+    setSeconds(0);
+    timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Research is taking longer than expected. Try refining your search.")), 60000)
-      );
-      const searchPromise = naturalLanguageSearch({ input, zipCode: zip, radiusMiles: radius });
-      const data = await Promise.race([searchPromise, timeoutPromise]);
-      setResult(data);
-      if (onProspectsFound) onProspectsFound(data);
+      const data = await new Promise((resolve, reject) => {
+        let settled = false;
+        const timeout = setTimeout(() => {
+          if (!settled) { settled = true; reject(new Error("timeout")); }
+        }, RESEARCH_TIMEOUT_MS);
+        naturalLanguageSearch({ input: query, zipCode: zip, radiusMiles: parseInt(radius, 10), jobId: initialJobId })
+          .then(d => { if (!settled) { settled = true; clearTimeout(timeout); resolve(d); } })
+          .catch(e => { if (!settled) { settled = true; clearTimeout(timeout); reject(e); } });
+      });
+
+      let response = "";
+      if (data?.internal_matches?.length > 0) {
+        response = `I found ${data.internal_matches.length} existing match(es) in your database:\n` +
+          data.internal_matches.map(m => `• ${m.record?.full_name} — ${m.record?.current_title || ""} (${m.reason})`).join("\n");
+      }
+      if (data?.fresh_prospects?.length > 0) {
+        response += (response ? "\n\n" : "") +
+          `I also researched the public market and identified ${data.fresh_prospects.length} new prospect(s):\n` +
+          data.fresh_prospects.map(p => `• ${p.full_name} — ${p.current_title} at ${p.current_company} (${p.sourcing_match_score}% match)`).join("\n");
+      }
+      if (!response) {
+        const filtered = (data.seniority_filtered || 0) + (data.location_filtered || 0);
+        response = data.needs_fresh_research
+          ? `I researched but couldn't find strong public matches${filtered ? ` (${filtered} filtered out for seniority/location)` : ""}. Try refining your request — e.g. a specific location, title, or skill.`
+          : "I couldn't find matches. Try rephrasing your request.";
+      }
+
+      setMessages(prev => [...prev, { role: "assistant", text: response }]);
+      setResult({ internal: data.internal_matches || [], fresh: data.fresh_prospects || [], hasNew: (data.fresh_prospects?.length || 0) > 0 });
+      onRefresh?.();
     } catch (err) {
-      setError(err.message || "Search failed. Please try again.");
-    } finally {
-      setLoading(false);
+      const msg = err?.message === "timeout"
+        ? "I couldn't find new public prospects within the time limit. Try refining your request — e.g. a specific title, skill, or location."
+        : "Sorry, I ran into an issue researching that. Please try again.";
+      setMessages(prev => [...prev, { role: "assistant", text: msg }]);
     }
+    if (timerRef.current) clearInterval(timerRef.current);
+    setLoading(false);
+    setSeconds(0);
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="text-center mb-6">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3" style={{ backgroundColor: "rgba(184,149,106,0.1)" }}>
-          <Sparkles className="w-4 h-4" style={{ color: GOLD }} />
-          <span className="text-sm font-medium" style={{ color: GOLD }}>AI Talent Sourcing</span>
+    <div className="bg-white border rounded-xl overflow-hidden mb-4" style={{ borderColor: "rgba(184,149,106,0.3)" }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ backgroundColor: "rgba(184,149,106,0.05)", borderColor: "rgba(184,149,106,0.15)" }}>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: GOLD }}>
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: TEXT_DARK }}>Recruiting Assistant</p>
+            <p className="text-xs" style={{ color: MUTED }}>Researches public professional sources</p>
+          </div>
         </div>
-        <h2 className="text-2xl font-bold mb-1" style={{ ...SERIF, color: TEXT_DARK }}>Find your next great hire</h2>
-        <p className="text-sm" style={{ color: MUTED }}>Describe the person you're looking for. We'll search the web for real, public profiles near you.</p>
+        {onClose && (
+          <button onClick={onClose} style={{ color: "rgba(26,26,26,0.4)" }} className="hover:opacity-70">
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      <div className="p-5 rounded-xl mb-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.15)" }}>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="col-span-1">
-            <Label className="block text-xs font-medium mb-1" style={{ color: TEXT_DARK }}>Zip Code *</Label>
-            <div className="relative">
-              <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: GOLD }} />
-              <Input value={zip} onChange={(e) => setZip(e.target.value)} placeholder="30305" className="pl-8 bg-white text-[#1A1A1A]" />
+      {/* Chat messages */}
+      <div className="max-h-72 overflow-y-auto p-4 space-y-3">
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              className={`max-w-[85%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap ${m.role === "user" ? "text-white" : ""}`}
+              style={m.role === "user"
+                ? { backgroundColor: GOLD }
+                : { backgroundColor: CREAM, color: "rgba(26,26,26,0.8)" }
+              }
+            >
+              {m.text}
             </div>
           </div>
-          <div className="col-span-1">
-            <Label className="block text-xs font-medium mb-1" style={{ color: TEXT_DARK }}>Radius (mi)</Label>
-            <Input type="number" min="5" max="100" value={radius} onChange={(e) => setRadius(parseInt(e.target.value) || 25)} className="bg-white text-[#1A1A1A]" />
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="px-3 py-2 rounded-lg flex items-center gap-2" style={{ backgroundColor: CREAM }}>
+              <LoaderCircle className="w-4 h-4 animate-spin" style={{ color: GOLD }} />
+              <span className="text-xs" style={{ color: MUTED }}>
+                Researching the public market{seconds > 0 ? ` · ${seconds}s` : ""}…
+              </span>
+            </div>
           </div>
-          <div className="col-span-1 flex items-end">
-            <Button onClick={handleSearch} disabled={loading} className="w-full" style={{ backgroundColor: GOLD, color: "#1A1A1A", fontWeight: 600 }}>
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching...</> : <><Search className="w-4 h-4 mr-2" /> Search</>}
-            </Button>
+        )}
+        {result?.fresh?.length > 0 && (
+          <div className="space-y-1">
+            {result.fresh.map(p => (
+              <button
+                key={p.id}
+                onClick={() => onProspectFound?.(p.prospect_id)}
+                className="block w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors"
+                style={{ borderColor: "rgba(184,149,106,0.15)" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(184,149,106,0.4)"; e.currentTarget.style.backgroundColor = "rgba(184,149,106,0.05)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(184,149,106,0.15)"; e.currentTarget.style.backgroundColor = "transparent"; }}
+              >
+                <span className="font-medium" style={{ color: TEXT_DARK }}>{p.full_name}</span>{" "}
+                <span style={{ color: MUTED }}>— {p.current_title} at {p.current_company}</span>{" "}
+                <span className="font-medium" style={{ color: GOLD }}>{p.sourcing_match_score}%</span>
+              </button>
+            ))}
           </div>
-        </div>
+        )}
+        {result && onReviewProspects && (
+          <button
+            onClick={onReviewProspects}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+            style={{ backgroundColor: GOLD }}
+          >
+            <Users className="w-4 h-4" />
+            Review Prospects
+          </button>
+        )}
+      </div>
 
-        <Label className="block text-xs font-medium mb-1" style={{ color: TEXT_DARK }}>Describe who you're looking for</Label>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. Find real estate agents who might be interested in a sales career change"
-          rows={3}
-          className="w-full rounded-md p-3 text-sm bg-white text-[#1A1A1A] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#B8956A]"
-        />
-
-        <div className="mt-3 flex flex-wrap gap-2">
+      {/* Input area */}
+      <div className="border-t p-3" style={{ borderColor: "rgba(184,149,106,0.1)" }}>
+        {teamMembers.length > 0 && (
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs" style={{ color: MUTED }}>Find similar to:</span>
+            <select
+              value={similarTo}
+              onChange={e => setSimilarTo(e.target.value)}
+              className="text-xs px-2 py-1 border rounded-lg bg-white focus:outline-none"
+              style={{ borderColor: "rgba(184,149,106,0.15)" }}
+            >
+              <option value="">No reference</option>
+              {teamMembers.map(m => (
+                <option key={m.id} value={m.id}>{m.full_name} — {m.title || "Sales"}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-1 mb-2">
           {SUGGESTIONS.map((s, i) => (
-            <button key={i} onClick={() => setInput(s)} className="text-xs px-3 py-1.5 rounded-full transition-colors"
-              style={{ backgroundColor: "rgba(184,149,106,0.08)", color: GOLD, border: "1px solid rgba(184,149,106,0.15)" }}>
+            <button
+              key={i}
+              onClick={() => setInput(s)}
+              className="text-xs px-2 py-1 rounded-full transition-colors"
+              style={{ backgroundColor: CREAM, color: "rgba(26,26,26,0.7)" }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(184,149,106,0.15)"}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = CREAM}
+            >
               {s}
             </button>
           ))}
         </div>
-      </div>
-
-      {error && <div className="p-3 rounded-lg mb-4 text-sm" style={{ backgroundColor: "rgba(220,38,38,0.08)", color: "#DC2626", border: "1px solid rgba(220,38,38,0.2)" }}>{error}</div>}
-
-      {result && (
-        <div className="p-4 rounded-xl" style={{ backgroundColor: "#FFFBF5", border: "1px solid rgba(184,149,106,0.3)" }}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Search Results</h3>
-            <Button onClick={() => onProspectsFound && onProspectsFound(result)} size="sm" style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
-              <Users className="w-4 h-4 mr-1" /> Review Prospects
-            </Button>
-          </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div><p className="text-2xl font-bold" style={{ color: GOLD }}>{result.fresh_prospects?.length || 0}</p><p className="text-xs" style={{ color: MUTED }}>New Prospects</p></div>
-            <div><p className="text-2xl font-bold" style={{ color: MUTED }}>{result.seniority_filtered || 0}</p><p className="text-xs" style={{ color: MUTED }}>Seniority Filtered</p></div>
-            <div><p className="text-2xl font-bold" style={{ color: MUTED }}>{result.location_filtered || 0}</p><p className="text-xs" style={{ color: MUTED }}>Location Filtered</p></div>
-          </div>
+        <div className="flex gap-2 items-center">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSend()}
+            placeholder="Ask the Recruiting Assistant..."
+            className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none"
+            style={{ borderColor: "rgba(184,149,106,0.15)" }}
+          />
+          <input
+            value={zip}
+            onChange={e => setZip(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
+            onKeyDown={e => e.key === "Enter" && handleSend()}
+            placeholder="Zip *"
+            className="w-16 px-2 py-2 border rounded-lg text-sm focus:outline-none"
+            style={{ borderColor: "rgba(184,149,106,0.15)" }}
+            title="Zip code (required) — prospects will be filtered to this area"
+          />
+          <select
+            value={radius}
+            onChange={e => setRadius(e.target.value)}
+            className="px-2 py-2 border rounded-lg text-sm focus:outline-none bg-white"
+            style={{ borderColor: "rgba(184,149,106,0.15)" }}
+            title="Search radius in miles"
+          >
+            <option value="10">10 mi</option>
+            <option value="25">25 mi</option>
+            <option value="50">50 mi</option>
+            <option value="100">100 mi</option>
+          </select>
+          <button
+            onClick={handleSend}
+            disabled={loading || !zip.trim()}
+            className="px-3 py-2 rounded-lg text-white transition-colors disabled:opacity-50"
+            style={{ backgroundColor: GOLD }}
+          >
+            <Send className="w-4 h-4" />
+          </button>
         </div>
-      )}
+        {zip ? (
+          <p className="text-xs mt-1" style={{ color: MUTED }}>Filtering prospects to within {radius} miles of {zip}.</p>
+        ) : (
+          <p className="text-xs mt-1 text-red-500">Enter a zip code to search for local candidates.</p>
+        )}
+      </div>
     </div>
   );
 }
