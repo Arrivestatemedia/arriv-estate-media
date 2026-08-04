@@ -124,17 +124,11 @@ Deno.serve(async (req) => {
           timeZone: 'America/New_York'
         },
         attendees: attendees,
-        guestsCanInviteOthers: false,
-        conferenceData: {
-          createRequest: {
-            requestId: `conf-${conference.id}`,
-            conferenceSolutionKey: { type: 'hangoutsMeet' }
-          }
-        }
+        guestsCanInviteOthers: false
       };
 
       console.log('Sending calendar invite with sendUpdates=all...');
-      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all', {
+      const calendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
