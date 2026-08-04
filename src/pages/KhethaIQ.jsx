@@ -161,9 +161,22 @@ export default function KhethaIQ() {
           job = res?.data ?? res;
         }
         if (job) {
+          // Find the HireCandidate matching this applicant
+          let candidateId = app?.hire_candidate_id || null;
+          if (!candidateId) {
+            try {
+              const candRes = await base44.entities.HireCandidate.filter({ job_id: jobId });
+              const cands = candRes?.data ?? candRes ?? [];
+              const match = cands.find(c =>
+                (c.email && app?.email && c.email.toLowerCase() === app.email.toLowerCase()) ||
+                (c.name && app?.full_name && c.name.toLowerCase() === app.full_name.toLowerCase())
+              );
+              if (match) candidateId = match.id;
+            } catch (_) {}
+          }
           setSelectedJob(job);
           setInitialTab("questionnaire");
-          setPreselectedCandidateId(app?.hire_candidate_id || null);
+          setPreselectedCandidateId(candidateId);
         }
       }
     } catch (_) {}

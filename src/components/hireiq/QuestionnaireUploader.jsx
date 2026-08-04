@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -178,6 +178,13 @@ function ScorecardView({ scorecard }) {
 export default function QuestionnaireUploader({ job, candidates, onUpdateJob, onUpdateCandidate, preselectedCandidateId }) {
   const [selectedCandidateId, setSelectedCandidateId] = useState(preselectedCandidateId || "");
   const [mode, setMode] = useState(null); // null | "r1_fill" | "r1_view" | "r2_fill" | "r2_view" | "r2_gen_text" | "r2_gen_file"
+
+  // Auto-select the preselected candidate once candidates are loaded
+  useEffect(() => {
+    if (preselectedCandidateId && candidates?.length && !selectedCandidateId) {
+      setSelectedCandidateId(preselectedCandidateId);
+    }
+  }, [preselectedCandidateId, candidates, selectedCandidateId]);
   const [text, setText] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [loading, setLoading] = useState(false);
