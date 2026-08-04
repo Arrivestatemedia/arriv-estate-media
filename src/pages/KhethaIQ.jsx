@@ -70,6 +70,7 @@ export default function KhethaIQ() {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareCandidates, setCompareCandidates] = useState([]);
+  const [initialTab, setInitialTab] = useState(null);
 
   const loadJobs = async () => {
     setSyncing(true);
@@ -122,6 +123,7 @@ export default function KhethaIQ() {
   const handleSelectJob = (job) => {
     setSelectedJob(job);
     setSelectedCandidate(null);
+    setInitialTab(null);
   };
 
   const handleSelectCandidate = (candidate) => {
@@ -133,7 +135,26 @@ export default function KhethaIQ() {
     setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
   };
 
-  const goJobsHome = () => { setSelectedJob(null); setSelectedCandidate(null); };
+  const goJobsHome = () => { setSelectedJob(null); setSelectedCandidate(null); setInitialTab(null); };
+
+  const handleOpenQuestionnaire = async (conference) => {
+    try {
+      const participant = conference?.participants?.[0];
+      if (!participant?.id) return;
+      const app = await base44.entities.JobApplication.get(participant.id);
+      if (app?.job_id) {
+        let job = jobs.find(j => j.id === app.job_id);
+        if (!job) {
+          const res = await base44.entities.HireJob.get(app.job_id);
+          job = res?.data ?? res;
+        }
+        if (job) {
+          setSelectedJob(job);
+          setInitialTab("questionnaire");
+        }
+      }
+    } catch (_) {}
+  };
 
   const handleDeleteJob = async (job) => {
     try {
@@ -185,43 +206,6 @@ export default function KhethaIQ() {
     .filter(t => t.id);
 
   const manifestLogo = manifest?.logo_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png";
-
-  // Detail views (full-width, no sidebar) — match central app behavior
-  if (selectedCandidate) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <CandidateDetailPanel
-          candidate={selectedCandidate}
-          job={selectedJob || jobs.find(j => j.id === selectedCandidate.job_id)}
-          onBack={() => setSelectedCandidate(null)}
-          onCandidateUpdated={setSelectedCandidate}
-        />
-      </div>
-    );
-  }
-
-  if (compareMode && compareCandidates.length >= 2) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <ComparePanel candidates={compareCandidates} jobs={jobs} onBack={() => setCompareMode(false)} />
-      </div>
-    );
-  }
-
-  if (selectedJob) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <JobDetailPanel
-          job={selectedJob}
-          onBack={goJobsHome}
-          onSelectCandidate={handleSelectCandidate}
-          onCompare={() => setCompareMode(true)}
-          onJobUpdated={handleJobUpdated}
-          onDelete={handleDeleteJob}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -277,7 +261,26 @@ export default function KhethaIQ() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {activeView === "dashboard" ? (
+          {selectedCandidate ? (
+            <CandidateDetailPanel
+              candidate={selectedCandidate}
+              job={selectedJob || jobs.find(j => j.id === selectedCandidate.job_id)}
+              onBack={() => { setSelectedCandidate(null); setInitialTab(null); }}
+              onCandidateUpdated={setSelectedCandidate}
+            />
+          ) : compareMode && compareCandidates.length >= 2 ? (
+            <ComparePanel candidates={compareCandidates} jobs={jobs} onBack={() => setCompareMode(false)} />
+          ) : selectedJob ? (
+            <JobDetailPanel
+              job={selectedJob}
+              onBack={goJobsHome}
+              onSelectCandidate={handleSelectCandidate}
+              onCompare={() => setCompareMode(true)}
+              onJobUpdated={handleJobUpdated}
+              onDelete={handleDeleteJob}
+              initialTab={initialTab}
+            />
+          ) : activeView === "dashboard" ? (
             <RecruitingAssistantHome onStartSearch={() => setActiveView("search")} />
           ) : activeView === "ask" ? (
             <AskKhethaChat />
@@ -292,7 +295,7 @@ export default function KhethaIQ() {
           ) : activeView === "candidates" ? (
             <CandidatesView onSelectCandidate={handleSelectCandidate} />
           ) : activeView === "interviews" ? (
-            <InterviewsView onSelectCandidate={handleSelectCandidate} />
+            <InterviewsView onSelectCandidate={handleSelectCandidate} onOpenQuestionnaire={handleOpenQuestionnaire} />
           ) : activeView === "offers" ? (
             <OffersView onSelectCandidate={handleSelectCandidate} />
           ) : activeView === "applications" ? (

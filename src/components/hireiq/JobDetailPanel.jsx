@@ -46,12 +46,12 @@ function computeStep(job, candidates) {
   return 1;
 }
 
-export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompare, onJobUpdated, onDelete }) {
+export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompare, onJobUpdated, onDelete, initialTab }) {
   const [candidates, setCandidates] = useState([]);
   const [loadingCandidates, setLoadingCandidates] = useState(true);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(initialTab || "overview");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 

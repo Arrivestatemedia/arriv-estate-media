@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList } from "lucide-react";
-import InterviewQuestionnaireModal from "@/components/khethaiq/InterviewQuestionnaireModal";
+// Questionnaire now opens in-page via onOpenQuestionnaire (no modal)
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
@@ -132,11 +132,10 @@ function InternalCandidates() {
 }
 
 // ─── Interviews View ─── (exact replica of central app)
-export function InterviewsView({ onSelectCandidate }) {
+export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
   const [interviews, setInterviews] = useState([]);
   const [conferences, setConferences] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [questionnaireConf, setQuestionnaireConf] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -200,15 +199,15 @@ export function InterviewsView({ onSelectCandidate }) {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={() => setQuestionnaireConf(c)}
+                    onClick={() => onOpenQuestionnaire?.(c)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                     style={{ backgroundColor: GOLD, color: "#1A1A1A" }}
                   >
                     <ClipboardList className="w-3.5 h-3.5" />
-                    {c.round1_scorecard ? "View / Edit" : "Questionnaire"}
+                    Questionnaire
                   </button>
                   <span className="text-xs px-2 py-0.5 rounded capitalize" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>
-                    {c.round1_scorecard ? "Scored" : (c.status || "scheduled")}
+                    {c.status || "scheduled"}
                   </span>
                 </div>
               </div>
@@ -235,18 +234,6 @@ export function InterviewsView({ onSelectCandidate }) {
         </div>
       )}
 
-      {questionnaireConf && (
-        <InterviewQuestionnaireModal
-          conference={questionnaireConf}
-          onClose={() => setQuestionnaireConf(null)}
-          onCompleted={() => {
-            // Refresh interviews list so the new scorecard appears
-            base44.entities.HireInterview.list("-interview_date", 200)
-              .then(res => setInterviews(res?.data ?? res ?? []))
-              .catch(() => {});
-          }}
-        />
-      )}
     </div>
   );
 }
