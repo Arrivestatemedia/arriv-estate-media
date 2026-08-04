@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Users, Video, FileText, Search, Briefcase } from "lucide-react";
+import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList } from "lucide-react";
+import InterviewQuestionnaireModal from "@/components/khethaiq/InterviewQuestionnaireModal";
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
@@ -133,19 +134,40 @@ function InternalCandidates() {
 // ─── Interviews View ─── (exact replica of central app)
 export function InterviewsView({ onSelectCandidate }) {
   const [interviews, setInterviews] = useState([]);
+  const [conferences, setConferences] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [questionnaireConf, setQuestionnaireConf] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await base44.entities.HireInterview.list("-interview_date", 200);
-        setInterviews(res?.data ?? res ?? []);
-      } catch { setInterviews([]); }
+        const [ivRes, confRes] = await Promise.all([
+          base44.entities.HireInterview.list("-interview_date", 200),
+          base44.entities.Conference.list("-scheduled_date", 200),
+        ]);
+        setInterviews(ivRes?.data ?? ivRes ?? []);
+        setConferences(confRes?.data ?? confRes ?? []);
+      } catch { setInterviews([]); setConferences([]); }
       finally { setLoading(false); }
     })();
   }, []);
 
+  const formatConfWhen = (c) => {
+    const date = c.scheduled_date || "";
+    const time = c.scheduled_time || "";
+    if (!date) return "";
+    try {
+      const dt = new Date(`${date}T${time || "00:00"}:00`);
+      return dt.toLocaleString("en-US", {
+        weekday: "short", month: "short", day: "numeric", year: "numeric",
+        hour: "numeric", minute: "2-digit", hour12: true,
+      });
+    } catch { return `${date} ${time}`; }
+  };
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "rgba(184,149,106,0.4)" }} /></div>;
+
+  const hasItems = interviews.length > 0 || conferences.length > 0;
 
   return (
     <div className="space-y-4">
@@ -154,13 +176,46 @@ export function InterviewsView({ onSelectCandidate }) {
         <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>All interviews across your hiring pipeline</p>
       </div>
 
-      {interviews.length === 0 ? (
+      {!hasItems ? (
         <div className="text-center py-12">
           <Video className="w-10 h-10 mx-auto mb-2" style={{ color: "rgba(184,149,106,0.3)" }} />
           <p style={{ color: MUTED_DARK }}>No interviews scheduled yet.</p>
         </div>
       ) : (
         <div className="space-y-2">
+          {/* Scheduled conferences (from Interview Scheduler) */}
+          {conferences.map(c => {
+            const applicantName = c.participants?.[0]?.name || c.title || "Interview";
+            const when = formatConfWhen(c);
+            return (
+              <div key={`conf-${c.id}`} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={whiteCard}>
+                <div className="min-w-0">
+                  <h3 className="font-semibold" style={{ ...SERIF, color: TEXT_DARK }}>{applicantName}</h3>
+                  {when && <p className="text-sm" style={{ color: MUTED_DARK }}>{when}</p>}
+                  {c.meeting_link && (
+                    <a href={c.meeting_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs mt-1 hover:underline" style={{ color: GOLD }}>
+                      <ExternalLink className="w-3 h-3" /> Join link
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setQuestionnaireConf(c)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    style={{ backgroundColor: GOLD, color: "#1A1A1A" }}
+                  >
+                    <ClipboardList className="w-3.5 h-3.5" />
+                    Questionnaire
+                  </button>
+                  <span className="text-xs px-2 py-0.5 rounded capitalize" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>
+                    {c.status || "scheduled"}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Completed scorecard interviews (HireInterview) */}
           {interviews.map(iv => (
             <div key={iv.id} className="p-4 flex items-center justify-between" style={whiteCard}>
               <div>
@@ -178,6 +233,19 @@ export function InterviewsView({ onSelectCandidate }) {
             </div>
           ))}
         </div>
+      )}
+
+      {questionnaireConf && (
+        <InterviewQuestionnaireModal
+          conference={questionnaireConf}
+          onClose={() => setQuestionnaireConf(null)}
+          onCompleted={() => {
+            // Refresh interviews list so the new scorecard appears
+            base44.entities.HireInterview.list("-interview_date", 200)
+              .then(res => setInterviews(res?.data ?? res ?? []))
+              .catch(() => {});
+          }}
+        />
       )}
     </div>
   );
