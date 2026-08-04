@@ -46,6 +46,10 @@ export default function Conference() {
         }
         setAutoStart(true);
       })
+      .catch(() => {
+        setUser({ full_name: 'Guest' });
+        setAutoStart(true);
+      })
       .catch((err) => {
         console.error('Auth check error:', err);
         setUser({ full_name: 'Guest' });
@@ -79,6 +83,7 @@ export default function Conference() {
     <div className="min-h-screen" style={{ backgroundColor: '#FFFBF5' }}>
       <VideoCallPanelV2
         roomName={roomName}
+        currentUserId={user?.id || localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id')}
         currentUserName={user?.full_name || 'Guest'}
         recipientName="Conference"
         onClose={() => window.history.back()}
