@@ -3,49 +3,51 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2, X } from "lucide-react";
 import ScorecardEditor from "@/components/hireiq/ScorecardEditor";
+import Round1ScorecardForm from "@/components/hireiq/Round1ScorecardForm";
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
-const MUTED_DARK = "rgba(26,26,26,0.6)";
 
 export default function InterviewQuestionnaireModal({ conference, onClose, onCompleted }) {
   const [loading, setLoading] = useState(true);
   const [candidate, setCandidate] = useState(null);
   const [job, setJob] = useState(null);
+  const [useRound1, setUseRound1] = useState(false);
+  const [applicantName, setApplicantName] = useState("");
   const [error, setError] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
-        // The first participant is the applicant (JobApplication id)
         const participant = conference?.participants?.[0];
+        const name = participant?.name || conference?.title || "Applicant";
+        setApplicantName(name);
+
         if (!participant?.id) {
-          setError("No applicant linked to this interview.");
+          // No application linked — fall back to Round 1 general scorecard
+          setUseRound1(true);
           setLoading(false);
           return;
         }
 
-        // Load the JobApplication to get the KhethaIQ links
         const app = await base44.entities.JobApplication.get(participant.id);
         if (!app) {
-          setError("Application not found.");
+          setUseRound1(true);
           setLoading(false);
           return;
         }
 
-        if (!app.hire_candidate_id || !app.job_id) {
-          setError("This applicant hasn't been synced to Khetha IQ yet. Run a sync from the Jobs or Applications tab first.");
-          setLoading(false);
-          return;
+        if (app.hire_candidate_id && app.job_id) {
+          const [cand, jb] = await Promise.all([
+            base44.entities.HireCandidate.get(app.hire_candidate_id),
+            base44.entities.HireJob.get(app.job_id),
+          ]);
+          setCandidate(cand);
+          setJob(jb);
+        } else {
+          // Applicant not synced to KhethaIQ — use Round 1 general scorecard
+          setUseRound1(true);
         }
-
-        // Load the HireCandidate and HireJob in parallel
-        const [cand, jb] = await Promise.all([
-          base44.entities.HireCandidate.get(app.hire_candidate_id),
-          base44.entities.HireJob.get(app.job_id),
-        ]);
-        setCandidate(cand);
-        setJob(jb);
       } catch (err) {
         setError(err?.message || "Failed to load interview data.");
       } finally {
@@ -54,7 +56,7 @@ export default function InterviewQuestionnaireModal({ conference, onClose, onCom
     })();
   }, [conference]);
 
-  const handleComplete = async (result) => {
+  const handleScorecardComplete = async (result) => {
     try {
       await base44.entities.HireInterview.create({
         candidate_id: candidate.id,
@@ -74,10 +76,24 @@ export default function InterviewQuestionnaireModal({ conference, onClose, onCom
     }
   };
 
+  const handleRound1Complete = async (result) => {
+    try {
+      await base44.entities.Conference.update(conference.id, {
+        round1_scorecard: result,
+        scorecard_completed_at: new Date().toISOString(),
+        status: "completed",
+      });
+      if (onCompleted) onCompleted();
+      onClose();
+    } catch (err) {
+      setError(err?.message || "Failed to save scorecard.");
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" style={{ backdropFilter: "blur(4px)" }}>
       <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" style={{ border: "1px solid rgba(184,149,106,0.2)" }}>
-        <div className="flex items-center justify-between px-5 py-4 sticky top-0 bg-white border-b" style={{ borderColor: "rgba(184,149,106,0.15)" }}>
+        <div className="flex items-center justify-between px-5 py-4 sticky top-0 bg-white border-b z-10" style={{ borderColor: "rgba(184,149,106,0.15)" }}>
           <h2 className="text-lg font-semibold" style={{ color: TEXT_DARK }}>Interview Questionnaire / Scorecard</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="w-5 h-5" /></Button>
         </div>
@@ -91,12 +107,18 @@ export default function InterviewQuestionnaireModal({ conference, onClose, onCom
               <p className="text-sm" style={{ color: "#dc2626" }}>{error}</p>
               <Button variant="outline" onClick={onClose} className="mt-4">Close</Button>
             </div>
+          ) : useRound1 ? (
+            <Round1ScorecardForm
+              candidateName={applicantName}
+              onSubmit={handleRound1Complete}
+              onCancel={onClose}
+            />
           ) : candidate && job ? (
             <ScorecardEditor
               candidate={candidate}
               job={job}
               roleProfile={job?.role_success_profile}
-              onComplete={handleComplete}
+              onComplete={handleScorecardComplete}
               onCancel={onClose}
             />
           ) : null}

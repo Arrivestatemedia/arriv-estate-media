@@ -205,10 +205,10 @@ export function InterviewsView({ onSelectCandidate }) {
                     style={{ backgroundColor: GOLD, color: "#1A1A1A" }}
                   >
                     <ClipboardList className="w-3.5 h-3.5" />
-                    Questionnaire
+                    {c.round1_scorecard ? "View / Edit" : "Questionnaire"}
                   </button>
                   <span className="text-xs px-2 py-0.5 rounded capitalize" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>
-                    {c.status || "scheduled"}
+                    {c.round1_scorecard ? "Scored" : (c.status || "scheduled")}
                   </span>
                 </div>
               </div>

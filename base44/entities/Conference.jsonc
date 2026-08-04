@@ -21,8 +21,8 @@
     },
     "duration_minutes": {
       "type": "integer",
-      "description": "Duration in minutes",
-      "default": 60
+      "default": 60,
+      "description": "Duration in minutes"
     },
     "room_name": {
       "type": "string",
@@ -83,6 +83,15 @@
     "channel_id": {
       "type": "string",
       "description": "Associated chat channel ID (optional)"
+    },
+    "round1_scorecard": {
+      "type": "object",
+      "description": "Round 1 general competency scorecard result (used when applicant is not synced to KhethaIQ)"
+    },
+    "scorecard_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the scorecard was completed"
     }
   },
   "required": [
