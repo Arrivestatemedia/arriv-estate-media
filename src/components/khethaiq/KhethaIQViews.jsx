@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList } from "lucide-react";
+import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX } from "lucide-react";
+import { toast } from "sonner";
 // Questionnaire now opens in-page via onOpenQuestionnaire (no modal)
 
 const GOLD = "#B8956A";
@@ -136,20 +137,41 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
   const [interviews, setInterviews] = useState([]);
   const [conferences, setConferences] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [disqualifyingId, setDisqualifyingId] = useState(null);
+
+  const loadInterviews = async () => {
+    try {
+      const [ivRes, confRes] = await Promise.all([
+        base44.entities.HireInterview.list("-interview_date", 200),
+        base44.entities.Conference.list("-scheduled_date", 200),
+      ]);
+      setInterviews(ivRes?.data ?? ivRes ?? []);
+      setConferences(confRes?.data ?? confRes ?? []);
+    } catch { setInterviews([]); setConferences([]); }
+  };
 
   useEffect(() => {
     (async () => {
-      try {
-        const [ivRes, confRes] = await Promise.all([
-          base44.entities.HireInterview.list("-interview_date", 200),
-          base44.entities.Conference.list("-scheduled_date", 200),
-        ]);
-        setInterviews(ivRes?.data ?? ivRes ?? []);
-        setConferences(confRes?.data ?? confRes ?? []);
-      } catch { setInterviews([]); setConferences([]); }
-      finally { setLoading(false); }
+      await loadInterviews();
+      setLoading(false);
     })();
   }, []);
+
+  const handleDisqualify = async (conference) => {
+    const applicantName = conference?.participants?.[0]?.name || "this applicant";
+    if (!window.confirm(`Disqualify ${applicantName} for missing their interview? The same notice used for "offer not extended" will be emailed to them at 9:00 AM ET, 48 hours from now.`)) return;
+    setDisqualifyingId(conference.id);
+    try {
+      const res = await base44.functions.invoke("disqualifyMissedInterview", { conferenceId: conference.id });
+      if (res?.data?.error) throw new Error(res.data.error);
+      toast.success(`${applicantName} disqualified. Notice scheduled for 9:00 AM ET, 48 hours from now.`);
+      await loadInterviews();
+    } catch (err) {
+      toast.error(err.message || "Failed to disqualify applicant");
+    } finally {
+      setDisqualifyingId(null);
+    }
+  };
 
   const formatConfWhen = (c) => {
     const date = c.scheduled_date || "";
@@ -206,6 +228,17 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                     <ClipboardList className="w-3.5 h-3.5" />
                     Questionnaire
                   </button>
+                  {c.status !== "cancelled" && (
+                    <button
+                      onClick={() => handleDisqualify(c)}
+                      disabled={disqualifyingId === c.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                      style={{ backgroundColor: "transparent", color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
+                    >
+                      {disqualifyingId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
+                      Disqualify
+                    </button>
+                  )}
                   <span className="text-xs px-2 py-0.5 rounded capitalize" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>
                     {c.status || "scheduled"}
                   </span>

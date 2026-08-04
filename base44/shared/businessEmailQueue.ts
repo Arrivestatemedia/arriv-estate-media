@@ -47,6 +47,20 @@ export function isEtQuietHours(now = new Date()) {
   return minutes >= 21 * 60 || minutes < 8 * 60;
 }
 
+// Next 9:00 AM ET that is at or after 48 hours from now.
+// Used for delayed disqualification notices: the email goes out at 9am ET,
+// no sooner than 48 hours after the admin clicks "Disqualify".
+export function nextEt9amAfter48hIso(now = new Date()) {
+  const future = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const p = etParts(future);
+  let candidate = etWallToUtc(p.year, p.month, p.day, 9, 0);
+  if (candidate <= future) {
+    const t = new Date(Date.UTC(p.year, p.month - 1, p.day) + 86400000);
+    candidate = etWallToUtc(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate(), 9, 0);
+  }
+  return candidate.toISOString();
+}
+
 export function nextEt8amIso(now = new Date()) {
   const p = etParts(now);
   let candidate = etWallToUtc(p.year, p.month, p.day, 8, 0);
