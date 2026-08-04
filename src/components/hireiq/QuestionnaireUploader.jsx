@@ -175,8 +175,8 @@ function ScorecardView({ scorecard }) {
   );
 }
 
-export default function QuestionnaireUploader({ job, candidates, onUpdateJob, onUpdateCandidate }) {
-  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+export default function QuestionnaireUploader({ job, candidates, onUpdateJob, onUpdateCandidate, preselectedCandidateId }) {
+  const [selectedCandidateId, setSelectedCandidateId] = useState(preselectedCandidateId || "");
   const [mode, setMode] = useState(null); // null | "r1_fill" | "r1_view" | "r2_fill" | "r2_view" | "r2_gen_text" | "r2_gen_file"
   const [text, setText] = useState("");
   const [fileUrl, setFileUrl] = useState("");

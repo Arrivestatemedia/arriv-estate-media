@@ -46,7 +46,7 @@ function computeStep(job, candidates) {
   return 1;
 }
 
-export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompare, onJobUpdated, onDelete, initialTab }) {
+export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompare, onJobUpdated, onDelete, initialTab, preselectedCandidateId }) {
   const [candidates, setCandidates] = useState([]);
   const [loadingCandidates, setLoadingCandidates] = useState(true);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
@@ -193,7 +193,7 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
               <h3 className="font-bold mb-1" style={{ ...SERIF, color: CREAM }}>Interview Scorecards</h3>
               <p className="text-sm" style={{ color: MUTED_LIGHT }}>Select an applicant to fill out or download their Round 1 and Round 2 scorecards. Round 2 questions are AI-generated from your job description.</p>
             </div>
-            <QuestionnaireUploader job={job} candidates={candidates} onUpdateJob={updateJob} onUpdateCandidate={updateCandidate} />
+            <QuestionnaireUploader job={job} candidates={candidates} onUpdateJob={updateJob} onUpdateCandidate={updateCandidate} preselectedCandidateId={preselectedCandidateId} />
           </div>
         )}
 

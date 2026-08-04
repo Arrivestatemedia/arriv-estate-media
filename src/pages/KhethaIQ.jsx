@@ -71,6 +71,7 @@ export default function KhethaIQ() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareCandidates, setCompareCandidates] = useState([]);
   const [initialTab, setInitialTab] = useState(null);
+  const [preselectedCandidateId, setPreselectedCandidateId] = useState(null);
 
   const loadJobs = async () => {
     setSyncing(true);
@@ -124,6 +125,7 @@ export default function KhethaIQ() {
     setSelectedJob(job);
     setSelectedCandidate(null);
     setInitialTab(null);
+    setPreselectedCandidateId(null);
   };
 
   const handleSelectCandidate = (candidate) => {
@@ -135,7 +137,7 @@ export default function KhethaIQ() {
     setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
   };
 
-  const goJobsHome = () => { setSelectedJob(null); setSelectedCandidate(null); setInitialTab(null); };
+  const goJobsHome = () => { setSelectedJob(null); setSelectedCandidate(null); setInitialTab(null); setPreselectedCandidateId(null); };
 
   const handleOpenQuestionnaire = async (conference) => {
     try {
@@ -161,6 +163,7 @@ export default function KhethaIQ() {
         if (job) {
           setSelectedJob(job);
           setInitialTab("questionnaire");
+          setPreselectedCandidateId(app?.hire_candidate_id || null);
         }
       }
     } catch (_) {}
@@ -275,7 +278,7 @@ export default function KhethaIQ() {
             <CandidateDetailPanel
               candidate={selectedCandidate}
               job={selectedJob || jobs.find(j => j.id === selectedCandidate.job_id)}
-              onBack={() => { setSelectedCandidate(null); setInitialTab(null); }}
+              onBack={() => { setSelectedCandidate(null); setInitialTab(null); setPreselectedCandidateId(null); }}
               onCandidateUpdated={setSelectedCandidate}
             />
           ) : compareMode && compareCandidates.length >= 2 ? (
@@ -289,6 +292,7 @@ export default function KhethaIQ() {
               onJobUpdated={handleJobUpdated}
               onDelete={handleDeleteJob}
               initialTab={initialTab}
+              preselectedCandidateId={preselectedCandidateId}
             />
           ) : activeView === "dashboard" ? (
             <RecruitingAssistantHome onStartSearch={() => setActiveView("search")} />
