@@ -142,10 +142,20 @@ export default function KhethaIQ() {
       const participant = conference?.participants?.[0];
       if (!participant?.id) return;
       const app = await base44.entities.JobApplication.get(participant.id);
-      if (app?.job_id) {
-        let job = jobs.find(j => j.id === app.job_id);
+      let jobId = app?.job_id;
+
+      // Fallback: find a job matching the application's position
+      if (!jobId && app?.position) {
+        const matchJob = jobs.find(j => j.source_application_position === app.position);
+        if (matchJob) jobId = matchJob.id;
+      }
+      // Fallback: any job
+      if (!jobId && jobs.length > 0) jobId = jobs[0].id;
+
+      if (jobId) {
+        let job = jobs.find(j => j.id === jobId);
         if (!job) {
-          const res = await base44.entities.HireJob.get(app.job_id);
+          const res = await base44.entities.HireJob.get(jobId);
           job = res?.data ?? res;
         }
         if (job) {
@@ -241,7 +251,7 @@ export default function KhethaIQ() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveView(item.view)}
+                    onClick={() => { setSelectedJob(null); setSelectedCandidate(null); setCompareMode(false); setInitialTab(null); setActiveView(item.view); }}
                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors"
                     style={{
                       backgroundColor: active ? GOLD : "transparent",
