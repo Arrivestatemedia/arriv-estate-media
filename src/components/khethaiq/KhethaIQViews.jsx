@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/use-toast";
 // Questionnaire now opens in-page via onOpenQuestionnaire (no modal)
 
 const GOLD = "#B8956A";
@@ -134,6 +134,7 @@ function InternalCandidates() {
 
 // ─── Interviews View ─── (exact replica of central app)
 export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
+  const { toast } = useToast();
   const [interviews, setInterviews] = useState([]);
   const [conferences, setConferences] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,11 +164,11 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
     setDisqualifyingId(conference.id);
     try {
       const res = await base44.functions.invoke("disqualifyMissedInterview", { conferenceId: conference.id });
-      if (res?.data?.error) throw new Error(res.data.error);
-      toast.success(`${applicantName} disqualified. Notice scheduled for 9:00 AM ET, 48 hours from now.`);
+      if (res?.error) throw new Error(res.error);
+      toast({ title: "Applicant disqualified", description: `${applicantName} marked "offer not extended". Notice scheduled for 9:00 AM ET, 48 hours from now.` });
       await loadInterviews();
     } catch (err) {
-      toast.error(err.message || "Failed to disqualify applicant");
+      toast({ variant: "destructive", title: "Failed to disqualify", description: err.message || "Unknown error" });
     } finally {
       setDisqualifyingId(null);
     }
