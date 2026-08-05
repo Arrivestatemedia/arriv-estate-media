@@ -30,11 +30,11 @@ export default async function (req) {
     if (!effectiveTenantId) {
       checks.push({ check: "tenant_id_present", passed: false, detail: "No tenant_id provided or configured" });
       allPassed = false;
-    } else if (!/^tenant-[a-zA-Z0-9_-]{3,}$/.test(effectiveTenantId)) {
-      checks.push({ check: "tenant_id_format", passed: false, detail: "tenant_id should match ^tenant-[a-zA-Z0-9_-]{3,}$" });
+    } else if (!/^(tenant-|tnt_)[a-zA-Z0-9_-]{3,}$/.test(effectiveTenantId)) {
+      checks.push({ check: "tenant_id_format", passed: false, detail: "tenant_id should match ^(tenant-|tnt_)[a-zA-Z0-9_-]{3,}$" });
       allPassed = false;
     } else {
-      checks.push({ check: "tenant_id_format", passed: true });
+      checks.push({ check: "tenant_id_format", passed: true, detail: `tenant_id format valid: ${effectiveTenantId}` });
     }
 
     // 2. Endpoints reachable
