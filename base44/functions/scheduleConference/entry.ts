@@ -97,8 +97,8 @@ Deno.serve(async (req) => {
       const nyMinutes = parseInt(nyTime.minute);
       const offsetMinutes = (hours - nyHours) * 60 + (minutes - nyMinutes);
       
-      // Apply offset to get the correct UTC time, plus one day to match intended date
-      const startTime = new Date(testDate.getTime() + offsetMinutes * 60 * 1000 + 86400000);
+      // Apply offset to get the correct UTC time (convert ET input to UTC)
+      const startTime = new Date(testDate.getTime() + offsetMinutes * 60 * 1000);
       const endTime = new Date(startTime.getTime() + duration_minutes * 60000);
 
       const attendees = participants.map(p => ({
