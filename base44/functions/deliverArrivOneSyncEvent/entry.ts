@@ -1,7 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { signEnvelope, SCHEMA_VERSION } from "../../shared/syncEnvelope.ts";
 import { SIGNATURE_VERSION } from "../../shared/syncEntityAdapters.ts";
-import { getTenantConfig } from "../../shared/syncTenantConfig.ts";
+import { getTenantConfig, isTestMode, isTestRecord } from "../../shared/syncTenantConfig.ts";
 import { findMappingByLocalId, updateMapping } from "../../shared/syncMapping.ts";
 
 const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
@@ -30,6 +30,12 @@ export default async function (req) {
     const cfg = await getTenantConfig(base44);
     if (!cfg || !cfg.arriv_one_sync_endpoint) {
       return Response.json({ error: "No sync endpoint configured" }, { status: 503 });
+    }
+
+    // Test-mode gating: in test mode, only deliver test-marked outbox events.
+    // Production events are held in the outbox until mode is advanced beyond test.
+    if (isTestMode(cfg) && !isTestRecord({ payload: outbox.payload })) {
+      return Response.json({ success: false, skipped: true, reason: "Test mode: non-test outbox event not delivered" });
     }
 
     // Build the full envelope from the outbox record

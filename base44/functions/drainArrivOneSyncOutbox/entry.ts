@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
+import { getTenantConfig, isTestMode } from "../../shared/syncTenantConfig.ts";
 
 export default async function(req) {
   try {
@@ -6,15 +7,29 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const batchSize = body?.batch_size || 20;
 
+    // Check if we're in test mode — if so, only drain test-marked events
+    const cfg = await getTenantConfig(base44);
+    const testMode = isTestMode(cfg);
+
     // Find pending or failed outbox events that are ready for retry
     const now = new Date().toISOString();
     const pending = await base44.asServiceRole.entities.SyncOutbox.filter({ delivery_status: "pending" }, "-created_date", batchSize);
     const failed = await base44.asServiceRole.entities.SyncOutbox.filter({ delivery_status: "failed" }, "-next_attempt_at", batchSize);
 
-    const toProcess = [
+    const isTestRecord = (r) => r?.payload?._test === true || r?.payload?._test_record === true;
+
+    let toProcess = [
       ...pending.filter(r => !r.suppressed),
       ...failed.filter(r => !r.suppressed && r.next_attempt_at && new Date(r.next_attempt_at).getTime() <= Date.now()),
-    ].slice(0, batchSize);
+    ];
+
+    // Test-mode gating: in test mode, only process test-marked outbox events.
+    // Production events are left in the queue (not delivered) until mode is advanced.
+    if (testMode) {
+      toProcess = toProcess.filter(isTestRecord);
+    }
+
+    toProcess = toProcess.slice(0, batchSize);
 
     let delivered = 0;
     let queued = 0;

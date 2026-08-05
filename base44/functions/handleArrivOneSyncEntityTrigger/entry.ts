@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { writeSyncOutboxEvent } from "../../shared/syncOutboxWriter.ts";
-import { isSyncEnabled, getTenantConfig } from "../../shared/syncTenantConfig.ts";
+import { isSyncEnabled, getTenantConfig, isTestMode, isTestRecord } from "../../shared/syncTenantConfig.ts";
 import { toCanonicalEntityType, isEntitySyncReady, ENTITY_ADAPTERS } from "../../shared/syncEntityAdapters.ts";
 
 // Estate Media local entity names that are sync-enabled (active adapters only)
@@ -36,6 +36,14 @@ export default async function (req) {
     // check only suppresses the immediate echo, not subsequent legitimate edits.
     if (data?.sync_source === "arriv_one") {
       return Response.json({ success: true, skipped: true, reason: "Loop prevention: sync_source=arriv_one" });
+    }
+
+    // Test-mode gating: in test mode, suppress all production entity triggers.
+    // Only events explicitly marked _test / _test_record (from createArrivOneTestEvent)
+    // are allowed through. This prevents production records from being enqueued
+    // or sent while the sync connection is in test mode.
+    if (isTestMode(cfg) && !isTestRecord({ payload: data })) {
+      return Response.json({ success: true, skipped: true, reason: "Test mode: production entity trigger suppressed" });
     }
 
     // Translate to canonical and check sync-ready

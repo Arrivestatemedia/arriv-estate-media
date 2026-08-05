@@ -18,7 +18,7 @@ import {
 } from "./syncEntityAdapters.ts";
 import { buildOutboundPayload } from "./syncFieldAuthority.ts";
 import { findMappingByLocalId, createMapping } from "./syncMapping.ts";
-import { getTenantConfig, isSyncEnabled, isEntityShared } from "./syncTenantConfig.ts";
+import { getTenantConfig, isSyncEnabled, isEntityShared, isTestMode, isTestRecord } from "./syncTenantConfig.ts";
 
 const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 
@@ -62,6 +62,12 @@ export async function writeSyncOutboxEvent(base44, {
   // Loop prevention: if this write originated from an Arriv One inbound event, suppress.
   if (originEventId && recordData?.sync_source === "arriv_one") {
     return null; // suppressed — don't echo back
+  }
+
+  // Test-mode gating: in test mode, refuse to write production records to the outbox.
+  // Only test-marked records (from createArrivOneTestEvent) are allowed.
+  if (isTestMode(cfg) && !isTestRecord({ payload: recordData })) {
+    return null; // suppressed — production record not enqueued in test mode
   }
 
   // Resolve or create mapping
