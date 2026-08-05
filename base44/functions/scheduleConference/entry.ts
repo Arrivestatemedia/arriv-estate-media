@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendInterviewScheduledEmail } from "../../shared/interviewScheduledEmail.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -24,7 +25,8 @@ Deno.serve(async (req) => {
       channelId,
       organizerId,
       organizerName,
-      organizerEmail
+      organizerEmail,
+      applicationId
     } = body;
 
     const scheduled_date = scheduledDate;
@@ -152,9 +154,31 @@ Deno.serve(async (req) => {
       // Continue - conference is created even if calendar fails
     }
 
+    // Send confirmation email to the applicant (backend-side so it can't be silently lost)
+    let emailSent = false;
+    if (applicationId) {
+      try {
+        const app = await base44.asServiceRole.entities.JobApplication.get(applicationId);
+        if (app) {
+          await sendInterviewScheduledEmail(base44, {
+            to: app.email,
+            fullName: app.full_name,
+            scheduledDate: scheduled_date,
+            scheduledTime: scheduled_time,
+            durationMinutes: duration_minutes,
+            meetingLink: conference.meeting_link,
+          });
+          emailSent = true;
+        }
+      } catch (emailError) {
+        console.warn('Confirmation email failed:', emailError.message);
+      }
+    }
+
     console.log('Returning success response');
     return Response.json({
       success: true,
+      email_sent: emailSent,
       conference: {
         id: conference.id,
         title: conference.title,

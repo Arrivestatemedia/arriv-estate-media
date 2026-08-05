@@ -43,6 +43,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
         organizerId: organizer.id,
         organizerName: organizer.full_name,
         organizerEmail: organizer.email,
+        applicationId: app.id,
       });
 
       if (!confRes?.data?.success) {
@@ -51,20 +52,11 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
 
       const conference = confRes.data.conference;
 
-      // Send the applicant a confirmation email with the join link (non-blocking)
-      try {
-        await base44.functions.invoke("sendSalesInterviewScheduledEmail", {
-          applicationId: app.id,
-          meetingLink: conference.meetingLink,
-          scheduledDate,
-          scheduledTime,
-          durationMinutes,
-        });
-      } catch (emailErr) {
-        console.error("Confirmation email failed:", emailErr);
+      if (confRes.data.email_sent) {
+        toast.success("Interview scheduled. Google invite + confirmation email sent to applicant.");
+      } else {
+        toast.warning("Interview scheduled, but the confirmation email may not have delivered. Use the resend option or check the applicant's email.");
       }
-
-      toast.success("Interview scheduled. Google invite + link sent to applicant.");
       if (onScheduled) onScheduled(conference);
       onClose();
     } catch (error) {
