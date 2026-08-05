@@ -31,6 +31,7 @@ import KhethaIQ from './pages/KhethaIQ';
 import TimeOff from './pages/TimeOff';
 import Benefits from './pages/Benefits';
 import PayoutRecords from './pages/PayoutRecords';
+import AdminSyncStatus from './pages/AdminSyncStatus';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -279,6 +280,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="PayoutRecords">
             <PayoutRecords />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminSyncStatus"
+        element={
+          <LayoutWrapper currentPageName="AdminSyncStatus">
+            <AdminSyncStatus />
           </LayoutWrapper>
         }
       />

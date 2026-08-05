@@ -1,0 +1,144 @@
+{
+  "name": "SyncInbox",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical Arriv One tenant ID"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Unique event ID from source"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Event type"
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Envelope schema version"
+    },
+    "source_application": {
+      "type": "string",
+      "description": "Source application (arriv_one)"
+    },
+    "destination_application": {
+      "type": "string",
+      "description": "Destination application (estate_media)"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Entity type being synced"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "Remote entity record ID"
+    },
+    "immutable_shared_id": {
+      "type": "string",
+      "description": "Immutable cross-app shared identifier"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "description": "Operation type"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the remote operation occurred"
+    },
+    "source_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Source record updated_at timestamp"
+    },
+    "record_version": {
+      "type": "integer",
+      "description": "Source record version"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key from source"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Correlation ID"
+    },
+    "causation_id": {
+      "type": "string",
+      "description": "Causation ID"
+    },
+    "origin_event_id": {
+      "type": "string",
+      "description": "Originating event ID"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event payload"
+    },
+    "processing_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "applied",
+        "rejected",
+        "conflict",
+        "duplicate",
+        "stale"
+      ],
+      "default": "pending",
+      "description": "Processing result"
+    },
+    "local_record_id": {
+      "type": "string",
+      "description": "Estate Media local record ID created/updated"
+    },
+    "mapping_id": {
+      "type": "string",
+      "description": "CrossAppRecordMapping ID"
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event was processed"
+    },
+    "rejection_reason": {
+      "type": "string",
+      "description": "Reason for rejection if processing_status is rejected"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "event_id",
+    "event_type",
+    "entity_type",
+    "operation"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

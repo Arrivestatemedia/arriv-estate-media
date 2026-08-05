@@ -1,0 +1,96 @@
+{
+  "name": "CrossAppRecordMapping",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical Arriv One tenant ID"
+    },
+    "application": {
+      "type": "string",
+      "description": "Remote application name (arriv_one)"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Local entity type (Contact, ActivityLog, Deal, etc.)"
+    },
+    "local_record_id": {
+      "type": "string",
+      "description": "Estate Media local record ID"
+    },
+    "remote_record_id": {
+      "type": "string",
+      "description": "Arriv One remote record ID"
+    },
+    "immutable_shared_id": {
+      "type": "string",
+      "description": "Immutable cross-app shared identifier"
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "linked",
+        "pending",
+        "stale",
+        "error",
+        "conflict"
+      ],
+      "default": "linked",
+      "description": "Current mapping sync status"
+    },
+    "last_synced_version": {
+      "type": "integer",
+      "description": "Last synced record version"
+    },
+    "last_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this mapping was last synced"
+    },
+    "last_event_id": {
+      "type": "string",
+      "description": "Last processed event ID"
+    },
+    "error_state": {
+      "type": "string",
+      "description": "Error state description if sync_status is error"
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "estate_media",
+        "arriv_one"
+      ],
+      "description": "Which application originated the record"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "application",
+    "entity_type",
+    "local_record_id",
+    "immutable_shared_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

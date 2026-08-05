@@ -267,6 +267,27 @@
       "type": "string",
       "format": "date-time",
       "description": "Last successful synchronization timestamp with Arriv Payroll"
+    },
+    "record_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Monotonic record version for Arriv One sync conflict detection"
+    },
+    "sync_source": {
+      "type": "string",
+      "enum": [
+        "estate_media",
+        "arriv_one"
+      ],
+      "description": "Which application last wrote this record via Arriv One sync"
+    },
+    "origin_event_id": {
+      "type": "string",
+      "description": "Inbound Arriv One event ID that caused the last sync write (loop prevention)"
+    },
+    "immutable_shared_id": {
+      "type": "string",
+      "description": "Immutable cross-app shared identifier for Arriv One sync"
     }
   },
   "required": [

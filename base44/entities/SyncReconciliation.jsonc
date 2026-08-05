@@ -1,0 +1,92 @@
+{
+  "name": "SyncReconciliation",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical Arriv One tenant ID"
+    },
+    "reconciliation_id": {
+      "type": "string",
+      "description": "Unique reconciliation run identifier"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Entity type reconciled"
+    },
+    "local_record_count": {
+      "type": "integer",
+      "description": "Total local records of this entity type"
+    },
+    "mapping_count": {
+      "type": "integer",
+      "description": "Number of CrossAppRecordMapping entries"
+    },
+    "unmapped_count": {
+      "type": "integer",
+      "description": "Number of local records without a mapping"
+    },
+    "version_mismatch_count": {
+      "type": "integer",
+      "description": "Number of mappings with version mismatches"
+    },
+    "dead_letter_count": {
+      "type": "integer",
+      "description": "Number of dead-lettered outbox events"
+    },
+    "latest_sync_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Latest sync timestamp"
+    },
+    "critical_field_hashes": {
+      "type": "object",
+      "description": "Optional critical-field hashes for parity verification"
+    },
+    "initiated_by": {
+      "type": "string",
+      "description": "Who/what initiated the reconciliation (scheduled, admin, arriv_one)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "in_progress",
+        "failed"
+      ],
+      "default": "completed",
+      "description": "Reconciliation run status"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional reconciliation notes"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "reconciliation_id",
+    "entity_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

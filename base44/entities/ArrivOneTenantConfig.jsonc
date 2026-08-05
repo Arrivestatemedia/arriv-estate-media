@@ -1,0 +1,93 @@
+{
+  "name": "ArrivOneTenantConfig",
+  "type": "object",
+  "properties": {
+    "arriv_one_tenant_id": {
+      "type": "string",
+      "description": "Canonical Arriv One Tenant.tenant_id for this Estate Media instance"
+    },
+    "arriv_one_application_id": {
+      "type": "string",
+      "description": "Arriv One application ID"
+    },
+    "arriv_one_sync_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Master toggle for Arriv One synchronization"
+    },
+    "arriv_one_sync_mode": {
+      "type": "string",
+      "enum": [
+        "disabled",
+        "test",
+        "migration",
+        "active",
+        "paused",
+        "error"
+      ],
+      "default": "disabled",
+      "description": "Current synchronization mode"
+    },
+    "arriv_one_sync_endpoint": {
+      "type": "string",
+      "description": "Arriv One receiveEstateMediaSyncEvent endpoint URL"
+    },
+    "arriv_one_manifest_endpoint": {
+      "type": "string",
+      "description": "Arriv One manifest version check endpoint URL"
+    },
+    "arriv_one_reconciliation_endpoint": {
+      "type": "string",
+      "description": "Arriv One reconciliation endpoint URL"
+    },
+    "arriv_one_sync_status": {
+      "type": "string",
+      "description": "Last known sync status summary"
+    },
+    "arriv_one_last_successful_sync_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last successful sync event was processed"
+    },
+    "arriv_one_manifest_version": {
+      "type": "string",
+      "description": "Latest manifest version applied"
+    },
+    "arriv_one_schema_version": {
+      "type": "string",
+      "description": "Sync envelope schema version in use"
+    },
+    "shared_entity_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Entity types approved for synchronization"
+    }
+  },
+  "required": [
+    "arriv_one_tenant_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

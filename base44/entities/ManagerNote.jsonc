@@ -37,6 +37,27 @@
     "award_title": {
       "type": "string",
       "description": "Title of the award if this is a recognition"
+    },
+    "record_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Monotonic record version for sync conflict detection"
+    },
+    "sync_source": {
+      "type": "string",
+      "enum": [
+        "estate_media",
+        "arriv_one"
+      ],
+      "description": "Which application last wrote this record via sync"
+    },
+    "origin_event_id": {
+      "type": "string",
+      "description": "Inbound event ID that caused the last sync write (loop prevention)"
+    },
+    "immutable_shared_id": {
+      "type": "string",
+      "description": "Immutable cross-app shared identifier"
     }
   },
   "required": [

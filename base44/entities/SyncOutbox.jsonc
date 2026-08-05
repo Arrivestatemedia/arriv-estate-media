@@ -1,0 +1,153 @@
+{
+  "name": "SyncOutbox",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical Arriv One tenant ID"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Unique event ID (UUID)"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Event type (contact.created, activity.updated, etc.)"
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Envelope schema version"
+    },
+    "source_application": {
+      "type": "string",
+      "description": "Source application (estate_media)"
+    },
+    "destination_application": {
+      "type": "string",
+      "description": "Destination application (arriv_one)"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Entity type being synced"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "Local entity record ID"
+    },
+    "immutable_shared_id": {
+      "type": "string",
+      "description": "Immutable cross-app shared identifier"
+    },
+    "external_mapping_id": {
+      "type": "string",
+      "description": "CrossAppRecordMapping ID if linked"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "description": "Operation type"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the local operation occurred"
+    },
+    "source_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Source record updated_at timestamp"
+    },
+    "record_version": {
+      "type": "integer",
+      "description": "Source record version at time of event"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Idempotency key for duplicate prevention"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Correlation ID for tracing"
+    },
+    "causation_id": {
+      "type": "string",
+      "description": "Causation ID (event that caused this event)"
+    },
+    "origin_event_id": {
+      "type": "string",
+      "description": "Originating event ID if this event was caused by an inbound sync"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event payload (field-authority-filtered)"
+    },
+    "delivery_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "delivered",
+        "failed",
+        "dead_lettered"
+      ],
+      "default": "pending",
+      "description": "Delivery status"
+    },
+    "delivery_attempts": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of delivery attempts"
+    },
+    "next_attempt_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Next scheduled delivery attempt"
+    },
+    "last_delivery_error": {
+      "type": "string",
+      "description": "Last delivery error message"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When successfully delivered"
+    },
+    "suppressed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this event was suppressed (loop prevention)"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "event_id",
+    "event_type",
+    "entity_type",
+    "operation"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

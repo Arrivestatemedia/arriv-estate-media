@@ -1,0 +1,83 @@
+{
+  "name": "ProductManifestLocal",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical Arriv One tenant ID"
+    },
+    "manifest_type": {
+      "type": "string",
+      "description": "Manifest type (ai_followup_rules, daily_call_queue_config, etc.)"
+    },
+    "manifest_version": {
+      "type": "string",
+      "description": "Version string from Arriv One"
+    },
+    "checksum": {
+      "type": "string",
+      "description": "Content checksum for integrity verification"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Manifest configuration data"
+    },
+    "apply_status": {
+      "type": "string",
+      "enum": [
+        "applied",
+        "rejected",
+        "incompatible",
+        "pending_review"
+      ],
+      "default": "pending_review",
+      "description": "Application status"
+    },
+    "previous_version": {
+      "type": "string",
+      "description": "Previous manifest version before this one"
+    },
+    "fetched_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this manifest was fetched from Arriv One"
+    },
+    "applied_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this manifest was applied locally"
+    },
+    "parity_task_created": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a UI parity task was created for incompatible frontend changes"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "manifest_type",
+    "manifest_version"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "name": "SyncConflict",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical Arriv One tenant ID"
+    },
+    "conflict_id": {
+      "type": "string",
+      "description": "Unique conflict identifier"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Entity type with the conflict"
+    },
+    "local_record_id": {
+      "type": "string",
+      "description": "Estate Media local record ID"
+    },
+    "remote_record_id": {
+      "type": "string",
+      "description": "Arriv One remote record ID"
+    },
+    "immutable_shared_id": {
+      "type": "string",
+      "description": "Immutable shared identifier"
+    },
+    "conflict_type": {
+      "type": "string",
+      "enum": [
+        "version_mismatch",
+        "ambiguous_match",
+        "ownership_conflict",
+        "field_authority_violation",
+        "stale_overwrite",
+        "missing_mapping"
+      ],
+      "description": "Type of conflict"
+    },
+    "conflict_reason": {
+      "type": "string",
+      "description": "Human-readable conflict reason"
+    },
+    "local_values": {
+      "type": "object",
+      "description": "Local field values at conflict time"
+    },
+    "remote_values": {
+      "type": "object",
+      "description": "Remote field values at conflict time"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Event ID that triggered the conflict"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "resolved_local",
+        "resolved_remote",
+        "resolved_merge",
+        "escalated"
+      ],
+      "default": "open",
+      "description": "Conflict resolution status"
+    },
+    "resolution_notes": {
+      "type": "string",
+      "description": "Admin resolution notes"
+    },
+    "resolved_by": {
+      "type": "string",
+      "description": "Admin who resolved the conflict"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the conflict was resolved"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "conflict_id",
+    "entity_type",
+    "conflict_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
