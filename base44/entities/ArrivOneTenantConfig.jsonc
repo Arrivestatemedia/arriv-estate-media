@@ -40,6 +40,10 @@
       "type": "string",
       "description": "Arriv One reconciliation endpoint URL"
     },
+    "arriv_one_sync_status_endpoint": {
+      "type": "string",
+      "description": "Arriv One sync admin status endpoint URL"
+    },
     "arriv_one_sync_status": {
       "type": "string",
       "description": "Last known sync status summary"
