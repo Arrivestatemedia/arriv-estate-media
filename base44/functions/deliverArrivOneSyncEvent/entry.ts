@@ -1,13 +1,15 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { signEnvelope, SCHEMA_VERSION } from "../../shared/syncEnvelope.ts";
+import { SIGNATURE_VERSION } from "../../shared/syncEntityAdapters.ts";
 import { getTenantConfig } from "../../shared/syncTenantConfig.ts";
+import { findMappingByLocalId, updateMapping } from "../../shared/syncMapping.ts";
 
 const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 
 const BACKOFF_MS = [0, 60_000, 5 * 60_000, 30 * 60_000, 2 * 60 * 60_000]; // immediate, +1m, +5m, +30m, +2h
 const MAX_ATTEMPTS = 5;
 
-export default async function(req) {
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
@@ -35,6 +37,7 @@ export default async function(req) {
       event_id: outbox.event_id,
       event_type: outbox.event_type,
       schema_version: outbox.schema_version || SCHEMA_VERSION,
+      signature_version: SIGNATURE_VERSION,
       source_application: outbox.source_application,
       destination_application: outbox.destination_application,
       tenant_id: outbox.tenant_id,
@@ -66,7 +69,27 @@ export default async function(req) {
       body: JSON.stringify(envelope),
     });
 
-    if (response.ok) {
+    const ackBody = await response.json().catch(() => ({}));
+
+    // ─── Process Arriv One's acknowledgment ───
+    // Arriv One returns: { accepted, processing_status, local_record_id, mapping_id, applied_record_version }
+    // We update our mapping with the remote_record_id (Arriv One's local_record_id) on success.
+    const processingStatus = ackBody.processing_status || (response.ok ? "applied" : "rejected");
+
+    if (response.ok && (processingStatus === "applied" || processingStatus === "rejected_duplicate")) {
+      // Success — update mapping with remote record ID and sync metadata
+      if (outbox.entity_id) {
+        const mapping = await findMappingByLocalId(base44, outbox.tenant_id, outbox.entity_type, outbox.entity_id);
+        if (mapping) {
+          await updateMapping(base44, mapping.id, {
+            recordVersion: outbox.record_version,
+            eventId: outbox.event_id,
+            syncStatus: "linked",
+            remoteRecordId: ackBody.local_record_id || mapping.remote_record_id || "",
+          });
+        }
+      }
+      // rejected_duplicate still counts as successfully delivered (idempotent)
       await base44.asServiceRole.entities.SyncOutbox.update(outbox.id, {
         delivery_status: "delivered",
         delivered_at: new Date().toISOString(),
@@ -74,22 +97,31 @@ export default async function(req) {
         last_delivery_error: "",
       });
       await logAudit(base44, "outbound_delivered", outbox.entity_type, outbox.entity_id, "success");
-      return Response.json({ success: true, delivered: true });
-    } else {
-      const errText = await response.text();
-      return await handleDeliveryFailure(base44, outbox, errText);
+      return Response.json({ success: true, delivered: true, processing_status: processingStatus });
     }
+
+    // rejected_stale or conflict — NOT a successful delivery. Keep queued for review.
+    if (processingStatus === "rejected_stale" || processingStatus === "conflict") {
+      await base44.asServiceRole.entities.SyncOutbox.update(outbox.id, {
+        delivery_status: "failed",
+        delivery_attempts: (outbox.delivery_attempts || 0) + 1,
+        last_delivery_error: `Arriv One returned ${processingStatus}: ${ackBody.reason || ""}`,
+        next_attempt_at: new Date(Date.now() + BACKOFF_MS[1]).toISOString(),
+      });
+      await logAudit(base44, "outbound_rejected", outbox.entity_type, outbox.entity_id, "warning");
+      return Response.json({
+        success: false,
+        queued: true,
+        processing_status: processingStatus,
+        reason: ackBody.reason || "Arriv One rejected the event",
+      });
+    }
+
+    // Other failure — backoff retry
+    const errText = ackBody.reason || `HTTP ${response.status}`;
+    return await handleDeliveryFailure(base44, outbox, errText);
   } catch (error) {
     console.error("deliverArrivOneSyncEvent error:", error);
-    // Try to update outbox with failure
-    try {
-      const base44 = createClientFromRequest(req);
-      const body = await req.json().catch(() => ({}));
-      if (body?.outbox_id) {
-        const recs = await base44.asServiceRole.entities.SyncOutbox.filter({ id: body.outbox_id });
-        if (recs[0]) await handleDeliveryFailure(base44, recs[0], error.message);
-      }
-    } catch (_) {}
     return Response.json({ error: error.message }, { status: 500 });
   }
 }

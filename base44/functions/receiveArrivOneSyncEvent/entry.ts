@@ -18,99 +18,160 @@ import {
   findMappingByRemoteId,
   createMapping,
   updateMapping,
+  archiveMapping,
   naturalKeyMatch,
   isAmbiguousMatch,
 } from "../../shared/syncMapping.ts";
+import {
+  toEstateMediaLocalEntityType,
+  isEntitySyncReady,
+  resolveEventType,
+  DESTRUCTIVE_SYNC_APPROVED_ENTITIES,
+  ENTITY_ADAPTERS,
+} from "../../shared/syncEntityAdapters.ts";
 
 const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
-const MAX_PAYLOAD_BYTES = 256 * 1024;
 
-export default async function(req) {
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const envelope = await req.json();
 
-    // 1. Validate envelope shape
+    // 1. Validate envelope shape (includes signature_version check)
     const shapeCheck = validateEnvelopeShape(envelope);
     if (!shapeCheck.valid) {
-      return Response.json({ accepted: false, reason: shapeCheck.error }, { status: 400 });
+      return Response.json(
+        {
+          accepted: false,
+          processing_status: "rejected",
+          reason: shapeCheck.error,
+          code: shapeCheck.code || "invalid_envelope",
+        },
+        { status: 400 }
+      );
     }
 
     // 2. Validate source/destination
     if (envelope.source_application !== "arriv_one") {
-      return Response.json({ accepted: false, reason: "Invalid source_application" }, { status: 400 });
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: "Invalid source_application" },
+        { status: 400 }
+      );
     }
     if (envelope.destination_application !== "estate_media") {
-      return Response.json({ accepted: false, reason: "Invalid destination_application" }, { status: 400 });
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: "Invalid destination_application" },
+        { status: 400 }
+      );
     }
 
     // 3. Validate canonical tenant
     const cfg = await getTenantConfig(base44);
     if (!cfg) {
-      return Response.json({ accepted: false, reason: "No tenant config" }, { status: 503 });
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: "No tenant config" },
+        { status: 503 }
+      );
     }
     const tenantCheck = validateInboundTenant(envelope, cfg.arriv_one_tenant_id);
     if (!tenantCheck.valid) {
-      return Response.json({ accepted: false, reason: tenantCheck.error }, { status: 403 });
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: tenantCheck.error },
+        { status: 403 }
+      );
     }
 
     // 4. Validate timestamp
     const tsCheck = validateTimestamp(envelope);
     if (!tsCheck.valid) {
-      return Response.json({ accepted: false, reason: tsCheck.error }, { status: 401 });
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: tsCheck.error },
+        { status: 401 }
+      );
     }
 
     // 5. Verify HMAC signature
     const sigValid = await verifySignature(envelope, INBOUND_SECRET);
     if (!sigValid) {
-      return Response.json({ accepted: false, reason: "Invalid signature" }, { status: 401 });
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: "Invalid signature" },
+        { status: 401 }
+      );
     }
 
     // 6. Validate payload size
     const sizeCheck = validatePayloadSize(envelope);
     if (!sizeCheck.valid) {
-      return Response.json({ accepted: false, reason: sizeCheck.error }, { status: 413 });
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: sizeCheck.error },
+        { status: 413 }
+      );
     }
 
     // 7. Test mode filtering
     if (isTestMode(cfg) && !isTestRecord(envelope)) {
-      return Response.json({ accepted: false, reason: "Test mode: only test records accepted" }, { status: 200 });
+      return Response.json(
+        { accepted: false, processing_status: "rejected", reason: "Test mode: only test records accepted" },
+        { status: 200 }
+      );
     }
 
-    // 8. Check for duplicate event_id in SyncInbox
+    // 8. Validate entity type is sync-ready (not deferred)
+    if (!isEntitySyncReady(envelope.entity_type)) {
+      return Response.json(
+        {
+          accepted: false,
+          processing_status: "rejected",
+          reason: `Entity ${envelope.entity_type} is not sync-ready (deferred or unknown)`,
+        },
+        { status: 200 }
+      );
+    }
+
+    // 9. Check for duplicate event_id in SyncInbox (idempotent no-op)
     const existing = await base44.asServiceRole.entities.SyncInbox.filter({
       tenant_id: envelope.tenant_id,
       event_id: envelope.event_id,
     });
     if (existing && existing.length > 0) {
+      const dup = existing[0];
       return Response.json({
         accepted: true,
-        duplicate: true,
-        local_record_id: existing[0].local_record_id || "",
+        processing_status: "rejected_duplicate",
+        inbound_event_id: envelope.event_id,
+        immutable_shared_id: envelope.immutable_shared_id || dup.immutable_shared_id || "",
+        local_record_id: dup.local_record_id || "",
+        mapping_id: dup.mapping_id || "",
+        applied_record_version: dup.record_version || 0,
         reason: "Duplicate event_id — idempotent no-op",
       });
     }
 
-    // 9. Check for duplicate idempotency_key
+    // 10. Check for duplicate idempotency_key
     if (envelope.idempotency_key) {
       const dupKey = await base44.asServiceRole.entities.SyncInbox.filter({
         tenant_id: envelope.tenant_id,
         idempotency_key: envelope.idempotency_key,
       });
       if (dupKey && dupKey.length > 0) {
+        const dup = dupKey[0];
         return Response.json({
           accepted: true,
-          duplicate: true,
-          local_record_id: dupKey[0].local_record_id || "",
+          processing_status: "rejected_duplicate",
+          inbound_event_id: envelope.event_id,
+          immutable_shared_id: envelope.immutable_shared_id || dup.immutable_shared_id || "",
+          local_record_id: dup.local_record_id || "",
+          mapping_id: dup.mapping_id || "",
+          applied_record_version: dup.record_version || 0,
           reason: "Duplicate idempotency_key — idempotent no-op",
         });
       }
     }
 
-    // 10. Process the event
+    // 11. Process the event
     const result = await processEvent(base44, envelope, cfg);
 
-    // 11. Record in SyncInbox
+    // 12. Record in SyncInbox
     await base44.asServiceRole.entities.SyncInbox.create({
       tenant_id: envelope.tenant_id,
       event_id: envelope.event_id,
@@ -137,7 +198,7 @@ export default async function(req) {
       rejection_reason: result.reason || "",
     });
 
-    // 12. Update tenant config last successful sync
+    // 13. Update tenant config last successful sync (only on applied)
     if (result.status === "applied") {
       await base44.asServiceRole.entities.ArrivOneTenantConfig.update(cfg.id, {
         arriv_one_last_successful_sync_at: new Date().toISOString(),
@@ -145,29 +206,36 @@ export default async function(req) {
       });
     }
 
+    // 14. Return full acknowledgment contract
     return Response.json({
-      accepted: result.status === "applied" || result.status === "duplicate",
-      status: result.status,
+      accepted: result.status === "applied",
+      processing_status: result.status, // applied | rejected_duplicate | rejected_stale | rejected | conflict
+      inbound_event_id: envelope.event_id,
+      immutable_shared_id: envelope.immutable_shared_id || result.immutableSharedId || "",
       local_record_id: result.localRecordId || "",
       mapping_id: result.mappingId || "",
+      applied_record_version: result.appliedRecordVersion || 0,
       reason: result.reason || "",
     });
   } catch (error) {
     console.error("receiveArrivOneSyncEvent error:", error);
-    return Response.json({ accepted: false, reason: error.message }, { status: 500 });
+    return Response.json(
+      { accepted: false, processing_status: "rejected", reason: error.message },
+      { status: 500 }
+    );
   }
 }
 
 async function processEvent(base44, envelope, cfg) {
   const { entity_type, operation, immutable_shared_id, entity_id, payload, record_version, source_updated_at } = envelope;
 
-  // Check if entity type is shared
+  // Check if entity type is in shared_entity_types
   const sharedTypes = cfg.shared_entity_types || [];
   if (!sharedTypes.includes(entity_type)) {
     return { status: "rejected", reason: `Entity type ${entity_type} not in shared_entity_types` };
   }
 
-  // Resolve mapping
+  // Resolve mapping (by canonical entity type)
   let mapping = null;
   if (immutable_shared_id) {
     mapping = await findMappingBySharedId(base44, cfg.arriv_one_tenant_id, entity_type, immutable_shared_id);
@@ -176,8 +244,11 @@ async function processEvent(base44, envelope, cfg) {
     mapping = await findMappingByRemoteId(base44, cfg.arriv_one_tenant_id, entity_type, entity_id);
   }
 
-  // Apply field authority
+  // Apply field authority (canonical type)
   const cleanedPayload = applyInboundFieldAuthority(entity_type, payload);
+
+  // Translate to local entity name for DB operations
+  const localEntityType = toEstateMediaLocalEntityType(entity_type);
 
   // Add sync metadata
   const syncMeta = {
@@ -208,7 +279,7 @@ async function processEvent(base44, envelope, cfg) {
 
     if (localRecord) {
       // Link existing record
-      const updated = await base44.asServiceRole.entities[entity_type].update(localRecord.id, {
+      await base44.asServiceRole.entities[localEntityType].update(localRecord.id, {
         ...cleanedPayload,
         ...syncMeta,
       });
@@ -225,11 +296,17 @@ async function processEvent(base44, envelope, cfg) {
       } else {
         await updateMapping(base44, mapping.id, { recordVersion: record_version, eventId: envelope.event_id });
       }
-      return { status: "applied", localRecordId: localRecord.id, mappingId: mapping.id };
+      return {
+        status: "applied",
+        localRecordId: localRecord.id,
+        mappingId: mapping.id,
+        immutableSharedId: syncMeta.immutable_shared_id,
+        appliedRecordVersion: record_version || 1,
+      };
     }
 
     // Create new local record
-    const created = await base44.asServiceRole.entities[entity_type].create({
+    const created = await base44.asServiceRole.entities[localEntityType].create({
       ...cleanedPayload,
       ...syncMeta,
     });
@@ -246,7 +323,13 @@ async function processEvent(base44, envelope, cfg) {
     } else {
       await updateMapping(base44, mapping.id, { recordVersion: record_version, eventId: envelope.event_id });
     }
-    return { status: "applied", localRecordId: created.id, mappingId: mapping.id };
+    return {
+      status: "applied",
+      localRecordId: created.id,
+      mappingId: mapping.id,
+      immutableSharedId: syncMeta.immutable_shared_id,
+      appliedRecordVersion: record_version || 1,
+    };
   }
 
   if (operation === "update") {
@@ -278,7 +361,7 @@ async function processEvent(base44, envelope, cfg) {
         });
       } else {
         // Create as new
-        const created = await base44.asServiceRole.entities[entity_type].create({
+        const created = await base44.asServiceRole.entities[localEntityType].create({
           ...cleanedPayload,
           ...syncMeta,
         });
@@ -291,43 +374,91 @@ async function processEvent(base44, envelope, cfg) {
           origin: "arriv_one",
           eventId: envelope.event_id,
         });
-        return { status: "applied", localRecordId: created.id, mappingId: mapping.id };
+        return {
+          status: "applied",
+          localRecordId: created.id,
+          mappingId: mapping.id,
+          immutableSharedId: syncMeta.immutable_shared_id,
+          appliedRecordVersion: record_version || 1,
+        };
       }
     }
 
     // Check for stale version
-    if (mapping.last_synced_version && record_version && record_version < mapping.last_synced_version) {
-      return { status: "stale", reason: `Stale version ${record_version} < ${mapping.last_synced_version}` };
-    }
-
-    // For equal versions, compare source_updated_at
-    if (mapping.last_synced_version && record_version === mapping.last_synced_version && source_updated_at) {
-      const lastSynced = new Date(mapping.last_synced_at || 0).getTime();
-      const sourceUpdated = new Date(source_updated_at).getTime();
-      if (sourceUpdated < lastSynced) {
-        return { status: "stale", reason: "source_updated_at is older than last sync" };
+    if (mapping.last_synced_version && record_version !== null && record_version !== undefined) {
+      if (record_version < mapping.last_synced_version) {
+        return {
+          status: "rejected_stale",
+          reason: `Stale version ${record_version} < ${mapping.last_synced_version}`,
+          localRecordId: mapping.local_record_id,
+          mappingId: mapping.id,
+        };
+      }
+      // For equal versions, compare source_updated_at (UTC)
+      if (record_version === mapping.last_synced_version && source_updated_at) {
+        const lastSynced = new Date(mapping.last_synced_at || 0).getTime();
+        const sourceUpdated = new Date(source_updated_at).getTime();
+        if (sourceUpdated < lastSynced) {
+          return {
+            status: "rejected_stale",
+            reason: "source_updated_at is older than last sync",
+            localRecordId: mapping.local_record_id,
+            mappingId: mapping.id,
+          };
+        }
       }
     }
 
     // Apply the update
-    await base44.asServiceRole.entities[entity_type].update(mapping.local_record_id, {
+    await base44.asServiceRole.entities[localEntityType].update(mapping.local_record_id, {
       ...cleanedPayload,
       ...syncMeta,
     });
     await updateMapping(base44, mapping.id, { recordVersion: record_version, eventId: envelope.event_id });
-    return { status: "applied", localRecordId: mapping.local_record_id, mappingId: mapping.id };
+    return {
+      status: "applied",
+      localRecordId: mapping.local_record_id,
+      mappingId: mapping.id,
+      immutableSharedId: syncMeta.immutable_shared_id,
+      appliedRecordVersion: record_version || 1,
+    };
   }
 
   if (operation === "delete") {
+    // ─── DELETE / ARCHIVE SAFETY ───
+    // Do NOT hard-delete shared records from a remote delete event.
+    // Only entities explicitly approved in DESTRUCTIVE_SYNC_APPROVED_ENTITIES
+    // may be hard-deleted. All others are archived (mapping marked stale,
+    // local record preserved for historical/audit integrity).
+    const canHardDelete = DESTRUCTIVE_SYNC_APPROVED_ENTITIES.includes(entity_type);
+
     if (mapping) {
-      await base44.asServiceRole.entities[entity_type].delete(mapping.local_record_id);
-      await base44.asServiceRole.entities.CrossAppRecordMapping.update(mapping.id, {
-        sync_status: "stale",
-        error_state: "Remote record deleted",
-      });
-      return { status: "applied", localRecordId: mapping.local_record_id, mappingId: mapping.id };
+      if (canHardDelete) {
+        await base44.asServiceRole.entities[localEntityType].delete(mapping.local_record_id);
+        await archiveMapping(base44, mapping.id, "Remote record deleted — hard-delete approved");
+        return {
+          status: "applied",
+          localRecordId: mapping.local_record_id,
+          mappingId: mapping.id,
+          appliedRecordVersion: record_version || 0,
+          reason: "Hard-delete applied (entity approved for destructive sync)",
+        };
+      }
+      // Soft-delete / archive: preserve the local record, archive the mapping
+      await archiveMapping(base44, mapping.id, "Remote record deleted — local record preserved (archive)");
+      return {
+        status: "applied",
+        localRecordId: mapping.local_record_id,
+        mappingId: mapping.id,
+        appliedRecordVersion: record_version || 0,
+        reason: "Remote delete received — local record archived (not hard-deleted)",
+      };
     }
-    return { status: "applied", reason: "No mapping — nothing to delete" };
+    return {
+      status: "applied",
+      reason: "No mapping — nothing to archive",
+      appliedRecordVersion: record_version || 0,
+    };
   }
 
   return { status: "rejected", reason: `Unknown operation: ${operation}` };

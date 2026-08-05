@@ -1,21 +1,14 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { writeSyncOutboxEvent } from "../../shared/syncOutboxWriter.ts";
 import { isSyncEnabled, getTenantConfig } from "../../shared/syncTenantConfig.ts";
+import { toCanonicalEntityType, isEntitySyncReady, ENTITY_ADAPTERS } from "../../shared/syncEntityAdapters.ts";
 
-const SHARED_ENTITIES = [
-  "Contact",
-  "ActivityLog",
-  "Deal",
-  "SmsConversation",
-  "SmsMessage",
-  "SalesTeamMember",
-  "SalesGoal",
-  "ManagerNote",
-  "TimeOffRequest",
-  "BenefitsLifeEvent",
-];
+// Estate Media local entity names that are sync-enabled (active adapters only)
+const SYNC_ENABLED_LOCAL_ENTITIES = Object.values(ENTITY_ADAPTERS)
+  .filter((a) => a.status === "active")
+  .map((a) => a.estate_media_local);
 
-export default async function(req) {
+export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
@@ -24,11 +17,10 @@ export default async function(req) {
     const entityName = body?.event?.entity_name;
     const entityId = body?.event?.entity_id;
     const data = body?.data;
-    const oldData = body?.old_data;
     const changedFields = body?.changed_fields || [];
 
-    if (!entityName || !SHARED_ENTITIES.includes(entityName)) {
-      return Response.json({ success: true, skipped: true, reason: "Entity not in shared list" });
+    if (!entityName || !SYNC_ENABLED_LOCAL_ENTITIES.includes(entityName)) {
+      return Response.json({ success: true, skipped: true, reason: "Entity not in sync-enabled list" });
     }
 
     // Skip if sync is disabled
@@ -39,23 +31,26 @@ export default async function(req) {
     if (!cfg) return Response.json({ success: true, skipped: true, reason: "No tenant config" });
 
     // Skip if this write originated from Arriv One (loop prevention)
+    // sync_source is set to "arriv_one" by the inbound handler. A later legitimate
+    // local edit overwrites sync_source (to "estate_media" or undefined), so this
+    // check only suppresses the immediate echo, not subsequent legitimate edits.
     if (data?.sync_source === "arriv_one") {
       return Response.json({ success: true, skipped: true, reason: "Loop prevention: sync_source=arriv_one" });
+    }
+
+    // Translate to canonical and check sync-ready
+    const canonicalType = toCanonicalEntityType(entityName);
+    if (!isEntitySyncReady(canonicalType)) {
+      return Response.json({ success: true, skipped: true, reason: "Entity not sync-ready" });
     }
 
     // Determine operation
     const operation = eventType === "create" ? "create" : eventType === "update" ? "update" : eventType === "delete" ? "delete" : null;
     if (!operation) return Response.json({ success: true, skipped: true, reason: "Unknown event type" });
 
-    // Check for contact ownership change
-    let customEventType = null;
-    if (entityName === "Contact" && operation === "update" && changedFields.includes("owner_id")) {
-      customEventType = "contact.owner_changed";
-    }
-
-    // Write to outbox
+    // Write to outbox (writer handles canonical translation, field authority, signing)
     const outbox = await writeSyncOutboxEvent(base44, {
-      entityType: entityName,
+      localEntityType: entityName,
       entityId,
       operation,
       recordVersion: data?.record_version || 1,
@@ -66,6 +61,7 @@ export default async function(req) {
       causationId: "",
       correlationId: "",
       immutableSharedId: data?.immutable_shared_id || "",
+      changedFields,
     });
 
     // Attempt immediate delivery if outbox was created

@@ -10,6 +10,12 @@ import {
   generateIdempotencyKey,
   generateNonce,
 } from "./syncEnvelope.ts";
+import { SIGNATURE_VERSION } from "./syncEntityAdapters.ts";
+import {
+  toCanonicalEntityType,
+  getEventType,
+  isEntitySyncReady,
+} from "./syncEntityAdapters.ts";
 import { buildOutboundPayload } from "./syncFieldAuthority.ts";
 import { findMappingByLocalId, createMapping } from "./syncMapping.ts";
 import { getTenantConfig, isSyncEnabled, isEntityShared } from "./syncTenantConfig.ts";
@@ -18,10 +24,12 @@ const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 
 /**
  * Write an outbound sync event to the SyncOutbox entity.
+ * localEntityType is the Estate Media local entity name (e.g. "SalesGoal").
+ * It is translated to the canonical entity type for the envelope.
  * Returns the created outbox record or null if suppressed/disabled.
  */
 export async function writeSyncOutboxEvent(base44, {
-  entityType,
+  localEntityType,
   entityId,
   operation,
   recordVersion,
@@ -32,14 +40,19 @@ export async function writeSyncOutboxEvent(base44, {
   causationId,
   correlationId,
   immutableSharedId,
+  changedFields,
 }) {
   // Check if sync is enabled
   const enabled = await isSyncEnabled(base44);
   if (!enabled) return null;
 
-  // Check if this entity type is shared
-  const shared = await isEntityShared(base44, entityType);
+  // Translate to canonical entity type
+  const canonicalType = toCanonicalEntityType(localEntityType);
+
+  // Check if this entity type is shared and sync-ready
+  const shared = await isEntityShared(base44, canonicalType);
   if (!shared) return null;
+  if (!isEntitySyncReady(canonicalType)) return null;
 
   const cfg = await getTenantConfig(base44);
   if (!cfg) return null;
@@ -54,34 +67,37 @@ export async function writeSyncOutboxEvent(base44, {
   // Resolve or create mapping
   let mapping = null;
   if (immutableSharedId || entityId) {
-    mapping = await findMappingByLocalId(base44, tenantId, entityType, entityId);
+    mapping = await findMappingByLocalId(base44, tenantId, canonicalType, entityId);
   }
 
   const sharedId = immutableSharedId || mapping?.immutable_shared_id || crypto.randomUUID();
 
-  // Build the payload with field authority
-  const payload = buildOutboundPayload(entityType, recordData);
+  // Build the payload with field authority (canonical type)
+  const payload = buildOutboundPayload(canonicalType, recordData);
 
   const eventId = generateEventId();
   const now = new Date().toISOString();
   const sigTimestamp = now;
   const sigNonce = generateNonce();
-  const idempotencyKey = generateIdempotencyKey(entityType, entityId, operation, recordVersion);
+  const effectiveSourceUpdatedAt = sourceUpdatedAt || recordData?.updated_date || now;
+  const idempotencyKey = generateIdempotencyKey(sharedId, effectiveSourceUpdatedAt, operation);
+  const eventType = getEventType(canonicalType, operation, changedFields || []);
 
   const envelope = {
     event_id: eventId,
-    event_type: getEventType(entityType, operation),
+    event_type: eventType,
     schema_version: SCHEMA_VERSION,
+    signature_version: SIGNATURE_VERSION,
     source_application: SOURCE_APPLICATION,
     destination_application: DESTINATION_APPLICATION,
     tenant_id: tenantId,
-    entity_type: entityType,
+    entity_type: canonicalType,
     entity_id: entityId,
     immutable_shared_id: sharedId,
     external_mapping_id: mapping?.id || "",
     operation,
     occurred_at: occurredAt || now,
-    source_updated_at: sourceUpdatedAt || recordData?.updated_date || now,
+    source_updated_at: effectiveSourceUpdatedAt,
     record_version: recordVersion || recordData?.record_version || 1,
     idempotency_key: idempotencyKey,
     correlation_id: correlationId || "",
@@ -104,7 +120,7 @@ export async function writeSyncOutboxEvent(base44, {
     schema_version: SCHEMA_VERSION,
     source_application: SOURCE_APPLICATION,
     destination_application: DESTINATION_APPLICATION,
-    entity_type: entityType,
+    entity_type: canonicalType,
     entity_id: entityId,
     immutable_shared_id: sharedId,
     external_mapping_id: mapping?.id || "",
@@ -124,41 +140,4 @@ export async function writeSyncOutboxEvent(base44, {
   });
 
   return outbox;
-}
-
-function getEventType(entityType, operation) {
-  const prefix = entityType.toLowerCase();
-  // Map entity types to event type prefixes
-  const typeMap = {
-    Contact: "contact",
-    ActivityLog: "activity",
-    Deal: "deal",
-    SmsConversation: "sms.conversation",
-    SmsMessage: "sms.message",
-    SalesTeamMember: "member",
-    SalesGoal: "goal",
-    ManagerNote: "manager_note",
-    TimeOffRequest: "time_off",
-    BenefitsLifeEvent: "benefits",
-  };
-  const prefix2 = typeMap[entityType] || prefix;
-  const opMap = { create: "created", update: "updated", delete: "deleted" };
-  const opStr = opMap[operation] || operation;
-
-  // Special cases
-  if (entityType === "Contact" && operation === "update") {
-    // Check for owner change — handled by the trigger with a special event type
-    return "contact.updated";
-  }
-  if (entityType === "TimeOffRequest") {
-    return operation === "create" ? "time_off.request_created" : "time_off.request_updated";
-  }
-  if (entityType === "BenefitsLifeEvent") {
-    return operation === "create" ? "benefits.life_event_created" : "benefits.life_event_updated";
-  }
-  if (entityType === "SalesTeamMember" && operation === "update") {
-    return "member.profile_updated";
-  }
-
-  return `${prefix2}.${opStr}`;
 }

@@ -57,12 +57,16 @@
       "type": "string",
       "description": "Sync envelope schema version in use"
     },
+    "arriv_one_signature_version": {
+      "type": "string",
+      "description": "HMAC signature version in use (sync_hmac_v1)"
+    },
     "shared_entity_types": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Entity types approved for synchronization"
+      "description": "Canonical entity types approved for synchronization"
     }
   },
   "required": [

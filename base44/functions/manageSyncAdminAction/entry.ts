@@ -58,6 +58,21 @@ export default async function(req) {
       return Response.json({ success: true, result: result?.data });
     }
 
+    if (action === "validate_config") {
+      const result = await base44.functions.invoke("validateArrivOneSyncConfig", body?.validation_params || {});
+      return Response.json({ success: true, result: result?.data });
+    }
+
+    if (action === "create_test_event") {
+      const result = await base44.functions.invoke("createArrivOneTestEvent", {
+        mode: body?.mode || "emit",
+        entity_type: body?.entity_type || "Contact",
+        operation: body?.operation || "create",
+        payload: body?.payload,
+      });
+      return Response.json({ success: true, result: result?.data });
+    }
+
     return Response.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
     console.error("manageSyncAdminAction error:", error);

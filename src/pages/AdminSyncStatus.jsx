@@ -3,12 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, AlertCircle, CheckCircle2, XCircle, Clock, ArrowRight, Activity, Database, Zap, FileText, Shield } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, CheckCircle2, XCircle, Clock, ArrowRight, Activity, Database, Zap, FileText, Shield, FlaskConical, ClipboardCheck } from "lucide-react";
 
 export default function AdminSyncStatus() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
+  const [validation, setValidation] = useState(null);
+  const [testResult, setTestResult] = useState(null);
 
   const loadStatus = useCallback(async () => {
     setLoading(true);
@@ -27,8 +29,10 @@ export default function AdminSyncStatus() {
   const handleAction = async (action, params = {}) => {
     setActing(true);
     try {
-      await base44.functions.invoke("manageSyncAdminAction", { action, ...params });
-      await loadStatus();
+      const res = await base44.functions.invoke("manageSyncAdminAction", { action, ...params });
+      if (action === "validate_config") setValidation(res?.data?.result);
+      else if (action === "create_test_event") setTestResult(res?.data?.result);
+      else await loadStatus();
     } catch (e) {
       console.error(e);
     } finally {
@@ -166,6 +170,12 @@ export default function AdminSyncStatus() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
+            <Button size="sm" variant="outline" disabled={acting} onClick={() => handleAction("validate_config")}>
+              <ClipboardCheck className="w-4 h-4 mr-2" /> Validate Configuration
+            </Button>
+            <Button size="sm" variant="outline" disabled={acting} onClick={() => handleAction("create_test_event", { mode: "emit" })}>
+              <FlaskConical className="w-4 h-4 mr-2" /> Create Test Event
+            </Button>
             <Button size="sm" variant="outline" disabled={acting} onClick={() => handleAction("sync_manifests_now")}>
               <FileText className="w-4 h-4 mr-2" /> Sync Manifests Now
             </Button>
@@ -175,6 +185,72 @@ export default function AdminSyncStatus() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Validation Results */}
+      {validation && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ClipboardCheck className="w-5 h-5" style={{ color: '#B8956A' }} />
+              Configuration Validation
+              {validation.all_passed
+                ? <Badge variant="default" className="bg-green-600">All Passed</Badge>
+                : <Badge variant="destructive">Issues Found</Badge>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+              <div><p className="text-gray-500">Signature Version</p><p className="font-mono">{validation.signature_version}</p></div>
+              <div><p className="text-gray-500">Schema Version</p><p className="font-mono">{validation.envelope_schema_version}</p></div>
+              <div><p className="text-gray-500">Can Enable Test Mode</p><Badge variant={validation.can_enable_test_mode ? "default" : "destructive"}>{validation.can_enable_test_mode ? "Yes" : "No"}</Badge></div>
+            </div>
+            <div className="space-y-1 pt-2 border-t">
+              {validation.checks?.map((c, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  {c.passed
+                    ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                    : <XCircle className="w-4 h-4 text-red-500 shrink-0" />}
+                  <div>
+                    <p className="font-medium">{c.check}</p>
+                    {c.detail && <p className="text-gray-400">{c.detail}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {validation.deferred_entities?.length > 0 && (
+              <div className="pt-2 border-t">
+                <p className="text-xs font-medium text-amber-600 mb-1">Deferred Entities (not in initial sync):</p>
+                {validation.deferred_entities.map(d => (
+                  <p key={d.entity} className="text-xs text-gray-400">{d.entity}: {d.reason}</p>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Test Event Result */}
+      {testResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FlaskConical className="w-5 h-5" style={{ color: '#B8956A' }} />
+              Test Event {testResult.mode === "simulate_inbound" ? "(Simulate Inbound)" : "(Emitted)"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs">
+            {testResult.outbox_id && <p>Outbox ID: <span className="font-mono">{testResult.outbox_id}</span></p>}
+            <p>Event ID: <span className="font-mono">{testResult.event_id}</span></p>
+            <p>Event Type: <span className="font-mono">{testResult.event_type}</span></p>
+            <p>Canonical Entity: <span className="font-mono">{testResult.entity_type}</span></p>
+            <p>Immutable Shared ID: <span className="font-mono">{testResult.immutable_shared_id}</span></p>
+            {testResult.note && <p className="text-gray-500 italic">{testResult.note}</p>}
+            {testResult.debug?.payload_hash && (
+              <p className="text-gray-400">Payload Hash: <span className="font-mono">{testResult.debug.payload_hash}</span></p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Events */}
       {recent && (

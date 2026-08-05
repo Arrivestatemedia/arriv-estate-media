@@ -1,5 +1,6 @@
 // Centralized field-authority rules for Arriv One ⇄ Estate Media sync.
 // Defines which fields each application may write, and which are never synced.
+// Keyed by CANONICAL entity type (see syncEntityAdapters.ts), not app-local names.
 
 export const FIELD_AUTHORITY = {
   SalesTeamMember: {
@@ -52,9 +53,7 @@ export const FIELD_AUTHORITY = {
       "lifecycle_stage",
       "social_media",
     ],
-    arrivOneAuthoritative: [
-      "owner_id",
-    ],
+    arrivOneAuthoritative: ["owner_id"],
   },
   ActivityLog: {
     // Originating application authoritative — append/mirror, never overwrite
@@ -79,6 +78,18 @@ export const FIELD_AUTHORITY = {
       "commission_rate",
     ],
   },
+  Meeting: {
+    // DEFERRED — Conference entity not yet sync-enabled.
+    // When activated: originating-app authoritative (mirror, never overwrite).
+    bidirectional: [],
+    arrivOneAuthoritative: [],
+    neverSync: [
+      "google_calendar_event_id",
+      "room_name",
+      "meeting_link",
+      "channel_id",
+    ],
+  },
   SmsConversation: {
     bidirectional: [],
     arrivOneAuthoritative: [],
@@ -86,12 +97,20 @@ export const FIELD_AUTHORITY = {
   SmsMessage: {
     bidirectional: [],
     arrivOneAuthoritative: [],
+    neverSync: ["twilio_sid"],
   },
-  SalesGoal: {
+  Goal: {
+    // Canonical "Goal" → Estate Media local "SalesGoal"
     bidirectional: ["target_value", "is_active"],
     arrivOneAuthoritative: ["metric", "period", "market"],
   },
   ManagerNote: {
+    bidirectional: [],
+    arrivOneAuthoritative: [],
+  },
+  Recognition: {
+    // DEFERRED — Recognition is a ManagerNote subtype (is_recognition=true).
+    // When activated: originating-app authoritative.
     bidirectional: [],
     arrivOneAuthoritative: [],
   },
@@ -119,6 +138,7 @@ const GLOBAL_NEVER_SYNC = [
 /**
  * Strip sensitive fields from an inbound payload before writing to local DB.
  * Returns a cleaned payload with only fields the inbound source is allowed to write.
+ * entityType is the CANONICAL entity type.
  */
 export function applyInboundFieldAuthority(entityType, payload) {
   const rules = FIELD_AUTHORITY[entityType] || {};
@@ -143,6 +163,7 @@ export function applyInboundFieldAuthority(entityType, payload) {
 
 /**
  * Build an outbound payload with only fields Estate Media is allowed to send.
+ * entityType is the CANONICAL entity type.
  */
 export function buildOutboundPayload(entityType, recordData) {
   const rules = FIELD_AUTHORITY[entityType] || {};
@@ -159,8 +180,7 @@ export function buildOutboundPayload(entityType, recordData) {
 }
 
 /**
- * Check if an inbound event is attempting to write Arriv One-authoritative fields
- * that Estate Media should accept (for SalesTeamMember payroll/employment fields).
+ * Check if an inbound event is attempting to write Arriv One-authoritative fields.
  */
 export function isArrivOneAuthoritativeField(entityType, fieldName) {
   const rules = FIELD_AUTHORITY[entityType] || {};
