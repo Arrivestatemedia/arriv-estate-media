@@ -38,6 +38,13 @@ export default async function (req) {
     const mode = body?.mode || "emit"; // "emit" | "simulate_inbound"
     const localEntityType = body?.entity_type || "Contact"; // Estate Media local entity name
     const operation = body?.operation || "create";
+    // Optional override fields for controlled test scenarios (updates, stale, duplicate)
+    const overrideSharedId = body?.immutable_shared_id || null;
+    const overrideEntityId = body?.entity_id || null;
+    const overrideRecordVersion = body?.record_version ?? null;
+    const overrideSourceUpdatedAt = body?.source_updated_at || null;
+    const overrideEventId = body?.event_id || null;
+    const overrideIdempotencyKey = body?.idempotency_key || null;
     const testPayload = body?.payload || {
       firstname: "Test",
       lastname: "SyncUser",
@@ -58,17 +65,22 @@ export default async function (req) {
     }
 
     const tenantId = cfg.arriv_one_tenant_id;
-    const sharedId = `test-shared-${crypto.randomUUID()}`;
-    const eventId = generateEventId();
+    const sharedId = overrideSharedId || `test-shared-${crypto.randomUUID()}`;
+    const eventId = overrideEventId || generateEventId();
     const now = new Date().toISOString();
     const sigTimestamp = now;
     const sigNonce = generateNonce();
-    const effectiveSourceUpdatedAt = now;
-    const idempotencyKey = generateIdempotencyKey(sharedId, effectiveSourceUpdatedAt, operation);
+    const effectiveSourceUpdatedAt = overrideSourceUpdatedAt || now;
+    const idempotencyKey = overrideIdempotencyKey || generateIdempotencyKey(sharedId, effectiveSourceUpdatedAt, operation);
+    const effectiveRecordVersion = overrideRecordVersion ?? 1;
     const eventType = getEventType(canonicalType, operation, []);
 
     // Mark the payload as a test record
-    const markedPayload = { ...buildOutboundPayload(canonicalType, testPayload), _test: true, _test_record: true };
+    // For simulate_inbound: pass payload through without outbound field authority
+    // (Arriv One sends canonical fields; the receiver must strip sensitive ones)
+    const markedPayload = mode === "simulate_inbound"
+      ? { ...testPayload, _test: true, _test_record: true }
+      : { ...buildOutboundPayload(canonicalType, testPayload), _test: true, _test_record: true };
 
     if (mode === "simulate_inbound") {
       // Build an envelope as if it came FROM Arriv One, signed with the INBOUND secret
@@ -82,12 +94,12 @@ export default async function (req) {
         destination_application: "estate_media",
         tenant_id: tenantId,
         entity_type: canonicalType,
-        entity_id: `test-remote-${crypto.randomUUID()}`,
+        entity_id: overrideEntityId || `test-remote-${crypto.randomUUID()}`,
         immutable_shared_id: sharedId,
         operation,
-        occurred_at: now,
+        occurred_at: effectiveSourceUpdatedAt,
         source_updated_at: effectiveSourceUpdatedAt,
-        record_version: 1,
+        record_version: effectiveRecordVersion,
         idempotency_key: idempotencyKey,
         correlation_id: "",
         causation_id: "",

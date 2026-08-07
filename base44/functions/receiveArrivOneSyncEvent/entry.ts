@@ -29,6 +29,7 @@ import {
   DESTRUCTIVE_SYNC_APPROVED_ENTITIES,
   ENTITY_ADAPTERS,
 } from "../../shared/syncEntityAdapters.ts";
+import { translateCanonicalToLocal } from "../../shared/syncFieldAdapters.ts";
 
 const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
 
@@ -244,8 +245,13 @@ async function processEvent(base44, envelope, cfg) {
     mapping = await findMappingByRemoteId(base44, cfg.arriv_one_tenant_id, entity_type, entity_id);
   }
 
-  // Apply field authority (canonical type)
+  // Apply field authority (canonical type) — strips sensitive/never_sync fields
   const cleanedPayload = applyInboundFieldAuthority(entity_type, payload);
+
+  // Translate canonical fields to local fields (rename + resolve references)
+  const localPayload = await translateCanonicalToLocal(
+    base44, cfg.arriv_one_tenant_id, entity_type, cleanedPayload
+  );
 
   // Translate to local entity name for DB operations
   const localEntityType = toEstateMediaLocalEntityType(entity_type);
@@ -280,7 +286,7 @@ async function processEvent(base44, envelope, cfg) {
     if (localRecord) {
       // Link existing record
       await base44.asServiceRole.entities[localEntityType].update(localRecord.id, {
-        ...cleanedPayload,
+        ...localPayload,
         ...syncMeta,
       });
       if (!mapping) {
@@ -307,7 +313,7 @@ async function processEvent(base44, envelope, cfg) {
 
     // Create new local record
     const created = await base44.asServiceRole.entities[localEntityType].create({
-      ...cleanedPayload,
+      ...localPayload,
       ...syncMeta,
     });
     if (!mapping) {
@@ -362,7 +368,7 @@ async function processEvent(base44, envelope, cfg) {
       } else {
         // Create as new
         const created = await base44.asServiceRole.entities[localEntityType].create({
-          ...cleanedPayload,
+          ...localPayload,
           ...syncMeta,
         });
         mapping = await createMapping(base44, {
@@ -411,7 +417,7 @@ async function processEvent(base44, envelope, cfg) {
 
     // Apply the update
     await base44.asServiceRole.entities[localEntityType].update(mapping.local_record_id, {
-      ...cleanedPayload,
+      ...localPayload,
       ...syncMeta,
     });
     await updateMapping(base44, mapping.id, { recordVersion: record_version, eventId: envelope.event_id });

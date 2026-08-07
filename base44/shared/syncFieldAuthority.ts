@@ -21,6 +21,7 @@ export const FIELD_AUTHORITY = {
       "payroll_eligible",
     ],
     bidirectional: [
+      "email",
       "full_name",
       "phone_number",
       "profile_picture_url",
@@ -63,6 +64,7 @@ export const FIELD_AUTHORITY = {
   },
   Deal: {
     bidirectional: [
+      "sales_member_id",
       "status",
       "contract_value",
       "title",
@@ -101,11 +103,11 @@ export const FIELD_AUTHORITY = {
   },
   Goal: {
     // Canonical "Goal" → Estate Media local "SalesGoal"
-    bidirectional: ["target_value", "is_active"],
+    bidirectional: ["target", "target_value", "sales_member_id", "is_active"],
     arrivOneAuthoritative: ["metric", "period", "market"],
   },
   ManagerNote: {
-    bidirectional: [],
+    bidirectional: ["employee_id", "note", "author_id", "author_name", "note_type"],
     arrivOneAuthoritative: [],
   },
   Recognition: {
@@ -115,12 +117,19 @@ export const FIELD_AUTHORITY = {
     arrivOneAuthoritative: [],
   },
   TimeOffRequest: {
-    bidirectional: [],
+    bidirectional: [
+      "request_id", "employee_id", "employee_name",
+      "leave_type", "start_date", "end_date",
+      "is_partial_day", "hours_requested", "employee_note"
+    ],
     arrivOneAuthoritative: ["status", "manager_name_actioned", "manager_note", "actioned_at"],
     neverSync: ["payroll_request_id", "payroll_sync_status", "payroll_sync_error"],
   },
   BenefitsLifeEvent: {
-    bidirectional: [],
+    bidirectional: [
+      "life_event_id", "employee_id", "employee_name",
+      "event_type", "event_date", "affected_benefits", "description"
+    ],
     arrivOneAuthoritative: ["status", "payroll_reference"],
     neverSync: ["secure_workflow_url", "payroll_sync_status", "payroll_sync_error"],
   },

@@ -38,7 +38,7 @@
     },
     "password_hash": {
       "type": "string",
-      "description": "Hashed password"
+      "description": "Hashed password. Optional for sync-created mirrored members (is_active=false until local onboarding establishes credentials)."
     },
     "is_active": {
       "type": "boolean",
@@ -292,7 +292,6 @@
   },
   "required": [
     "email",
-    "full_name",
-    "password_hash"
+    "full_name"
   ]
 }
