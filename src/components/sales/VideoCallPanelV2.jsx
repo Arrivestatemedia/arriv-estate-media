@@ -482,6 +482,9 @@ export default function VideoCallPanelV2({
       setRecordingTime(0);
       setIsRecording(false);
       try {
+        if (blob.size === 0) {
+          throw new Error("Recording was empty (no media captured)");
+        }
         const file = new File([blob], `recording-${tempId}.webm`, { type: "video/webm" });
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         await base44.entities.VideoRecording.create({
@@ -494,8 +497,9 @@ export default function VideoCallPanelV2({
           room_name: roomName,
         });
         setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, url: file_url, uploading: false } : r));
-      } catch (_) {
-        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, failed: true } : r));
+      } catch (err) {
+        console.error("Recording save failed:", err);
+        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, failed: true, error: err.message || "Unknown error" } : r));
       }
     };
 

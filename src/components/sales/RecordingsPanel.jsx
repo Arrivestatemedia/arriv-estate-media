@@ -36,9 +36,10 @@ export default function RecordingsPanel({ isOpen, onClose, recordings, onDelete 
                   <span className="text-xs">Saving…</span>
                 </div>
               ) : rec.failed ? (
-                <div className="w-full h-32 bg-black flex flex-col items-center justify-center text-red-400">
+                <div className="w-full h-32 bg-black flex flex-col items-center justify-center text-red-400 px-2 text-center">
                   <AlertCircle className="w-6 h-6 mb-1" />
                   <span className="text-xs">Save failed</span>
+                  {rec.error && <span className="text-[10px] text-red-300 mt-1">{rec.error}</span>}
                 </div>
               ) : (
                 <video
