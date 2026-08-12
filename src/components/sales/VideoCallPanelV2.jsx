@@ -488,6 +488,18 @@ export default function VideoCallPanelV2({
         setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, failed: true, error: "Recording was empty (no media captured)" } : r));
         return;
       }
+      // Large recordings (>50MB) skip cloud upload entirely — UploadFile can't handle them
+      // and would hang forever. Keep local URL for download instead.
+      const MAX_CLOUD_SIZE = 50 * 1024 * 1024; // 50MB
+      if (blob.size > MAX_CLOUD_SIZE) {
+        setRecordings(prev => prev.map(r => r.id === tempId ? {
+          ...r,
+          uploading: false,
+          largeFile: true,
+          error: "Too large for cloud — download to save locally",
+        } : r));
+        return;
+      }
       // Upload with a 60s timeout — large video files can hang UploadFile indefinitely
       const uploadWithTimeout = (file) => {
         return new Promise((resolve, reject) => {

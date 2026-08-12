@@ -53,6 +53,11 @@ export default function RecordingsPanel({ isOpen, onClose, recordings, onDelete 
                     Cloud upload failed — download to keep this recording
                   </p>
                 )}
+                {rec.largeFile && (
+                  <p className="text-[10px] text-amber-400 mb-1">
+                    Too large for cloud — download to save to your device
+                  </p>
+                )}
                 {rec.cloudSaved && (
                   <p className="text-[10px] text-green-400 mb-1">
                     ✓ Saved to cloud
