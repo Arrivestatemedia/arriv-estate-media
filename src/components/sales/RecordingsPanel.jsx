@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { X, Download, Trash2, Film, Loader2, AlertCircle } from "lucide-react";
+import { X, Download, Trash2, Film, Loader2 } from "lucide-react";
 
 export default function RecordingsPanel({ isOpen, onClose, recordings, onDelete }) {
   if (!isOpen) return null;
@@ -33,13 +33,8 @@ export default function RecordingsPanel({ isOpen, onClose, recordings, onDelete 
               {rec.uploading ? (
                 <div className="w-full h-32 bg-black flex flex-col items-center justify-center text-gray-400">
                   <Loader2 className="w-6 h-6 animate-spin mb-1" />
-                  <span className="text-xs">Saving…</span>
-                </div>
-              ) : rec.failed ? (
-                <div className="w-full h-32 bg-black flex flex-col items-center justify-center text-red-400 px-2 text-center">
-                  <AlertCircle className="w-6 h-6 mb-1" />
-                  <span className="text-xs">Save failed</span>
-                  {rec.error && <span className="text-[10px] text-red-300 mt-1">{rec.error}</span>}
+                  <span className="text-xs">Uploading…</span>
+                  <span className="text-[10px] text-gray-500 mt-1">Video is saved locally</span>
                 </div>
               ) : (
                 <video
@@ -53,14 +48,24 @@ export default function RecordingsPanel({ isOpen, onClose, recordings, onDelete 
                 <p className="text-[10px] text-gray-500">
                   {rec.duration} · {(rec.size / 1024 / 1024).toFixed(1)} MB
                 </p>
+                {rec.cloudFailed && (
+                  <p className="text-[10px] text-amber-400 mb-1">
+                    Cloud upload failed — download to keep this recording
+                  </p>
+                )}
+                {rec.cloudSaved && (
+                  <p className="text-[10px] text-green-400 mb-1">
+                    ✓ Saved to cloud
+                  </p>
+                )}
                 <div className="flex gap-1 mt-2">
                   <a
                     href={rec.url}
                     download={`recording-${rec.id}.webm`}
                     className="flex-1"
                   >
-                    <Button size="sm" variant="outline" className="w-full h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-700" disabled={rec.uploading || rec.failed}>
-                      <Download className="w-3 h-3 mr-1" /> Save
+                    <Button size="sm" variant="outline" className="w-full h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-700" disabled={rec.uploading}>
+                      <Download className="w-3 h-3 mr-1" /> Download
                     </Button>
                   </a>
                   <Button

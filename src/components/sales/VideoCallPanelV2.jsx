@@ -466,9 +466,12 @@ export default function VideoCallPanelV2({
       const secs = Math.round((Date.now() - recordingStartTimeRef.current) / 1000);
       const now = new Date();
       const tempId = `rec-${Date.now()}`;
+      // Create a local object URL immediately so the video is always playable/downloadable
+      const localUrl = URL.createObjectURL(blob);
       setRecordings(prev => [{
         id: tempId,
-        url: null,
+        url: localUrl,
+        localUrl,
         label: now.toLocaleString(),
         duration: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`,
         size: blob.size,
@@ -481,12 +484,22 @@ export default function VideoCallPanelV2({
       if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
       setRecordingTime(0);
       setIsRecording(false);
+      if (blob.size === 0) {
+        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, failed: true, error: "Recording was empty (no media captured)" } : r));
+        return;
+      }
+      // Upload with a 60s timeout — large video files can hang UploadFile indefinitely
+      const uploadWithTimeout = (file) => {
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error("Upload timed out — file too large or connection too slow")), 60000);
+          base44.integrations.Core.UploadFile({ file })
+            .then(res => { clearTimeout(timer); resolve(res); })
+            .catch(err => { clearTimeout(timer); reject(err); });
+        });
+      };
       try {
-        if (blob.size === 0) {
-          throw new Error("Recording was empty (no media captured)");
-        }
         const file = new File([blob], `recording-${tempId}.webm`, { type: "video/webm" });
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await uploadWithTimeout(file);
         await base44.entities.VideoRecording.create({
           file_url,
           duration_seconds: secs,
@@ -496,10 +509,11 @@ export default function VideoCallPanelV2({
           participant_name: recipientName,
           room_name: roomName,
         });
-        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, url: file_url, uploading: false } : r));
+        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, url: file_url, uploading: false, cloudSaved: true } : r));
       } catch (err) {
-        console.error("Recording save failed:", err);
-        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, failed: true, error: err.message || "Unknown error" } : r));
+        console.error("Recording upload failed (local copy still available):", err);
+        // Keep the local URL so the user can still play and download the video
+        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, cloudFailed: true, error: err.message || "Upload failed" } : r));
       }
     };
 
