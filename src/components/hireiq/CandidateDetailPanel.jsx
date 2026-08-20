@@ -105,7 +105,23 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
   const handleEvaluate = () => runEvaluation();
 
   const handleDecision = (decision) => {
-    setPendingDecision(decision);
+    if (candidate?.decision === decision) {
+      clearDecision();
+    } else {
+      setPendingDecision(decision);
+    }
+  };
+
+  const clearDecision = async () => {
+    try {
+      const res = await base44.entities.HireCandidate.update(candidate.id, {
+        decision: null,
+        decision_notes: notes,
+        status: "pending",
+      });
+      const updated = res?.data ?? res;
+      onCandidateUpdated(updated);
+    } catch (_) {}
   };
 
   const DECISION_INFO = {
@@ -250,11 +266,11 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
             <h3 className="font-bold mb-1" style={{ ...SERIF, color: CREAM }}>Human Decision</h3>
             <p className="text-xs mb-3" style={{ color: MUTED_LIGHT }}>The final decision is always made by a human. AI assists only.</p>
             <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant={candidate?.decision === "advance" ? "default" : "outline"} onClick={() => handleDecision("advance")} disabled={candidate?.decision === "advance"} style={candidate?.decision === "advance" ? { backgroundColor: GOLD, color: "#0A0A0A", border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><CheckCircle2 className="w-4 h-4 mr-1" /> Advance</Button>
-              <Button size="sm" variant={candidate?.decision === "hold" ? "default" : "outline"} onClick={() => handleDecision("hold")} disabled={candidate?.decision === "hold"} style={candidate?.decision === "hold" ? { backgroundColor: GOLD, color: "#0A0A0A", border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><Clock className="w-4 h-4 mr-1" /> Hold</Button>
-              <Button size="sm" variant={candidate?.decision === "another_interview" ? "default" : "outline"} onClick={() => handleDecision("another_interview")} disabled={candidate?.decision === "another_interview"} style={candidate?.decision === "another_interview" ? { backgroundColor: GOLD, color: "#0A0A0A", border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><Mic className="w-4 h-4 mr-1" /> Another Interview</Button>
-              <Button size="sm" variant={candidate?.decision === "offer" ? "default" : "outline"} onClick={() => handleDecision("offer")} disabled={candidate?.decision === "offer"} style={candidate?.decision === "offer" ? { backgroundColor: GOLD_DARK, color: CREAM, border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><CheckCircle2 className="w-4 h-4 mr-1" /> Offer Position</Button>
-              <Button size="sm" variant={candidate?.decision === "decline" ? "default" : "outline"} onClick={() => handleDecision("decline")} disabled={candidate?.decision === "decline"} style={candidate?.decision === "decline" ? { backgroundColor: "#991b1b", color: CREAM, border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><AlertCircle className="w-4 h-4 mr-1" /> Decline</Button>
+              <Button size="sm" variant={candidate?.decision === "advance" ? "default" : "outline"} onClick={() => handleDecision("advance")} style={candidate?.decision === "advance" ? { backgroundColor: GOLD, color: "#0A0A0A", border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><CheckCircle2 className="w-4 h-4 mr-1" /> Advance</Button>
+              <Button size="sm" variant={candidate?.decision === "hold" ? "default" : "outline"} onClick={() => handleDecision("hold")} style={candidate?.decision === "hold" ? { backgroundColor: GOLD, color: "#0A0A0A", border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><Clock className="w-4 h-4 mr-1" /> Hold</Button>
+              <Button size="sm" variant={candidate?.decision === "another_interview" ? "default" : "outline"} onClick={() => handleDecision("another_interview")} style={candidate?.decision === "another_interview" ? { backgroundColor: GOLD, color: "#0A0A0A", border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><Mic className="w-4 h-4 mr-1" /> Another Interview</Button>
+              <Button size="sm" variant={candidate?.decision === "offer" ? "default" : "outline"} onClick={() => handleDecision("offer")} style={candidate?.decision === "offer" ? { backgroundColor: GOLD_DARK, color: CREAM, border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><CheckCircle2 className="w-4 h-4 mr-1" /> Offer Position</Button>
+              <Button size="sm" variant={candidate?.decision === "decline" ? "default" : "outline"} onClick={() => handleDecision("decline")} style={candidate?.decision === "decline" ? { backgroundColor: "#991b1b", color: CREAM, border: "none", fontWeight: 600 } : { backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><AlertCircle className="w-4 h-4 mr-1" /> Decline</Button>
             </div>
             {candidate?.decision !== "pending" && candidate?.decision && <p className="text-xs mt-2" style={{ color: MUTED_LIGHT }}>Current decision: <span className="font-semibold capitalize" style={{ color: CREAM }}>{candidate.decision.replace(/_/g, " ")}</span></p>}
           </div>
