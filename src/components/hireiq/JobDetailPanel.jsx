@@ -8,6 +8,7 @@ import RankingTable from "@/components/hireiq/RankingTable";
 import ImportApplicationsModal from "@/components/hireiq/ImportApplicationsModal";
 import QuestionnaireUploader from "@/components/hireiq/QuestionnaireUploader";
 import WorkflowStepper from "@/components/hireiq/WorkflowStepper";
+import { evaluateCandidate, analyzeResumeText } from "@/lib/hireiq";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -54,6 +55,7 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
   const [tab, setTab] = useState(initialTab || "overview");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [evaluatingAll, setEvaluatingAll] = useState(false);
 
   const loadCandidates = async () => {
     if (!job?.id) return;
@@ -87,6 +89,26 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
   };
 
   const setStatus = async (status) => { await updateJob({ status }); };
+
+  const handleEvaluateAll = async () => {
+    const unevaluated = candidates.filter(c => !c.evaluation);
+    if (unevaluated.length === 0) return;
+    setEvaluatingAll(true);
+    for (const c of unevaluated) {
+      try {
+        let analysis = c.resume_analysis;
+        if (!analysis && c.resume_text) {
+          analysis = await analyzeResumeText(c.resume_text, job, job?.role_success_profile);
+        }
+        const evaluation = await evaluateCandidate(c, job, job?.role_success_profile, [], analysis);
+        const updateData = { evaluation };
+        if (analysis && !c.resume_analysis) updateData.resume_analysis = analysis;
+        await base44.entities.HireCandidate.update(c.id, updateData);
+        setCandidates(prev => prev.map(x => x.id === c.id ? { ...x, ...updateData } : x));
+      } catch (_) {}
+    }
+    setEvaluatingAll(false);
+  };
 
   const roleProfile = job?.role_success_profile;
   const currentStep = computeStep(job, candidates);
@@ -246,7 +268,7 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
             <div className="flex justify-end">
               <Button variant="outline" onClick={onCompare} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><GitCompare className="w-4 h-4 mr-2" /> Compare Candidates</Button>
             </div>
-            <RankingTable candidates={candidates} jobId={job.id} onSelectCandidate={onSelectCandidate} />
+            <RankingTable candidates={candidates} jobId={job.id} onSelectCandidate={onSelectCandidate} onEvaluateAll={handleEvaluateAll} evaluating={evaluatingAll} />
           </div>
         )}
       </div>
