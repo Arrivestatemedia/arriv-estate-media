@@ -136,7 +136,7 @@ export const FIELD_AUTHORITY = {
 };
 
 // Fields that must never be accepted from an inbound sync event, regardless of entity.
-const GLOBAL_NEVER_SYNC = [
+export const GLOBAL_NEVER_SYNC = [
   "password", "password_hash", "force_password_change",
   "twilio_phone_number", "extension",
   "stripe_account_id", "stripe_onboarding_status", "stripe_payouts_enabled",

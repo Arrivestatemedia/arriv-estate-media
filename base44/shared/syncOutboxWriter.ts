@@ -18,7 +18,7 @@ import {
 } from "./syncEntityAdapters.ts";
 import { buildOutboundPayload } from "./syncFieldAuthority.ts";
 import { findMappingByLocalId, createMapping } from "./syncMapping.ts";
-import { getTenantConfig, isSyncEnabled, isEntityShared, isTestMode, isTestRecord } from "./syncTenantConfig.ts";
+import { getTenantConfig, isSyncEnabled, isEntityShared, isTestMode, isTestRecord, isMigrationMode } from "./syncTenantConfig.ts";
 
 const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 
@@ -41,6 +41,7 @@ export async function writeSyncOutboxEvent(base44, {
   correlationId,
   immutableSharedId,
   changedFields,
+  isMigrationEvent,
 }) {
   // Check if sync is enabled
   const enabled = await isSyncEnabled(base44);
@@ -68,6 +69,13 @@ export async function writeSyncOutboxEvent(base44, {
   // Only test-marked records (from createArrivOneTestEvent) are allowed.
   if (isTestMode(cfg) && !isTestRecord({ payload: recordData })) {
     return null; // suppressed — production record not enqueued in test mode
+  }
+
+  // Migration-mode gating: in migration mode, suppress normal entity triggers.
+  // Only explicit migration events (isMigrationEvent=true) are allowed through.
+  // This prevents live entity triggers from being enqueued during historical migration.
+  if (isMigrationMode(cfg) && !options?.isMigrationEvent) {
+    return null; // suppressed — normal trigger during migration mode
   }
 
   // Resolve or create mapping

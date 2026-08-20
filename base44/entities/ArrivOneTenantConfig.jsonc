@@ -42,7 +42,7 @@
     },
     "arriv_one_sync_status_endpoint": {
       "type": "string",
-      "description": "Arriv One sync admin status endpoint URL"
+      "description": "Arriv One secure sync status endpoint URL"
     },
     "arriv_one_sync_status": {
       "type": "string",
@@ -71,6 +71,29 @@
         "type": "string"
       },
       "description": "Canonical entity types approved for synchronization"
+    },
+    "migration_authorized": {
+      "type": "boolean",
+      "default": false,
+      "description": "Explicit historical-migration authorization gate. Must be true AND sync_mode must be 'migration' for any historical migration to execute. Test mode alone never allows historical migration."
+    },
+    "migration_authorized_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When historical migration was explicitly authorized"
+    },
+    "migration_authorized_by": {
+      "type": "string",
+      "description": "Admin email who authorized historical migration"
+    },
+    "migration_batch_pointer": {
+      "type": "string",
+      "description": "Current migration batch pointer (entity_type:batch_number) for resumable migration"
+    },
+    "reconciliation_retention_days": {
+      "type": "integer",
+      "default": 90,
+      "description": "Number of days to retain SyncReconciliation records before archiving"
     }
   },
   "required": [

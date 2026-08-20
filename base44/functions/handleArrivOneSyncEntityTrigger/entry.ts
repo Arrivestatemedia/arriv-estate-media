@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { writeSyncOutboxEvent } from "../../shared/syncOutboxWriter.ts";
-import { isSyncEnabled, getTenantConfig, isTestMode, isTestRecord } from "../../shared/syncTenantConfig.ts";
+import { isSyncEnabled, getTenantConfig, isTestMode, isTestRecord, isMigrationMode } from "../../shared/syncTenantConfig.ts";
 import { toCanonicalEntityType, isEntitySyncReady, ENTITY_ADAPTERS } from "../../shared/syncEntityAdapters.ts";
 
 // Estate Media local entity names that are sync-enabled (active adapters only)
@@ -44,6 +44,13 @@ export default async function (req) {
     // or sent while the sync connection is in test mode.
     if (isTestMode(cfg) && !isTestRecord({ payload: data })) {
       return Response.json({ success: true, skipped: true, reason: "Test mode: production entity trigger suppressed" });
+    }
+
+    // Migration-mode gating: in migration mode, suppress normal entity triggers.
+    // Only the explicit historical-migration function may enqueue events.
+    // This prevents live entity triggers from being enqueued during historical migration.
+    if (isMigrationMode(cfg)) {
+      return Response.json({ success: true, skipped: true, reason: "Migration mode: normal entity trigger suppressed (historical migration only)" });
     }
 
     // Translate to canonical and check sync-ready

@@ -1,18 +1,9 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { getCanonicalTenantId } from "../../shared/syncTenantConfig.ts";
+import { ENTITY_ADAPTERS, INITIAL_SHARED_ENTITIES } from "../../shared/syncEntityAdapters.ts";
 
-const SHARED_ENTITIES = [
-  "Contact",
-  "ActivityLog",
-  "Deal",
-  "SmsConversation",
-  "SmsMessage",
-  "SalesTeamMember",
-  "SalesGoal",
-  "ManagerNote",
-  "TimeOffRequest",
-  "BenefitsLifeEvent",
-];
+// Uses canonical entity types from the adapter registry (not app-local names).
+// SalesGoal → Goal, Conference → Meeting (deferred), ManagerNote subtype → Recognition (deferred).
 
 export default async function(req) {
   try {
@@ -23,12 +14,16 @@ export default async function(req) {
 
     const reconciliationId = crypto.randomUUID();
 
-    for (const entityType of SHARED_ENTITIES) {
+    for (const canonicalType of INITIAL_SHARED_ENTITIES) {
       try {
-        const localRecords = await base44.asServiceRole.entities[entityType].list("-created_date", 5000);
+        const adapter = ENTITY_ADAPTERS[canonicalType];
+        const localEntity = adapter.estate_media_local;
+
+        const localRecords = await base44.asServiceRole.entities[localEntity].list("-created_date", 5000);
+        // Mappings are stored by CANONICAL entity type
         const mappings = await base44.asServiceRole.entities.CrossAppRecordMapping.filter({
           tenant_id: tenantId,
-          entity_type: entityType,
+          entity_type: canonicalType,
         });
 
         const localCount = localRecords.length;
@@ -38,8 +33,8 @@ export default async function(req) {
 
         await base44.asServiceRole.entities.SyncReconciliation.create({
           tenant_id: tenantId,
-          reconciliation_id: `${reconciliationId}_${entityType}`,
-          entity_type: entityType,
+          reconciliation_id: `${reconciliationId}_${canonicalType}`,
+          entity_type: canonicalType,
           local_record_count: localCount,
           mapping_count: mappingCount,
           unmapped_count: unmappedCount,
@@ -50,7 +45,7 @@ export default async function(req) {
           status: "completed",
         });
       } catch (e) {
-        console.warn(`Reconciliation failed for ${entityType}:`, e.message);
+        console.warn(`Reconciliation failed for ${canonicalType}:`, e.message);
       }
     }
 
