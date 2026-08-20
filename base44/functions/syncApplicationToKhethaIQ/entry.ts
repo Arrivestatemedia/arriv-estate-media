@@ -13,6 +13,7 @@
 
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { generateSharedPersonId } from "../../shared/hireHandoffShared.ts";
+import { autoEvaluateCandidate } from "../../shared/hireiqAutoEvaluation.ts";
 
 export default async function(req) {
   try {
@@ -90,6 +91,20 @@ export default async function(req) {
             hire_candidate_id: localCandidate.id,
             shared_person_id: sharedPersonId,
           }).catch(() => {});
+
+          // Auto-evaluate the new candidate so it appears in rankings immediately
+          try {
+            let jobData = null;
+            if (localCandidate.job_id) {
+              jobData = await base44.asServiceRole.entities.HireJob.get(localCandidate.job_id);
+            }
+            const { resume_analysis, evaluation } = await autoEvaluateCandidate(
+              base44, localCandidate, jobData, jobData?.role_success_profile
+            );
+            await base44.asServiceRole.entities.HireCandidate.update(localCandidate.id, {
+              resume_analysis, evaluation,
+            });
+          } catch (_) {}
         }
       } catch (_) {}
     }

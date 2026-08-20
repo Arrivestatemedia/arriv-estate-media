@@ -1,4 +1,5 @@
 import { base44 } from "@/api/base44Client";
+import { autoEvaluateCandidate } from "../../base44/shared/hireiqAutoEvaluation";
 
 const JOB_SCHEMA = {
   type: "object",
@@ -378,6 +379,13 @@ export async function syncApplicationsToKhethaIQ() {
         hire_candidate_id: newCand.id,
         shared_person_id: sharedPersonId,
       }).catch(() => {});
+      // Auto-evaluate the new candidate for immediate ranking (non-blocking)
+      const jobData = Array.isArray(existingJobs) ? existingJobs.find(j => j.id === app.job_id) : null;
+      autoEvaluateCandidate(base44, newCand, jobData, jobData?.role_success_profile)
+        .then(({ resume_analysis, evaluation }) =>
+          base44.entities.HireCandidate.update(newCand.id, { resume_analysis, evaluation }).catch(() => {})
+        )
+        .catch(() => {});
     }
     newCandidates++;
   }
@@ -459,6 +467,12 @@ export async function syncApplicationsToKhethaIQ() {
           hire_candidate_id: newCand.id,
           shared_person_id: sharedPersonId,
         }).catch(() => {});
+        // Auto-evaluate the new candidate for immediate ranking (non-blocking)
+        autoEvaluateCandidate(base44, newCand, job, job?.role_success_profile)
+          .then(({ resume_analysis, evaluation }) =>
+            base44.entities.HireCandidate.update(newCand.id, { resume_analysis, evaluation }).catch(() => {})
+          )
+          .catch(() => {});
       }
       newCandidates++;
     }
