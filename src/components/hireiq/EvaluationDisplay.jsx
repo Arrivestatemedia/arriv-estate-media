@@ -51,6 +51,28 @@ export default function EvaluationDisplay({ evaluation }) {
         <p className="text-xs mt-2 opacity-60 italic">This estimate supports human decision-making and does not determine hiring outcomes.</p>
       </div>
 
+      {/* Proceed Recommendation */}
+      {ev.proceed_recommendation && (
+        <div className="rounded-xl border p-4" style={{
+          backgroundColor: ev.proceed_recommendation.startsWith("Advance") ? "rgba(184,149,106,0.12)"
+            : ev.proceed_recommendation.startsWith("Do Not") ? "rgba(220,38,38,0.1)"
+            : "rgba(251,146,60,0.1)",
+          borderColor: ev.proceed_recommendation.startsWith("Advance") ? "rgba(184,149,106,0.3)"
+            : ev.proceed_recommendation.startsWith("Do Not") ? "rgba(220,38,38,0.3)"
+            : "rgba(251,146,60,0.3)"
+        }}>
+          <div className="flex items-center gap-2 mb-1">
+            {ev.proceed_recommendation.startsWith("Advance") ? <TrendingUp className="w-5 h-5" style={{ color: GOLD }} />
+              : ev.proceed_recommendation.startsWith("Do Not") ? <TrendingDown className="w-5 h-5" style={{ color: "#FCA5A5" }} />
+              : <AlertTriangle className="w-5 h-5" style={{ color: "#FB923C" }} />}
+            <p className="text-sm font-bold" style={{ color: CREAM }}>{ev.proceed_recommendation}</p>
+          </div>
+          {ev.proceed_reasoning && (
+            <p className="text-sm mt-1" style={{ color: CREAM }}>{ev.proceed_reasoning}</p>
+          )}
+        </div>
+      )}
+
       {/* Score Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-3">
