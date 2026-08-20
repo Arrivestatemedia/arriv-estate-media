@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import DeleteApplicationDialog from "./DeleteApplicationDialog";
 import ReferenceCheckModal from "./ReferenceCheckModal";
 import { Users } from "lucide-react";
 
-export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
+export default function AdminSalesApplicationRow({ app, onUpdate, onDelete, autoExpand, autoAction, onAutoActionDone }) {
   const [expanded, setExpanded] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -19,6 +19,24 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete }) {
   const [refsMsg, setRefsMsg] = useState(null);
   const [showRefs, setShowRefs] = useState(false);
   const isSales = (app.position || "media_specialist") === "sales_growth_advisor";
+
+  // Auto-expand and auto-act when navigated from a candidate decision
+  useEffect(() => {
+    if (autoExpand) setExpanded(true);
+  }, [autoExpand]);
+
+  useEffect(() => {
+    if (!autoAction) return;
+    if (autoAction.type === "select_status" && autoAction.status) {
+      onUpdate(app.id, { status: autoAction.status });
+      if (onAutoActionDone) onAutoActionDone();
+    } else if (autoAction.type === "schedule_interview") {
+      setShowScheduler(true);
+      if (onAutoActionDone) onAutoActionDone();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAction]);
+
   if (!isSales) return null;
 
   const confirmDelete = async () => {

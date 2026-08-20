@@ -10,6 +10,16 @@ import PerformanceTracker from "@/components/hireiq/PerformanceTracker";
 import HireHandoffSection from "@/components/hireiq/HireHandoffSection";
 import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
 import { evaluateCandidate, analyzeInterview } from "@/lib/hireiq";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -28,13 +38,14 @@ const card = {
 
 const innerBg = "#2A2A2A";
 
-export default function CandidateDetailPanel({ candidate, job, onBack, onCandidateUpdated }) {
+export default function CandidateDetailPanel({ candidate, job, onBack, onCandidateUpdated, onDecisionConfirmed }) {
   const [interviews, setInterviews] = useState([]);
   const [loadingInterviews, setLoadingInterviews] = useState(true);
   const [showInterview, setShowInterview] = useState(false);
   const [interviewMode, setInterviewMode] = useState("live");
   const [evaluating, setEvaluating] = useState(false);
   const [notes, setNotes] = useState(candidate?.interview_notes || "");
+  const [pendingDecision, setPendingDecision] = useState(null);
 
   useEffect(() => {
     setNotes(candidate?.interview_notes || "");
@@ -93,15 +104,33 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
 
   const handleEvaluate = () => runEvaluation();
 
-  const handleDecision = async (decision) => {
+  const handleDecision = (decision) => {
+    setPendingDecision(decision);
+  };
+
+  const DECISION_INFO = {
+    advance: { title: "Advance to Next Round", desc: "This will open the applicant on the Applications page and select \"Interview Invitation\", which sends an interview invitation email to the applicant." },
+    hold: { title: "Put on Hold", desc: "This will open the applicant on the Applications page and select \"Under Review\". No email is sent." },
+    another_interview: { title: "Schedule Another Interview", desc: "This will open the applicant on the Applications page and open the Interview Scheduler so you can schedule the next interview." },
+    offer: { title: "Extend Offer", desc: "This will open the applicant on the Applications page and select \"Offer Extended\", which sends an offer email to the applicant." },
+    decline: { title: "Decline Candidate", desc: "This will open the applicant on the Applications page and select \"Offer Not Extended\", which sends an offer-not-extended email to the applicant." },
+  };
+
+  const confirmDecision = async () => {
+    if (!pendingDecision) return;
+    const decision = pendingDecision;
     const statusMap = { advance: "advanced", hold: "hold", another_interview: "interviewing", offer: "offer", decline: "declined" };
-    const res = await base44.entities.HireCandidate.update(candidate.id, {
-      decision,
-      decision_notes: notes,
-      status: statusMap[decision] || candidate.status,
-    });
-    const updated = res?.data ?? res;
-    onCandidateUpdated(updated);
+    try {
+      const res = await base44.entities.HireCandidate.update(candidate.id, {
+        decision,
+        decision_notes: notes,
+        status: statusMap[decision] || candidate.status,
+      });
+      const updated = res?.data ?? res;
+      onCandidateUpdated(updated);
+    } catch (_) {}
+    setPendingDecision(null);
+    if (onDecisionConfirmed) onDecisionConfirmed(decision);
   };
 
   const saveNotes = async () => {
@@ -245,6 +274,24 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
           <PerformanceTracker candidate={candidate} job={job} />
         </div>
       )}
+
+      {/* Decision confirmation dialog */}
+      <AlertDialog open={!!pendingDecision} onOpenChange={(open) => !open && setPendingDecision(null)}>
+        <AlertDialogContent style={{ backgroundColor: "#1A1A1A", border: "1px solid rgba(184,149,106,0.3)" }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ color: CREAM }}>{pendingDecision ? DECISION_INFO[pendingDecision].title : ""}</AlertDialogTitle>
+            <AlertDialogDescription style={{ color: MUTED_LIGHT }}>
+              {pendingDecision ? DECISION_INFO[pendingDecision].desc : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDecision} style={{ backgroundColor: GOLD, color: "#1A1A1A", fontWeight: 600 }}>
+              Confirm & Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -72,6 +72,7 @@ export default function KhethaIQ() {
   const [compareCandidates, setCompareCandidates] = useState([]);
   const [initialTab, setInitialTab] = useState(null);
   const [preselectedCandidateId, setPreselectedCandidateId] = useState(null);
+  const [pendingAppAction, setPendingAppAction] = useState(null);
 
   const loadJobs = async () => {
     setSyncing(true);
@@ -138,6 +139,22 @@ export default function KhethaIQ() {
   };
 
   const goJobsHome = () => { setSelectedJob(null); setSelectedCandidate(null); setInitialTab(null); setPreselectedCandidateId(null); };
+
+  const DECISION_TO_APP_ACTION = {
+    advance: { type: "select_status", status: "interview_invitation" },
+    hold: { type: "select_status", status: "under_review" },
+    another_interview: { type: "schedule_interview" },
+    offer: { type: "select_status", status: "offer_extended" },
+    decline: { type: "select_status", status: "offer_not_extended" },
+  };
+
+  const handleDecisionConfirmed = (decision) => {
+    const action = DECISION_TO_APP_ACTION[decision];
+    if (!action) return;
+    setPendingAppAction({ email: selectedCandidate?.email, ...action });
+    setSelectedCandidate(null);
+    setActiveView("applications");
+  };
 
   const handleOpenQuestionnaire = async (conference) => {
     try {
@@ -293,6 +310,7 @@ export default function KhethaIQ() {
               job={selectedJob || jobs.find(j => j.id === selectedCandidate.job_id)}
               onBack={() => { setSelectedCandidate(null); setInitialTab(null); setPreselectedCandidateId(null); }}
               onCandidateUpdated={setSelectedCandidate}
+              onDecisionConfirmed={handleDecisionConfirmed}
             />
           ) : compareMode && compareCandidates.length >= 2 ? (
             <ComparePanel candidates={compareCandidates} jobs={jobs} onBack={() => setCompareMode(false)} />
@@ -326,7 +344,7 @@ export default function KhethaIQ() {
           ) : activeView === "offers" ? (
             <OffersView onSelectCandidate={handleSelectCandidate} />
           ) : activeView === "applications" ? (
-            <ApplicationsPanel />
+            <ApplicationsPanel pendingAction={pendingAppAction} onPendingActionConsumed={() => setPendingAppAction(null)} />
           ) : activeView === "portal" ? (
             <div className="max-w-2xl mx-auto">
               <ApplicantPortalPanel />

@@ -18,7 +18,7 @@ const POSITION_TABS = [
 
 const positionOf = (app) => app.position || "media_specialist";
 
-export default function ApplicationsPanel() {
+export default function ApplicationsPanel({ pendingAction, onPendingActionConsumed }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -36,6 +36,18 @@ export default function ApplicationsPanel() {
     );
     return unsub;
   }, [queryClient]);
+
+  // Auto-switch to the correct tab/filter when a pending action arrives
+  useEffect(() => {
+    if (!pendingAction || !applications.length) return;
+    const match = applications.find(a => a.email?.toLowerCase() === pendingAction.email?.toLowerCase());
+    if (match) {
+      setPositionTab(positionOf(match));
+      setShowArchived(!!match.archived);
+      setStatusFilter("all");
+      setSearch("");
+    }
+  }, [pendingAction, applications]);
 
   const deleteApp = async (id) => {
     await base44.entities.JobApplication.delete(id);
@@ -207,13 +219,22 @@ export default function ApplicationsPanel() {
         <p className="text-center text-[#1A1A1A]/60 py-12">No {activeTab.label} applications found.</p>
       ) : (
         <div className="space-y-4">
-          {filtered.map((app) =>
-            positionOf(app) === "sales_growth_advisor" ? (
-              <AdminSalesApplicationRow key={app.id} app={app} onUpdate={updateApp} onDelete={deleteApp} />
+          {filtered.map((app) => {
+            const isPendingMatch = pendingAction && app.email?.toLowerCase() === pendingAction.email?.toLowerCase();
+            return positionOf(app) === "sales_growth_advisor" ? (
+              <AdminSalesApplicationRow
+                key={app.id}
+                app={app}
+                onUpdate={updateApp}
+                onDelete={deleteApp}
+                autoExpand={isPendingMatch}
+                autoAction={isPendingMatch ? pendingAction : null}
+                onAutoActionDone={onPendingActionConsumed}
+              />
             ) : (
               <AdminApplicationRow key={app.id} app={app} onUpdate={updateApp} onDelete={deleteApp} />
-            )
-          )}
+            );
+          })}
         </div>
       )}
     </div>
