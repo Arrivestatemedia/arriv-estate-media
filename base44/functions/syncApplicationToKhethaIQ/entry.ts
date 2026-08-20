@@ -94,59 +94,16 @@ export default async function(req) {
 
           // Auto-evaluate the new candidate so it appears in rankings immediately
           try {
-            console.log("[syncApp] auto-eval start, has integrations:", !!base44.integrations, "has Core:", !!(base44.integrations?.Core));
             let jobData = null;
             if (localCandidate.job_id) {
               jobData = await base44.asServiceRole.entities.HireJob.get(localCandidate.job_id);
             }
-
-            // 1. Resume analysis (inline to avoid import issues)
-            let resumeAnalysis = null;
-            if (localCandidate.resume_text) {
-              console.log("[syncApp] calling InvokeLLM for resume analysis...");
-              resumeAnalysis = await base44.integrations.Core.InvokeLLM({
-                prompt: `You are an expert recruiter. Compare the candidate's resume against the job description.\n\nJob Description:\n${JSON.stringify(jobData || {}, null, 2)}\n\nCandidate Resume:\n${localCandidate.resume_text}\n\nProvide a detailed analysis.`,
-                response_json_schema: {
-                  type: "object",
-                  properties: {
-                    strong_matches: { type: "array", items: { type: "string" } },
-                    partial_matches: { type: "array", items: { type: "string" } },
-                    missing_experience: { type: "array", items: { type: "string" } },
-                    transferable_skills: { type: "array", items: { type: "string" } },
-                    parsed_experience: { type: "string" },
-                    parsed_skills: { type: "array", items: { type: "string" } },
-                    explanation: { type: "string" }
-                  }
-                }
-              });
-              console.log("[syncApp] resume analysis done:", !!resumeAnalysis);
-            }
-
-            // 2. Evaluation
-            console.log("[syncApp] calling InvokeLLM for evaluation...");
-            const evaluation = await base44.integrations.Core.InvokeLLM({
-              prompt: `You are an expert hiring consultant. Evaluate this candidate for the position. No interviews conducted yet — base recommendation on resume analysis alone.\n\nJob Description:\n${JSON.stringify(jobData || {}, null, 2)}\n\nCandidate Resume Analysis:\n${JSON.stringify(resumeAnalysis || {}, null, 2)}\n\nGenerate a comprehensive evaluation with scores from 0-100. Provide proceed_recommendation: "Advance to Next Round", "Borderline - Manager Review Needed", or "Do Not Advance".`,
-              response_json_schema: {
-                type: "object",
-                properties: {
-                  overall_match_score: { type: "number" },
-                  resume_match: { type: "number" },
-                  skills_match: { type: "number" },
-                  experience_match: { type: "number" },
-                  estimated_success_score: { type: "number" },
-                  strengths: { type: "array", items: { type: "string" } },
-                  development_areas: { type: "array", items: { type: "string" } },
-                  proceed_recommendation: { type: "string" },
-                  proceed_reasoning: { type: "string" }
-                }
-              }
-            });
-            console.log("[syncApp] evaluation done:", !!evaluation);
-
+            const { resume_analysis, evaluation } = await autoEvaluateCandidate(
+              base44, localCandidate, jobData, jobData?.role_success_profile
+            );
             await base44.asServiceRole.entities.HireCandidate.update(localCandidate.id, {
-              resume_analysis: resumeAnalysis, evaluation,
+              resume_analysis, evaluation,
             });
-            console.log("[syncApp] candidate updated with evaluation");
           } catch (evalErr) {
             console.error("[syncApp] auto-eval error:", evalErr?.message || evalErr, evalErr?.stack || "");
           }
