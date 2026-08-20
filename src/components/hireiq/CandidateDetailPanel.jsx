@@ -66,23 +66,32 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
       ...finalData,
     });
     const interview = res?.data ?? res;
-    setInterviews(prev => [interview, ...prev]);
+    const updatedInterviews = [interview, ...interviews];
+    setInterviews(updatedInterviews);
     setShowInterview(false);
     setInterviewMode("live");
     await base44.entities.HireCandidate.update(candidate.id, { status: "interviewing" });
     onCandidateUpdated({ ...candidate, status: "interviewing" });
+    // Auto-re-evaluate with the new interview included
+    await runEvaluation(notes, updatedInterviews);
   };
 
-  const handleEvaluate = async () => {
+  const runEvaluation = async (overrideNotes, overrideInterviews) => {
     setEvaluating(true);
     try {
-      const evaluation = await evaluateCandidate(candidate, job, job?.role_success_profile, interviews, candidate.resume_analysis);
+      const allInterviews = overrideInterviews || [...interviews];
+      if (candidate?.round1_scorecard) allInterviews.push({ ...candidate.round1_scorecard, type: "Round 1 — General Competency" });
+      if (candidate?.round2_scorecard) allInterviews.push({ ...candidate.round2_scorecard, type: "Round 2 — Role-Specific" });
+      const updatedCandidate = { ...candidate, interview_notes: overrideNotes ?? notes };
+      const evaluation = await evaluateCandidate(updatedCandidate, job, job?.role_success_profile, allInterviews, candidate.resume_analysis);
       const res = await base44.entities.HireCandidate.update(candidate.id, { evaluation });
       const updated = res?.data ?? res;
       onCandidateUpdated(updated);
     } catch (_) {}
     setEvaluating(false);
   };
+
+  const handleEvaluate = () => runEvaluation();
 
   const handleDecision = async (decision) => {
     const statusMap = { advance: "advanced", hold: "hold", another_interview: "interviewing", offer: "offer", decline: "declined" };
@@ -97,6 +106,8 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
 
   const saveNotes = async () => {
     await base44.entities.HireCandidate.update(candidate.id, { interview_notes: notes });
+    // Auto-re-evaluate with updated notes
+    await runEvaluation(notes);
   };
 
   const ra = candidate?.resume_analysis;
