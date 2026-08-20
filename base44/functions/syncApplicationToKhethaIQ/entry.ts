@@ -94,17 +94,23 @@ export default async function(req) {
 
           // Auto-evaluate the new candidate so it appears in rankings immediately
           try {
+            console.log("[syncApplicationToKhethaIQ] Starting auto-evaluation for candidate", localCandidate.id);
             let jobData = null;
             if (localCandidate.job_id) {
               jobData = await base44.asServiceRole.entities.HireJob.get(localCandidate.job_id);
             }
+            console.log("[syncApplicationToKhethaIQ] Job data:", jobData ? "found" : "null", "resume_text length:", localCandidate.resume_text?.length || 0);
             const { resume_analysis, evaluation } = await autoEvaluateCandidate(
               base44, localCandidate, jobData, jobData?.role_success_profile
             );
+            console.log("[syncApplicationToKhethaIQ] Evaluation complete, resume_analysis:", !!resume_analysis, "evaluation:", !!evaluation);
             await base44.asServiceRole.entities.HireCandidate.update(localCandidate.id, {
               resume_analysis, evaluation,
             });
-          } catch (_) {}
+            console.log("[syncApplicationToKhethaIQ] Candidate updated with evaluation");
+          } catch (evalErr) {
+            console.error("[syncApplicationToKhethaIQ] Auto-evaluation error:", evalErr?.message || evalErr, evalErr?.stack || "");
+          }
         }
       } catch (_) {}
     }
