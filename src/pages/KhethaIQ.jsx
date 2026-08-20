@@ -153,6 +153,9 @@ export default function KhethaIQ() {
     if (!action) return;
     setPendingAppAction({ email: selectedCandidate?.email, ...action });
     setSelectedCandidate(null);
+    setSelectedJob(null);
+    setInitialTab(null);
+    setPreselectedCandidateId(null);
     setActiveView("applications");
   };
 
