@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, Download, AlertCircle } from "lucide-react";
 import { downloadRound1BlankPdf, downloadRound1FilledPdf } from "@/lib/scorecardPdf";
@@ -30,7 +30,7 @@ function buildInitialScores(existing) {
   return scores;
 }
 
-export default function Round1ScorecardForm({ candidateName, initialData, onSubmit, onCancel }) {
+export default function Round1ScorecardForm({ candidateName, initialData, onSubmit, onCancel, onAutoSave }) {
   const [scores, setScores] = useState(buildInitialScores(initialData));
   const [recommendation, setRecommendation] = useState(initialData?.recommendation || "");
   const [confidence, setConfidence] = useState(initialData?.interviewer_confidence || "");
@@ -57,43 +57,61 @@ export default function Round1ScorecardForm({ candidateName, initialData, onSubm
   const totalScore = useMemo(() => computeOverallScore(sectionScores), [sectionScores]);
 
   const answeredCount = scoredQuestions.filter(q => q.rating > 0).length;
-  const missingEvidence = scoredQuestions.filter(q => q.rating > 0 && !q.evidence.trim());
-  const canSubmit = answeredCount > 0 && missingEvidence.length === 0;
+  const canSubmit = answeredCount > 0;
+
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const skipSave = useRef(true);
+
+  const buildResult = () => ({
+    round: 1,
+    candidate_name: candidateName,
+    sections: ROUND1_SECTIONS.map(s => ({
+      name: s.name,
+      weight: s.weight,
+      score: sectionScores[s.name]?.score || 0,
+      questions: s.questions.map((q, qi) => {
+        const key = `${s.name}_${qi}`;
+        const sc = scores[key] || {};
+        return {
+          question: q.question,
+          section: s.name,
+          competencies: q.competencies,
+          weight: q.weight,
+          excellent_answer: q.excellent_answer,
+          poor_answer: q.poor_answer,
+          why_this_matters: q.why_this_matters,
+          rating: sc.rating || 0,
+          evidence: sc.evidence || "",
+          notes: sc.notes || "",
+        };
+      }),
+    })),
+    competency_scores: competencyScores,
+    total_score: totalScore,
+    recommendation,
+    interviewer_confidence: confidence,
+    overall_notes: overallNotes,
+  });
+
+  // Debounced auto-save — saves draft as you type
+  useEffect(() => {
+    if (!onAutoSave) return;
+    if (skipSave.current) { skipSave.current = false; return; }
+    setSaveStatus("saving");
+    const timer = setTimeout(async () => {
+      try {
+        await onAutoSave(buildResult());
+        setSaveStatus("saved");
+      } catch (_) {
+        setSaveStatus("idle");
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [scores, recommendation, confidence, overallNotes]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    const result = {
-      round: 1,
-      candidate_name: candidateName,
-      sections: ROUND1_SECTIONS.map(s => ({
-        name: s.name,
-        weight: s.weight,
-        score: sectionScores[s.name]?.score || 0,
-        questions: s.questions.map((q, qi) => {
-          const key = `${s.name}_${qi}`;
-          const sc = scores[key] || {};
-          return {
-            question: q.question,
-            section: s.name,
-            competencies: q.competencies,
-            weight: q.weight,
-            excellent_answer: q.excellent_answer,
-            poor_answer: q.poor_answer,
-            why_this_matters: q.why_this_matters,
-            rating: sc.rating || 0,
-            evidence: sc.evidence || "",
-            notes: sc.notes || "",
-          };
-        }),
-      })),
-      competency_scores: competencyScores,
-      total_score: totalScore,
-      recommendation,
-      interviewer_confidence: confidence,
-      overall_notes: overallNotes,
-      submitted_at: new Date().toISOString(),
-    };
-    await onSubmit(result);
+    await onSubmit({ ...buildResult(), submitted_at: new Date().toISOString() });
     setSubmitting(false);
   };
 
@@ -126,9 +144,8 @@ export default function Round1ScorecardForm({ candidateName, initialData, onSubm
               const current = scores[key]?.rating || 0;
               const evidence = scores[key]?.evidence || "";
               const notes = scores[key]?.notes || "";
-              const needsEvidence = current > 0 && !evidence.trim();
               return (
-                <div key={qi} className="rounded-lg p-3" style={{ backgroundColor: "#2A2A2A", border: needsEvidence ? "1px solid rgba(220,38,38,0.4)" : "1px solid rgba(184,149,106,0.1)" }}>
+                <div key={qi} className="rounded-lg p-3" style={{ backgroundColor: "#2A2A2A", border: "1px solid rgba(184,149,106,0.1)" }}>
                   <p className="text-sm font-medium mb-1" style={{ color: CREAM }}>{q.question}</p>
                   <div className="flex flex-wrap gap-1 mb-2">
                     {q.competencies.map(c => (
@@ -165,10 +182,10 @@ export default function Round1ScorecardForm({ candidateName, initialData, onSubm
                     ))}
                     {current > 0 && <span className="ml-2 text-xs" style={{ color: MUTED_LIGHT }}>{RATING_LABELS[current]}</span>}
                   </div>
-                  <textarea rows={2} placeholder="Evidence observed (required)..." value={evidence}
+                  <textarea rows={2} placeholder="Evidence observed (optional)..." value={evidence}
                     onChange={e => setEvidence(key, e.target.value)}
                     className="w-full text-xs px-3 py-1.5 rounded mb-2"
-                    style={{ backgroundColor: "#1A1A1A", color: CREAM, border: needsEvidence ? "1px solid rgba(220,38,38,0.4)" : "1px solid rgba(184,149,106,0.1)" }} />
+                    style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.1)" }} />
                   <input type="text" placeholder="Additional notes (optional)..." value={notes}
                     onChange={e => setNotes(key, e.target.value)}
                     className="w-full text-xs px-3 py-1.5 rounded"
@@ -213,13 +230,6 @@ export default function Round1ScorecardForm({ candidateName, initialData, onSubm
           </div>
         </div>
 
-        {missingEvidence.length > 0 && (
-          <div className="flex items-center gap-2 mb-3 text-xs rounded px-3 py-2" style={{ backgroundColor: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.3)" }}>
-            <AlertCircle className="w-4 h-4" style={{ color: "#FCA5A5" }} />
-            <span style={{ color: "#FCA5A5" }}>{missingEvidence.length} question(s) with a rating but no evidence. Evidence is required to submit.</span>
-          </div>
-        )}
-
         <div className="space-y-3">
           <div>
             <p className="text-xs font-semibold mb-1.5" style={{ color: MUTED_LIGHT }}>Recommendation</p>
@@ -254,12 +264,22 @@ export default function Round1ScorecardForm({ candidateName, initialData, onSubm
         </div>
       </div>
 
-      <div className="flex gap-3 pt-2">
+      <div className="flex gap-3 items-center pt-2">
         <Button variant="outline" onClick={onCancel} style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}>Cancel</Button>
         <Button onClick={handleSubmit} disabled={submitting || !canSubmit} style={{ backgroundColor: GOLD, color: "#1A1A1A", fontWeight: 600 }}>
           {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
           Submit Scorecard
         </Button>
+        {onAutoSave && saveStatus === "saving" && (
+          <span className="text-xs flex items-center gap-1" style={{ color: MUTED_LIGHT }}>
+            <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+          </span>
+        )}
+        {onAutoSave && saveStatus === "saved" && (
+          <span className="text-xs flex items-center gap-1" style={{ color: GOLD }}>
+            <CheckCircle2 className="w-3 h-3" /> Saved
+          </span>
+        )}
       </div>
     </div>
   );

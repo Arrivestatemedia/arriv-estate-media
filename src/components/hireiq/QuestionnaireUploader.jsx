@@ -256,6 +256,20 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
     } catch (_) {}
   };
 
+  const handleRound1AutoSave = async (draft) => {
+    if (!selectedCandidate) return;
+    try {
+      await onUpdateCandidate(selectedCandidate.id, { round1_scorecard: draft });
+    } catch (_) {}
+  };
+
+  const handleRound2AutoSave = async (draft) => {
+    if (!selectedCandidate) return;
+    try {
+      await onUpdateCandidate(selectedCandidate.id, { round2_scorecard: draft });
+    } catch (_) {}
+  };
+
   const handleRound1Submit = async (result) => {
     if (!selectedCandidate) return;
     const updated = { ...selectedCandidate, round1_scorecard: result };
@@ -339,6 +353,7 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
           candidateName={selectedCandidate.name}
           initialData={selectedCandidate.round1_scorecard}
           onSubmit={handleRound1Submit}
+          onAutoSave={handleRound1AutoSave}
           onCancel={() => setMode(null)}
         />
       </div>
@@ -352,7 +367,9 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
         <Round2ScorecardForm
           job={job}
           candidateName={selectedCandidate.name}
+          initialData={selectedCandidate.round2_scorecard}
           onSubmit={handleRound2Submit}
+          onAutoSave={handleRound2AutoSave}
           onCancel={() => setMode(null)}
         />
       </div>
@@ -376,7 +393,7 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
           </div>
           {r1 && (
             <span className="flex items-center gap-1 text-xs px-2 py-1 rounded" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>
-              <CheckCircle2 className="w-3 h-3" /> Submitted
+              <CheckCircle2 className="w-3 h-3" /> {r1.submitted_at ? "Submitted" : "Draft Saved"}
             </span>
           )}
         </div>
@@ -436,7 +453,7 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
           </div>
           {r2 && (
             <span className="flex items-center gap-1 text-xs px-2 py-1 rounded" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>
-              <CheckCircle2 className="w-3 h-3" /> Submitted
+              <CheckCircle2 className="w-3 h-3" /> {r2.submitted_at ? "Submitted" : "Draft Saved"}
             </span>
           )}
         </div>
