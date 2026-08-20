@@ -1,5 +1,5 @@
 import React from "react";
-import { scoreColor, computeCompositeScore } from "@/lib/hireiq";
+import { scoreColor, computeCompositeScore, computeApplicationScore } from "@/lib/hireiq";
 import { Trophy } from "lucide-react";
 
 const CREAM = "#FFFBF5";
@@ -18,8 +18,8 @@ function ScoreBadge({ score, label }) {
 
 export default function RankingTable({ candidates, jobId, onSelectCandidate }) {
   const ranked = [...candidates].sort((a, b) => {
-    const aComposite = computeCompositeScore(a) ?? a.evaluation?.estimated_success_score ?? 0;
-    const bComposite = computeCompositeScore(b) ?? b.evaluation?.estimated_success_score ?? 0;
+    const aComposite = computeCompositeScore(a) ?? computeApplicationScore(a) ?? 0;
+    const bComposite = computeCompositeScore(b) ?? computeApplicationScore(b) ?? 0;
     return bComposite - aComposite;
   });
 
@@ -92,7 +92,7 @@ export default function RankingTable({ candidates, jobId, onSelectCandidate }) {
         </tbody>
       </table>
       <p className="text-xs mt-3" style={{ color: MUTED_LIGHT }}>
-        Composite score blends AI evaluation (40%), Round 1 scorecard (30%), and Round 2 scorecard (30%) — weighted by available data.
+        Initial ranking is based on application (resume &amp; experience). After Round 1, composite blends application (50%) + Round 1 (50%). After Round 2, composite blends application (40%) + Round 1 (30%) + Round 2 (30%).
       </p>
     </div>
   );

@@ -246,18 +246,40 @@ export async function parseQuestionnaireFile(fileUrl, jobData, roleProfile) {
   });
 }
 
+export function computeApplicationScore(candidate) {
+  const ev = candidate?.evaluation || {};
+  const components = [];
+  if (ev.resume_match != null) components.push(ev.resume_match);
+  if (ev.experience_match != null) components.push(ev.experience_match);
+  if (ev.skills_match != null) components.push(ev.skills_match);
+  if (components.length === 0) {
+    if (ev.estimated_success_score != null) return ev.estimated_success_score;
+    return null;
+  }
+  return Math.round((components.reduce((a, b) => a + b, 0) / components.length) * 10) / 10;
+}
+
 export function computeCompositeScore(candidate) {
-  const evalScore = candidate?.evaluation?.estimated_success_score;
+  const appScore = computeApplicationScore(candidate);
   const r1Score = candidate?.round1_scorecard?.total_score;
   const r2Score = candidate?.round2_scorecard?.total_score;
 
-  const weights = { eval: 40, r1: 30, r2: 30 };
   let totalWeight = 0;
   let weightedSum = 0;
 
-  if (evalScore != null) { weightedSum += evalScore * weights.eval; totalWeight += weights.eval; }
-  if (r1Score != null) { weightedSum += r1Score * weights.r1; totalWeight += weights.r1; }
-  if (r2Score != null) { weightedSum += r2Score * weights.r2; totalWeight += weights.r2; }
+  if (r1Score != null && r2Score != null) {
+    // Both interview rounds complete: 40% application, 30% Round 1, 30% Round 2
+    if (appScore != null) { weightedSum += appScore * 40; totalWeight += 40; }
+    weightedSum += r1Score * 30; totalWeight += 30;
+    weightedSum += r2Score * 30; totalWeight += 30;
+  } else if (r1Score != null) {
+    // Round 1 complete only: 50% application, 50% Round 1
+    if (appScore != null) { weightedSum += appScore * 50; totalWeight += 50; }
+    weightedSum += r1Score * 50; totalWeight += 50;
+  } else {
+    // No interviews yet: 100% application (resume & experience)
+    if (appScore != null) { weightedSum += appScore * 100; totalWeight += 100; }
+  }
 
   return totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 10) / 10 : null;
 }
