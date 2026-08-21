@@ -32,6 +32,7 @@ import TimeOff from './pages/TimeOff';
 import Benefits from './pages/Benefits';
 import PayoutRecords from './pages/PayoutRecords';
 import AdminSyncStatus from './pages/AdminSyncStatus';
+import AdminManifestConvergence from './pages/AdminManifestConvergence';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -288,6 +289,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminSyncStatus">
             <AdminSyncStatus />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminManifestConvergence"
+        element={
+          <LayoutWrapper currentPageName="AdminManifestConvergence">
+            <AdminManifestConvergence />
           </LayoutWrapper>
         }
       />

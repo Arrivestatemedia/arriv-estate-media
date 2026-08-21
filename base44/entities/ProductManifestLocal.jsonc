@@ -4,23 +4,36 @@
   "properties": {
     "tenant_id": {
       "type": "string",
-      "description": "Canonical Arriv One tenant ID"
+      "description": "Canonical Arriv One tenant ID (or 'global' for scope=global manifests)"
     },
     "manifest_type": {
       "type": "string",
-      "description": "Manifest type (ai_followup_rules, daily_call_queue_config, etc.)"
+      "description": "Manifest type (ai_followup_rules, daily_call_queue_config, call_map_schema, metric_definitions, crm_statuses, prospecting_config, communication_rules, label_overrides, nav_config, video_config)"
     },
     "manifest_version": {
       "type": "string",
       "description": "Version string from Arriv One"
     },
+    "manifest_id": {
+      "type": "string",
+      "description": "Canonical manifest ID from Arriv One (unique per published version)"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "tenant",
+        "global"
+      ],
+      "default": "tenant",
+      "description": "Whether this manifest is tenant-specific or global"
+    },
     "checksum": {
       "type": "string",
-      "description": "Content checksum for integrity verification"
+      "description": "Content checksum for integrity verification (SHA-256 of payload)"
     },
     "payload": {
       "type": "object",
-      "description": "Manifest configuration data"
+      "description": "Manifest configuration data (read-only mirror of canonical AO config)"
     },
     "apply_status": {
       "type": "string",
@@ -31,11 +44,38 @@
         "pending_review"
       ],
       "default": "pending_review",
-      "description": "Application status"
+      "description": "Application status. 'applied' = published/active-eligible. 'incompatible' = outside EM runtime compatibility range. 'rejected' = checksum/auth failure."
+    },
+    "compatible_with_min": {
+      "type": "string",
+      "description": "Minimum EM runtime version this manifest is compatible with"
+    },
+    "compatible_with_max": {
+      "type": "string",
+      "description": "Maximum EM runtime version this manifest is compatible with"
     },
     "previous_version": {
       "type": "string",
       "description": "Previous manifest version before this one"
+    },
+    "origin_application": {
+      "type": "string",
+      "default": "arriv_one",
+      "description": "Source application that published this manifest"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Who created/published the manifest in Arriv One"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Arriv One published this manifest version"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Estate Media received this manifest from Arriv One"
     },
     "fetched_at": {
       "type": "string",
@@ -45,7 +85,12 @@
     "applied_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When this manifest was applied locally"
+      "description": "When this manifest was applied locally (apply_status set to applied)"
+    },
+    "last_consumed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the runtime last consumed this manifest version (telemetry)"
     },
     "parity_task_created": {
       "type": "boolean",

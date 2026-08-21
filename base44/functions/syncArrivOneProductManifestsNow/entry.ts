@@ -10,7 +10,7 @@ const SUPPORTED_MANIFEST_TYPES = [
   "communication_rules",
   "label_overrides",
   "nav_config",
-  "repair_action_definitions_reserved",
+  "video_config",
 ];
 
 export default async function(req) {

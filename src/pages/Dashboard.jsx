@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileText, ShieldCheck, Wallet, Landmark, Settings, BarChart3, UserCog } from "lucide-react";
+import ManifestLabel from "@/components/manifest/ManifestLabel";
 
 const ADMIN_SECTIONS = [
   { label: "Sales Team", page: "AdminSalesSignup", icon: Users, description: "Manage sales reps and onboarding" },
@@ -21,7 +22,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+          <ManifestLabel labelKey="dashboard_title" defaultLabel="Admin Dashboard" as="h1" className="text-3xl font-bold text-foreground" runtimePath="Dashboard:title" />
           <p className="text-muted-foreground mt-1">Sales CRM & commission engine</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

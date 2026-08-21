@@ -139,6 +139,7 @@ function LayoutContent({ children, currentPageName }) {
         { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
         { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
         { label: "Sync Status", page: "AdminSyncStatus", icon: ShieldCheck },
+        { label: "Manifest Convergence", page: "AdminManifestConvergence", icon: ShieldCheck },
           ]
       : isClient
     ? [
