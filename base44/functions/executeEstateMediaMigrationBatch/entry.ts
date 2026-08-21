@@ -214,6 +214,12 @@ export default async function (req: Request): Promise<Response> {
             origin: "estate_media",
             eventId: outbox.event_id,
           });
+          // Set last_synced_version and last_synced_at (createMapping doesn't set these)
+          await updateMapping(base44, mapping.id, {
+            recordVersion,
+            eventId: outbox.event_id,
+            syncStatus: "linked",
+          });
         }
 
         // Update outbox record as delivered

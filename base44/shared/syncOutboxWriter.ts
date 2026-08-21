@@ -89,6 +89,13 @@ export async function writeSyncOutboxEvent(base44, {
   // Build the payload with field authority (canonical type)
   const payload = buildOutboundPayload(canonicalType, recordData);
 
+  // Migration marker: Arriv One recognizes _migration=true to accept historical
+  // migration events in controlled migration mode. buildOutboundPayload strips
+  // fields starting with "_", so we inject it after payload construction.
+  if (isMigrationEvent) {
+    payload._migration = true;
+  }
+
   const eventId = generateEventId();
   const now = new Date().toISOString();
   const sigTimestamp = now;
