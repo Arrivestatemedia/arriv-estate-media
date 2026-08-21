@@ -4,7 +4,7 @@
   "properties": {
     "arriv_one_tenant_id": {
       "type": "string",
-      "description": "Canonical Arriv One Tenant.tenant_id for this Estate Media instance"
+      "description": "Canonical Arriv One tenant ID for this Estate Media instance"
     },
     "arriv_one_application_id": {
       "type": "string",
@@ -21,12 +21,12 @@
         "disabled",
         "test",
         "migration",
-        "active",
+        "connected",
         "paused",
         "error"
       ],
       "default": "disabled",
-      "description": "Current synchronization mode"
+      "description": "Current synchronization mode. 'connected' is the active production state (standardized with Arriv One)."
     },
     "arriv_one_sync_endpoint": {
       "type": "string",

@@ -27,7 +27,7 @@ export default async function(req: Request): Promise<Response> {
     if (action === "authorize_migration") {
       // Authorize historical migration — sets migration_authorized = true
       // and advances sync_mode to "migration" if currently in "test".
-      // Does NOT enable active production sync (that requires a separate action to set mode to "active").
+      // Does NOT enable active production sync (that requires a separate action to set mode to "connected").
       const reason = body.reason || "Historical migration authorized by admin";
       const update = {
         migration_authorized: true,
