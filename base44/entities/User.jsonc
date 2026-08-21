@@ -2,6 +2,11 @@
   "name": "User",
   "type": "object",
   "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
     "role": {
       "type": "string",
       "enum": [

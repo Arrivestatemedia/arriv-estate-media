@@ -2,6 +2,11 @@
   "name": "SalesRepStyleProfile",
   "type": "object",
   "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
     "sales_member_id": {
       "type": "string",
       "description": "ID of the sales team member"
@@ -32,5 +37,19 @@
   "required": [
     "sales_member_id",
     "sales_member_email"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "create": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "update": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "delete": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    }
+  }
 }
