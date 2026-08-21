@@ -74,7 +74,7 @@ export async function writeSyncOutboxEvent(base44, {
   // Migration-mode gating: in migration mode, suppress normal entity triggers.
   // Only explicit migration events (isMigrationEvent=true) are allowed through.
   // This prevents live entity triggers from being enqueued during historical migration.
-  if (isMigrationMode(cfg) && !options?.isMigrationEvent) {
+  if (isMigrationMode(cfg) && !isMigrationEvent) {
     return null; // suppressed — normal trigger during migration mode
   }
 
