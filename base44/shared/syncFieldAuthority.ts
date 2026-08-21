@@ -177,9 +177,11 @@ export function applyInboundFieldAuthority(entityType, payload) {
 export function buildOutboundPayload(entityType, recordData) {
   const rules = FIELD_AUTHORITY[entityType] || {};
   const never = new Set([...(rules.neverSync || []), ...GLOBAL_NEVER_SYNC]);
+  const arrivOneAuth = new Set(rules.arrivOneAuthoritative || []);
   const payload = {};
   for (const [key, value] of Object.entries(recordData || {})) {
     if (never.has(key)) continue;
+    if (arrivOneAuth.has(key)) continue; // Estate Media must not send Arriv One-authoritative fields
     if (key.startsWith("_")) continue;
     // Skip built-in fields
     if (["id", "created_date", "updated_date", "created_by_id"].includes(key)) continue;

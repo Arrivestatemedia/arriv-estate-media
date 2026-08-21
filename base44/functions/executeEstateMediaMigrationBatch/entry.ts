@@ -35,7 +35,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const body = await req.json();
-    const { entity_type, batch_size, batch_offset, dry_run } = body;
+    const { entity_type, batch_size, batch_offset, dry_run, record_ids } = body;
 
     if (!entity_type) {
       return Response.json({ error: "entity_type required" }, { status: 400 });
@@ -70,7 +70,15 @@ export default async function (req: Request): Promise<Response> {
     // Fetch production records (test artifacts excluded)
     const allRecords = await base44.asServiceRole.entities[localEntity].list("-created_date", 5000);
     const production = allRecords.filter((r) => !isTestArtifact(r));
-    const batch = production.slice(batchOffset, batchOffset + batchSize);
+    let batch;
+    if (record_ids && Array.isArray(record_ids) && record_ids.length > 0) {
+      // Explicit checkpoint — migrate only the specified records in the given order
+      const recordIdSet = new Set(record_ids);
+      batch = production.filter((r) => recordIdSet.has(r.id));
+      batch.sort((a, b) => record_ids.indexOf(a.id) - record_ids.indexOf(b.id));
+    } else {
+      batch = production.slice(batchOffset, batchOffset + batchSize);
+    }
 
     // Fetch audit records for preserved source_updated_at
     const audits = await base44.asServiceRole.entities.MigrationInitializationAudit.filter({
