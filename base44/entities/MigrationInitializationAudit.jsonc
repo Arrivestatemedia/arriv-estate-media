@@ -1,0 +1,124 @@
+{
+  "name": "MigrationInitializationAudit",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical Arriv One tenant ID"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Canonical entity type (Contact, ActivityLog, SalesTeamMember, etc.)"
+    },
+    "local_entity": {
+      "type": "string",
+      "description": "Estate Media local entity name"
+    },
+    "record_id": {
+      "type": "string",
+      "description": "Estate Media local record ID"
+    },
+    "immutable_shared_id": {
+      "type": "string",
+      "description": "Assigned immutable cross-app shared identifier"
+    },
+    "prior_immutable_shared_id": {
+      "type": "string",
+      "description": "Previous immutable_shared_id if one existed before initialization"
+    },
+    "prior_record_version": {
+      "type": "integer",
+      "description": "Previous record_version if one existed before initialization (null if missing)"
+    },
+    "resulting_record_version": {
+      "type": "integer",
+      "description": "Record version after initialization (1 if newly assigned, preserved if already versioned)"
+    },
+    "prior_sync_source": {
+      "type": "string",
+      "description": "Previous sync_source if one existed before initialization"
+    },
+    "resulting_sync_source": {
+      "type": "string",
+      "enum": [
+        "estate_media",
+        "arriv_one"
+      ],
+      "description": "Sync source after initialization"
+    },
+    "original_updated_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Pre-initialization updated_date \u2014 the legitimate business timestamp to use for migration source_updated_at"
+    },
+    "original_created_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Pre-initialization created_date"
+    },
+    "initialization_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the metadata initialization was performed"
+    },
+    "initialization_result": {
+      "type": "string",
+      "enum": [
+        "success",
+        "skipped_already_initialized",
+        "collision",
+        "error"
+      ],
+      "description": "Result of the initialization attempt"
+    },
+    "collision_with_record_id": {
+      "type": "string",
+      "description": "If collision detected, the record ID that already holds the conflicting immutable_shared_id"
+    },
+    "dependency_resolved": {
+      "type": "boolean",
+      "description": "Whether all dependency references are resolved (false for orphan ActivityLogs)"
+    },
+    "dependency_notes": {
+      "type": "string",
+      "description": "Notes about dependency status (e.g. 'orphan_contact_preservable')"
+    },
+    "deferred": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this entity type is deferred (Meeting, Recognition)"
+    },
+    "initialization_phase": {
+      "type": "string",
+      "description": "Migration phase this record belongs to (A, B, or C)"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "entity_type",
+    "record_id",
+    "immutable_shared_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
