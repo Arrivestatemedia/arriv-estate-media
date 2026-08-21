@@ -7,8 +7,9 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Admin only' }, { status: 403 });
   }
 
-  // Fetch all activity logs
-  const all = await base44.asServiceRole.entities.ActivityLog.list('-activity_date', 1000);
+  // Fetch all activity logs (tenant-scoped)
+  const tenantId = user.tenant_id || user.data?.tenant_id || 'tnt_estate_media';
+  const all = await base44.asServiceRole.entities.ActivityLog.filter({ tenant_id: tenantId }, '-activity_date', 1000);
 
   // Find ones that have a call map stored
   const withCallMap = all.filter(a => /--- CALL MAP ---/i.test(a.notes || ''));
@@ -58,15 +59,16 @@ Output a clear, concise set of rules/preferences that should guide future call m
 
   const prefs = typeof analysis === 'string' ? JSON.parse(analysis) : analysis;
 
-  // Save or update a system-wide style profile
-  const existing = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ sales_member_email: 'system@arriv' });
+  // Save or update a system-wide style profile (tenant-scoped)
+  const existing = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ sales_member_email: 'system@arriv', tenant_id: tenantId });
   
   const profileData = {
     sales_member_id: 'system',
     sales_member_email: 'system@arriv',
     learned_preferences: `${prefs.learned_preferences}\n\nKEY PHRASES TO USE:\n${(prefs.key_phrases || []).map(p => `- "${p}"`).join('\n')}\n\nSTYLE SUMMARY: ${prefs.summary}`,
     edit_count: callMaps.length,
-    last_updated: new Date().toISOString()
+    last_updated: new Date().toISOString(),
+    tenant_id: tenantId
   };
 
   if (existing?.length > 0) {

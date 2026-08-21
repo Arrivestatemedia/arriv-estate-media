@@ -111,10 +111,12 @@ Page Views: ${contact.hs_analytics_num_page_views || 0}`;
 
     const marketIntel = typeof webResearch === "string" ? webResearch : webResearch?.text || "";
 
-    // Fetch system-wide learned style preferences from all rep edits
+    // Fetch system-wide learned style preferences from all rep edits (tenant-scoped)
     let learnedStyleContext = "";
     try {
-      const styleProfiles = await base44.asServiceRole.entities.SalesRepStyleProfile.list();
+      const tenantConfigs = await base44.asServiceRole.entities.ArrivOneTenantConfig.list();
+      const tenantId = tenantConfigs?.[0]?.arriv_one_tenant_id || 'tnt_estate_media';
+      const styleProfiles = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ tenant_id: tenantId });
       if (styleProfiles?.length > 0) {
         const totalEdits = styleProfiles.reduce((sum, p) => sum + (p.edit_count || 0), 0);
         const allPrefs = styleProfiles

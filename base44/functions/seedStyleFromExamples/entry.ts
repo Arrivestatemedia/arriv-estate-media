@@ -74,11 +74,12 @@ Key things to extract:
     last_updated: new Date().toISOString()
   };
 
-  const existing = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ sales_member_email: 'system@arriv' });
+  const tenantId = user.tenant_id || user.data?.tenant_id || 'tnt_estate_media';
+  const existing = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ sales_member_email: 'system@arriv', tenant_id: tenantId });
   if (existing?.length > 0) {
-    await base44.asServiceRole.entities.SalesRepStyleProfile.update(existing[0].id, profileData);
+    await base44.asServiceRole.entities.SalesRepStyleProfile.update(existing[0].id, { ...profileData, tenant_id: tenantId });
   } else {
-    await base44.asServiceRole.entities.SalesRepStyleProfile.create(profileData);
+    await base44.asServiceRole.entities.SalesRepStyleProfile.create({ ...profileData, tenant_id: tenantId });
   }
 
   return Response.json({

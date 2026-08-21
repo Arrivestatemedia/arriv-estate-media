@@ -76,6 +76,7 @@ export default async function (req) {
     }
     const tenantCheck = validateInboundTenant(envelope, cfg.arriv_one_tenant_id);
     if (!tenantCheck.valid) {
+      console.warn(`[SYNC_SECURITY] Tenant mismatch rejected: envelope_tenant="${envelope.tenant_id}" expected="${cfg.arriv_one_tenant_id}" entity_type="${envelope.entity_type}" event_id="${envelope.event_id}"`);
       return Response.json(
         { accepted: false, processing_status: "rejected", reason: tenantCheck.error },
         { status: 403 }
@@ -256,8 +257,9 @@ async function processEvent(base44, envelope, cfg) {
   // Translate to local entity name for DB operations
   const localEntityType = toEstateMediaLocalEntityType(entity_type);
 
-  // Add sync metadata
+  // Add sync metadata (tenant_id from trusted canonical config, not client-provided)
   const syncMeta = {
+    tenant_id: cfg.arriv_one_tenant_id,
     sync_source: "arriv_one",
     origin_event_id: envelope.event_id,
     immutable_shared_id: immutable_shared_id || mapping?.immutable_shared_id || crypto.randomUUID(),

@@ -59,8 +59,9 @@ Format as a bullet list of 3-5 key learnings.`;
 
     const learnedPreferences = typeof analysisResult === 'string' ? analysisResult : analysisResult?.text || analysisResult?.content || '';
 
-    // Fetch or create the style profile
-    const profiles = await base44.entities.SalesRepStyleProfile.filter({ sales_member_id: user.id });
+    // Fetch or create the style profile (tenant-scoped)
+    const tenantId = user.tenant_id || user.data?.tenant_id || 'tnt_estate_media';
+    const profiles = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ sales_member_id: user.id, tenant_id: tenantId });
     const profile = profiles?.[0];
 
     let updatedProfile;
@@ -73,6 +74,7 @@ Format as a bullet list of 3-5 key learnings.`;
       });
     } else {
       updatedProfile = await base44.asServiceRole.entities.SalesRepStyleProfile.create({
+        tenant_id: tenantId,
         sales_member_id: user.id,
         sales_member_email: user.email,
         learned_preferences: learnedPreferences,

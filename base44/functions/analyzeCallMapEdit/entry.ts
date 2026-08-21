@@ -40,8 +40,9 @@ Format as a bullet list of 3-5 key learnings.`;
 
     const learnedPreferences = typeof analysisResult === 'string' ? analysisResult : analysisResult?.text || analysisResult?.content || '';
 
-    // Fetch or create the sales rep's style profile
-    const profiles = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ sales_member_id: salesMemberId });
+    // Fetch or create the sales rep's style profile (tenant-scoped)
+    const tenantId = user.tenant_id || user.data?.tenant_id || 'tnt_estate_media';
+    const profiles = await base44.asServiceRole.entities.SalesRepStyleProfile.filter({ sales_member_id: salesMemberId, tenant_id: tenantId });
     const profile = profiles?.[0];
 
     let updatedProfile;
@@ -54,8 +55,9 @@ Format as a bullet list of 3-5 key learnings.`;
         last_updated: new Date().toISOString()
       });
     } else {
-      // Create new profile
+      // Create new profile (tenant-scoped)
       updatedProfile = await base44.asServiceRole.entities.SalesRepStyleProfile.create({
+        tenant_id: tenantId,
         sales_member_id: salesMemberId,
         sales_member_email: salesMemberEmail,
         learned_preferences: learnedPreferences,
