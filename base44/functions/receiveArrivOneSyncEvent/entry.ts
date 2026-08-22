@@ -30,6 +30,7 @@ import {
   ENTITY_ADAPTERS,
 } from "../../shared/syncEntityAdapters.ts";
 import { translateCanonicalToLocal } from "../../shared/syncFieldAdapters.ts";
+import { processManifestPush } from "../../shared/manifestPushHandler.ts";
 
 const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
 
@@ -116,6 +117,64 @@ export default async function (req) {
         { accepted: false, processing_status: "rejected", reason: "Test mode: only test records accepted" },
         { status: 200 }
       );
+    }
+
+    // 7.5. Manifest event routing — detect manifest.published events and route to
+    // the dedicated manifest push handler BEFORE the regular entity sync-ready check.
+    // ProductManifest is a special entity: it's stored in ProductManifestLocal (a mirror),
+    // not in a regular entity table. It bypasses shared_entity_types and field-authority logic.
+    const eventTypeDef = resolveEventType(envelope.event_type);
+    if (eventTypeDef?.is_manifest || envelope.entity_type === "ProductManifest") {
+      const manifestResult = await processManifestPush(base44, envelope, cfg);
+
+      // Record in SyncInbox (same audit trail as regular events)
+      await base44.asServiceRole.entities.SyncInbox.create({
+        tenant_id: envelope.tenant_id,
+        event_id: envelope.event_id,
+        event_type: envelope.event_type,
+        schema_version: envelope.schema_version,
+        source_application: envelope.source_application,
+        destination_application: envelope.destination_application,
+        entity_type: envelope.entity_type,
+        entity_id: envelope.entity_id || "",
+        immutable_shared_id: envelope.immutable_shared_id || "",
+        operation: envelope.operation,
+        occurred_at: envelope.occurred_at,
+        source_updated_at: envelope.source_updated_at || "",
+        record_version: envelope.record_version || 0,
+        idempotency_key: envelope.idempotency_key || "",
+        correlation_id: envelope.correlation_id || "",
+        causation_id: envelope.causation_id || "",
+        origin_event_id: envelope.origin_event_id || "",
+        payload: envelope.payload || {},
+        processing_status: manifestResult.status,
+        local_record_id: "",
+        mapping_id: "",
+        processed_at: new Date().toISOString(),
+        rejection_reason: manifestResult.reason || "",
+      });
+
+      // Update tenant config last successful sync (only on applied)
+      if (manifestResult.status === "applied") {
+        await base44.asServiceRole.entities.ArrivOneTenantConfig.update(cfg.id, {
+          arriv_one_last_successful_sync_at: new Date().toISOString(),
+          arriv_one_sync_status: "healthy",
+        });
+      }
+
+      return Response.json({
+        accepted: manifestResult.status === "applied",
+        processing_status: manifestResult.status,
+        inbound_event_id: envelope.event_id,
+        immutable_shared_id: envelope.immutable_shared_id || "",
+        local_record_id: "",
+        mapping_id: "",
+        applied_record_version: envelope.record_version || 0,
+        reason: manifestResult.reason || "",
+        manifest_type: manifestResult.manifestType,
+        manifest_version: manifestResult.version,
+        manifest_id: manifestResult.manifestId,
+      });
     }
 
     // 8. Validate entity type is sync-ready (not deferred)

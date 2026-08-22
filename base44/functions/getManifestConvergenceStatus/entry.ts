@@ -7,6 +7,7 @@ import {
   getActiveManifest,
 } from "../../shared/manifestRuntime.ts";
 import { MANIFEST_ENTRY_TYPES, EM_RUNTIME_VERSION } from "../../shared/manifestFallbacks.ts";
+import { fetchManifestVersions } from "../../shared/manifestPullClient.ts";
 
 // Convergence Status API — admin/operator diagnostic.
 // Returns per tenant + entry_type:
@@ -32,40 +33,29 @@ export default async function (req) {
 
     const tenantId = cfg.arriv_one_tenant_id;
 
-    // Try to fetch expected canonical versions from AO.
+    // Fetch expected canonical versions from AO using HMAC pull client.
     // Distinguish network reachability (any HTTP response) from function/auth success (200 OK).
-    // The AO manifest endpoint requires a Base44 user session internally; cross-app HTTP calls
-    // cannot provide one, so the function may return 500 "Authentication required" even though
-    // the endpoint IS network reachable.  The sync endpoints work cross-app because they use
-    // HMAC, not session auth.
     let expectedVersions = {};
     let aoReachable = false;          // network reachable (any HTTP response received)
     let expectedVersionFetchOk = false; // function returned 200 with valid data
     let expectedVersionError = null;
     try {
       if (cfg.arriv_one_manifest_endpoint) {
-        const response = await fetch(cfg.arriv_one_manifest_endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tenant_id: tenantId,
-            manifest_types: MANIFEST_ENTRY_TYPES,
-          }),
-        });
+        const fetchResult = await fetchManifestVersions(cfg, tenantId, MANIFEST_ENTRY_TYPES);
         // Any HTTP response means the endpoint is network reachable.
-        aoReachable = true;
-        if (response.ok) {
-          const remote = await response.json();
+        if (fetchResult.status > 0) {
+          aoReachable = true;
+        }
+        if (fetchResult.ok) {
           expectedVersionFetchOk = true;
+          const remote = fetchResult.data;
           for (const type of MANIFEST_ENTRY_TYPES) {
             if (remote[type]?.version) {
               expectedVersions[type] = remote[type].version;
             }
           }
         } else {
-          // Function returned an error status (auth, server error, etc.)
-          const errorBody = await response.text().catch(() => "");
-          expectedVersionError = `HTTP ${response.status}: ${errorBody.substring(0, 200)}`;
+          expectedVersionError = fetchResult.error || `HTTP ${fetchResult.status}`;
         }
       } else {
         expectedVersionError = "No manifest endpoint configured";

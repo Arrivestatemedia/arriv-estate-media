@@ -1,17 +1,7 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
+import { MANIFEST_ENTRY_TYPES } from "../../shared/manifestFallbacks.ts";
 
-const SUPPORTED_MANIFEST_TYPES = [
-  "ai_followup_rules",
-  "daily_call_queue_config",
-  "call_map_schema",
-  "metric_definitions",
-  "crm_statuses",
-  "prospecting_config",
-  "communication_rules",
-  "label_overrides",
-  "nav_config",
-  "video_config",
-];
+const SUPPORTED_MANIFEST_TYPES = MANIFEST_ENTRY_TYPES;
 
 export default async function(req) {
   try {

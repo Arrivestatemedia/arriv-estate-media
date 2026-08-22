@@ -87,6 +87,13 @@ export const ENTITY_ADAPTERS = {
     arriv_one_local: "BenefitsLifeEvent",
     status: "active",
   },
+  ProductManifest: {
+    canonical: "ProductManifest",
+    estate_media_local: "ProductManifestLocal", // EM stores manifests in ProductManifestLocal
+    arriv_one_local: "ProductManifest",
+    status: "active",
+    is_manifest: true, // Special: handled by manifest push handler, not regular entity sync
+  },
 };
 
 // Initial shared entity inventory — only "active" entities are in the initial sync set.

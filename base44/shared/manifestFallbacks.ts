@@ -24,6 +24,8 @@ export const MANIFEST_ENTRY_TYPES = [
   "label_overrides",
   "nav_config",
   "video_config",
+  "voice_config",
+  "onboarding_config",
 ] as const;
 
 export type ManifestEntryType = (typeof MANIFEST_ENTRY_TYPES)[number];
@@ -89,6 +91,14 @@ export const MANIFEST_FALLBACKS: Record<string, any> = {
   video_config: {
     config: {},
     description: "No video config overrides — existing video implementation applies",
+  },
+  voice_config: {
+    config: {},
+    description: "No voice config overrides — existing voice/Twilio implementation applies",
+  },
+  onboarding_config: {
+    config: {},
+    description: "No onboarding config overrides — existing onboarding implementation applies",
   },
 };
 

@@ -1,18 +1,9 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { getTenantConfig } from "../../shared/syncTenantConfig.ts";
+import { MANIFEST_ENTRY_TYPES } from "../../shared/manifestFallbacks.ts";
+import { fetchManifestVersions } from "../../shared/manifestPullClient.ts";
 
-const SUPPORTED_MANIFEST_TYPES = [
-  "ai_followup_rules",
-  "daily_call_queue_config",
-  "call_map_schema",
-  "metric_definitions",
-  "crm_statuses",
-  "prospecting_config",
-  "communication_rules",
-  "label_overrides",
-  "nav_config",
-  "video_config",
-];
+const SUPPORTED_MANIFEST_TYPES = MANIFEST_ENTRY_TYPES;
 
 export default async function(req) {
   try {
@@ -27,21 +18,14 @@ export default async function(req) {
       return Response.json({ error: "No manifest endpoint configured" }, { status: 503 });
     }
 
-    // Fetch version info from Arriv One
-    const response = await fetch(cfg.arriv_one_manifest_endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tenant_id: cfg.arriv_one_tenant_id,
-        manifest_types: SUPPORTED_MANIFEST_TYPES,
-      }),
-    });
+    // Fetch version info from Arriv One using HMAC pull client
+    const fetchResult = await fetchManifestVersions(cfg, cfg.arriv_one_tenant_id, SUPPORTED_MANIFEST_TYPES);
 
-    if (!response.ok) {
-      return Response.json({ error: `Manifest endpoint returned ${response.status}` }, { status: 502 });
+    if (!fetchResult.ok) {
+      return Response.json({ error: `Manifest endpoint fetch failed: ${fetchResult.error}` }, { status: 502 });
     }
 
-    const remoteVersions = await response.json();
+    const remoteVersions = fetchResult.data;
 
     // Compare with local versions
     const localManifests = await base44.asServiceRole.entities.ProductManifestLocal.filter({

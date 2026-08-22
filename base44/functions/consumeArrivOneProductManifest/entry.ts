@@ -1,20 +1,11 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { getTenantConfig } from "../../shared/syncTenantConfig.ts";
 import { invalidateManifestCache, compareVersions } from "../../shared/manifestRuntime.ts";
-import { EM_RUNTIME_VERSION } from "../../shared/manifestFallbacks.ts";
+import { EM_RUNTIME_VERSION, MANIFEST_ENTRY_TYPES } from "../../shared/manifestFallbacks.ts";
+import { fetchManifestContent } from "../../shared/manifestPullClient.ts";
+import { storeManifest, computeChecksum } from "../../shared/manifestPushHandler.ts";
 
-const SUPPORTED_MANIFEST_TYPES = [
-  "ai_followup_rules",
-  "daily_call_queue_config",
-  "call_map_schema",
-  "metric_definitions",
-  "crm_statuses",
-  "prospecting_config",
-  "communication_rules",
-  "label_overrides",
-  "nav_config",
-  "video_config",
-];
+const SUPPORTED_MANIFEST_TYPES = MANIFEST_ENTRY_TYPES;
 
 export default async function (req) {
   try {
@@ -39,22 +30,14 @@ export default async function (req) {
 
     const tenantId = cfg.arriv_one_tenant_id;
 
-    // Fetch the full manifest payload from Arriv One (canonical source)
-    const response = await fetch(cfg.arriv_one_manifest_endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tenant_id: tenantId,
-        manifest_type: manifestType,
-        include_payload: true,
-      }),
-    });
+    // Fetch the full manifest payload from Arriv One using HMAC pull client
+    const fetchResult = await fetchManifestContent(cfg, tenantId, manifestType);
 
-    if (!response.ok) {
-      return Response.json({ error: `Manifest endpoint returned ${response.status}` }, { status: 502 });
+    if (!fetchResult.ok) {
+      return Response.json({ error: `Manifest endpoint fetch failed: ${fetchResult.error}` }, { status: 502 });
     }
 
-    const manifest = await response.json();
+    const manifest = fetchResult.data;
     const {
       version,
       checksum,
@@ -197,40 +180,4 @@ export default async function (req) {
     console.error("consumeArrivOneProductManifest error:", error);
     return Response.json({ error: error.message }, { status: 500 });
   }
-}
-
-async function storeManifest(base44, params) {
-  const {
-    tenantId, manifestType, version, checksum, payload,
-    manifest_id, scope, compatible_with_min, compatible_with_max,
-    published_at, created_by, applyStatus,
-  } = params;
-
-  const recordTenantId = scope === "global" ? "global" : tenantId;
-  const now = new Date().toISOString();
-
-  return await base44.asServiceRole.entities.ProductManifestLocal.create({
-    tenant_id: recordTenantId,
-    manifest_type: manifestType,
-    manifest_version: version,
-    manifest_id: manifest_id || `em_${manifestType}_${version}`,
-    scope: scope,
-    checksum,
-    payload: payload || {},
-    apply_status: applyStatus,
-    compatible_with_min: compatible_with_min || "",
-    compatible_with_max: compatible_with_max || "",
-    origin_application: "arriv_one",
-    created_by: created_by || "",
-    published_at: published_at || now,
-    received_at: now,
-    fetched_at: now,
-    applied_at: applyStatus === "applied" ? now : "",
-  });
-}
-
-async function computeChecksum(data) {
-  const buf = new TextEncoder().encode(data);
-  const hash = await crypto.subtle.digest("SHA-256", buf);
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
