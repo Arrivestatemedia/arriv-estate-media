@@ -95,15 +95,50 @@ export default function AdminManifestConvergence() {
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-[#1A1A1A]/60">AO Reachable</CardTitle>
+                  <CardTitle className="text-sm font-medium text-[#1A1A1A]/60">AO Network Reachable</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-lg font-bold flex items-center gap-2">
                     {data.ao_reachable ? (
                       <><CheckCircle2 className="w-5 h-5 text-emerald-600" /> Yes</>
                     ) : (
-                      <><XCircle className="w-5 h-5 text-amber-600" /> No</>
+                      <><XCircle className="w-5 h-5 text-red-600" /> No</>
                     )}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-[#1A1A1A]/60">Expected Version Fetch</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm font-bold flex items-center gap-2">
+                    {data.expected_version_fetch_ok ? (
+                      <><CheckCircle2 className="w-4 h-4 text-emerald-600" /> OK</>
+                    ) : (
+                      <><AlertTriangle className="w-4 h-4 text-amber-600" /> Failed</>
+                    )}
+                  </p>
+                  {data.expected_version_error && (
+                    <p className="text-xs text-[#1A1A1A]/50 mt-1 font-mono break-all">{data.expected_version_error}</p>
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-[#1A1A1A]/60">Manifests Stored Locally</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm font-bold flex items-center gap-2">
+                    {data.entries.filter(e => e.stored_version).length} / {data.entries.length} types
+                  </p>
+                  <p className="text-xs text-[#1A1A1A]/50 mt-1">
+                    {data.entries.filter(e => e.stored_version).length === 0
+                      ? "No manifests received — runtime using safe fallbacks"
+                      : "ProductManifestLocal has stored records"}
                   </p>
                 </CardContent>
               </Card>

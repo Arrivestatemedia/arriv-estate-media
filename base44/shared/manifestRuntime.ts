@@ -76,7 +76,7 @@ export async function getActiveManifest(
     // 2. If none, find compatible+valid global manifest
     let scope: "tenant" | "global" = "tenant";
     if (!manifest) {
-      manifest = await findValidManifest(base44, entryType, entryType, "global");
+      manifest = await findValidManifest(base44, tenantId, entryType, "global");
       scope = "global";
     }
 

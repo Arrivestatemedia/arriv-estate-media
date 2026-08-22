@@ -32,9 +32,16 @@ export default async function (req) {
 
     const tenantId = cfg.arriv_one_tenant_id;
 
-    // Try to fetch expected canonical versions from AO
+    // Try to fetch expected canonical versions from AO.
+    // Distinguish network reachability (any HTTP response) from function/auth success (200 OK).
+    // The AO manifest endpoint requires a Base44 user session internally; cross-app HTTP calls
+    // cannot provide one, so the function may return 500 "Authentication required" even though
+    // the endpoint IS network reachable.  The sync endpoints work cross-app because they use
+    // HMAC, not session auth.
     let expectedVersions = {};
-    let aoReachable = false;
+    let aoReachable = false;          // network reachable (any HTTP response received)
+    let expectedVersionFetchOk = false; // function returned 200 with valid data
+    let expectedVersionError = null;
     try {
       if (cfg.arriv_one_manifest_endpoint) {
         const response = await fetch(cfg.arriv_one_manifest_endpoint, {
@@ -45,18 +52,28 @@ export default async function (req) {
             manifest_types: MANIFEST_ENTRY_TYPES,
           }),
         });
+        // Any HTTP response means the endpoint is network reachable.
+        aoReachable = true;
         if (response.ok) {
           const remote = await response.json();
-          aoReachable = true;
+          expectedVersionFetchOk = true;
           for (const type of MANIFEST_ENTRY_TYPES) {
             if (remote[type]?.version) {
               expectedVersions[type] = remote[type].version;
             }
           }
+        } else {
+          // Function returned an error status (auth, server error, etc.)
+          const errorBody = await response.text().catch(() => "");
+          expectedVersionError = `HTTP ${response.status}: ${errorBody.substring(0, 200)}`;
         }
+      } else {
+        expectedVersionError = "No manifest endpoint configured";
       }
-    } catch {
-      // AO not reachable — expected versions unavailable
+    } catch (error) {
+      // Network error — DNS failure, connection timeout, etc. AO truly unreachable.
+      aoReachable = false;
+      expectedVersionError = `Network error: ${error.message}`;
     }
 
     const results = [];
@@ -91,7 +108,7 @@ export default async function (req) {
         activeVersion,
         runtimeVersion,
         expected,
-        aoReachable,
+        expectedFetchOk: expectedVersionFetchOk,
       });
 
       const fallbackUsed = !activeVersion;
@@ -116,6 +133,8 @@ export default async function (req) {
       tenant_id: tenantId,
       em_runtime_version: EM_RUNTIME_VERSION,
       ao_reachable: aoReachable,
+      expected_version_fetch_ok: expectedVersionFetchOk,
+      expected_version_error: expectedVersionError,
       entries: results,
     });
   } catch (error) {
@@ -125,27 +144,33 @@ export default async function (req) {
 }
 
 function classifyConvergence(params) {
-  const { storedVersion, activeVersion, runtimeVersion, expected, aoReachable } = params;
+  const { storedVersion, activeVersion, runtimeVersion, expected, expectedFetchOk } = params;
 
-  if (!storedVersion && !expected) return "NOT_CONFIGURED";
-  if (!storedVersion && expected) return "NOT_CONFIGURED"; // AO has config but EM hasn't received it
+  // No stored manifest
+  if (!storedVersion) {
+    // AO expects a version but EM hasn't received it — delivery failure, not "not configured"
+    if (expected) return "FALLBACK_ACTIVE";
+    // No expected version (fetch failed or AO confirmed no config)
+    return "NOT_CONFIGURED";
+  }
 
-  // Check for false convergence: stored but not active (incompatible)
-  if (storedVersion && !activeVersion) return "FALLBACK_ACTIVE";
+  // Stored but not active (incompatible or checksum failure)
+  if (!activeVersion) return "FALLBACK_ACTIVE";
 
-  // Check for full convergence
-  if (storedVersion && activeVersion && runtimeVersion) {
+  // Stored and active
+  if (activeVersion && runtimeVersion) {
     const storedActive = storedVersion === activeVersion;
     const activeRuntime = activeVersion === runtimeVersion;
     if (storedActive && activeRuntime) {
       if (expected && expected === runtimeVersion) return "FULL_RUNTIME_CONVERGENCE";
       if (expected && expected !== runtimeVersion) return "CONFIG_CONVERGED_EXECUTION_LOCAL_UNTIL_LATER_PHASE";
-      if (!aoReachable) return "FULL_RUNTIME_CONVERGENCE"; // can't compare to expected
+      // No expected (fetch failed or AO has no config) — stored/active/runtime all match
+      return "FULL_RUNTIME_CONVERGENCE";
     }
   }
 
   // Stored and active but not yet consumed by runtime
-  if (storedVersion && activeVersion && !runtimeVersion) {
+  if (activeVersion && !runtimeVersion) {
     return "CONFIG_CONVERGED_EXECUTION_LOCAL_UNTIL_LATER_PHASE";
   }
 
