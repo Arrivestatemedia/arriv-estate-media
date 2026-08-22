@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -140,6 +140,7 @@ function LayoutContent({ children, currentPageName }) {
         { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
         { label: "Sync Status", page: "AdminSyncStatus", icon: ShieldCheck },
         { label: "Manifest Convergence", page: "AdminManifestConvergence", icon: ShieldCheck },
+        { label: "Authority Console", page: "EstateMediaAuthorityConsole", icon: Shield },
           ]
       : isClient
     ? [

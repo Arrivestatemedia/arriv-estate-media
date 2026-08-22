@@ -33,6 +33,7 @@ import Benefits from './pages/Benefits';
 import PayoutRecords from './pages/PayoutRecords';
 import AdminSyncStatus from './pages/AdminSyncStatus';
 import AdminManifestConvergence from './pages/AdminManifestConvergence';
+import EstateMediaAuthorityConsole from './pages/EstateMediaAuthorityConsole';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -297,6 +298,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminManifestConvergence">
             <AdminManifestConvergence />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/EstateMediaAuthorityConsole"
+        element={
+          <LayoutWrapper currentPageName="EstateMediaAuthorityConsole">
+            <EstateMediaAuthorityConsole />
           </LayoutWrapper>
         }
       />
