@@ -1,0 +1,34 @@
+{
+  "name": "Auto-Start Sales Orientation on Hire",
+  "description": "Creates the SalesOrientation record when a sales rep's employment_status moves to offer_accepted or active.",
+  "trigger": {
+    "condition": "${ ((.trigger.data.employment_status == \"offer_accepted\") or (.trigger.data.employment_status == \"active\")) }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "update"
+      ],
+      "entity_name": "SalesTeamMember"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_start_sales_orientation_on_hire",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "startSalesOrientation",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

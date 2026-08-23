@@ -1,0 +1,41 @@
+{
+  "name": "Footage Reminder Check (5min)",
+  "description": "Additional check every 5 minutes for missed footage upload reminders",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 5,
+      "interval_unit": "minutes",
+      "interval_anchor": "2026-02-15T21:00:50.667000",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "footage_reminder_check_5min",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendFootageUploadReminders",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

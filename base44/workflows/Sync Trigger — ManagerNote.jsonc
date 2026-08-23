@@ -1,0 +1,36 @@
+{
+  "name": "Sync Trigger \u2014 ManagerNote",
+  "description": "Sync trigger for ManagerNote create/update/delete",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "entity_name": "ManagerNote"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "sync_trigger_managernote",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "handleArrivOneSyncEntityTrigger",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

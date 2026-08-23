@@ -1,0 +1,41 @@
+{
+  "name": "Sales Orientation Deadline Reminders",
+  "description": "Daily check of sales orientations approaching or past their deadline; emails the employee and alerts owner/HR.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 13 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "sales_orientation_deadline_reminders",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendOrientationDeadlineReminders",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

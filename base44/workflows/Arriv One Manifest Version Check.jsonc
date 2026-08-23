@@ -1,0 +1,41 @@
+{
+  "name": "Arriv One Manifest Version Check",
+  "description": "Periodic check for new product manifest versions from Arriv One",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 6,
+      "interval_unit": "hours",
+      "interval_anchor": "2026-08-05T09:46:42.161000",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "arriv_one_manifest_version_check",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "checkArrivOneManifestVersions",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

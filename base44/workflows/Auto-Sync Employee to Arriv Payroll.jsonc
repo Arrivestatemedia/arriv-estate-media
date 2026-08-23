@@ -1,0 +1,35 @@
+{
+  "name": "Auto-Sync Employee to Arriv Payroll",
+  "description": "Fires on every SalesTeamMember create/update, diffs changed fields against the 15 Arriv Payroll sync triggers, assigns the immutable ARRIV_EMPLOYEE_ID if missing, increments the source record version, enqueues an EmployeeSyncQueue record, and runs the first sync attempt to Arriv Payroll.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update"
+      ],
+      "entity_name": "SalesTeamMember"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_sync_employee_to_arriv_payroll",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "handleSalesTeamMemberChange",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

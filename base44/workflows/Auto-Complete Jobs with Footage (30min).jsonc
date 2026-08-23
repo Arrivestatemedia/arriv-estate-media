@@ -1,0 +1,41 @@
+{
+  "name": "Auto-Complete Jobs with Footage (30min)",
+  "description": "Auto-completes booking jobs where the partner marked the job done and files exist in their Google Drive folder, so payouts aren't blocked by a forgotten \"confirm footage\" tap.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 30,
+      "interval_unit": "minutes",
+      "interval_anchor": "2026-07-23T19:24:14.754000",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_complete_jobs_with_footage_30min",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "autoCompleteJobsWithFootage",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

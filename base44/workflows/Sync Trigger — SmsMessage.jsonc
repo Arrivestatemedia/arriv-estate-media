@@ -1,0 +1,36 @@
+{
+  "name": "Sync Trigger \u2014 SmsMessage",
+  "description": "Sync trigger for SmsMessage create/update/delete",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "entity_name": "SmsMessage"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "sync_trigger_smsmessage",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "handleArrivOneSyncEntityTrigger",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

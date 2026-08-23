@@ -1,0 +1,34 @@
+{
+  "name": "Notify Contractors of New Jobs",
+  "description": "Send email notifications to all contractors when a new job is posted",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "Job"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "notify_contractors_of_new_jobs",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "notifyContractorsNewJob",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

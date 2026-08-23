@@ -1,0 +1,43 @@
+{
+  "name": "Continuous Recruiting Cycle",
+  "description": "Daily auto-sourcing of new prospects for active pipelines with continuous recruiting enabled. Calls the manageRecruiting backend function with action run_continuous_cycle.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 10 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "continuous_recruiting_cycle",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "manageRecruiting",
+            "args": {
+              "action": "run_continuous_cycle"
+            }
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

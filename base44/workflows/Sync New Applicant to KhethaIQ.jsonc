@@ -1,0 +1,34 @@
+{
+  "name": "Sync New Applicant to KhethaIQ",
+  "description": "Automatically syncs new job applications to the main KhethaIQ application and creates a local HireCandidate record.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "JobApplication"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "sync_new_applicant_to_khethaiq",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "syncApplicationToKhethaIQ",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

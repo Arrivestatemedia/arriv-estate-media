@@ -1,0 +1,41 @@
+{
+  "name": "Footage Upload Reminder - 24h (hourly)",
+  "description": "Sends a 24-hour footage upload reminder (SMS + email) to partners who marked a job complete but haven't confirmed footage upload.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 1,
+      "interval_unit": "hours",
+      "interval_anchor": "2026-07-23T19:24:14.755000",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "footage_upload_reminder_24h_hourly",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendFootageUploadReminders",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

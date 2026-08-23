@@ -1,0 +1,41 @@
+{
+  "name": "KhethaIQ Layout Sync (9:30pm)",
+  "description": "Fetches the central KhethaIQ app's full UI structure (tabs, brand, logo) and syncs it to Estate Media. Runs daily at 9:30pm ET.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "30 1 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "khethaiq_layout_sync_9_30pm",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "syncKhethaIQLayout",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

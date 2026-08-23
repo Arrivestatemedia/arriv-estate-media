@@ -1,0 +1,34 @@
+{
+  "name": "Auto-Schedule Follow-up from Activity",
+  "description": "",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "ActivityLog"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_schedule_follow_up_from_activity",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "scheduleFollowUpFromActivity",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

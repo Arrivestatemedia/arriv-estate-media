@@ -1,0 +1,41 @@
+{
+  "name": "Process Weekly Stripe Payouts - Friday 4:45am ET",
+  "description": "Auto-pays Stripe Connect partners their weekly balance every Friday, ~10 min before the weekly job archive.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "45 8 * * 5",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "process_weekly_stripe_payouts_friday_4_45am_et",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processWeeklyPayouts",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}
