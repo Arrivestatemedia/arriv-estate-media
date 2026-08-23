@@ -1,0 +1,97 @@
+{
+  "name": "SupportConversation",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "Canonical Arriv Assist conversation identifier. Owned by Arriv Assist; this local record is a non-canonical reference/cache."
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant this conversation belongs to (multi-tenant isolation key)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Actor user id (base44 user id or sales_member_id) who owns this conversation"
+    },
+    "user_type": {
+      "type": "string",
+      "enum": ["base44", "sales_member"],
+      "default": "base44",
+      "description": "How the actor is authenticated"
+    },
+    "user_display_name": {
+      "type": "string",
+      "description": "Display name of the actor for readability"
+    },
+    "support_agent_id": {
+      "type": "string",
+      "description": "Canonical support_agent_id assigned by Arriv Assist. The host does NOT assign agents locally."
+    },
+    "agent_name": {
+      "type": "string",
+      "description": "Cached display name of the assigned agent (sourced from Arriv Assist, non-canonical cache)."
+    },
+    "agent_title": {
+      "type": "string",
+      "description": "Cached display title of the assigned agent (sourced from Arriv Assist, non-canonical cache)."
+    },
+    "agent_avatar_initial": {
+      "type": "string",
+      "description": "Cached avatar initial of the assigned agent (sourced from Arriv Assist, non-canonical cache)."
+    },
+    "agent_avatar_url": {
+      "type": "string",
+      "description": "Cached profile image URL of the assigned agent (sourced from Arriv Assist, non-canonical cache). Empty string when the agent has no uploaded photo."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "escalated", "closed"],
+      "default": "active",
+      "description": "Conversation lifecycle status (mirrors Arriv Assist canonical state)"
+    },
+    "page_context": {
+      "type": "object",
+      "description": "Last ingested safe page context (route, record_type, record_id, feature). Hints only — backend re-validates."
+    },
+    "ticket_id": {
+      "type": "string",
+      "description": "Canonical Arriv Assist ticket id when escalated"
+    },
+    "assist_ticket_number": {
+      "type": "string",
+      "description": "Canonical Arriv Assist ticket number (AST-####), owned by Arriv Assist. The host does NOT generate its own ticket numbers."
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_message_preview": {
+      "type": "string"
+    },
+    "view_as_tenant_id": {
+      "type": "string",
+      "description": "When actor is Platform Authority in View-As mode, the acting tenant id for context"
+    }
+  },
+  "required": ["conversation_id", "tenant_id", "user_id", "support_agent_id"],
+  "rls": {
+    "read": {
+      "$or": [
+        { "data.user_id": "{{user.id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "create": {},
+    "update": {
+      "$or": [
+        { "data.user_id": "{{user.id}}" },
+        { "user_condition": { "role": "admin" } }
+      ]
+    },
+    "delete": {
+      "user_condition": { "role": "admin" }
+    }
+  }
+}
+
