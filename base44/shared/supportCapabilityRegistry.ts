@@ -1,4 +1,3 @@
-import to your own authority helper.
 // supportCapabilityRegistry.ts
 // Host authority resolution + host-specific capability registry.
 //

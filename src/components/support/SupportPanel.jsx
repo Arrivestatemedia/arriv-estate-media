@@ -1,4 +1,3 @@
-#2563EB → your brand color; "Arriv Support" label → your support label; closed-state copy as desired. The logic must NOT change.
 import React, { useState, useRef, useEffect } from "react";
 import { X, Minus, Send, Loader2, CheckCircle2, AlertTriangle, ArrowUpCircle, MessageCircle, Download, RefreshCw, UserPlus } from "lucide-react";
 import { useSupport } from "./SupportProvider";
@@ -42,7 +41,7 @@ function TranscriptBlock({ transcriptUrl, transcriptStatus, transcriptRequested,
         {onReset && (
           <button
             onClick={onReset}
-            className="flex items-center justify-center gap-2 mx-auto px-4 py-2 text-sm text-[#2563EB] font-medium hover:bg-[#2563EB]/5 rounded-lg transition-colors"
+            className="flex items-center justify-center gap-2 mx-auto px-4 py-2 text-sm text-[#B8956A] font-medium hover:bg-[#B8956A]/5 rounded-lg transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Start a new conversation
@@ -61,7 +60,7 @@ function TranscriptBlock({ transcriptUrl, transcriptStatus, transcriptRequested,
           href__={transcriptUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 mx-auto max-w-[85%] px-4 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-medium hover:bg-[#1D4ED8] transition-colors"
+          className="flex items-center justify-center gap-2 mx-auto max-w-[85%] px-4 py-2.5 rounded-xl bg-[#B8956A] text-white text-sm font-medium hover:bg-[#1D4ED8] transition-colors"
         >
           <Download className="w-4 h-4" />
           Download transcript
@@ -74,7 +73,7 @@ function TranscriptBlock({ transcriptUrl, transcriptStatus, transcriptRequested,
   if (transcriptRequested || transcriptStatus === "preparing") {
     return (
       <div className="flex items-center justify-center gap-2 py-2">
-        <Loader2 className="w-4 h-4 animate-spin text-[#2563EB]" />
+        <Loader2 className="w-4 h-4 animate-spin text-[#B8956A]" />
         <p className="text-sm text-slate-600">Preparing your transcript...</p>
       </div>
     );
@@ -126,7 +125,7 @@ export default function SupportPanel() {
       style={{ maxHeight: "85vh", paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#2563EB] text-white">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#B8956A] text-white">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 shrink-0">
             {hasConversation ? (
@@ -178,7 +177,7 @@ export default function SupportPanel() {
             <button
               onClick={cancelClose}
               disabled={closing}
-              className="px-4 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-medium hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl bg-[#B8956A] text-white text-sm font-medium hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
             >
               Keep Chat Open
             </button>
@@ -214,8 +213,8 @@ export default function SupportPanel() {
         {showIntake && (
           <div className="space-y-4">
             <div className="text-center py-6">
-              <div className="w-12 h-12 rounded-full bg-[#2563EB]/10 flex items-center justify-center mx-auto mb-3">
-                <MessageCircle className="w-6 h-6 text-[#2563EB]" />
+              <div className="w-12 h-12 rounded-full bg-[#B8956A]/10 flex items-center justify-center mx-auto mb-3">
+                <MessageCircle className="w-6 h-6 text-[#B8956A]" />
               </div>
               <p className="text-base font-medium text-slate-800 mb-1">
                 {customerContext?.preferred_name
@@ -230,7 +229,7 @@ export default function SupportPanel() {
         {/* Connecting state — hidden when typing indicator is showing */}
         {connecting && !agentTyping && (
           <div className="flex flex-col items-center justify-center py-8 space-y-3">
-            <Loader2 className="w-6 h-6 animate-spin text-[#2563EB]" />
+            <Loader2 className="w-6 h-6 animate-spin text-[#B8956A]" />
             <p className="text-sm text-slate-600 text-center">
               Thank you. Connecting you to a support agent...
             </p>
@@ -252,7 +251,7 @@ export default function SupportPanel() {
           }
           return (
           <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 ${m.role === "user" ? "bg-[#2563EB] text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
+            <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 ${m.role === "user" ? "bg-[#B8956A] text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
               <p className="text-sm whitespace-pre-wrap">{m.content}</p>
               {m.repair_state && m.repair_state !== "none" && (
                 <div className="mt-1.5 pt-1.5 border-t border-slate-200/50">
@@ -272,7 +271,7 @@ export default function SupportPanel() {
         {/* Transfer state — canonical manager transfer in progress */}
         {showChat && transferState && transferState.toUpperCase() !== "NONE" && transferState.toUpperCase() !== "COMPLETED" && !closed && (
           <div className="flex justify-center">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#2563EB]/5 border border-[#2563EB]/20 text-[#2563EB] text-xs font-medium">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#B8956A]/5 border border-[#B8956A]/20 text-[#B8956A] text-xs font-medium">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span>Connecting you with a support manager...</span>
             </div>
@@ -341,7 +340,7 @@ export default function SupportPanel() {
             />
             <button
               onClick={resetConversation}
-              className="flex items-center justify-center gap-2 mx-auto px-4 py-2 text-sm text-[#2563EB] font-medium hover:bg-[#2563EB]/5 rounded-lg transition-colors"
+              className="flex items-center justify-center gap-2 mx-auto px-4 py-2 text-sm text-[#B8956A] font-medium hover:bg-[#B8956A]/5 rounded-lg transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Start a new conversation
@@ -360,14 +359,14 @@ export default function SupportPanel() {
             placeholder={showIntake ? "Describe the issue..." : "Type your message..."}
             rows={1}
             aria-label="Type your support message"
-            className="flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] max-h-28"
+            className="flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#B8956A] max-h-28"
             disabled={!available || sending || connecting || loading || closed}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || sending || connecting || !available || loading || closed}
             aria-label="Send message"
-            className="p-2.5 rounded-xl bg-[#2563EB] text-white disabled:opacity-40 hover:bg-[#1D4ED8] transition-colors"
+            className="p-2.5 rounded-xl bg-[#B8956A] text-white disabled:opacity-40 hover:bg-[#1D4ED8] transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>
