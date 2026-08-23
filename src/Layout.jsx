@@ -436,9 +436,13 @@ function LayoutContent({ children, currentPageName }) {
 export default function Layout({ children, currentPageName }) {
   return (
     <CallStatusProvider>
-      <LayoutContent currentPageName={currentPageName}>
-        {children}
-      </LayoutContent>
+      <SupportProvider>
+        <LayoutContent currentPageName={currentPageName}>
+          {children}
+        </LayoutContent>
+        <SupportBubble />
+        <SupportPanel />
+      </SupportProvider>
     </CallStatusProvider>
   );
 }
