@@ -14,6 +14,9 @@ import TrackLink from "@/pages/TrackLink";
 import { CallStatusProvider, useCallStatus } from "@/components/CallStatusContext";
 import NotificationPanel from "@/components/sales/NotificationPanel";
 import AdminNotificationPanel from "@/components/sales/AdminNotificationPanel";
+import SupportProvider from "@/components/support/SupportProvider";
+import SupportBubble from "@/components/support/SupportBubble";
+import SupportPanel from "@/components/support/SupportPanel";
 
 function LayoutContent({ children, currentPageName }) {
   const { isCallInitiator, callStatus, isInLiveCall } = useCallStatus();
