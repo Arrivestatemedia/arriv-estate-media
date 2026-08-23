@@ -8,7 +8,7 @@ export default function SupportBubble() {
 
   // Don't render on marketing/auth pages — adjust these routes for your app
   const path = window.location.pathname;
-  if (path === "/" || path === "/SignIn" || path === "/SalesLogin" || path === "/Marketing") return null;
+  if (path === "/" || path === "/SignIn" || path === "/SalesLogin" || path === "/ClientSignup" || path === "/MediaPartnerSignup" || path === "/ContractorSignup") return null;
 
   if (open) return null; // panel shows instead
 
@@ -18,7 +18,7 @@ export default function SupportBubble() {
     <button
       onClick={() => startSupport()}
       aria-label="Open Arriv Assist support"
-      className="fixed z-[60] bottom-4 left-4 md:bottom-6 md:left-6 flex items-center justify-center w-14 h-14 rounded-full bg-[#B8956A] text-white shadow-lg hover:bg-[#1D4ED8] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B8956A] focus-visible:ring-offset-2"
+      className="fixed z-[60] bottom-4 left-4 md:bottom-6 md:left-6 flex items-center justify-center w-14 h-14 rounded-full bg-[#B8956A] text-white shadow-lg hover:bg-[#A68559] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B8956A] focus-visible:ring-offset-2"
       style={{ marginBottom: "env(safe-area-inset-bottom)", marginLeft: "env(safe-area-inset-left)" }}
     >
       {!available ? (
@@ -41,4 +41,3 @@ export default function SupportBubble() {
     </button>
   );
 }
-

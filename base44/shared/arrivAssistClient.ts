@@ -315,6 +315,7 @@ export async function listAssistAgents(
   const r = await postAssist<any>(secrets, "assistGetAgentRegistry", {
     actor_user_id: auth.actor_user_id,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     is_platform_authority: auth.is_platform_authority,
     source_application: "arriv_estate_media",
   });
@@ -405,6 +406,7 @@ export async function startAssistConversation(
     actor_email: auth.actor_email,
     actor_role: auth.actor_role,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     user_display_name: auth.user_display_name,
     user_type: auth.user_type,
     view_as_tenant_id: auth.view_as_tenant_id || null,
@@ -485,6 +487,7 @@ export async function sendAssistMessage(
     actor_email: auth.actor_email,
     actor_role: auth.actor_role,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     user_display_name: auth.user_display_name,
     user_type: auth.user_type,
     view_as_tenant_id: auth.view_as_tenant_id || null,
@@ -583,6 +586,7 @@ export async function getAssistConversation(
     conversation_id: conversationId,
     actor_user_id: auth.actor_user_id,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     is_platform_authority: auth.is_platform_authority,
     source_application: "arriv_estate_media",
   });
@@ -671,6 +675,7 @@ export async function createAssistTicket(
     actor_user_id: auth.actor_user_id,
     actor_email: auth.actor_email,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     user_display_name: auth.user_display_name,
     is_platform_authority: auth.is_platform_authority,
     source_application: "arriv_estate_media",
@@ -696,6 +701,7 @@ export async function getAssistTicket(
     ticket_id: ticketId,
     actor_user_id: auth.actor_user_id,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     is_platform_authority: auth.is_platform_authority,
     source_application: "arriv_estate_media",
   });
@@ -713,6 +719,7 @@ export async function getAssistCapabilities(
   const r = await postAssist<{ capabilities: any[] }>(secrets, "assistGetSupportCapabilities", {
     actor_user_id: auth.actor_user_id,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     is_platform_authority: auth.is_platform_authority,
     source_application: "arriv_estate_media",
   });
@@ -732,6 +739,7 @@ export async function getAssistSupportContext(
     conversation_id: conversationId,
     actor_user_id: auth.actor_user_id,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     is_platform_authority: auth.is_platform_authority,
     source_application: "arriv_estate_media",
   });
@@ -762,6 +770,7 @@ export async function closeAssistConversation(
     closure_reason: "CUSTOMER_ENDED",
     actor_user_id: auth.actor_user_id,
     tenant_id: auth.tenant_id,
+    source_tenant_reference: auth.tenant_id || "platform",
     is_platform_authority: auth.is_platform_authority,
     source_application: "arriv_estate_media",
   });

@@ -13,10 +13,16 @@ function derivePageContext(location) {
   let record_type = null;
   let record_id = null;
   if (path.startsWith("/ContactDetailPage")) { record_type = "Contact"; record_id = params.get("id"); }
-  else if (path.startsWith("/TenantCommandCenter")) { record_type = "Tenant"; record_id = params.get("tenant_id"); }
+  else if (path.startsWith("/HubSpotActivityLog")) { record_type = "ActivityLog"; }
+  else if (path.startsWith("/Dashboard")) { record_type = "Dashboard"; }
+  else if (path.startsWith("/AdminHub")) { record_type = "AdminHub"; }
   else if (path.startsWith("/AdminSyncStatus")) { record_type = "SyncStatus"; }
-  else if (path.startsWith("/PlatformDashboard")) { record_type = "PlatformDashboard"; }
-  else if (path.startsWith("/AdminCompanies")) { record_type = "TenantList"; }
+  else if (path.startsWith("/EstateMediaAuthorityConsole")) { record_type = "AuthorityConsole"; }
+  else if (path.startsWith("/AdminManifestConvergence")) { record_type = "ManifestConvergence"; }
+  else if (path.startsWith("/AdminPayrollDashboard")) { record_type = "PayrollDashboard"; }
+  else if (path.startsWith("/KhethaIQ")) { record_type = "KhethaIQ"; }
+  else if (path.startsWith("/MediaPartnerDashboard")) { record_type = "MediaPartnerDashboard"; }
+  else if (path.startsWith("/JobBoard")) { record_type = "JobBoard"; }
   const viewAs = sessionStorage.getItem("view_as_tenant_id") || localStorage.getItem("view_as_tenant_id") || null;
   return {
     route: path,
@@ -1074,4 +1080,3 @@ export default function SupportProvider({ children }) {
 
   return <SupportContext.Provider value={value}>{children}</SupportContext.Provider>;
 }
-

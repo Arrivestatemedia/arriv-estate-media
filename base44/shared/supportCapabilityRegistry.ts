@@ -18,7 +18,7 @@ function isPlatformAuthorityRole(role: string | undefined): boolean {
 }
 
 // ============================================================
-// CAPABILITY REGISTRY — REDEFINE FOR ARRIV PAYROLL
+// CAPABILITY REGISTRY — ARRIV ESTATE MEDIA
 // ============================================================
 export interface SupportCapabilityDef {
   capability_id: string;
@@ -163,4 +163,3 @@ export function canInvokeCapability(
   }
   return { allowed: true };
 }
-
