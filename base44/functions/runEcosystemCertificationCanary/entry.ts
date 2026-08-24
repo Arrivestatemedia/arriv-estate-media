@@ -169,7 +169,7 @@ async function canaryEstateToOneSyncSender(base44, canaryId, runId, phase, optio
     });
     
     // Deliver via real HTTP transport
-    const destUrl = Deno.env.get("ARRIV_ONE_SYNC_RECEIVE_URL") || "";
+    const destUrl = Deno.env.get("ARRIV_ONE_SYNC_RECEIVE_URL") || "https://arriv-one-sales-crm.base44.app/api/functions/receiveEstateMediaSyncEvent";
     const { signEnvelope } = await import("../../shared/syncEnvelope.ts");
     const envelope = signEnvelope({
       event_id: eventId,
@@ -227,7 +227,7 @@ async function canaryEstateToPayrollSyncSender(base44, canaryId, runId, phase, o
     const payrollSecret = secrets.get("ESTATE_MEDIA_PAYROLL_SYNC_SECRET") || secrets.get("ARRIV_PAYROLL_SYNC_SECRET") || "";
     
     // Create synthetic sync event and deliver to Payroll's receiveMediaSpecialistRecord
-    const destUrl = Deno.env.get("PAYROLL_RECEIVE_MEDIA_SPECIALIST_URL") || "";
+    const destUrl = Deno.env.get("PAYROLL_RECEIVE_MEDIA_SPECIALIST_URL") || "https://arriv-pay-core.base44.app/api/functions/receiveMediaSpecialistRecord";
     
     const payload = {
       event_id: eventId,
@@ -310,7 +310,7 @@ async function canaryEstateToKhethaSyncSender(base44, canaryId, runId, phase, op
     const khethaSecret = secrets.get("ESTATE_MEDIA_KHETHA_SYNC_SECRET") || secrets.get("KHETHA_IQ_SYNC_SECRET") || "";
     
     // Deliver to Khetha's receive endpoint
-    const destUrl = Deno.env.get("KHETHA_RECEIVE_APPLICATION_URL") || "";
+    const destUrl = Deno.env.get("KHETHA_RECEIVE_APPLICATION_URL") || "https://khetha-iq-by-arriv.base44.app/api/functions/receiveApplicationEvent";
     
     const payload = {
       event_id: eventId,
@@ -341,9 +341,9 @@ async function canaryEstateToKhethaSyncSender(base44, canaryId, runId, phase, op
       occurred_at: now,
       signature_timestamp: now,
       signature_nonce: nonce,
-      payload: synthEvent.payload,
+      payload: payload,
     };
-    envelope.signature = await signEnvelope(envelope, outboundSecret || "");
+    envelope.signature = await signEnvelope(envelope, khethaSecret || "");
     
     const resp = await fetch(destUrl, {
       method: "POST",
