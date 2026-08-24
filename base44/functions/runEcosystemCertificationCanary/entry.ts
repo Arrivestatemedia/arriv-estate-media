@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { verifyCertificationAuth, buildCertificationResult, redactSensitiveData } from "../../shared/certificationContract.ts";
+import { secrets } from "base44:runtime";
 
 Deno.serve(async (req) => {
   try {
@@ -9,6 +10,7 @@ Deno.serve(async (req) => {
 
     const body = auth.body;
     const { canary_id, synthetic_run_id, phase, canonical_event_id } = body;
+    const options = body.options || {};
     const startedAt = new Date().toISOString();
     const appId = "arriv_estate_media";
     let result;
@@ -55,7 +57,6 @@ Deno.serve(async (req) => {
       case "video_no_cross_tenant_token_leak":
         result = await canaryVideoNoCrossTenantTokenLeakEstate(base44, canary_id, synthetic_run_id, phase);
         break;
-      default:
       default:
         result = buildCertificationResult({ success: false, canary_id, synthetic_run_id: synthetic_run_id, application_id: appId, source_application: "arriv_assist", destination_application: appId, execution_type: "CODE_TRACE", result: "NOT_TESTED", evidence: { reason: "CANARY_NOT_IMPLEMENTED" }, started_at: startedAt, completed_at: new Date().toISOString() });
     }
