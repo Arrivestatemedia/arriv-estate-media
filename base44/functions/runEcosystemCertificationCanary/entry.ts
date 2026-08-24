@@ -168,7 +168,7 @@ async function canaryEstateToOneSyncSender(base44, canaryId, runId, phase, optio
     });
     
     // Deliver via real HTTP transport
-    const oneUrl = Deno.env.get("ARRIV_ONE_SYNC_RECEIVE_URL") || "";
+    const destUrl = Deno.env.get("ARRIV_ONE_SYNC_RECEIVE_URL") || "";
     const { signEnvelope } = await import("../../shared/syncEnvelope.ts");
     const envelope = signEnvelope({
       event_id: eventId,
@@ -180,10 +180,10 @@ async function canaryEstateToOneSyncSender(base44, canaryId, runId, phase, optio
       idempotency_key: eventId,
     }, outboundSecret);
     
-    const resp = await fetch(oneUrl, {
+    const resp = await fetch(destUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Arriv-Sync-Signature": envelope.signature, "X-Arriv-Sync-Timestamp": envelope.timestamp },
-      body: JSON.stringify(envelope.body),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(envelope),
       signal: AbortSignal.timeout(15000),
     });
     
@@ -226,7 +226,7 @@ async function canaryEstateToPayrollSyncSender(base44, canaryId, runId, phase, o
     const payrollSecret = secrets.get("ESTATE_MEDIA_PAYROLL_SYNC_SECRET") || secrets.get("ARRIV_PAYROLL_SYNC_SECRET") || "";
     
     // Create synthetic sync event and deliver to Payroll's receiveMediaSpecialistRecord
-    const payrollUrl = Deno.env.get("PAYROLL_RECEIVE_MEDIA_SPECIALIST_URL") || "";
+    const destUrl = Deno.env.get("PAYROLL_RECEIVE_MEDIA_SPECIALIST_URL") || "";
     
     const payload = {
       event_id: eventId,
@@ -239,13 +239,34 @@ async function canaryEstateToPayrollSyncSender(base44, canaryId, runId, phase, o
     };
     
     // Sign with HMAC
-    const { signEnvelope } = await import("../../shared/syncEnvelope.ts");
-    const envelope = signEnvelope(payload, payrollSecret);
+    const { signEnvelope, SCHEMA_VERSION, SIGNATURE_VERSION } = await import("../../shared/syncEnvelope.ts");
+    const now = new Date().toISOString();
+    const nonce = crypto.randomUUID();
+    const entityId = "cert-synth-" + runId;
+    const envelope = {
+      event_id: eventId,
+      event_type: "create",
+      schema_version: SCHEMA_VERSION,
+      signature_version: SIGNATURE_VERSION,
+      source_application: "arriv_estate_media",
+      destination_application: "arriv_payroll",
+      tenant_id: "cert-synth-tenant",
+      entity_type: "MediaSpecialist",
+      entity_id: entityId,
+      immutable_shared_id: entityId,
+      record_version: 1,
+      operation: "create",
+      occurred_at: now,
+      signature_timestamp: now,
+      signature_nonce: nonce,
+      payload: payload,
+    };
+    envelope.signature = await signEnvelope(envelope, payrollSecret);
     
-    const resp = await fetch(payrollUrl, {
+    const resp = await fetch(destUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Arriv-Sync-Signature": envelope.signature, "X-Arriv-Sync-Timestamp": envelope.timestamp },
-      body: JSON.stringify(envelope.body),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(envelope),
       signal: AbortSignal.timeout(15000),
     });
     
@@ -288,7 +309,7 @@ async function canaryEstateToKhethaSyncSender(base44, canaryId, runId, phase, op
     const khethaSecret = secrets.get("ESTATE_MEDIA_KHETHA_SYNC_SECRET") || secrets.get("KHETHA_IQ_SYNC_SECRET") || "";
     
     // Deliver to Khetha's receive endpoint
-    const khethaUrl = Deno.env.get("KHETHA_RECEIVE_APPLICATION_URL") || "";
+    const destUrl = Deno.env.get("KHETHA_RECEIVE_APPLICATION_URL") || "";
     
     const payload = {
       event_id: eventId,
@@ -299,13 +320,34 @@ async function canaryEstateToKhethaSyncSender(base44, canaryId, runId, phase, op
       timestamp: new Date().toISOString(),
     };
     
-    const { signEnvelope } = await import("../../shared/syncEnvelope.ts");
-    const envelope = signEnvelope(payload, khethaSecret);
+    const { signEnvelope, SCHEMA_VERSION, SIGNATURE_VERSION } = await import("../../shared/syncEnvelope.ts");
+    const now = new Date().toISOString();
+    const nonce = crypto.randomUUID();
+    const entityId = "cert-synth-" + runId;
+    const envelope = {
+      event_id: eventId,
+      event_type: "create",
+      schema_version: SCHEMA_VERSION,
+      signature_version: SIGNATURE_VERSION,
+      source_application: "arriv_estate_media",
+      destination_application: "khetha",
+      tenant_id: "cert-synth-tenant",
+      entity_type: "MediaSpecialist",
+      entity_id: entityId,
+      immutable_shared_id: entityId,
+      record_version: 1,
+      operation: "create",
+      occurred_at: now,
+      signature_timestamp: now,
+      signature_nonce: nonce,
+      payload: synthEvent.payload,
+    };
+    envelope.signature = await signEnvelope(envelope, outboundSecret || "");
     
-    const resp = await fetch(khethaUrl, {
+    const resp = await fetch(destUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Arriv-Sync-Signature": envelope.signature, "X-Arriv-Sync-Timestamp": envelope.timestamp },
-      body: JSON.stringify(envelope.body),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(envelope),
       signal: AbortSignal.timeout(15000),
     });
     
