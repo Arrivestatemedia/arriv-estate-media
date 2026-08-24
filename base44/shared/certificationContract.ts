@@ -64,6 +64,15 @@ export const CERTIFICATION_CANARIES = [
   "tenant_isolation_cross_app",
   // Sensitive data absence
   "sensitive_data_absence",
+  // Phase 10G.2 — Domain-scoped video authority canaries
+  "video_authority_arriv_one_native",
+  "video_authority_khetha_native",
+  "video_authority_khetha_job_interview",
+  "video_authority_estate_media_native",
+  "video_authority_estate_media_arriv_one_workflow",
+  "video_authority_estate_media_job_workflow",
+  "video_tenant_isolation",
+  "video_no_cross_tenant_token_leak",
 ];
 
 // ============================================================
