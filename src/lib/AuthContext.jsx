@@ -104,8 +104,14 @@ export const AuthProvider = ({ children }) => {
         try {
           const members = await base44.entities.SalesTeamMember.filter({ email: currentUser.email });
           if (members && members.length > 0) {
-            await base44.auth.updateMe({ sales_member_id: members[0].id });
+            const member = members[0];
+            await base44.auth.updateMe({ sales_member_id: member.id });
             currentUser = await base44.auth.me();
+            // Set localStorage items so Layout.jsx picks up the sales team identity + role
+            localStorage.setItem('sales_member_id', member.id);
+            localStorage.setItem('sales_member_name', member.full_name || '');
+            localStorage.setItem('sales_member_email', member.email || '');
+            localStorage.setItem('sales_member_role', member.role || 'user');
           }
         } catch (e) {
           console.error('Failed to link sales member identity:', e);
