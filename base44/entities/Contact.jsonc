@@ -7,6 +7,10 @@
       "description": "Canonical tenant ID for multi-tenant isolation",
       "default": "tnt_estate_media"
     },
+    "sales_member_id": {
+      "type": "string",
+      "description": "ID of the sales team member who owns this contact (local SalesTeamMember ID, used for per-rep RLS isolation)"
+    },
     "firstname": {
       "type": "string",
       "description": "First name"
@@ -76,5 +80,19 @@
       "description": "Immutable cross-app shared identifier"
     }
   },
-  "required": []
+  "required": [],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }
