@@ -62,6 +62,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'This account is inactive' }, { status: 403 });
     }
 
+    // Link the platform user to this sales team member so per-rep RLS
+    // (ActivityLog / Contact / Deal read rules keyed on {{user.data.sales_member_id}})
+    // can identify the rep. Matches case-insensitively by email.
+    try {
+      const allUsers = await base44.asServiceRole.entities.User.list();
+      const platformUser = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+      if (platformUser && platformUser.sales_member_id !== member.id) {
+        await base44.asServiceRole.entities.User.update(platformUser.id, { sales_member_id: member.id });
+      }
+    } catch (e) { /* non-critical — RLS simply won't resolve for this session */ }
+
     return Response.json({
       success: true,
       memberId: member.id,

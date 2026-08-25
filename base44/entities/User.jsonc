@@ -7,6 +7,10 @@
       "description": "Canonical tenant ID for multi-tenant isolation",
       "default": "tnt_estate_media"
     },
+    "sales_member_id": {
+      "type": "string",
+      "description": "Linked SalesTeamMember ID \u2014 set during sales login to enforce per-rep data isolation via RLS on ActivityLog, Contact, and Deal"
+    },
     "role": {
       "type": "string",
       "enum": [

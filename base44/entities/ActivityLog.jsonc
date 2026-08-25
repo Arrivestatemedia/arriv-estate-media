@@ -111,5 +111,19 @@
     "activity_type",
     "activity_date",
     "notes"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }
