@@ -298,7 +298,8 @@ async function canaryEstateToPayrollSyncSender(base44, canaryId, runId, phase, o
       execution_type: "LIVE_INTEGRATION",
       result: delivered ? "PASS" : "FAIL",
       canonical_event_id: eventId,
-      evidence: { delivered, http_status: resp.status, sync_secret_configured: !!payrollSecret },
+      const _payrollRespBody = await resp.text().catch(() => "");
+      evidence: { delivered, http_status: resp.status, response_body: _payrollRespBody.slice(0, 500), sync_secret_configured: !!payrollSecret },
       started_at: startedAt,
       completed_at: new Date().toISOString(),
     });
