@@ -245,13 +245,14 @@ async function canaryEstateToPayrollSyncSender(base44, canaryId, runId, phase, o
     const destUrl = Deno.env.get("PAYROLL_RECEIVE_MEDIA_SPECIALIST_URL") || "https://arriv-pay-core.base44.app/api/functions/receiveMediaSpecialistRecord";
     
     const payload = {
-      event_id: eventId,
-      specialist_id: "cert-synth-specialist-" + runId,
-      earning_type: "commission",
-      amount: 0.01,
+      earning_id: eventId,
+      media_specialist_id: "cert-synth-specialist-" + runId,
+      job_id: "cert-synth-job-" + runId,
+      job_date: new Date().toISOString().split("T")[0],
+      gross_earning: 0.01,
+      net_earning: 0.01,
+      payout_status: "pending",
       tenant_id: "cert-synth-tenant",
-      is_synthetic: true,
-      timestamp: new Date().toISOString(),
     };
     
     // Sign with HMAC
