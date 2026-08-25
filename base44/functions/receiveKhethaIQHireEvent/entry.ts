@@ -66,10 +66,10 @@ export default async function(req) {
     } catch (_) {}
 
     // If no local candidate, create one for tracking
+    // Strip null/undefined values — Base44 SDK rejects null for string-typed fields
     if (!candidateId) {
       try {
-        const newCand = await base44.asServiceRole.entities.HireCandidate.create({
-          job_id: candidate.job_id || null,
+        const createFields = {
           name: candidate.name || "",
           email,
           phone: candidate.phone || "",
@@ -79,7 +79,9 @@ export default async function(req) {
           decision: "offer",
           handoff_id: handoffId,
           handoff_status: "in_progress",
-        });
+        };
+        if (candidate.job_id) createFields.job_id = candidate.job_id;
+        const newCand = await base44.asServiceRole.entities.HireCandidate.create(createFields);
         const rec = newCand?.data ?? newCand;
         candidateId = rec?.id;
       } catch (_) {}
