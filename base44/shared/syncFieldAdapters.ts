@@ -130,6 +130,20 @@ export async function translateCanonicalToLocal(base44, tenantId, canonicalEntit
     }
   }
 
+  // Derive local login gate (is_active) from canonical employment_status
+  // for SalesTeamMember. Arriv One is authoritative for employment_status
+  // (member.status_updated), but does not send is_active — it is an
+  // Estate Media-local login flag. Mirror the canonical status so an
+  // activation in Arriv One unlocks login here, and a termination locks it.
+  if (canonicalEntityType === "SalesTeamMember" && localPayload.employment_status) {
+    if (["offer_accepted", "active"].includes(localPayload.employment_status)) {
+      localPayload.is_active = true;
+    } else if (localPayload.employment_status === "terminated") {
+      localPayload.is_active = false;
+    }
+    // "pending_offer" / "on_leave" — leave is_active unchanged
+  }
+
   // Resolve denormalized employee_name for workforce entities
   await resolveEmployeeName(base44, canonicalEntityType, localPayload);
 
