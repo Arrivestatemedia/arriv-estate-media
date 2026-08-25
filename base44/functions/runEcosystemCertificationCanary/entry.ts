@@ -170,16 +170,29 @@ async function canaryEstateToOneSyncSender(base44, canaryId, runId, phase, optio
     
     // Deliver via real HTTP transport
     const destUrl = Deno.env.get("ARRIV_ONE_SYNC_RECEIVE_URL") || "https://arriv-one-sales-crm.base44.app/api/functions/receiveEstateMediaSyncEvent";
-    const { signEnvelope } = await import("../../shared/syncEnvelope.ts");
-    const envelope = signEnvelope({
+    const { signEnvelope, SCHEMA_VERSION, SIGNATURE_VERSION } = await import("../../shared/syncEnvelope.ts");
+    const envNow = new Date().toISOString();
+    const envNonce = crypto.randomUUID();
+    const envEntityId = "cert-synth-" + runId + "-estate-one";
+    const envelope = {
       event_id: eventId,
-      entity_type: "MediaSpecialist",
-      operation: "create",
-      payload: synthEvent.payload,
+      event_type: "create",
+      schema_version: SCHEMA_VERSION,
+      signature_version: SIGNATURE_VERSION,
+      source_application: "arriv_estate_media",
+      destination_application: "arriv_one",
       tenant_id: "cert-synth-tenant",
-      timestamp: new Date().toISOString(),
-      idempotency_key: eventId,
-    }, outboundSecret);
+      entity_type: "MediaSpecialist",
+      entity_id: envEntityId,
+      immutable_shared_id: envEntityId,
+      record_version: 1,
+      operation: "create",
+      occurred_at: envNow,
+      signature_timestamp: envNow,
+      signature_nonce: envNonce,
+      payload: synthEvent.payload,
+    };
+    envelope.signature = await signEnvelope(envelope, "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET");
     
     const resp = await fetch(destUrl, {
       method: "POST",
@@ -262,7 +275,7 @@ async function canaryEstateToPayrollSyncSender(base44, canaryId, runId, phase, o
       signature_nonce: nonce,
       payload: payload,
     };
-    envelope.signature = await signEnvelope(envelope, payrollSecret);
+    envelope.signature = await signEnvelope(envelope, secrets.get("ESTATE_MEDIA_PAYROLL_SYNC_SECRET") ? "ESTATE_MEDIA_PAYROLL_SYNC_SECRET" : "ARRIV_PAYROLL_SYNC_SECRET");
     
     const resp = await fetch(destUrl, {
       method: "POST",
@@ -307,48 +320,34 @@ async function canaryEstateToKhethaSyncSender(base44, canaryId, runId, phase, op
   
   try {
     const { secrets } = await import("base44:runtime");
-    const khethaSecret = secrets.get("ESTATE_MEDIA_KHETHA_SYNC_SECRET") || secrets.get("KHETHA_IQ_SYNC_SECRET") || "";
+    const khethaSecretName = secrets.get("ESTATE_MEDIA_KHETHA_SYNC_SECRET") ? "ESTATE_MEDIA_KHETHA_SYNC_SECRET" : "KHETHA_IQ_SYNC_SECRET";
+    const khethaSecretVal = secrets.get(khethaSecretName) || "";
+    if (!khethaSecretVal) {
+      return buildCertificationResult({ success: false, canary_id: canaryId, synthetic_run_id: runId, application_id: appId, source_application: appId, destination_application: "khetha", execution_type: "LIVE_INTEGRATION", result: "FAIL", evidence: { reason: "SYNC_SECRET_NOT_CONFIGURED", secret_name: khethaSecretName }, started_at: startedAt, completed_at: new Date().toISOString() });
+    }
     
-    // Deliver to Khetha's receive endpoint
-    const destUrl = Deno.env.get("KHETHA_RECEIVE_APPLICATION_URL") || "https://khetha-iq-by-arriv.base44.app/api/functions/receiveApplicationEvent";
+    // Deliver to Khetha's estateMediaIntegrationWebhook
+    const destUrl = Deno.env.get("KHETHA_RECEIVE_APPLICATION_URL") || "https://khetha-iq-by-arriv.base44.app/api/functions/estateMediaIntegrationWebhook";
     
-    const payload = {
+    const ts = new Date().toISOString();
+    const eventPayload = {
       event_id: eventId,
-      application_id: "cert-synth-app-" + runId,
-      candidate_name: "Cert Synth Candidate",
-      tenant_id: "cert-synth-tenant",
-      is_synthetic: true,
-      timestamp: new Date().toISOString(),
+      event_type: "recruiting.mutation",
+      company_id: "cert-synth-tenant",
+      timestamp: ts,
+      data: { candidate_name: "Cert Synth Candidate", email: "cert-synth@cert.synth", tenant_id: "cert-synth-tenant", is_synthetic: true },
     };
     
-    const { signEnvelope, SCHEMA_VERSION, SIGNATURE_VERSION } = await import("../../shared/syncEnvelope.ts");
-    const now = new Date().toISOString();
-    const nonce = crypto.randomUUID();
-    const entityId = "cert-synth-" + runId;
-    const envelope = {
-      event_id: eventId,
-      event_type: "create",
-      schema_version: SCHEMA_VERSION,
-      signature_version: SIGNATURE_VERSION,
-      source_application: "arriv_estate_media",
-      destination_application: "khetha",
-      tenant_id: "cert-synth-tenant",
-      entity_type: "MediaSpecialist",
-      entity_id: entityId,
-      immutable_shared_id: entityId,
-      record_version: 1,
-      operation: "create",
-      occurred_at: now,
-      signature_timestamp: now,
-      signature_nonce: nonce,
-      payload: payload,
-    };
-    envelope.signature = await signEnvelope(envelope, khethaSecret || "");
+    // Khetha receiver uses base64(HMAC-SHA256(secret, JSON.stringify(payload)))
+    const enc = new TextEncoder();
+    const hmacKey = await crypto.subtle.importKey("raw", enc.encode(khethaSecretVal), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sigBuf = await crypto.subtle.sign("HMAC", hmacKey, enc.encode(JSON.stringify(eventPayload)));
+    const signature = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
     
     const resp = await fetch(destUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(envelope),
+      body: JSON.stringify({ ...eventPayload, signature }),
       signal: AbortSignal.timeout(15000),
     });
     
