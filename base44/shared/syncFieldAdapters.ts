@@ -31,6 +31,12 @@ const FIELD_NAME_MAPS = {
 // to a local Estate Media record ID via CrossAppRecordMapping before write.
 
 const REFERENCE_FIELDS = {
+  ActivityLog: {
+    sales_member_id: { refEntityType: "SalesTeamMember", localField: "sales_member_id" },
+  },
+  Contact: {
+    owner_id: { refEntityType: "SalesTeamMember", localField: "owner_id" },
+  },
   Deal: {
     sales_member_id: { refEntityType: "SalesTeamMember", localField: "sales_member_id" },
     contact_id: { refEntityType: "Contact", localField: "contact_id" },
