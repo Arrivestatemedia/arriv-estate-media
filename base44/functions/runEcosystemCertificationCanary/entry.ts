@@ -194,7 +194,7 @@ async function canaryEstateToOneSyncSender(base44, canaryId, runId, phase, optio
       signature_nonce: envNonce,
       payload: synthEvent.payload,
     };
-    envelope.signature = await signEnvelope(envelope, "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET");
+    envelope.signature = await signEnvelope(envelope, outboundSecret);
     
     const resp = await fetch(destUrl, {
       method: "POST",
