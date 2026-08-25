@@ -91,7 +91,27 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      let currentUser = await base44.auth.me();
+
+      // Auto-link sales member identity if not already set.
+      // After the Arriv One migration, users logging in via standard Base44 auth
+      // (Google OAuth or email/password) do not have their sales_member_id linked
+      // to their SalesTeamMember record. The legacy salesTeamLogin function does
+      // this linking, but standard auth does not. Without this link, RLS rules on
+      // Contact/ActivityLog/Deal (keyed on {{user.data.sales_member_id}}) match
+      // nothing and the user sees no data.
+      if (currentUser && !currentUser.data?.sales_member_id && currentUser.email) {
+        try {
+          const members = await base44.entities.SalesTeamMember.filter({ email: currentUser.email });
+          if (members && members.length > 0) {
+            await base44.auth.updateMe({ sales_member_id: members[0].id });
+            currentUser = await base44.auth.me();
+          }
+        } catch (e) {
+          console.error('Failed to link sales member identity:', e);
+        }
+      }
+
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
