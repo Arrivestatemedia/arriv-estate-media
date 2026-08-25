@@ -181,7 +181,7 @@ async function canaryEstateToOneSyncSender(base44, canaryId, runId, phase, optio
       event_type: "create",
       schema_version: SCHEMA_VERSION,
       signature_version: SIGNATURE_VERSION,
-      source_application: "arriv_estate_media",
+      source_application: "estate_media",
       destination_application: "arriv_one",
       tenant_id: "cert-synth-tenant",
       entity_type: "MediaSpecialist",
@@ -298,8 +298,7 @@ async function canaryEstateToPayrollSyncSender(base44, canaryId, runId, phase, o
       execution_type: "LIVE_INTEGRATION",
       result: delivered ? "PASS" : "FAIL",
       canonical_event_id: eventId,
-      const _payrollRespBody = await resp.text().catch(() => "");
-      evidence: { delivered, http_status: resp.status, response_body: _payrollRespBody.slice(0, 500), sync_secret_configured: !!payrollSecret },
+      evidence: { delivered, http_status: resp.status, sync_secret_configured: !!payrollSecret },
       started_at: startedAt,
       completed_at: new Date().toISOString(),
     });
@@ -366,7 +365,7 @@ async function canaryEstateToKhethaSyncSender(base44, canaryId, runId, phase, op
       execution_type: "LIVE_INTEGRATION",
       result: delivered ? "PASS" : "FAIL",
       canonical_event_id: eventId,
-      evidence: { delivered, http_status: resp.status, sync_secret_configured: !!khethaSecret },
+      evidence: { delivered, http_status: resp.status, sync_secret_configured: !!khethaSecretVal },
       started_at: startedAt,
       completed_at: new Date().toISOString(),
     });
