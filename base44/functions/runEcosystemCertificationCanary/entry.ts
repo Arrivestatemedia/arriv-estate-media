@@ -158,7 +158,9 @@ async function canaryEstateToOneSyncSender(base44, canaryId, runId, phase, optio
     // Create synthetic SyncOutbox event
     const synthEvent = await base44.asServiceRole.entities.SyncOutbox.create({
       event_id: eventId,
+      event_type: "create",
       entity_type: "MediaSpecialist",
+      entity_id: eventId,
       operation: "create",
       payload: { full_name: "Cert Synth Specialist", email: "cert-synth@cert.synth", tenant_id: "cert-synth-tenant", is_synthetic: true },
       tenant_id: "cert-synth-tenant",
@@ -320,7 +322,7 @@ async function canaryEstateToKhethaSyncSender(base44, canaryId, runId, phase, op
   
   try {
     const { secrets } = await import("base44:runtime");
-    const khethaSecretName = secrets.get("ESTATE_MEDIA_KHETHA_SYNC_SECRET") ? "ESTATE_MEDIA_KHETHA_SYNC_SECRET" : "KHETHA_IQ_SYNC_SECRET";
+    const khethaSecretName = "ARRIV_ESTATE_MEDIA_SECRET";
     const khethaSecretVal = secrets.get(khethaSecretName) || "";
     if (!khethaSecretVal) {
       return buildCertificationResult({ success: false, canary_id: canaryId, synthetic_run_id: runId, application_id: appId, source_application: appId, destination_application: "khetha", execution_type: "LIVE_INTEGRATION", result: "FAIL", evidence: { reason: "SYNC_SECRET_NOT_CONFIGURED", secret_name: khethaSecretName }, started_at: startedAt, completed_at: new Date().toISOString() });
