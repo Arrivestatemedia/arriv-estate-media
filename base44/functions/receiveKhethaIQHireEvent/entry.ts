@@ -93,6 +93,12 @@ export default async function(req) {
       });
     }
 
+    // Synthetic canary payloads: skip executeHandoff (no real user creation side effects)
+    // but still create the HireCandidate record (already done above) for canary verification.
+    if (candidate.is_synthetic) {
+      return Response.json({ success: true, synthetic: true, candidate_id: candidateId, email, handoff_id: handoffId });
+    }
+
     const result = await executeHandoff(base44, {
       candidateId,
       email,
