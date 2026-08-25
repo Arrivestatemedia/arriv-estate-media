@@ -380,28 +380,27 @@ async function canaryKhethaToEstateHandoffReceiver(base44, canaryId, runId, phas
   const startedAt = new Date().toISOString();
   const appId = "arriv_estate_media";
   const eventId = options.canonical_event_id || ("cert-synth-" + runId + "-khetha-estate");
+  // The production receiver (receiveKhethaIQHireEvent) creates/updates HireCandidate by email.
+  const synthEmail = "cert-synth@cert.synth";
   
   if (phase === "cleanup") {
     try {
-      const inbox = await base44.asServiceRole.entities.SyncInbox.filter({ event_id: eventId });
-      for (const r of inbox) await base44.asServiceRole.entities.SyncInbox.delete(r.id);
+      const candidates = await base44.asServiceRole.entities.HireCandidate.filter({ email: synthEmail });
+      for (const c of candidates) await base44.asServiceRole.entities.HireCandidate.delete(c.id);
     } catch (e) {}
     return buildCertificationResult({ success: true, canary_id: canaryId, synthetic_run_id: runId, application_id: appId, source_application: "khetha", destination_application: appId, execution_type: "LIVE_INTEGRATION", result: "PASS", evidence: { phase: "cleanup" }, started_at: startedAt, completed_at: new Date().toISOString() });
   }
   
   try {
     let received = false;
+    let record = null;
     try {
-      const inbox = await base44.asServiceRole.entities.SyncInbox.filter({ event_id: eventId });
-      if (inbox && inbox.length > 0) received = true;
+      const candidates = await base44.asServiceRole.entities.HireCandidate.filter({ email: synthEmail });
+      if (candidates && candidates.length > 0) {
+        received = true;
+        record = candidates[0];
+      }
     } catch (e) {}
-    
-    if (!received) {
-      try {
-        const processed = await base44.asServiceRole.entities.ProcessedRequest.filter({ request_id: eventId });
-        if (processed && processed.length > 0) received = true;
-      } catch (e) {}
-    }
     
     return buildCertificationResult({
       success: received,
@@ -413,7 +412,7 @@ async function canaryKhethaToEstateHandoffReceiver(base44, canaryId, runId, phas
       execution_type: "LIVE_INTEGRATION",
       result: received ? "PASS" : "FAIL",
       canonical_event_id: eventId,
-      evidence: { received, event_id: eventId },
+      evidence: { received, event_id: eventId, verified_entity: "HireCandidate", verified_by: "email", record_id: record ? record.id : null },
       started_at: startedAt,
       completed_at: new Date().toISOString(),
     });
