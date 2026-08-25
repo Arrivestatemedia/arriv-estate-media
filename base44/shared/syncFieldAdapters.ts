@@ -9,7 +9,7 @@
 // See syncEntityAdapters.ts for entity-name mapping.
 // See syncFieldAuthority.ts for sensitive-field stripping.
 
-import { findMappingByRemoteId } from "./syncMapping.ts";
+import { findMappingByRemoteId, naturalKeyMatch } from "./syncMapping.ts";
 
 // ─── Field name maps ───
 // Canonical field name → local field name (only where they differ).
@@ -119,8 +119,20 @@ export async function translateCanonicalToLocal(base44, tenantId, canonicalEntit
     // Resolve reference fields via CrossAppRecordMapping
     if (refFields[canonKey]) {
       const { refEntityType, localField } = refFields[canonKey];
-      const resolvedId = await resolveReference(base44, tenantId, refEntityType, value);
-      localPayload[localField] = resolvedId || value; // fallback to raw if no mapping yet
+      let resolvedId = await resolveReference(base44, tenantId, refEntityType, value);
+      // Fallback: resolve SalesTeamMember by denormalized email when no mapping exists.
+      // Without this, the raw Arriv One UUID would be written as sales_member_id and
+      // per-rep RLS (data.sales_member_id === {{user.data.sales_member_id}}) would hide
+      // the record from every rep.
+      if (!resolvedId && refEntityType === "SalesTeamMember") {
+        const emailKey = { sales_member_id: "sales_member_email", owner_id: "owner_email", employee_id: "employee_email" }[canonKey];
+        const email = emailKey ? canonicalPayload[emailKey] : null;
+        if (email) {
+          const member = await naturalKeyMatch(base44, "SalesTeamMember", { email });
+          resolvedId = member?.id || null;
+        }
+      }
+      localPayload[localField] = resolvedId || null;
       continue;
     }
 
