@@ -707,7 +707,9 @@ export default function SupportProvider({ children }) {
       });
       const convData = convRes?.data || convRes;
       if (convData?.status === "unavailable" || convData?.status === "diagnostic") {
-        setAvailable(false);
+        // Transient Assist unreachability — don't block the widget.
+        // Show intake form so the user can try sending a message.
+        // (NOT_CONFIGURED is already handled by getAvailability above.)
         setConversation(null);
       } else if (convData?.closed) {
         // Previous conversation was CLOSED by Assist — show completion state

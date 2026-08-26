@@ -330,13 +330,13 @@ export async function fetchAssistHealth(secrets: any): Promise<AssistIdentity> {
     }
   };
 
-  // First attempt
-  const first = await attempt();
-  if (first.available) return first;
-
-  // Retry once after a short delay (handles cold starts / transient network blips)
-  await new Promise((r) => setTimeout(r, 1200));
-  return attempt();
+  // Retry up to 3 attempts with short backoff to handle cold-start 503s.
+  for (let i = 0; i < 3; i++) {
+    const result = await attempt();
+    if (result.available) return result;
+    if (i < 2) await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+  }
+  return { available: false, reason: "UNREACHABLE" };
 }
 
 /**

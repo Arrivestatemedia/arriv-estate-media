@@ -69,16 +69,20 @@ export default async function (req: Request): Promise<Response> {
       // ==========================================================
       case "getAvailability": {
         if (!assistReady) return Response.json({ status: "ok", available: false, reason: "NOT_CONFIGURED" });
+        // Health check is ADVISORY — cold-start 503s on the health endpoint
+        // must NOT block the widget. If configured, the widget is available;
+        // the actual message send has its own retry logic for transient failures.
         const health = await fetchAssistHealth(secrets);
         return Response.json({
           status: "ok",
-          available: health.available,
-          reason: health.available ? null : health.reason,
+          available: true,
+          reason: null,
           identity: health.available ? {
             app_id: health.app_id,
             product_key: health.product_key,
             contract_version: health.contract_version,
           } : null,
+          health_advisory: health.available ? null : health.reason,
         });
       }
 
