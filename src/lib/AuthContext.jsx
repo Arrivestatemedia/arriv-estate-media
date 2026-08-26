@@ -93,20 +93,21 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       let currentUser = await base44.auth.me();
 
-      // Auto-link sales member identity if not already set.
-      // After the Arriv One migration, users logging in via standard Base44 auth
-      // (Google OAuth or email/password) do not have their sales_member_id linked
-      // to their SalesTeamMember record. The legacy salesTeamLogin function does
-      // this linking, but standard auth does not. Without this link, RLS rules on
-      // Contact/ActivityLog/Deal (keyed on {{user.data.sales_member_id}}) match
-      // nothing and the user sees no data.
-      if (currentUser && !currentUser.data?.sales_member_id && currentUser.email) {
+      // Auto-link sales member identity if missing or stale.
+      // After the Arriv One migration, users may have a stale sales_member_id
+      // (raw Arriv One UUID) that doesn't match any local SalesTeamMember. RLS
+      // rules on Contact/ActivityLog/Deal (keyed on {{user.data.sales_member_id}})
+      // match nothing and the user sees no data. Always re-resolve by email to
+      // handle both missing AND stale values.
+      if (currentUser && currentUser.email) {
         try {
           const members = await base44.entities.SalesTeamMember.filter({ email: currentUser.email });
           if (members && members.length > 0) {
             const member = members[0];
-            await base44.auth.updateMe({ sales_member_id: member.id });
-            currentUser = await base44.auth.me();
+            if (currentUser.data?.sales_member_id !== member.id) {
+              await base44.auth.updateMe({ sales_member_id: member.id });
+              currentUser = await base44.auth.me();
+            }
             // Set localStorage items so Layout.jsx picks up the sales team identity + role
             localStorage.setItem('sales_member_id', member.id);
             localStorage.setItem('sales_member_name', member.full_name || '');
