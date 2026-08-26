@@ -84,7 +84,7 @@ function TranscriptBlock({ transcriptUrl, transcriptStatus, transcriptRequested,
 }
 
 export default function SupportPanel() {
-  const { open, setOpen, available, loading, sending, connecting, agentTyping, conversation, messages, transferState, closed, closureReason, transcriptUrl, transcriptStatus, transcriptOffered, transcriptRequested, transcriptReady, customerContext, submitIssue, sendUserMessage, resetConversation, requestClose, cancelClose, endChat, showCloseConfirm, closing } = useSupport();
+  const { open, setOpen, available, loading, sending, connecting, agentTyping, conversation, messages, transferState, closed, closureReason, transcriptUrl, transcriptStatus, transcriptOffered, transcriptRequested, transcriptReady, customerContext, submitIssue, sendUserMessage, resetConversation, requestClose, cancelClose, endChat, showCloseConfirm, closing, error, startSupport } = useSupport();
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
 
@@ -195,10 +195,27 @@ export default function SupportPanel() {
 
       {/* Body */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50">
+        {/* Error banner — visible during active chat if a message fails */}
+        {error && available && hasConversation && (
+          <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 break-all">
+            {error}
+          </div>
+        )}
+
         {/* Unavailable */}
         {!available && !loading && (
-          <div className="text-center text-sm text-slate-500 py-8">
-            Arriv Support is temporarily unavailable. Please try again shortly.
+          <div className="text-center py-8 space-y-3">
+            <p className="text-sm text-slate-500">Arriv Support is temporarily unavailable.</p>
+            {error && (
+              <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2 break-all">{error}</p>
+            )}
+            <button
+              onClick={() => startSupport()}
+              className="flex items-center justify-center gap-2 mx-auto px-4 py-2 text-sm text-[#B8956A] font-medium hover:bg-[#B8956A]/5 rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </button>
           </div>
         )}
 

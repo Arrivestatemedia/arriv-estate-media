@@ -231,6 +231,7 @@ export default function SupportProvider({ children }) {
   const [transcriptReady, setTranscriptReady] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [error, setError] = useState(null); // visible error for debugging
   // Customer context — unified canonical context from Arriv Assist.
   // Both regular agents and managers consume the SAME customerContext.
   // Customer identity persists through agent assignment changes (transfer).
@@ -615,6 +616,7 @@ export default function SupportProvider({ children }) {
     setTypingConfig({ enabled: true, minVisibleMs: TYPING_MIN_VISIBLE_MS_DEFAULT, maxVisibleMs: TYPING_MAX_VISIBLE_MS_DEFAULT });
     customerContextRef.current = null;
     setCustomerContext(null);
+    setError(null);
   }, [clearTypingTimers]);
 
   // Handle canonical CLOSED state from Assist — show completion, then reset.
@@ -667,6 +669,7 @@ export default function SupportProvider({ children }) {
   // Check availability + restore existing conversation on open
   const startSupport = useCallback(async () => {
     setOpen(true);
+    setError(null);
     if (conversation) {
       // Reopening after minimize — refresh canonical state to discover
       // manager transfer, join, typing, or closure that happened while minimized.
@@ -803,7 +806,9 @@ export default function SupportProvider({ children }) {
         setMessages([]);
       }
     } catch (e) {
-      console.error('[Arriv Assist] startSupport failed:', e?.message || e, e);
+      const msg = e?.message || String(e) || 'Unknown error';
+      console.error('[Arriv Assist] startSupport failed:', msg, e);
+      setError(`Connection failed: ${msg}`);
       setAvailable(false);
     } finally {
       setLoading(false);
@@ -897,6 +902,7 @@ export default function SupportProvider({ children }) {
         setAvailable(false);
         setConnecting(false);
         setAgentTyping(false);
+        setError(data?.reason || 'Assist unavailable');
         return;
       }
 
@@ -942,8 +948,12 @@ export default function SupportProvider({ children }) {
         setConnecting(false);
         setAvailable(false);
         setAgentTyping(false);
+        setError('No conversation created — missing agent assignment');
       }
     } catch (e) {
+      const msg = e?.message || String(e) || 'Unknown error';
+      console.error('[Arriv Assist] submitIssue failed:', msg, e);
+      setError(`Send failed: ${msg}`);
       setConnecting(false);
       setAvailable(false);
       setAgentTyping(false);
@@ -1037,9 +1047,12 @@ export default function SupportProvider({ children }) {
       }
 
       setSending(false);
-    } catch {
+    } catch (err) {
       setSending(false);
       setAgentTyping(false);
+      const msg = err?.message || String(err) || 'Unknown error';
+      console.error('[Arriv Assist] sendUserMessage failed:', msg, err);
+      setError(`Message failed: ${msg}`);
     }
   }, [conversation, getActor, handleClosed, syncCanonicalState]);
 
@@ -1073,7 +1086,7 @@ export default function SupportProvider({ children }) {
     closed, closureReason, transcriptUrl,
     transcriptStatus, transcriptOffered, transcriptRequested, transcriptReady,
     customerContext,
-    showCloseConfirm, closing,
+    showCloseConfirm, closing, error,
     startSupport, submitIssue, sendUserMessage, escalate,
     resetConversation, requestClose, cancelClose, endChat,
     pageContext: pageContextRef.current,
