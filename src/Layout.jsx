@@ -120,7 +120,6 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
-            { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
             { label: "Job Board", page: "JobBoard", icon: Briefcase },
             { label: "Bookings", page: "AdminBookings", icon: Briefcase },
             { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
@@ -162,7 +161,7 @@ function LayoutContent({ children, currentPageName }) {
       ]
     : [];
 
-  const dashboardPage = isAdmin ? "Dashboard" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
+  const dashboardPage = isAdmin ? "AdminHub" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
   // Determine if current page is a primary route (shows bottom tabs)
   const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess", "PayoutRecords"];

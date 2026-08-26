@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BarChart3 } from "lucide-react";
+import { Users, BarChart3, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
+import AdminDashboardGrid from "@/components/admin/AdminDashboardGrid";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
@@ -21,7 +22,7 @@ export default function AdminHub() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get("tab") || "team";
+    return params.get("tab") || "dashboard";
   });
   const [initialSubTab, setInitialSubTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -308,7 +309,11 @@ export default function AdminHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </TabsTrigger>
             <TabsTrigger value="team" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Sales Team
@@ -322,6 +327,10 @@ export default function AdminHub() {
               My Activity
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard" className="mt-6">
+            <AdminDashboardGrid />
+          </TabsContent>
 
           <TabsContent value="team" className="mt-6">
             <Suspense fallback={<div className="p-4">Loading...</div>}>
