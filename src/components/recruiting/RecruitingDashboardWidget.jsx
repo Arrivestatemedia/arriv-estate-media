@@ -45,7 +45,7 @@ export default function RecruitingDashboardWidget() {
   ];
 
   return (
-    <div className="mb-8 pb-6 border-b border-slate-200">
+    <div className="mb-8">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-[#16A34A]" /> Recruiting
