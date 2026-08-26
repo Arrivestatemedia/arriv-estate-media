@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileText, ShieldCheck, Wallet, Landmark, Settings, BarChart3, UserCog } from "lucide-react";
+import RecruitingDashboardWidget from "@/components/recruiting/RecruitingDashboardWidget";
 
 const ADMIN_SECTIONS = [
   { label: "Sales Team", page: "AdminSalesSignup", icon: Users, description: "Manage sales reps and onboarding" },
@@ -19,6 +20,7 @@ const ADMIN_SECTIONS = [
 export default function AdminDashboardGrid() {
   return (
     <div>
+      <RecruitingDashboardWidget />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {ADMIN_SECTIONS.map((section) => {
           const Icon = section.icon;
