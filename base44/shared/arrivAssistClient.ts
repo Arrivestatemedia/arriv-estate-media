@@ -447,37 +447,60 @@ export async function startAssistConversation(
     is_platform_authority: auth.is_platform_authority,
     source_application: "arriv_estate_media",
   };
-  const body = JSON.stringify(payload);
-  const headers = await signRequest(functionName, body, secret);
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 10000);
-    const res = await fetch(`${endpoint}${path}`, { method: "POST", headers, body, signal: ctrl.signal });
-    clearTimeout(t);
-    const json = await res.json();
-    if (!res.ok) {
-      return { available: false, reason: json?.error_code || json?.message || `HTTP_${res.status}` };
+  const bodyText = JSON.stringify(payload);
+
+  // Retryable transient failures: 503 (cold start / overload), 502, 504,
+  // TIMEOUT, UNREACHABLE. Up to 3 attempts with exponential backoff.
+  // This mirrors postAssist's retry logic — without it, a cold-start 503 on
+  // the very first conversation-create call kills the entire support flow
+  // before sendAssistMessage's own retries ever run.
+  const MAX_ATTEMPTS = 3;
+  let lastReason: string | undefined;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    // Re-sign each attempt — the timestamp must be fresh for HMAC validation.
+    const headers = await signRequest(functionName, bodyText, secret);
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 10000);
+      const res = await fetch(`${endpoint}${path}`, { method: "POST", headers, body: bodyText, signal: ctrl.signal });
+      clearTimeout(t);
+      const json = await res.json();
+      if (!res.ok) {
+        lastReason = json?.error_code || json?.message || `HTTP_${res.status}`;
+        const transient = res.status === 502 || res.status === 503 || res.status === 504;
+        if (!transient || attempt === MAX_ATTEMPTS) {
+          return { available: false, reason: lastReason };
+        }
+      } else {
+        const convId = json.conversation_id;
+        const agentId = json.support_agent?.agent_id;
+        const agentName = json.support_agent?.display_name;
+        const assignmentStatus = json.assignment_status;
+        if (!convId || !agentId || !agentName || !assignmentStatus) {
+          return { available: false, reason: "MALFORMED_RESPONSE" };
+        }
+        return {
+          available: true,
+          conversation_id: convId,
+          support_agent_id: agentId,
+          agent_name: agentName,
+          agent_specialty: json.support_agent?.specialty || undefined,
+          agent_avatar_color: json.support_agent?.avatar_color || undefined,
+          agent_avatar_url: json.support_agent?.avatar_url || undefined,
+          assignment_status: assignmentStatus,
+        };
+      }
+    } catch (e: any) {
+      lastReason = e?.name === "AbortError" ? "TIMEOUT" : "UNREACHABLE";
+      if (attempt === MAX_ATTEMPTS) {
+        return { available: false, reason: lastReason };
+      }
     }
-    const convId = json.conversation_id;
-    const agentId = json.support_agent?.agent_id;
-    const agentName = json.support_agent?.display_name;
-    const assignmentStatus = json.assignment_status;
-    if (!convId || !agentId || !agentName || !assignmentStatus) {
-      return { available: false, reason: "MALFORMED_RESPONSE" };
-    }
-    return {
-      available: true,
-      conversation_id: convId,
-      support_agent_id: agentId,
-      agent_name: agentName,
-      agent_specialty: json.support_agent?.specialty || undefined,
-      agent_avatar_color: json.support_agent?.avatar_color || undefined,
-      agent_avatar_url: json.support_agent?.avatar_url || undefined,
-      assignment_status: assignmentStatus,
-    };
-  } catch (e: any) {
-    return { available: false, reason: e?.name === "AbortError" ? "TIMEOUT" : "UNREACHABLE" };
+    // Exponential backoff: 400ms, 900ms
+    await new Promise((r) => setTimeout(r, 400 * attempt));
   }
+  return { available: false, reason: lastReason || "UNREACHABLE" };
 }
 
 /**
