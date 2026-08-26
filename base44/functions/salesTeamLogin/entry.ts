@@ -47,9 +47,24 @@ Deno.serve(async (req) => {
       let bgOrientation = null;
       try {
         const orientations = await base44.asServiceRole.entities.SalesOrientation.filter({ sales_member_id: member.id });
-        if (orientations && orientations[0]) {
-          bgStatus = orientations[0].background_check_status;
-          bgOrientation = orientations[0];
+        if (orientations && orientations.length > 0) {
+          // If ANY orientation has a clear background check, the rep is cleared.
+          // (Reps may have multiple orientation records from re-invitations.)
+          const cleared = orientations.find(o => o.background_check_status === 'clear');
+          if (cleared) {
+            bgStatus = 'clear';
+            bgOrientation = cleared;
+          } else {
+            // Otherwise use the most recently updated orientation
+            const failed = orientations.find(o => o.background_check_status === 'failed');
+            if (failed) {
+              bgStatus = 'failed';
+              bgOrientation = failed;
+            } else {
+              bgStatus = orientations[0].background_check_status;
+              bgOrientation = orientations[0];
+            }
+          }
         }
       } catch (e) { /* no orientation = legacy rep, allow */ }
 
