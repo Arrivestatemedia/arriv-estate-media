@@ -252,21 +252,43 @@ async function postAssist<T>(
     return { ok: false, reason: "NOT_CONFIGURED" };
   }
   const path = `/api/functions/${functionName}`;
-  const body = JSON.stringify(payload);
-  const headers = await signRequest(functionName, body, secret);
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    const res = await fetch(`${endpoint}${path}`, { method: "POST", headers, body, signal: ctrl.signal });
-    clearTimeout(t);
-    const json = await res.json();
-    if (!res.ok || !json.success) {
-      return { ok: false, reason: json.error_code || json.message || `HTTP_${res.status}`, envelope: json };
+  const bodyText = JSON.stringify(payload);
+
+  // Retryable transient failures: 503 (cold start / overload), 502, 504,
+  // TIMEOUT, UNREACHABLE. Up to 3 attempts with exponential backoff.
+  const MAX_ATTEMPTS = 3;
+  let lastReason: string | undefined;
+  let lastEnvelope: any;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    // Re-sign each attempt — the timestamp must be fresh for HMAC validation.
+    const headers = await signRequest(functionName, bodyText, secret);
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      const res = await fetch(`${endpoint}${path}`, { method: "POST", headers, body: bodyText, signal: ctrl.signal });
+      clearTimeout(t);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        return { ok: true, data: json.data as T, envelope: json };
+      }
+      lastReason = json.error_code || json.message || `HTTP_${res.status}`;
+      lastEnvelope = json;
+      // Retry on 502/503/504 — transient server errors.
+      const transient = res.status === 502 || res.status === 503 || res.status === 504;
+      if (!transient || attempt === MAX_ATTEMPTS) {
+        return { ok: false, reason: lastReason, envelope: lastEnvelope };
+      }
+    } catch (e: any) {
+      lastReason = e?.name === "AbortError" ? "TIMEOUT" : "UNREACHABLE";
+      if (attempt === MAX_ATTEMPTS) {
+        return { ok: false, reason: lastReason };
+      }
     }
-    return { ok: true, data: json.data as T, envelope: json };
-  } catch (e: any) {
-    return { ok: false, reason: e?.name === "AbortError" ? "TIMEOUT" : "UNREACHABLE" };
+    // Exponential backoff: 400ms, 900ms
+    await new Promise((r) => setTimeout(r, 400 * attempt));
   }
+  return { ok: false, reason: lastReason, envelope: lastEnvelope };
 }
 
 // ============================================================

@@ -695,9 +695,10 @@ export default function SupportProvider({ children }) {
         action: "getAvailability", ...actor,
       });
       const availData = availRes?.data || availRes;
-      // Availability check is advisory — if it fails (transient/cold start),
-      // still proceed to the intake form. The real failure handling happens
-      // in submitIssue when trying to create the conversation.
+      if (!availData || availData.available === false) {
+        setAvailable(false);
+        return;
+      }
       setAvailable(true);
 
       // 2. Check for existing active conversation (restore on refresh/navigation)
@@ -705,14 +706,9 @@ export default function SupportProvider({ children }) {
         action: "getActiveConversation", page_context: pageContextRef.current, ...actor,
       });
       const convData = convRes?.data || convRes;
-      if (convData?.status === "diagnostic") {
+      if (convData?.status === "unavailable" || convData?.status === "diagnostic") {
         setAvailable(false);
         setConversation(null);
-      } else if (convData?.status === "unavailable") {
-        // Assist transport issue — don't block the intake form; let the user
-        // try to connect. submitIssue will surface a real error if Assist is down.
-        setConversation(null);
-        setMessages([]);
       } else if (convData?.closed) {
         // Previous conversation was CLOSED by Assist — show completion state
         // with transcript (NOT just fresh intake). This preserves transcript_url
@@ -941,14 +937,13 @@ export default function SupportProvider({ children }) {
           }
         }
       } else {
-        // Assist couldn't create the conversation — keep the intake form
-        // available so the user can retry, rather than showing "unavailable."
         setConnecting(false);
+        setAvailable(false);
         setAgentTyping(false);
       }
     } catch (e) {
-      // Transport error — keep the intake form available for retry.
       setConnecting(false);
+      setAvailable(false);
       setAgentTyping(false);
     }
   }, [getActor, handleClosed, syncCanonicalState]);
