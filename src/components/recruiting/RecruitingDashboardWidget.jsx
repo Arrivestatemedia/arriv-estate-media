@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Briefcase, Users, Video, FileText, Sparkles, Loader2 } from "lucide-react";
+import { Briefcase, Users, Video, FileText, Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 
@@ -46,12 +46,14 @@ export default function RecruitingDashboardWidget() {
 
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-[#16A34A]" /> Recruiting
           <span className="text-xs font-normal text-slate-400">Powered by Khetha IQ</span>
         </h2>
-        <Link to={createPageUrl("KhethaIQ")} className="text-xs text-[#2563EB] hover:underline">View Recruiting â</Link>
+        <Link to={createPageUrl("KhethaIQ")} className="text-xs text-[#2563EB] hover:underline flex items-center gap-1">
+          View Recruiting <ArrowRight className="w-3 h-3" />
+        </Link>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {widgets.map((w) => {
