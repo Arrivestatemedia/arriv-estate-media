@@ -59,11 +59,17 @@ const AuthenticatedApp = () => {
   }
 
   // Handle authentication errors
+  // Public pages that should be accessible without Base44 auth (custom auth pages)
+  const PUBLIC_AUTH_PAGES = ['SalesLogin', 'SignIn', 'ClientSignup', 'MediaPartnerSignup', 'ContractorSignup', 'ForgotEmail', 'ForgotPassword', 'PasswordSetup', 'SalesJobApplication', 'JobApplication', 'AboutJob', 'AboutJobAtlanta', 'AboutSalesJob', 'ApplicationPortal', 'BackgroundCheck', 'SubmitReferences', 'PurchaseApparel', 'OrientationAddress', 'SalesChangePassword'];
+  const currentPath = window.location.pathname.replace(/^\//, '');
+  const isPublicAuthPage = PUBLIC_AUTH_PAGES.includes(currentPath);
+
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
+    } else if (authError.type === 'auth_required' && !isPublicAuthPage) {
+      // Redirect to login automatically — but NOT on public auth pages
+      // (SalesLogin, SignIn, etc.) which have their own custom auth
       navigateToLogin();
       return null;
     }

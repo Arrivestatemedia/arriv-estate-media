@@ -70,11 +70,19 @@ Deno.serve(async (req) => {
     // Link the platform user to this sales team member so per-rep RLS
     // (ActivityLog / Contact / Deal read rules keyed on {{user.data.sales_member_id}})
     // can identify the rep. Matches case-insensitively by email.
+    // Also check if the platform user is an admin — if so, return admin role
+    // so the Layout shows the admin navigation.
+    let platformRole: string | null = null;
     try {
       const allUsers = await base44.asServiceRole.entities.User.list();
       const platformUser = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-      if (platformUser && platformUser.data?.sales_member_id !== member.id) {
-        await base44.asServiceRole.entities.User.update(platformUser.id, { sales_member_id: member.id });
+      if (platformUser) {
+        if (platformUser.data?.sales_member_id !== member.id) {
+          await base44.asServiceRole.entities.User.update(platformUser.id, { sales_member_id: member.id });
+        }
+        if (platformUser.role === 'admin') {
+          platformRole = 'admin';
+        }
       }
     } catch (e) { /* non-critical — RLS simply won't resolve for this session */ }
 
@@ -83,7 +91,7 @@ Deno.serve(async (req) => {
       memberId: member.id,
       name: member.full_name,
       email: member.email,
-      role: member.role || 'user',
+      role: platformRole || member.role || 'user',
       forcePasswordChange: member.force_password_change === true
     });
 

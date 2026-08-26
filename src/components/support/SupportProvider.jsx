@@ -803,6 +803,7 @@ export default function SupportProvider({ children }) {
         setMessages([]);
       }
     } catch (e) {
+      console.error('[Arriv Assist] startSupport failed:', e?.message || e, e);
       setAvailable(false);
     } finally {
       setLoading(false);
