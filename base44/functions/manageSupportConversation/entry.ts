@@ -35,6 +35,7 @@ import {
 function unavailable(reason: string) {
   // Return HTTP 200 (not 503) so the SDK doesn't throw — the frontend
   // checks data.status === "unavailable" and handles it gracefully.
+  console.error("[manageSupportConversation] returning unavailable:", reason);
   return Response.json({ status: "unavailable", reason });
 }
 
@@ -107,6 +108,7 @@ export default async function (req: Request): Promise<Response> {
 
         const assistConv = await getAssistConversation(secrets, conv.conversation_id, assistAuth);
         if (!assistConv.available) {
+          console.error("[getActiveConversation] getAssistConversation failed:", assistConv.reason, "conv:", conv.conversation_id, "actor:", assistAuth.actor_user_id);
           if (assistConv.reason === "UNAUTHORIZED" || assistConv.reason === "CONVERSATION_NOT_FOUND") {
             await base44.asServiceRole.entities.SupportConversation.delete(conv.id).catch(() => {});
             return Response.json({ status: "ok", conversation: null, messages: [] });
@@ -239,7 +241,10 @@ export default async function (req: Request): Promise<Response> {
             },
             assistAuth
           );
-          if (!startRes.available) return unavailable(startRes.reason || "UNREACHABLE");
+          if (!startRes.available) {
+            console.error("[sendMessage] startAssistConversation failed:", startRes.reason, "actor:", assistAuth.actor_user_id, "role:", assistAuth.actor_role, "platform:", assistAuth.is_platform_authority, "tenant:", assistAuth.tenant_id, "viewAs:", assistAuth.view_as_tenant_id);
+            return unavailable(startRes.reason || "UNREACHABLE");
+          }
           conversationId = startRes.conversation_id;
           startAgent = {
             support_agent_id: startRes.support_agent_id,
@@ -281,6 +286,7 @@ export default async function (req: Request): Promise<Response> {
           assistAuth
         );
         if (!r.available) {
+          console.error("[sendMessage] sendAssistMessage failed:", r.reason, "conversation:", conversationId, "actor:", assistAuth.actor_user_id);
           if (conversationId) {
             return Response.json({
               status: "unavailable",

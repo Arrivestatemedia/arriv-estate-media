@@ -91,7 +91,10 @@ export async function resolveSupportAuthority(
     if (user) {
       const isPlatform = isPlatformAuthorityRole(user.role);
       const viewAs = options.view_as_tenant_id && isPlatform ? options.view_as_tenant_id : null;
-      let tenantId = user.data?.tenant_id || user.tenant_id || "";
+      // Estate Media is a single-tenant app — default to tnt_estate_media when
+      // the Base44 user has no tenant_id, so Arriv Assist always receives a
+      // valid tenant reference (empty string can cause rejection).
+      let tenantId = user.data?.tenant_id || user.tenant_id || "tnt_estate_media";
       let mode: "PLATFORM" | "TENANT" | "VIEW_AS_TENANT" = isPlatform ? "PLATFORM" : "TENANT";
       if (viewAs) {
         tenantId = viewAs;
@@ -142,7 +145,7 @@ export async function resolveSupportAuthority(
     actor_role: "guest",
     actor_display_name: "Guest",
     user_type: "base44",
-    tenant_id: "",
+    tenant_id: "tnt_estate_media",
     is_platform_authority: false,
     view_as_tenant_id: null,
     mode: "TENANT",

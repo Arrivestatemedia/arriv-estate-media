@@ -911,7 +911,7 @@ export default function SupportProvider({ children }) {
         const reason = data?.reason || '';
         const friendly = reason === 'NOT_CONFIGURED'
           ? 'Support is not configured. Please contact an administrator.'
-          : 'Support is temporarily unavailable. Please try again in a moment.';
+          : `Support is temporarily unavailable (reason: ${reason || 'unknown'}). Please try again in a moment.`;
         setError(friendly);
         return;
       }
