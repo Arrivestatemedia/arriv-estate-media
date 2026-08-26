@@ -56,12 +56,13 @@ export default function SalesLogin() {
     setAutoLoading(true);
     base44.functions.invoke('salesTeamLogin', { email: emailParam, password: pwParam })
       .then((result) => {
-        if (result.data?.success) {
+        const data = result?.data || result;
+        if (data?.success) {
           const salesData = {
-            sales_member_id: result.data.memberId,
-            sales_member_name: result.data.name,
-            sales_member_email: result.data.email,
-            sales_member_role: result.data.role || 'user',
+            sales_member_id: data.memberId,
+            sales_member_name: data.name,
+            sales_member_email: data.email,
+            sales_member_role: data.role || 'user',
           };
           Object.entries(salesData).forEach(([k, v]) => {
             localStorage.setItem(k, v);
@@ -70,7 +71,7 @@ export default function SalesLogin() {
           sessionStorage.setItem('sales_temp_password', pwParam);
           const tabHint = params.get('tab');
           const tabSuffix = tabHint ? `?tab=${encodeURIComponent(tabHint)}&auto=1` : '?auto=1';
-          if (result.data.forcePasswordChange && result.data.role !== 'admin') {
+          if (data.forcePasswordChange && data.role !== 'admin') {
             localStorage.setItem('sales_force_password_change', 'true');
             sessionStorage.setItem('sales_force_password_change', 'true');
             navigate(createPageUrl('SalesChangePassword') + tabSuffix);
@@ -78,17 +79,18 @@ export default function SalesLogin() {
             localStorage.removeItem('sales_force_password_change');
             sessionStorage.removeItem('sales_force_password_change');
             sessionStorage.removeItem('sales_temp_password');
-            const redirectPage = result.data.role === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
+            const redirectPage = data.role === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
             navigate(createPageUrl(redirectPage) + (tabHint ? `?tab=${encodeURIComponent(tabHint)}` : ''));
           }
         } else {
           setAutoLoading(false);
-          setError(result.data?.error || "This sign-in link is no longer valid. Please sign in manually below.");
+          setError(data?.error || "This sign-in link is no longer valid. Please sign in manually below.");
         }
       })
       .catch((err) => {
         setAutoLoading(false);
-        setError(err?.data?.error || "This sign-in link is no longer valid. Please sign in manually below.");
+        const errData = err?.data || err;
+        setError(errData?.error || "This sign-in link is no longer valid. Please sign in manually below.");
       });
   }, [navigate]);
 
@@ -103,13 +105,14 @@ export default function SalesLogin() {
 
     try {
       const result = await base44.functions.invoke('salesTeamLogin', { email: formEmail, password: formPassword });
+      const data = result?.data || result;
       
-      if (result.data?.success) {
+      if (data?.success) {
         const salesData = {
-          sales_member_id: result.data.memberId,
-          sales_member_name: result.data.name,
-          sales_member_email: result.data.email,
-          sales_member_role: result.data.role || 'user',
+          sales_member_id: data.memberId,
+          sales_member_name: data.name,
+          sales_member_email: data.email,
+          sales_member_role: data.role || 'user',
         };
         Object.entries(salesData).forEach(([k, v]) => {
           localStorage.setItem(k, v);
@@ -118,7 +121,7 @@ export default function SalesLogin() {
         const tabHint = new URLSearchParams(window.location.search).get('tab');
         const tabSuffix = tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '';
         // Force a password change before anything else (newly-onboarded reps)
-        if (result.data.forcePasswordChange && result.data.role !== 'admin') {
+        if (data.forcePasswordChange && data.role !== 'admin') {
           localStorage.setItem('sales_force_password_change', 'true');
           sessionStorage.setItem('sales_force_password_change', 'true');
           navigate(createPageUrl("SalesChangePassword") + tabSuffix);
@@ -127,13 +130,14 @@ export default function SalesLogin() {
         localStorage.removeItem('sales_force_password_change');
         sessionStorage.removeItem('sales_force_password_change');
         // Route admins to Dashboard, others to HubSpotActivityLog
-        const redirectPage = result.data.role === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
+        const redirectPage = data.role === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
         navigate(createPageUrl(redirectPage) + tabSuffix);
       } else {
-        setError("Incorrect email or password. Please try again.");
+        setError(data?.error || "Incorrect email or password. Please try again.");
       }
     } catch (err) {
-      setError(err?.data?.error || "Incorrect email or password. Please try again.");
+      const errData = err?.data || err;
+      setError(errData?.error || "Incorrect email or password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -149,12 +153,13 @@ export default function SalesLogin() {
 
     try {
       const result = await base44.functions.invoke('salesRepForgotPassword', { email: forgotEmail });
-      if (result.data?.success) {
+      const data = result?.data || result;
+      if (data?.success) {
         setForgotMsg({ type: "success", text: "Password reset email sent! Check your inbox." });
         setForgotEmail("");
         setTimeout(() => setShowForgotModal(false), 2000);
       } else {
-        setForgotMsg({ type: "error", text: result.data?.error || "Failed to send reset email" });
+        setForgotMsg({ type: "error", text: data?.error || "Failed to send reset email" });
       }
     } catch (err) {
       setForgotMsg({ type: "error", text: "An error occurred" });

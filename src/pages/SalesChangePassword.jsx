@@ -52,7 +52,8 @@ export default function SalesChangePassword() {
         currentPassword: cur,
         newPassword: next,
       });
-      if (result.data?.success) {
+      const data = result?.data || result;
+      if (data?.success) {
         localStorage.removeItem('sales_force_password_change');
         sessionStorage.removeItem('sales_force_password_change');
         sessionStorage.removeItem('sales_temp_password');
@@ -60,10 +61,11 @@ export default function SalesChangePassword() {
         const target = createPageUrl('HubSpotActivityLog') + (tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '');
         navigate(target, { replace: true });
       } else {
-        setError(result.data?.error || "Could not update password. Please try again.");
+        setError(data?.error || "Could not update password. Please try again.");
       }
     } catch (err) {
-      setError(err?.data?.error || "Could not update password. Please try again.");
+      const errData = err?.data || err;
+      setError(errData?.error || "Could not update password. Please try again.");
     } finally {
       setLoading(false);
     }
