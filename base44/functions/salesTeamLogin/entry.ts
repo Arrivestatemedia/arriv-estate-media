@@ -19,8 +19,13 @@ Deno.serve(async (req) => {
     // Create base44 client with service role
     const base44 = createClientFromRequest(req);
 
-    // Find sales team member by email
-    const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ email });
+    // Find sales team member by email (case-insensitive — SalesTeamMember emails
+    // may have mixed-case casing that doesn't match the login input)
+    let members = await base44.asServiceRole.entities.SalesTeamMember.filter({ email });
+    if (!members || members.length === 0) {
+      const allMembers = await base44.asServiceRole.entities.SalesTeamMember.list();
+      members = (allMembers || []).filter(m => m.email && m.email.toLowerCase() === email.toLowerCase());
+    }
 
     if (!members || members.length === 0) {
       return Response.json({ error: 'Invalid email or password' }, { status: 401 });
@@ -68,7 +73,7 @@ Deno.serve(async (req) => {
     try {
       const allUsers = await base44.asServiceRole.entities.User.list();
       const platformUser = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-      if (platformUser && platformUser.sales_member_id !== member.id) {
+      if (platformUser && platformUser.data?.sales_member_id !== member.id) {
         await base44.asServiceRole.entities.User.update(platformUser.id, { sales_member_id: member.id });
       }
     } catch (e) { /* non-critical — RLS simply won't resolve for this session */ }
