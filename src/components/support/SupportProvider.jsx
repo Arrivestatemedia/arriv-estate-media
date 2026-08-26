@@ -871,43 +871,47 @@ export default function SupportProvider({ children }) {
     }
   }, [closing, conversation, getActor, handleClosed]);
 
-  // Submit the first issue — creates conversation via Assist, assigns agent
+  // Submit the first issue — creates conversation via Assist, assigns agent.
+  // Auto-retries once on any transient failure (unavailable/UNAUTHORIZED/etc.)
+  // so the user gets connected without seeing a scary error.
   const submitIssue = useCallback(async (text) => {
     if (!text?.trim() || closed) return;
     setConnecting(true);
     setAvailable(true);
-    // Show "Agent is typing..." while waiting for the canonical first-turn bundle.
-    // Do NOT render an optimistic customer message — a client-side timestamp can
-    // mix with canonical server timestamps and produce wrong chronological order
-    // when sequence is missing. The canonical bundle (from getAssistConversation)
-    // provides ALL messages in correct canonical order; render them together when
-    // the response arrives. Until then, the typing indicator is the only visible
-    // state — no out-of-order messages are ever shown.
     setMessages([]);
     setAgentTyping(true);
 
-    try {
+    const attemptSend = async () => {
       const actor = getActor();
       const res = await base44.functions.invoke("manageSupportConversation", {
         action: "sendMessage",
-        conversation_id: null, // first message — Assist creates conversation
+        conversation_id: null,
         role: "user",
         content: text,
         page_context: pageContextRef.current,
         ...actor,
       });
-      const data = res?.data || res;
+      return res?.data || res;
+    };
+
+    try {
+      let data = await attemptSend();
+
+      // Auto-retry once on any unavailable status — transient failures
+      // (cold start, stale session, momentary unreachability) resolve on retry.
+      if (data?.status === "unavailable" && data?.reason !== "NOT_CONFIGURED") {
+        await new Promise((r) => setTimeout(r, 1000));
+        data = await attemptSend();
+      }
 
       if (data?.status === "unavailable") {
         setAvailable(false);
         setConnecting(false);
         setAgentTyping(false);
         const reason = data?.reason || '';
-        const friendly = reason === 'UNAUTHORIZED' || reason === 'INVALID_SIGNATURE'
-          ? 'Support session expired. Please try again.'
-          : reason === 'NOT_CONFIGURED'
+        const friendly = reason === 'NOT_CONFIGURED'
           ? 'Support is not configured. Please contact an administrator.'
-          : 'Support is temporarily unavailable. Please try again.';
+          : 'Support is temporarily unavailable. Please try again in a moment.';
         setError(friendly);
         return;
       }
@@ -957,9 +961,29 @@ export default function SupportProvider({ children }) {
         setError('No conversation created — missing agent assignment');
       }
     } catch (e) {
-      const msg = e?.message || String(e) || 'Unknown error';
-      console.error('[Arriv Assist] submitIssue failed:', msg, e);
-      setError('Connection failed. Please try again.');
+      // Auto-retry once on network/transport errors
+      try {
+        await new Promise((r) => setTimeout(r, 1000));
+        const data = await attemptSend();
+        if (data?.conversation_id && data?.support_agent_id) {
+          const agentName = data.agent_name || "Arriv Support";
+          setConversation({
+            conversation_id: data.conversation_id,
+            status: "active",
+            support_agent_id: data.support_agent_id,
+            agent_name: agentName,
+            agent_title: data.agent_title || "Arriv Support",
+            agent_avatar_initial: data.agent_avatar_initial || agentName.charAt(0).toUpperCase(),
+            agent_avatar_url: data.agent_avatar_url || "",
+          });
+          setConnecting(false);
+          if (!closedRef.current) syncCanonicalState(data);
+          return;
+        }
+      } catch (e2) {
+        console.error('[Arriv Assist] submitIssue retry failed:', e2?.message || e2);
+      }
+      setError('Connection issue. Please try sending your message again.');
       setConnecting(false);
       setAvailable(false);
       setAgentTyping(false);
