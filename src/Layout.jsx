@@ -115,19 +115,7 @@ function LayoutContent({ children, currentPageName }) {
           { label: "Time Off", page: "TimeOff", icon: CalendarOff },
           { label: "My Benefits", page: "Benefits", icon: Heart },
         ]
-      : isSalesAdmin
-        ? [
-            { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
-            { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
-            { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
-            { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
-            { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
-            { label: "My Recordings", page: "Recordings", icon: Film },
-            { label: "My Profile", page: "EmployeeProfile", icon: Award },
-            { label: "Time Off", page: "TimeOff", icon: CalendarOff },
-            { label: "My Benefits", page: "Benefits", icon: Heart },
-            ]
-            : isAdmin
+      : (isAdmin || isSalesAdmin)
         ? [
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
