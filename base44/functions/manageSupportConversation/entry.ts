@@ -33,7 +33,9 @@ import {
 } from "../../shared/arrivAssistClient.ts";
 
 function unavailable(reason: string) {
-  return Response.json({ status: "unavailable", reason }, { status: 503 });
+  // Return HTTP 200 (not 503) so the SDK doesn't throw — the frontend
+  // checks data.status === "unavailable" and handles it gracefully.
+  return Response.json({ status: "unavailable", reason });
 }
 
 export default async function (req: Request): Promise<Response> {
@@ -288,7 +290,7 @@ export default async function (req: Request): Promise<Response> {
               conversation_id: conversationId,
               support_agent_id: startAgent.support_agent_id || r.support_agent_id || "",
               agent_name: startAgent.agent_name || r.agent_name || "",
-            }, { status: 503 });
+            });
           }
           return unavailable(r.reason || "UNREACHABLE");
         }
