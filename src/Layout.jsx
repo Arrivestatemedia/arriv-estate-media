@@ -118,6 +118,7 @@ function LayoutContent({ children, currentPageName }) {
       : (isAdmin || isSalesAdmin)
         ? [
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
+            { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
             { label: "Job Board", page: "JobBoard", icon: Briefcase },
@@ -400,11 +401,11 @@ function LayoutContent({ children, currentPageName }) {
       </header>
 
       <main>
-        {isSalesTeam && isAdmin && <AdminNotificationPanel 
+        {hasSalesSession && (isAdmin || isSalesAdmin) && <AdminNotificationPanel 
           userEmail={user?.email}
           queueUrl={createPageUrl('AdminActivityPage')}
         />}
-        {isSalesTeam && !isAdmin && <NotificationPanel 
+        {hasSalesSession && !isAdmin && !isSalesAdmin && <NotificationPanel 
           userEmail={user?.email} 
           isAdmin={false}
           queueUrl={createPageUrl('HubSpotActivityLog') + '?tab=queue'}

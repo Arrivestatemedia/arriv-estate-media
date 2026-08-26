@@ -8,7 +8,7 @@ export default function SupportBubble() {
 
   // Don't render on marketing/auth pages — adjust these routes for your app
   const path = window.location.pathname;
-  if (path === "/" || path === "/ClientSignup" || path === "/MediaPartnerSignup" || path === "/ContractorSignup") return null;
+  if (path === "/ClientSignup" || path === "/MediaPartnerSignup" || path === "/ContractorSignup") return null;
 
   if (open) return null; // panel shows instead
 
