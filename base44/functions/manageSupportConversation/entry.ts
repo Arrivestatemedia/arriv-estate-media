@@ -118,12 +118,10 @@ export default async function (req: Request): Promise<Response> {
           const validation = await validateAssistAgentId(secrets, assistConv.support_agent_id, assistAuth);
           if (validation.reason === "UNAVAILABLE") return unavailable("ASSIST_UNREACHABLE");
           if (!validation.valid) {
-            return Response.json({
-              status: "diagnostic",
-              reason: "UNKNOWN_AGENT",
-              agent_id: assistConv.support_agent_id,
-              message: "The assigned support agent could not be verified against Arriv Assist.",
-            }, { status: 409 });
+            // Agent no longer exists in Assist — delete the stale local conversation
+            // and show fresh intake. Return 200 so the SDK doesn't throw.
+            await base44.asServiceRole.entities.SupportConversation.delete(conv.id).catch(() => {});
+            return Response.json({ status: "ok", conversation: null, messages: [] });
           }
         }
 
