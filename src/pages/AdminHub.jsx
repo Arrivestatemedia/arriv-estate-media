@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BarChart3, LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import AdminDashboardGrid from "@/components/admin/AdminDashboardGrid";
@@ -13,9 +13,7 @@ import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 import CallStateBadge from "@/components/sales/CallStateBadge";
 import { useCallStatus } from "@/components/CallStatusContext";
 
-const AdminSalesSignup = lazy(() => import("./AdminSalesSignup"));
-const AdminSalesRepActivity = lazy(() => import("./AdminSalesRepActivity"));
-const AdminActivityPage = lazy(() => import("./AdminActivityPage"));
+const HubSpotActivityLog = lazy(() => import("./HubSpotActivityLog"));
 
 export default function AdminHub() {
   const { setCallStatus: setContextCallStatus } = useCallStatus();
@@ -109,7 +107,7 @@ export default function AdminHub() {
       const enrichedContact = { ...contact, firstName, lastName };
       
       localStorage.setItem('newContactData', JSON.stringify(enrichedContact));
-      setActiveTab('activity');
+      setActiveTab('my_dashboard');
       // Wait for tab switch, then fire event
       setTimeout(() => {
         window.dispatchEvent(new Event('contactCardReady'));
@@ -117,7 +115,7 @@ export default function AdminHub() {
     };
 
     const handleOpenDialer = (e) => {
-      setActiveTab('activity');
+      setActiveTab('my_dashboard');
       const { phone } = e.detail;
       setTimeout(() => {
         localStorage.setItem('dialerPhone', phone);
@@ -126,7 +124,7 @@ export default function AdminHub() {
     };
 
     const handleOpenEmailComposer = (e) => {
-      setActiveTab('activity');
+      setActiveTab('my_dashboard');
       const { email } = e.detail;
       setTimeout(() => {
         localStorage.setItem('emailTo', email);
@@ -135,7 +133,7 @@ export default function AdminHub() {
     };
 
     const handleOpenCallQueue = () => {
-      setActiveTab('activity');
+      setActiveTab('my_dashboard');
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('switchToQueueTab'));
       }, 100);
@@ -309,22 +307,14 @@ export default function AdminHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <LayoutDashboard className="w-4 h-4" />
-              Dashboard
+              Admin Dashboard
             </TabsTrigger>
-            <TabsTrigger value="team" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Sales Team
-            </TabsTrigger>
-            <TabsTrigger value="sales_activity" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Sales Activity
-            </TabsTrigger>
-            <TabsTrigger value="activity" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              My Activity
+            <TabsTrigger value="my_dashboard" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              My Dashboard
             </TabsTrigger>
           </TabsList>
 
@@ -332,39 +322,9 @@ export default function AdminHub() {
             <AdminDashboardGrid />
           </TabsContent>
 
-          <TabsContent value="team" className="mt-6">
+          <TabsContent value="my_dashboard" className="mt-6">
             <Suspense fallback={<div className="p-4">Loading...</div>}>
-              <AdminSalesSignup isAdmin={true} />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="sales_activity" className="mt-6">
-            <Suspense fallback={<div className="p-4">Loading...</div>}>
-              <AdminSalesRepActivity />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="activity" className="mt-6">
-            <Suspense fallback={<div className="p-4">Loading...</div>}>
-              <AdminActivityPage 
-                user={user}
-                initialSubTab={initialSubTab}
-                onVideoCallStateChange={setIsVideoCallActive}
-                onVideoCallStarted={(data) => {
-                  if (data && typeof data === 'object' && data.roomName) {
-                    setLastCallEvent('OUTBOUND_START');
-                    setCallStatus("calling");
-                    setActiveVideoCall({ callerName: data.recipientName || "Video Call", roomName: data.roomName, recipientToken: data.token });
-                    setIsVideoWindowOpen(true);
-                  } else {
-                    setLastCallEvent('OUTBOUND_START');
-                    setCallStatus(data || "dialing");
-                    setActiveVideoCall({ callerName: "Video Call" });
-                  }
-                }}
-                  onVideoCallEnded={endVideoCall}
-                  endVideoCall={endVideoCall}
-              />
+              <HubSpotActivityLog />
             </Suspense>
           </TabsContent>
         </Tabs>
@@ -445,7 +405,7 @@ export default function AdminHub() {
             base44.entities.SalesTeamMember.filter({ id: memberId }).then(members => {
               const ext = members?.[0]?.extension;
               if (ext) {
-                setActiveTab("activity");
+                setActiveTab("my_dashboard");
                 localStorage.setItem('dialerPhone', String(ext));
                 setTimeout(() => {
                   window.dispatchEvent(new Event('dialerCardReady'));
