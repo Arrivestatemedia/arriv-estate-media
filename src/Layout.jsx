@@ -118,7 +118,6 @@ function LayoutContent({ children, currentPageName }) {
       : (isAdmin || isSalesAdmin)
         ? [
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
-            { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "Job Board", page: "JobBoard", icon: Briefcase },
             { label: "Bookings", page: "AdminBookings", icon: Briefcase },
