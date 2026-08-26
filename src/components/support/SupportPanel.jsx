@@ -57,7 +57,7 @@ function TranscriptBlock({ transcriptUrl, transcriptStatus, transcriptRequested,
       <div className="space-y-3">
         <p className="text-sm text-slate-600 text-center">Your transcript is ready.</p>
         <a
-          href__={transcriptUrl}
+        href={transcriptUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 mx-auto max-w-[85%] px-4 py-2.5 rounded-xl bg-[#B8956A] text-white text-sm font-medium hover:bg-[#1D4ED8] transition-colors"
@@ -194,7 +194,7 @@ export default function SupportPanel() {
       )}
 
       {/* Body */}
-      <div ref__={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50">
         {/* Unavailable */}
         {!available && !loading && (
           <div className="text-center text-sm text-slate-500 py-8">
@@ -375,4 +375,3 @@ export default function SupportPanel() {
     </div>
   );
 }
-

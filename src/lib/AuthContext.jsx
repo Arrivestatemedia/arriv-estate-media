@@ -101,7 +101,12 @@ export const AuthProvider = ({ children }) => {
       // handle both missing AND stale values.
       if (currentUser && currentUser.email) {
         try {
-          const members = await base44.entities.SalesTeamMember.filter({ email: currentUser.email });
+          let members = await base44.entities.SalesTeamMember.filter({ email: currentUser.email });
+          if (!members || members.length === 0) {
+            // Case-insensitive fallback — SalesTeamMember emails may have different casing
+            const allMembers = await base44.entities.SalesTeamMember.list();
+            members = (allMembers || []).filter(m => m.email && m.email.toLowerCase() === currentUser.email.toLowerCase());
+          }
           if (members && members.length > 0) {
             const member = members[0];
             if (currentUser.data?.sales_member_id !== member.id) {

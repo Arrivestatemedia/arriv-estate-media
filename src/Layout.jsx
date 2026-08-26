@@ -54,30 +54,40 @@ function LayoutContent({ children, currentPageName }) {
         user_type: 'sales',
         role: salesMemberRole
       });
-      return;
+    } else {
+      const userEmail = getItem('user_email');
+      const userName = getItem('user_name');
+      const userType = getItem('user_type');
+      const userRole = getItem('user_role');
+      
+      if (userEmail && userName && userType) {
+        setUser({
+          email: userEmail,
+          full_name: userName,
+          user_type: userType,
+          role: userRole || 'user'
+        });
+      }
     }
 
-    const userEmail = getItem('user_email');
-    const userName = getItem('user_name');
-    const userType = getItem('user_type');
-    const userRole = getItem('user_role');
-    
-    if (userEmail && userName && userType) {
-      setUser({
-        email: userEmail,
-        full_name: userName,
-        user_type: userType,
-        role: userRole || 'user'
-      });
-    }
-
-    // Only try to get user if they're authenticated
+    // Always check Base44 auth — platform admin role takes precedence over
+    // sales session role so admins see the full admin nav even with a sales session.
     base44.auth.isAuthenticated().then(isAuth => {
       if (isAuth) {
         base44.auth.me().then((userData) => {
           if (userData) {
-            setUser(userData);
-            // Save the role to localStorage for future loads
+            if (salesMemberId && salesMemberName) {
+              // Merge: sales session for data access + platform role for admin nav
+              setUser({
+                id: salesMemberId,
+                email: userData.email || salesMemberEmail,
+                full_name: salesMemberName,
+                user_type: 'sales',
+                role: userData.role || salesMemberRole
+              });
+            } else {
+              setUser(userData);
+            }
             if (userData.role) {
               localStorage.setItem('user_role', userData.role);
             }
@@ -93,7 +103,7 @@ function LayoutContent({ children, currentPageName }) {
 
   const salesMemberRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
   const hasSalesSession = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
-  const isSalesTeam = hasSalesSession && salesMemberRole !== 'admin';
+  const isSalesTeam = hasSalesSession && salesMemberRole !== 'admin' && !isAdmin;
   const isSalesAdmin = hasSalesSession && salesMemberRole === 'admin';
 
   const navItems = isSalesTeam
@@ -144,8 +154,12 @@ function LayoutContent({ children, currentPageName }) {
         { label: "Sync Status", page: "AdminSyncStatus", icon: ShieldCheck },
         { label: "Manifest Convergence", page: "AdminManifestConvergence", icon: ShieldCheck },
         { label: "Authority Console", page: "EstateMediaAuthorityConsole", icon: Shield },
-          ]
-      : isClient
+        { label: "My Recordings", page: "Recordings", icon: Film },
+        { label: "My Profile", page: "EmployeeProfile", icon: Award },
+        { label: "Time Off", page: "TimeOff", icon: CalendarOff },
+        { label: "My Benefits", page: "Benefits", icon: Heart },
+        ]
+        : isClient
     ? [
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
         { label: "My Bookings", page: "ClientBookings", icon: Briefcase },

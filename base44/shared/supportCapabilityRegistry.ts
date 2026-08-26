@@ -134,18 +134,19 @@ export async function resolveSupportAuthority(
     } catch {}
   }
 
+  // Path C: Guest fallback — allow unauthenticated users (e.g. on the login page)
+  // to access a limited Arriv Assist flow. The Arriv Assist backend handles guest actors.
   return {
-    actor_user_id: "",
+    actor_user_id: `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
     actor_email: "",
-    actor_role: "",
-    actor_display_name: "",
+    actor_role: "guest",
+    actor_display_name: "Guest",
     user_type: "base44",
     tenant_id: "",
     is_platform_authority: false,
     view_as_tenant_id: null,
     mode: "TENANT",
-    ok: false,
-    error: "Not authenticated",
+    ok: true,
   };
 }
 
