@@ -23,7 +23,7 @@ import {
   type SupportAuthority,
 } from "../../shared/supportCapabilityRegistry.ts";
 import {
-  isAssistConfigured, fetchAssistHealth,
+  isAssistConfigured, getAssistEndpoint, fetchAssistHealth,
   listAssistAgents, validateAssistAgentId,
   startAssistConversation,
   sendAssistMessage, getAssistConversation,
@@ -777,7 +777,7 @@ export default async function (req: Request): Promise<Response> {
 
       // ==========================================================
       // diagnoseTransport — admin diagnostic (identity + reachability)
-      // ==========================================================
+      // ============================================================
       case "diagnoseTransport": {
         if (!auth.is_platform_authority) {
           return Response.json({ error: "Platform admin required" }, { status: 403 });
@@ -848,4 +848,3 @@ export default async function (req: Request): Promise<Response> {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
-
