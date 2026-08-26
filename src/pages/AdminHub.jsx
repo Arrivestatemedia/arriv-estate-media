@@ -324,7 +324,7 @@ export default function AdminHub() {
 
           <TabsContent value="my_dashboard" className="mt-6">
             <Suspense fallback={<div className="p-4">Loading...</div>}>
-              <HubSpotActivityLog />
+              <HubSpotActivityLog embedded={true} />
             </Suspense>
           </TabsContent>
         </Tabs>

@@ -33,7 +33,7 @@ import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 import CallStateBadge from "@/components/sales/CallStateBadge";
 import { useCallStatus } from "@/components/CallStatusContext";
 
-export default function HubSpotActivityLog() {
+export default function HubSpotActivityLog({ embedded = false }) {
   const { setCallStatus: setContextCallStatus } = useCallStatus();
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -629,7 +629,9 @@ export default function HubSpotActivityLog() {
           </div>
         )}
 
-        <div className="flex flex-wrap justify-between items-start gap-3 mb-8">
+        {(!embedded || activeTab === "activity") && (
+        <div className={`flex flex-wrap justify-end items-start gap-3 ${embedded ? 'mb-4' : 'mb-8'}`}>
+           {!embedded && (
            <div className="flex items-center gap-4">
              {user?.type === 'sales' && (
                <ProfilePictureUpload salesMemberId={user.id} currentUrl={profilePicUrl} onUploaded={(url) => setProfilePicUrl(url)} />
@@ -652,8 +654,9 @@ export default function HubSpotActivityLog() {
               )}
             </div>
           </div>
+          )}
           <div className="flex flex-wrap gap-2 items-center">
-            {user?.type === 'sales' && (
+            {!embedded && user?.type === 'sales' && (
               <>
                 <Button variant="outline" size="sm" onClick={() => setShowEditProfile(true)}>
                   Edit Profile
@@ -744,10 +747,11 @@ export default function HubSpotActivityLog() {
                 </DialogContent>
               </Dialog>
             )}
-          </div>
-        </div>
+            </div>
+            </div>
+            )}
 
-        <Dialog open={showPasswordModal} onOpenChange={(open) => { setShowPasswordModal(open); if (!open) setPasswordMsg(null); }}>
+            <Dialog open={showPasswordModal} onOpenChange={(open) => { setShowPasswordModal(open); if (!open) setPasswordMsg(null); }}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
               <DialogTitle>Change Password</DialogTitle>
