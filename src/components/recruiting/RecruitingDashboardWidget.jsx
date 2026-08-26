@@ -3,16 +3,13 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Briefcase, Users, Video, FileText, Sparkles, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { useTenantBrand } from "@/components/TenantThemeProvider";
 import { createPageUrl } from "@/utils";
 
 export default function RecruitingDashboardWidget() {
-  const { tenant } = useTenantBrand();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!tenant?.hireiq_enabled) { setLoading(false); return; }
     (async () => {
       try {
         const [jobs, candidates, interviews, offers] = await Promise.all([
@@ -35,9 +32,8 @@ export default function RecruitingDashboardWidget() {
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     })();
-  }, [tenant?.hireiq_enabled]);
+  }, []);
 
-  if (!tenant?.hireiq_enabled) return null;
   if (loading) return <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
   if (!stats) return null;
 
