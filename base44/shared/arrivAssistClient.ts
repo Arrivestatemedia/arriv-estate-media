@@ -280,29 +280,41 @@ async function postAssist<T>(
 export async function fetchAssistHealth(secrets: any): Promise<AssistIdentity> {
   const endpoint = getAssistEndpoint(secrets);
   if (!endpoint) return { available: false, reason: "NOT_CONFIGURED" };
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(`${endpoint}/api/functions/assistHealth`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-      signal: ctrl.signal,
-    });
-    clearTimeout(t);
-    const json = await res.json();
-    if (!res.ok || !json.success) return { available: false, reason: json.error_code || `HTTP_${res.status}` };
-    const d = json.data;
-    return {
-      available: true,
-      app_id: d.app_id,
-      product_key: d.product_key,
-      contract_version: d.contract_version,
-      backend_functions_live: d.backend_functions_live,
-    };
-  } catch (e: any) {
-    return { available: false, reason: e?.name === "AbortError" ? "TIMEOUT" : "UNREACHABLE" };
-  }
+
+  // Single attempt helper with extended timeout for cold starts
+  const attempt = async (): Promise<AssistIdentity> => {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 15000);
+      const res = await fetch(`${endpoint}/api/functions/assistHealth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+        signal: ctrl.signal,
+      });
+      clearTimeout(t);
+      const json = await res.json();
+      if (!res.ok || !json.success) return { available: false, reason: json.error_code || `HTTP_${res.status}` };
+      const d = json.data;
+      return {
+        available: true,
+        app_id: d.app_id,
+        product_key: d.product_key,
+        contract_version: d.contract_version,
+        backend_functions_live: d.backend_functions_live,
+      };
+    } catch (e: any) {
+      return { available: false, reason: e?.name === "AbortError" ? "TIMEOUT" : "UNREACHABLE" };
+    }
+  };
+
+  // First attempt
+  const first = await attempt();
+  if (first.available) return first;
+
+  // Retry once after a short delay (handles cold starts / transient network blips)
+  await new Promise((r) => setTimeout(r, 1200));
+  return attempt();
 }
 
 /**
@@ -817,4 +829,3 @@ export async function closeAssistConversation(
 }
 
 export const fetchAssistIdentity = fetchAssistHealth;
-
