@@ -902,7 +902,13 @@ export default function SupportProvider({ children }) {
         setAvailable(false);
         setConnecting(false);
         setAgentTyping(false);
-        setError(data?.reason || 'Assist unavailable');
+        const reason = data?.reason || '';
+        const friendly = reason === 'UNAUTHORIZED' || reason === 'INVALID_SIGNATURE'
+          ? 'Support session expired. Please try again.'
+          : reason === 'NOT_CONFIGURED'
+          ? 'Support is not configured. Please contact an administrator.'
+          : 'Support is temporarily unavailable. Please try again.';
+        setError(friendly);
         return;
       }
 
@@ -953,7 +959,7 @@ export default function SupportProvider({ children }) {
     } catch (e) {
       const msg = e?.message || String(e) || 'Unknown error';
       console.error('[Arriv Assist] submitIssue failed:', msg, e);
-      setError(`Send failed: ${msg}`);
+      setError('Connection failed. Please try again.');
       setConnecting(false);
       setAvailable(false);
       setAgentTyping(false);
