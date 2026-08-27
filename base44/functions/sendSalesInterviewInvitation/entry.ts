@@ -87,6 +87,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const applicationId = body?.applicationId;
+    const subjectOverride = body?.subjectOverride;
     if (!applicationId) return Response.json({ error: 'applicationId is required' }, { status: 400 });
 
     const app = await base44.asServiceRole.entities.JobApplication.get(applicationId);
@@ -96,9 +97,11 @@ Deno.serve(async (req) => {
     const portalUrl = buildPortalLink(app);
     const html = buildInterviewHtml(firstName, portalUrl);
 
+    const subject = subjectOverride || "Interview Invitation \u2013 Arriv Sales Growth Advisor";
+
     await sendBusinessEmailOrQueue(base44, {
       to: app.email,
-      subject: "Interview Invitation \u2013 Arriv Sales Growth Advisor",
+      subject,
       htmlContent: html,
     });
 
