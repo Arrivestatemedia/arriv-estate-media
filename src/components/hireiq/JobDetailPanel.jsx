@@ -63,7 +63,8 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
     try {
       const res = await base44.entities.HireCandidate.filter({ job_id: job.id }, "-created_date", 100);
       const list = res?.data ?? res;
-      setCandidates(Array.isArray(list) ? list : []);
+      // Hide archived (declined) candidates from all job views
+      setCandidates((Array.isArray(list) ? list : []).filter(c => !c.archived));
     } catch (_) { setCandidates([]); }
     setLoadingCandidates(false);
   };

@@ -129,6 +129,7 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
         decision: null,
         decision_notes: notes,
         status: "pending",
+        archived: false,
       });
       const updated = res?.data ?? res;
       onCandidateUpdated(updated);
@@ -148,11 +149,16 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
     const decision = pendingDecision;
     const statusMap = { advance: "advanced", hold: "hold", another_interview: "interviewing", offer: "offer", decline: "declined" };
     try {
-      const res = await base44.entities.HireCandidate.update(candidate.id, {
+      const updateData = {
         decision,
         decision_notes: notes,
         status: statusMap[decision] || candidate.status,
-      });
+      };
+      // Archive all Khetha IQ data for this candidate when declined
+      if (decision === "decline") {
+        updateData.archived = true;
+      }
+      const res = await base44.entities.HireCandidate.update(candidate.id, updateData);
       const updated = res?.data ?? res;
       onCandidateUpdated(updated);
     } catch (_) {}

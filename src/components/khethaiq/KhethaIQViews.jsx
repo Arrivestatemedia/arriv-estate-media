@@ -33,7 +33,7 @@ export function CandidatesView({ onSelectCandidate }) {
     })();
   }, []);
 
-  const filtered = candidates.filter(c => !search || (c.name || "").toLowerCase().includes(search.toLowerCase()));
+  const filtered = candidates.filter(c => !c.archived && (!search || (c.name || "").toLowerCase().includes(search.toLowerCase())));
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "rgba(184,149,106,0.4)" }} /></div>;
 
@@ -142,11 +142,15 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
 
   const loadInterviews = async () => {
     try {
-      const [ivRes, confRes] = await Promise.all([
+      const [ivRes, confRes, candRes] = await Promise.all([
         base44.entities.HireInterview.list("-interview_date", 200),
         base44.entities.Conference.list("-scheduled_date", 200),
+        base44.entities.HireCandidate.list("-created_date", 200),
       ]);
-      setInterviews(ivRes?.data ?? ivRes ?? []);
+      const allCandidates = candRes?.data ?? candRes ?? [];
+      const archivedIds = new Set(allCandidates.filter(c => c.archived).map(c => c.id));
+      // Hide interviews belonging to archived (declined) candidates
+      setInterviews((ivRes?.data ?? ivRes ?? []).filter(iv => !iv.candidate_id || !archivedIds.has(iv.candidate_id)));
       setConferences(confRes?.data ?? confRes ?? []);
     } catch { setInterviews([]); setConferences([]); }
   };

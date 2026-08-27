@@ -32,6 +32,17 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Conference.update(conferenceId, { status: "cancelled" });
     }
 
+    // Archive the linked HireCandidate in Khetha IQ so all their data is hidden
+    if (app.hire_candidate_id) {
+      try {
+        await base44.asServiceRole.entities.HireCandidate.update(app.hire_candidate_id, {
+          status: "declined",
+          decision: "decline",
+          archived: true,
+        });
+      } catch (_) {}
+    }
+
     // Queue the same "offer not extended" email for 9:00 AM ET, no sooner than 48 hours from now
     const { to, subject, htmlContent } = buildOfferNotExtendedEmail(app);
     const scheduledFor = nextEt9amAfter48hIso();

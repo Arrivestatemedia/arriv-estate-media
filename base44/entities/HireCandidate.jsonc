@@ -109,6 +109,11 @@
       ],
       "description": "Which Estate Media role this candidate is being recruited for"
     },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this candidate has been archived (declined). Archived candidates are hidden from all active Khetha IQ views but retained for audit."
+    },
     "shared_person_id": {
       "type": "string",
       "description": "Cross-system person identifier linking KhethaIQ candidate to Estate Media worker"
