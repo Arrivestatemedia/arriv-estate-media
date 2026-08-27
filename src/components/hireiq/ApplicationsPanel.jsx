@@ -56,52 +56,41 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
   };
 
   const updateApp = async (id, data) => {
+    const prev = applications.find((a) => a.id === id);
+    const prevStatus = prev?.status;
+
+    // Map each email-triggering status to its backend email function.
+    const emailTriggers = {
+      accepted: 'sendApplicationAcceptedEmail',
+      accepted_waitlist: 'sendApplicationWaitlistEmail',
+      denied: 'sendApplicationClosedEmail',
+      interview_invitation: 'sendSalesInterviewInvitation',
+      offer_extended: 'sendSalesOfferExtendedEmail',
+      offer_not_extended: 'sendSalesOfferNotExtendedEmail',
+    };
+    const emailFn = emailTriggers[data.status];
+    const shouldSendEmail = emailFn && (!prev || prevStatus !== data.status);
+
+    // Send the email BEFORE flipping the status, so a delivery failure doesn't
+    // leave a false status (e.g. "interview_invitation" with no email sent).
+    if (shouldSendEmail) {
+      try {
+        await base44.functions.invoke(emailFn, { applicationId: id });
+      } catch (err) {
+        toast.error(`Failed to send ${data.status.replace(/_/g, ' ')} email: ${err.message || 'email service error'}. Status was not updated — please retry.`);
+        return;
+      }
+    }
+
     await base44.entities.JobApplication.update(id, data);
     queryClient.invalidateQueries({ queryKey: ["job-applications"] });
 
-    if (data.status === 'accepted') {
-      const prev = applications.find((a) => a.id === id);
-      if (!prev || prev.status !== 'accepted') {
-        try { await base44.functions.invoke('sendApplicationAcceptedEmail', { applicationId: id }); } catch (err) { console.error('Acceptance email failed:', err); }
-      }
-    }
-    if (data.status === 'accepted_waitlist') {
-      const prev = applications.find((a) => a.id === id);
-      if (!prev || prev.status !== 'accepted_waitlist') {
-        try { await base44.functions.invoke('sendApplicationWaitlistEmail', { applicationId: id }); } catch (err) { console.error('Waitlist email failed:', err); }
-      }
-    }
-    if (data.status === 'denied') {
-      const prev = applications.find((a) => a.id === id);
-      if (!prev || prev.status !== 'denied') {
-        try {
-          await base44.functions.invoke('sendApplicationClosedEmail', { applicationId: id });
-          await base44.entities.JobApplication.update(id, { archived: true });
-          queryClient.invalidateQueries({ queryKey: ["job-applications"] });
-        } catch (err) { console.error('Closed email failed:', err); }
-      }
-    }
-    if (data.status === 'interview_invitation') {
-      const prev = applications.find((a) => a.id === id);
-      if (!prev || prev.status !== 'interview_invitation') {
-        try { await base44.functions.invoke('sendSalesInterviewInvitation', { applicationId: id }); } catch (err) { console.error('Sales interview invitation email failed:', err); }
-      }
-    }
-    if (data.status === 'offer_extended') {
-      const prev = applications.find((a) => a.id === id);
-      if (!prev || prev.status !== 'offer_extended') {
-        try { await base44.functions.invoke('sendSalesOfferExtendedEmail', { applicationId: id }); } catch (err) { console.error('Sales offer-extended email failed:', err); }
-      }
-    }
-    if (data.status === 'offer_not_extended') {
-      const prev = applications.find((a) => a.id === id);
-      if (!prev || prev.status !== 'offer_not_extended') {
-        try {
-          await base44.functions.invoke('sendSalesOfferNotExtendedEmail', { applicationId: id });
-          await base44.entities.JobApplication.update(id, { archived: true });
-          queryClient.invalidateQueries({ queryKey: ["job-applications"] });
-        } catch (err) { console.error('Sales offer-not-extended email failed:', err); }
-      }
+    // Archive closed/denied applications after a successful email + status update.
+    if (data.status === 'denied' || data.status === 'offer_not_extended') {
+      try {
+        await base44.entities.JobApplication.update(id, { archived: true });
+        queryClient.invalidateQueries({ queryKey: ["job-applications"] });
+      } catch (err) { console.error('Archive failed:', err); }
     }
   };
 
