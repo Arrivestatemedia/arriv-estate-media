@@ -71,21 +71,21 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
     const emailFn = emailTriggers[data.status];
     const shouldSendEmail = emailFn && (!prev || prevStatus !== data.status);
 
-    // Send the email BEFORE flipping the status, so a delivery failure doesn't
-    // leave a false status (e.g. "interview_invitation" with no email sent).
+    // Update the status immediately so the admin's selection always takes effect,
+    // then send the email best-effort. A delivery failure warns via toast but
+    // does not block the status change.
+    await base44.entities.JobApplication.update(id, data);
+    queryClient.invalidateQueries({ queryKey: ["job-applications"] });
+
     if (shouldSendEmail) {
       try {
         await base44.functions.invoke(emailFn, { applicationId: id });
       } catch (err) {
-        toast.error(`Failed to send ${data.status.replace(/_/g, ' ')} email: ${err.message || 'email service error'}. Status was not updated — please retry.`);
-        return;
+        toast.error(`Status updated, but the ${data.status.replace(/_/g, ' ')} email failed: ${err.message || 'email service error'}.`);
       }
     }
 
-    await base44.entities.JobApplication.update(id, data);
-    queryClient.invalidateQueries({ queryKey: ["job-applications"] });
-
-    // Archive closed/denied applications after a successful email + status update.
+    // Archive closed/denied applications after the status update.
     if (data.status === 'denied' || data.status === 'offer_not_extended') {
       try {
         await base44.entities.JobApplication.update(id, { archived: true });
