@@ -79,7 +79,8 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
 
     if (shouldSendEmail) {
       try {
-        await base44.functions.invoke(emailFn, { applicationId: id });
+        const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+        await base44.functions.invoke(emailFn, { applicationId: id, salesMemberId });
       } catch (err) {
         toast.error(`Status updated, but the ${data.status.replace(/_/g, ' ')} email failed: ${err.message || 'email service error'}.`);
       }

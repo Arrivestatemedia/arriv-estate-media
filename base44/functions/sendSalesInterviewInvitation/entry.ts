@@ -81,14 +81,18 @@ function buildInterviewHtml(firstName, portalUrl) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
-
     const body = await req.json();
     const applicationId = body?.applicationId;
     const subjectOverride = body?.subjectOverride;
+    const salesMemberId = body?.salesMemberId;
     if (!applicationId) return Response.json({ error: 'applicationId is required' }, { status: 400 });
+
+    // This app uses a custom sales login (localStorage session), not a Base44 auth
+    // token, so base44.auth.me() is unavailable here. Verify admin via the sales
+    // team member record passed from the admin UI.
+    if (!salesMemberId) return Response.json({ error: 'Admin access required' }, { status: 403 });
+    const member = await base44.asServiceRole.entities.SalesTeamMember.get(salesMemberId);
+    if (!member || member.role !== 'admin') return Response.json({ error: 'Admin access required' }, { status: 403 });
 
     const app = await base44.asServiceRole.entities.JobApplication.get(applicationId);
     if (!app) return Response.json({ error: 'Application not found' }, { status: 404 });
