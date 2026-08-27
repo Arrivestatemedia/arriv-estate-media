@@ -5,7 +5,7 @@ import {
   Briefcase, Plus, Loader2, Users, Brain, FileText, Search,
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, Award, HelpCircle, LayoutDashboard,
-  GitBranch, Video, Globe, SquareCheckBig,
+  GitBranch, Video, Globe, SquareCheckBig, ArrowLeft,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -77,6 +77,41 @@ export default function KhethaIQ() {
   const [preselectedCandidateId, setPreselectedCandidateId] = useState(null);
   const [pendingAppAction, setPendingAppAction] = useState(null);
 
+  // Navigation history stack — each entry is a snapshot of the view state.
+  // Push the current state before navigating to a new one so the back button
+  // restores exactly where the user was.
+  const [history, setHistory] = useState([]);
+
+  const snapshot = () => ({
+    activeView,
+    selectedJob,
+    selectedCandidate,
+    compareMode,
+    compareCandidates,
+    initialTab,
+    preselectedCandidateId,
+  });
+
+  const navigateTo = (updater) => {
+    setHistory(prev => [...prev, snapshot()]);
+    if (typeof updater === "function") updater();
+  };
+
+  const goBack = () => {
+    setHistory(prev => {
+      if (prev.length === 0) return prev;
+      const prev_state = prev[prev.length - 1];
+      setActiveView(prev_state.activeView);
+      setSelectedJob(prev_state.selectedJob);
+      setSelectedCandidate(prev_state.selectedCandidate);
+      setCompareMode(prev_state.compareMode);
+      setCompareCandidates(prev_state.compareCandidates);
+      setInitialTab(prev_state.initialTab);
+      setPreselectedCandidateId(prev_state.preselectedCandidateId);
+      return prev.slice(0, -1);
+    });
+  };
+
   const loadJobs = async () => {
     setSyncing(true);
     try {
@@ -126,14 +161,18 @@ export default function KhethaIQ() {
   };
 
   const handleSelectJob = (job) => {
-    setSelectedJob(job);
-    setSelectedCandidate(null);
-    setInitialTab(null);
-    setPreselectedCandidateId(null);
+    navigateTo(() => {
+      setSelectedJob(job);
+      setSelectedCandidate(null);
+      setInitialTab(null);
+      setPreselectedCandidateId(null);
+    });
   };
 
   const handleSelectCandidate = (candidate) => {
-    setSelectedCandidate(candidate);
+    navigateTo(() => {
+      setSelectedCandidate(candidate);
+    });
   };
 
   const handleJobUpdated = (updatedJob) => {
@@ -141,7 +180,7 @@ export default function KhethaIQ() {
     setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
   };
 
-  const goJobsHome = () => { setSelectedJob(null); setSelectedCandidate(null); setInitialTab(null); setPreselectedCandidateId(null); };
+  const goJobsHome = () => { goBack(); };
 
   const DECISION_TO_APP_ACTION = {
     advance: { type: "select_status", status: "interview_invitation" },
@@ -154,12 +193,14 @@ export default function KhethaIQ() {
   const handleDecisionConfirmed = (decision) => {
     const action = DECISION_TO_APP_ACTION[decision];
     if (!action) return;
-    setPendingAppAction({ email: selectedCandidate?.email, ...action });
-    setSelectedCandidate(null);
-    setSelectedJob(null);
-    setInitialTab(null);
-    setPreselectedCandidateId(null);
-    setActiveView("applications");
+    navigateTo(() => {
+      setPendingAppAction({ email: selectedCandidate?.email, ...action });
+      setSelectedCandidate(null);
+      setSelectedJob(null);
+      setInitialTab(null);
+      setPreselectedCandidateId(null);
+      setActiveView("applications");
+    });
   };
 
   const handleOpenQuestionnaire = async (conference) => {
@@ -184,22 +225,24 @@ export default function KhethaIQ() {
           job = res?.data ?? res;
         }
         if (job) {
-          // Find the HireCandidate matching this applicant
-          let candidateId = app?.hire_candidate_id || null;
-          if (!candidateId) {
-            try {
-              const candRes = await base44.entities.HireCandidate.filter({ job_id: jobId });
-              const cands = candRes?.data ?? candRes ?? [];
-              const match = cands.find(c =>
-                (c.email && app?.email && c.email.toLowerCase() === app.email.toLowerCase()) ||
-                (c.name && app?.full_name && c.name.toLowerCase() === app.full_name.toLowerCase())
-              );
-              if (match) candidateId = match.id;
-            } catch (_) {}
-          }
+        // Find the HireCandidate matching this applicant
+        let candidateId = app?.hire_candidate_id || null;
+        if (!candidateId) {
+          try {
+            const candRes = await base44.entities.HireCandidate.filter({ job_id: jobId });
+            const cands = candRes?.data ?? candRes ?? [];
+            const match = cands.find(c =>
+              (c.email && app?.email && c.email.toLowerCase() === app.email.toLowerCase()) ||
+              (c.name && app?.full_name && c.name.toLowerCase() === app.full_name.toLowerCase())
+            );
+            if (match) candidateId = match.id;
+          } catch (_) {}
+        }
+        navigateTo(() => {
           setSelectedJob(job);
           setInitialTab("questionnaire");
           setPreselectedCandidateId(candidateId);
+        });
         }
       }
     } catch (_) {}
@@ -258,9 +301,22 @@ export default function KhethaIQ() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* Top bar — GlobalSearch + Request New Hire, matching central app */}
+      {/* Top bar — Back button + GlobalSearch + Request New Hire */}
       <div className="flex items-center justify-between mb-4 gap-3">
-        <GlobalSearch />
+        <div className="flex items-center gap-3">
+          {history.length > 0 && (
+            <Button
+              onClick={goBack}
+              variant="outline"
+              className="gap-1.5 shrink-0"
+              style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          )}
+          <GlobalSearch />
+        </div>
         <Button
           onClick={() => setShowCreate(true)}
           className="gap-1.5"
@@ -290,7 +346,7 @@ export default function KhethaIQ() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => { setSelectedJob(null); setSelectedCandidate(null); setCompareMode(false); setInitialTab(null); setActiveView(item.view); }}
+                    onClick={() => { navigateTo(() => { setSelectedJob(null); setSelectedCandidate(null); setCompareMode(false); setInitialTab(null); setActiveView(item.view); }); }}
                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors"
                     style={{
                       backgroundColor: active ? GOLD : "transparent",
@@ -314,12 +370,12 @@ export default function KhethaIQ() {
             <CandidateDetailPanel
               candidate={selectedCandidate}
               job={selectedJob || jobs.find(j => j.id === selectedCandidate.job_id)}
-              onBack={() => { setSelectedCandidate(null); setInitialTab(null); setPreselectedCandidateId(null); }}
+              onBack={goBack}
               onCandidateUpdated={setSelectedCandidate}
               onDecisionConfirmed={handleDecisionConfirmed}
             />
           ) : compareMode && compareCandidates.length >= 2 ? (
-            <ComparePanel candidates={compareCandidates} jobs={jobs} onBack={() => setCompareMode(false)} />
+            <ComparePanel candidates={compareCandidates} jobs={jobs} onBack={goBack} />
           ) : selectedJob ? (
             <JobDetailPanel
               job={selectedJob}
