@@ -36,6 +36,11 @@ export default function Conference() {
         const conf = Array.isArray(confs) ? confs[0] : null;
         if (conf?.interview_mode === "ai") {
           setInterviewMode("ai");
+        } else {
+          // Human interview — ensure the Twilio room is created with server-side
+          // recording enabled BEFORE anyone joins (backup recording, parallel to
+          // Tavus auto_start_recording for AI interviews)
+          base44.functions.invoke("ensureTwilioRecordingRoom", { roomName: room }).catch(() => {});
         }
       })
       .catch(() => {});

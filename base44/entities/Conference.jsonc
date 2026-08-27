@@ -155,7 +155,19 @@
     },
     "tavus_recording_storage_uri": {
       "type": "string",
-      "description": "Tavus server-side recording storage URI (from recording_ready webhook, backup recording)"
+      "description": "Tavus server-side recording storage URI (from recording_ready webhook, backup recording for AI interviews)"
+    },
+    "twilio_room_sid": {
+      "type": "string",
+      "description": "Twilio Video room SID (set when the room is created with server-side recording enabled for human interviews)"
+    },
+    "twilio_composition_sid": {
+      "type": "string",
+      "description": "Twilio Composition SID (set when the composition is created after the room ends)"
+    },
+    "twilio_composition_url": {
+      "type": "string",
+      "description": "Twilio Composition media download URL (set when the composition is ready, backup recording for human interviews)"
     }
   },
   "required": [
