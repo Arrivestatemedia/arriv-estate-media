@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, FileText, Mic, Sparkles, CheckCircle2, Clock, AlertCircle, TrendingUp } from "lucide-react";
+import { Loader2, FileText, Mic, Sparkles, CheckCircle2, Clock, AlertCircle, TrendingUp, Download } from "lucide-react";
 import EvaluationDisplay from "@/components/hireiq/EvaluationDisplay";
 import ScorecardEditor from "@/components/hireiq/ScorecardEditor";
 import OcrScorecardUpload from "@/components/hireiq/OcrScorecardUpload";
@@ -37,6 +37,17 @@ const card = {
 };
 
 const innerBg = "#2A2A2A";
+
+function calculateAge(dob) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
 
 export default function CandidateDetailPanel({ candidate, job, onBack, onCandidateUpdated, onDecisionConfirmed }) {
   const [interviews, setInterviews] = useState([]);
@@ -166,12 +177,22 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
           <div>
             <h1 className="text-2xl font-bold" style={{ ...SERIF, color: CREAM }}>{candidate?.name}</h1>
             <p className="text-sm mt-0.5" style={{ color: MUTED_LIGHT }}>{candidate?.email} {candidate?.phone && `· ${candidate.phone}`}</p>
-            <span className="inline-block text-xs px-2 py-0.5 rounded mt-2" style={{ backgroundColor: "#2A2A2A", color: CREAM }}>{candidate?.status}</span>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="inline-block text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "#2A2A2A", color: CREAM }}>{candidate?.status}</span>
+              {calculateAge(candidate?.dob) != null && (
+                <span className="inline-block text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>Age {calculateAge(candidate.dob)}</span>
+              )}
+            </div>
           </div>
           {candidate?.resume_url && (
-            <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><FileText className="w-4 h-4 mr-2" /> View Resume</Button>
-            </a>
+            <div className="flex gap-2">
+              <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><FileText className="w-4 h-4 mr-2" /> View Resume</Button>
+              </a>
+              <a href={candidate.resume_url} download>
+                <Button variant="outline" style={{ backgroundColor: "transparent", color: CREAM, border: "1px solid rgba(184,149,106,0.2)" }}><Download className="w-4 h-4 mr-2" /> Download</Button>
+              </a>
+            </div>
           )}
         </div>
       </div>

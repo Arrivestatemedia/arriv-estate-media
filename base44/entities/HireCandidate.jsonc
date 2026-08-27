@@ -15,6 +15,11 @@
     "phone": {
       "type": "string"
     },
+    "dob": {
+      "type": "string",
+      "format": "date",
+      "description": "Candidate date of birth (synced from JobApplication for age display)"
+    },
     "source": {
       "type": "string",
       "enum": [

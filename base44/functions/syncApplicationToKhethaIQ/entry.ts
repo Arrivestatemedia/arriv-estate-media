@@ -57,6 +57,13 @@ export default async function(req) {
             shared_person_id: sharedPersonId,
           }).catch(() => {});
         }
+        // Backfill dob/resume_url for candidates created before these fields were synced
+        const updates = {};
+        if (!localCandidate.dob && application.dob) updates.dob = application.dob;
+        if (!localCandidate.resume_url && application.portfolio_link) updates.resume_url = application.portfolio_link;
+        if (Object.keys(updates).length > 0) {
+          await base44.asServiceRole.entities.HireCandidate.update(localCandidate.id, updates).catch(() => {});
+        }
       }
     } catch (_) {}
 
@@ -67,7 +74,9 @@ export default async function(req) {
           name: application.full_name || "",
           email,
           phone: application.phone || "",
+          dob: application.dob || null,
           target_role: application.position || "media_specialist",
+          resume_url: application.portfolio_link || "",
           shared_person_id: sharedPersonId,
           resume_text: [
             `Name: ${application.full_name || "N/A"}`,

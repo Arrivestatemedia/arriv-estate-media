@@ -2,9 +2,17 @@ import { sendBusinessEmailOrQueue } from "./businessEmailQueue.ts";
 import { deriveFirstName } from "./brevoWelcomeEmail.ts";
 
 export function formatInterviewWhen(scheduledDate: string, scheduledTime: string): string {
-  const dt = new Date(`${scheduledDate}T${scheduledTime}:00`);
+  // scheduledDate and scheduledTime are already in Eastern Time (the admin UI
+  // collects them as ET). Construct the Date using the LOCAL constructor so the
+  // wall-clock values are preserved as-is, and format WITHOUT a timeZone option
+  // so the formatter doesn't shift them. (The previous implementation used an
+  // ISO string `new Date("YYYY-MM-DDTHH:mm:ss")` which Deno treats as UTC, then
+  // formatted with timeZone "America/New_York", converting UTC→ET and shifting
+  // the displayed time — and sometimes the date — to the wrong day.)
+  const [year, month, day] = scheduledDate.split("-").map(Number);
+  const [hour, minute] = scheduledTime.split(":").map(Number);
+  const dt = new Date(year, month - 1, day, hour, minute);
   const dateStr = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
     weekday: "long",
     month: "long",
     day: "numeric",
