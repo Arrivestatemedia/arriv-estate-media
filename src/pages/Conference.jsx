@@ -29,31 +29,29 @@ export default function Conference() {
     console.log('Setting room name to:', room);
     setRoomName(room);
 
-    // Check if this conference is configured for AI interview mode
+    // Step 1: Check interview mode + ensure Twilio recording room BEFORE anyone joins
     base44.entities.Conference.filter({ room_name: room }, "-created_date", 1)
-      .then(res => {
+      .then(async res => {
         const confs = res?.data ?? res ?? [];
         const conf = Array.isArray(confs) ? confs[0] : null;
         if (conf?.interview_mode === "ai") {
           setInterviewMode("ai");
         } else {
-          // Human interview — ensure the Twilio room is created with server-side
-          // recording enabled BEFORE anyone joins (backup recording, parallel to
-          // Tavus auto_start_recording for AI interviews)
-          base44.functions.invoke("ensureTwilioRecordingRoom", { roomName: room }).catch(() => {});
+          // Human interview — create the Twilio room with server-side recording
+          // BEFORE the video panel connects, so recording is on from the start.
+          // This must complete before autoStart is set, otherwise the participant
+          // might connect to an implicitly-created room (no recording).
+          try {
+            await base44.functions.invoke("ensureTwilioRecordingRoom", { roomName: room });
+          } catch (_) {}
         }
       })
-      .catch(() => {});
-
-    // Try to get current user info
-    base44.auth.isAuthenticated()
+      .catch(() => {})
+      // Step 2: Check auth (only after recording room is ready)
+      .then(() => base44.auth.isAuthenticated())
       .then(isAuth => {
         console.log('User authenticated:', isAuth);
-        if (isAuth) {
-          return base44.auth.me();
-        } else {
-          return null;
-        }
+        return isAuth ? base44.auth.me() : null;
       })
       .then(userData => {
         console.log('User data:', userData);
@@ -65,11 +63,6 @@ export default function Conference() {
         setAutoStart(true);
       })
       .catch(() => {
-        setUser({ full_name: 'Guest' });
-        setAutoStart(true);
-      })
-      .catch((err) => {
-        console.error('Auth check error:', err);
         setUser({ full_name: 'Guest' });
         setAutoStart(true);
       })

@@ -30,18 +30,26 @@ Deno.serve(async (req) => {
       recording_duration_seconds: durationSeconds || null,
     });
 
-    // 2. Create a VideoRecording record (same entity used by human interviews)
+    // 2. Create a VideoRecording record (only if one doesn't already exist for this URL)
     const participant = conference.participants?.[0];
     try {
-      await base44.asServiceRole.entities.VideoRecording.create({
-        file_url: recordingUrl,
-        duration_seconds: durationSeconds || 0,
-        file_size: fileSize || 0,
-        recorded_by_id: conference.organizer_id || null,
-        recorded_by_name: conference.organizer_name || "AI Interviewer",
-        participant_name: participant?.name || conference.title || "",
-        room_name: roomName,
-      });
+      const existingRecs = await base44.asServiceRole.entities.VideoRecording.filter(
+        { file_url: recordingUrl },
+        "-created_date",
+        1
+      );
+      const recs = existingRecs?.data ?? existingRecs ?? [];
+      if (!Array.isArray(recs) || recs.length === 0) {
+        await base44.asServiceRole.entities.VideoRecording.create({
+          file_url: recordingUrl,
+          duration_seconds: durationSeconds || 0,
+          file_size: fileSize || 0,
+          recorded_by_id: conference.organizer_id || null,
+          recorded_by_name: conference.organizer_name || "AI Interviewer",
+          participant_name: participant?.name || conference.title || "",
+          room_name: roomName,
+        });
+      }
     } catch (e) {
       console.warn("Failed to create VideoRecording:", e.message);
     }

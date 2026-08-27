@@ -11,11 +11,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: "roomName is required" }, { status: 400 });
     }
 
-    // Try to create the room with recording enabled.
-    // If it already exists (someone already joined), Twilio returns 20404 — that's OK,
-    // the room may already have recording if it was pre-created.
+    console.log('ensureTwilioRecordingRoom: creating room', roomName);
+
     try {
       const room = await createRecordingRoom(roomName);
+      console.log('Twilio recording room created:', room.sid, room.uniqueName);
 
       // Save room SID to conference if one exists
       try {
@@ -30,14 +30,30 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.Conference.update(conference.id, {
             twilio_room_sid: room.sid,
           });
+          console.log('Saved twilio_room_sid to conference', conference.id);
         }
-      } catch (_) {}
+      } catch (dbErr) {
+        console.warn('Failed to save twilio_room_sid to conference:', dbErr.message);
+      }
 
       return Response.json({ status: "success", roomSid: room.sid, created: true });
     } catch (createError) {
-      // Room already exists — not an error, just means it was already created
-      console.log("Room already exists or creation failed:", createError.message);
-      return Response.json({ status: "success", created: false, message: "Room already exists" });
+      const errCode = createError.code || createError.status || '';
+      console.error('Twilio room creation error:', {
+        code: errCode,
+        message: createError.message,
+        roomName,
+      });
+
+      // Error 20404 = room already exists — that's OK, it may already have recording
+      if (errCode === 20404 || /already exists/i.test(createError.message)) {
+        return Response.json({ status: "success", created: false, message: "Room already exists" });
+      }
+
+      // Any other error — log it but don't block the call
+      // The call will still work, just without Twilio server-side backup recording
+      console.warn('Twilio recording room creation failed (non-blocking):', createError.message);
+      return Response.json({ status: "success", created: false, message: createError.message, warning: true });
     }
   } catch (error) {
     console.error("ensureTwilioRecordingRoom error:", error.message);
