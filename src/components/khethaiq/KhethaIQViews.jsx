@@ -33,7 +33,7 @@ export function CandidatesView({ onSelectCandidate }) {
     })();
   }, []);
 
-  const filtered = candidates.filter(c => !c.archived && (!search || (c.name || "").toLowerCase().includes(search.toLowerCase())));
+  const filtered = candidates.filter(c => !c.archived && c.status !== "declined" && (!search || (c.name || "").toLowerCase().includes(search.toLowerCase())));
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "rgba(184,149,106,0.4)" }} /></div>;
 
@@ -148,7 +148,7 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
         base44.entities.HireCandidate.list("-created_date", 200),
       ]);
       const allCandidates = candRes?.data ?? candRes ?? [];
-      const archivedIds = new Set(allCandidates.filter(c => c.archived).map(c => c.id));
+      const archivedIds = new Set(allCandidates.filter(c => c.archived || c.status === "declined").map(c => c.id));
       // Hide interviews belonging to archived (declined) candidates
       setInterviews((ivRes?.data ?? ivRes ?? []).filter(iv => !iv.candidate_id || !archivedIds.has(iv.candidate_id)));
       setConferences(confRes?.data ?? confRes ?? []);
