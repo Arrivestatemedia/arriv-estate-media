@@ -90,12 +90,15 @@ export default function KhethaIQ() {
     compareCandidates,
     initialTab,
     preselectedCandidateId,
+    scrollY: window.scrollY,
   });
 
   const navigateTo = (updater) => {
     setHistory(prev => [...prev, snapshot()]);
     if (typeof updater === "function") updater();
   };
+
+  const [pendingScrollY, setPendingScrollY] = useState(null);
 
   const goBack = () => {
     setHistory(prev => {
@@ -108,9 +111,23 @@ export default function KhethaIQ() {
       setCompareCandidates(prev_state.compareCandidates);
       setInitialTab(prev_state.initialTab);
       setPreselectedCandidateId(prev_state.preselectedCandidateId);
+      setPendingScrollY(prev_state.scrollY ?? 0);
       return prev.slice(0, -1);
     });
   };
+
+  // Restore scroll position after navigating back (waits one frame for DOM)
+  useEffect(() => {
+    if (pendingScrollY != null) {
+      const y = pendingScrollY;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo(0, y);
+          setPendingScrollY(null);
+        });
+      });
+    }
+  }, [pendingScrollY]);
 
   const loadJobs = async () => {
     setSyncing(true);
@@ -366,7 +383,26 @@ export default function KhethaIQ() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {selectedCandidate ? (
+          {/* Job detail — kept mounted (hidden via CSS) so the active tab,
+              scroll position, and loaded candidates survive navigating to a
+              candidate profile and back. */}
+          {selectedJob && (
+            <div style={{ display: selectedCandidate || (compareMode && compareCandidates.length >= 2) ? "none" : "block" }}>
+              <JobDetailPanel
+                job={selectedJob}
+                onBack={goJobsHome}
+                onSelectCandidate={handleSelectCandidate}
+                onCompare={() => navigateTo(() => setCompareMode(true))}
+                onJobUpdated={handleJobUpdated}
+                onDelete={handleDeleteJob}
+                initialTab={initialTab}
+                preselectedCandidateId={preselectedCandidateId}
+              />
+            </div>
+          )}
+
+          {/* Candidate detail — rendered on top of the hidden job panel */}
+          {selectedCandidate && (
             <CandidateDetailPanel
               candidate={selectedCandidate}
               job={selectedJob || jobs.find(j => j.id === selectedCandidate.job_id)}
@@ -374,48 +410,45 @@ export default function KhethaIQ() {
               onCandidateUpdated={setSelectedCandidate}
               onDecisionConfirmed={handleDecisionConfirmed}
             />
-          ) : compareMode && compareCandidates.length >= 2 ? (
+          )}
+
+          {/* Compare mode */}
+          {compareMode && compareCandidates.length >= 2 && (
             <ComparePanel candidates={compareCandidates} jobs={jobs} onBack={goBack} />
-          ) : selectedJob ? (
-            <JobDetailPanel
-              job={selectedJob}
-              onBack={goJobsHome}
-              onSelectCandidate={handleSelectCandidate}
-              onCompare={() => setCompareMode(true)}
-              onJobUpdated={handleJobUpdated}
-              onDelete={handleDeleteJob}
-              initialTab={initialTab}
-              preselectedCandidateId={preselectedCandidateId}
-            />
-          ) : activeView === "dashboard" ? (
-            <RecruitingAssistantHome onStartSearch={() => setActiveView("search")} />
-          ) : activeView === "ask" ? (
-            <AskKhethaChat />
-          ) : activeView === "search" ? (
-            <RecruitingChat onReviewProspects={() => setActiveView("candidates")} />
-          ) : activeView === "pools" ? (
-            <TalentPipelinesView />
-          ) : activeView === "pipeline" ? (
-            <PipelineMapView />
-          ) : activeView === "tasks" ? (
-            <RecruitingTasksView />
-          ) : activeView === "candidates" ? (
-            <CandidatesView onSelectCandidate={handleSelectCandidate} />
-          ) : activeView === "interviews" ? (
-            <InterviewsView onSelectCandidate={handleSelectCandidate} onOpenQuestionnaire={handleOpenQuestionnaire} />
-          ) : activeView === "offers" ? (
-            <OffersView onSelectCandidate={handleSelectCandidate} />
-          ) : activeView === "applications" ? (
-            <ApplicationsPanel pendingAction={pendingAppAction} onPendingActionConsumed={() => setPendingAppAction(null)} />
-          ) : activeView === "portal" ? (
-            <div className="max-w-2xl mx-auto">
-              <ApplicantPortalPanel />
-            </div>
-          ) : activeView === "analytics" ? (
-            <AnalyticsPanel />
-          ) : activeView === "learning" ? (
-            <LearningPanel />
-          ) : activeView === "jobs" ? (
+          )}
+
+          {/* Sidebar views — only when no detail panel is active */}
+          {!selectedJob && !selectedCandidate && !compareMode && (
+            <>
+              {activeView === "dashboard" ? (
+                <RecruitingAssistantHome onStartSearch={() => navigateTo(() => setActiveView("search"))} />
+              ) : activeView === "ask" ? (
+                <AskKhethaChat />
+              ) : activeView === "search" ? (
+                <RecruitingChat onReviewProspects={() => navigateTo(() => setActiveView("candidates"))} />
+              ) : activeView === "pools" ? (
+                <TalentPipelinesView />
+              ) : activeView === "pipeline" ? (
+                <PipelineMapView />
+              ) : activeView === "tasks" ? (
+                <RecruitingTasksView />
+              ) : activeView === "candidates" ? (
+                <CandidatesView onSelectCandidate={handleSelectCandidate} />
+              ) : activeView === "interviews" ? (
+                <InterviewsView onSelectCandidate={handleSelectCandidate} onOpenQuestionnaire={handleOpenQuestionnaire} />
+              ) : activeView === "offers" ? (
+                <OffersView onSelectCandidate={handleSelectCandidate} />
+              ) : activeView === "applications" ? (
+                <ApplicationsPanel pendingAction={pendingAppAction} onPendingActionConsumed={() => setPendingAppAction(null)} />
+              ) : activeView === "portal" ? (
+                <div className="max-w-2xl mx-auto">
+                  <ApplicantPortalPanel />
+                </div>
+              ) : activeView === "analytics" ? (
+                <AnalyticsPanel />
+              ) : activeView === "learning" ? (
+                <LearningPanel />
+              ) : activeView === "jobs" ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -474,6 +507,8 @@ export default function KhethaIQ() {
               )}
             </div>
           ) : null}
+            </>
+          )}
         </div>
       </div>
 
