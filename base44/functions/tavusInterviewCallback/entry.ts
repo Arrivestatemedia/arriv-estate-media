@@ -46,6 +46,25 @@ Deno.serve(async (req) => {
       return Response.json({ status: "success", action: "ended" });
     }
 
+    if (eventType === "application.recording_ready") {
+      // Tavus server-side recording is ready — save storage metadata as backup
+      const props = body.properties || {};
+      const storageUri = props.storage_uri || (props.bucket_name && props.s3_key ? `s3://${props.bucket_name}/${props.s3_key}` : null);
+      try {
+        await base44.asServiceRole.entities.Conference.update(conference.id, {
+          tavus_recording_storage_uri: storageUri || null,
+        });
+      } catch (e) {
+        console.warn("Failed to save Tavus recording storage URI:", e.message);
+      }
+      return Response.json({ status: "success", action: "recording_ready", storage_uri: storageUri });
+    }
+
+    if (eventType === "application.recording_copy_failed") {
+      console.warn("Tavus recording copy failed:", body.properties?.error_message);
+      return Response.json({ status: "success", action: "recording_copy_failed" });
+    }
+
     if (eventType === "application.transcription_ready" || eventType === "application.transcription") {
       // Extract transcript from the payload
       const transcript = body.transcript || body.properties?.transcript || body.data?.transcript || [];

@@ -133,6 +133,29 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the parsed Tavus transcript has been saved as a Round 1 scorecard"
+    },
+    "recording_url": {
+      "type": "string",
+      "description": "URL of the uploaded interview recording (local MediaRecorder upload to our storage)"
+    },
+    "recording_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "recording",
+        "ready",
+        "failed"
+      ],
+      "default": "none",
+      "description": "Status of the local interview recording"
+    },
+    "recording_duration_seconds": {
+      "type": "integer",
+      "description": "Duration of the interview recording in seconds"
+    },
+    "tavus_recording_storage_uri": {
+      "type": "string",
+      "description": "Tavus server-side recording storage URI (from recording_ready webhook, backup recording)"
     }
   },
   "required": [

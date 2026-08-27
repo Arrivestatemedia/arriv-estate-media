@@ -36,6 +36,9 @@ export async function createTavusConversation(opts: {
     callback_url: getCallbackUrl(),
     require_auth: opts.requireAuth !== false,
     max_participants: opts.maxParticipants || 2,
+    properties: {
+      auto_start_recording: true,
+    },
   };
   const res = await fetch(`${TAVUS_API_BASE}/conversations`, {
     method: "POST",

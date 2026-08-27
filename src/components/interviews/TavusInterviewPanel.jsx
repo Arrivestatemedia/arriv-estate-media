@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Phone } from "lucide-react";
+import { X, Phone, Video, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import DailyIframe from "@daily-co/daily-js";
 import VideoControls from "@/components/sales/VideoControls";
@@ -9,8 +9,12 @@ import VideoControls from "@/components/sales/VideoControls";
  * TavusInterviewPanel — renders the Tavus AI interview inside a shell that
  * visually replicates VideoCallPanelV2 exactly. Uses the Daily JS SDK to
  * join the Tavus conversation and render participant streams within our own
- * UI (no Tavus iframe/branding). The candidate perceives the same Arriv
- * Estate Media video calling experience.
+ * UI (no Tavus iframe/branding).
+ *
+ * Recording: starts automatically when the AI participant joins. The combined
+ * stream (remote video + mixed audio) is captured via MediaRecorder, uploaded
+ * to our storage, and saved to the Conference + HireCandidate profile.
+ * A visible red recording indicator is shown at all times during the call.
  */
 export default function TavusInterviewPanel({
   roomName,
@@ -23,6 +27,14 @@ export default function TavusInterviewPanel({
   const localStreamRef = useRef(null);
   const callRef = useRef(null);
 
+  // Recording refs
+  const mediaRecorderRef = useRef(null);
+  const recordingChunksRef = useRef([]);
+  const recordingStartTimeRef = useRef(0);
+  const audioContextRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+  const recordingStartedRef = useRef(false);
+
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [callState, setCallState] = useState("idle");
@@ -30,6 +42,12 @@ export default function TavusInterviewPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordingNoticeDismissed, setRecordingNoticeDismissed] = useState(false);
+  const [uploadingRecording, setUploadingRecording] = useState(false);
 
   // ─── Camera init (same as VideoCallPanelV2) ──────────────────────────────
   useEffect(() => {
@@ -59,7 +77,100 @@ export default function TavusInterviewPanel({
     };
   }, []);
 
-  // ─── Render remote participant video ─────────────────────────────────────
+  // ─── Start recording (auto, when remote video arrives) ────────────────────
+  const startRecording = useCallback((remoteVideoTrack, remoteAudioTrack) => {
+    const tracks = [];
+    if (remoteVideoTrack) tracks.push(remoteVideoTrack);
+
+    // Mix remote + local audio
+    const audioTracks = [];
+    if (remoteAudioTrack) audioTracks.push(remoteAudioTrack);
+    const localAudio = localStreamRef.current?.getAudioTracks()[0];
+    if (localAudio) audioTracks.push(localAudio);
+
+    if (audioTracks.length > 0) {
+      try {
+        const ctx = new AudioContext();
+        audioContextRef.current = ctx;
+        const destination = ctx.createMediaStreamDestination();
+        for (const t of audioTracks) {
+          try { ctx.createMediaStreamSource(new MediaStream([t])).connect(destination); } catch (_) {}
+        }
+        const mixed = destination.stream.getAudioTracks()[0];
+        if (mixed) tracks.push(mixed);
+      } catch (_) {}
+    }
+
+    if (tracks.length === 0) { console.warn("No media tracks to record"); return; }
+
+    const stream = new MediaStream(tracks);
+    let mimeType = "video/webm;codecs=vp8,opus";
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
+    const recorder = new MediaRecorder(stream, { mimeType });
+    recordingChunksRef.current = [];
+
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) recordingChunksRef.current.push(e.data); };
+    recorder.onstop = async () => {
+      const blob = new Blob(recordingChunksRef.current, { type: "video/webm" });
+      const secs = Math.round((Date.now() - recordingStartTimeRef.current) / 1000);
+      if (audioContextRef.current) { try { audioContextRef.current.close(); } catch (_) {} audioContextRef.current = null; }
+      mediaRecorderRef.current = null;
+      recordingChunksRef.current = [];
+      setIsRecording(false);
+      if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+      setRecordingTime(0);
+
+      if (blob.size === 0) { console.warn("Recording was empty"); return; }
+
+      // Upload recording to our storage
+      setUploadingRecording(true);
+      try {
+        const MAX_CLOUD_SIZE = 50 * 1024 * 1024;
+        if (blob.size > MAX_CLOUD_SIZE) {
+          console.warn("Recording too large for cloud upload, skipping");
+          return;
+        }
+        const file = new File([blob], `ai-interview-${roomName}-${Date.now()}.webm`, { type: "video/webm" });
+        const uploadWithTimeout = (f) => new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error("Upload timed out")), 60000);
+          base44.integrations.Core.UploadFile({ file: f })
+            .then(res => { clearTimeout(timer); resolve(res); })
+            .catch(err => { clearTimeout(timer); reject(err); });
+        });
+        const { file_url } = await uploadWithTimeout(file);
+        // Save to Conference + HireCandidate via backend
+        await base44.functions.invoke("saveInterviewRecording", {
+          roomName,
+          recordingUrl: file_url,
+          durationSeconds: secs,
+          fileSize: blob.size,
+        });
+      } catch (err) {
+        console.error("Recording upload failed:", err);
+      } finally {
+        setUploadingRecording(false);
+      }
+    };
+
+    recorder.start(1000);
+    mediaRecorderRef.current = recorder;
+    recordingStartTimeRef.current = Date.now();
+    setIsRecording(true);
+    setRecordingTime(0);
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingTime(Math.floor((Date.now() - recordingStartTimeRef.current) / 1000));
+    }, 1000);
+  }, [roomName]);
+
+  // ─── Stop recording ──────────────────────────────────────────────────────
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try { mediaRecorderRef.current.stop(); } catch (_) {}
+    }
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+  }, []);
+
+  // ─── Render remote participant video + start recording ───────────────────
   const renderRemoteVideo = useCallback(() => {
     const call = callRef.current;
     if (!call || !remoteVideoRef.current) return;
@@ -69,28 +180,31 @@ export default function TavusInterviewPanel({
       const stream = new MediaStream([remote.videoTrack]);
       remoteVideoRef.current.srcObject = stream;
       setHasRemoteVideo(true);
+      // Auto-start recording when remote video first arrives
+      if (!recordingStartedRef.current && callState === "connected") {
+        recordingStartedRef.current = true;
+        startRecording(remote.videoTrack, remote.audioTrack);
+      }
     } else {
       if (remoteVideoRef.current.srcObject) {
         remoteVideoRef.current.srcObject = null;
       }
       setHasRemoteVideo(false);
     }
-  }, []);
+  }, [callState, startRecording]);
 
-  // ─── Start call (same flow as VideoCallPanelV2 handleStartCall) ────────────
+  // ─── Start call ──────────────────────────────────────────────────────────
   const handleStartCall = useCallback(async () => {
     setCallState("calling");
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Create/reuse the Tavus conversation via backend
       const res = await base44.functions.invoke("createTavusInterviewConversation", { roomName });
       const data = res?.data || res;
       if (data?.status !== "success" || !data.conversationUrl) {
         throw new Error(data?.error || "Failed to create AI interview conversation");
       }
 
-      // 2. Join the Daily room (Tavus CVI runs on Daily)
       const call = DailyIframe.createCallObject();
       callRef.current = call;
 
@@ -117,8 +231,6 @@ export default function TavusInterviewPanel({
       });
 
       setCallState("connected");
-
-      // Render any already-present remote participant
       setTimeout(renderRemoteVideo, 500);
     } catch (err) {
       console.error("Call start error:", err);
@@ -129,7 +241,7 @@ export default function TavusInterviewPanel({
     }
   }, [roomName, currentUserName, renderRemoteVideo]);
 
-  // ─── Mic / Video toggles (same pattern as VideoCallPanelV2) ───────────────
+  // ─── Mic / Video toggles ──────────────────────────────────────────────────
   const toggleMic = useCallback(() => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
@@ -144,37 +256,43 @@ export default function TavusInterviewPanel({
     callRef.current?.setLocalVideo(newOn);
   }, [isVideoOn]);
 
-  // ─── End call (same flow as VideoCallPanelV2 handleEndCall) ───────────────
+  // ─── End call ────────────────────────────────────────────────────────────
   const handleEndCall = useCallback(() => {
-    // End the Tavus conversation server-side (triggers transcript processing)
-    if (callRef.current) {
-      try { callRef.current.leave(); } catch (_) {}
-      try { callRef.current.destroy(); } catch (_) {}
-      callRef.current = null;
-    }
-    localStreamRef.current?.getTracks().forEach(t => t.stop());
-    localStreamRef.current = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    if (localVideoRef.current) localVideoRef.current.srcObject = null;
-
-    // Fire-and-forget: tell backend to end the Tavus conversation
-    base44.functions.invoke("endTavusInterview", { roomName }).catch(() => {});
-
-    onClose();
-  }, [onClose, roomName]);
+    // Stop recording first (triggers upload in onstop handler)
+    stopRecording();
+    // Give the recorder a moment to flush before tearing down
+    setTimeout(() => {
+      if (callRef.current) {
+        try { callRef.current.leave(); } catch (_) {}
+        try { callRef.current.destroy(); } catch (_) {}
+        callRef.current = null;
+      }
+      localStreamRef.current?.getTracks().forEach(t => t.stop());
+      localStreamRef.current = null;
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      if (localVideoRef.current) localVideoRef.current.srcObject = null;
+      recordingStartedRef.current = false;
+      // End the Tavus conversation server-side
+      base44.functions.invoke("endTavusInterview", { roomName }).catch(() => {});
+      onClose();
+    }, 300);
+  }, [onClose, roomName, stopRecording]);
 
   // ─── Cleanup on unmount ───────────────────────────────────────────────────
   useEffect(() => {
     return () => {
+      stopRecording();
       if (callRef.current) {
         try { callRef.current.leave(); } catch (_) {}
         try { callRef.current.destroy(); } catch (_) {}
         callRef.current = null;
       }
     };
-  }, []);
+  }, [stopRecording]);
 
-  // ─── Render (identical structure to VideoCallPanelV2) ─────────────────────
+  const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-black flex flex-col z-[99999]">
       {/* Header */}
@@ -195,6 +313,9 @@ export default function TavusInterviewPanel({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {uploadingRecording && (
+            <span className="text-xs text-yellow-400 mr-2">Uploading recording…</span>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -209,7 +330,7 @@ export default function TavusInterviewPanel({
 
       {/* Video area */}
       <div className="flex-1 relative bg-black overflow-hidden">
-        {/* Remote video — fills the screen (same as VideoCallPanelV2) */}
+        {/* Remote video */}
         <video
           ref={remoteVideoRef}
           autoPlay
@@ -225,7 +346,7 @@ export default function TavusInterviewPanel({
           }}
         />
 
-        {/* Waiting text — only when connected but no remote video */}
+        {/* Waiting text */}
         {callState === "connected" && !hasRemoteVideo && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]">
             <p className="text-gray-600 text-sm">Waiting for other participant...</p>
@@ -250,7 +371,29 @@ export default function TavusInterviewPanel({
           </div>
         )}
 
-        {/* Local video PIP — always rendered, srcObject set after mount */}
+        {/* Pre-call recording notice — shown before joining */}
+        {callState === "idle" && !recordingNoticeDismissed && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/85 z-[7] px-6">
+            <div className="max-w-md text-center">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                <Video className="w-6 h-6 text-red-400" />
+              </div>
+              <h3 className="text-white text-lg font-semibold mb-2">This interview will be recorded</h3>
+              <p className="text-gray-400 text-sm mb-6">
+                By joining this interview, you consent to being recorded. The recording will be saved
+                to your applicant profile for review by the hiring team.
+              </p>
+              <Button
+                onClick={() => setRecordingNoticeDismissed(true)}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                I Understand — Continue
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Local video PIP */}
         <div className="absolute bottom-4 right-4 w-36 h-28 rounded-lg overflow-hidden border-2 border-blue-500 bg-gray-900 shadow-2xl z-[8]">
           <video
             ref={localVideoRef}
@@ -280,8 +423,18 @@ export default function TavusInterviewPanel({
           </div>
         </div>
 
-        {/* Connected badge */}
-        {callState === "connected" && (
+        {/* Recording indicator — red pulsing dot + timer (always visible during call) */}
+        {isRecording && (
+          <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 bg-red-600/90 backdrop-blur rounded-full z-[9]">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+            </span>
+            <span className="text-white text-xs font-semibold tracking-wide">REC {formatTime(recordingTime)}</span>
+          </div>
+        )}
+        {/* Connected badge — shown when connected but recording hasn't started yet */}
+        {callState === "connected" && !isRecording && (
           <div className="absolute top-3 left-3 px-3 py-1 bg-green-600/80 backdrop-blur rounded-full text-white text-xs font-semibold z-[8]">
             ✓ Connected
           </div>
@@ -293,7 +446,7 @@ export default function TavusInterviewPanel({
         {callState === "idle" && (
           <Button
             onClick={handleStartCall}
-            disabled={isLoading || !cameraReady}
+            disabled={isLoading || !cameraReady || !recordingNoticeDismissed}
             className="bg-green-600 hover:bg-green-700 text-white gap-2 flex-shrink-0 h-10"
           >
             <Phone className="w-4 h-4" />
