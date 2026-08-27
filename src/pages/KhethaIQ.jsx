@@ -5,7 +5,7 @@ import {
   Briefcase, Plus, Loader2, Users, Brain, FileText, Search,
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, Award, HelpCircle, LayoutDashboard,
-  GitBranch, Video, Globe, SquareCheckBig, ArrowLeft,
+  GitBranch, Video, Globe, SquareCheckBig,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -310,19 +310,6 @@ export default function KhethaIQ() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Back button — appears in sub-views when no job/candidate is drilled into */}
-          {!selectedCandidate && !selectedJob && !compareMode && activeView !== "dashboard" && (
-            <button
-              onClick={() => setActiveView("dashboard")}
-              className="flex items-center gap-1.5 text-sm font-medium mb-3 transition-colors"
-              style={{ color: MUTED_DARK }}
-              onMouseEnter={e => { e.currentTarget.style.color = GOLD; }}
-              onMouseLeave={e => { e.currentTarget.style.color = MUTED_DARK; }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </button>
-          )}
           {selectedCandidate ? (
             <CandidateDetailPanel
               candidate={selectedCandidate}
