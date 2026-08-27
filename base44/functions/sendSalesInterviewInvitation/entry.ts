@@ -46,7 +46,15 @@ function buildInterviewHtml(firstName, portalUrl) {
 
           <h2 style="margin:28px 0 12px;font-size:18px;color:#B8956A;">Next Steps</h2>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Please reply to this email with 2&ndash;3 dates and times that work best for you for an interview.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Interviews are conducted Monday through Friday between 4:00 PM and 6:00 PM Eastern Time. When you reply, please include your preferred dates and times within that availability window, and we'll confirm the interview as soon as possible.</p>
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#1A1A1A;">Our interview availability (Eastern Time) is:</p>
+          <ul style="margin:0 0 20px;padding-left:22px;font-size:16px;line-height:1.7;color:#1A1A1A;">
+            <li>Mondays: 2:30 PM &ndash; 5:30 PM</li>
+            <li>Tuesdays: 3:30 PM &ndash; 5:30 PM</li>
+            <li>Wednesdays: 12:30 PM &ndash; 1:45 PM &amp; 4:00 PM</li>
+            <li>Thursdays: 10:00 AM &ndash; 11:15 AM &amp; 3:30 PM &ndash; 5:30 PM</li>
+            <li>Fridays: 10:15 AM</li>
+          </ul>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">When you reply, please include your preferred dates and times within the windows above, and we'll confirm the interview as soon as possible.</p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Once your interview has been scheduled, you'll receive a confirmation email with your meeting details and interview link.</p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You can also log in to your Arriv Candidate Portal at any time to view your application status and receive updates throughout the hiring process.</p>
 
