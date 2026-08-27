@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import ConvertToAiButton from "@/components/interviews/ConvertToAiButton";
 // Questionnaire now opens in-page via onOpenQuestionnaire (no modal)
 
 const GOLD = "#B8956A";
@@ -225,6 +226,7 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <ConvertToAiButton conference={c} onConverted={loadInterviews} />
                   <button
                     onClick={() => onOpenQuestionnaire?.(c)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"

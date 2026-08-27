@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, AlertCircle } from "lucide-react";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
+import TavusInterviewPanel from "@/components/interviews/TavusInterviewPanel";
 
 export default function Conference() {
   const [roomName, setRoomName] = useState(null);
@@ -9,6 +10,7 @@ export default function Conference() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [autoStart, setAutoStart] = useState(false);
+  const [interviewMode, setInterviewMode] = useState("human");
 
   useEffect(() => {
     // Get room from URL params
@@ -26,6 +28,17 @@ export default function Conference() {
 
     console.log('Setting room name to:', room);
     setRoomName(room);
+
+    // Check if this conference is configured for AI interview mode
+    base44.entities.Conference.filter({ room_name: room }, "-created_date", 1)
+      .then(res => {
+        const confs = res?.data ?? res ?? [];
+        const conf = Array.isArray(confs) ? confs[0] : null;
+        if (conf?.interview_mode === "ai") {
+          setInterviewMode("ai");
+        }
+      })
+      .catch(() => {});
 
     // Try to get current user info
     base44.auth.isAuthenticated()
@@ -81,17 +94,26 @@ export default function Conference() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFBF5' }}>
-      <VideoCallPanelV2
-        roomName={roomName}
-        currentUserId={user?.id || localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id')}
-        currentUserName={user?.full_name || 'Guest'}
-        recipientName="Conference"
-        onClose={() => window.history.back()}
-        autoStart={autoStart}
-        isVideoWindowOpen={true}
-        onMinimize={() => {}}
-        onChatOpenRequest={() => {}}
-      />
+      {interviewMode === "ai" ? (
+        <TavusInterviewPanel
+          roomName={roomName}
+          currentUserName={user?.full_name || 'Guest'}
+          recipientName="Arriv Interview"
+          onClose={() => window.history.back()}
+        />
+      ) : (
+        <VideoCallPanelV2
+          roomName={roomName}
+          currentUserId={user?.id || localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id')}
+          currentUserName={user?.full_name || 'Guest'}
+          recipientName="Conference"
+          onClose={() => window.history.back()}
+          autoStart={autoStart}
+          isVideoWindowOpen={true}
+          onMinimize={() => {}}
+          onChatOpenRequest={() => {}}
+        />
+      )}
     </div>
   );
 }

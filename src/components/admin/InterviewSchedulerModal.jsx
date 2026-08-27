@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Video, Loader2, AlertTriangle } from "lucide-react";
+import { X, Video, Loader2, AlertTriangle, Brain } from "lucide-react";
 import { toast } from "sonner";
 import moment from "moment";
 
@@ -15,6 +15,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
   const [organizer, setOrganizer] = useState(null);
   const [existingConfs, setExistingConfs] = useState([]);
   const [conflict, setConflict] = useState(null);
+  const [useAiInterviewer, setUseAiInterviewer] = useState(false);
 
   useEffect(() => {
     // This app uses custom sales auth (localStorage) — try that first,
@@ -81,6 +82,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
         organizerName: organizer.full_name,
         organizerEmail: organizer.email,
         applicationId: app.id,
+        interviewMode: useAiInterviewer ? "ai" : "human",
       });
 
       if (!confRes?.data?.success) {
@@ -161,6 +163,21 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
             />
             <p className="text-xs text-gray-400 mt-1">Interviews are typically Mon–Fri, 4:00–6:00 PM ET.</p>
           </div>
+
+          <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors" style={{ backgroundColor: useAiInterviewer ? "rgba(184,149,106,0.08)" : "#FFFBF5", border: `1px solid ${useAiInterviewer ? "rgba(184,149,106,0.3)" : "rgba(184,149,106,0.15)"}` }}>
+            <input
+              type="checkbox"
+              checked={useAiInterviewer}
+              onChange={(e) => setUseAiInterviewer(e.target.checked)}
+              className="w-4 h-4 rounded"
+              style={{ accentColor: "#B8956A" }}
+            />
+            <Brain className="w-4 h-4" style={{ color: "#B8956A" }} />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Use AI Interviewer</p>
+              <p className="text-xs text-gray-500">The applicant joins the same link and is interviewed by AI instead of a human interviewer.</p>
+            </div>
+          </label>
         </div>
 
         {conflict && (
