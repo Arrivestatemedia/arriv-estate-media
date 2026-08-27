@@ -26,8 +26,7 @@ Deno.serve(async (req) => {
       organizerId,
       organizerName,
       organizerEmail,
-      applicationId,
-      interviewMode
+      applicationId
     } = body;
 
     const scheduled_date = scheduledDate;
@@ -96,8 +95,7 @@ Deno.serve(async (req) => {
         email: p.email
       })),
       channel_id: channelId || null,
-      status: 'scheduled',
-      interview_mode: interviewMode || 'human'
+      status: 'scheduled'
     });
     console.log('Conference created:', conference.id, conference.meeting_link);
 

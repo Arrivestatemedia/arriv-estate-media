@@ -2,39 +2,35 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, AlertCircle } from "lucide-react";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
-import TavusInterviewPanel from "@/components/interviews/TavusInterviewPanel";
 
 export default function Conference() {
   const [roomName, setRoomName] = useState(null);
-  const [conference, setConference] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [autoStart, setAutoStart] = useState(false);
 
   useEffect(() => {
+    // Get room from URL params
     const params = new URLSearchParams(window.location.search);
     const room = params.get('room');
-
+    
+    console.log('Conference page loaded, room param:', room);
+    
     if (!room) {
+      console.error('No room parameter in URL');
       setError('No conference room specified');
       setLoading(false);
       return;
     }
 
+    console.log('Setting room name to:', room);
     setRoomName(room);
-
-    // Fetch the Conference record to determine interview mode
-    base44.entities.Conference.filter({ room_name: room })
-      .then(res => {
-        const conf = res?.data?.[0] || res?.[0];
-        setConference(conf || null);
-      })
-      .catch(() => setConference(null));
 
     // Try to get current user info
     base44.auth.isAuthenticated()
       .then(isAuth => {
+        console.log('User authenticated:', isAuth);
         if (isAuth) {
           return base44.auth.me();
         } else {
@@ -42,6 +38,7 @@ export default function Conference() {
         }
       })
       .then(userData => {
+        console.log('User data:', userData);
         if (userData) {
           setUser(userData);
         } else {
@@ -50,6 +47,11 @@ export default function Conference() {
         setAutoStart(true);
       })
       .catch(() => {
+        setUser({ full_name: 'Guest' });
+        setAutoStart(true);
+      })
+      .catch((err) => {
+        console.error('Auth check error:', err);
         setUser({ full_name: 'Guest' });
         setAutoStart(true);
       })
@@ -77,22 +79,6 @@ export default function Conference() {
     );
   }
 
-  // ─── Route based on interview_mode ──────────────────────────────────────────
-  // AI interviews render TavusInterviewPanel; everything else (human/default)
-  // renders the existing VideoCallPanelV2 exactly as before.
-  if (conference?.interview_mode === "ai") {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: '#FFFBF5' }}>
-        <TavusInterviewPanel
-          roomName={roomName}
-          currentUserName={user?.full_name || 'Guest'}
-          onClose={() => window.history.back()}
-        />
-      </div>
-    );
-  }
-
-  // ─── Existing Twilio Video path (unchanged) ─────────────────────────────────
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFBF5' }}>
       <VideoCallPanelV2

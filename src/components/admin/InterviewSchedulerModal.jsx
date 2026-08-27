@@ -15,7 +15,6 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
   const [organizer, setOrganizer] = useState(null);
   const [existingConfs, setExistingConfs] = useState([]);
   const [conflict, setConflict] = useState(null);
-  const [useAiInterviewer, setUseAiInterviewer] = useState(false);
 
   useEffect(() => {
     // This app uses custom sales auth (localStorage) — try that first,
@@ -82,7 +81,6 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
         organizerName: organizer.full_name,
         organizerEmail: organizer.email,
         applicationId: app.id,
-        interviewMode: useAiInterviewer ? "ai" : "human",
       });
 
       if (!confRes?.data?.success) {
@@ -163,22 +161,6 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
             />
             <p className="text-xs text-gray-400 mt-1">Interviews are typically Mon–Fri, 4:00–6:00 PM ET.</p>
           </div>
-
-          <label className="flex items-start gap-2 p-3 bg-[#FFFBF5] border border-[#B8956A]/20 rounded-lg cursor-pointer">
-            <input
-              type="checkbox"
-              checked={useAiInterviewer}
-              onChange={(e) => setUseAiInterviewer(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded"
-              style={{ accentColor: '#B8956A' }}
-            />
-            <div>
-              <span className="text-sm font-medium text-gray-900">Use AI Interviewer</span>
-              <p className="text-xs text-gray-500 mt-0.5">
-                The applicant joins the same link and is interviewed by an AI interviewer (Tavus CVI) instead of a human. Their responses are transcribed and mapped to the questionnaire automatically.
-              </p>
-            </div>
-          </label>
         </div>
 
         {conflict && (
