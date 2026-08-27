@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { sendInterviewScheduledEmail } from "../../shared/interviewScheduledEmail.ts";
+import { sendInterviewScheduledEmail, sendInterviewScheduledAdminCopy } from "../../shared/interviewScheduledEmail.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -169,6 +169,25 @@ Deno.serve(async (req) => {
             meetingLink: conference.meeting_link,
           });
           emailSent = true;
+
+          // Send a copy to the organizer/admin so they have a record of the scheduled interview
+          if (organizerEmail) {
+            try {
+              const adminName = organizerName || 'Admin';
+              await sendInterviewScheduledAdminCopy(base44, {
+                to: organizerEmail,
+                adminName,
+                applicantName: app.full_name,
+                applicantEmail: app.email,
+                scheduledDate: scheduled_date,
+                scheduledTime: scheduled_time,
+                durationMinutes: duration_minutes,
+                meetingLink: conference.meeting_link,
+              });
+            } catch (adminEmailError) {
+              console.warn('Admin copy email failed:', adminEmailError.message);
+            }
+          }
         }
       } catch (emailError) {
         console.warn('Confirmation email failed:', emailError.message);

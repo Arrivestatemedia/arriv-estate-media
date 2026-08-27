@@ -101,3 +101,67 @@ export async function sendInterviewScheduledEmail(base44: any, opts: {
     htmlContent: html,
   });
 }
+
+export function buildInterviewScheduledAdminCopyHtml(adminName: string, applicantName: string, applicantEmail: string, whenLabel: string, durationLabel: string, meetingLink: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
+        <tr>
+          <td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
+          </td>
+        </tr>
+        <tr><td style="padding:40px 44px;">
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${adminName},</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">An interview has been scheduled with <strong>${applicantName}</strong> for the Sales Growth Advisor position.</p>
+
+          <h2 style="margin:24px 0 10px;font-size:18px;color:#B8956A;">Applicant</h2>
+          <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#1A1A1A;">${applicantName}</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">${applicantEmail}</p>
+
+          <h2 style="margin:24px 0 10px;font-size:18px;color:#B8956A;">When</h2>
+          <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#1A1A1A;">${whenLabel}</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Duration: ${durationLabel}</p>
+
+          <h2 style="margin:24px 0 10px;font-size:18px;color:#B8956A;">Interview Link</h2>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;word-break:break-all;"><a href="${meetingLink}" style="color:#B8956A;">${meetingLink}</a></p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">A calendar invitation and confirmation email have been sent to the applicant.</p>
+        </td></tr>
+        <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9a8560;">© Arriv Estate Media, LLC · careers@arrivestatemedia.com</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendInterviewScheduledAdminCopy(base44: any, opts: {
+  to: string;
+  adminName: string;
+  applicantName: string;
+  applicantEmail: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  durationMinutes: number;
+  meetingLink: string;
+}) {
+  const { to, adminName, applicantName, applicantEmail, scheduledDate, scheduledTime, durationMinutes, meetingLink } = opts;
+  const whenLabel = formatInterviewWhen(scheduledDate, scheduledTime);
+  const durationLabel = formatInterviewDuration(durationMinutes);
+  const html = buildInterviewScheduledAdminCopyHtml(adminName, applicantName, applicantEmail, whenLabel, durationLabel, meetingLink);
+  await sendBusinessEmailOrQueue(base44, {
+    to,
+    subject: `Interview Scheduled: ${applicantName} — Sales Growth Advisor`,
+    htmlContent: html,
+  });
+}

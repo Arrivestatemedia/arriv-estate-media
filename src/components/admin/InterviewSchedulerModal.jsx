@@ -15,7 +15,17 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
   const [organizer, setOrganizer] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then(setOrganizer).catch(() => setOrganizer(null));
+    // This app uses custom sales auth (localStorage) — try that first,
+    // then fall back to Base44 platform auth for platform admins.
+    const getItem = (k) => localStorage.getItem(k) || sessionStorage.getItem(k);
+    const salesId = getItem('sales_member_id');
+    const salesName = getItem('sales_member_name');
+    const salesEmail = getItem('sales_member_email');
+    if (salesId && salesName) {
+      setOrganizer({ id: salesId, full_name: salesName, email: salesEmail || '' });
+    } else {
+      base44.auth.me().then(setOrganizer).catch(() => setOrganizer(null));
+    }
   }, []);
 
   const handleSchedule = async () => {
