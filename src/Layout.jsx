@@ -125,8 +125,6 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Client Terms", page: "AdminClientTerms", icon: Settings },
             { label: "Closing Invoice", page: "ManualClosingInvoice", icon: FileText },
             { label: "Notify Backup", page: "NotifyBackup", icon: Settings },
-            { label: "Scheduled Bookings", page: "AdminScheduledBookings", icon: CalendarClock },
-            { label: "Send Media", page: "SendMediaToClient", icon: Send },
     
             { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck },
         { label: "Commissions", page: "AdminCommissions", icon: Wallet },
