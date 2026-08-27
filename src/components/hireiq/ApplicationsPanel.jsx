@@ -10,6 +10,7 @@ import SalesTrainingVideosControl from "@/components/admin/SalesTrainingVideosCo
 import QueuedApplicationEmails from "@/components/admin/QueuedApplicationEmails";
 import AcceptedPendingPreviewLinks from "@/components/admin/AcceptedPendingPreviewLinks";
 import { Search, Briefcase, Camera } from "lucide-react";
+import { toast } from "sonner";
 
 const POSITION_TABS = [
   { value: "media_specialist", label: "Media Specialist", icon: Camera, statuses: APPLICATION_STATUSES },
