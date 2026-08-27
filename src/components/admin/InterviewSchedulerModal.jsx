@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Video, Loader2 } from "lucide-react";
+import { X, Video, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import moment from "moment";
 
@@ -13,6 +13,8 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [loading, setLoading] = useState(false);
   const [organizer, setOrganizer] = useState(null);
+  const [existingConfs, setExistingConfs] = useState([]);
+  const [conflict, setConflict] = useState(null);
 
   useEffect(() => {
     // This app uses custom sales auth (localStorage) — try that first,
@@ -26,7 +28,32 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
     } else {
       base44.auth.me().then(setOrganizer).catch(() => setOrganizer(null));
     }
+    // Load existing scheduled interviews for conflict detection
+    base44.entities.Conference.filter({ status: "scheduled" }, "-scheduled_date", 500)
+      .then(res => {
+        const list = res?.data ?? res ?? [];
+        setExistingConfs(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setExistingConfs([]));
   }, []);
+
+  // Live conflict check whenever date/time/duration changes
+  useEffect(() => {
+    if (!scheduledDate || !scheduledTime) { setConflict(null); return; }
+    const [y, m, d] = scheduledDate.split('-').map(Number);
+    const [h, mi] = scheduledTime.split(':').map(Number);
+    const reqStart = new Date(Date.UTC(y, m - 1, d, h, mi));
+    const reqEnd = new Date(reqStart.getTime() + (durationMinutes || 0) * 60000);
+    const found = existingConfs.find(conf => {
+      if (!conf.scheduled_date || !conf.scheduled_time) return false;
+      const [cy, cm, cd] = conf.scheduled_date.split('-').map(Number);
+      const [ch, cmi] = conf.scheduled_time.split(':').map(Number);
+      const cStart = new Date(Date.UTC(cy, cm - 1, cd, ch, cmi));
+      const cEnd = new Date(cStart.getTime() + (conf.duration_minutes || 60) * 60000);
+      return reqStart < cEnd && cStart < reqEnd;
+    });
+    setConflict(found || null);
+  }, [scheduledDate, scheduledTime, durationMinutes, existingConfs]);
 
   const handleSchedule = async () => {
     if (!scheduledDate || !scheduledTime) {
@@ -136,13 +163,26 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
           </div>
         </div>
 
+        {conflict && (
+          <div className="p-3 bg-red-50 border border-red-300 rounded-lg flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-900">Time conflict detected</p>
+              <p className="text-xs text-red-700 mt-0.5">
+                Another interview is already scheduled on {conflict.scheduled_date} at {conflict.scheduled_time} ET.
+                Please choose a different time.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-3 mt-6 pt-4 border-t">
           <Button variant="outline" onClick={onClose} disabled={loading} className="flex-1">
             Cancel
           </Button>
           <Button
             onClick={handleSchedule}
-            disabled={loading}
+            disabled={loading || !!conflict}
             className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white"
           >
             {loading ? (

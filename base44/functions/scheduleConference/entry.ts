@@ -40,6 +40,39 @@ Deno.serve(async (req) => {
 
     console.log('Creating conference with:', { title, scheduled_date, scheduled_time, duration_minutes, participants: participants.length });
 
+    // === Scheduling conflict detection — never double-book an interview slot ===
+    const [rY, rM, rD] = scheduled_date.split('-').map(Number);
+    const [rH, rMin] = scheduled_time.split(':').map(Number);
+    const reqStart = new Date(Date.UTC(rY, rM - 1, rD, rH, rMin));
+    const reqEnd = new Date(reqStart.getTime() + duration_minutes * 60000);
+
+    try {
+      const existingRes = await base44.asServiceRole.entities.Conference.filter(
+        { status: 'scheduled' },
+        '-scheduled_date',
+        500
+      );
+      const existingList = existingRes?.data ?? existingRes ?? [];
+      for (const conf of existingList) {
+        if (!conf.scheduled_date || !conf.scheduled_time) continue;
+        const [cy, cm, cd] = conf.scheduled_date.split('-').map(Number);
+        const [ch, cmi] = conf.scheduled_time.split(':').map(Number);
+        const cStart = new Date(Date.UTC(cy, cm - 1, cd, ch, cmi));
+        const cEnd = new Date(cStart.getTime() + (conf.duration_minutes || 60) * 60000);
+        // Overlap: reqStart < cEnd && cStart < reqEnd
+        if (reqStart < cEnd && cStart < reqEnd) {
+          console.warn('Scheduling conflict detected with conference', conf.id);
+          return Response.json({
+            success: false,
+            conflict: true,
+            error: `This time conflicts with another interview already scheduled on ${conf.scheduled_date} at ${conf.scheduled_time} ET. Please choose a different time.`,
+          }, { status: 409 });
+        }
+      }
+    } catch (conflictCheckError) {
+      console.warn('Conflict check failed, proceeding:', conflictCheckError?.message);
+    }
+
     // Generate unique room name
     const roomName = `conf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
