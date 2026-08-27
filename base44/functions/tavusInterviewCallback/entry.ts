@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { parseTranscriptToScorecard } from "../../shared/tavusInterview.ts";
 
 Deno.serve(async (req) => {
@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
       return Response.json({ status: "ignored", reason: "no conversation_id" });
     }
 
-    const base44 = createClient();
+    const base44 = createClientFromRequest(req);
 
     // Find the conference by tavus_conversation_id
     const confRes = await base44.asServiceRole.entities.Conference.filter(
