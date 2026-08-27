@@ -119,9 +119,6 @@ function LayoutContent({ children, currentPageName }) {
         ? [
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
-            { label: "Job Board", page: "JobBoard", icon: Briefcase },
-            { label: "Bookings", page: "AdminBookings", icon: Briefcase },
-            { label: "Users", page: "AdminUsers", icon: LayoutDashboard },
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
             { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
             { label: "Signed Terms", page: "AdminSignedTerms", icon: Settings },

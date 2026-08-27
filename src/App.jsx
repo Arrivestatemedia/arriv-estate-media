@@ -34,6 +34,7 @@ import PayoutRecords from './pages/PayoutRecords';
 import AdminSyncStatus from './pages/AdminSyncStatus';
 import AdminManifestConvergence from './pages/AdminManifestConvergence';
 import EstateMediaAuthorityConsole from './pages/EstateMediaAuthorityConsole';
+import AdminPlatformAccess from './pages/AdminPlatformAccess';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -305,6 +306,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="EstateMediaAuthorityConsole">
             <EstateMediaAuthorityConsole />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminPlatformAccess"
+        element={
+          <LayoutWrapper currentPageName="AdminPlatformAccess">
+            <AdminPlatformAccess />
           </LayoutWrapper>
         }
       />

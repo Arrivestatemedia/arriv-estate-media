@@ -8,13 +8,13 @@ import RecruitingDashboardWidget from "@/components/recruiting/RecruitingDashboa
 const ADMIN_SECTIONS = [
   { label: "Sales Team", page: "AdminSalesSignup", icon: Users, description: "Manage sales reps and onboarding" },
   { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: BarChart3, description: "Rep call maps and prospecting" },
-  { label: "Applications", page: "AdminApplications", icon: FileText, description: "Review sales job applications" },
+  { label: "Applications", to: createPageUrl("KhethaIQ") + "?view=applications", page: "KhethaIQ", icon: FileText, description: "Review sales job applications" },
   { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck, description: "Checkr status and results" },
   { label: "Commissions", page: "AdminCommissions", icon: Wallet, description: "Commission plans and adjustments" },
   { label: "Sales Orientation", page: "AdminSalesOrientation", icon: UserCog, description: "Orientation and onboarding" },
   { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark, description: "Payroll periods and submissions" },
   { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings, description: "Arriv Payroll integration" },
-  { label: "Users", page: "AdminUsers", icon: Users, description: "Admin user accounts" },
+  { label: "Users", page: "AdminPlatformAccess", icon: Users, description: "Company platform access overview" },
 ];
 
 export default function AdminDashboardGrid() {
@@ -25,7 +25,7 @@ export default function AdminDashboardGrid() {
         {ADMIN_SECTIONS.map((section) => {
           const Icon = section.icon;
           return (
-            <Link key={section.page} to={createPageUrl(section.page)} className="hover:no-underline">
+            <Link key={section.page} to={section.to || createPageUrl(section.page)} className="hover:no-underline">
               <Card className="hover:shadow-lg transition-shadow h-full cursor-pointer">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-medium flex items-center gap-2">
