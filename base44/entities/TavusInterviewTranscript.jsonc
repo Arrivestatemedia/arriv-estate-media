@@ -1,0 +1,100 @@
+{
+  "name": "TavusInterviewTranscript",
+  "type": "object",
+  "properties": {
+    "conference_id": {
+      "type": "string",
+      "description": "Conference ID this Tavus interview belongs to"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Tavus conversation ID"
+    },
+    "application_id": {
+      "type": "string",
+      "description": "JobApplication ID (if linked via Conference participants)"
+    },
+    "candidate_id": {
+      "type": "string",
+      "description": "HireCandidate ID (if linked)"
+    },
+    "candidate_name": {
+      "type": "string",
+      "description": "Candidate name (denormalized)"
+    },
+    "transcript": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Speaker role: 'user' (candidate) or 'assistant' (AI interviewer)"
+          },
+          "content": {
+            "type": "string",
+            "description": "Utterance text"
+          },
+          "timestamp": {
+            "type": "number",
+            "description": "Unix timestamp of the utterance"
+          },
+          "seconds_from_start": {
+            "type": "number",
+            "description": "Seconds from the start of the conversation"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Duration of the utterance in seconds"
+          }
+        }
+      },
+      "description": "Normalized transcript entries from the Tavus conversation"
+    },
+    "raw_payload": {
+      "type": "object",
+      "description": "Original Tavus webhook payload (preserved for audit)"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Tavus event type that delivered this transcript (e.g. application.transcription_ready)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "error"
+      ],
+      "default": "active",
+      "description": "Transcript/session status"
+    },
+    "parsed_scorecard": {
+      "type": "object",
+      "description": "Parsed questionnaire responses mapped from the transcript to existing question IDs"
+    },
+    "parsing_confidence": {
+      "type": "number",
+      "description": "Overall confidence of the transcript-to-scorecard mapping (0-1)"
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when parsing could not fully populate required questionnaire fields"
+    },
+    "scorecard_saved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the parsed responses have been written to the existing questionnaire/scorecard storage"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the transcript webhook was received"
+    }
+  },
+  "required": [
+    "conference_id",
+    "conversation_id"
+  ]
+}

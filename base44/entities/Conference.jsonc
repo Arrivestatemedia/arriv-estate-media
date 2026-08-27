@@ -92,6 +92,47 @@
       "type": "string",
       "format": "date-time",
       "description": "When the scorecard was completed"
+    },
+    "interview_mode": {
+      "type": "string",
+      "enum": [
+        "human",
+        "ai"
+      ],
+      "default": "human",
+      "description": "Interview mode: 'human' uses the existing Twilio Video room; 'ai' uses the Tavus CVI AI interviewer. Existing records default to 'human'."
+    },
+    "tavus_conversation_id": {
+      "type": "string",
+      "description": "Tavus CVI conversation ID (set when a Tavus conversation is created for an AI interview)"
+    },
+    "tavus_conversation_status": {
+      "type": "string",
+      "description": "Last known Tavus conversation status (active, ended, etc.)"
+    },
+    "tavus_started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the Tavus AI interview was started"
+    },
+    "tavus_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the Tavus AI interview was completed"
+    },
+    "tavus_meeting_token": {
+      "type": "string",
+      "description": "Tavus meeting token (required when require_auth=true; used to join the private conversation)"
+    },
+    "tavus_review_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the Tavus transcript could not fully populate the questionnaire and requires human review"
+    },
+    "tavus_scorecard_saved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the parsed Tavus transcript has been saved as a Round 1 scorecard"
     }
   },
   "required": [
