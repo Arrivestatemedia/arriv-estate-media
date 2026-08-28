@@ -60,6 +60,13 @@ export default function VideoCallPanelV2({
   const audioContextRef = useRef(null);
   const recordingStartTimeRef = useRef(null);
   const recordingTimerRef = useRef(null);
+  // Composite canvas refs — blend remote (interviewee) full-frame with local
+  // (interviewer) PIP so the recording shows both participants.
+  const compositeCanvasRef = useRef(null);
+  const compositeStreamRef = useRef(null);
+  const drawLoopRef = useRef(null);
+  const recRemoteVideoRef = useRef(null);
+  const recLocalVideoRef = useRef(null);
 
   // Keep ref in sync with state
   const setScreenSharing = (val) => {
@@ -431,8 +438,56 @@ export default function VideoCallPanelV2({
       return;
     }
 
-    const tracks = [];
-    if (remoteVideoTrackRef.current) tracks.push(remoteVideoTrackRef.current);
+    // Build a composite canvas: remote (interviewee) full-frame + local PIP.
+    const canvas = document.createElement("canvas");
+    canvas.width = 1280;
+    canvas.height = 720;
+    const cctx = canvas.getContext("2d");
+    compositeCanvasRef.current = canvas;
+
+    const remoteEl = document.createElement("video");
+    remoteEl.autoplay = true; remoteEl.playsInline = true; remoteEl.muted = true;
+    if (remoteVideoTrackRef.current) remoteEl.srcObject = new MediaStream([remoteVideoTrackRef.current]);
+    recRemoteVideoRef.current = remoteEl;
+
+    const localEl = document.createElement("video");
+    localEl.autoplay = true; localEl.playsInline = true; localEl.muted = true;
+    if (localStreamRef.current) localEl.srcObject = localStreamRef.current;
+    recLocalVideoRef.current = localEl;
+
+    const pipW = 280, pipH = 210;
+    const pipX = canvas.width - pipW - 24;
+    const pipY = canvas.height - pipH - 24;
+
+    const draw = () => {
+      cctx.fillStyle = "#000";
+      cctx.fillRect(0, 0, canvas.width, canvas.height);
+      const rv = recRemoteVideoRef.current;
+      if (rv && rv.videoWidth > 0) {
+        const vw = rv.videoWidth, vh = rv.videoHeight;
+        const scale = Math.max(canvas.width / vw, canvas.height / vh);
+        const dw = vw * scale, dh = vh * scale;
+        cctx.drawImage(rv, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
+      }
+      const lv = recLocalVideoRef.current;
+      if (lv && lv.videoWidth > 0) {
+        const vw = lv.videoWidth, vh = lv.videoHeight;
+        const scale = Math.max(pipW / vw, pipH / vh);
+        const dw = vw * scale, dh = vh * scale;
+        cctx.save();
+        cctx.beginPath(); cctx.roundRect(pipX, pipY, pipW, pipH, 8); cctx.clip();
+        cctx.drawImage(lv, pipX + (pipW - dw) / 2, pipY + (pipH - dh) / 2, dw, dh);
+        cctx.restore();
+        cctx.strokeStyle = "rgba(184,149,106,0.9)"; cctx.lineWidth = 3;
+        cctx.beginPath(); cctx.roundRect(pipX, pipY, pipW, pipH, 8); cctx.stroke();
+      }
+      drawLoopRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+
+    const canvasStream = canvas.captureStream(30);
+    compositeStreamRef.current = canvasStream;
+    const tracks = [canvasStream.getVideoTracks()[0]];
 
     const audioTracks = [];
     if (remoteAudioTrackRef.current) audioTracks.push(remoteAudioTrackRef.current);
@@ -479,6 +534,13 @@ export default function VideoCallPanelV2({
       }, ...prev]);
       setIsRecordingsOpen(true);
       if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
+      // Stop composite canvas + hidden video elements
+      if (drawLoopRef.current) { cancelAnimationFrame(drawLoopRef.current); drawLoopRef.current = null; }
+      for (const ref of [recRemoteVideoRef, recLocalVideoRef]) {
+        if (ref.current) { try { ref.current.srcObject = null; ref.current.remove(); } catch (_) {} ref.current = null; }
+      }
+      if (compositeStreamRef.current) { compositeStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch (_) {} }); compositeStreamRef.current = null; }
+      compositeCanvasRef.current = null;
       mediaRecorderRef.current = null;
       recordingChunksRef.current = [];
       if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
@@ -573,6 +635,12 @@ export default function VideoCallPanelV2({
       try { mediaRecorderRef.current.stop(); } catch (_) {}
     }
     if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    if (drawLoopRef.current) { cancelAnimationFrame(drawLoopRef.current); drawLoopRef.current = null; }
+    for (const ref of [recRemoteVideoRef, recLocalVideoRef]) {
+      if (ref.current) { try { ref.current.srcObject = null; ref.current.remove(); } catch (_) {} ref.current = null; }
+    }
+    if (compositeStreamRef.current) { compositeStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch (_) {} }); compositeStreamRef.current = null; }
+    compositeCanvasRef.current = null;
     stopBlur();
     blurStreamRef.current?.getTracks().forEach(t => t.stop());
     blurStreamRef.current = null;
