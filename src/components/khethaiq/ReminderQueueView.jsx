@@ -54,6 +54,7 @@ export default function ReminderQueueView() {
   const [conferences, setConferences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [view, setView] = useState("active"); // "active" | "archived"
 
   const load = async () => {
     try {
@@ -117,7 +118,9 @@ export default function ReminderQueueView() {
   }).sort((a, b) => (a.start || 0) - (b.start || 0));
 
   const upcoming = entries.filter(e => !e.past);
-  const pastEntries = entries.filter(e => e.past);
+  const archived = entries.filter(e => e.past);
+
+  const activeEntries = view === "active" ? upcoming : archived;
 
   return (
     <div className="space-y-6">
@@ -128,113 +131,121 @@ export default function ReminderQueueView() {
         </p>
       </div>
 
-      {entries.length === 0 ? (
+      {/* View toggle */}
+      <div className="flex items-center gap-1 p-1 rounded-lg w-fit" style={{ backgroundColor: "rgba(184,149,106,0.08)" }}>
+        <button
+          onClick={() => setView("active")}
+          className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+          style={view === "active"
+            ? { backgroundColor: "#FFFFFF", color: TEXT_DARK, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }
+            : { color: MUTED_DARK_70 }}
+        >
+          Active ({upcoming.length})
+        </button>
+        <button
+          onClick={() => setView("archived")}
+          className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+          style={view === "archived"
+            ? { backgroundColor: "#FFFFFF", color: TEXT_DARK, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }
+            : { color: MUTED_DARK_70 }}
+        >
+          Archived ({archived.length})
+        </button>
+      </div>
+
+      {activeEntries.length === 0 ? (
         <div className="text-center py-12" style={whiteCard}>
           <Mail className="w-10 h-10 mx-auto mb-2" style={{ color: "rgba(184,149,106,0.3)" }} />
-          <p style={{ color: MUTED_DARK }}>No scheduled interviews with reminders.</p>
+          <p style={{ color: MUTED_DARK }}>
+            {view === "active" ? "No active reminders." : "No archived reminders."}
+          </p>
         </div>
       ) : (
-        <>
-          {/* Upcoming */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: MUTED_DARK_70 }}>
-              Upcoming ({upcoming.length})
-            </h2>
-            {upcoming.length === 0 ? (
-              <p className="text-sm" style={{ color: MUTED_DARK_40 }}>No upcoming interviews.</p>
-            ) : (
-              upcoming.map(({ c, start, target, sent, status, statusColor, statusIcon: Icon }) => {
-                const applicantName = c.participants?.[0]?.name || c.title || "Interview";
-                const applicantEmail = c.participants?.[0]?.email || "";
-                return (
-                  <div key={c.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={whiteCard}>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <CalendarClock className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
-                        <h3 className="font-semibold truncate" style={{ ...SERIF, color: TEXT_DARK }}>{applicantName}</h3>
-                      </div>
-                      {start && (
-                        <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>
-                          Interview: {formatEt(start)}
-                        </p>
-                      )}
-                      {applicantEmail && (
-                        <p className="text-xs mt-0.5" style={{ color: MUTED_DARK_40 }}>{applicantEmail}</p>
-                      )}
-                      {target && !sent && (
-                        <p className="text-xs mt-1" style={{ color: GOLD }}>
-                          <Clock className="w-3 h-3 inline mr-1" />
-                          Reminder sends: {formatEt(target)}
-                        </p>
-                      )}
-                      {sent && c.reminder_30min_sent_at && (
-                        <p className="text-xs mt-1" style={{ color: GOLD }}>
-                          <CheckCircle2 className="w-3 h-3 inline mr-1" />
-                          Sent: {formatEt(new Date(c.reminder_30min_sent_at))}
-                        </p>
-                      )}
+        <div className="space-y-3">
+          {view === "active" ? (
+            activeEntries.map(({ c, start, target, sent, status, statusColor, statusIcon: Icon }) => {
+              const applicantName = c.participants?.[0]?.name || c.title || "Interview";
+              const applicantEmail = c.participants?.[0]?.email || "";
+              return (
+                <div key={c.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={whiteCard}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CalendarClock className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
+                      <h3 className="font-semibold truncate" style={{ ...SERIF, color: TEXT_DARK }}>{applicantName}</h3>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium"
-                        style={{ backgroundColor: `${statusColor}15`, color: statusColor, border: `1px solid ${statusColor}40` }}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        {status}
-                      </span>
-                      <button
-                        onClick={() => handleDelete(c)}
-                        disabled={deletingId === c.id}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                        style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
-                      >
-                        {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                        Delete
-                      </button>
-                    </div>
+                    {start && (
+                      <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>
+                        Interview: {formatEt(start)}
+                      </p>
+                    )}
+                    {applicantEmail && (
+                      <p className="text-xs mt-0.5" style={{ color: MUTED_DARK_40 }}>{applicantEmail}</p>
+                    )}
+                    {target && !sent && (
+                      <p className="text-xs mt-1" style={{ color: GOLD }}>
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        Reminder sends: {formatEt(target)}
+                      </p>
+                    )}
+                    {sent && c.reminder_30min_sent_at && (
+                      <p className="text-xs mt-1" style={{ color: GOLD }}>
+                        <CheckCircle2 className="w-3 h-3 inline mr-1" />
+                        Sent: {formatEt(new Date(c.reminder_30min_sent_at))}
+                      </p>
+                    )}
                   </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Past (sent or missed) */}
-          {pastEntries.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: MUTED_DARK_70 }}>
-                Past ({pastEntries.length})
-              </h2>
-              {pastEntries.map(({ c, start, sent, status, statusColor, statusIcon: Icon }) => {
-                const applicantName = c.participants?.[0]?.name || c.title || "Interview";
-                return (
-                  <div key={c.id} className="p-3 flex items-center justify-between gap-3 opacity-70" style={whiteCard}>
-                    <div className="min-w-0">
-                      <h3 className="font-medium truncate text-sm" style={{ color: TEXT_DARK }}>{applicantName}</h3>
-                      {start && <p className="text-xs" style={{ color: MUTED_DARK_40 }}>{formatEt(start)}</p>}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={{ backgroundColor: `${statusColor}15`, color: statusColor }}
-                      >
-                        <Icon className="w-3 h-3" />
-                        {status}
-                      </span>
-                      <button
-                        onClick={() => handleDelete(c)}
-                        disabled={deletingId === c.id}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                        style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
-                      >
-                        {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium"
+                      style={{ backgroundColor: `${statusColor}15`, color: statusColor, border: `1px solid ${statusColor}40` }}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {status}
+                    </span>
+                    <button
+                      onClick={() => handleDelete(c)}
+                      disabled={deletingId === c.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                      style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
+                    >
+                      {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      Delete
+                    </button>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })
+          ) : (
+            activeEntries.map(({ c, start, sent, status, statusColor, statusIcon: Icon }) => {
+              const applicantName = c.participants?.[0]?.name || c.title || "Interview";
+              return (
+                <div key={c.id} className="p-3 flex items-center justify-between gap-3 opacity-70" style={whiteCard}>
+                  <div className="min-w-0">
+                    <h3 className="font-medium truncate text-sm" style={{ color: TEXT_DARK }}>{applicantName}</h3>
+                    {start && <p className="text-xs" style={{ color: MUTED_DARK_40 }}>{formatEt(start)}</p>}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ backgroundColor: `${statusColor}15`, color: statusColor }}
+                    >
+                      <Icon className="w-3 h-3" />
+                      {status}
+                    </span>
+                    <button
+                      onClick={() => handleDelete(c)}
+                      disabled={deletingId === c.id}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                      style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
+                    >
+                      {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
           )}
-        </>
+        </div>
       )}
     </div>
   );
