@@ -36,9 +36,10 @@ Deno.serve(async (req) => {
       for (const conf of existingList) {
         if (conf.id === conferenceId) continue; // skip self
         if (!conf.scheduled_date || !conf.scheduled_time) continue;
-        // AI interviews can run concurrently (Ashley handles parallel sessions);
-        // only block overlaps involving a human interview.
-        if (confMode === 'ai' && (conf.interview_mode || 'human') === 'ai') continue;
+        // AI interviews run themselves (Ashley), so they never conflict with
+        // a human interview or another AI interview. Only block when BOTH the
+        // rescheduled and existing interviews are human.
+        if (confMode === 'ai' || (conf.interview_mode || 'human') === 'ai') continue;
         const [cy, cm, cd] = conf.scheduled_date.split('-').map(Number);
         const [ch, cmi] = conf.scheduled_time.split(':').map(Number);
         const cStart = new Date(Date.UTC(cy, cm - 1, cd, ch, cmi));

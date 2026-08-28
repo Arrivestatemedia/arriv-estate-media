@@ -35,8 +35,9 @@ export default function RescheduleInterviewModal({ conference, onClose, onResche
     const found = existingConfs.find(conf => {
       if (conf.id === conference?.id) return false; // exclude self
       if (!conf.scheduled_date || !conf.scheduled_time) return false;
-      // AI interviews can run concurrently; only block overlaps involving a human interview.
-      if (confMode === "ai" && (conf.interview_mode || "human") === "ai") return false;
+      // AI interviews run themselves, so they never conflict with a human or
+      // another AI interview. Only block when BOTH are human.
+      if (confMode === "ai" || (conf.interview_mode || "human") === "ai") return false;
       const [cy, cm, cd] = conf.scheduled_date.split('-').map(Number);
       const [ch, cmi] = conf.scheduled_time.split(':').map(Number);
       const cStart = new Date(Date.UTC(cy, cm - 1, cd, ch, cmi));
