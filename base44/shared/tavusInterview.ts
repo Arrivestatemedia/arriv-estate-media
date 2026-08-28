@@ -26,20 +26,31 @@ export function getCallbackUrl() {
 }
 
 /**
- * Build the recording properties for the Tavus API.
- * Returns { auto_start_recording, recording_storage } when S3 is configured,
- * or null when server-side recording is not set up (local MediaRecorder is
- * used as a fallback in that case).
+ * Build conversation properties for the Tavus API.
+ * Always includes timeout settings (participant_left_timeout, etc.) so
+ * temporary disconnects don't end the conversation. Adds recording config
+ * when S3 storage is configured.
  */
-function buildRecordingProperties(): Record<string, any> | null {
-  // Uses the shared helper which normalizes the AWS region
-  // (handles "US East (Ohio) us-east-2" → "us-east-2").
+function buildConversationProperties(): Record<string, any> {
+  // Start with recording config (if S3 storage is set up).
   const storage = getRecordingStorageConfig();
-  if (!storage) return null;
-  return {
-    auto_start_recording: true,
-    recording_storage: storage,
+  const props: Record<string, any> = {
+    // Keep the conversation alive for 5 minutes after the participant leaves
+    // so that a dropped/reconnected candidate rejoins the SAME conversation
+    // (resuming the interview) instead of triggering a brand-new one.
+    // Without this, Tavus uses its default short timeout, ends the
+    // conversation before the candidate can rejoin, and the next
+    // createTavusInterviewConversation call creates a fresh conversation
+    // that restarts the interview from the beginning.
+    participant_left_timeout: 300,   // 5 minutes
+    participant_absent_timeout: 300, // 5 minutes before anyone joins
+    max_call_duration: 3600,        // 1 hour max interview
   };
+  if (storage) {
+    props.auto_start_recording = true;
+    props.recording_storage = storage;
+  }
+  return props;
 }
 
 /** Create a new Tavus CVI conversation. */
@@ -70,13 +81,9 @@ export async function createTavusConversation(opts: {
     body.memory_stores = [opts.memoryStore];
   }
 
-  // Enable Tavus server-side recording when S3 storage is configured.
-  // This is the primary failsafe — recordings are written directly to our S3
-  // bucket by Tavus, independent of the candidate's browser state.
-  const recordingProps = buildRecordingProperties();
-  if (recordingProps) {
-    body.properties = recordingProps;
-  }
+  // Conversation properties: recording (when S3 is configured) + timeout
+  // settings that keep the conversation alive during temporary disconnects.
+  body.properties = buildConversationProperties();
 
   const res = await fetch(`${TAVUS_API_BASE}/conversations`, {
     method: "POST",
