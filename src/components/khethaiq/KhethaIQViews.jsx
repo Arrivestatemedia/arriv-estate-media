@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX, Play } from "lucide-react";
+import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX, Play, FileAudio } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ConvertToAiButton from "@/components/interviews/ConvertToAiButton";
 import ConvertToHumanButton from "@/components/interviews/ConvertToHumanButton";
@@ -143,6 +143,7 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
   const [loading, setLoading] = useState(true);
   const [disqualifyingId, setDisqualifyingId] = useState(null);
   const [loadingRecRoom, setLoadingRecRoom] = useState(null);
+  const [generatingScorecardId, setGeneratingScorecardId] = useState(null);
 
   const loadInterviews = async () => {
     try {
@@ -205,6 +206,24 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
       }
     } else {
       window.open(fileUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleGenerateScorecard = async (conference) => {
+    setGeneratingScorecardId(conference.id);
+    try {
+      const res = await base44.functions.invoke("parseRecordingToScorecard", { conferenceId: conference.id });
+      if (res?.error) throw new Error(res.error);
+      if (res.saved) {
+        toast({ title: "Scorecard generated", description: `Auto-scorecard saved (score: ${Math.round(res.total_score)}/100). ${res.all_answered ? "All questions answered." : "Some questions were not answered."}` });
+      } else if (res.review_required) {
+        toast({ title: "Scorecard needs review", description: `Confidence: ${Math.round(res.confidence * 100)}%. The scorecard was saved but requires human review.`, variant: "default" });
+      }
+      await loadInterviews();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Scorecard generation failed", description: err.message || "Unknown error" });
+    } finally {
+      setGeneratingScorecardId(null);
     }
   };
 
@@ -272,6 +291,17 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                     </button>
                   )}
                   <button
+                    onClick={() => handleGenerateScorecard(c)}
+                    disabled={generatingScorecardId === c.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: "transparent", color: GOLD, border: "1px solid rgba(184,149,106,0.4)" }}
+                  >
+                    {generatingScorecardId === c.id
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <FileAudio className="w-3.5 h-3.5" />}
+                    Generate Scorecard
+                  </button>
+                  <button
                     onClick={() => onOpenQuestionnaire?.(c)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                     style={{ backgroundColor: GOLD, color: "#1A1A1A" }}
@@ -289,6 +319,16 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                       {disqualifyingId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
                       Disqualify
                     </button>
+                  )}
+                  {c.tavus_scorecard_saved && (
+                    <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>
+                      ✓ Scorecard
+                    </span>
+                  )}
+                  {c.tavus_review_required && !c.tavus_scorecard_saved && (
+                    <span className="text-xs px-2 py-0.5 rounded" style={{ border: "1px solid rgba(184,149,106,0.3)", color: MUTED_DARK_70 }}>
+                      Needs Review
+                    </span>
                   )}
                   <span className="text-xs px-2 py-0.5 rounded capitalize" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>
                     {c.status || "scheduled"}
