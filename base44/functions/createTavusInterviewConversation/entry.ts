@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { createTavusConversation, getTavusConversation } from "../../shared/tavusInterview.ts";
+import { createTavusConversation, getTavusConversation, endTavusConversation } from "../../shared/tavusInterview.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -41,6 +41,11 @@ Deno.serve(async (req) => {
             reused: true,
           });
         }
+        // Conversation exists but is ended/stale — end it server-side to free
+        // up the concurrent conversation slot before creating a new one.
+        try {
+          await endTavusConversation(conference.tavus_conversation_id);
+        } catch (_) {}
       } catch (e) {
         console.warn("Failed to check existing conversation, creating new:", e.message);
       }
