@@ -54,6 +54,11 @@ export default function TavusInterviewPanel({
   // Without this, onClose() unloads the page and the browser cancels the upload.
   const finalUploadPromiseRef = useRef(Promise.resolve());
   const stopResolveRef = useRef(null);
+  // Auto-reconnect: if the Daily call drops unexpectedly, we attempt to
+  // rejoin (reusing or creating a new Tavus conversation) instead of giving
+  // up and ending the interview.
+  const MAX_RECONNECT_ATTEMPTS = 3;
+  const reconnectAttemptsRef = useRef(0);
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -79,6 +84,7 @@ export default function TavusInterviewPanel({
   const [recordingNoticeDismissed, setRecordingNoticeDismissed] = useState(false);
   const [uploadingRecording, setUploadingRecording] = useState(false);
   const [isSavingRecording, setIsSavingRecording] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   // ─── Camera init (same as VideoCallPanelV2) ──────────────────────────────
   useEffect(() => {
@@ -386,6 +392,93 @@ export default function TavusInterviewPanel({
     }
   }, [startRecording]);
 
+  // Auto-reconnect ref — lets setupCallListeners reference attemptReconnect
+  // without a circular useCallback dependency.
+  const attemptReconnectRef = useRef(null);
+
+  // Wire Daily event listeners on a call object. Shared by the initial join
+  // and auto-reconnect so both behave identically.
+  const setupCallListeners = useCallback((call) => {
+    call.on("participant-joined", renderRemoteVideo);
+    call.on("participant-updated", renderRemoteVideo);
+    call.on("participant-left", () => {
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      setHasRemoteVideo(false);
+    });
+    call.on("left-meeting", () => {
+      // Explicit end (user hung up) — isEndingRef is set before leave()
+      if (isEndingRef.current) { updateCallState("idle"); return; }
+      // Unexpected drop while connected — auto-reconnect instead of giving up.
+      // Flush the current recording segment so partial footage survives, then
+      // rejoin. The recording restarts when the new remote video arrives.
+      if (callStateRef.current === "connected" || callStateRef.current === "reconnecting") {
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+        setHasRemoteVideo(false);
+        recordingStartedRef.current = false;
+        stopRecording();
+        if (callRef.current) {
+          try { callRef.current.destroy(); } catch (_) {}
+          callRef.current = null;
+        }
+        attemptReconnectRef.current?.();
+      } else {
+        updateCallState("idle");
+      }
+    });
+    call.on("error", (e) => {
+      console.error("Daily error:", e);
+      setError("Connection error: " + (e?.errorMsg || "Unknown"));
+    });
+  }, [renderRemoteVideo, stopRecording, updateCallState]);
+
+  // Auto-reconnect after an unexpected call drop. Reuses the active Tavus
+  // conversation if still live, otherwise creates a new one — automating the
+  // recovery that previously had to be done manually (the incident: first
+  // conversation ended mid-question, a new one was created 3 min later,
+  // leaving an unrecoverable gap). This resumes the interview within seconds.
+  const attemptReconnect = useCallback(async () => {
+    if (isEndingRef.current) return;
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      setIsReconnecting(false);
+      stopRecording();
+      base44.functions.invoke("endTavusInterview", { roomName }).catch(() => {});
+      updateCallState("ended");
+      return;
+    }
+    reconnectAttemptsRef.current += 1;
+    const attempt = reconnectAttemptsRef.current;
+    setIsReconnecting(true);
+    updateCallState("reconnecting");
+    try {
+      const res = await base44.functions.invoke("createTavusInterviewConversation", { roomName });
+      const data = res?.data || res;
+      if (data?.status !== "success" || !data.conversationUrl) {
+        throw new Error(data?.error || "Reconnect failed");
+      }
+      const call = DailyIframe.createCallObject();
+      callRef.current = call;
+      setupCallListeners(call);
+      await call.join({
+        url: data.conversationUrl,
+        token: data.meetingToken,
+        userName: currentUserName || "Guest",
+        startVideoOff: false,
+        startAudioOff: false,
+      });
+      updateCallState("connected");
+      reconnectAttemptsRef.current = 0;
+      setIsReconnecting(false);
+      setTimeout(renderRemoteVideo, 500);
+    } catch (err) {
+      console.error(`Reconnect attempt ${attempt} failed:`, err);
+      // Exponential backoff: 2s, 4s, 8s before the next attempt
+      setTimeout(() => attemptReconnectRef.current?.(), 2000 * Math.pow(2, attempt - 1));
+    }
+  }, [roomName, currentUserName, renderRemoteVideo, setupCallListeners, stopRecording, updateCallState]);
+
+  // Keep the ref current so setupCallListeners can call the latest reconnect
+  useEffect(() => { attemptReconnectRef.current = attemptReconnect; }, [attemptReconnect]);
+
   // ─── Start call ──────────────────────────────────────────────────────────
   const handleStartCall = useCallback(async () => {
     updateCallState("calling");
@@ -401,39 +494,7 @@ export default function TavusInterviewPanel({
       const call = DailyIframe.createCallObject();
       callRef.current = call;
 
-      call.on("participant-joined", renderRemoteVideo);
-      call.on("participant-updated", renderRemoteVideo);
-      call.on("participant-left", () => {
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-        setHasRemoteVideo(false);
-      });
-      call.on("left-meeting", () => {
-        // The meeting ended — either the user left, Tavus ended the
-        // conversation, or a network drop disconnected us. If we were
-        // connected, treat this as an unexpected end: stop the recording
-        // (which flushes + uploads the final segment), clean up the call
-        // object, and show an ended state. Do NOT silently reset to idle
-        // (that would show a confusing "Join Call" button and leave the
-        // recorder running in the background).
-        if (callStateRef.current === "connected") {
-          stopRecording();
-          if (callRef.current) {
-            try { callRef.current.destroy(); } catch (_) {}
-            callRef.current = null;
-          }
-          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-          recordingStartedRef.current = false;
-          // End the Tavus conversation server-side so it doesn't linger
-          base44.functions.invoke("endTavusInterview", { roomName }).catch(() => {});
-          updateCallState("ended");
-        } else {
-          updateCallState("idle");
-        }
-      });
-      call.on("error", (e) => {
-        console.error("Daily error:", e);
-        setError("Connection error: " + (e?.errorMsg || "Unknown"));
-      });
+      setupCallListeners(call);
 
       await call.join({
         url: data.conversationUrl,
@@ -444,6 +505,7 @@ export default function TavusInterviewPanel({
       });
 
       updateCallState("connected");
+      reconnectAttemptsRef.current = 0;
       setTimeout(renderRemoteVideo, 500);
     } catch (err) {
       console.error("Call start error:", err);
@@ -452,7 +514,7 @@ export default function TavusInterviewPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [roomName, currentUserName, renderRemoteVideo, updateCallState]);
+  }, [roomName, currentUserName, renderRemoteVideo, setupCallListeners, updateCallState]);
 
   // ─── Mic / Video toggles ──────────────────────────────────────────────────
   const toggleMic = useCallback(() => {
@@ -473,6 +535,9 @@ export default function TavusInterviewPanel({
   const handleEndCall = useCallback(async () => {
     // Stop recording first (triggers upload in onstop handler)
     stopRecording();
+    // Cancel any in-flight auto-reconnect
+    setIsReconnecting(false);
+    reconnectAttemptsRef.current = MAX_RECONNECT_ATTEMPTS;
     // Wait for the final segment upload to finish before closing — otherwise
     // onClose() unloads the page and the browser cancels the in-flight upload,
     // so no recording is ever saved.
@@ -521,10 +586,12 @@ export default function TavusInterviewPanel({
             <p className="text-white font-semibold text-sm leading-tight">{recipientName || "Video Call"}</p>
             <p className={`text-xs leading-tight ${
               callState === "connected" ? "text-green-400" :
-              callState === "calling"   ? "text-yellow-400" : "text-gray-400"
+              callState === "calling"   ? "text-yellow-400" :
+              callState === "reconnecting" ? "text-yellow-400" : "text-gray-400"
             }`}>
               {callState === "connected" ? "● Connected" :
-               callState === "calling"   ? "● Connecting..." : "● Preview"}
+               callState === "calling"   ? "● Connecting..." :
+               callState === "reconnecting" ? "● Reconnecting..." : "● Preview"}
             </p>
           </div>
         </div>
@@ -613,6 +680,19 @@ export default function TavusInterviewPanel({
               <h3 className="text-white text-lg font-semibold mb-2">Saving recording…</h3>
               <p className="text-gray-400 text-sm">
                 Please wait while your interview recording is uploaded. Closing now will lose the recording.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Reconnecting overlay — shown during auto-reconnect after a drop */}
+        {isReconnecting && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 z-[12] px-6">
+            <div className="max-w-md text-center">
+              <div className="w-12 h-12 rounded-full border-4 border-yellow-500 border-t-transparent animate-spin mx-auto mb-4" />
+              <h3 className="text-white text-lg font-semibold mb-2">Reconnecting…</h3>
+              <p className="text-gray-400 text-sm">
+                The connection dropped. Rejoining the interview automatically — please wait.
               </p>
             </div>
           </div>
