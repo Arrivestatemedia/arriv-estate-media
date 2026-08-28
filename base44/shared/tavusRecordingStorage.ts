@@ -41,7 +41,10 @@ export function isRecordingConfigured(): boolean {
  * Uses the ArrivRecordingReader IAM user credentials.
  * URL is valid for 7 days (604800 seconds — the max for IAM user presigned URLs).
  */
-export async function generatePresignedS3Url(s3Key: string): Promise<string> {
+export async function generatePresignedS3Url(
+  s3Key: string,
+  opts?: { responseContentType?: string; responseContentDisposition?: string },
+): Promise<string> {
   const { S3Client, GetObjectCommand } = await import("npm:@aws-sdk/client-s3@3.620.0");
   const { getSignedUrl } = await import("npm:@aws-sdk/s3-request-presigner@3.620.0");
 
@@ -58,7 +61,10 @@ export async function generatePresignedS3Url(s3Key: string): Promise<string> {
     credentials: { accessKeyId, secretAccessKey },
   });
 
-  const command = new GetObjectCommand({ Bucket: bucket, Key: s3Key });
+  const commandInput: any = { Bucket: bucket, Key: s3Key };
+  if (opts?.responseContentType) commandInput.ResponseContentType = opts.responseContentType;
+  if (opts?.responseContentDisposition) commandInput.ResponseContentDisposition = opts.responseContentDisposition;
+  const command = new GetObjectCommand(commandInput);
   return getSignedUrl(client, command, { expiresIn: 604800 });
 }
 
@@ -71,4 +77,95 @@ export function parseS3Key(storageUriOrKey: string): string {
     return slashIdx >= 0 ? withoutProtocol.slice(slashIdx + 1) : "";
   }
   return storageUriOrKey;
+}
+
+/**
+ * Download an S3 object as a Blob by streaming its body in chunks.
+ * More memory-efficient than fetch(presignedUrl).blob() for large files.
+ * Throws if the object exceeds maxBytes.
+ */
+export async function downloadS3ObjectAsBlob(s3Key: string, maxBytes = 25 * 1024 * 1024): Promise<Blob> {
+  const { S3Client, GetObjectCommand } = await import("npm:@aws-sdk/client-s3@3.620.0");
+
+  const bucket = Deno.env.get("AWS_S3_BUCKET");
+  const region = normalizeRegion(Deno.env.get("AWS_S3_REGION") || "");
+  const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
+  const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
+  if (!bucket || !region || !accessKeyId || !secretAccessKey) {
+    throw new Error("AWS S3 credentials not configured");
+  }
+
+  const client = new S3Client({
+    region,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+
+  const response: any = await client.send(new GetObjectCommand({ Bucket: bucket, Key: s3Key }));
+  const stream = response.Body;
+  if (!stream) throw new Error("S3 object has no body");
+
+  // Collect chunks
+  const chunks: Uint8Array[] = [];
+  let totalSize = 0;
+  for await (const chunk of stream) {
+    const bytes = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+    totalSize += bytes.length;
+    if (totalSize > maxBytes) {
+      throw new Error(`Recording exceeds ${Math.round(maxBytes / 1024 / 1024)}MB and cannot be transcribed (Whisper limit)`);
+    }
+    chunks.push(bytes);
+  }
+
+  return new Blob(chunks, { type: response.ContentType || "video/mp4" });
+}
+
+/**
+ * Ensure an S3 object has a recognizable file extension by copying it to a
+ * new key with the given extension (server-side S3 copy — no download), then
+ * return a presigned URL for the new key. Used so Whisper (TranscribeAudio)
+ * can detect the audio format from the URL path.
+ *
+ * If the original key already ends with the extension, just presign it.
+ * If the copied key already exists, the copy is skipped (idempotent).
+ */
+export async function ensureExtensionAndPresign(s3Key: string, ext: string): Promise<string> {
+  const { S3Client, HeadObjectCommand, CopyObjectCommand, GetObjectCommand } = await import("npm:@aws-sdk/client-s3@3.620.0");
+  const { getSignedUrl } = await import("npm:@aws-sdk/s3-request-presigner@3.620.0");
+
+  const bucket = Deno.env.get("AWS_S3_BUCKET");
+  const region = normalizeRegion(Deno.env.get("AWS_S3_REGION") || "");
+  const accessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
+  const secretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
+  if (!bucket || !region || !accessKeyId || !secretAccessKey) {
+    throw new Error("AWS S3 credentials not configured");
+  }
+
+  const client = new S3Client({
+    region,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+
+  const extWithDot = ext.startsWith(".") ? ext : `.${ext}`;
+  if (s3Key.toLowerCase().endsWith(extWithDot.toLowerCase())) {
+    return getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key: s3Key }), { expiresIn: 604800 });
+  }
+
+  const newKey = `${s3Key}${extWithDot}`;
+
+  // Check if the extended key already exists (idempotent)
+  let exists = false;
+  try {
+    await client.send(new HeadObjectCommand({ Bucket: bucket, Key: newKey }));
+    exists = true;
+  } catch (_) { exists = false; }
+
+  if (!exists) {
+    await client.send(new CopyObjectCommand({
+      Bucket: bucket,
+      Key: newKey,
+      CopySource: `${bucket}/${s3Key}`,
+    }));
+  }
+
+  return getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key: newKey }), { expiresIn: 604800 });
 }

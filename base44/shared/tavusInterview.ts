@@ -202,6 +202,19 @@ Return a JSON object with an "answers" array. Each answer has: question_id, answ
   });
 
   const answers = (llmRes as any)?.answers || (llmRes as any)?.data?.answers || [];
+  return buildScorecardFromAnswers(answers, candidateName, "Auto-generated from Tavus AI interview transcript.");
+}
+
+/**
+ * Build a Round 1 scorecard from an array of parsed answers.
+ * Shared by the transcript parser and the plain-text (recording) parser.
+ * Returns { scorecard, confidence, review_required, all_answered }.
+ */
+export function buildScorecardFromAnswers(
+  answers: any[],
+  candidateName: string | undefined,
+  overallNotesPrefix: string,
+) {
   const answeredCount = answers.filter((a: any) => a.answered).length;
   const avgConfidence = answers.length > 0
     ? answers.reduce((sum: number, a: any) => sum + (a.confidence || 0), 0) / answers.length
@@ -254,10 +267,72 @@ Return a JSON object with an "answers" array. Each answer has: question_id, answ
       total_score: Math.round(totalScore * 10) / 10,
       recommendation: "",
       interviewer_confidence: "AI Interviewer",
-      overall_notes: `Auto-generated from Tavus AI interview transcript. ${answeredCount}/${ROUND1_QUESTIONS_FOR_LLM.length} questions answered.`,
+      overall_notes: `${overallNotesPrefix} ${answeredCount}/${ROUND1_QUESTIONS_FOR_LLM.length} questions answered.`,
     },
     confidence: Math.round(avgConfidence * 100) / 100,
     review_required: reviewRequired,
     all_answered: allAnswered,
   };
+}
+
+/**
+ * Parse a plain-text transcript (e.g. from Whisper speech-to-text on an
+ * uploaded recording) into a Round 1 scorecard. Unlike parseTranscriptToScorecard,
+ * the input has no speaker-role tags, so the LLM must distinguish the
+ * interviewer's questions from the candidate's answers itself.
+ * Returns { scorecard, confidence, review_required, all_answered }.
+ */
+export async function parsePlainTextToScorecard(base44: any, transcriptText: string, candidateName?: string) {
+  const trimmed = (transcriptText || "").trim();
+  if (!trimmed) {
+    return { scorecard: null, confidence: 0, review_required: true, all_answered: false };
+  }
+
+  const questionsList = ROUND1_QUESTIONS_FOR_LLM.map(q => `- ${q.id} (${q.section}): ${q.question}`).join("\n");
+
+  const prompt = `You are an expert hiring analyst. Below is a raw speech-to-text transcript of a job interview. The transcript has NO speaker labels — it contains both the interviewer's questions and the candidate's answers mixed together. Your job is to identify which of the standard Round 1 questions were asked, and extract the candidate's spoken answers.
+
+RULES:
+- Identify the interviewer's questions and match them to the standard question list below by meaning (not exact wording).
+- Only use the CANDIDATE's spoken words as answers. Do NOT use the interviewer's prompts or paraphrasing as the answer.
+- Do NOT fabricate, embellish, or infer answers that weren't given. If a question was not asked or not answered, set "answered" to false and leave "answer" empty.
+- For each answered question, provide a confidence score (0-1) on how well the transcript supports the answer.
+- Provide a rating (1-5) for each answered question based on the quality of the answer. Use 0 if not answered.
+- Keep "source_excerpt" as a direct quote from the transcript (max 200 chars).
+
+STANDARD QUESTIONS:
+${questionsList}
+
+RAW TRANSCRIPT:
+${trimmed}
+
+Return a JSON object with an "answers" array. Each answer has: question_id, answered (boolean), answer (string), rating (0-5), confidence (0-1), source_excerpt (string). Include an entry for EVERY question in the standard list.`;
+
+  const schema = {
+    type: "object",
+    properties: {
+      answers: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            question_id: { type: "string" },
+            answered: { type: "boolean" },
+            answer: { type: "string" },
+            rating: { type: "number" },
+            confidence: { type: "number" },
+            source_excerpt: { type: "string" },
+          },
+        },
+      },
+    },
+  };
+
+  const llmRes = await base44.integrations.Core.InvokeLLM({
+    prompt,
+    response_json_schema: schema,
+  });
+
+  const answers = (llmRes as any)?.answers || (llmRes as any)?.data?.answers || [];
+  return buildScorecardFromAnswers(answers, candidateName, "Auto-generated from uploaded interview recording transcript.");
 }

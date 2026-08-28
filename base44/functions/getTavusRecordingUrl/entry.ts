@@ -12,14 +12,14 @@ import { generatePresignedS3Url, parseS3Key } from "../../shared/tavusRecordingS
 Deno.serve(async (req) => {
   try {
     const body = await req.json();
-    const { storageUri, s3Key } = body;
+    const { storageUri, s3Key, responseContentType, responseContentDisposition } = body;
 
     const key = s3Key || parseS3Key(storageUri);
     if (!key) {
       return Response.json({ error: "storageUri or s3Key is required" }, { status: 400 });
     }
 
-    const url = await generatePresignedS3Url(key);
+    const url = await generatePresignedS3Url(key, { responseContentType, responseContentDisposition });
 
     return Response.json({ url });
   } catch (error) {
