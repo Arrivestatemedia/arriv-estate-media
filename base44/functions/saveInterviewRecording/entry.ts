@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { roomName, recordingUrl, durationSeconds, fileSize, recordingStarted, failed } = body;
+    const { roomName, recordingUrl, durationSeconds, fileSize, recordingStarted, failed, segment } = body;
 
     if (!roomName) {
       return Response.json({ error: "roomName is required" }, { status: 400 });
@@ -85,11 +85,21 @@ Deno.serve(async (req) => {
     }
 
     // 1. Update Conference with recording URL
-    await base44.asServiceRole.entities.Conference.update(conference.id, {
-      recording_url: recordingUrl,
-      recording_status: "ready",
-      recording_duration_seconds: durationSeconds || null,
-    });
+    //    First segment becomes the primary; subsequent segments are appended as
+    //    additional parts (don't overwrite the primary recording_url).
+    const segNum = typeof segment === "number" ? segment : 1;
+    if (segNum === 1) {
+      await base44.asServiceRole.entities.Conference.update(conference.id, {
+        recording_url: recordingUrl,
+        recording_status: "ready",
+        recording_duration_seconds: durationSeconds || null,
+      });
+    } else {
+      await base44.asServiceRole.entities.Conference.update(conference.id, {
+        recording_status: "ready",
+        recording_duration_seconds: durationSeconds || null,
+      });
+    }
 
     // 2. Create a VideoRecording record (only if one doesn't already exist for this URL)
     try {
@@ -130,10 +140,11 @@ Deno.serve(async (req) => {
 
           const alreadyHasLocal = existingDocs.some(d => d?.url === recordingUrl);
           if (!alreadyHasLocal) {
+            const partLabel = segNum > 1 ? ` (Part ${segNum})` : "";
             newDocs.push({
               type: "interview_recording",
               url: recordingUrl,
-              label: `Interview Recording${durationSeconds ? ` (${Math.floor(durationSeconds / 60)}:${String(durationSeconds % 60).padStart(2, "0")})` : ""}`,
+              label: `Interview Recording${partLabel}${durationSeconds ? ` (${Math.floor(durationSeconds / 60)}:${String(durationSeconds % 60).padStart(2, "0")})` : ""}`,
               conference_id: conference.id,
               created_at: new Date().toISOString(),
             });

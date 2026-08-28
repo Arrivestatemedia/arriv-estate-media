@@ -29,11 +29,18 @@ export default function TavusInterviewPanel({
 
   // Recording refs
   const mediaRecorderRef = useRef(null);
-  const recordingChunksRef = useRef([]);
   const recordingStartTimeRef = useRef(0);
   const audioContextRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const recordingStartedRef = useRef(false);
+  // Chunked recording: segments upload during the call so no single file is
+  // too large and partial recordings survive a call drop.
+  const SEGMENT_DURATION_MS = 3 * 60 * 1000; // 3 minutes per segment
+  const segmentNumberRef = useRef(0);
+  const segmentUrlsRef = useRef([]);
+  const segmentTimeoutRef = useRef(null);
+  const recordingTracksRef = useRef(null);
+  const isEndingRef = useRef(false);
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -77,6 +84,76 @@ export default function TavusInterviewPanel({
     };
   }, []);
 
+  // ─── Upload a single segment ──────────────────────────────────────────────
+  const uploadSegment = useCallback(async (blob, segmentNum, durationSecs) => {
+    if (blob.size === 0) { console.warn(`Segment ${segmentNum} was empty`); return; }
+    setUploadingRecording(true);
+    try {
+      const file = new File(
+        [blob],
+        `ai-interview-${roomName}-part${segmentNum}-${Date.now()}.webm`,
+        { type: "video/webm" }
+      );
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      segmentUrlsRef.current.push(file_url);
+      await base44.functions.invoke("saveInterviewRecording", {
+        roomName,
+        recordingUrl: file_url,
+        durationSeconds: durationSecs,
+        fileSize: blob.size,
+        segment: segmentNum,
+      });
+    } catch (err) {
+      console.error(`Segment ${segmentNum} upload failed:`, err);
+      // Mark the conference so the admin knows a segment failed
+      base44.functions.invoke("saveInterviewRecording", { roomName, failed: true }).catch(() => {});
+    } finally {
+      setUploadingRecording(false);
+    }
+  }, [roomName]);
+
+  // ─── Start one recording segment ──────────────────────────────────────────
+  const startSegment = useCallback((segmentNum) => {
+    const tracks = recordingTracksRef.current;
+    if (!tracks || tracks.length === 0 || isEndingRef.current) return;
+
+    let mimeType = "video/webm;codecs=vp8,opus";
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
+
+    let recorder;
+    try {
+      recorder = new MediaRecorder(new MediaStream(tracks), { mimeType });
+    } catch (err) {
+      console.error("Failed to create MediaRecorder:", err);
+      return;
+    }
+
+    const chunks = [];
+    const segStartTime = Date.now();
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = async () => {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const segDuration = Math.round((Date.now() - segStartTime) / 1000);
+      await uploadSegment(blob, segmentNum, segDuration);
+      // Start the next segment unless the call is ending
+      if (!isEndingRef.current) {
+        startSegment(segmentNum + 1);
+      }
+    };
+
+    recorder.start(1000);
+    mediaRecorderRef.current = recorder;
+    segmentNumberRef.current = segmentNum;
+
+    // Stop this segment after SEGMENT_DURATION_MS — onstop will start the next one
+    if (segmentTimeoutRef.current) clearTimeout(segmentTimeoutRef.current);
+    segmentTimeoutRef.current = setTimeout(() => {
+      if (recorder.state === "recording") {
+        try { recorder.stop(); } catch (_) {}
+      }
+    }, SEGMENT_DURATION_MS);
+  }, [uploadSegment]);
+
   // ─── Start recording (auto, when remote video arrives) ────────────────────
   const startRecording = useCallback((remoteVideoTrack, remoteAudioTrack) => {
     const tracks = [];
@@ -103,71 +180,33 @@ export default function TavusInterviewPanel({
 
     if (tracks.length === 0) { console.warn("No media tracks to record"); return; }
 
-    const stream = new MediaStream(tracks);
-    let mimeType = "video/webm;codecs=vp8,opus";
-    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
-    const recorder = new MediaRecorder(stream, { mimeType });
-    recordingChunksRef.current = [];
-
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) recordingChunksRef.current.push(e.data); };
-    recorder.onstop = async () => {
-      const blob = new Blob(recordingChunksRef.current, { type: "video/webm" });
-      const secs = Math.round((Date.now() - recordingStartTimeRef.current) / 1000);
-      if (audioContextRef.current) { try { audioContextRef.current.close(); } catch (_) {} audioContextRef.current = null; }
-      mediaRecorderRef.current = null;
-      recordingChunksRef.current = [];
-      setIsRecording(false);
-      if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
-      setRecordingTime(0);
-
-      if (blob.size === 0) { console.warn("Recording was empty"); return; }
-
-      // Upload recording to our storage
-      setUploadingRecording(true);
-      try {
-        const MAX_CLOUD_SIZE = 50 * 1024 * 1024;
-        if (blob.size > MAX_CLOUD_SIZE) {
-          console.warn("Recording too large for cloud upload, skipping");
-          return;
-        }
-        const file = new File([blob], `ai-interview-${roomName}-${Date.now()}.webm`, { type: "video/webm" });
-        const uploadWithTimeout = (f) => new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("Upload timed out")), 60000);
-          base44.integrations.Core.UploadFile({ file: f })
-            .then(res => { clearTimeout(timer); resolve(res); })
-            .catch(err => { clearTimeout(timer); reject(err); });
-        });
-        const { file_url } = await uploadWithTimeout(file);
-        // Save to Conference + HireCandidate via backend
-        await base44.functions.invoke("saveInterviewRecording", {
-          roomName,
-          recordingUrl: file_url,
-          durationSeconds: secs,
-          fileSize: blob.size,
-        });
-      } catch (err) {
-        console.error("Recording upload failed:", err);
-      } finally {
-        setUploadingRecording(false);
-      }
-    };
-
-    recorder.start(1000);
-    mediaRecorderRef.current = recorder;
+    recordingTracksRef.current = tracks;
+    isEndingRef.current = false;
+    segmentUrlsRef.current = [];
     recordingStartTimeRef.current = Date.now();
     setIsRecording(true);
     setRecordingTime(0);
     recordingTimerRef.current = setInterval(() => {
       setRecordingTime(Math.floor((Date.now() - recordingStartTimeRef.current) / 1000));
     }, 1000);
-  }, [roomName]);
+
+    startSegment(1);
+  }, [startSegment]);
 
   // ─── Stop recording ──────────────────────────────────────────────────────
   const stopRecording = useCallback(() => {
+    isEndingRef.current = true;
+    if (segmentTimeoutRef.current) { clearTimeout(segmentTimeoutRef.current); segmentTimeoutRef.current = null; }
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       try { mediaRecorderRef.current.stop(); } catch (_) {}
     }
-    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    setIsRecording(false);
+    setRecordingTime(0);
+    if (audioContextRef.current) {
+      try { audioContextRef.current.close(); } catch (_) {}
+      audioContextRef.current = null;
+    }
   }, []);
 
   // ─── Render remote participant video + start recording ───────────────────
