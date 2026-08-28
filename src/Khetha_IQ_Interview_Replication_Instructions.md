@@ -10,7 +10,7 @@ I need you to implement the following set of changes to our interview system. Th
 
 ### Overview
 
-There are 8 changes total, all made on August 27-28:
+There are 10 changes total, all made on August 27-28:
 
 1. **Stale Tavus conversation cleanup** — automatically end stale Tavus conversations before creating new ones (fixes the "Connection failed: 500" error caused by Tavus concurrent conversation limits)
 2. **Tavus memory_stores for returning candidates** — pass the candidate's email as a stable memory store so the AI interviewer remembers the candidate across interviews
@@ -20,6 +20,8 @@ There are 8 changes total, all made on August 27-28:
 6. **Recording cleanup on session end** — composite canvases, hidden video elements, and composite streams must be properly cleaned up when a call ends
 7. **Tavus callback: PAL-initiated call end + S3 recording handling** — handle `system.shutdown` events and `application.recording_ready` with S3 storage URIs
 8. **Interviews View: S3 recording playback + Convert AI/Human buttons** — the admin Interviews view must resolve `s3://` recording URIs to presigned URLs and show Convert-to-AI/Convert-to-Human buttons
+9. **Sync DOB + resume URL from JobApplication to HireCandidate** — copy `dob` and `portfolio_link` (as `resume_url`) onto the candidate record, with backfill for existing candidates
+10. **Display candidate age + resume in Candidate Detail Panel** — show an "Age {X}" badge calculated from DOB, "View Resume"/"Download" buttons from `resume_url`, and resolve `s3://` recording URIs in candidate documents to presigned URLs
 
 ---
 
@@ -1211,7 +1213,31 @@ function calculateAge(dob) {
 </div>
 ```
 
-#### 10c. Resume buttons in the candidate header (top-right):
+#### 10c. S3 recording playback from candidate documents (add inside the component):
+
+When a candidate's `documents` array contains an interview recording with an `s3://` URL (from Tavus server-side recording), the detail panel must resolve it to a presigned URL via `getTavusRecordingUrl` before opening it. Regular URLs open directly.
+
+```jsx
+const [loadingRecUrl, setLoadingRecUrl] = useState(null);
+
+const handlePlayDocRecording = async (doc) => {
+  const url = doc?.url || "";
+  if (url.startsWith("s3://")) {
+    setLoadingRecUrl(url);
+    try {
+      const res = await base44.functions.invoke("getTavusRecordingUrl", { storageUri: url });
+      const presignedUrl = res?.url || res?.data?.url;
+      if (presignedUrl) window.open(presignedUrl, "_blank", "noopener,noreferrer");
+    } catch (_) {} finally { setLoadingRecUrl(null); }
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+};
+```
+
+Use this handler for any document with `type: "interview_recording"` or `type: "twilio_backup_recording"` in the candidate's `documents` array.
+
+#### 10d. Resume buttons in the candidate header (top-right):
 ```jsx
 {candidate?.resume_url && (
   <div className="flex gap-2">
@@ -1258,7 +1284,7 @@ Make sure the `Conference` entity has these fields:
 | `round1_scorecard` | object | Scorecard result |
 | `scorecard_completed_at` | date-time | When scorecard was completed |
 
-Also needed: `VideoRecording` entity (file_url, duration_seconds, file_size, recorded_by_id, recorded_by_name, participant_name, room_name), `TavusInterviewTranscript` entity, and the `HireCandidate` entity must have `dob` (date) and `resume_url` (string) fields. (file_url, duration_seconds, file_size, recorded_by_id, recorded_by_name, participant_name, room_name) and `TavusInterviewTranscript` entity.
+Also needed: `VideoRecording` entity (file_url, duration_seconds, file_size, recorded_by_id, recorded_by_name, participant_name, room_name), `TavusInterviewTranscript` entity, and the `HireCandidate` entity must have `dob` (date) and `resume_url` (string) fields.
 
 ### Required Secrets
 
@@ -1305,3 +1331,4 @@ After implementing all changes, verify:
 13. **Age display:** Open a candidate with a DOB — an "Age {X}" gold badge should appear next to their status in the detail panel
 14. **Resume buttons:** Open a candidate with a resume_url — "View Resume" and "Download" buttons should appear in the top-right of the detail panel
 15. **DOB/resume sync:** When a new JobApplication is synced to KhethaIQ, the HireCandidate should have `dob` and `resume_url` populated. For existing candidates missing these fields, they should be backfilled on the next sync.
+16. **S3 recording in candidate docs:** Open a candidate whose documents contain an `s3://` interview recording — clicking play should resolve to a presigned URL via `getTavusRecordingUrl` and open in a new tab.

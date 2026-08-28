@@ -10,7 +10,7 @@ I need you to implement the following set of changes to our interview system. Th
 
 ### Overview
 
-There are 6 changes total:
+There are 8 changes total:
 
 1. **Stale Tavus conversation cleanup** — automatically end stale Tavus conversations before creating new ones (fixes the "Connection failed: 500" error caused by Tavus concurrent conversation limits)
 2. **Conference close button fix** — the X / hangup button must work even when the interview page was opened in a new browser tab (from an email link)
@@ -18,6 +18,8 @@ There are 6 changes total:
 4. **Canvas compositing for human interview recordings** — the Twilio human interview recording must show BOTH participants (remote full frame + local PIP)
 5. **Recording cleanup on session end** — composite canvases, hidden video elements, and composite streams must be properly cleaned up when a call ends to prevent memory leaks and ghost recordings
 6. **Tavus memory_stores for returning candidates** — pass the candidate's email as a stable memory store identifier so the AI interviewer (Ashley) remembers the candidate across multiple interviews and proactively welcomes them back
+7. **Sync DOB + resume URL from JobApplication to HireCandidate** — copy `dob` and `portfolio_link` (as `resume_url`) onto the candidate record, with backfill for existing candidates
+8. **Display candidate age + resume in Candidate Detail Panel** — show an "Age {X}" badge calculated from DOB, "View Resume"/"Download" buttons from `resume_url`, and resolve `s3://` recording URIs in candidate documents to presigned URLs
 
 ---
 
@@ -551,6 +553,121 @@ if (eventType === "system.shutdown" || eventType === "system.conversation_ended"
 
 ---
 
+### Change 7: Sync DOB + Resume URL from JobApplication to HireCandidate
+
+**File:** `base44/functions/syncApplicationToKhethaIQ/entry.ts` (or equivalent application-to-candidate sync function)
+
+**Behavior:** When syncing a JobApplication into a local HireCandidate, the function must copy the applicant's date of birth (`dob`) and resume URL (`portfolio_link` → `resume_url`) onto the candidate record. For existing candidates created before these fields were synced, it must backfill them if missing. This enables age display and resume access in the candidate detail panel.
+
+**Key implementation — backfill for existing candidates (add after finding an existing candidate by email):**
+```typescript
+// Backfill dob/resume_url for candidates created before these fields were synced
+const updates = {};
+if (!localCandidate.dob && application.dob) updates.dob = application.dob;
+if (!localCandidate.resume_url && application.portfolio_link) updates.resume_url = application.portfolio_link;
+if (Object.keys(updates).length > 0) {
+  await base44.asServiceRole.entities.HireCandidate.update(localCandidate.id, updates).catch(() => {});
+}
+```
+
+**Key implementation — set on new candidate creation:**
+```typescript
+const newCand = await base44.asServiceRole.entities.HireCandidate.create({
+  job_id: application.job_id || null,
+  name: application.full_name || "",
+  email,
+  phone: application.phone || "",
+  dob: application.dob || null,           // ← date of birth for age display
+  target_role: application.position || "media_specialist",
+  resume_url: application.portfolio_link || "",  // ← resume/portfolio URL
+  shared_person_id: sharedPersonId,
+  // ... resume_text, cover_letter, status, decision, documents ...
+});
+```
+
+**Make sure the `HireCandidate` entity has these fields:**
+- `dob` (string, format: date) — "Candidate date of birth (synced from JobApplication for age display)"
+- `resume_url` (string) — "Uploaded resume file URL"
+
+---
+
+### Change 8: Display Candidate Age + Resume in Candidate Detail Panel
+
+**File:** `src/components/hireiq/CandidateDetailPanel.jsx` (or equivalent candidate detail component)
+
+**Behavior:** The candidate detail panel must display the candidate's age (calculated from DOB) as a badge next to their status, show "View Resume" + "Download" buttons if a `resume_url` exists, and resolve `s3://` recording URIs in candidate documents to presigned URLs for playback.
+
+#### 8a. Age calculation helper (add at top of file, outside the component):
+```jsx
+function calculateAge(dob) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
+```
+
+#### 8b. Age badge in the candidate header (next to status badge):
+```jsx
+<div className="flex items-center gap-2 mt-2">
+  <span className="inline-block text-xs px-2 py-0.5 rounded"
+    style={{ backgroundColor: "#2A2A2A", color: "#FFFBF5" }}>
+    {candidate?.status}
+  </span>
+  {calculateAge(candidate?.dob) != null && (
+    <span className="inline-block text-xs px-2 py-0.5 rounded"
+      style={{ backgroundColor: "rgba(184,149,106,0.15)", color: "#B8956A" }}>
+      Age {calculateAge(candidate.dob)}
+    </span>
+  )}
+</div>
+```
+
+#### 8c. S3 recording playback from candidate documents (add inside the component):
+```jsx
+const [loadingRecUrl, setLoadingRecUrl] = useState(null);
+
+const handlePlayDocRecording = async (doc) => {
+  const url = doc?.url || "";
+  if (url.startsWith("s3://")) {
+    setLoadingRecUrl(url);
+    try {
+      const res = await base44.functions.invoke("getTavusRecordingUrl", { storageUri: url });
+      const presignedUrl = res?.url || res?.data?.url;
+      if (presignedUrl) window.open(presignedUrl, "_blank", "noopener,noreferrer");
+    } catch (_) {} finally { setLoadingRecUrl(null); }
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+};
+```
+
+#### 8d. Resume buttons in the candidate header (top-right):
+```jsx
+{candidate?.resume_url && (
+  <div className="flex gap-2">
+    <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer">
+      <Button variant="outline"
+        style={{ backgroundColor: "transparent", color: "#FFFBF5", border: "1px solid rgba(184,149,106,0.2)" }}>
+        <FileText className="w-4 h-4 mr-2" /> View Resume
+      </Button>
+    </a>
+    <a href={candidate.resume_url} download>
+      <Button variant="outline"
+        style={{ backgroundColor: "transparent", color: "#FFFBF5", border: "1px solid rgba(184,149,106,0.2)" }}>
+        <Download className="w-4 h-4 mr-2" /> Download
+      </Button>
+    </a>
+  </div>
+)}
+```
+
+---
+
 ### Summary of Required Entity Fields
 
 Make sure the `Conference` entity has these fields (they should already exist):
@@ -568,6 +685,17 @@ Make sure the `Conference` entity has these fields (they should already exist):
 - `recording_duration_seconds` (integer)
 - `tavus_recording_storage_uri` (string)
 - `participants` (array of { id, name, email })
+
+Also needed: `HireCandidate` entity must have `dob` (string, date) and `resume_url` (string) fields, and `VideoRecording` entity (file_url, duration_seconds, file_size, recorded_by_id, recorded_by_name, participant_name, room_name).
+
+### Required Backend Functions
+
+- `createTavusInterviewConversation` — creates/reuses Tavus conversations
+- `endTavusInterview` — ends a Tavus conversation server-side
+- `tavusInterviewCallback` — handles Tavus webhooks (recording, transcript, shutdown)
+- `saveInterviewRecording` — saves recording URLs, handles failures, promotes Twilio backup
+- `getTavusRecordingUrl` — generates presigned S3 URLs for Tavus recordings (needed for S3 recording playback in candidate detail panel)
+- `syncApplicationToKhethaIQ` — syncs JobApplication data (including dob + resume_url) to HireCandidate
 
 ### Required Secrets
 
@@ -594,3 +722,7 @@ After implementing all changes, verify:
 6. **Memory:** Join an AI interview as the same candidate twice — Ashley should recognize the returning candidate
 7. **PAL-initiated end:** If Ashley ends the call, the "Call Ended" overlay should appear and the recording should be saved
 8. **Recording cleanup:** After any call ends, check browser DevTools — no orphaned canvas streams or hidden video elements should remain
+9. **Age display:** Open a candidate with a DOB — an "Age {X}" gold badge should appear next to their status in the detail panel
+10. **Resume buttons:** Open a candidate with a resume_url — "View Resume" and "Download" buttons should appear in the top-right of the detail panel
+11. **DOB/resume sync:** When a new JobApplication is synced, the HireCandidate should have `dob` and `resume_url` populated. For existing candidates missing these fields, they should be backfilled on the next sync.
+12. **S3 recording in candidate docs:** Open a candidate whose documents contain an `s3://` interview recording — clicking play should resolve to a presigned URL and open in a new tab.
