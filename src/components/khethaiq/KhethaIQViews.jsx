@@ -321,11 +321,20 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
             const recording = allRecs.find(r => (r.recorded_by_name || "").includes("Stitched")) || allRecs[0] || null;
             // Secondary: the Tavus server-side tail clip (different conversation than
             // any local recording) — surfaces the ending the local recording missed.
+            // Falls back to a synthetic record built from the conference's stored URI
+            // when no dedicated VideoRecording entity was created (dedup skipped it).
             const tailClip = allRecs.find(r =>
               (r.file_url || "").startsWith("s3://") &&
               r.file_url === c.tavus_recording_storage_uri &&
               r.file_url !== recording?.file_url
-            ) || null;
+            ) || (c.tavus_recording_storage_uri && c.tavus_recording_storage_uri !== recording?.file_url
+              ? {
+                  file_url: c.tavus_recording_storage_uri,
+                  room_name: c.room_name,
+                  recorded_by_name: "Tavus AI Interviewer",
+                  participant_name: c.participants?.[0]?.name || c.title,
+                }
+              : null);
             return (
               <div key={`conf-${c.id}`} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={whiteCard}>
                 <div className="min-w-0">
