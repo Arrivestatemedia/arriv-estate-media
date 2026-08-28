@@ -187,6 +187,21 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
       await loadInterviews();
       setLoading(false);
     })();
+    // Realtime: update when a conference's Tavus status changes (applicant joins/leaves)
+    const unsubscribe = base44.entities.Conference.subscribe((event) => {
+      setConferences(prev => {
+        if (!prev) return prev;
+        if (event.type === "delete") return prev.filter(c => c.id !== event.id);
+        const updated = event.data;
+        if (!updated) return prev;
+        const idx = prev.findIndex(c => c.id === updated.id);
+        if (idx === -1) return [updated, ...prev];
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...updated };
+        return next;
+      });
+    });
+    return () => { if (typeof unsubscribe === "function") unsubscribe(); };
   }, []);
 
   const handleDisqualify = async (conference) => {
@@ -377,6 +392,15 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                   {c.tavus_review_required && !c.tavus_scorecard_saved && (
                     <span className="text-xs px-2 py-0.5 rounded" style={{ border: "1px solid rgba(184,149,106,0.3)", color: MUTED_DARK_70 }}>
                       Needs Review
+                    </span>
+                  )}
+                  {c.interview_mode === "ai" && c.tavus_conversation_status === "live" && (
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: "rgba(220,38,38,0.1)", color: "#DC2626", border: "1px solid rgba(220,38,38,0.4)" }}>
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#DC2626" }}></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: "#DC2626" }}></span>
+                      </span>
+                      Live now
                     </span>
                   )}
                   <span className="text-xs px-2 py-0.5 rounded capitalize" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>
