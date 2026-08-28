@@ -139,21 +139,28 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
   const { toast } = useToast();
   const [interviews, setInterviews] = useState([]);
   const [conferences, setConferences] = useState([]);
+  const [recordingsByRoom, setRecordingsByRoom] = useState({});
   const [loading, setLoading] = useState(true);
   const [disqualifyingId, setDisqualifyingId] = useState(null);
 
   const loadInterviews = async () => {
     try {
-      const [ivRes, confRes, candRes] = await Promise.all([
+      const [ivRes, confRes, candRes, recRes] = await Promise.all([
         base44.entities.HireInterview.list("-interview_date", 200),
         base44.entities.Conference.list("-scheduled_date", 200),
         base44.entities.HireCandidate.list("-created_date", 200),
+        base44.entities.VideoRecording.list("-created_date", 200),
       ]);
       const allCandidates = candRes?.data ?? candRes ?? [];
       const archivedIds = new Set(allCandidates.filter(c => c.archived || c.status === "declined").map(c => c.id));
       // Hide interviews belonging to archived (declined) candidates
       setInterviews((ivRes?.data ?? ivRes ?? []).filter(iv => !iv.candidate_id || !archivedIds.has(iv.candidate_id)));
       setConferences(confRes?.data ?? confRes ?? []);
+      // Build room_name -> recording map (recordings live in VideoRecording, not on the conference)
+      const recs = recRes?.data ?? recRes ?? [];
+      const byRoom = {};
+      recs.forEach(r => { if (r.room_name && r.file_url) byRoom[r.room_name] = r; });
+      setRecordingsByRoom(byRoom);
     } catch { setInterviews([]); setConferences([]); }
   };
 
@@ -215,6 +222,7 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
           {conferences.map(c => {
             const applicantName = c.participants?.[0]?.name || c.title || "Interview";
             const when = formatConfWhen(c);
+            const recording = c.room_name ? recordingsByRoom[c.room_name] : null;
             return (
               <div key={`conf-${c.id}`} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={whiteCard}>
                 <div className="min-w-0">
@@ -229,9 +237,9 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                 <div className="flex items-center gap-2 shrink-0">
                   <ConvertToAiButton conference={c} onConverted={loadInterviews} />
                   <ConvertToHumanButton conference={c} onConverted={loadInterviews} />
-                  {c.recording_url && c.recording_status === "ready" && (
+                  {recording && (
                     <a
-                      href={c.recording_url}
+                      href={recording.file_url}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -240,15 +248,6 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                       <Play className="w-3.5 h-3.5" />
                       Recording
                     </a>
-                  )}
-                  {c.recording_status === "recording" && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium" style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}>
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                      </span>
-                      Recording…
-                    </span>
                   )}
                   <button
                     onClick={() => onOpenQuestionnaire?.(c)}
