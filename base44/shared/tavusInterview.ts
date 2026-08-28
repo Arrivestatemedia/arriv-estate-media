@@ -383,3 +383,54 @@ Return a JSON object with an "answers" array. Each answer has: question_id, answ
   const answers = (llmRes as any)?.answers || (llmRes as any)?.data?.answers || [];
   return buildScorecardFromAnswers(answers, candidateName, "Auto-generated from uploaded interview recording transcript.");
 }
+
+/**
+ * Build a concise resume briefing from a prior conversation transcript so the
+ * PAL (Ashley) knows exactly where the interview left off and doesn't re-ask
+ * questions. Returns a short string suitable for embedding in a custom_greeting.
+ */
+export async function buildResumeBriefing(base44: any, transcript: any[], candidateName?: string) {
+  if (!transcript || transcript.length === 0) return null;
+
+  // Build a compact readable transcript for the LLM
+  const readable = transcript
+    .map((t: any, i: number) => {
+      const speaker = t.role === "user" ? "Candidate" : "Interviewer";
+      return `[${i}] ${speaker}: ${t.content || ""}`;
+    })
+    .join("\n");
+
+  const prompt = `You are helping an AI interviewer resume a job interview that was interrupted by a disconnection. Below is the transcript of the prior conversation.
+
+Your job: produce a concise resume briefing (max 2-3 sentences) that tells the interviewer:
+1. Which questions/topics were ALREADY asked and answered (so she does NOT repeat them)
+2. What the last topic or question was when the call dropped (so she can continue from there)
+
+Keep it brief and natural — this will be spoken aloud as part of a greeting. Do not list every detail; just enough so the interviewer knows where to pick up.
+
+CANDIDATE NAME: ${candidateName || "the candidate"}
+
+PRIOR CONVERSATION TRANSCRIPT:
+${readable}
+
+Return a JSON object with a single "briefing" string field containing the resume briefing.`;
+
+  const schema = {
+    type: "object",
+    properties: {
+      briefing: { type: "string" },
+    },
+  };
+
+  try {
+    const llmRes = await base44.integrations.Core.InvokeLLM({
+      prompt,
+      response_json_schema: schema,
+    });
+    const briefing = (llmRes as any)?.briefing || (llmRes as any)?.data?.briefing;
+    return typeof briefing === "string" ? briefing.trim() : null;
+  } catch (e) {
+    console.warn("buildResumeBriefing LLM call failed:", e.message);
+    return null;
+  }
+}

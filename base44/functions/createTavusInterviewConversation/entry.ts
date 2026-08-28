@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { createTavusConversation, getTavusConversation, endTavusConversation } from "../../shared/tavusInterview.ts";
+import { createTavusConversation, getTavusConversation, endTavusConversation, getTavusConversationTranscript, buildResumeBriefing } from "../../shared/tavusInterview.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -63,12 +63,49 @@ Deno.serve(async (req) => {
 
     // If this is a reconnect (a previous conversation existed but ended),
     // give Ashley a custom greeting so she acknowledges the drop instead of
-    // restarting the interview from her default greeting.
+    // restarting the interview from her default greeting. We also fetch the
+    // prior transcript and build a resume briefing so she knows exactly which
+    // questions were already asked and where to pick up.
     const isReconnect = !!conference.tavus_conversation_id;
     const firstName = candidateName ? candidateName.split(" ")[0] : "";
-    const customGreeting = isReconnect
-      ? `Welcome back${firstName ? " " + firstName : ""}, sorry about that, I don't know what happened!`
-      : undefined;
+
+    let customGreeting: string | undefined;
+    if (isReconnect) {
+      let resumeBriefing: string | null = null;
+      const oldConvId = conference.tavus_conversation_id;
+
+      // 1. Try our stored transcript entity first (most reliable)
+      try {
+        const storedRes = await base44.asServiceRole.entities.TavusInterviewTranscript.filter(
+          { conversation_id: oldConvId },
+          "-created_date",
+          1
+        );
+        const stored = Array.isArray(storedRes?.data ?? storedRes) ? (storedRes?.data ?? storedRes)[0] : null;
+        if (stored?.transcript && Array.isArray(stored.transcript) && stored.transcript.length > 0) {
+          resumeBriefing = await buildResumeBriefing(base44, stored.transcript, candidateName);
+        }
+      } catch (e) {
+        console.warn("Failed to fetch stored transcript:", e.message);
+      }
+
+      // 2. Fall back to the Tavus verbose API
+      if (!resumeBriefing && oldConvId) {
+        try {
+          const apiTranscript = await getTavusConversationTranscript(oldConvId);
+          if (apiTranscript && apiTranscript.length > 0) {
+            resumeBriefing = await buildResumeBriefing(base44, apiTranscript, candidateName);
+          }
+        } catch (e) {
+          console.warn("Failed to fetch transcript from Tavus API:", e.message);
+        }
+      }
+
+      const welcomeBack = `Welcome back${firstName ? " " + firstName : ""}, sorry about that, I don't know what happened!`;
+      customGreeting = resumeBriefing
+        ? `${welcomeBack} ${resumeBriefing}`
+        : welcomeBack;
+    }
 
     const tavusRes = await createTavusConversation({
       conversationName,
