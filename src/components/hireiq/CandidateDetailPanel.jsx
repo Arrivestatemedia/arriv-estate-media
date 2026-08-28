@@ -183,7 +183,7 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold" style={{ ...SERIF, color: CREAM }}>{candidate?.name}</h1>
-            <p className="text-sm mt-0.5" style={{ color: MUTED_LIGHT }}>{candidate?.email} {candidate?.phone && `· ${candidate.phone}`}</p>
+            <p className="text-sm mt-0.5" style={{ color: MUTED_LIGHT }}>{candidate?.email} {candidate?.phone && `· ${candidate.phone}`} {candidate?.location && `· ${candidate.location}`}</p>
             <div className="flex items-center gap-2 mt-2">
               <span className="inline-block text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "#2A2A2A", color: CREAM }}>{candidate?.status}</span>
               {calculateAge(candidate?.dob) != null && (

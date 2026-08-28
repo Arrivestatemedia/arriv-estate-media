@@ -15,6 +15,10 @@
     "phone": {
       "type": "string"
     },
+    "location": {
+      "type": "string",
+      "description": "Candidate location/address (synced from JobApplication)"
+    },
     "dob": {
       "type": "string",
       "format": "date",

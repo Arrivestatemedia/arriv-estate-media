@@ -43,6 +43,7 @@ export default function ImportApplicationsModal({ jobId, jobData, roleProfile, o
         phone: app.phone,
         dob: app.dob || null,
         resume_url: app.portfolio_link || "",
+        location: app.address || "",
         resume_text: resumeText,
         resume_analysis: analysis,
         cover_letter: app.why_good_fit || "",

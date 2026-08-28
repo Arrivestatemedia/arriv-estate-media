@@ -62,6 +62,7 @@ export default async function(req) {
         const updates = {};
         if (application.dob && localCandidate.dob !== application.dob) updates.dob = application.dob;
         if (application.portfolio_link && localCandidate.resume_url !== application.portfolio_link) updates.resume_url = application.portfolio_link;
+        if (application.address && localCandidate.location !== application.address) updates.location = application.address;
         if (Object.keys(updates).length > 0) {
           await base44.asServiceRole.entities.HireCandidate.update(localCandidate.id, updates).catch(() => {});
         }
@@ -76,6 +77,7 @@ export default async function(req) {
           email,
           phone: application.phone || "",
           dob: application.dob || null,
+          location: application.address || "",
           target_role: application.position || "media_specialist",
           resume_url: application.portfolio_link || "",
           shared_person_id: sharedPersonId,
