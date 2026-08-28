@@ -34,6 +34,13 @@ export default function TavusInterviewPanel({
   const audioContextRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const recordingStartedRef = useRef(false);
+  // Composite canvas refs — used to blend the AI interviewer (full frame) with
+  // the candidate's local camera (PIP) so the recording shows the interviewee.
+  const compositeCanvasRef = useRef(null);
+  const compositeStreamRef = useRef(null);
+  const drawLoopRef = useRef(null);
+  const recRemoteVideoRef = useRef(null);
+  const recLocalVideoRef = useRef(null);
   // Chunked recording: segments upload during the call so no single file is
   // too large and partial recordings survive a call drop.
   const SEGMENT_DURATION_MS = 3 * 60 * 1000; // 3 minutes per segment
@@ -206,8 +213,80 @@ export default function TavusInterviewPanel({
 
   // ─── Start recording (auto, when remote video arrives) ────────────────────
   const startRecording = useCallback((remoteVideoTrack, remoteAudioTrack) => {
-    const tracks = [];
-    if (remoteVideoTrack) tracks.push(remoteVideoTrack);
+    // Build a composite canvas: AI interviewer full-frame + candidate PIP.
+    // This ensures the recording shows the interviewee, not just the AI.
+    const canvas = document.createElement("canvas");
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext("2d");
+    compositeCanvasRef.current = canvas;
+
+    // Hidden video elements for drawing to canvas (no mirroring on local)
+    const remoteEl = document.createElement("video");
+    remoteEl.autoplay = true;
+    remoteEl.playsInline = true;
+    remoteEl.muted = true;
+    remoteEl.srcObject = new MediaStream([remoteVideoTrack]);
+    recRemoteVideoRef.current = remoteEl;
+
+    const localEl = document.createElement("video");
+    localEl.autoplay = true;
+    localEl.playsInline = true;
+    localEl.muted = true;
+    if (localStreamRef.current) {
+      localEl.srcObject = localStreamRef.current;
+    }
+    recLocalVideoRef.current = localEl;
+
+    // PIP dimensions (bottom-right, ~22% width)
+    const pipW = 280;
+    const pipH = 210;
+    const pipX = canvas.width - pipW - 24;
+    const pipY = canvas.height - pipH - 24;
+
+    const draw = () => {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Main: remote (AI interviewer) full-frame, cover-fit
+      const rv = recRemoteVideoRef.current;
+      if (rv && rv.videoWidth > 0) {
+        const vw = rv.videoWidth, vh = rv.videoHeight;
+        const scale = Math.max(canvas.width / vw, canvas.height / vh);
+        const dw = vw * scale, dh = vh * scale;
+        const dx = (canvas.width - dw) / 2, dy = (canvas.height - dh) / 2;
+        ctx.drawImage(rv, dx, dy, dw, dh);
+      }
+
+      // PIP: local (candidate) with border
+      const lv = recLocalVideoRef.current;
+      if (lv && lv.videoWidth > 0) {
+        const vw = lv.videoWidth, vh = lv.videoHeight;
+        const scale = Math.max(pipW / vw, pipH / vh);
+        const dw = vw * scale, dh = vh * scale;
+        const dx = pipX + (pipW - dw) / 2, dy = pipY + (pipH - dh) / 2;
+        // Crop to PIP box
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(pipX, pipY, pipW, pipH, 8);
+        ctx.clip();
+        ctx.drawImage(lv, dx, dy, dw, dh);
+        ctx.restore();
+        // Border
+        ctx.strokeStyle = "rgba(184,149,106,0.9)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(pipX, pipY, pipW, pipH, 8);
+        ctx.stroke();
+      }
+
+      drawLoopRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+
+    const canvasStream = canvas.captureStream(30);
+    compositeStreamRef.current = canvasStream;
+    const tracks = [canvasStream.getVideoTracks()[0]];
 
     // Mix remote + local audio
     const audioTracks = [];
@@ -217,11 +296,11 @@ export default function TavusInterviewPanel({
 
     if (audioTracks.length > 0) {
       try {
-        const ctx = new AudioContext();
-        audioContextRef.current = ctx;
-        const destination = ctx.createMediaStreamDestination();
+        const actx = new AudioContext();
+        audioContextRef.current = actx;
+        const destination = actx.createMediaStreamDestination();
         for (const t of audioTracks) {
-          try { ctx.createMediaStreamSource(new MediaStream([t])).connect(destination); } catch (_) {}
+          try { actx.createMediaStreamSource(new MediaStream([t])).connect(destination); } catch (_) {}
         }
         const mixed = destination.stream.getAudioTracks()[0];
         if (mixed) tracks.push(mixed);
@@ -248,6 +327,19 @@ export default function TavusInterviewPanel({
     isEndingRef.current = true;
     if (segmentTimeoutRef.current) { clearTimeout(segmentTimeoutRef.current); segmentTimeoutRef.current = null; }
     if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    if (drawLoopRef.current) { cancelAnimationFrame(drawLoopRef.current); drawLoopRef.current = null; }
+    // Stop hidden recording video elements
+    for (const ref of [recRemoteVideoRef, recLocalVideoRef]) {
+      if (ref.current) {
+        try { ref.current.srcObject = null; ref.current.remove(); } catch (_) {}
+        ref.current = null;
+      }
+    }
+    if (compositeStreamRef.current) {
+      compositeStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
+      compositeStreamRef.current = null;
+    }
+    compositeCanvasRef.current = null;
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       // Create a promise that resolves when onstop finishes the upload.
       // handleEndCall awaits this so the page doesn't unload mid-upload.
