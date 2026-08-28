@@ -355,6 +355,8 @@ export async function syncApplicationsToKhethaIQ() {
       name: app.full_name,
       email: app.email,
       phone: app.phone,
+      dob: app.dob || null,
+      resume_url: app.portfolio_link || "",
       target_role: app.position || "media_specialist",
       shared_person_id: sharedPersonId,
       resume_text: [
@@ -453,6 +455,8 @@ export async function syncApplicationsToKhethaIQ() {
         name: app.full_name,
         email: app.email,
         phone: app.phone,
+        dob: app.dob || null,
+        resume_url: app.portfolio_link || "",
         target_role: position,
         shared_person_id: sharedPersonId,
         resume_text: resumeText,

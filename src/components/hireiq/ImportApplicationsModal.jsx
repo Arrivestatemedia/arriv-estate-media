@@ -41,6 +41,8 @@ export default function ImportApplicationsModal({ jobId, jobData, roleProfile, o
         name: app.full_name,
         email: app.email,
         phone: app.phone,
+        dob: app.dob || null,
+        resume_url: app.portfolio_link || "",
         resume_text: resumeText,
         resume_analysis: analysis,
         cover_letter: app.why_good_fit || "",

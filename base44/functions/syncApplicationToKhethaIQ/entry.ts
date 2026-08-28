@@ -57,10 +57,11 @@ export default async function(req) {
             shared_person_id: sharedPersonId,
           }).catch(() => {});
         }
-        // Backfill dob/resume_url for candidates created before these fields were synced
+        // Always sync dob/resume_url from the application (source of truth) so
+        // candidates created via any path end up with resume + age on profile.
         const updates = {};
-        if (!localCandidate.dob && application.dob) updates.dob = application.dob;
-        if (!localCandidate.resume_url && application.portfolio_link) updates.resume_url = application.portfolio_link;
+        if (application.dob && localCandidate.dob !== application.dob) updates.dob = application.dob;
+        if (application.portfolio_link && localCandidate.resume_url !== application.portfolio_link) updates.resume_url = application.portfolio_link;
         if (Object.keys(updates).length > 0) {
           await base44.asServiceRole.entities.HireCandidate.update(localCandidate.id, updates).catch(() => {});
         }
