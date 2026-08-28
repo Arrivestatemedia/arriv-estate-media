@@ -216,8 +216,13 @@ export default function TavusInterviewPanel({
     const participants = call.participants();
     const remote = Object.values(participants).find((p) => !p.local);
     if (remote?.videoTrack) {
-      const stream = new MediaStream([remote.videoTrack]);
+      // Include BOTH video and audio tracks so the AI's audio plays back
+      const streamTracks = [remote.videoTrack];
+      if (remote.audioTrack) streamTracks.push(remote.audioTrack);
+      const stream = new MediaStream(streamTracks);
       remoteVideoRef.current.srcObject = stream;
+      // Ensure the video element is not muted so remote audio plays
+      remoteVideoRef.current.muted = false;
       setHasRemoteVideo(true);
       // Auto-start recording when remote video first arrives
       if (!recordingStartedRef.current && callState === "connected") {
