@@ -16,37 +16,18 @@ const whiteCard = {
 };
 
 // Convert ET wall-clock (date + HH:MM) to a UTC Date, handling DST.
-// ET is UTC-5 (EST) or UTC-4 (EDT). We compute the offset by checking
-// the America/New_York timezone offset for that date.
+// ET is UTC-5 (EST) or UTC-4 (EDT).
 function etWallToUtc(dateStr, timeStr) {
   if (!dateStr) return null;
   const [h, m] = (timeStr || "00:00").split(":").map(Number);
-  // Build a date in America/New_York using Intl to get the wall-clock instant
-  const dt = new Date(`${dateStr}T00:00:00`);
-  // Use Intl to find the ET offset for this date
-  const et = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
-  });
-  const parts = et.formatToParts(new Date(`${dateStr}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00`));
-  // Compute offset: take a UTC instant, format in ET, compare
-  const utcDate = new Date(`${dateStr}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00Z`);
-  const etString = utcDate.toLocaleString("en-US", { timeZone: "America/New_York", hour12: false });
-  // The difference between the UTC hour and ET hour gives the offset
-  // Simpler: just construct using the known offset
-  // ET offset: second Sunday March 2:00 AM to first Sunday November 2:00 AM = -4, else -5
   const month = parseInt(dateStr.slice(5, 7));
   const day = parseInt(dateStr.slice(8, 10));
   let offset = -5; // EST default
-  // Rough DST check (good enough for display purposes)
   if (month > 3 && month < 11) offset = -4;
   else if (month === 3) {
-    // Second Sunday of March
     const secondSunday = 7 + ((1 - new Date(dateStr + "T12:00:00Z").getUTCDay()) % 7) + 7;
     offset = day >= secondSunday ? -4 : -5;
   } else if (month === 11) {
-    // First Sunday of November
     const firstSunday = 1 + ((0 - new Date(dateStr + "T12:00:00Z").getUTCDay()) % 7);
     offset = day < firstSunday ? -4 : -5;
   }
