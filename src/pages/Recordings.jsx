@@ -18,7 +18,11 @@ const isS3 = (url) => typeof url === "string" && url.startsWith("s3://");
 /** Fetches a playable presigned URL for S3 URIs; passes through regular URLs. */
 async function resolvePlayableUrl(url) {
   if (!isS3(url)) return url;
-  const res = await base44.functions.invoke("getTavusRecordingUrl", { storageUri: url });
+  const res = await base44.functions.invoke("getTavusRecordingUrl", {
+    storageUri: url,
+    responseContentType: "video/mp4",
+    responseContentDisposition: "inline",
+  });
   return res?.url || res?.data?.url || null;
 }
 

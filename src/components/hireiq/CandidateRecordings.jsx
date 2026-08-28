@@ -123,7 +123,11 @@ export default function CandidateRecordings({ candidate }) {
     if (url.startsWith("s3://")) {
       setLoadingRecUrl(url);
       try {
-        const res = await base44.functions.invoke("getTavusRecordingUrl", { storageUri: url });
+        const res = await base44.functions.invoke("getTavusRecordingUrl", {
+          storageUri: url,
+          responseContentType: "video/mp4",
+          responseContentDisposition: "inline",
+        });
         const presignedUrl = res?.url || res?.data?.url;
         if (presignedUrl) window.open(presignedUrl, "_blank", "noopener,noreferrer");
       } catch (_) {} finally { setLoadingRecUrl(null); }
