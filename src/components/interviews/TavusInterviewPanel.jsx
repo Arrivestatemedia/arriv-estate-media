@@ -41,6 +41,11 @@ export default function TavusInterviewPanel({
   const segmentTimeoutRef = useRef(null);
   const recordingTracksRef = useRef(null);
   const isEndingRef = useRef(false);
+  // Promise that resolves when the final segment upload finishes — used by
+  // handleEndCall to wait for the recording to be saved before navigating away.
+  // Without this, onClose() unloads the page and the browser cancels the upload.
+  const finalUploadPromiseRef = useRef(Promise.resolve());
+  const stopResolveRef = useRef(null);
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -65,6 +70,7 @@ export default function TavusInterviewPanel({
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingNoticeDismissed, setRecordingNoticeDismissed] = useState(false);
   const [uploadingRecording, setUploadingRecording] = useState(false);
+  const [isSavingRecording, setIsSavingRecording] = useState(false);
 
   // ─── Camera init (same as VideoCallPanelV2) ──────────────────────────────
   useEffect(() => {
@@ -149,6 +155,12 @@ export default function TavusInterviewPanel({
       if (!isEndingRef.current) {
         startSegment(segmentNum + 1);
       }
+      // Resolve the stop promise so handleEndCall can proceed after the upload
+      if (stopResolveRef.current) {
+        const resolve = stopResolveRef.current;
+        stopResolveRef.current = null;
+        resolve();
+      }
     };
 
     recorder.start(1000);
@@ -209,8 +221,15 @@ export default function TavusInterviewPanel({
     if (segmentTimeoutRef.current) { clearTimeout(segmentTimeoutRef.current); segmentTimeoutRef.current = null; }
     if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      // Create a promise that resolves when onstop finishes the upload.
+      // handleEndCall awaits this so the page doesn't unload mid-upload.
+      finalUploadPromiseRef.current = new Promise((resolve) => {
+        stopResolveRef.current = resolve;
+      });
       try { mediaRecorderRef.current.stop(); } catch (_) {}
     }
+    // If recorder is already inactive, keep the existing promise — a previous
+    // stopRecording call may still be uploading.
     setIsRecording(false);
     setRecordingTime(0);
     if (audioContextRef.current) {
@@ -331,25 +350,28 @@ export default function TavusInterviewPanel({
   }, [isVideoOn]);
 
   // ─── End call ────────────────────────────────────────────────────────────
-  const handleEndCall = useCallback(() => {
+  const handleEndCall = useCallback(async () => {
     // Stop recording first (triggers upload in onstop handler)
     stopRecording();
-    // Give the recorder a moment to flush before tearing down
-    setTimeout(() => {
-      if (callRef.current) {
-        try { callRef.current.leave(); } catch (_) {}
-        try { callRef.current.destroy(); } catch (_) {}
-        callRef.current = null;
-      }
-      localStreamRef.current?.getTracks().forEach(t => t.stop());
-      localStreamRef.current = null;
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-      if (localVideoRef.current) localVideoRef.current.srcObject = null;
-      recordingStartedRef.current = false;
-      // End the Tavus conversation server-side
-      base44.functions.invoke("endTavusInterview", { roomName }).catch(() => {});
-      onClose();
-    }, 300);
+    // Wait for the final segment upload to finish before closing — otherwise
+    // onClose() unloads the page and the browser cancels the in-flight upload,
+    // so no recording is ever saved.
+    setIsSavingRecording(true);
+    try { await finalUploadPromiseRef.current; } catch (_) {}
+    setIsSavingRecording(false);
+    if (callRef.current) {
+      try { callRef.current.leave(); } catch (_) {}
+      try { callRef.current.destroy(); } catch (_) {}
+      callRef.current = null;
+    }
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    localStreamRef.current = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    recordingStartedRef.current = false;
+    // End the Tavus conversation server-side
+    base44.functions.invoke("endTavusInterview", { roomName }).catch(() => {});
+    onClose();
   }, [onClose, roomName, stopRecording]);
 
   // ─── Cleanup on unmount ───────────────────────────────────────────────────
@@ -446,7 +468,7 @@ export default function TavusInterviewPanel({
         )}
 
         {/* Call-ended overlay — shown when the meeting ends unexpectedly */}
-        {callState === "ended" && (
+        {callState === "ended" && !isSavingRecording && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-[10] px-6">
             <div className="max-w-md text-center">
               <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
@@ -459,6 +481,19 @@ export default function TavusInterviewPanel({
               <Button onClick={handleEndCall} className="bg-gray-700 hover:bg-gray-600 text-white">
                 Close
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Saving recording overlay — shown while the final upload completes */}
+        {isSavingRecording && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-[11] px-6">
+            <div className="max-w-md text-center">
+              <div className="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mx-auto mb-4" />
+              <h3 className="text-white text-lg font-semibold mb-2">Saving recording…</h3>
+              <p className="text-gray-400 text-sm">
+                Please wait while your interview recording is uploaded. Closing now will lose the recording.
+              </p>
             </div>
           </div>
         )}
