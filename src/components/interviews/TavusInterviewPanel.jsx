@@ -57,7 +57,11 @@ export default function TavusInterviewPanel({
   // Auto-reconnect: if the Daily call drops unexpectedly, we attempt to
   // rejoin (reusing or creating a new Tavus conversation) instead of giving
   // up and ending the interview.
-  const MAX_RECONNECT_ATTEMPTS = 3;
+  // Auto-reconnect: if the Daily call drops unexpectedly, we attempt to
+  // rejoin (reusing or creating a new Tavus conversation) instead of giving
+  // up and ending the interview. Retries are effectively unlimited so a
+  // candidate on a flaky connection is never abandoned mid-interview.
+  const MAX_RECONNECT_ATTEMPTS = 999;
   const reconnectAttemptsRef = useRef(0);
 
   const [isMuted, setIsMuted] = useState(false);
@@ -471,13 +475,58 @@ export default function TavusInterviewPanel({
       setTimeout(renderRemoteVideo, 500);
     } catch (err) {
       console.error(`Reconnect attempt ${attempt} failed:`, err);
-      // Exponential backoff: 2s, 4s, 8s before the next attempt
-      setTimeout(() => attemptReconnectRef.current?.(), 2000 * Math.pow(2, attempt - 1));
+      // Fast backoff capped at 10s so we keep trying aggressively without
+      // hammering the server: 1s, 2s, 4s, 8s, 10s, 10s, ...
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+      setTimeout(() => attemptReconnectRef.current?.(), delay);
     }
   }, [roomName, currentUserName, renderRemoteVideo, setupCallListeners, stopRecording, updateCallState]);
 
   // Keep the ref current so setupCallListeners can call the latest reconnect
   useEffect(() => { attemptReconnectRef.current = attemptReconnect; }, [attemptReconnect]);
+
+  // Network online/offline monitor: when the browser reports the network is
+  // back online after a drop, fire an immediate reconnect instead of waiting
+  // for the next exponential-backoff timer. This covers the common case where
+  // the candidate's WiFi flickers or they switch networks mid-interview.
+  useEffect(() => {
+    const handleOnline = () => {
+      if (isEndingRef.current) return;
+      if (callStateRef.current === "reconnecting" || callStateRef.current === "idle") {
+        console.info("Network back online — triggering immediate reconnect");
+        attemptReconnectRef.current?.();
+      }
+    };
+    const handleOffline = () => {
+      if (isEndingRef.current) return;
+      console.warn("Network went offline during interview");
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Tab visibility monitor: on mobile, backgrounding the browser can silently
+  // kill the WebRTC connection. When the candidate returns to the tab, check
+  // if the call is still alive and reconnect if it dropped while hidden.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden || isEndingRef.current) return;
+      // Tab just became visible — give it a moment, then check the call.
+      setTimeout(() => {
+        const call = callRef.current;
+        if (!call && (callStateRef.current === "connected" || callStateRef.current === "reconnecting")) {
+          console.info("Tab visible but call object missing — reconnecting");
+          attemptReconnectRef.current?.();
+        }
+      }, 1000);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   // ─── Start call ──────────────────────────────────────────────────────────
   const handleStartCall = useCallback(async () => {
