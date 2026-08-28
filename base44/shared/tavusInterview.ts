@@ -414,15 +414,21 @@ export async function buildResumeBriefing(base44: any, transcript: any[], candid
     })
     .join("\n");
 
-  const prompt = `You are helping an AI interviewer resume a job interview that was interrupted by a disconnection. Below is the transcript of the prior conversation.
+  const questionsList = ROUND1_QUESTIONS_FOR_LLM.map(q => `- ${q.id} (${q.section}): ${q.question}`).join("\n");
 
-Your job: produce a concise resume briefing (max 2-3 sentences) that tells the interviewer:
+  const prompt = `You are helping an AI interviewer resume a job interview that was interrupted by a disconnection. Below is the transcript of the prior conversation AND the full list of Round 1 scorecard questions that MUST all be asked before the interview ends.
+
+Your job: produce a concise resume briefing (max 4-5 sentences) that tells the interviewer:
 1. Which questions/topics were ALREADY asked and answered (so she does NOT repeat them)
 2. What the last topic or question was when the call dropped (so she can continue from there)
+3. Which questions from the full list have NOT yet been asked — she MUST ask every one of these remaining questions before wrapping up the interview. Do NOT let the candidate end the interview early; if they try to defer ("I'll save that for the founder"), politely insist on covering the remaining questions first.
 
-Keep it brief and natural — this will be spoken aloud as part of a greeting. Do not list every detail; just enough so the interviewer knows where to pick up.
+Keep it brief and natural — this will be spoken aloud as part of a greeting. Do not list every detail; just enough so the interviewer knows exactly where to pick up and which questions still need to be asked.
 
 CANDIDATE NAME: ${candidateName || "the candidate"}
+
+FULL ROUND 1 QUESTION LIST (all must be asked across the combined interview):
+${questionsList}
 
 PRIOR CONVERSATION TRANSCRIPT:
 ${readable}

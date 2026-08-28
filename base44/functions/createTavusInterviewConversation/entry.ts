@@ -110,10 +110,16 @@ Deno.serve(async (req) => {
     // Feed Ashley the candidate's identity as conversational context so she can
     // greet them by name on the FIRST interview (the PAL reads this as background
     // info and weaves the name into her own greeting). On reconnects the
-    // custom_greeting still takes over as the spoken greeting.
-    const conversationalContext = candidateName
+    // custom_greeting still takes over as the spoken greeting, but we also add a
+    // standing instruction that she MUST ask every remaining unanswered Round 1
+    // question before wrapping up — the candidate cannot defer to a later call.
+    const baseContext = candidateName
       ? `You are about to interview a candidate named ${candidateName}. Their first name is ${firstName}. Please greet them personally by their first name when they join. This is a first-round interview for the Sales Growth Advisor role at Arriv Estate Media.`
       : undefined;
+    const reconnectDirective = isReconnect
+      ? ` IMPORTANT: This is a resumed session after a disconnection. You must ask every Round 1 scorecard question that was NOT already covered in the prior session before you wrap up. Do not let the candidate end the interview early or defer answers to a later call with the founder — if they try to, politely insist on covering the remaining questions first. Only once every question has been answered may you close the interview.`
+      : "";
+    const conversationalContext = baseContext ? `${baseContext}${reconnectDirective}` : (reconnectDirective || undefined);
 
     const tavusRes = await createTavusConversation({
       conversationName,
