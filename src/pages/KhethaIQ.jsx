@@ -5,7 +5,7 @@ import {
   Briefcase, Plus, Loader2, Users, Brain, FileText, Search,
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, Award, HelpCircle, LayoutDashboard,
-  GitBranch, Video, Globe, SquareCheckBig, ArrowLeft,
+  GitBranch, Video, Globe, SquareCheckBig, ArrowLeft, Mail,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -25,6 +25,7 @@ import AskKhethaChat from "@/components/khethaiq/AskKhethaChat";
 import RecruitingChat from "@/components/recruiting/RecruitingChat";
 import GlobalSearch from "@/components/khethaiq/GlobalSearch";
 import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
+import ReminderQueueView from "@/components/khethaiq/ReminderQueueView";
 
 // Map manifest icon names to lucide-react components.
 // Matches the central KhethaIQ app's ICON_MAP.
@@ -32,7 +33,7 @@ const ICON_MAP = {
   LayoutDashboard, Sparkles, Briefcase, Users, Search, GitBranch,
   Video, FileText, SquareCheckBig, Brain, BarChart3: BarChart3,
   Radar, Users2, Target, TrendingUp, MessageSquare, Award,
-  HelpCircle, Plus, Globe,
+  HelpCircle, Plus, Globe, Mail,
 };
 
 // Estate Media color palette (kept per user request)
@@ -284,6 +285,7 @@ export default function KhethaIQ() {
     { id: "talent_pools", label: "Talent Pools", icon: "Users" },
     { id: "pipeline", label: "Pipeline", icon: "GitBranch" },
     { id: "interviews", label: "Interviews", icon: "Video" },
+    { id: "reminders", label: "Reminders", icon: "Mail" },
     { id: "offers", label: "Offers", icon: "FileText" },
     { id: "tasks", label: "Tasks", icon: "SquareCheckBig" },
     { id: "applications", label: "Applications", icon: "FileText" },
@@ -302,6 +304,7 @@ export default function KhethaIQ() {
     talent_pools: "pools",
     pipeline: "pipeline",
     interviews: "interviews",
+    reminders: "reminders",
     offers: "offers",
     tasks: "tasks",
     applications: "applications",
@@ -436,6 +439,8 @@ export default function KhethaIQ() {
                 <CandidatesView onSelectCandidate={handleSelectCandidate} />
               ) : activeView === "interviews" ? (
                 <InterviewsView onSelectCandidate={handleSelectCandidate} onOpenQuestionnaire={handleOpenQuestionnaire} />
+              ) : activeView === "reminders" ? (
+                <ReminderQueueView />
               ) : activeView === "offers" ? (
                 <OffersView onSelectCandidate={handleSelectCandidate} />
               ) : activeView === "applications" ? (
