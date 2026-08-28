@@ -71,12 +71,16 @@ export function nextEt8amIso(now = new Date()) {
   return candidate.toISOString();
 }
 
+// Test Applicant — bypasses quiet-hours queue so admin actions send immediately.
+const BYPASS_QUIET_HOURS_EMAILS = ["bradleycburke1@gmail.com"];
+
 /**
  * Send a business email now, unless we're inside the 9pm–8am ET quiet window,
  * in which case queue it for the next 8:00 AM ET via the QueuedApplicationEmail entity.
  */
 export async function sendBusinessEmailOrQueue(base44, { to, subject, htmlContent }) {
-  if (isEtQuietHours()) {
+  const bypass = BYPASS_QUIET_HOURS_EMAILS.includes((to || "").toLowerCase().trim());
+  if (!bypass && isEtQuietHours()) {
     const scheduledFor = nextEt8amIso();
     await base44.asServiceRole.entities.QueuedApplicationEmail.create({
       recipient_email: to,
