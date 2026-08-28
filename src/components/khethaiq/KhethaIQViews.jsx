@@ -142,6 +142,7 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
   const [recordingsByRoom, setRecordingsByRoom] = useState({});
   const [loading, setLoading] = useState(true);
   const [disqualifyingId, setDisqualifyingId] = useState(null);
+  const [loadingRecRoom, setLoadingRecRoom] = useState(null);
 
   const loadInterviews = async () => {
     try {
@@ -184,6 +185,26 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
       toast({ variant: "destructive", title: "Failed to disqualify", description: err.message || "Unknown error" });
     } finally {
       setDisqualifyingId(null);
+    }
+  };
+
+  const handlePlayRecording = async (recording) => {
+    const fileUrl = recording?.file_url || "";
+    // S3 recordings (Tavus server-side) need a fresh presigned URL
+    if (fileUrl.startsWith("s3://")) {
+      setLoadingRecRoom(recording.room_name || fileUrl);
+      try {
+        const res = await base44.functions.invoke("getTavusRecordingUrl", { storageUri: fileUrl });
+        const url = res?.url || res?.data?.url;
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
+        else toast({ variant: "destructive", title: "Recording unavailable", description: "Could not generate a playback URL." });
+      } catch (err) {
+        toast({ variant: "destructive", title: "Recording unavailable", description: err.message || "Unknown error" });
+      } finally {
+        setLoadingRecRoom(null);
+      }
+    } else {
+      window.open(fileUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -238,16 +259,17 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                   <ConvertToAiButton conference={c} onConverted={loadInterviews} />
                   <ConvertToHumanButton conference={c} onConverted={loadInterviews} />
                   {recording && (
-                    <a
-                      href={recording.file_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    <button
+                      onClick={() => handlePlayRecording(recording)}
+                      disabled={loadingRecRoom === (recording.room_name || recording.file_url)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                       style={{ backgroundColor: "transparent", color: GOLD, border: "1px solid rgba(184,149,106,0.4)" }}
                     >
-                      <Play className="w-3.5 h-3.5" />
+                      {loadingRecRoom === (recording.room_name || recording.file_url)
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Play className="w-3.5 h-3.5" />}
                       Recording
-                    </a>
+                    </button>
                   )}
                   <button
                     onClick={() => onOpenQuestionnaire?.(c)}

@@ -23,6 +23,28 @@ export function getCallbackUrl() {
   return `${domain}/functions/tavusInterviewCallback`;
 }
 
+/**
+ * Build the recording properties for the Tavus API.
+ * Returns { auto_start_recording, recording_storage } when S3 is configured,
+ * or null when server-side recording is not set up (local MediaRecorder is
+ * used as a fallback in that case).
+ */
+function buildRecordingProperties(): Record<string, any> | null {
+  const bucket = Deno.env.get("AWS_S3_BUCKET");
+  const region = Deno.env.get("AWS_S3_REGION");
+  const roleArn = Deno.env.get("AWS_S3_ROLE_ARN");
+  if (!bucket || !region || !roleArn) return null;
+  return {
+    auto_start_recording: true,
+    recording_storage: {
+      provider: "s3",
+      bucket_name: bucket,
+      bucket_region: region,
+      assume_role_arn: roleArn,
+    },
+  };
+}
+
 /** Create a new Tavus CVI conversation. */
 export async function createTavusConversation(opts: {
   palId?: string;
@@ -30,16 +52,22 @@ export async function createTavusConversation(opts: {
   requireAuth?: boolean;
   maxParticipants?: number;
 }) {
-  const body = {
+  const body: Record<string, any> = {
     pal_id: opts.palId || TAVUS_PAL_ID,
     conversation_name: opts.conversationName,
     callback_url: getCallbackUrl(),
     require_auth: opts.requireAuth !== false,
     max_participants: opts.maxParticipants || 2,
-    // Note: Tavus server-side recording (auto_start_recording) requires a
-    // recording_storage destination (S3/GCS/Azure). Not configured here —
-    // local MediaRecorder in TavusInterviewPanel handles recording instead.
   };
+
+  // Enable Tavus server-side recording when S3 storage is configured.
+  // This is the primary failsafe — recordings are written directly to our S3
+  // bucket by Tavus, independent of the candidate's browser state.
+  const recordingProps = buildRecordingProperties();
+  if (recordingProps) {
+    body.properties = recordingProps;
+  }
+
   const res = await fetch(`${TAVUS_API_BASE}/conversations`, {
     method: "POST",
     headers: tavusHeaders(),

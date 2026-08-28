@@ -47,16 +47,58 @@ Deno.serve(async (req) => {
     }
 
     if (eventType === "application.recording_ready") {
-      // Tavus server-side recording is ready — save storage metadata as backup
+      // Tavus server-side recording is ready — the recording has been durably
+      // written to our S3 bucket. Save the permanent storage URI on the
+      // conference and create a VideoRecording entity so the admin UI can
+      // play it back via a presigned URL (see getTavusRecordingUrl).
       const props = body.properties || {};
-      const storageUri = props.storage_uri || (props.bucket_name && props.s3_key ? `s3://${props.bucket_name}/${props.s3_key}` : null);
+      const s3Key = props.s3_key || "";
+      const storageUri = props.storage_uri || (props.bucket_name && s3Key ? `s3://${props.bucket_name}/${s3Key}` : null);
+      const duration = props.duration || 0;
+
       try {
         await base44.asServiceRole.entities.Conference.update(conference.id, {
           tavus_recording_storage_uri: storageUri || null,
+          recording_status: "ready",
+          recording_duration_seconds: duration || conference.recording_duration_seconds || null,
+          // Set recording_url to the permanent S3 URI — the admin UI resolves
+          // this to a fresh presigned URL via getTavusRecordingUrl on playback.
+          recording_url: storageUri || conference.recording_url || null,
         });
       } catch (e) {
         console.warn("Failed to save Tavus recording storage URI:", e.message);
       }
+
+      // Create a VideoRecording entity so the recording appears in the
+      // admin Interviews view alongside local recordings. Store the s3:// URI
+      // as file_url — the UI detects the s3:// prefix and calls
+      // getTavusRecordingUrl to get a fresh presigned playback URL.
+      if (storageUri) {
+        try {
+          // Avoid duplicate VideoRecording entries for the same room
+          const existingRecs = await base44.asServiceRole.entities.VideoRecording.filter(
+            { room_name: conference.room_name },
+            "-created_date",
+            10
+          );
+          const recs = existingRecs?.data ?? existingRecs ?? [];
+          const exists = Array.isArray(recs) && recs.some(r => (r.file_url || "").startsWith("s3://"));
+          if (!exists) {
+            const participant = conference.participants?.[0];
+            await base44.asServiceRole.entities.VideoRecording.create({
+              file_url: storageUri,
+              duration_seconds: duration,
+              file_size: 0,
+              room_name: conference.room_name || null,
+              recorded_by_name: "Tavus AI Interviewer",
+              participant_name: participant?.name || conference.title || null,
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to create VideoRecording for Tavus recording:", e.message);
+        }
+      }
+
       return Response.json({ status: "success", action: "recording_ready", storage_uri: storageUri });
     }
 
