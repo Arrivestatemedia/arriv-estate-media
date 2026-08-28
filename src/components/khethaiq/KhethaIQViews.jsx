@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX, Play, FileAudio } from "lucide-react";
+import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX, Play, FileAudio, CalendarClock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ConvertToAiButton from "@/components/interviews/ConvertToAiButton";
 import ConvertToHumanButton from "@/components/interviews/ConvertToHumanButton";
+import RescheduleInterviewModal from "@/components/interviews/RescheduleInterviewModal";
 // Questionnaire now opens in-page via onOpenQuestionnaire (no modal)
 
 const GOLD = "#B8956A";
@@ -144,6 +145,7 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
   const [disqualifyingId, setDisqualifyingId] = useState(null);
   const [loadingRecRoom, setLoadingRecRoom] = useState(null);
   const [generatingScorecardId, setGeneratingScorecardId] = useState(null);
+  const [reschedulingConf, setReschedulingConf] = useState(null);
   const [view, setView] = useState("active"); // "active" | "archived"
 
   // A conference is "archived" (past) if its scheduled date/time is before now.
@@ -386,6 +388,16 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                     <ClipboardList className="w-3.5 h-3.5" />
                     Questionnaire
                   </button>
+                  {c.status === "scheduled" && (
+                    <button
+                      onClick={() => setReschedulingConf(c)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      style={{ backgroundColor: "transparent", color: GOLD, border: "1px solid rgba(184,149,106,0.4)" }}
+                    >
+                      <CalendarClock className="w-3.5 h-3.5" />
+                      Reschedule
+                    </button>
+                  )}
                   {c.status !== "cancelled" && (
                     <button
                       onClick={() => handleDisqualify(c)}
@@ -433,6 +445,17 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
             </div>
           ))}
         </div>
+      )}
+
+      {reschedulingConf && (
+        <RescheduleInterviewModal
+          conference={reschedulingConf}
+          onClose={() => setReschedulingConf(null)}
+          onRescheduled={async () => {
+            setReschedulingConf(null);
+            await loadInterviews();
+          }}
+        />
       )}
 
     </div>
