@@ -115,11 +115,15 @@ Deno.serve(async (req) => {
     // question before wrapping up — the candidate cannot defer to a later call.
     const baseContext = candidateName
       ? `You are about to interview a candidate named ${candidateName}. Their first name is ${firstName}. Please greet them personally by their first name when they join. This is a first-round interview for the Sales Growth Advisor role at Arriv Estate Media.`
-      : undefined;
+      : `This is a first-round interview for the Sales Growth Advisor role at Arriv Estate Media.`;
+    // Standing rule for EVERY session: Ashley must ask every Round 1 scorecard
+    // question before wrapping up. On reconnects she additionally must not
+    // repeat already-answered questions (the resume briefing lists those).
+    const completionDirective = ` IMPORTANT: You must ask every question on the Round 1 scorecard before you wrap up the interview — do not close early just because the candidate says they have no more questions or wants to defer answers to a later call with the founder. If the candidate tries to end early, politely insist on covering the remaining questions first. Only once every question has been answered may you close the interview.`;
     const reconnectDirective = isReconnect
-      ? ` IMPORTANT: This is a resumed session after a disconnection. You must ask every Round 1 scorecard question that was NOT already covered in the prior session before you wrap up. Do not let the candidate end the interview early or defer answers to a later call with the founder — if they try to, politely insist on covering the remaining questions first. Only once every question has been answered may you close the interview.`
+      ? ` This is a resumed session after a disconnection. Do not repeat questions that were already answered in the prior session (the resume briefing lists those). Ask every remaining unanswered Round 1 question before wrapping up.`
       : "";
-    const conversationalContext = baseContext ? `${baseContext}${reconnectDirective}` : (reconnectDirective || undefined);
+    const conversationalContext = `${baseContext}${completionDirective}${reconnectDirective}`;
 
     const tavusRes = await createTavusConversation({
       conversationName,
