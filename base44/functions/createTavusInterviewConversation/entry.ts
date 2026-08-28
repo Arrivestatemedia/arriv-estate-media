@@ -107,12 +107,21 @@ Deno.serve(async (req) => {
         : welcomeBack;
     }
 
+    // Feed Ashley the candidate's identity as conversational context so she can
+    // greet them by name on the FIRST interview (the PAL reads this as background
+    // info and weaves the name into her own greeting). On reconnects the
+    // custom_greeting still takes over as the spoken greeting.
+    const conversationalContext = candidateName
+      ? `You are about to interview a candidate named ${candidateName}. Their first name is ${firstName}. Please greet them personally by their first name when they join. This is a first-round interview for the Sales Growth Advisor role at Arriv Estate Media.`
+      : undefined;
+
     const tavusRes = await createTavusConversation({
       conversationName,
       requireAuth: true,
       maxParticipants: 2,
       memoryStore,
       customGreeting,
+      conversationalContext,
     });
 
     const conversationId = tavusRes.conversation_id;

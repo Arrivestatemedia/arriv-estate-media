@@ -75,6 +75,13 @@ export async function createTavusConversation(opts: {
    * from scratch.
    */
   customGreeting?: string;
+  /**
+   * Optional background context appended to the PAL's existing context
+   * (Tavus `conversational_context` field). Used to feed the candidate's
+   * name and role so Ashley can greet them personally on the FIRST interview
+   * without needing a scripted custom_greeting.
+   */
+  conversationalContext?: string;
 }) {
   const body: Record<string, any> = {
     pal_id: opts.palId || TAVUS_PAL_ID,
@@ -92,6 +99,13 @@ export async function createTavusConversation(opts: {
 
   if (opts.customGreeting) {
     body.custom_greeting = opts.customGreeting;
+  }
+
+  // Feed the PAL background context (e.g. the candidate's name + role) so she
+  // can greet the candidate personally on the first interview. This appends
+  // to whatever context the PAL already has configured in the Tavus dashboard.
+  if (opts.conversationalContext) {
+    body.conversational_context = opts.conversationalContext;
   }
 
   // Conversation properties: recording (when S3 is configured) + timeout
