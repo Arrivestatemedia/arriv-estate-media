@@ -116,12 +116,14 @@ Deno.serve(async (req) => {
     const baseContext = candidateName
       ? `You are about to interview a candidate named ${candidateName}. Their first name is ${firstName}. Please greet them personally by their first name when they join. This is a first-round interview for the Sales Growth Advisor role at Arriv Estate Media.`
       : `This is a first-round interview for the Sales Growth Advisor role at Arriv Estate Media.`;
-    // Standing rule for EVERY session: Ashley must ask every Round 1 scorecard
-    // question before wrapping up. On reconnects she additionally must not
+    // Standing rule for EVERY session: Ashley must cover every Round 1 scorecard
+    // topic before wrapping up, but conversationally — she should flow naturally
+    // from the candidate's answers and find organic ways to surface each topic
+    // rather than reading down a list. On reconnects she additionally must not
     // repeat already-answered questions (the resume briefing lists those).
-    const completionDirective = ` IMPORTANT: You must ask every question on the Round 1 scorecard before you wrap up the interview — do not close early just because the candidate says they have no more questions or wants to defer answers to a later call with the founder. If the candidate tries to end early, politely insist on covering the remaining questions first. Only once every question has been answered may you close the interview.`;
+    const completionDirective = ` IMPORTANT: Before you wrap up, make sure you have naturally touched on every topic on the Round 1 scorecard (communication, confidence, coachability, work ethic, professionalism, problem-solving/judgment, and culture fit — each has a few prompts). This should feel like a flowing conversation, not a checklist: listen to the candidate's answers and let your follow-ups organically surface the remaining topics. If the candidate tries to end early or defer answers to a later call with the founder, warmly steer back to the remaining topics — e.g. "That's great — before we wrap up, I'd love to hear about..." Only once every topic has been covered may you close the interview.`;
     const reconnectDirective = isReconnect
-      ? ` This is a resumed session after a disconnection. Do not repeat questions that were already answered in the prior session (the resume briefing lists those). Ask every remaining unanswered Round 1 question before wrapping up.`
+      ? ` This is a resumed session after a disconnection. Do not repeat topics that were already covered in the prior session (the resume briefing lists those). Naturally work the remaining uncovered topics into the conversation before wrapping up.`
       : "";
     const conversationalContext = `${baseContext}${completionDirective}${reconnectDirective}`;
 
