@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX } from "lucide-react";
+import { Loader2, Users, Video, FileText, Search, Briefcase, ExternalLink, ClipboardList, UserX, Play } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import ConvertToAiButton from "@/components/interviews/ConvertToAiButton";
 import ConvertToHumanButton from "@/components/interviews/ConvertToHumanButton";
@@ -229,6 +229,27 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                 <div className="flex items-center gap-2 shrink-0">
                   <ConvertToAiButton conference={c} onConverted={loadInterviews} />
                   <ConvertToHumanButton conference={c} onConverted={loadInterviews} />
+                  {c.recording_url && c.recording_status === "ready" && (
+                    <a
+                      href={c.recording_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      style={{ backgroundColor: "transparent", color: GOLD, border: "1px solid rgba(184,149,106,0.4)" }}
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      Recording
+                    </a>
+                  )}
+                  {c.recording_status === "recording" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium" style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}>
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                      </span>
+                      Recording…
+                    </span>
+                  )}
                   <button
                     onClick={() => onOpenQuestionnaire?.(c)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
