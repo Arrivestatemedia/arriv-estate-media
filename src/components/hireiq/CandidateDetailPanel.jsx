@@ -9,6 +9,7 @@ import OcrScorecardUpload from "@/components/hireiq/OcrScorecardUpload";
 import PerformanceTracker from "@/components/hireiq/PerformanceTracker";
 import HireHandoffSection from "@/components/hireiq/HireHandoffSection";
 import AskKhethaPanel from "@/components/hireiq/AskKhethaPanel";
+import CandidateRecordings from "@/components/hireiq/CandidateRecordings";
 import { evaluateCandidate, analyzeInterview } from "@/lib/hireiq";
 import {
   AlertDialog,
@@ -57,21 +58,6 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
   const [evaluating, setEvaluating] = useState(false);
   const [notes, setNotes] = useState(candidate?.interview_notes || "");
   const [pendingDecision, setPendingDecision] = useState(null);
-  const [loadingRecUrl, setLoadingRecUrl] = useState(null);
-
-  const handlePlayDocRecording = async (doc) => {
-    const url = doc?.url || "";
-    if (url.startsWith("s3://")) {
-      setLoadingRecUrl(url);
-      try {
-        const res = await base44.functions.invoke("getTavusRecordingUrl", { storageUri: url });
-        const presignedUrl = res?.url || res?.data?.url;
-        if (presignedUrl) window.open(presignedUrl, "_blank", "noopener,noreferrer");
-      } catch (_) {} finally { setLoadingRecUrl(null); }
-    } else {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  };
 
   useEffect(() => {
     setNotes(candidate?.interview_notes || "");
@@ -278,34 +264,8 @@ export default function CandidateDetailPanel({ candidate, job, onBack, onCandida
             )}
           </div>
 
-          {/* Interview Recordings — synced from documents (local + Tavus S3) */}
-          {(() => {
-            const docs = Array.isArray(candidate?.documents) ? candidate.documents : [];
-            const recordings = docs.filter(d => d?.type === "interview_recording" || d?.type === "twilio_backup_recording");
-            if (recordings.length === 0) return null;
-            return (
-              <div className="p-5" style={card}>
-                <h3 className="font-bold mb-3 flex items-center gap-2" style={{ ...SERIF, color: CREAM }}><Film className="w-4 h-4" style={{ color: GOLD }} /> Interview Recordings ({recordings.length})</h3>
-                <div className="space-y-2">
-                  {recordings.map((rec, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handlePlayDocRecording(rec)}
-                      disabled={loadingRecUrl === rec.url}
-                      className="w-full flex items-center gap-2 p-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
-                      style={{ backgroundColor: innerBg, border: "1px solid rgba(184,149,106,0.12)", color: CREAM }}
-                    >
-                      {loadingRecUrl === rec.url
-                        ? <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" style={{ color: GOLD }} />
-                        : <Play className="w-4 h-4 flex-shrink-0" style={{ color: GOLD }} />}
-                      <span className="text-left flex-1">{rec.label || "Interview Recording"}</span>
-                      {rec.type === "twilio_backup_recording" && <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>Backup</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
+          {/* Interview Recordings — all clips (stitched, parts, tail) with dropdown */}
+          <CandidateRecordings candidate={candidate} />
 
           <div className="p-5" style={card}>
             <h3 className="font-bold mb-2" style={{ ...SERIF, color: CREAM }}>Interview Notes</h3>
