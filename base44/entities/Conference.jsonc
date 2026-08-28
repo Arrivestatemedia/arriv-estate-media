@@ -182,6 +182,11 @@
     "reminder_schedule_token": {
       "type": "string",
       "description": "Opaque token used to trigger the reminder workflow for backfilled (already-scheduled) interviews"
+    },
+    "reminder_suppressed": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, the 30-minute reminder is cancelled and will not be sent. Set from the Reminder Queue UI."
     }
   },
   "required": [

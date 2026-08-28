@@ -127,6 +127,7 @@ export default async function(req: Request): Promise<Response> {
     const conf = await base44.asServiceRole.entities.Conference.get(conferenceId);
     if (!conf) return Response.json({ sent: false, reason: "not_found" });
     if (conf.status !== "scheduled") return Response.json({ sent: false, reason: "not_scheduled" });
+    if (conf.reminder_suppressed) return Response.json({ sent: false, reason: "suppressed" });
     if (conf.reminder_30min_sent) return Response.json({ sent: false, reason: "already_sent" });
     if (!conf.scheduled_date || !conf.scheduled_time || !conf.meeting_link) {
       return Response.json({ sent: false, reason: "missing_data" });

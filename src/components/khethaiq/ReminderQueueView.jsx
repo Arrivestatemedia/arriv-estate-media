@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Mail, Clock, CheckCircle2, AlertCircle, CalendarClock } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, Mail, Clock, CheckCircle2, AlertCircle, CalendarClock, Trash2 } from "lucide-react";
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
@@ -50,8 +51,11 @@ function formatEt(date) {
 }
 
 export default function ReminderQueueView() {
+  const { toast } = useToast();
   const [conferences, setConferences] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+  const [showSuppressed, setShowSuppressed] = useState(false);
 
   const load = async () => {
     try {
@@ -65,6 +69,34 @@ export default function ReminderQueueView() {
 
   useEffect(() => { load(); }, []);
 
+  const handleDelete = async (conf) => {
+    const applicantName = conf?.participants?.[0]?.name || conf.title || "this interview";
+    if (!window.confirm(`Cancel the 30-minute reminder for ${applicantName}? The interview itself stays scheduled — only the reminder email is cancelled.`)) return;
+    setDeletingId(conf.id);
+    try {
+      await base44.entities.Conference.update(conf.id, { reminder_suppressed: true });
+      toast({ title: "Reminder cancelled", description: `The 30-minute reminder for ${applicantName} will not be sent.` });
+      await load();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed to cancel reminder", description: err.message || "Unknown error" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleRestore = async (conf) => {
+    setDeletingId(conf.id);
+    try {
+      await base44.entities.Conference.update(conf.id, { reminder_suppressed: false });
+      toast({ title: "Reminder restored", description: "The 30-minute reminder is active again." });
+      await load();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed to restore reminder", description: err.message || "Unknown error" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (loading) return (
     <div className="flex justify-center py-12">
       <Loader2 className="w-8 h-8 animate-spin" style={{ color: "rgba(184,149,106,0.4)" }} />
@@ -77,9 +109,14 @@ export default function ReminderQueueView() {
     const start = etWallToUtc(c.scheduled_date, c.scheduled_time);
     const target = start ? new Date(start.getTime() - 30 * 60 * 1000) : null;
     const sent = !!c.reminder_30min_sent;
+    const suppressed = !!c.reminder_suppressed;
     const past = start && start < now;
     let status, statusColor, statusIcon;
-    if (sent) {
+    if (suppressed) {
+      status = "Cancelled";
+      statusColor = "#9CA3AF";
+      statusIcon = AlertCircle;
+    } else if (sent) {
       status = "Sent";
       statusColor = GOLD;
       statusIcon = CheckCircle2;
@@ -97,11 +134,13 @@ export default function ReminderQueueView() {
       statusColor = GOLD;
       statusIcon = Mail;
     }
-    return { c, start, target, sent, status, statusColor, statusIcon };
+    return { c, start, target, sent, suppressed, past, status, statusColor, statusIcon };
   }).sort((a, b) => (a.start || 0) - (b.start || 0));
 
-  const upcoming = entries.filter(e => !e.past);
-  const pastEntries = entries.filter(e => e.past);
+  const visible = showSuppressed ? entries : entries.filter(e => !e.suppressed);
+  const suppressedCount = entries.filter(e => e.suppressed).length;
+  const upcoming = visible.filter(e => !e.past);
+  const pastEntries = visible.filter(e => e.past);
 
   return (
     <div className="space-y-6">
@@ -127,7 +166,7 @@ export default function ReminderQueueView() {
             {upcoming.length === 0 ? (
               <p className="text-sm" style={{ color: MUTED_DARK_40 }}>No upcoming interviews.</p>
             ) : (
-              upcoming.map(({ c, start, target, sent, status, statusColor, statusIcon: Icon }) => {
+              upcoming.map(({ c, start, target, sent, suppressed, status, statusColor, statusIcon: Icon }) => {
                 const applicantName = c.participants?.[0]?.name || c.title || "Interview";
                 const applicantEmail = c.participants?.[0]?.email || "";
                 return (
@@ -166,6 +205,27 @@ export default function ReminderQueueView() {
                         <Icon className="w-3.5 h-3.5" />
                         {status}
                       </span>
+                      {suppressed ? (
+                        <button
+                          onClick={() => handleRestore(c)}
+                          disabled={deletingId === c.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                          style={{ color: GOLD, border: "1px solid rgba(184,149,106,0.4)" }}
+                        >
+                          {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                          Restore
+                        </button>
+                      ) : !sent && (
+                        <button
+                          onClick={() => handleDelete(c)}
+                          disabled={deletingId === c.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                          style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
+                        >
+                          {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          Cancel
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -173,13 +233,24 @@ export default function ReminderQueueView() {
             )}
           </div>
 
+          {/* Suppressed reminders toggle */}
+          {suppressedCount > 0 && (
+            <button
+              onClick={() => setShowSuppressed(s => !s)}
+              className="text-xs font-medium underline"
+              style={{ color: MUTED_DARK_70 }}
+            >
+              {showSuppressed ? "Hide cancelled reminders" : `Show ${suppressedCount} cancelled reminder${suppressedCount > 1 ? "s" : ""}`}
+            </button>
+          )}
+
           {/* Past (sent or missed) */}
           {pastEntries.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: MUTED_DARK_70 }}>
                 Past ({pastEntries.length})
               </h2>
-              {pastEntries.map(({ c, start, sent, status, statusColor, statusIcon: Icon }) => {
+              {pastEntries.map(({ c, start, sent, suppressed, status, statusColor, statusIcon: Icon }) => {
                 const applicantName = c.participants?.[0]?.name || c.title || "Interview";
                 return (
                   <div key={c.id} className="p-3 flex items-center justify-between gap-3 opacity-70" style={whiteCard}>
@@ -187,13 +258,26 @@ export default function ReminderQueueView() {
                       <h3 className="font-medium truncate text-sm" style={{ color: TEXT_DARK }}>{applicantName}</h3>
                       {start && <p className="text-xs" style={{ color: MUTED_DARK_40 }}>{formatEt(start)}</p>}
                     </div>
-                    <span
-                      className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={{ backgroundColor: `${statusColor}15`, color: statusColor }}
-                    >
-                      <Icon className="w-3 h-3" />
-                      {status}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ backgroundColor: `${statusColor}15`, color: statusColor }}
+                      >
+                        <Icon className="w-3 h-3" />
+                        {status}
+                      </span>
+                      {suppressed && (
+                        <button
+                          onClick={() => handleRestore(c)}
+                          disabled={deletingId === c.id}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                          style={{ color: GOLD, border: "1px solid rgba(184,149,106,0.4)" }}
+                        >
+                          {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                          Restore
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
