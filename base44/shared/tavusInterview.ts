@@ -36,9 +36,9 @@ export async function createTavusConversation(opts: {
     callback_url: getCallbackUrl(),
     require_auth: opts.requireAuth !== false,
     max_participants: opts.maxParticipants || 2,
-    properties: {
-      auto_start_recording: true,
-    },
+    // Note: Tavus server-side recording (auto_start_recording) requires a
+    // recording_storage destination (S3/GCS/Azure). Not configured here —
+    // local MediaRecorder in TavusInterviewPanel handles recording instead.
   };
   const res = await fetch(`${TAVUS_API_BASE}/conversations`, {
     method: "POST",
