@@ -17,7 +17,6 @@ const whiteCard = {
 };
 
 // Convert ET wall-clock (date + HH:MM) to a UTC Date, handling DST.
-// ET is UTC-5 (EST) or UTC-4 (EDT).
 function etWallToUtc(dateStr, timeStr) {
   if (!dateStr) return null;
   const [h, m] = (timeStr || "00:00").split(":").map(Number);
@@ -55,7 +54,6 @@ export default function ReminderQueueView() {
   const [conferences, setConferences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
-  const [showSuppressed, setShowSuppressed] = useState(false);
 
   const load = async () => {
     try {
@@ -71,27 +69,14 @@ export default function ReminderQueueView() {
 
   const handleDelete = async (conf) => {
     const applicantName = conf?.participants?.[0]?.name || conf.title || "this interview";
-    if (!window.confirm(`Cancel the 30-minute reminder for ${applicantName}? The interview itself stays scheduled — only the reminder email is cancelled.`)) return;
+    if (!window.confirm(`Delete this reminder from the queue?\n\n${applicantName}\n\nThis permanently removes the scheduled interview and its reminder. This cannot be undone.`)) return;
     setDeletingId(conf.id);
     try {
-      await base44.entities.Conference.update(conf.id, { reminder_suppressed: true });
-      toast({ title: "Reminder cancelled", description: `The 30-minute reminder for ${applicantName} will not be sent.` });
+      await base44.entities.Conference.delete(conf.id);
+      toast({ title: "Reminder deleted", description: `${applicantName} was removed from the queue.` });
       await load();
     } catch (err) {
-      toast({ variant: "destructive", title: "Failed to cancel reminder", description: err.message || "Unknown error" });
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleRestore = async (conf) => {
-    setDeletingId(conf.id);
-    try {
-      await base44.entities.Conference.update(conf.id, { reminder_suppressed: false });
-      toast({ title: "Reminder restored", description: "The 30-minute reminder is active again." });
-      await load();
-    } catch (err) {
-      toast({ variant: "destructive", title: "Failed to restore reminder", description: err.message || "Unknown error" });
+      toast({ variant: "destructive", title: "Failed to delete", description: err.message || "Unknown error" });
     } finally {
       setDeletingId(null);
     }
@@ -109,14 +94,9 @@ export default function ReminderQueueView() {
     const start = etWallToUtc(c.scheduled_date, c.scheduled_time);
     const target = start ? new Date(start.getTime() - 30 * 60 * 1000) : null;
     const sent = !!c.reminder_30min_sent;
-    const suppressed = !!c.reminder_suppressed;
     const past = start && start < now;
     let status, statusColor, statusIcon;
-    if (suppressed) {
-      status = "Cancelled";
-      statusColor = "#9CA3AF";
-      statusIcon = AlertCircle;
-    } else if (sent) {
+    if (sent) {
       status = "Sent";
       statusColor = GOLD;
       statusIcon = CheckCircle2;
@@ -129,18 +109,15 @@ export default function ReminderQueueView() {
       statusColor = "#DC2626";
       statusIcon = AlertCircle;
     } else {
-      // Within the 30-min window, should send imminently
       status = "Sending soon";
       statusColor = GOLD;
       statusIcon = Mail;
     }
-    return { c, start, target, sent, suppressed, past, status, statusColor, statusIcon };
+    return { c, start, target, sent, past, status, statusColor, statusIcon };
   }).sort((a, b) => (a.start || 0) - (b.start || 0));
 
-  const visible = showSuppressed ? entries : entries.filter(e => !e.suppressed);
-  const suppressedCount = entries.filter(e => e.suppressed).length;
-  const upcoming = visible.filter(e => !e.past);
-  const pastEntries = visible.filter(e => e.past);
+  const upcoming = entries.filter(e => !e.past);
+  const pastEntries = entries.filter(e => e.past);
 
   return (
     <div className="space-y-6">
@@ -166,7 +143,7 @@ export default function ReminderQueueView() {
             {upcoming.length === 0 ? (
               <p className="text-sm" style={{ color: MUTED_DARK_40 }}>No upcoming interviews.</p>
             ) : (
-              upcoming.map(({ c, start, target, sent, suppressed, status, statusColor, statusIcon: Icon }) => {
+              upcoming.map(({ c, start, target, sent, status, statusColor, statusIcon: Icon }) => {
                 const applicantName = c.participants?.[0]?.name || c.title || "Interview";
                 const applicantEmail = c.participants?.[0]?.email || "";
                 return (
@@ -205,27 +182,15 @@ export default function ReminderQueueView() {
                         <Icon className="w-3.5 h-3.5" />
                         {status}
                       </span>
-                      {suppressed ? (
-                        <button
-                          onClick={() => handleRestore(c)}
-                          disabled={deletingId === c.id}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                          style={{ color: GOLD, border: "1px solid rgba(184,149,106,0.4)" }}
-                        >
-                          {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
-                          Restore
-                        </button>
-                      ) : !sent && (
-                        <button
-                          onClick={() => handleDelete(c)}
-                          disabled={deletingId === c.id}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                          style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
-                        >
-                          {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                          Cancel
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleDelete(c)}
+                        disabled={deletingId === c.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
+                      >
+                        {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                        Delete
+                      </button>
                     </div>
                   </div>
                 );
@@ -233,24 +198,13 @@ export default function ReminderQueueView() {
             )}
           </div>
 
-          {/* Suppressed reminders toggle */}
-          {suppressedCount > 0 && (
-            <button
-              onClick={() => setShowSuppressed(s => !s)}
-              className="text-xs font-medium underline"
-              style={{ color: MUTED_DARK_70 }}
-            >
-              {showSuppressed ? "Hide cancelled reminders" : `Show ${suppressedCount} cancelled reminder${suppressedCount > 1 ? "s" : ""}`}
-            </button>
-          )}
-
           {/* Past (sent or missed) */}
           {pastEntries.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: MUTED_DARK_70 }}>
                 Past ({pastEntries.length})
               </h2>
-              {pastEntries.map(({ c, start, sent, suppressed, status, statusColor, statusIcon: Icon }) => {
+              {pastEntries.map(({ c, start, sent, status, statusColor, statusIcon: Icon }) => {
                 const applicantName = c.participants?.[0]?.name || c.title || "Interview";
                 return (
                   <div key={c.id} className="p-3 flex items-center justify-between gap-3 opacity-70" style={whiteCard}>
@@ -266,17 +220,14 @@ export default function ReminderQueueView() {
                         <Icon className="w-3 h-3" />
                         {status}
                       </span>
-                      {suppressed && (
-                        <button
-                          onClick={() => handleRestore(c)}
-                          disabled={deletingId === c.id}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                          style={{ color: GOLD, border: "1px solid rgba(184,149,106,0.4)" }}
-                        >
-                          {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
-                          Restore
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleDelete(c)}
+                        disabled={deletingId === c.id}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        style={{ color: "#DC2626", border: "1px solid rgba(220,38,38,0.3)" }}
+                      >
+                        {deletingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      </button>
                     </div>
                   </div>
                 );
