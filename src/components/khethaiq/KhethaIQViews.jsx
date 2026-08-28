@@ -329,17 +329,34 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
               r.file_url !== recording?.file_url
             ) || null;
             return (
-              <div key={`conf-${c.id}`} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={whiteCard}>
-                <div className="min-w-0">
-                  <h3 className="font-semibold" style={{ ...SERIF, color: TEXT_DARK }}>{applicantName}</h3>
-                  {when && <p className="text-sm" style={{ color: MUTED_DARK }}>{when}</p>}
-                  {c.meeting_link && (
-                    <a href={c.meeting_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs mt-1 hover:underline" style={{ color: GOLD }}>
-                      <ExternalLink className="w-3 h-3" /> Join link
-                    </a>
-                  )}
+              <div key={`conf-${c.id}`} className="p-4 flex flex-col gap-3" style={whiteCard}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold" style={{ ...SERIF, color: TEXT_DARK }}>{applicantName}</h3>
+                    {when && <p className="text-sm" style={{ color: MUTED_DARK }}>{when}</p>}
+                    {c.meeting_link && (
+                      <a href={c.meeting_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs mt-1 hover:underline" style={{ color: GOLD }}>
+                        <ExternalLink className="w-3 h-3" /> Join link
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {c.tavus_scorecard_saved && (
+                      <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>
+                        ✓ Scorecard
+                      </span>
+                    )}
+                    {c.tavus_review_required && !c.tavus_scorecard_saved && (
+                      <span className="text-xs px-2 py-0.5 rounded" style={{ border: "1px solid rgba(184,149,106,0.3)", color: MUTED_DARK_70 }}>
+                        Needs Review
+                      </span>
+                    )}
+                    <span className="text-xs px-2 py-0.5 rounded capitalize" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>
+                      {c.status || "scheduled"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <ConvertToAiButton conference={c} onConverted={loadInterviews} />
                   <ConvertToHumanButton conference={c} onConverted={loadInterviews} />
                   {recording && (
@@ -409,19 +426,6 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                       Disqualify
                     </button>
                   )}
-                  {c.tavus_scorecard_saved && (
-                    <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD }}>
-                      ✓ Scorecard
-                    </span>
-                  )}
-                  {c.tavus_review_required && !c.tavus_scorecard_saved && (
-                    <span className="text-xs px-2 py-0.5 rounded" style={{ border: "1px solid rgba(184,149,106,0.3)", color: MUTED_DARK_70 }}>
-                      Needs Review
-                    </span>
-                  )}
-                  <span className="text-xs px-2 py-0.5 rounded capitalize" style={{ border: "1px solid rgba(184,149,106,0.2)", color: MUTED_DARK_70 }}>
-                    {c.status || "scheduled"}
-                  </span>
                 </div>
               </div>
             );
