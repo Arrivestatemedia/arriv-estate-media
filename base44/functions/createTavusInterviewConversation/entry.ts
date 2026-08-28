@@ -55,15 +55,27 @@ Deno.serve(async (req) => {
     // Pass the candidate's email as a stable memory store so the PAL (Ashley)
     // can remember the candidate across interviews and welcome them back.
     const candidateEmail = conference.participants?.[0]?.email || "";
+    const candidateName = conference.participants?.[0]?.name || "";
     const memoryStore = candidateEmail
       ? `arriv-candidate-${candidateEmail.toLowerCase().trim()}`
       : undefined;
     const conversationName = `Arriv Interview - ${conference.title || roomName}`;
+
+    // If this is a reconnect (a previous conversation existed but ended),
+    // give Ashley a custom greeting so she acknowledges the drop instead of
+    // restarting the interview from her default greeting.
+    const isReconnect = !!conference.tavus_conversation_id;
+    const firstName = candidateName ? candidateName.split(" ")[0] : "";
+    const customGreeting = isReconnect
+      ? `Welcome back${firstName ? " " + firstName : ""}, sorry about that, I don't know what happened!`
+      : undefined;
+
     const tavusRes = await createTavusConversation({
       conversationName,
       requireAuth: true,
       maxParticipants: 2,
       memoryStore,
+      customGreeting,
     });
 
     const conversationId = tavusRes.conversation_id;

@@ -69,6 +69,12 @@ export async function createTavusConversation(opts: {
    * memory_stores should be a stable, unique identifier for the user.
    */
   memoryStore?: string;
+  /**
+   * Optional custom greeting the PAL speaks when a participant joins. Used on
+   * reconnects so the PAL acknowledges the disconnection instead of re-greeting
+   * from scratch.
+   */
+  customGreeting?: string;
 }) {
   const body: Record<string, any> = {
     pal_id: opts.palId || TAVUS_PAL_ID,
@@ -82,6 +88,10 @@ export async function createTavusConversation(opts: {
   // details from prior interviews and welcome returning candidates by name.
   if (opts.memoryStore) {
     body.memory_stores = [opts.memoryStore];
+  }
+
+  if (opts.customGreeting) {
+    body.custom_greeting = opts.customGreeting;
   }
 
   // Conversation properties: recording (when S3 is configured) + timeout

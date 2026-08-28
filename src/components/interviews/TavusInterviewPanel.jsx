@@ -473,31 +473,6 @@ export default function TavusInterviewPanel({
       reconnectAttemptsRef.current = 0;
       setIsReconnecting(false);
       setTimeout(renderRemoteVideo, 500);
-
-      // Send a resume instruction to the AI so she picks up where she left off
-      // instead of re-greeting and restarting the interview. Tavus ignores
-      // messages sent during the PAL's greeting, so we wait 4s for it to finish.
-      const convId = data.conversationId;
-      if (convId) {
-        const resumeText = data.reused
-          ? "I just reconnected after a brief disconnection. Please resume the interview exactly where we left off — do not restart or re-introduce yourself."
-          : "I was previously interviewing with you but my connection dropped. Please check your memory of our prior conversation and resume from where we left off — do not start over.";
-        setTimeout(() => {
-          try {
-            call.sendAppMessage(
-              {
-                message_type: "conversation",
-                event_type: "conversation.respond",
-                conversation_id: convId,
-                properties: { text: resumeText },
-              },
-              "*"
-            );
-          } catch (e) {
-            console.warn("Failed to send resume instruction:", e);
-          }
-        }, 4000);
-      }
     } catch (err) {
       console.error(`Reconnect attempt ${attempt} failed:`, err);
       // Fast backoff capped at 10s so we keep trying aggressively without
