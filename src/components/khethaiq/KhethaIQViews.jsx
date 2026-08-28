@@ -177,7 +177,11 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
       // Build room_name -> recording map (recordings live in VideoRecording, not on the conference)
       const recs = recRes?.data ?? recRes ?? [];
       const byRoom = {};
-      recs.forEach(r => { if (r.room_name && r.file_url) byRoom[r.room_name] = r; });
+      recs.forEach(r => {
+        if (r.room_name && r.file_url) {
+          byRoom[r.room_name] = [...(byRoom[r.room_name] || []), r];
+        }
+      });
       setRecordingsByRoom(byRoom);
     } catch { setInterviews([]); setConferences([]); }
   };
@@ -311,7 +315,17 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
           {visibleConfs.map(c => {
             const applicantName = c.participants?.[0]?.name || c.title || "Interview";
             const when = formatConfWhen(c);
-            const recording = c.room_name ? recordingsByRoom[c.room_name] : null;
+            const roomRecs = c.room_name ? recordingsByRoom[c.room_name] : [];
+            const allRecs = Array.isArray(roomRecs) ? roomRecs : (roomRecs ? [roomRecs] : []);
+            // Primary: prefer the stitched local recording, else the first available
+            const recording = allRecs.find(r => (r.recorded_by_name || "").includes("Stitched")) || allRecs[0] || null;
+            // Secondary: the Tavus server-side tail clip (different conversation than
+            // any local recording) — surfaces the ending the local recording missed.
+            const tailClip = allRecs.find(r =>
+              (r.file_url || "").startsWith("s3://") &&
+              r.file_url === c.tavus_recording_storage_uri &&
+              r.file_url !== recording?.file_url
+            ) || null;
             return (
               <div key={`conf-${c.id}`} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={whiteCard}>
                 <div className="min-w-0">
@@ -337,6 +351,20 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
                         ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         : <Play className="w-3.5 h-3.5" />}
                       Recording
+                    </button>
+                  )}
+                  {tailClip && (
+                    <button
+                      onClick={() => handlePlayRecording(tailClip)}
+                      disabled={loadingRecRoom === (tailClip.room_name || tailClip.file_url)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                      style={{ backgroundColor: "transparent", color: MUTED_DARK_70, border: "1px solid rgba(184,149,106,0.25)" }}
+                      title="AI server-side recording covering the end of the interview"
+                    >
+                      {loadingRecRoom === (tailClip.room_name || tailClip.file_url)
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Play className="w-3.5 h-3.5" />}
+                      Tail Clip
                     </button>
                   )}
                   <button
