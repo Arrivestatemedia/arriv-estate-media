@@ -90,6 +90,18 @@ export default function Conference() {
     );
   }
 
+  // Close the interview: go back if there's history, otherwise redirect
+  // to the app home. window.history.back() silently does nothing when the
+  // page was opened in a new tab (e.g. from an interview email link),
+  // which left the X button appearing broken.
+  const handleClose = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '/';
+    }
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFBF5' }}>
       {interviewMode === "ai" ? (
@@ -97,7 +109,7 @@ export default function Conference() {
           roomName={roomName}
           currentUserName={user?.full_name || 'Guest'}
           recipientName="Arriv Interview"
-          onClose={() => window.history.back()}
+          onClose={handleClose}
         />
       ) : (
         <VideoCallPanelV2
@@ -105,7 +117,7 @@ export default function Conference() {
           currentUserId={user?.id || localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id')}
           currentUserName={user?.full_name || 'Guest'}
           recipientName="Conference"
-          onClose={() => window.history.back()}
+          onClose={handleClose}
           autoStart={autoStart}
           isVideoWindowOpen={true}
           onMinimize={() => {}}
