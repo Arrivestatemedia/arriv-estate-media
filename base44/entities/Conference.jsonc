@@ -178,6 +178,10 @@
       "type": "string",
       "format": "date-time",
       "description": "When the 30-minute pre-interview reminder email was sent"
+    },
+    "reminder_schedule_token": {
+      "type": "string",
+      "description": "Opaque token used to trigger the reminder workflow for backfilled (already-scheduled) interviews"
     }
   },
   "required": [

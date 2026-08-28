@@ -31,7 +31,7 @@ function etParts(date) {
 
 // Convert a wall-clock Eastern Time (America/New_York) moment to a UTC Date,
 // correctly handling DST transitions.
-function etWallToUtc(year, month, day, hour, minute) {
+export function etWallToUtc(year, month, day, hour, minute) {
   let instant = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
   for (let i = 0; i < 2; i++) {
     const p = etParts(new Date(instant));

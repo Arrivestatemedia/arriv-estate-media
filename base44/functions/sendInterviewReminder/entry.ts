@@ -1,48 +1,17 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { sendBusinessEmailOrQueue } from "../../shared/businessEmailQueue.ts";
+import { etWallToUtc, sendBusinessEmailOrQueue } from "../../shared/businessEmailQueue.ts";
 import { deriveFirstName } from "../../shared/brevoWelcomeEmail.ts";
 
-// Convert a wall-clock Eastern Time (America/New_York) moment to a UTC Date,
-// correctly handling DST transitions. (Mirrors the non-exported helper in
-// businessEmailQueue.ts — kept local to avoid modifying the shared module.)
-function etWallToUtc(year: number, month: number, day: number, hour: number, minute: number): Date {
-  function etParts(date: Date) {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York",
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", hour12: false,
-    }).formatToParts(date);
-    const get = (t: string) => {
-      const p = parts.find((x) => x.type === t);
-      let v = Number(p.value);
-      if (t === "hour" && v === 24) v = 0;
-      return v;
-    };
-    return { year: get("year"), month: get("month"), day: get("day"), hour: get("hour"), minute: get("minute") };
-  }
-  let instant = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
-  for (let i = 0; i < 2; i++) {
-    const p = etParts(new Date(instant));
-    const actualUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, 0, 0);
-    instant += Date.UTC(year, month - 1, day, hour, minute, 0, 0) - actualUtc;
-  }
-  return new Date(instant);
-}
-
 /**
- * sendInterviewReminders
+ * sendInterviewReminder
  *
- * Polling function (invoked every 5 minutes by a scheduled workflow) that finds
- * scheduled interviews (Conference records) starting within the next ~35
- * minutes and sends a 30-minute reminder email to the applicant and the admin.
+ * Called by the per-interview reminder workflow when the wait completes (at
+ * ~30 minutes before the interview start). Sends the reminder email to the
+ * applicant and a copy to the admin/organizer, then marks the conference as
+ * reminded. Guards against reschedules, cancellations, and duplicate sends by
+ * re-reading the conference and verifying the start time still matches.
  *
- * Each conference is reminded at most once (reminder_30min_sent flag), so a
- * short-notice interview (scheduled < 30 min before start) still receives a
- * reminder at the first poll that finds it, while a normally-scheduled
- * interview receives its reminder roughly 30 minutes before start time.
- *
- * No user auth — invoked by a scheduled workflow with no user token, so it
- * operates as the service role (same pattern as processQueuedApplicationEmails).
+ * Invoked by a workflow (no user token) — uses the service role.
  */
 
 function buildReminderHtml(firstName: string, meetingLink: string): string {
@@ -148,90 +117,74 @@ function formatWhen(scheduledDate: string, scheduledTime: string): string {
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const now = new Date();
-    const adminEmail = Deno.env.get("ADMIN_EMAIL") || "";
-
-    // Pull all scheduled conferences (paginated to a sane cap). We filter by
-    // start time in code because scheduled_date/scheduled_time are ET wall-clock
-    // strings, not ISO timestamps, so a single DB time query can't express
-    // "starts within 35 minutes from now."
-    const res = await base44.asServiceRole.entities.Conference.filter(
-      { status: "scheduled" },
-      "-scheduled_date",
-      500
-    );
-    const conferences = res?.data ?? res ?? [];
-
-    const sent: any[] = [];
-    const WINDOW_MS = 35 * 60 * 1000; // send for interviews starting within 35 min
-
-    for (const conf of conferences) {
-      if (!conf.scheduled_date || !conf.scheduled_time) continue;
-      if (conf.reminder_30min_sent) continue;
-      if (!conf.meeting_link) continue;
-
-      const [y, m, d] = conf.scheduled_date.split("-").map(Number);
-      const [h, mi] = conf.scheduled_time.split(":").map(Number);
-      const startUtc = etWallToUtc(y, m, d, h, mi);
-      const diffMs = startUtc.getTime() - now.getTime();
-
-      // Only future interviews starting within the next 35 minutes.
-      if (diffMs < 0 || diffMs > WINDOW_MS) continue;
-
-      const participant = (conf.participants || [])[0] || {};
-      const applicantName = participant.name || conf.title || "Candidate";
-      const applicantEmail = participant.email || "";
-      if (!applicantEmail) continue;
-
-      const firstName = deriveFirstName(applicantName);
-      const meetingLink = conf.meeting_link;
-      const html = buildReminderHtml(firstName, meetingLink);
-      const subject = "Your Arriv Estate Media Interview Starts in 30 Minutes";
-
-      let applicantOk = false;
-      try {
-        await sendBusinessEmailOrQueue(base44, { to: applicantEmail, subject, htmlContent: html });
-        applicantOk = true;
-      } catch (e) {
-        console.warn(`Failed to send reminder to applicant ${applicantEmail}: ${e.message}`);
-      }
-
-      // Admin copy — send to ADMIN_EMAIL (the owner) and the organizer, deduped.
-      const adminTargets = new Set<string>();
-      if (adminEmail) adminTargets.add(adminEmail.toLowerCase());
-      if (conf.organizer_email) adminTargets.add(conf.organizer_email.toLowerCase());
-      if (adminTargets.has(applicantEmail.toLowerCase())) {
-        // applicant is the organizer/admin — no separate copy needed
-      }
-      const whenLabel = formatWhen(conf.scheduled_date, conf.scheduled_time);
-      const adminHtml = buildAdminCopyHtml(applicantName, applicantEmail, meetingLink, whenLabel);
-      const adminSubject = `Interview Reminder (30 min): ${applicantName}`;
-      for (const target of adminTargets) {
-        if (target === applicantEmail.toLowerCase()) continue;
-        try {
-          await sendBusinessEmailOrQueue(base44, { to: target, subject: adminSubject, htmlContent: adminHtml });
-        } catch (e) {
-          console.warn(`Failed to send admin reminder to ${target}: ${e.message}`);
-        }
-      }
-
-      // Mark reminded regardless of admin-copy success, so a Brevo hiccup on
-      // the admin side doesn't spam the applicant with duplicate reminders.
-      try {
-        await base44.asServiceRole.entities.Conference.update(conf.id, {
-          reminder_30min_sent: true,
-          reminder_30min_sent_at: new Date().toISOString(),
-        });
-      } catch (e) {
-        console.warn(`Failed to mark reminder sent on conference ${conf.id}: ${e.message}`);
-      }
-
-      sent.push({ id: conf.id, applicant: applicantEmail, applicantOk, minutesUntil: Math.round(diffMs / 60000) });
+    const body = await req.json().catch(() => ({}));
+    const conferenceId = body.conference_id;
+    const expectedStartIso = body.expected_start_iso;
+    if (!conferenceId || !expectedStartIso) {
+      return Response.json({ sent: false, error: "conference_id and expected_start_iso required" }, { status: 400 });
     }
 
-    return Response.json({ status: "success", checked: conferences.length, sent, sentCount: sent.length });
+    const conf = await base44.asServiceRole.entities.Conference.get(conferenceId);
+    if (!conf) return Response.json({ sent: false, reason: "not_found" });
+    if (conf.status !== "scheduled") return Response.json({ sent: false, reason: "not_scheduled" });
+    if (conf.reminder_30min_sent) return Response.json({ sent: false, reason: "already_sent" });
+    if (!conf.scheduled_date || !conf.scheduled_time || !conf.meeting_link) {
+      return Response.json({ sent: false, reason: "missing_data" });
+    }
+
+    // Abort if the interview was rescheduled since this run was scheduled.
+    const [y, m, d] = conf.scheduled_date.split("-").map(Number);
+    const [h, mi] = conf.scheduled_time.split(":").map(Number);
+    const currentStartUtc = etWallToUtc(y, m, d, h, mi);
+    if (currentStartUtc.toISOString() !== expectedStartIso) {
+      return Response.json({ sent: false, reason: "rescheduled_stale_run" });
+    }
+
+    const participant = (conf.participants || [])[0] || {};
+    const applicantEmail = participant.email || "";
+    const applicantName = participant.name || conf.title || "Candidate";
+    if (!applicantEmail) return Response.json({ sent: false, reason: "no_applicant_email" });
+
+    // Applicant reminder
+    const firstName = deriveFirstName(applicantName);
+    const html = buildReminderHtml(firstName, conf.meeting_link);
+    const subject = "Your Arriv Estate Media Interview Starts in 30 Minutes";
+    try {
+      await sendBusinessEmailOrQueue(base44, { to: applicantEmail, subject, htmlContent: html });
+    } catch (e) {
+      console.warn(`sendInterviewReminder: applicant email failed for ${applicantEmail}: ${e.message}`);
+    }
+
+    // Admin/organizer copy
+    const adminEmail = Deno.env.get("ADMIN_EMAIL") || "";
+    const whenLabel = formatWhen(conf.scheduled_date, conf.scheduled_time);
+    const adminHtml = buildAdminCopyHtml(applicantName, applicantEmail, conf.meeting_link, whenLabel);
+    const adminSubject = `Interview Reminder (30 min): ${applicantName}`;
+    const targets = new Set<string>();
+    if (adminEmail) targets.add(adminEmail.toLowerCase());
+    if (conf.organizer_email) targets.add(conf.organizer_email.toLowerCase());
+    for (const target of targets) {
+      if (target === applicantEmail.toLowerCase()) continue;
+      try {
+        await sendBusinessEmailOrQueue(base44, { to: target, subject: adminSubject, htmlContent: adminHtml });
+      } catch (e) {
+        console.warn(`sendInterviewReminder: admin email failed for ${target}: ${e.message}`);
+      }
+    }
+
+    // Mark sent
+    try {
+      await base44.asServiceRole.entities.Conference.update(conferenceId, {
+        reminder_30min_sent: true,
+        reminder_30min_sent_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn(`sendInterviewReminder: mark sent failed for ${conferenceId}: ${e.message}`);
+    }
+
+    return Response.json({ sent: true, conference_id: conferenceId, applicant: applicantEmail });
   } catch (error) {
-    console.error("sendInterviewReminders error:", error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("sendInterviewReminder error:", error.message);
+    return Response.json({ sent: false, error: error.message }, { status: 500 });
   }
 }

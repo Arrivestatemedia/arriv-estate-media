@@ -1,0 +1,117 @@
+{
+  "name": "Interview Reminder Scheduler",
+  "description": "When an interview is scheduled or rescheduled, waits until 30 minutes before the start time and sends a reminder email to the applicant and admin. Also fires for backfilled interviews via the reminder_schedule_token field.",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "Conference",
+      "events": [
+        "create",
+        "update"
+      ]
+    },
+    "condition": "${ .trigger.data.status == \"scheduled\" and .trigger.data.meeting_link != null and .trigger.data.meeting_link != \"\" and .trigger.data.scheduled_date != null and .trigger.data.scheduled_time != null and (.trigger.event_type == \"create\" or any((.trigger.changed_fields // [])[]; . | IN(\"scheduled_date\",\"scheduled_time\",\"meeting_link\",\"status\",\"reminder_schedule_token\"))) }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "interview_reminder_scheduler",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "prepare": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "prepareInterviewReminder",
+            "args": {
+              "conference_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "check_valid",
+          "x-base44": {
+            "title": "Prepare reminder",
+            "description": "Compute target time & reset flag"
+          }
+        }
+      },
+      {
+        "check_valid": {
+          "switch": [
+            {
+              "when": "${ .prepare.valid != true }",
+              "then": "end"
+            },
+            {
+              "when": "${ true }",
+              "then": "compute_wait"
+            }
+          ],
+          "x-base44": {
+            "title": "Valid?",
+            "description": "Skip if interview is past/invalid"
+          }
+        }
+      },
+      {
+        "compute_wait": {
+          "call": "compute_seconds_until",
+          "with": {
+            "target_iso": "${ .prepare.target_iso }"
+          },
+          "then": "check_send",
+          "x-base44": {
+            "title": "Compute wait",
+            "description": "Seconds until 30 min before start"
+          }
+        }
+      },
+      {
+        "check_send": {
+          "switch": [
+            {
+              "when": "${ .compute_wait.seconds > 0 }",
+              "then": "wait_until"
+            },
+            {
+              "when": "${ true }",
+              "then": "send_reminder"
+            }
+          ],
+          "x-base44": {
+            "title": "Timing check",
+            "description": "Wait, or send now if within 30 min"
+          }
+        }
+      },
+      {
+        "wait_until": {
+          "wait": "PT${ .compute_wait.seconds | floor }S",
+          "then": "send_reminder",
+          "x-base44": {
+            "title": "Wait until reminder time",
+            "description": "Durable wait until ~30 min before"
+          }
+        }
+      },
+      {
+        "send_reminder": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendInterviewReminder",
+            "args": {
+              "conference_id": "${ .trigger.entity_id }",
+              "expected_start_iso": "${ .prepare.start_iso }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send reminder",
+            "description": "Email applicant & admin"
+          }
+        }
+      }
+    ]
+  }
+}
