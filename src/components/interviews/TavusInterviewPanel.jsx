@@ -4,6 +4,7 @@ import { X, Phone, Video, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import DailyIframe from "@daily-co/daily-js";
 import VideoControls from "@/components/sales/VideoControls";
+import { savePendingSegment, clearPendingSegment, listPendingSegments } from "@/lib/recordingRecovery";
 
 /**
  * TavusInterviewPanel — renders the Tavus AI interview inside a shell that
@@ -100,8 +101,26 @@ export default function TavusInterviewPanel({
     };
   }, []);
 
+  // ─── Recover segments orphaned by a previous tab close ───────────────────
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const pending = await listPendingSegments(roomName);
+        if (cancelled || pending.length === 0) return;
+        console.info(`Recovering ${pending.length} interrupted recording segment(s) for ${roomName}`);
+        for (const rec of pending) {
+          if (cancelled) break;
+          await uploadSegment(rec.blob, rec.segmentNum, rec.durationSecs || 0, rec.id);
+        }
+      } catch (e) { console.warn("Recovery scan failed:", e); }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomName]);
+
   // ─── Upload a single segment ──────────────────────────────────────────────
-  const uploadSegment = useCallback(async (blob, segmentNum, durationSecs) => {
+  const uploadSegment = useCallback(async (blob, segmentNum, durationSecs, pendingId) => {
     if (blob.size === 0) { console.warn(`Segment ${segmentNum} was empty`); return; }
     setUploadingRecording(true);
     try {
@@ -119,10 +138,13 @@ export default function TavusInterviewPanel({
         fileSize: blob.size,
         segment: segmentNum,
       });
+      // Upload succeeded — safe to remove from recovery store
+      if (pendingId) await clearPendingSegment(pendingId).catch(() => {});
     } catch (err) {
       console.error(`Segment ${segmentNum} upload failed:`, err);
       // Mark the conference so the admin knows a segment failed
       base44.functions.invoke("saveInterviewRecording", { roomName, failed: true }).catch(() => {});
+      // Leave the blob in IndexedDB so it can be retried on next visit
     } finally {
       setUploadingRecording(false);
     }
@@ -150,7 +172,13 @@ export default function TavusInterviewPanel({
     recorder.onstop = async () => {
       const blob = new Blob(chunks, { type: "video/webm" });
       const segDuration = Math.round((Date.now() - segStartTime) / 1000);
-      await uploadSegment(blob, segmentNum, segDuration);
+      // Persist to IndexedDB FIRST so the segment survives a tab close
+      // during the upload. Cleared after a successful upload.
+      let pendingId = null;
+      try {
+        pendingId = await savePendingSegment({ roomName, segmentNum, blob, durationSecs: segDuration, recordedAt: Date.now() });
+      } catch (e) { console.warn("Could not persist segment for recovery:", e); }
+      await uploadSegment(blob, segmentNum, segDuration, pendingId);
       // Start the next segment unless the call is ending
       if (!isEndingRef.current) {
         startSegment(segmentNum + 1);
