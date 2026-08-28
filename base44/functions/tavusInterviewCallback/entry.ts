@@ -37,15 +37,6 @@ Deno.serve(async (req) => {
       return Response.json({ status: "success", action: "pal_joined" });
     }
 
-    // Applicant (human participant) joined the AI interview — session is now live
-    if (eventType === "system.participant_joined") {
-      await base44.asServiceRole.entities.Conference.update(conference.id, {
-        tavus_conversation_status: "live",
-        tavus_started_at: new Date().toISOString(),
-      });
-      return Response.json({ status: "success", action: "participant_joined" });
-    }
-
     if (eventType === "system.shutdown" || eventType === "system.conversation_ended") {
       await base44.asServiceRole.entities.Conference.update(conference.id, {
         tavus_conversation_status: "ended",
