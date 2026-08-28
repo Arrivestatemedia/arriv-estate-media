@@ -36,23 +36,21 @@ export default function CandidateRecordings({ candidate }) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [loadingRecUrl, setLoadingRecUrl] = useState(null);
 
-  // 1. Fetch fresh candidate documents from DB (avoids stale parent state).
-  // Initialize immediately from candidate prop so recordings show without
-  // waiting for the network round-trip.
+  // 1. Fetch fresh candidate documents from DB (avoids stale parent state)
   useEffect(() => {
     let cancelled = false;
-    const initial = Array.isArray(candidate?.documents) ? candidate.documents : [];
-    setFreshDocs(initial);
     (async () => {
-      if (!candidate?.id) return;
+      if (!candidate?.id) { if (!cancelled) setFreshDocs([]); return; }
       try {
         const res = await base44.entities.HireCandidate.get(candidate.id);
         const c = res?.data ?? res;
         if (!cancelled) setFreshDocs(Array.isArray(c?.documents) ? c.documents : []);
-      } catch (_) {}
+      } catch (_) {
+        if (!cancelled) setFreshDocs(Array.isArray(candidate?.documents) ? candidate.documents : []);
+      }
     })();
     return () => { cancelled = true; };
-  }, [candidate?.id, candidate?.documents]);
+  }, [candidate?.id]);
 
   // 2. Recordings from candidate documents
   const docRecs = useMemo(() => {
@@ -133,6 +131,15 @@ export default function CandidateRecordings({ candidate }) {
       window.open(url, "_blank", "noopener,noreferrer");
     }
   };
+
+  // Still loading fresh docs from DB
+  if (freshDocs === null) {
+    return (
+      <div className="p-5 flex justify-center" style={card}>
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: GOLD }} />
+      </div>
+    );
+  }
 
   if (recordings.length === 0) return null;
 
