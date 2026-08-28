@@ -42,9 +42,12 @@ function buildConversationProperties(): Record<string, any> {
     // conversation before the candidate can rejoin, and the next
     // createTavusInterviewConversation call creates a fresh conversation
     // that restarts the interview from the beginning.
-    participant_left_timeout: 300,   // 5 minutes
-    participant_absent_timeout: 300, // 5 minutes before anyone joins
-    max_call_duration: 3600,        // 1 hour max interview
+    // Keep the conversation alive for the full interview duration after the
+    // participant leaves, so even a long disconnect (network issues, switching
+    // networks) lets the candidate rejoin the SAME conversation and resume.
+    participant_left_timeout: 3600,   // 1 hour (matches max_call_duration)
+    participant_absent_timeout: 300,  // 5 minutes before anyone joins
+    max_call_duration: 3600,          // 1 hour max interview
   };
   if (storage) {
     props.auto_start_recording = true;
