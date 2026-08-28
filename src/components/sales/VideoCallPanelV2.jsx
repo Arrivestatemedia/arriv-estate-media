@@ -557,28 +557,12 @@ export default function VideoCallPanelV2({
     });
   }, []);
 
-  // ─── Auto-record: start recording automatically when the remote participant connects ──
-  const autoRecordStartedRef = useRef(false);
-  useEffect(() => {
-    if (hasRemoteVideo && !autoRecordStartedRef.current) {
-      autoRecordStartedRef.current = true;
-      // Delay 1.5s to ensure both audio and video tracks are fully attached
-      const t = setTimeout(() => {
-        if (!mediaRecorderRef.current) {
-          toggleRecording();
-        }
-      }, 1500);
-      return () => clearTimeout(t);
-    }
-  }, [hasRemoteVideo, toggleRecording]);
-
   // ─── End call ────────────────────────────────────────────────────────────────
   const handleEndCall = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       try { mediaRecorderRef.current.stop(); } catch (_) {}
     }
     if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
-    autoRecordStartedRef.current = false;
     stopBlur();
     blurStreamRef.current?.getTracks().forEach(t => t.stop());
     blurStreamRef.current = null;
