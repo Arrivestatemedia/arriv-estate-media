@@ -1137,6 +1137,102 @@ const loadInterviews = async () => {
 
 ---
 
+### Change 9: Sync DOB + Resume URL from JobApplication to HireCandidate
+
+**File:** `base44/functions/syncApplicationToKhethaIQ/entry.ts`
+
+**Behavior:** When syncing a JobApplication into a local HireCandidate, the function must copy the applicant's date of birth (`dob`) and resume URL (`portfolio_link` → `resume_url`) onto the candidate record. For existing candidates created before these fields were synced, it must backfill them if missing. This enables age display and resume access in the candidate detail panel.
+
+**Key implementation — backfill for existing candidates (add after finding an existing candidate by email):**
+```typescript
+// Backfill dob/resume_url for candidates created before these fields were synced
+const updates = {};
+if (!localCandidate.dob && application.dob) updates.dob = application.dob;
+if (!localCandidate.resume_url && application.portfolio_link) updates.resume_url = application.portfolio_link;
+if (Object.keys(updates).length > 0) {
+  await base44.asServiceRole.entities.HireCandidate.update(localCandidate.id, updates).catch(() => {});
+}
+```
+
+**Key implementation — set on new candidate creation:**
+```typescript
+const newCand = await base44.asServiceRole.entities.HireCandidate.create({
+  job_id: application.job_id || null,
+  name: application.full_name || "",
+  email,
+  phone: application.phone || "",
+  dob: application.dob || null,           // ← date of birth for age display
+  target_role: application.position || "media_specialist",
+  resume_url: application.portfolio_link || "",  // ← resume/portfolio URL
+  shared_person_id: sharedPersonId,
+  // ... resume_text, cover_letter, status, decision, documents ...
+});
+```
+
+**Make sure the `HireCandidate` entity has these fields:**
+- `dob` (string, format: date) — "Candidate date of birth (synced from JobApplication for age display)"
+- `resume_url` (string) — "Uploaded resume file URL"
+
+---
+
+### Change 10: Display Candidate Age + Resume in Candidate Detail Panel
+
+**File:** `src/components/hireiq/CandidateDetailPanel.jsx`
+
+**Behavior:** The candidate detail panel must display the candidate's age (calculated from DOB) as a badge next to their status, and show "View Resume" + "Download" buttons if a `resume_url` exists.
+
+#### 10a. Age calculation helper (add at top of file, outside the component):
+```jsx
+function calculateAge(dob) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
+```
+
+#### 10b. Age badge in the candidate header (next to status badge):
+```jsx
+<div className="flex items-center gap-2 mt-2">
+  <span className="inline-block text-xs px-2 py-0.5 rounded"
+    style={{ backgroundColor: "#2A2A2A", color: "#FFFBF5" }}>
+    {candidate?.status}
+  </span>
+  {calculateAge(candidate?.dob) != null && (
+    <span className="inline-block text-xs px-2 py-0.5 rounded"
+      style={{ backgroundColor: "rgba(184,149,106,0.15)", color: "#B8956A" }}>
+      Age {calculateAge(candidate.dob)}
+    </span>
+  )}
+</div>
+```
+
+#### 10c. Resume buttons in the candidate header (top-right):
+```jsx
+{candidate?.resume_url && (
+  <div className="flex gap-2">
+    <a href={candidate.resume_url} target="_blank" rel="noopener noreferrer">
+      <Button variant="outline"
+        style={{ backgroundColor: "transparent", color: "#FFFBF5", border: "1px solid rgba(184,149,106,0.2)" }}>
+        <FileText className="w-4 h-4 mr-2" /> View Resume
+      </Button>
+    </a>
+    <a href={candidate.resume_url} download>
+      <Button variant="outline"
+        style={{ backgroundColor: "transparent", color: "#FFFBF5", border: "1px solid rgba(184,149,106,0.2)" }}>
+        <Download className="w-4 h-4 mr-2" /> Download
+      </Button>
+    </a>
+  </div>
+)}
+```
+
+---
+
 ### Required Entity Fields
 
 Make sure the `Conference` entity has these fields:
@@ -1162,7 +1258,7 @@ Make sure the `Conference` entity has these fields:
 | `round1_scorecard` | object | Scorecard result |
 | `scorecard_completed_at` | date-time | When scorecard was completed |
 
-Also needed: `VideoRecording` entity (file_url, duration_seconds, file_size, recorded_by_id, recorded_by_name, participant_name, room_name) and `TavusInterviewTranscript` entity.
+Also needed: `VideoRecording` entity (file_url, duration_seconds, file_size, recorded_by_id, recorded_by_name, participant_name, room_name), `TavusInterviewTranscript` entity, and the `HireCandidate` entity must have `dob` (date) and `resume_url` (string) fields. (file_url, duration_seconds, file_size, recorded_by_id, recorded_by_name, participant_name, room_name) and `TavusInterviewTranscript` entity.
 
 ### Required Secrets
 
@@ -1206,3 +1302,6 @@ After implementing all changes, verify:
 10. **Convert AI/Human:** Click "AI Interviewer" on a human conference — it should convert to AI mode. Click "Human Interviewer" on an AI conference — it should convert back.
 11. **Disqualify:** Click "Disqualify" on a conference — it should mark the candidate as "offer not extended" and schedule a notice email
 12. **Saving recording overlay:** When ending an AI interview, the "Saving recording…" overlay should appear briefly while the final segment uploads, then close
+13. **Age display:** Open a candidate with a DOB — an "Age {X}" gold badge should appear next to their status in the detail panel
+14. **Resume buttons:** Open a candidate with a resume_url — "View Resume" and "Download" buttons should appear in the top-right of the detail panel
+15. **DOB/resume sync:** When a new JobApplication is synced to KhethaIQ, the HireCandidate should have `dob` and `resume_url` populated. For existing candidates missing these fields, they should be backfilled on the next sync.
