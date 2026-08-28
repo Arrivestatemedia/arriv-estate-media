@@ -99,6 +99,44 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Sync the recording to the linked HireCandidate's documents so it
+      // appears on the applicant's profile (same pattern as local recordings
+      // in saveInterviewRecording). The s3:// URI is stored as the url — the
+      // admin UI detects the s3:// prefix and resolves it to a fresh presigned
+      // playback URL via getTavusRecordingUrl.
+      const participant = conference.participants?.[0];
+      if (storageUri && participant?.email) {
+        try {
+          const candRes = await base44.asServiceRole.entities.HireCandidate.filter(
+            { email: participant.email },
+            "-created_date",
+            5
+          );
+          const candidates = candRes?.data ?? candRes ?? [];
+          const candidate = Array.isArray(candidates) ? candidates[0] : null;
+          if (candidate) {
+            const existingDocs = Array.isArray(candidate.documents) ? candidate.documents : [];
+            const alreadyHas = existingDocs.some(d => d?.url === storageUri);
+            if (!alreadyHas) {
+              const durLabel = duration ? ` (${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, "0")})` : "";
+              existingDocs.push({
+                type: "interview_recording",
+                url: storageUri,
+                storage_type: "s3",
+                label: `AI Interview Recording${durLabel}`,
+                conference_id: conference.id,
+                created_at: new Date().toISOString(),
+              });
+              await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
+                documents: existingDocs,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to sync Tavus recording to HireCandidate:", e.message);
+        }
+      }
+
       return Response.json({ status: "success", action: "recording_ready", storage_uri: storageUri });
     }
 
