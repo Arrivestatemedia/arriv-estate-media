@@ -120,6 +120,81 @@ export async function downloadS3ObjectAsBlob(s3Key: string, maxBytes = 25 * 1024
 }
 
 /**
+ * Convert a video/audio file to MP3 via the Zamzar API.
+ * Returns the converted MP3 as a Blob (small enough for Whisper transcription).
+ *
+ * Flow: start job → poll until complete → download result.
+ * Throws on conversion failure or timeout.
+ */
+export async function convertToMp3ViaZamzar(
+  sourceUrl: string,
+  sourceFormat: string,
+  opts?: { maxPollMs?: number; pollIntervalMs?: number },
+): Promise<Blob> {
+  const apiKey = Deno.env.get("ZAMZAR_API_KEY");
+  if (!apiKey) throw new Error("ZAMZAR_API_KEY not configured");
+
+  const maxPollMs = opts?.maxPollMs ?? 90_000; // 90 seconds max wait
+  const pollIntervalMs = opts?.pollIntervalMs ?? 3_000;
+  const auth = btoa(`${apiKey}:`);
+
+  // ─── Start the conversion job ──────────────────────────────────────────
+  const startRes = await fetch("https://api.zamzar.com/v1/jobs", {
+    method: "POST",
+    headers: {
+      "Authorization": `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      source_file: sourceUrl,
+      source_format: sourceFormat,
+      target_format: "mp3",
+    }),
+  });
+  if (!startRes.ok) {
+    const errText = await startRes.text();
+    throw new Error(`Zamzar job start failed (${startRes.status}): ${errText}`);
+  }
+  const job = await startRes.json();
+  const jobId = job.id;
+  if (!jobId) throw new Error("Zamzar returned no job ID");
+
+  // ─── Poll until the job completes ───────────────────────────────────────
+  const deadline = Date.now() + maxPollMs;
+  let result: any = null;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, pollIntervalMs));
+    const pollRes = await fetch(`https://api.zamzar.com/v1/jobs/${jobId}`, {
+      headers: { "Authorization": `Basic ${auth}` },
+    });
+    if (!pollRes.ok) continue;
+    const status = await pollRes.json();
+    if (status.status === "successful") {
+      result = status;
+      break;
+    }
+    if (status.status === "failed") {
+      throw new Error(`Zamzar conversion failed: ${JSON.stringify(status)}`);
+    }
+    // status "pending" or "converting" — keep polling
+  }
+  if (!result) throw new Error("Zamzar conversion timed out");
+
+  // ─── Download the converted file ────────────────────────────────────────
+  const fileId = result.target_files?.[0]?.id;
+  if (!fileId) throw new Error("Zamzar returned no converted file");
+
+  const dlRes = await fetch(`https://api.zamzar.com/v1/jobs/${jobId}/file/${fileId}`, {
+    headers: { "Authorization": `Basic ${auth}` },
+  });
+  if (!dlRes.ok) {
+    const errText = await dlRes.text();
+    throw new Error(`Zamzar download failed (${dlRes.status}): ${errText}`);
+  }
+  return await dlRes.blob();
+}
+
+/**
  * Ensure an S3 object has a recognizable file extension by copying it to a
  * new key with the given extension (server-side S3 copy — no download), then
  * return a presigned URL for the new key. Used so Whisper (TranscribeAudio)

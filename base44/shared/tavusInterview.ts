@@ -102,6 +102,33 @@ export async function getTavusConversation(conversationId: string) {
   return data;
 }
 
+/**
+ * Fetch the full transcript for a Tavus conversation via the verbose GET endpoint.
+ * Returns an array of { role, content, timestamp, seconds_from_start, duration }
+ * entries, or null if the transcript is not yet available.
+ */
+export async function getTavusConversationTranscript(conversationId: string) {
+  const res = await fetch(`${TAVUS_API_BASE}/conversations/${conversationId}?verbose=true`, {
+    headers: tavusHeaders(),
+  });
+  if (res.status === 404) return null;
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || `Tavus get failed (${res.status})`);
+
+  // The verbose response includes events; the transcript is in the
+  // application.transcription_ready event's properties.transcript array.
+  const events = data?.events;
+  if (!Array.isArray(events)) return null;
+
+  for (const ev of events) {
+    if (ev?.type === "application.transcription_ready" || ev?.event_type === "application.transcription_ready") {
+      const transcript = ev?.properties?.transcript || ev?.data?.properties?.transcript;
+      if (Array.isArray(transcript) && transcript.length > 0) return transcript;
+    }
+  }
+  return null;
+}
+
 /** End a Tavus conversation. */
 export async function endTavusConversation(conversationId: string) {
   const res = await fetch(`${TAVUS_API_BASE}/conversations/${conversationId}/end`, {
