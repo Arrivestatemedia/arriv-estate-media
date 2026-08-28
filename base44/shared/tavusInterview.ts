@@ -3,6 +3,8 @@
  * Server-side only (Deno). Never expose TAVUS_API_KEY to the client.
  */
 
+import { getRecordingStorageConfig } from "./tavusRecordingStorage.ts";
+
 export const TAVUS_API_BASE = "https://tavusapi.com/v2";
 
 // The Tavus PAL that has the Arriv interview questionnaire + default Face configured.
@@ -30,18 +32,13 @@ export function getCallbackUrl() {
  * used as a fallback in that case).
  */
 function buildRecordingProperties(): Record<string, any> | null {
-  const bucket = Deno.env.get("AWS_S3_BUCKET");
-  const region = Deno.env.get("AWS_S3_REGION");
-  const roleArn = Deno.env.get("AWS_S3_ROLE_ARN");
-  if (!bucket || !region || !roleArn) return null;
+  // Uses the shared helper which normalizes the AWS region
+  // (handles "US East (Ohio) us-east-2" → "us-east-2").
+  const storage = getRecordingStorageConfig();
+  if (!storage) return null;
   return {
     auto_start_recording: true,
-    recording_storage: {
-      provider: "s3",
-      bucket_name: bucket,
-      bucket_region: region,
-      assume_role_arn: roleArn,
-    },
+    recording_storage: storage,
   };
 }
 
