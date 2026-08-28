@@ -48,6 +48,13 @@ export async function createTavusConversation(opts: {
   conversationName: string;
   requireAuth?: boolean;
   maxParticipants?: number;
+  /**
+   * Stable per-user identifier (e.g. candidate email) passed as a Tavus
+   * memory store. This lets the PAL (Ashley) remember the candidate across
+   * multiple conversations and proactively welcome them back. Per Tavus docs,
+   * memory_stores should be a stable, unique identifier for the user.
+   */
+  memoryStore?: string;
 }) {
   const body: Record<string, any> = {
     pal_id: opts.palId || TAVUS_PAL_ID,
@@ -56,6 +63,12 @@ export async function createTavusConversation(opts: {
     require_auth: opts.requireAuth !== false,
     max_participants: opts.maxParticipants || 2,
   };
+
+  // Pass a stable per-candidate memory store so Ashley (the PAL) can recall
+  // details from prior interviews and welcome returning candidates by name.
+  if (opts.memoryStore) {
+    body.memory_stores = [opts.memoryStore];
+  }
 
   // Enable Tavus server-side recording when S3 storage is configured.
   // This is the primary failsafe — recordings are written directly to our S3

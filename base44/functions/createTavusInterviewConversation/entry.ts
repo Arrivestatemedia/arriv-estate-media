@@ -51,12 +51,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Create a new Tavus conversation
+    // Create a new Tavus conversation.
+    // Pass the candidate's email as a stable memory store so the PAL (Ashley)
+    // can remember the candidate across interviews and welcome them back.
+    const candidateEmail = conference.participants?.[0]?.email || "";
+    const memoryStore = candidateEmail
+      ? `arriv-candidate-${candidateEmail.toLowerCase().trim()}`
+      : undefined;
     const conversationName = `Arriv Interview - ${conference.title || roomName}`;
     const tavusRes = await createTavusConversation({
       conversationName,
       requireAuth: true,
       maxParticipants: 2,
+      memoryStore,
     });
 
     const conversationId = tavusRes.conversation_id;
