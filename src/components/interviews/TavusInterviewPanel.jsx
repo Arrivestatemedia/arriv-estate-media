@@ -50,6 +50,16 @@ export default function TavusInterviewPanel({
   const [cameraReady, setCameraReady] = useState(false);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
 
+  // Ref mirror of callState so Daily event listeners (registered once) never
+  // read a stale closure value. Without this, the recording-start check
+  // `callState === "connected"` can fail because the listener captured the
+  // state from when handleStartCall was created (e.g. "calling").
+  const callStateRef = useRef("idle");
+  const updateCallState = useCallback((next) => {
+    callStateRef.current = next;
+    setCallState(next);
+  }, []);
+
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -225,7 +235,7 @@ export default function TavusInterviewPanel({
       remoteVideoRef.current.muted = false;
       setHasRemoteVideo(true);
       // Auto-start recording when remote video first arrives
-      if (!recordingStartedRef.current && callState === "connected") {
+      if (!recordingStartedRef.current && callStateRef.current === "connected") {
         recordingStartedRef.current = true;
         startRecording(remote.videoTrack, remote.audioTrack);
       }
@@ -235,11 +245,11 @@ export default function TavusInterviewPanel({
       }
       setHasRemoteVideo(false);
     }
-  }, [callState, startRecording]);
+  }, [startRecording]);
 
   // ─── Start call ──────────────────────────────────────────────────────────
   const handleStartCall = useCallback(async () => {
-    setCallState("calling");
+    updateCallState("calling");
     setIsLoading(true);
     setError(null);
     try {
@@ -259,7 +269,27 @@ export default function TavusInterviewPanel({
         setHasRemoteVideo(false);
       });
       call.on("left-meeting", () => {
-        setCallState("idle");
+        // The meeting ended — either the user left, Tavus ended the
+        // conversation, or a network drop disconnected us. If we were
+        // connected, treat this as an unexpected end: stop the recording
+        // (which flushes + uploads the final segment), clean up the call
+        // object, and show an ended state. Do NOT silently reset to idle
+        // (that would show a confusing "Join Call" button and leave the
+        // recorder running in the background).
+        if (callStateRef.current === "connected") {
+          stopRecording();
+          if (callRef.current) {
+            try { callRef.current.destroy(); } catch (_) {}
+            callRef.current = null;
+          }
+          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+          recordingStartedRef.current = false;
+          // End the Tavus conversation server-side so it doesn't linger
+          base44.functions.invoke("endTavusInterview", { roomName }).catch(() => {});
+          updateCallState("ended");
+        } else {
+          updateCallState("idle");
+        }
       });
       call.on("error", (e) => {
         console.error("Daily error:", e);
@@ -274,16 +304,16 @@ export default function TavusInterviewPanel({
         startAudioOff: false,
       });
 
-      setCallState("connected");
+      updateCallState("connected");
       setTimeout(renderRemoteVideo, 500);
     } catch (err) {
       console.error("Call start error:", err);
       setError("Connection failed: " + err.message);
-      setCallState("idle");
+      updateCallState("idle");
     } finally {
       setIsLoading(false);
     }
-  }, [roomName, currentUserName, renderRemoteVideo]);
+  }, [roomName, currentUserName, renderRemoteVideo, updateCallState]);
 
   // ─── Mic / Video toggles ──────────────────────────────────────────────────
   const toggleMic = useCallback(() => {
@@ -412,6 +442,24 @@ export default function TavusInterviewPanel({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-[6] px-8">
             <p className="text-red-400 text-sm font-semibold mb-4 text-center">⚠️ {error}</p>
             <Button onClick={() => setError(null)} variant="outline" size="sm">Dismiss</Button>
+          </div>
+        )}
+
+        {/* Call-ended overlay — shown when the meeting ends unexpectedly */}
+        {callState === "ended" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-[10] px-6">
+            <div className="max-w-md text-center">
+              <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
+                <Phone className="w-6 h-6 text-gray-300" />
+              </div>
+              <h3 className="text-white text-lg font-semibold mb-2">Call Ended</h3>
+              <p className="text-gray-400 text-sm mb-6">
+                The interview connection has ended. Your recording has been saved.
+              </p>
+              <Button onClick={handleEndCall} className="bg-gray-700 hover:bg-gray-600 text-white">
+                Close
+              </Button>
+            </div>
           </div>
         )}
 
