@@ -276,7 +276,9 @@ export default function KhethaIQ() {
   };
 
   // Build sidebar items from the manifest, mapping icon names to components.
-  const manifestTabs = manifest?.tabs?.length ? manifest.tabs : [
+  // The Reminders tab is Estate Media–local (not in the central app manifest),
+  // so we always append it after the Interviews tab regardless of manifest.
+  const baseTabs = manifest?.tabs?.length ? manifest.tabs : [
     { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
     { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
     { id: "jobs", label: "Jobs", icon: "Briefcase" },
@@ -285,7 +287,6 @@ export default function KhethaIQ() {
     { id: "talent_pools", label: "Talent Pools", icon: "Users" },
     { id: "pipeline", label: "Pipeline", icon: "GitBranch" },
     { id: "interviews", label: "Interviews", icon: "Video" },
-    { id: "reminders", label: "Reminders", icon: "Mail" },
     { id: "offers", label: "Offers", icon: "FileText" },
     { id: "tasks", label: "Tasks", icon: "SquareCheckBig" },
     { id: "applications", label: "Applications", icon: "FileText" },
@@ -293,6 +294,17 @@ export default function KhethaIQ() {
     { id: "learning", label: "Learning", icon: "Brain" },
     { id: "analytics", label: "Analytics", icon: "BarChart3" },
   ];
+  const hasReminders = baseTabs.some(t => t.id === "reminders");
+  const manifestTabs = hasReminders ? baseTabs : (() => {
+    const idx = baseTabs.findIndex(t => t.id === "interviews");
+    const remindersTab = { id: "reminders", label: "Reminders", icon: "Mail" };
+    if (idx >= 0) {
+      const copy = [...baseTabs];
+      copy.splice(idx + 1, 0, remindersTab);
+      return copy;
+    }
+    return [...baseTabs, remindersTab];
+  })();
 
   // Map manifest tab ids to the central app's view ids
   const viewMap = {
