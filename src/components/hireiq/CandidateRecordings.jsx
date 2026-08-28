@@ -4,7 +4,6 @@ import { Loader2, Film, Play } from "lucide-react";
 
 const GOLD = "#B8956A";
 const CREAM = "#FFFBF5";
-const MUTED_LIGHT = "rgba(255,251,245,0.5)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 const innerBg = "#2A2A2A";
 
@@ -27,23 +26,41 @@ const fmtDur = (s) => {
  * from VideoRecording entities keyed by conference room, and the Tavus
  * server-side tail clip on the Conference — and presents them with a
  * dropdown when there are multiple clips.
+ *
+ * Fetches fresh candidate data from the DB on mount to ensure recordings
+ * reflect the latest state (not stale parent props).
  */
 export default function CandidateRecordings({ candidate }) {
-  // Recordings already synced to the candidate's documents — available
-  // immediately, no loading state needed.
-  const docRecs = useMemo(() => {
-    const docs = Array.isArray(candidate?.documents) ? candidate.documents : [];
-    return docs
-      .filter(d => d?.type === "interview_recording" || d?.type === "twilio_backup_recording")
-      .map(d => ({ url: d.url, label: d.label || "Interview Recording", type: d.type }));
-  }, [candidate?.documents]);
-
+  const [freshDocs, setFreshDocs] = useState(null); // null = not yet loaded
   const [extraRecs, setExtraRecs] = useState([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [loadingRecUrl, setLoadingRecUrl] = useState(null);
 
-  // Fetch additional clips from VideoRecording entities + Tavus tail clip
-  // that may not have been synced to the candidate's documents.
+  // 1. Fetch fresh candidate documents from DB (avoids stale parent state)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!candidate?.id) { if (!cancelled) setFreshDocs([]); return; }
+      try {
+        const res = await base44.entities.HireCandidate.get(candidate.id);
+        const c = res?.data ?? res;
+        if (!cancelled) setFreshDocs(Array.isArray(c?.documents) ? c.documents : []);
+      } catch (_) {
+        if (!cancelled) setFreshDocs(Array.isArray(candidate?.documents) ? candidate.documents : []);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [candidate?.id]);
+
+  // 2. Recordings from candidate documents
+  const docRecs = useMemo(() => {
+    const docs = freshDocs ?? (Array.isArray(candidate?.documents) ? candidate.documents : []);
+    return docs
+      .filter(d => d?.type === "interview_recording" || d?.type === "twilio_backup_recording")
+      .map(d => ({ url: d.url, label: d.label || "Interview Recording", type: d.type }));
+  }, [freshDocs, candidate?.documents]);
+
+  // 3. Fetch additional clips from VideoRecording entities + Tavus tail
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -93,11 +110,10 @@ export default function CandidateRecordings({ candidate }) {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidate?.id, candidate?.email]);
+  }, [candidate?.id, candidate?.email, freshDocs]);
 
   const recordings = useMemo(() => [...docRecs, ...extraRecs], [docRecs, extraRecs]);
 
-  // Reset selection if out of bounds after recordings change
   useEffect(() => {
     if (selectedIdx > recordings.length - 1) setSelectedIdx(0);
   }, [recordings.length, selectedIdx]);
@@ -115,6 +131,15 @@ export default function CandidateRecordings({ candidate }) {
       window.open(url, "_blank", "noopener,noreferrer");
     }
   };
+
+  // Still loading fresh docs from DB
+  if (freshDocs === null) {
+    return (
+      <div className="p-5 flex justify-center" style={card}>
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: GOLD }} />
+      </div>
+    );
+  }
 
   if (recordings.length === 0) return null;
 
