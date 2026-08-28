@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SALES_STATUSES, getStatusLabel, getStatusColor, POSITION_LABELS } from "@/lib/applicationStatus";
-import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus, Trash2, UserCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Briefcase, CalendarPlus, Trash2, UserCheck, Crown } from "lucide-react";
 import moment from "moment";
 import InterviewSchedulerModal from "./InterviewSchedulerModal";
 import DeleteApplicationDialog from "./DeleteApplicationDialog";
@@ -17,6 +17,8 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete, auto
   const [deleting, setDeleting] = useState(false);
   const [sendingRefs, setSendingRefs] = useState(false);
   const [refsMsg, setRefsMsg] = useState(null);
+  const [sendingI2, setSendingI2] = useState(false);
+  const [i2Msg, setI2Msg] = useState(null);
   const [showRefs, setShowRefs] = useState(false);
   const isSales = (app.position || "media_specialist") === "sales_growth_advisor";
 
@@ -135,6 +137,30 @@ export default function AdminSalesApplicationRow({ app, onUpdate, onDelete, auto
               <CalendarPlus className="w-4 h-4" />
               Schedule Interview
             </button>
+            <button
+              onClick={async () => {
+                setSendingI2(true);
+                setI2Msg(null);
+                try {
+                  const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+                  const res = await base44.functions.invoke("sendSalesInterview2Invitation", { applicationId: app.id, salesMemberId });
+                  if (res.data?.success) setI2Msg({ type: "success", text: `Founder conversation invite sent to ${app.email}` });
+                  else setI2Msg({ type: "error", text: res.data?.error || "Failed to send." });
+                } catch (err) {
+                  setI2Msg({ type: "error", text: err?.data?.error || err?.message || "Failed to send." });
+                } finally {
+                  setSendingI2(false);
+                }
+              }}
+              disabled={sendingI2}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#1A1A1A] text-[#FFFBF5] hover:bg-[#1A1A1A]/90 transition-colors disabled:opacity-60"
+            >
+              <Crown className="w-4 h-4" />
+              {sendingI2 ? "Sending…" : "Interview #2"}
+            </button>
+            {i2Msg && (
+              <span className={`text-xs ${i2Msg.type === "success" ? "text-green-600" : "text-red-600"}`}>{i2Msg.text}</span>
+            )}
             <button
               onClick={async () => {
                 setSendingRefs(true);
