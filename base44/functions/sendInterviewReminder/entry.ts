@@ -64,6 +64,54 @@ function buildReminderHtml(firstName: string, meetingLink: string): string {
 </html>`;
 }
 
+function buildHumanReminderHtml(firstName: string, meetingLink: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
+        <tr>
+          <td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
+          </td>
+        </tr>
+        <tr><td style="padding:40px 44px;">
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your second-round interview with Arriv Estate Media begins in approximately 30 minutes.</p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Congratulations on advancing to the next stage of our interview process. This interview will be conducted live with a member of Arriv Estate Media leadership and will build on your first-round conversation.</p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">During this interview, we&rsquo;ll spend more time discussing the position, your experience, and how you would approach situations specific to the role. You&rsquo;ll also have an opportunity to ask questions and learn more about Arriv Estate Media.</p>
+
+          <table cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
+            <tr><td style="border-radius:8px;background-color:#B8956A;">
+              <a href="${meetingLink}" style="display:inline-block;padding:13px 28px;font-size:16px;font-weight:600;color:#1A1A1A;text-decoration:none;border-radius:8px;">JOIN YOUR INTERVIEW</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#1A1A1A;word-break:break-all;">Or copy this link: <a href="${meetingLink}" style="color:#B8956A;">${meetingLink}</a></p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Please use the link above to enter your interview room. We recommend joining a few minutes early and making sure your camera and microphone are working properly.</p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We look forward to speaking with you!</p>
+        </td></tr>
+        <tr><td style="padding:0 44px 36px;">
+          <p style="margin:0;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Arriv Estate Media Recruiting</strong></p>
+        </td></tr>
+        <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9a8560;">&copy; Arriv Estate Media, LLC &middot; careers@arrivestatemedia.com</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 function buildAdminCopyHtml(applicantName: string, applicantEmail: string, meetingLink: string, whenLabel: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -146,10 +194,16 @@ export default async function(req: Request): Promise<Response> {
     const applicantName = participant.name || conf.title || "Candidate";
     if (!applicantEmail) return Response.json({ sent: false, reason: "no_applicant_email" });
 
-    // Applicant reminder
+    // Applicant reminder — AI interviews get the Ashley intro; human interviews
+    // get the second-round leadership email.
     const firstName = deriveFirstName(applicantName);
-    const html = buildReminderHtml(firstName, conf.meeting_link);
-    const subject = "Your Arriv Estate Media Interview Starts in 30 Minutes";
+    const isAi = (conf.interview_mode || "human") === "ai";
+    const html = isAi
+      ? buildReminderHtml(firstName, conf.meeting_link)
+      : buildHumanReminderHtml(firstName, conf.meeting_link);
+    const subject = isAi
+      ? "Your Arriv Estate Media Interview Starts in 30 Minutes"
+      : "Your Second-Round Interview Starts in 30 Minutes";
     try {
       await sendBusinessEmailOrQueue(base44, { to: applicantEmail, subject, htmlContent: html });
     } catch (e) {
