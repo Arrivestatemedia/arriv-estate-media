@@ -515,6 +515,8 @@ export default function VideoCallPanelV2({
       if (!file_url) {
         console.error("Recording upload failed after 3 attempts (local copy still available):", lastErr);
         setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, cloudFailed: true, error: lastErr?.message || "Upload failed after retries" } : r));
+        // Notify backend so the Twilio backup gets promoted to primary — user never sees the failure
+        base44.functions.invoke("saveInterviewRecording", { roomName, failed: true }).catch(() => {});
         return;
       }
       try {
@@ -545,6 +547,9 @@ export default function VideoCallPanelV2({
     };
 
     recorder.start(1000);
+    // Mark recording as in-progress on the Conference so the Twilio webhook
+    // knows to wait for the local upload before labeling the backup
+    base44.functions.invoke("saveInterviewRecording", { roomName, recordingStarted: true }).catch(() => {});
     mediaRecorderRef.current = recorder;
     recordingStartTimeRef.current = Date.now();
     setIsRecording(true);

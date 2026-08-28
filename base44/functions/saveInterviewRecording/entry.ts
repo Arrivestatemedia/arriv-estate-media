@@ -4,10 +4,10 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { roomName, recordingUrl, durationSeconds, fileSize } = body;
+    const { roomName, recordingUrl, durationSeconds, fileSize, recordingStarted, failed } = body;
 
-    if (!roomName || !recordingUrl) {
-      return Response.json({ error: "roomName and recordingUrl are required" }, { status: 400 });
+    if (!roomName) {
+      return Response.json({ error: "roomName is required" }, { status: 400 });
     }
 
     // Find the conference by room_name
@@ -23,6 +23,67 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Conference not found" }, { status: 404 });
     }
 
+    const participant = conference.participants?.[0];
+
+    // ─── Recording STARTED: mark status so Twilio webhook knows to wait ──
+    if (recordingStarted) {
+      await base44.asServiceRole.entities.Conference.update(conference.id, {
+        recording_status: "recording",
+      });
+      return Response.json({ status: "success", action: "recording_started" });
+    }
+
+    // ─── Recording FAILED: promote Twilio to primary if available ────────
+    // The user never sees a failure — Twilio seamlessly becomes the main recording.
+    if (failed) {
+      await base44.asServiceRole.entities.Conference.update(conference.id, {
+        recording_status: "failed",
+      });
+
+      if (conference.twilio_composition_url && participant?.email) {
+        try {
+          const candRes = await base44.asServiceRole.entities.HireCandidate.filter(
+            { email: participant.email },
+            "-created_date",
+            5
+          );
+          const candidates = candRes?.data ?? candRes ?? [];
+          const candidate = Array.isArray(candidates) ? candidates[0] : null;
+          if (candidate) {
+            const existingDocs = Array.isArray(candidate.documents) ? candidate.documents : [];
+            const alreadyHas = existingDocs.some(
+              d => d?.url === conference.twilio_composition_url ||
+                   d?.composition_sid === conference.twilio_composition_sid
+            );
+            if (!alreadyHas) {
+              existingDocs.push({
+                type: "interview_recording",
+                url: conference.twilio_composition_url,
+                composition_sid: conference.twilio_composition_sid,
+                label: "Interview Recording",
+                conference_id: conference.id,
+                created_at: new Date().toISOString(),
+              });
+              await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
+                documents: existingDocs,
+              });
+              console.log("Promoted Twilio to primary after local upload failure");
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to promote Twilio after local failure:", e.message);
+        }
+      }
+      // If no composition yet, twilioRecordingCallback will see recording_status="failed"
+      // and push the composition as primary when it arrives
+      return Response.json({ status: "success", action: "recording_failed" });
+    }
+
+    // ─── Recording SUCCEEDED: save local + add Twilio as backup ──────────
+    if (!recordingUrl) {
+      return Response.json({ error: "recordingUrl is required" }, { status: 400 });
+    }
+
     // 1. Update Conference with recording URL
     await base44.asServiceRole.entities.Conference.update(conference.id, {
       recording_url: recordingUrl,
@@ -31,7 +92,6 @@ Deno.serve(async (req) => {
     });
 
     // 2. Create a VideoRecording record (only if one doesn't already exist for this URL)
-    const participant = conference.participants?.[0];
     try {
       const existingRecs = await base44.asServiceRole.entities.VideoRecording.filter(
         { file_url: recordingUrl },
@@ -54,7 +114,7 @@ Deno.serve(async (req) => {
       console.warn("Failed to create VideoRecording:", e.message);
     }
 
-    // 3. If linked to a HireCandidate, add recording to their documents array
+    // 3. If linked to a HireCandidate, add local as primary + Twilio as backup
     if (participant?.email) {
       try {
         const candRes = await base44.asServiceRole.entities.HireCandidate.filter(
@@ -66,16 +126,42 @@ Deno.serve(async (req) => {
         const candidate = Array.isArray(candidates) ? candidates[0] : null;
         if (candidate) {
           const existingDocs = Array.isArray(candidate.documents) ? candidate.documents : [];
-          const recordingDoc = {
-            type: "interview_recording",
-            url: recordingUrl,
-            label: `AI Interview Recording${durationSeconds ? ` (${Math.floor(durationSeconds / 60)}:${String(durationSeconds % 60).padStart(2, "0")})` : ""}`,
-            conference_id: conference.id,
-            created_at: new Date().toISOString(),
-          };
-          await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
-            documents: [...existingDocs, recordingDoc],
-          });
+          const newDocs = [];
+
+          const alreadyHasLocal = existingDocs.some(d => d?.url === recordingUrl);
+          if (!alreadyHasLocal) {
+            newDocs.push({
+              type: "interview_recording",
+              url: recordingUrl,
+              label: `Interview Recording${durationSeconds ? ` (${Math.floor(durationSeconds / 60)}:${String(durationSeconds % 60).padStart(2, "0")})` : ""}`,
+              conference_id: conference.id,
+              created_at: new Date().toISOString(),
+            });
+          }
+
+          // If Twilio composition already arrived, add it as backup
+          if (conference.twilio_composition_url) {
+            const alreadyHasTwilio = existingDocs.some(
+              d => d?.url === conference.twilio_composition_url ||
+                   d?.composition_sid === conference.twilio_composition_sid
+            );
+            if (!alreadyHasTwilio) {
+              newDocs.push({
+                type: "twilio_backup_recording",
+                url: conference.twilio_composition_url,
+                composition_sid: conference.twilio_composition_sid,
+                label: "Backup Recording",
+                conference_id: conference.id,
+                created_at: new Date().toISOString(),
+              });
+            }
+          }
+
+          if (newDocs.length > 0) {
+            await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
+              documents: [...existingDocs, ...newDocs],
+            });
+          }
         }
       } catch (e) {
         console.warn("Failed to update HireCandidate with recording:", e.message);

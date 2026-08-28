@@ -102,9 +102,15 @@ Deno.serve(async (req) => {
           });
           console.log('Saved composition URL to conference', conference.id);
 
-          // Also push to HireCandidate documents if linked via participant email
+          // Label based on local recording status:
+          // - "ready"  → local succeeded, Twilio is backup
+          // - "failed" → local failed, Twilio becomes primary (user never knows)
+          // - "recording"/"none" → local still in progress or not started;
+          //   don't push to candidate yet — saveInterviewRecording will handle it
+          const recordingStatus = conference.recording_status;
           const participant = conference.participants?.[0];
-          if (participant?.email) {
+
+          if (participant?.email && (recordingStatus === "ready" || recordingStatus === "failed")) {
             try {
               const candRes = await base44.asServiceRole.entities.HireCandidate.filter(
                 { email: participant.email },
@@ -115,28 +121,30 @@ Deno.serve(async (req) => {
               const candidate = Array.isArray(candidates) ? candidates[0] : null;
               if (candidate) {
                 const existingDocs = Array.isArray(candidate.documents) ? candidate.documents : [];
-                // Avoid duplicate entries for the same composition
                 const alreadyHas = existingDocs.some(
                   d => d?.composition_sid === compositionSid || d?.url === mediaUrl
                 );
                 if (!alreadyHas) {
+                  const isBackup = recordingStatus === "ready";
                   const recordingDoc = {
-                    type: "twilio_backup_recording",
+                    type: isBackup ? "twilio_backup_recording" : "interview_recording",
                     url: mediaUrl || null,
                     composition_sid: compositionSid,
-                    label: "Twilio Server-Side Recording (Backup)",
+                    label: isBackup ? "Backup Recording" : "Interview Recording",
                     conference_id: conference.id,
                     created_at: new Date().toISOString(),
                   };
                   await base44.asServiceRole.entities.HireCandidate.update(candidate.id, {
                     documents: [...existingDocs, recordingDoc],
                   });
-                  console.log('Saved backup recording to candidate', candidate.id);
+                  console.log(`Saved ${isBackup ? 'backup' : 'primary (failover)'} recording to candidate`, candidate.id);
                 }
               }
             } catch (candErr) {
               console.warn('Failed to save recording to candidate:', candErr.message);
             }
+          } else {
+            console.log('Composition saved; waiting for local recording to finish before labeling (status:', recordingStatus + ')');
           }
         } else {
           console.warn('No conference found for composition', { compRoomSid, roomName });
