@@ -54,8 +54,12 @@ Deno.serve(async (req) => {
         500
       );
       const existingList = existingRes?.data ?? existingRes ?? [];
+      const newMode = interviewMode || 'human';
       for (const conf of existingList) {
         if (!conf.scheduled_date || !conf.scheduled_time) continue;
+        // AI interviews can run concurrently (Ashley handles parallel sessions);
+        // only block overlaps involving a human interview.
+        if (newMode === 'ai' && (conf.interview_mode || 'human') === 'ai') continue;
         const [cy, cm, cd] = conf.scheduled_date.split('-').map(Number);
         const [ch, cmi] = conf.scheduled_time.split(':').map(Number);
         const cStart = new Date(Date.UTC(cy, cm - 1, cd, ch, cmi));

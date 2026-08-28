@@ -31,9 +31,12 @@ export default function RescheduleInterviewModal({ conference, onClose, onResche
     const [h, mi] = scheduledTime.split(':').map(Number);
     const reqStart = new Date(Date.UTC(y, m - 1, d, h, mi));
     const reqEnd = new Date(reqStart.getTime() + (durationMinutes || 0) * 60000);
+    const confMode = conference?.interview_mode || "human";
     const found = existingConfs.find(conf => {
       if (conf.id === conference?.id) return false; // exclude self
       if (!conf.scheduled_date || !conf.scheduled_time) return false;
+      // AI interviews can run concurrently; only block overlaps involving a human interview.
+      if (confMode === "ai" && (conf.interview_mode || "human") === "ai") return false;
       const [cy, cm, cd] = conf.scheduled_date.split('-').map(Number);
       const [ch, cmi] = conf.scheduled_time.split(':').map(Number);
       const cStart = new Date(Date.UTC(cy, cm - 1, cd, ch, cmi));
@@ -41,7 +44,7 @@ export default function RescheduleInterviewModal({ conference, onClose, onResche
       return reqStart < cEnd && cStart < reqEnd;
     });
     setConflict(found || null);
-  }, [scheduledDate, scheduledTime, durationMinutes, existingConfs, conference?.id]);
+  }, [scheduledDate, scheduledTime, durationMinutes, existingConfs, conference?.id, conference?.interview_mode]);
 
   const handleReschedule = async () => {
     if (!scheduledDate || !scheduledTime) {

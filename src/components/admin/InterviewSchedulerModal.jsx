@@ -45,8 +45,11 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
     const [h, mi] = scheduledTime.split(':').map(Number);
     const reqStart = new Date(Date.UTC(y, m - 1, d, h, mi));
     const reqEnd = new Date(reqStart.getTime() + (durationMinutes || 0) * 60000);
+    const newMode = useAiInterviewer ? "ai" : "human";
     const found = existingConfs.find(conf => {
       if (!conf.scheduled_date || !conf.scheduled_time) return false;
+      // AI interviews can run concurrently; only block overlaps involving a human interview.
+      if (newMode === "ai" && (conf.interview_mode || "human") === "ai") return false;
       const [cy, cm, cd] = conf.scheduled_date.split('-').map(Number);
       const [ch, cmi] = conf.scheduled_time.split(':').map(Number);
       const cStart = new Date(Date.UTC(cy, cm - 1, cd, ch, cmi));
@@ -54,7 +57,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
       return reqStart < cEnd && cStart < reqEnd;
     });
     setConflict(found || null);
-  }, [scheduledDate, scheduledTime, durationMinutes, existingConfs]);
+  }, [scheduledDate, scheduledTime, durationMinutes, existingConfs, useAiInterviewer]);
 
   const handleSchedule = async () => {
     if (!scheduledDate || !scheduledTime) {
