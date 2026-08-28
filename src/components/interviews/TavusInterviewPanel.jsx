@@ -531,21 +531,24 @@ export default function TavusInterviewPanel({
             ✓ Connected
           </div>
         )}
+
+        {/* Join Call button — centered on screen when idle */}
+        {callState === "idle" && recordingNoticeDismissed && (
+          <div className="absolute inset-0 flex items-center justify-center z-[7] pointer-events-none">
+            <Button
+              onClick={handleStartCall}
+              disabled={isLoading || !cameraReady}
+              className="bg-green-600 hover:bg-green-700 text-white gap-2 h-12 px-8 text-base pointer-events-auto"
+            >
+              <Phone className="w-5 h-5" />
+              Join Call
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Controls bar */}
       <div className="flex-shrink-0 bg-gray-900 border-t border-gray-700 px-4 py-3 flex items-center gap-3">
-        {callState === "idle" && (
-          <Button
-            onClick={handleStartCall}
-            disabled={isLoading || !cameraReady || !recordingNoticeDismissed}
-            className="bg-green-600 hover:bg-green-700 text-white gap-2 flex-shrink-0 h-10"
-          >
-            <Phone className="w-4 h-4" />
-            Join Call
-          </Button>
-        )}
-
         <div className="flex-1 flex items-center justify-center gap-3">
           <VideoControls
             isMuted={isMuted}
