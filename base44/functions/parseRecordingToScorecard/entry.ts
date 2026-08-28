@@ -56,30 +56,76 @@ export default async function(req: Request): Promise<Response> {
     let transcriptSource = "";
 
     if (conference.tavus_conversation_id) {
-      // ── Path 1: AI interview — fetch transcript from Tavus API ─────────
+      // ── Path 1: AI interview — compile ALL conversation transcripts ──────
+      // A candidate may disconnect and rejoin, producing multiple Tavus
+      // conversations for the same conference. Merge every stored transcript
+      // (plus the live API transcript for the current conversation) in
+      // chronological order so the scorecard reflects the FULL interview,
+      // not just the final resumed segment.
       transcriptSource = "tavus_api";
-      let tavusTranscript: any[] = [];
+      const currentConvId = conference.tavus_conversation_id;
+
+      // 1. Load every stored transcript for this conference (one per conversation)
+      const convos: Array<{ conversation_id: string; received_at: string; utterances: any[] }> = [];
       try {
-        tavusTranscript = await getTavusConversationTranscript(conference.tavus_conversation_id);
-        if (!tavusTranscript) {
-          return Response.json({
-            error: "Tavus transcript is not yet available. The conversation may still be processing. Try again in a few minutes.",
-          }, { status: 422 });
+        const storedRes = await base44.asServiceRole.entities.TavusInterviewTranscript.filter(
+          { conference_id: conference.id }, "-created_date", 50
+        );
+        const storedList = storedRes?.data ?? storedRes ?? [];
+        const latestByConv = new Map<string, any>();
+        for (const t of storedList) {
+          const existing = latestByConv.get(t.conversation_id);
+          if (!existing || new Date(t.received_at || t.created_date) > new Date(existing.received_at || existing.created_date)) {
+            latestByConv.set(t.conversation_id, t);
+          }
+        }
+        for (const t of latestByConv.values()) {
+          const utt = (t.transcript || []).filter((u: any) => u.role === "user" || u.role === "assistant");
+          if (utt.length) {
+            convos.push({
+              conversation_id: t.conversation_id,
+              received_at: t.received_at || t.created_date || new Date(0).toISOString(),
+              utterances: utt,
+            });
+          }
         }
       } catch (e) {
-        return Response.json({ error: `Failed to fetch Tavus transcript: ${e.message}` }, { status: 500 });
+        console.warn("Failed to load stored transcripts for merge:", e.message);
       }
 
-      // Filter to only user (candidate) and assistant (interviewer) entries.
-      // The Tavus transcript includes system/tool entries (PAL instructions,
-      // tool calls) that would pollute the scorecard parsing.
-      const filteredTranscript = tavusTranscript.filter(
-        (e: any) => e.role === "user" || e.role === "assistant"
-      );
+      // 2. Fetch the current conversation from the Tavus API (most up-to-date).
+      // Fall back to its stored transcript if the API is unavailable.
+      let apiTranscript: any[] | null = null;
+      try {
+        apiTranscript = await getTavusConversationTranscript(currentConvId);
+      } catch (e) {
+        console.warn("Tavus API transcript fetch failed, relying on stored:", e.message);
+      }
+      const apiFiltered = (apiTranscript || []).filter((e: any) => e.role === "user" || e.role === "assistant");
+      const currentIdx = convos.findIndex((c) => c.conversation_id === currentConvId);
+      if (apiFiltered.length) {
+        if (currentIdx >= 0) {
+          convos[currentIdx].utterances = apiFiltered; // prefer richer API version
+        } else {
+          convos.push({ conversation_id: currentConvId, received_at: new Date().toISOString(), utterances: apiFiltered });
+        }
+      }
+
+      // 3. Sort conversations chronologically and concatenate
+      convos.sort((a, b) => new Date(a.received_at).getTime() - new Date(b.received_at).getTime());
+      const filteredTranscript: any[] = [];
+      for (const c of convos) {
+        for (const u of c.utterances) {
+          // Dedupe adjacent repeats across conversation boundaries
+          const prev = filteredTranscript[filteredTranscript.length - 1];
+          if (prev && prev.role === u.role && (prev.content || "") === (u.content || "")) continue;
+          filteredTranscript.push(u);
+        }
+      }
 
       if (filteredTranscript.length === 0) {
         return Response.json({
-          error: "The Tavus transcript contains no candidate or interviewer speech (only system/context entries). The candidate may not have joined or spoken during this interview.",
+          error: "No Tavus transcript is available yet. The conversation may still be processing. Try again in a few minutes.",
         }, { status: 422 });
       }
 
