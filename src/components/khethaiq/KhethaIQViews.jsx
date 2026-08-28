@@ -144,6 +144,22 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
   const [disqualifyingId, setDisqualifyingId] = useState(null);
   const [loadingRecRoom, setLoadingRecRoom] = useState(null);
   const [generatingScorecardId, setGeneratingScorecardId] = useState(null);
+  const [view, setView] = useState("active"); // "active" | "archived"
+
+  // A conference is "archived" (past) if its scheduled date/time is before now.
+  const isConfPast = (c) => {
+    const date = c.scheduled_date || "";
+    const time = c.scheduled_time || "00:00";
+    if (!date) return false;
+    const dt = new Date(`${date}T${time}:00`);
+    return dt < new Date();
+  };
+  // A HireInterview is "archived" if its interview_date is before today.
+  const isInterviewPast = (iv) => {
+    const date = iv.interview_date || "";
+    if (!date) return false;
+    return new Date(date) < new Date(new Date().toDateString());
+  };
 
   const loadInterviews = async () => {
     try {
@@ -242,7 +258,16 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "rgba(184,149,106,0.4)" }} /></div>;
 
-  const hasItems = interviews.length > 0 || conferences.length > 0;
+  const activeConfs = conferences.filter(c => !isConfPast(c));
+  const archivedConfs = conferences.filter(c => isConfPast(c));
+  const activeIvs = interviews.filter(iv => !isInterviewPast(iv));
+  const archivedIvs = interviews.filter(iv => isInterviewPast(iv));
+
+  const activeCount = activeConfs.length + activeIvs.length;
+  const archivedCount = archivedConfs.length + archivedIvs.length;
+  const visibleConfs = view === "active" ? activeConfs : archivedConfs;
+  const visibleIvs = view === "active" ? activeIvs : archivedIvs;
+  const hasVisible = visibleConfs.length > 0 || visibleIvs.length > 0;
 
   return (
     <div className="space-y-4">
@@ -251,15 +276,39 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
         <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>All interviews across your hiring pipeline</p>
       </div>
 
-      {!hasItems ? (
+      {/* View toggle */}
+      <div className="flex items-center gap-1 p-1 rounded-lg w-fit" style={{ backgroundColor: "rgba(184,149,106,0.08)" }}>
+        <button
+          onClick={() => setView("active")}
+          className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+          style={view === "active"
+            ? { backgroundColor: "#FFFFFF", color: TEXT_DARK, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }
+            : { color: MUTED_DARK_70 }}
+        >
+          Active ({activeCount})
+        </button>
+        <button
+          onClick={() => setView("archived")}
+          className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+          style={view === "archived"
+            ? { backgroundColor: "#FFFFFF", color: TEXT_DARK, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }
+            : { color: MUTED_DARK_70 }}
+        >
+          Archived ({archivedCount})
+        </button>
+      </div>
+
+      {!hasVisible ? (
         <div className="text-center py-12">
           <Video className="w-10 h-10 mx-auto mb-2" style={{ color: "rgba(184,149,106,0.3)" }} />
-          <p style={{ color: MUTED_DARK }}>No interviews scheduled yet.</p>
+          <p style={{ color: MUTED_DARK }}>
+            {view === "active" ? "No active interviews." : "No archived interviews."}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
           {/* Scheduled conferences (from Interview Scheduler) */}
-          {conferences.map(c => {
+          {visibleConfs.map(c => {
             const applicantName = c.participants?.[0]?.name || c.title || "Interview";
             const when = formatConfWhen(c);
             const recording = c.room_name ? recordingsByRoom[c.room_name] : null;
@@ -339,7 +388,7 @@ export function InterviewsView({ onSelectCandidate, onOpenQuestionnaire }) {
           })}
 
           {/* Completed scorecard interviews (HireInterview) */}
-          {interviews.map(iv => (
+          {visibleIvs.map(iv => (
             <div key={iv.id} className="p-4 flex items-center justify-between" style={whiteCard}>
               <div>
                 <h3 className="font-semibold" style={{ ...SERIF, color: TEXT_DARK }}>{iv.interviewer_name || "Interview"}</h3>
