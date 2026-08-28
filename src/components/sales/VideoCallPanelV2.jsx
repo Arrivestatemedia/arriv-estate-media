@@ -457,11 +457,7 @@ export default function VideoCallPanelV2({
     const stream = new MediaStream(tracks);
     let mimeType = "video/webm;codecs=vp8,opus";
     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
-    const recorder = new MediaRecorder(stream, {
-      mimeType,
-      videoBitsPerSecond: 500000,
-      audioBitsPerSecond: 64000,
-    });
+    const recorder = new MediaRecorder(stream, { mimeType });
     recordingChunksRef.current = [];
 
     recorder.ondataavailable = (e) => { if (e.data.size > 0) recordingChunksRef.current.push(e.data); };
