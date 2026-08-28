@@ -168,6 +168,16 @@
     "twilio_composition_url": {
       "type": "string",
       "description": "Twilio Composition media download URL (set when the composition is ready, backup recording for human interviews)"
+    },
+    "reminder_30min_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the 30-minute pre-interview reminder email has been sent to the applicant and admin"
+    },
+    "reminder_30min_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the 30-minute pre-interview reminder email was sent"
     }
   },
   "required": [

@@ -1,0 +1,45 @@
+{
+  "name": "Interview 30-Minute Reminder",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "interview_30min_reminder",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_reminders": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendInterviewReminders",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send interview reminders",
+            "description": "Email applicants & admin ~30 min before each interview"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Every 5 minutes, sends a 30-minute pre-interview reminder email to the applicant and admin for any scheduled interview starting soon.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

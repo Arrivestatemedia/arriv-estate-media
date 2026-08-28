@@ -1,0 +1,237 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { sendBusinessEmailOrQueue } from "../../shared/businessEmailQueue.ts";
+import { deriveFirstName } from "../../shared/brevoWelcomeEmail.ts";
+
+// Convert a wall-clock Eastern Time (America/New_York) moment to a UTC Date,
+// correctly handling DST transitions. (Mirrors the non-exported helper in
+// businessEmailQueue.ts — kept local to avoid modifying the shared module.)
+function etWallToUtc(year: number, month: number, day: number, hour: number, minute: number): Date {
+  function etParts(date: Date) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    }).formatToParts(date);
+    const get = (t: string) => {
+      const p = parts.find((x) => x.type === t);
+      let v = Number(p.value);
+      if (t === "hour" && v === 24) v = 0;
+      return v;
+    };
+    return { year: get("year"), month: get("month"), day: get("day"), hour: get("hour"), minute: get("minute") };
+  }
+  let instant = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+  for (let i = 0; i < 2; i++) {
+    const p = etParts(new Date(instant));
+    const actualUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, 0, 0);
+    instant += Date.UTC(year, month - 1, day, hour, minute, 0, 0) - actualUtc;
+  }
+  return new Date(instant);
+}
+
+/**
+ * sendInterviewReminders
+ *
+ * Polling function (invoked every 5 minutes by a scheduled workflow) that finds
+ * scheduled interviews (Conference records) starting within the next ~35
+ * minutes and sends a 30-minute reminder email to the applicant and the admin.
+ *
+ * Each conference is reminded at most once (reminder_30min_sent flag), so a
+ * short-notice interview (scheduled < 30 min before start) still receives a
+ * reminder at the first poll that finds it, while a normally-scheduled
+ * interview receives its reminder roughly 30 minutes before start time.
+ *
+ * No user auth — invoked by a scheduled workflow with no user token, so it
+ * operates as the service role (same pattern as processQueuedApplicationEmails).
+ */
+
+function buildReminderHtml(firstName: string, meetingLink: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
+        <tr>
+          <td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
+          </td>
+        </tr>
+        <tr><td style="padding:40px 44px;">
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your interview with Arriv Estate Media begins in approximately 30 minutes.</p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You&rsquo;ll be meeting with <strong>Ashley</strong>, our Virtual Recruiting Assistant, for your first-round interview. Ashley will guide you through a conversational video interview covering your experience, availability, and a few questions related to the position.</p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">There&rsquo;s nothing special you need to prepare. Simply speak naturally and answer Ashley&rsquo;s questions as you would during any other interview.</p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Following your interview, our team will review your responses. Candidates selected to move forward will be invited to a second-round interview with Arriv Estate Media leadership.</p>
+
+          <table cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
+            <tr><td style="border-radius:8px;background-color:#B8956A;">
+              <a href="${meetingLink}" style="display:inline-block;padding:13px 28px;font-size:16px;font-weight:600;color:#1A1A1A;text-decoration:none;border-radius:8px;">JOIN YOUR INTERVIEW</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#1A1A1A;word-break:break-all;">Or copy this link: <a href="${meetingLink}" style="color:#B8956A;">${meetingLink}</a></p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Please join from a quiet location with a working camera and microphone. We recommend opening your interview room a few minutes before your scheduled start time.</p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We look forward to learning more about you.</p>
+        </td></tr>
+        <tr><td style="padding:0 44px 36px;">
+          <p style="margin:0;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Arriv Estate Media Recruiting</strong></p>
+        </td></tr>
+        <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9a8560;">&copy; Arriv Estate Media, LLC &middot; careers@arrivestatemedia.com</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildAdminCopyHtml(applicantName: string, applicantEmail: string, meetingLink: string, whenLabel: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
+        <tr>
+          <td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
+          </td>
+        </tr>
+        <tr><td style="padding:40px 44px;">
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Interview starting in ~30 minutes</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">A 30-minute reminder has been sent to the applicant. Here are the details for your records.</p>
+
+          <h2 style="margin:24px 0 10px;font-size:18px;color:#B8956A;">Applicant</h2>
+          <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#1A1A1A;">${applicantName}</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">${applicantEmail}</p>
+
+          <h2 style="margin:24px 0 10px;font-size:18px;color:#B8956A;">When</h2>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">${whenLabel} Eastern Time</p>
+
+          <h2 style="margin:24px 0 10px;font-size:18px;color:#B8956A;">Interview Link</h2>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;word-break:break-all;"><a href="${meetingLink}" style="color:#B8956A;">${meetingLink}</a></p>
+        </td></tr>
+        <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9a8560;">&copy; Arriv Estate Media, LLC &middot; careers@arrivestatemedia.com</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function formatWhen(scheduledDate: string, scheduledTime: string): string {
+  const [year, month, day] = scheduledDate.split("-").map(Number);
+  const [hour, minute] = scheduledTime.split(":").map(Number);
+  const dt = new Date(year, month - 1, day, hour, minute);
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long", month: "long", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  }).format(dt);
+}
+
+export default async function(req: Request): Promise<Response> {
+  try {
+    const base44 = createClientFromRequest(req);
+    const now = new Date();
+    const adminEmail = Deno.env.get("ADMIN_EMAIL") || "";
+
+    // Pull all scheduled conferences (paginated to a sane cap). We filter by
+    // start time in code because scheduled_date/scheduled_time are ET wall-clock
+    // strings, not ISO timestamps, so a single DB time query can't express
+    // "starts within 35 minutes from now."
+    const res = await base44.asServiceRole.entities.Conference.filter(
+      { status: "scheduled" },
+      "-scheduled_date",
+      500
+    );
+    const conferences = res?.data ?? res ?? [];
+
+    const sent: any[] = [];
+    const WINDOW_MS = 35 * 60 * 1000; // send for interviews starting within 35 min
+
+    for (const conf of conferences) {
+      if (!conf.scheduled_date || !conf.scheduled_time) continue;
+      if (conf.reminder_30min_sent) continue;
+      if (!conf.meeting_link) continue;
+
+      const [y, m, d] = conf.scheduled_date.split("-").map(Number);
+      const [h, mi] = conf.scheduled_time.split(":").map(Number);
+      const startUtc = etWallToUtc(y, m, d, h, mi);
+      const diffMs = startUtc.getTime() - now.getTime();
+
+      // Only future interviews starting within the next 35 minutes.
+      if (diffMs < 0 || diffMs > WINDOW_MS) continue;
+
+      const participant = (conf.participants || [])[0] || {};
+      const applicantName = participant.name || conf.title || "Candidate";
+      const applicantEmail = participant.email || "";
+      if (!applicantEmail) continue;
+
+      const firstName = deriveFirstName(applicantName);
+      const meetingLink = conf.meeting_link;
+      const html = buildReminderHtml(firstName, meetingLink);
+      const subject = "Your Arriv Estate Media Interview Starts in 30 Minutes";
+
+      let applicantOk = false;
+      try {
+        await sendBusinessEmailOrQueue(base44, { to: applicantEmail, subject, htmlContent: html });
+        applicantOk = true;
+      } catch (e) {
+        console.warn(`Failed to send reminder to applicant ${applicantEmail}: ${e.message}`);
+      }
+
+      // Admin copy — send to ADMIN_EMAIL (the owner) and the organizer, deduped.
+      const adminTargets = new Set<string>();
+      if (adminEmail) adminTargets.add(adminEmail.toLowerCase());
+      if (conf.organizer_email) adminTargets.add(conf.organizer_email.toLowerCase());
+      if (adminTargets.has(applicantEmail.toLowerCase())) {
+        // applicant is the organizer/admin — no separate copy needed
+      }
+      const whenLabel = formatWhen(conf.scheduled_date, conf.scheduled_time);
+      const adminHtml = buildAdminCopyHtml(applicantName, applicantEmail, meetingLink, whenLabel);
+      const adminSubject = `Interview Reminder (30 min): ${applicantName}`;
+      for (const target of adminTargets) {
+        if (target === applicantEmail.toLowerCase()) continue;
+        try {
+          await sendBusinessEmailOrQueue(base44, { to: target, subject: adminSubject, htmlContent: adminHtml });
+        } catch (e) {
+          console.warn(`Failed to send admin reminder to ${target}: ${e.message}`);
+        }
+      }
+
+      // Mark reminded regardless of admin-copy success, so a Brevo hiccup on
+      // the admin side doesn't spam the applicant with duplicate reminders.
+      try {
+        await base44.asServiceRole.entities.Conference.update(conf.id, {
+          reminder_30min_sent: true,
+          reminder_30min_sent_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn(`Failed to mark reminder sent on conference ${conf.id}: ${e.message}`);
+      }
+
+      sent.push({ id: conf.id, applicant: applicantEmail, applicantOk, minutesUntil: Math.round(diffMs / 60000) });
+    }
+
+    return Response.json({ status: "success", checked: conferences.length, sent, sentCount: sent.length });
+  } catch (error) {
+    console.error("sendInterviewReminders error:", error.message);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
