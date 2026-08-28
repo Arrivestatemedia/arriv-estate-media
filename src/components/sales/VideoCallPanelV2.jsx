@@ -457,7 +457,11 @@ export default function VideoCallPanelV2({
     const stream = new MediaStream(tracks);
     let mimeType = "video/webm;codecs=vp8,opus";
     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
-    const recorder = new MediaRecorder(stream, { mimeType });
+    const recorder = new MediaRecorder(stream, {
+      mimeType,
+      videoBitsPerSecond: 500000,
+      audioBitsPerSecond: 64000,
+    });
     recordingChunksRef.current = [];
 
     recorder.ondataavailable = (e) => { if (e.data.size > 0) recordingChunksRef.current.push(e.data); };
@@ -488,30 +492,36 @@ export default function VideoCallPanelV2({
         setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, failed: true, error: "Recording was empty (no media captured)" } : r));
         return;
       }
-      // Large recordings (>50MB) skip cloud upload entirely — UploadFile can't handle them
-      // and would hang forever. Keep local URL for download instead.
-      const MAX_CLOUD_SIZE = 50 * 1024 * 1024; // 50MB
-      if (blob.size > MAX_CLOUD_SIZE) {
-        setRecordings(prev => prev.map(r => r.id === tempId ? {
-          ...r,
-          uploading: false,
-          largeFile: true,
-          error: "Too large for cloud — download to save locally",
-        } : r));
-        return;
-      }
-      // Upload with a 60s timeout — large video files can hang UploadFile indefinitely
-      const uploadWithTimeout = (file) => {
+      // Always attempt cloud upload with up to 3 retries so the recording is saved
+      const uploadWithTimeout = (file, timeoutMs) => {
         return new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("Upload timed out — file too large or connection too slow")), 60000);
+          const timer = setTimeout(() => reject(new Error("Upload timed out")), timeoutMs);
           base44.integrations.Core.UploadFile({ file })
             .then(res => { clearTimeout(timer); resolve(res); })
             .catch(err => { clearTimeout(timer); reject(err); });
         });
       };
+      const file = new File([blob], `recording-${tempId}.webm`, { type: "video/webm" });
+      const timeoutMs = blob.size > 50 * 1024 * 1024 ? 180000 : 60000;
+      let file_url = null;
+      let lastErr = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const res = await uploadWithTimeout(file, timeoutMs);
+          file_url = res.file_url;
+          break;
+        } catch (err) {
+          lastErr = err;
+          console.error(`Recording upload attempt ${attempt}/3 failed:`, err.message);
+          if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt));
+        }
+      }
+      if (!file_url) {
+        console.error("Recording upload failed after 3 attempts (local copy still available):", lastErr);
+        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, cloudFailed: true, error: lastErr?.message || "Upload failed after retries" } : r));
+        return;
+      }
       try {
-        const file = new File([blob], `recording-${tempId}.webm`, { type: "video/webm" });
-        const { file_url } = await uploadWithTimeout(file);
         await base44.entities.VideoRecording.create({
           file_url,
           duration_seconds: secs,
@@ -521,22 +531,21 @@ export default function VideoCallPanelV2({
           participant_name: recipientName,
           room_name: roomName,
         });
-        // Link recording to the Conference + HireCandidate (same as AI interviews)
-        // Silently skips if no Conference exists (internal sales rep calls)
-        try {
-          await base44.functions.invoke("saveInterviewRecording", {
-            roomName,
-            recordingUrl: file_url,
-            durationSeconds: secs,
-            fileSize: blob.size,
-          });
-        } catch (_) {}
-        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, url: file_url, uploading: false, cloudSaved: true } : r));
       } catch (err) {
-        console.error("Recording upload failed (local copy still available):", err);
-        // Keep the local URL so the user can still play and download the video
-        setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, uploading: false, cloudFailed: true, error: err.message || "Upload failed" } : r));
+        console.error("Failed to create VideoRecording entity:", err.message);
       }
+      // Link recording to the Conference + HireCandidate (skips silently for internal calls)
+      try {
+        await base44.functions.invoke("saveInterviewRecording", {
+          roomName,
+          recordingUrl: file_url,
+          durationSeconds: secs,
+          fileSize: blob.size,
+        });
+      } catch (err) {
+        console.error("Failed to link recording to Conference/HireCandidate:", err.message);
+      }
+      setRecordings(prev => prev.map(r => r.id === tempId ? { ...r, url: file_url, uploading: false, cloudSaved: true } : r));
     };
 
     recorder.start(1000);
