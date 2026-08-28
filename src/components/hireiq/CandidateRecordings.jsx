@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Film, Play } from "lucide-react";
 
@@ -29,21 +29,26 @@ const fmtDur = (s) => {
  * dropdown when there are multiple clips.
  */
 export default function CandidateRecordings({ candidate }) {
-  const [recordings, setRecordings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Recordings already synced to the candidate's documents — available
+  // immediately, no loading state needed.
+  const docRecs = useMemo(() => {
+    const docs = Array.isArray(candidate?.documents) ? candidate.documents : [];
+    return docs
+      .filter(d => d?.type === "interview_recording" || d?.type === "twilio_backup_recording")
+      .map(d => ({ url: d.url, label: d.label || "Interview Recording", type: d.type }));
+  }, [candidate?.documents]);
+
+  const [extraRecs, setExtraRecs] = useState([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [loadingRecUrl, setLoadingRecUrl] = useState(null);
 
+  // Fetch additional clips from VideoRecording entities + Tavus tail clip
+  // that may not have been synced to the candidate's documents.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // Start with recordings already synced to the candidate's documents
-      const docs = Array.isArray(candidate?.documents) ? candidate.documents : [];
-      const byUrl = new Map();
-      docs
-        .filter(d => d?.type === "interview_recording" || d?.type === "twilio_backup_recording")
-        .forEach(d => { if (d.url) byUrl.set(d.url, { url: d.url, label: d.label || "Interview Recording", type: d.type }); });
-
+      const existing = new Set(docRecs.map(r => r.url));
+      const extras = [];
       try {
         const email = candidate?.email?.toLowerCase().trim();
         const confRes = await base44.entities.Conference.list("-created_date", 200);
@@ -62,9 +67,10 @@ export default function CandidateRecordings({ candidate }) {
               const recRes = await base44.entities.VideoRecording.filter({ room_name: c.room_name }, "created_date", 50);
               const recs = recRes?.data ?? recRes ?? [];
               (Array.isArray(recs) ? recs : []).forEach(r => {
-                if (r.file_url && !byUrl.has(r.file_url)) {
+                if (r.file_url && !existing.has(r.file_url)) {
+                  existing.add(r.file_url);
                   const isStitched = (r.recorded_by_name || "").toLowerCase().includes("stitched");
-                  byUrl.set(r.file_url, {
+                  extras.push({
                     url: r.file_url,
                     label: (isStitched ? "Stitched Recording" : "Recording Clip") + fmtDur(r.duration_seconds),
                     type: "interview_recording",
@@ -73,9 +79,9 @@ export default function CandidateRecordings({ candidate }) {
               });
             } catch (_) {}
           }
-          // Tavus server-side tail clip (covers the end of the interview)
-          if (c.tavus_recording_storage_uri && !byUrl.has(c.tavus_recording_storage_uri)) {
-            byUrl.set(c.tavus_recording_storage_uri, {
+          if (c.tavus_recording_storage_uri && !existing.has(c.tavus_recording_storage_uri)) {
+            existing.add(c.tavus_recording_storage_uri);
+            extras.push({
               url: c.tavus_recording_storage_uri,
               label: "AI Server-Side Recording (Tail)",
               type: "twilio_backup_recording",
@@ -83,14 +89,18 @@ export default function CandidateRecordings({ candidate }) {
           }
         }
       } catch (_) {}
-
-      if (cancelled) return;
-      setRecordings(Array.from(byUrl.values()));
-      setSelectedIdx(0);
-      setLoading(false);
+      if (!cancelled) setExtraRecs(extras);
     })();
     return () => { cancelled = true; };
-  }, [candidate?.id, candidate?.email, candidate?.documents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidate?.id, candidate?.email]);
+
+  const recordings = useMemo(() => [...docRecs, ...extraRecs], [docRecs, extraRecs]);
+
+  // Reset selection if out of bounds after recordings change
+  useEffect(() => {
+    if (selectedIdx > recordings.length - 1) setSelectedIdx(0);
+  }, [recordings.length, selectedIdx]);
 
   const handlePlay = async (rec) => {
     const url = rec?.url || "";
@@ -105,14 +115,6 @@ export default function CandidateRecordings({ candidate }) {
       window.open(url, "_blank", "noopener,noreferrer");
     }
   };
-
-  if (loading) {
-    return (
-      <div className="p-5 flex justify-center" style={card}>
-        <Loader2 className="w-5 h-5 animate-spin" style={{ color: GOLD }} />
-      </div>
-    );
-  }
 
   if (recordings.length === 0) return null;
 
