@@ -71,7 +71,10 @@ export async function createTavusConversation(opts: {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.message || data?.error || `Tavus create failed (${res.status})`);
+  if (!res.ok) {
+    const detail = JSON.stringify(data);
+    throw new Error(`${data?.message || data?.error || "Tavus create failed"} | FULL RESPONSE: ${detail}`);
+  }
   return data; // { conversation_id, conversation_url, meeting_token, ... }
 }
 
