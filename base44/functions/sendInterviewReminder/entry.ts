@@ -34,11 +34,13 @@ function buildReminderHtml(firstName: string, meetingLink: string): string {
           <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your interview with Arriv Estate Media begins in approximately 30 minutes.</p>
 
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You&rsquo;ll be meeting with <strong>Ashley</strong>, our Virtual Recruiting Assistant, for your first-round interview. Ashley will guide you through a conversational video interview covering your experience, availability, and a few questions related to the position.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You&rsquo;ll be meeting with <strong>Ashley</strong>, our Virtual Recruiting Assistant, for your first-round interview. Ashley will guide you through a conversational video interview covering your experience, background, and a series of questions related to the position.</p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We understand that a virtual first-round interview may be different from the interview process you&rsquo;re accustomed to. We&rsquo;ve designed this stage of our hiring process to provide every applicant with a consistent and fair interview experience, ensuring each candidate is evaluated using the same core criteria.</p>
 
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">There&rsquo;s nothing special you need to prepare. Simply speak naturally and answer Ashley&rsquo;s questions as you would during any other interview.</p>
 
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Following your interview, our team will review your responses. Candidates selected to move forward will be invited to a second-round interview with Arriv Estate Media leadership.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Following your interview, our recruiting team will review your responses. Candidates selected to move forward will be invited to a second-round interview with Arriv Estate Media leadership.</p>
 
           <table cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
             <tr><td style="border-radius:8px;background-color:#B8956A;">
@@ -46,6 +48,8 @@ function buildReminderHtml(firstName: string, meetingLink: string): string {
             </td></tr>
           </table>
           <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#1A1A1A;word-break:break-all;">Or copy this link: <a href="${meetingLink}" style="color:#B8956A;">${meetingLink}</a></p>
+
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">If you experience a technical interruption during your interview, simply rejoin using the same interview link.</p>
 
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Please join from a quiet location with a working camera and microphone. We recommend opening your interview room a few minutes before your scheduled start time.</p>
 
