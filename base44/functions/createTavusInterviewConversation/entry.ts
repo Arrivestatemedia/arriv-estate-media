@@ -116,14 +116,24 @@ Deno.serve(async (req) => {
     const baseContext = candidateName
       ? `You are about to interview a candidate named ${candidateName}. Their first name is ${firstName}. Please greet them personally by their first name when they join. This is a first-round interview for the Sales Growth Advisor role at Arriv Estate Media.`
       : `This is a first-round interview for the Sales Growth Advisor role at Arriv Estate Media.`;
-    // Standing rule for EVERY session: Ashley must cover every Round 1 scorecard
-    // topic before wrapping up, but conversationally — she should flow naturally
-    // from the candidate's answers and find organic ways to surface each topic
-    // rather than reading down a list. On reconnects she additionally must not
-    // repeat already-answered questions (the resume briefing lists those).
-    const completionDirective = ` IMPORTANT: Before you wrap up, make sure you have naturally touched on every topic on the Round 1 scorecard (communication, confidence, coachability, work ethic, professionalism, problem-solving/judgment, and culture fit — each has a few prompts). This should feel like a flowing conversation, not a checklist: listen to the candidate's answers and let your follow-ups organically surface the remaining topics. If the candidate tries to end early or defer answers to a later call with the founder, warmly steer back to the remaining topics — e.g. "That's great — before we wrap up, I'd love to hear about..." Only once every topic has been covered may you close the interview.`;
+
+    // ── 15-Minute Interview Structure ──────────────────────────────────────────
+    // Ashley must complete all 8 questions within ~15 minutes. The structure is:
+    //   ~1 min  — greeting and process intro
+    //   10-11 min — 8 core questions (mandatory, in order)
+    //   2-3 min — candidate questions
+    //   ~1 min  — closing/buffer
+    //
+    // Completing all 8 core questions takes PRIORITY over follow-up questions.
+    // One brief clarification per question is permitted when genuinely necessary;
+    // otherwise record the evidence and move on immediately.
+    // Do NOT coach weak responses. Do NOT let the candidate derail or end early.
+    // If the 15-minute limit is reached before all 8 questions are asked, mark
+    // the interview incomplete rather than skipping or scoring unanswered questions.
+    const completionDirective = ` INTERVIEW STRUCTURE — 15 MINUTES TOTAL: You have exactly 15 minutes. Follow this structure strictly: (1) ~1 minute greeting and brief process intro; (2) 10-11 minutes for the 8 core questions below — ASK ALL 8 IN ORDER, this is mandatory; (3) 2-3 minutes for candidate questions; (4) ~1 minute closing. The 8 core questions are: Q1: "Give me a quick overview of yourself, your experience, and what interested you in this opportunity with Arriv." Q2: "Tell me about a challenging situation at work, school, or in another responsibility — what happened, what did you do, and what was the outcome?" Q3: "Tell me about a time you received feedback or constructive criticism — what was the feedback, and what did you do differently afterward?" Q4: "Tell me about a disagreement or difficult interaction with someone you worked with — how did you handle it?" Q5: "When you're given a problem you've never encountered before and don't have all the information, how do you figure out what to do?" Q6: "Tell me about a time you took initiative or went beyond what was expected of you." Q7: "How do you keep yourself organized and accountable when you're responsible for multiple things without someone constantly checking on you?" Q8: "What kind of work environment and management style help you perform at your best, and what are you hoping to find at Arriv?" RULES: Completing all 8 questions takes priority over follow-up questions. Allow at most ONE brief clarification per question only when genuinely needed — otherwise record the evidence and move to the next question immediately. Do not coach weak responses. If the candidate tries to end early or defer to the founder, warmly redirect: "Before we wrap up, I have a couple more quick questions." After all 8 questions, ask: "Those are all of my questions — before we wrap up, what questions do you have for me about Arriv Estate Media, the position, or our interview process?"`;
+
     const reconnectDirective = isReconnect
-      ? ` This is a resumed session after a disconnection. Do not repeat topics that were already covered in the prior session (the resume briefing lists those). Naturally work the remaining uncovered topics into the conversation before wrapping up.`
+      ? ` This is a resumed session after a disconnection. Do not repeat questions that were already asked in the prior session (the resume briefing above lists those). Pick up with the next unanswered question and complete all remaining questions before closing.`
       : "";
     const conversationalContext = `${baseContext}${completionDirective}${reconnectDirective}`;
 

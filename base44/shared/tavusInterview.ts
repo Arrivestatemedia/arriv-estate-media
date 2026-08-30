@@ -177,28 +177,17 @@ export async function endTavusConversation(conversationId: string) {
 }
 
 // ─── Round 1 question definitions (mirrored from src/lib/round1Questions.js) ──
+// 15-Minute 8-question scorecard. Each question may cover multiple competencies.
 // Backend can't import from src/, so we define a compact copy for the LLM parser.
 export const ROUND1_QUESTIONS_FOR_LLM = [
-  { id: "Communication_0", section: "Communication", question: "Tell me about yourself." },
-  { id: "Communication_1", section: "Communication", question: "Tell me about a difficult conversation you handled well." },
-  { id: "Communication_2", section: "Communication", question: "How do you prefer to communicate with others and why?" },
-  { id: "Confidence_0", section: "Confidence", question: "What accomplishment are you most proud of?" },
-  { id: "Confidence_1", section: "Confidence", question: "Describe a time you stepped outside your comfort zone." },
-  { id: "Confidence_2", section: "Confidence", question: "What motivates you every day?" },
-  { id: "Coachability_0", section: "Coachability", question: "Tell me about a time you received constructive criticism." },
-  { id: "Coachability_1", section: "Coachability", question: "What did you do with that feedback?" },
-  { id: "Coachability_2", section: "Coachability", question: "Tell me about a mistake you made and what you learned." },
-  { id: "Work Ethic_0", section: "Work Ethic", question: "Describe a difficult challenge you've overcome." },
-  { id: "Work Ethic_1", section: "Work Ethic", question: "How do you stay organized?" },
-  { id: "Work Ethic_2", section: "Work Ethic", question: "Tell me about a time you went above and beyond." },
-  { id: "Professionalism_0", section: "Professionalism", question: "Tell me about a disagreement with a coworker or manager." },
-  { id: "Professionalism_1", section: "Professionalism", question: "How do you react when treated unfairly?" },
-  { id: "Problem Solving / Judgment_0", section: "Problem Solving / Judgment", question: "Describe a time you had to make a decision with incomplete information." },
-  { id: "Problem Solving / Judgment_1", section: "Problem Solving / Judgment", question: "Tell me about a problem you solved that others couldn't." },
-  { id: "Problem Solving / Judgment_2", section: "Problem Solving / Judgment", question: "How do you approach a problem you've never encountered before?" },
-  { id: "Culture Fit_0", section: "Culture Fit", question: "What kind of manager brings out your best?" },
-  { id: "Culture Fit_1", section: "Culture Fit", question: "What type of company culture helps you thrive?" },
-  { id: "Culture Fit_2", section: "Culture Fit", question: "Why do you want to work at Arriv?" },
+  { id: "Q1", section: "Communication", competencies: ["Communication", "Confidence", "Culture Fit"], question: "Give me a quick overview of yourself, your experience, and what interested you in this opportunity with Arriv." },
+  { id: "Q2", section: "Work Ethic", competencies: ["Work Ethic", "Problem Solving", "Communication"], question: "Tell me about a challenging situation at work, school, or in another responsibility. What happened, what did you do, and what was the outcome?" },
+  { id: "Q3", section: "Coachability", competencies: ["Coachability", "Accountability", "Growth Mindset"], question: "Tell me about a time you received feedback or constructive criticism. What was the feedback, and what did you do differently afterward?" },
+  { id: "Q4", section: "Professionalism", competencies: ["Professionalism", "Communication", "Emotional Intelligence"], question: "Tell me about a disagreement or difficult interaction with someone you worked with. How did you handle it?" },
+  { id: "Q5", section: "Problem Solving / Judgment", competencies: ["Problem Solving / Judgment", "Adaptability"], question: "When you're given a problem you've never encountered before and don't have all the information, how do you figure out what to do?" },
+  { id: "Q6", section: "Confidence", competencies: ["Work Ethic", "Initiative", "Confidence"], question: "Tell me about a time you took initiative or went beyond what was expected of you." },
+  { id: "Q7", section: "Work Ethic", competencies: ["Work Ethic", "Reliability", "Independence"], question: "How do you keep yourself organized and accountable when you're responsible for multiple things without someone constantly checking on you?" },
+  { id: "Q8", section: "Culture Fit", competencies: ["Culture Fit", "Self-Awareness", "Motivation"], question: "What kind of work environment and management style help you perform at your best, and what are you hoping to find at Arriv?" },
 ];
 
 /**
@@ -217,25 +206,25 @@ export async function parseTranscriptToScorecard(base44: any, transcript: any[],
     return { scorecard: null, confidence: 0, review_required: true, all_answered: false };
   }
 
-  const questionsList = ROUND1_QUESTIONS_FOR_LLM.map(q => `- ${q.id} (${q.section}): ${q.question}`).join("\n");
+  const questionsList = ROUND1_QUESTIONS_FOR_LLM.map(q => `- ${q.id} (competencies: ${q.competencies.join(", ")}): ${q.question}`).join("\n");
 
-  const prompt = `You are an expert hiring analyst. Below is a transcript of a job interview where the candidate was asked the following questions. Map each question to the candidate's answer from the transcript.
+  const prompt = `You are an expert hiring analyst. Below is a transcript of a job interview. Map each of the 8 questions to the candidate's answer and rate each competency the answer provides evidence for.
 
 RULES:
-- Only use the candidate's spoken words as answers. Do NOT fabricate, embellish, or infer answers that weren't given.
-- If a question was not asked or not answered, set "answered" to false and leave "answer" empty.
-- For each answered question, provide a confidence score (0-1) on how well the transcript supports the answer.
-- Provide a rating (1-5) for each answered question based on the quality of the answer. Use 0 if not answered.
-- Do NOT infer demographic information, appearance, or emotional state from the transcript.
+- Only use the candidate's spoken words. Do NOT fabricate, embellish, or infer answers not given.
+- If a question was not asked or not answered, set "answered" to false.
+- Each question covers multiple competencies (listed per question). For each competency the answer provides evidence for, provide a rating (1-5). Set rating to 0 if no evidence.
+- Provide an overall confidence (0-1) on how well the transcript covers that question.
+- Do NOT infer demographic information, appearance, or emotional state.
 - Keep "source_excerpt" as a direct quote from the transcript (max 200 chars).
 
-QUESTIONS:
+QUESTIONS (8 total — all are mandatory):
 ${questionsList}
 
 CANDIDATE TRANSCRIPT (role=user only):
 ${candidateUtterances}
 
-Return a JSON object with an "answers" array. Each answer has: question_id, answered (boolean), answer (string), rating (0-5), confidence (0-1), source_excerpt (string).`;
+Return a JSON object with an "answers" array. Each answer has: question_id (string), answered (boolean), answer (string), competency_ratings (object mapping competency name to rating 0-5), confidence (0-1), source_excerpt (string).`;
 
   const schema = {
     type: "object",
@@ -248,7 +237,7 @@ Return a JSON object with an "answers" array. Each answer has: question_id, answ
             question_id: { type: "string" },
             answered: { type: "boolean" },
             answer: { type: "string" },
-            rating: { type: "number" },
+            competency_ratings: { type: "object" },
             confidence: { type: "number" },
             source_excerpt: { type: "string" },
           },
@@ -268,7 +257,8 @@ Return a JSON object with an "answers" array. Each answer has: question_id, answ
 
 /**
  * Build a Round 1 scorecard from an array of parsed answers.
- * Shared by the transcript parser and the plain-text (recording) parser.
+ * Supports the new multi-competency-per-question model: each answer has
+ * a `competency_ratings` map (competency -> rating 1-5).
  * Returns { scorecard, confidence, review_required, all_answered }.
  */
 export function buildScorecardFromAnswers(
@@ -281,37 +271,50 @@ export function buildScorecardFromAnswers(
     ? answers.reduce((sum: number, a: any) => sum + (a.confidence || 0), 0) / answers.length
     : 0;
 
-  // Build scorecard in Round1ScorecardForm.buildResult() format
-  const answerMap: Record<string, any> = {};
-  answers.forEach((a: any) => { answerMap[a.question_id] = a; });
-
-  // Group by section
-  const sectionsMap: Record<string, any[]> = {};
-  ROUND1_QUESTIONS_FOR_LLM.forEach(q => {
-    if (!sectionsMap[q.section]) sectionsMap[q.section] = [];
-    const ans = answerMap[q.id] || { answered: false, answer: "", rating: 0, confidence: 0, source_excerpt: "" };
-    sectionsMap[q.section].push({
-      question: q.question,
-      section: q.section,
-      competencies: [],
-      weight: 1,
-      rating: ans.answered ? (ans.rating || 0) : 0,
-      evidence: ans.source_excerpt || "",
-      notes: ans.answered ? ans.answer : "",
-    });
-  });
-
   const sectionWeights: Record<string, number> = {
     "Communication": 20, "Confidence": 15, "Coachability": 20, "Work Ethic": 15,
     "Professionalism": 10, "Problem Solving / Judgment": 10, "Culture Fit": 10,
   };
 
-  const sections = Object.entries(sectionsMap).map(([name, questions]) => {
-    const answered = questions.filter(q => q.rating > 0);
-    const totalWeight = answered.reduce((s, q) => s + q.weight, 0);
-    const weightedSum = answered.reduce((s, q) => s + q.rating * q.weight, 0);
-    const score = totalWeight > 0 ? Math.round((weightedSum / totalWeight / 5) * 100 * 10) / 10 : 0;
-    return { name, weight: sectionWeights[name] || 0, score, questions };
+  // Aggregate ratings per competency across all questions
+  const competencyRatings: Record<string, number[]> = {};
+  const answerMap: Record<string, any> = {};
+  answers.forEach((a: any) => { answerMap[a.question_id] = a; });
+
+  for (const q of ROUND1_QUESTIONS_FOR_LLM) {
+    const ans = answerMap[q.id];
+    if (!ans?.answered) continue;
+    const ratings = ans.competency_ratings || {};
+    for (const comp of (q.competencies as string[])) {
+      const rating = ratings[comp] || ratings[comp.toLowerCase()] || 0;
+      if (rating > 0) {
+        if (!competencyRatings[comp]) competencyRatings[comp] = [];
+        competencyRatings[comp].push(rating);
+      }
+    }
+  }
+
+  // Build sections — one per scorecard competency
+  const sections = Object.keys(sectionWeights).map(name => {
+    const ratings = competencyRatings[name] || [];
+    const avgRating = ratings.length > 0 ? ratings.reduce((s, r) => s + r, 0) / ratings.length : 0;
+    const score = Math.round((avgRating / 5) * 100 * 10) / 10;
+    // Build question list for this section
+    const questions = ROUND1_QUESTIONS_FOR_LLM
+      .filter(q => (q.competencies as string[]).includes(name))
+      .map(q => {
+        const ans = answerMap[q.id] || {};
+        return {
+          question: q.question,
+          section: name,
+          competencies: q.competencies,
+          weight: 1,
+          rating: ans.answered ? (ans.competency_ratings?.[name] || 0) : 0,
+          evidence: ans.source_excerpt || "",
+          notes: ans.answered ? (ans.answer || "") : "",
+        };
+      });
+    return { name, weight: sectionWeights[name], score, questions };
   });
 
   const totalScore = sections.reduce((s, sec) => s + sec.score * sec.weight, 0) /
@@ -349,25 +352,25 @@ export async function parsePlainTextToScorecard(base44: any, transcriptText: str
     return { scorecard: null, confidence: 0, review_required: true, all_answered: false };
   }
 
-  const questionsList = ROUND1_QUESTIONS_FOR_LLM.map(q => `- ${q.id} (${q.section}): ${q.question}`).join("\n");
+  const questionsList = ROUND1_QUESTIONS_FOR_LLM.map(q => `- ${q.id} (competencies: ${q.competencies.join(", ")}): ${q.question}`).join("\n");
 
-  const prompt = `You are an expert hiring analyst. Below is a raw speech-to-text transcript of a job interview. The transcript has NO speaker labels — it contains both the interviewer's questions and the candidate's answers mixed together. Your job is to identify which of the standard Round 1 questions were asked, and extract the candidate's spoken answers.
+  const prompt = `You are an expert hiring analyst. Below is a raw speech-to-text transcript of a job interview. The transcript has NO speaker labels. Identify which of the 8 standard questions were asked, extract the candidate's spoken answers, and rate each competency the answer provides evidence for.
 
 RULES:
-- Identify the interviewer's questions and match them to the standard question list below by meaning (not exact wording).
-- Only use the CANDIDATE's spoken words as answers. Do NOT use the interviewer's prompts or paraphrasing as the answer.
-- Do NOT fabricate, embellish, or infer answers that weren't given. If a question was not asked or not answered, set "answered" to false and leave "answer" empty.
-- For each answered question, provide a confidence score (0-1) on how well the transcript supports the answer.
-- Provide a rating (1-5) for each answered question based on the quality of the answer. Use 0 if not answered.
-- Keep "source_excerpt" as a direct quote from the transcript (max 200 chars).
+- Match interviewer questions to the standard list by meaning (not exact wording).
+- Only use the CANDIDATE's spoken words. Do NOT fabricate or infer answers not given.
+- If a question was not asked or not answered, set "answered" to false.
+- For each competency listed per question, provide a rating (1-5) based on evidence from the candidate's answer. Use 0 if no evidence.
+- Provide an overall confidence (0-1) on how well the transcript covers that question.
+- Keep "source_excerpt" as a direct quote (max 200 chars).
 
-STANDARD QUESTIONS:
+STANDARD QUESTIONS (8 total):
 ${questionsList}
 
 RAW TRANSCRIPT:
 ${trimmed}
 
-Return a JSON object with an "answers" array. Each answer has: question_id, answered (boolean), answer (string), rating (0-5), confidence (0-1), source_excerpt (string). Include an entry for EVERY question in the standard list.`;
+Return a JSON object with an "answers" array. Each answer has: question_id (string), answered (boolean), answer (string), competency_ratings (object mapping competency name to rating 0-5), confidence (0-1), source_excerpt (string). Include an entry for EVERY question.`;
 
   const schema = {
     type: "object",
@@ -380,7 +383,7 @@ Return a JSON object with an "answers" array. Each answer has: question_id, answ
             question_id: { type: "string" },
             answered: { type: "boolean" },
             answer: { type: "string" },
-            rating: { type: "number" },
+            competency_ratings: { type: "object" },
             confidence: { type: "number" },
             source_excerpt: { type: "string" },
           },
