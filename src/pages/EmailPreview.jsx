@@ -11,25 +11,61 @@ export default function EmailPreview() {
   const [selectedKey, setSelectedKey] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminName, setAdminName] = useState("admin");
 
-  const salesMemberId = localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
+  // Determine admin status from either platform auth or sales session
+  useEffect(() => {
+    const salesRole = localStorage.getItem("sales_member_role") || sessionStorage.getItem("sales_member_role");
+    const userRole = localStorage.getItem("user_role") || sessionStorage.getItem("user_role");
+    const salesName = localStorage.getItem("sales_member_name") || sessionStorage.getItem("sales_member_name");
+    const userName = localStorage.getItem("user_name") || sessionStorage.getItem("user_name");
+
+    if (salesRole === "admin") {
+      setIsAdmin(true);
+      setAdminName(salesName || "admin");
+      return;
+    }
+
+    if (userRole === "admin") {
+      setIsAdmin(true);
+      setAdminName(userName || "admin");
+      return;
+    }
+
+    // Also check base44 auth for platform admin role
+    base44.auth.isAuthenticated().then((isAuth) => {
+      if (isAuth) {
+        base44.auth.me().then((user) => {
+          if (user?.role === "admin") {
+            setIsAdmin(true);
+            setAdminName(user.full_name || user.email || "admin");
+          } else {
+            setLoading(false);
+          }
+        }).catch(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
+    }).catch(() => setLoading(false));
+  }, []);
 
   const fetchTemplates = useCallback(async () => {
-    if (!salesMemberId) { setLoading(false); return; }
+    if (!isAdmin) return;
     try {
-      const res = await base44.functions.invoke("manageEmailTemplates", {
-        action: "list",
-        salesMemberId,
-      });
+      const res = await base44.functions.invoke("manageEmailTemplates", { action: "list" });
       setTemplates(res?.templates || []);
     } catch (err) {
       console.error("Failed to load templates:", err);
+      toast.error("Failed to load templates");
     } finally {
       setLoading(false);
     }
-  }, [salesMemberId]);
+  }, [isAdmin]);
 
-  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
+  useEffect(() => {
+    if (isAdmin) fetchTemplates();
+  }, [isAdmin, fetchTemplates]);
 
   const savedMap = new Map(templates.map((t) => [t.template_key, t]));
   const savedKeys = new Set(savedMap.keys());
@@ -37,12 +73,11 @@ export default function EmailPreview() {
   const savedTemplate = selectedKey ? savedMap.get(selectedKey) : null;
 
   const handleSave = async ({ subject, htmlBody }) => {
-    if (!salesMemberId || !entry) return;
+    if (!entry) return;
     setSaving(true);
     try {
       await base44.functions.invoke("manageEmailTemplates", {
         action: "save",
-        salesMemberId,
         templateKey: entry.key,
         name: entry.name,
         description: entry.description,
@@ -50,6 +85,7 @@ export default function EmailPreview() {
         subject,
         htmlBody,
         variables: entry.variables || [],
+        updatedBy: adminName,
       });
       toast.success("Template saved");
       await fetchTemplates();
@@ -61,12 +97,11 @@ export default function EmailPreview() {
   };
 
   const handleReset = async () => {
-    if (!salesMemberId || !entry) return;
+    if (!entry) return;
     setSaving(true);
     try {
       await base44.functions.invoke("manageEmailTemplates", {
         action: "reset",
-        salesMemberId,
         templateKey: entry.key,
       });
       toast.success("Template reset to default");
@@ -78,7 +113,7 @@ export default function EmailPreview() {
     }
   };
 
-  if (!salesMemberId) {
+  if (!isAdmin && !loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center bg-[#FFFBF5]">
         <div className="text-center">

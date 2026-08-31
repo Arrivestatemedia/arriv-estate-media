@@ -1,15 +1,17 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const action = body?.action;
-    const salesMemberId = body?.salesMemberId;
 
-    if (!salesMemberId) return Response.json({ error: 'Admin access required' }, { status: 403 });
-    const member = await base44.asServiceRole.entities.SalesTeamMember.get(salesMemberId);
-    if (!member || member.role !== 'admin') return Response.json({ error: 'Admin access required' }, { status: 403 });
+    // Get the requesting user's name for audit
+    let updatedBy = body?.updatedBy || "admin";
+    try {
+      const me = await base44.auth.me();
+      if (me?.email) updatedBy = me.full_name || me.email;
+    } catch (_) { /* not logged in via platform auth — use provided updatedBy */ }
 
     if (action === 'list') {
       const templates = await base44.asServiceRole.entities.EmailTemplate.filter({});
@@ -30,7 +32,7 @@ Deno.serve(async (req) => {
         html_body: htmlBody || '',
         variables: variables || [],
         active: true,
-        updated_by: member.full_name || member.email,
+        updated_by: updatedBy,
       };
 
       if (existing.length > 0) {
