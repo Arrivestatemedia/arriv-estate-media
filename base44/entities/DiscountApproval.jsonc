@@ -1,0 +1,82 @@
+{
+  "name": "DiscountApproval",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "Rep requesting the discount"
+    },
+    "sales_member_name": {
+      "type": "string"
+    },
+    "customer_or_prospect_name": {
+      "type": "string"
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "deal_id": {
+      "type": "string"
+    },
+    "requested_discount_type": {
+      "type": "string",
+      "enum": [
+        "PERCENTAGE",
+        "FLAT_AMOUNT",
+        "FREE_ADDON",
+        "OTHER"
+      ]
+    },
+    "requested_value": {
+      "type": "number",
+      "description": "Discount amount or percentage"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Rep's justification for the discount"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "APPROVED",
+        "DENIED",
+        "EXPIRED"
+      ],
+      "default": "PENDING"
+    },
+    "approver_id": {
+      "type": "string"
+    },
+    "approver_name": {
+      "type": "string"
+    },
+    "approved_value": {
+      "type": "number",
+      "description": "Final approved discount value"
+    },
+    "conditions": {
+      "type": "string",
+      "description": "Conditions attached to approval"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the approval expires if not used"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "requested_discount_type",
+    "requested_value",
+    "reason"
+  ]
+}

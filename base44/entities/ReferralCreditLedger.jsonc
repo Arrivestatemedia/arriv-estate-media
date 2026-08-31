@@ -1,0 +1,78 @@
+{
+  "name": "ReferralCreditLedger",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "Contact ID of the customer whose balance this affects"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "referral_id": {
+      "type": "string",
+      "description": "Related Referral ID"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "EARN",
+        "REDEEM",
+        "REVERSAL",
+        "ADMIN_CORRECTION"
+      ]
+    },
+    "amount": {
+      "type": "number",
+      "description": "Positive for earn, negative for redeem/reversal"
+    },
+    "balance_after": {
+      "type": "number",
+      "description": "Running balance after this transaction"
+    },
+    "related_order_id": {
+      "type": "string",
+      "description": "Deal/Order ID for redemption"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string",
+      "description": "Who initiated this transaction"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "customer_id",
+    "transaction_type",
+    "amount",
+    "balance_after",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

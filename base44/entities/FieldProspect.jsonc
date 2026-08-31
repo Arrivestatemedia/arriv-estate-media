@@ -1,0 +1,140 @@
+{
+  "name": "FieldProspect",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID who found this prospect"
+    },
+    "sales_member_email": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "LISTING_PLATFORM",
+        "SOCIAL_MEDIA",
+        "AGENT_BROKERAGE_WEBSITE",
+        "LOCAL_SIGN",
+        "OPEN_HOUSE",
+        "BUILDER_DEVELOPMENT",
+        "REFERRAL",
+        "INBOUND",
+        "OTHER"
+      ],
+      "description": "Where the prospect was found"
+    },
+    "prospect_type": {
+      "type": "string",
+      "enum": [
+        "INDIVIDUAL_AGENT",
+        "REAL_ESTATE_TEAM",
+        "BROKERAGE",
+        "BUILDER",
+        "DEVELOPER",
+        "OTHER"
+      ]
+    },
+    "date_found": {
+      "type": "string",
+      "format": "date"
+    },
+    "approximate_location": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string"
+    },
+    "sign_type": {
+      "type": "string",
+      "description": "Type of sign (rider, post, etc.)"
+    },
+    "public_agent_name": {
+      "type": "string"
+    },
+    "brokerage": {
+      "type": "string"
+    },
+    "builder_developer": {
+      "type": "string"
+    },
+    "listing_stage": {
+      "type": "string",
+      "enum": [
+        "COMING_SOON",
+        "ACTIVE",
+        "UNDER_CONTRACT",
+        "SOLD",
+        "EXPIRED",
+        "UNKNOWN"
+      ]
+    },
+    "research_status": {
+      "type": "string",
+      "enum": [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "COMPLETED"
+      ],
+      "default": "NOT_STARTED"
+    },
+    "professional_video_status": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "NO_PROFESSIONAL_VIDEO",
+        "PROFESSIONAL_VIDEO_PRESENT",
+        "COMING_SOON_NO_MEDIA",
+        "MEDIA_NOT_YET_VERIFIABLE"
+      ],
+      "default": "UNKNOWN"
+    },
+    "listing_url": {
+      "type": "string"
+    },
+    "agent_social_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    },
+    "qualification_status": {
+      "type": "string",
+      "enum": [
+        "UNQUALIFIED",
+        "PENDING",
+        "QUALIFIED",
+        "DISQUALIFIED"
+      ],
+      "default": "PENDING"
+    },
+    "next_action": {
+      "type": "string"
+    },
+    "next_action_due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "contact_id": {
+      "type": "string",
+      "description": "Linked Contact ID if converted to CRM"
+    },
+    "converted_to_crm": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_field_prospecting": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if found during intentional field prospecting"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "source_type",
+    "date_found"
+  ]
+}

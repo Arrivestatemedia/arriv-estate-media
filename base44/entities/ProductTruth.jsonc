@@ -1,0 +1,125 @@
+{
+  "name": "ProductTruth",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Version label for this product truth snapshot"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Canonical service definitions with pricing"
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Canonical package definitions"
+    },
+    "add_ons": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Canonical add-on definitions"
+    },
+    "territories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scheduling": {
+      "type": "object",
+      "description": "Scheduling and availability rules"
+    },
+    "turnaround": {
+      "type": "object",
+      "description": "Turnaround time rules"
+    },
+    "delivery": {
+      "type": "object",
+      "description": "Delivery rules"
+    },
+    "revisions": {
+      "type": "object",
+      "description": "Revision policy"
+    },
+    "cancellation": {
+      "type": "object",
+      "description": "Cancellation policy"
+    },
+    "rescheduling": {
+      "type": "object",
+      "description": "Rescheduling policy"
+    },
+    "refunds": {
+      "type": "object",
+      "description": "Refund policy"
+    },
+    "payment": {
+      "type": "object",
+      "description": "Payment terms"
+    },
+    "discount_authority": {
+      "type": "object",
+      "description": "What reps can/cannot promise"
+    },
+    "guarantees": {
+      "type": "object",
+      "description": "What can/cannot be guaranteed"
+    },
+    "sales_authorized_promises": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "must_verify_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "published_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

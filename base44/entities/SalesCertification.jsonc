@@ -1,0 +1,162 @@
+{
+  "name": "SalesCertification",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID"
+    },
+    "sales_member_email": {
+      "type": "string"
+    },
+    "sales_member_name": {
+      "type": "string"
+    },
+    "training_status": {
+      "type": "string",
+      "enum": [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "REMEDIATION_REQUIRED",
+        "TRAINING_COMPLETE",
+        "AWAITING_CERTIFICATION",
+        "SALES_CERTIFIED",
+        "CERTIFICATION_SUSPENDED",
+        "NOT_CERTIFIED"
+      ],
+      "default": "NOT_STARTED",
+      "description": "Current training/certification status"
+    },
+    "calling_authorization": {
+      "type": "string",
+      "enum": [
+        "CALLING_LOCKED",
+        "SUPERVISED_CALLING_ONLY",
+        "TRAINING_INDEPENDENT_CALLING_AUTHORIZED",
+        "INDEPENDENT_CALLING_AUTHORIZED"
+      ],
+      "default": "CALLING_LOCKED",
+      "description": "Calling authorization level"
+    },
+    "modules_completed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Module IDs completed (watch + quiz passed)"
+    },
+    "modules_passed_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "modules_total": {
+      "type": "integer",
+      "default": 13
+    },
+    "quiz_average_score": {
+      "type": "number",
+      "default": 0
+    },
+    "critical_questions_status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "ALL_CORRECT",
+        "HAS_FAILURES"
+      ],
+      "default": "PENDING"
+    },
+    "final_exam_score": {
+      "type": "number"
+    },
+    "final_exam_passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "final_exam_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "roleplay_score": {
+      "type": "number"
+    },
+    "roleplay_passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "roleplay_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "roleplay_evaluator": {
+      "type": "string"
+    },
+    "practicum_score": {
+      "type": "number"
+    },
+    "practicum_passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "practicum_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "practicum_evaluator": {
+      "type": "string"
+    },
+    "critical_failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of active critical failures"
+    },
+    "remediation_modules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Module IDs requiring remediation"
+    },
+    "certified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "certified_by": {
+      "type": "string"
+    },
+    "suspended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "suspended_reason": {
+      "type": "string"
+    },
+    "restored_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "product_truth_version": {
+      "type": "string"
+    },
+    "training_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "week1_readiness_approved": {
+      "type": "boolean",
+      "default": false
+    },
+    "week1_readiness_approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "week1_readiness_approved_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sales_member_id"
+  ]
+}

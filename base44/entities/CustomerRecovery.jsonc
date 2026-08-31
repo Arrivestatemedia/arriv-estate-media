@@ -1,0 +1,88 @@
+{
+  "name": "CustomerRecovery",
+  "type": "object",
+  "properties": {
+    "contact_id": {
+      "type": "string",
+      "description": "Contact ID of the customer"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "order_id": {
+      "type": "string",
+      "description": "Deal/Order ID related to the issue"
+    },
+    "assigned_rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID responsible for close-the-loop"
+    },
+    "assigned_rep_name": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "MINOR",
+        "MAJOR",
+        "CRITICAL"
+      ]
+    },
+    "customer_statement": {
+      "type": "string",
+      "description": "What the customer reported"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "EXCEEDED_EXPECTATIONS",
+        "MET_EXPECTATIONS",
+        "MINOR_ISSUE",
+        "MAJOR_ISSUE",
+        "NO_RESPONSE"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "IN_PROGRESS",
+        "RESOLVED",
+        "CLOSED"
+      ],
+      "default": "OPEN"
+    },
+    "next_action": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolution": {
+      "type": "string",
+      "description": "Operational resolution description"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rep_close_loop_required": {
+      "type": "boolean",
+      "default": true
+    },
+    "rep_close_loop_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "contact_id",
+    "severity",
+    "assigned_rep_id"
+  ]
+}

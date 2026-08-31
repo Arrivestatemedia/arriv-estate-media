@@ -1,0 +1,86 @@
+{
+  "name": "BonusMilestone",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string"
+    },
+    "sales_member_name": {
+      "type": "string"
+    },
+    "milestone_type": {
+      "type": "string",
+      "enum": [
+        "CERTIFICATION_2_WEEK",
+        "DAY_30",
+        "DAY_90",
+        "DAY_180"
+      ]
+    },
+    "milestone_label": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "EARNED",
+        "APPROVED",
+        "PAID"
+      ],
+      "default": "PENDING"
+    },
+    "earned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_by": {
+      "type": "string"
+    },
+    "paid_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "eligibility_met": {
+      "type": "boolean",
+      "default": false
+    },
+    "eligibility_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "milestone_type",
+    "amount"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

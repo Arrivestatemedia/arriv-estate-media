@@ -110,6 +110,7 @@ function LayoutContent({ children, currentPageName }) {
       ? [
           { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
           { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
+          { label: "Training", page: "SalesTrainingPortal", icon: Award },
           { label: "My Recordings", page: "Recordings", icon: Film },
           { label: "My Profile", page: "EmployeeProfile", icon: Award },
           { label: "Time Off", page: "TimeOff", icon: CalendarOff },
@@ -119,20 +120,20 @@ function LayoutContent({ children, currentPageName }) {
         ? [
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
+            { label: "Training Admin", page: "SalesTrainingAdmin", icon: Shield },
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
             { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
-    
             { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck },
-        { label: "Commissions", page: "AdminCommissions", icon: Wallet },
-        { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },
-        { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark },
-        { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
-        { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
-        { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
-        { label: "My Recordings", page: "Recordings", icon: Film },
-        { label: "My Profile", page: "EmployeeProfile", icon: Award },
-        { label: "Time Off", page: "TimeOff", icon: CalendarOff },
-        { label: "My Benefits", page: "Benefits", icon: Heart },
+            { label: "Commissions", page: "AdminCommissions", icon: Wallet },
+            { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },
+            { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark },
+            { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
+            { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
+            { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
+            { label: "My Recordings", page: "Recordings", icon: Film },
+            { label: "My Profile", page: "EmployeeProfile", icon: Award },
+            { label: "Time Off", page: "TimeOff", icon: CalendarOff },
+            { label: "My Benefits", page: "Benefits", icon: Heart },
         ]
         : isClient
     ? [

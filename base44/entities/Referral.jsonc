@@ -1,0 +1,76 @@
+{
+  "name": "Referral",
+  "type": "object",
+  "properties": {
+    "referrer_customer_id": {
+      "type": "string",
+      "description": "Contact ID of the referring customer"
+    },
+    "referrer_customer_name": {
+      "type": "string"
+    },
+    "referred_party_name": {
+      "type": "string"
+    },
+    "referred_contact_info": {
+      "type": "string",
+      "description": "Email/phone of referred party"
+    },
+    "referring_rep_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep who logged this referral"
+    },
+    "referring_rep_name": {
+      "type": "string"
+    },
+    "qualification_status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "QUALIFIED",
+        "DISQUALIFIED"
+      ],
+      "default": "PENDING"
+    },
+    "qualifying_event": {
+      "type": "string",
+      "description": "What made this referral qualify (e.g. 'completed first order')"
+    },
+    "qualifying_event_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "related_contact_id": {
+      "type": "string",
+      "description": "Contact ID of the referred party if they became a customer"
+    },
+    "related_order_id": {
+      "type": "string",
+      "description": "Deal/Order ID that qualified this referral"
+    },
+    "credit_earned": {
+      "type": "boolean",
+      "default": false
+    },
+    "credit_amount": {
+      "type": "number",
+      "default": 20,
+      "description": "Referral credit amount ($20 per qualifying referral)"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "qualified_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "referrer_customer_id",
+    "referred_party_name"
+  ]
+}

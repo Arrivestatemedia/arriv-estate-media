@@ -36,6 +36,8 @@ import AdminSyncStatus from './pages/AdminSyncStatus';
 import AdminManifestConvergence from './pages/AdminManifestConvergence';
 import EstateMediaAuthorityConsole from './pages/EstateMediaAuthorityConsole';
 import AdminPlatformAccess from './pages/AdminPlatformAccess';
+import SalesTrainingPortal from './pages/SalesTrainingPortal';
+import SalesTrainingAdmin from './pages/SalesTrainingAdmin';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -315,6 +317,22 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminPlatformAccess">
             <AdminPlatformAccess />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/SalesTrainingPortal"
+        element={
+          <LayoutWrapper currentPageName="SalesTrainingPortal">
+            <SalesTrainingPortal />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/SalesTrainingAdmin"
+        element={
+          <LayoutWrapper currentPageName="SalesTrainingAdmin">
+            <SalesTrainingAdmin />
           </LayoutWrapper>
         }
       />

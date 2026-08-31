@@ -4,7 +4,7 @@
   "properties": {
     "module_id": {
       "type": "string",
-      "description": "Stable module identifier"
+      "description": "Stable module identifier (e.g. 'mod_01_welcome')"
     },
     "title": {
       "type": "string"
@@ -15,13 +15,34 @@
     "order": {
       "type": "integer",
       "default": 0,
-      "description": "Display order"
+      "description": "Display/sequence order (1-13)"
+    },
+    "video_url": {
+      "type": "string",
+      "description": "URL of the training video for this module"
+    },
+    "video_duration_seconds": {
+      "type": "number",
+      "description": "Duration of the training video"
+    },
+    "requires_watching": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether video watch completion is required before quiz"
+    },
+    "min_watch_percentage": {
+      "type": "number",
+      "default": 95,
+      "description": "Minimum watch completion percentage required"
     },
     "quiz_questions": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
+          "question_id": {
+            "type": "string"
+          },
           "question": {
             "type": "string"
           },
@@ -36,15 +57,53 @@
           },
           "explanation": {
             "type": "string"
+          },
+          "competency": {
+            "type": "string",
+            "description": "Competency tag (VALUE_CONNECTION, PROSPECTING, DISCOVERY, OBJECTIONS, BOUNDARIES, CUSTOMER_EXPERIENCE, CRM, FOLLOW_UP, OPENING)"
+          },
+          "is_critical": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
-      "description": "Per-module quiz questions"
+      "description": "Per-module quiz questions with competency and critical flags"
+    },
+    "critical_question_indices": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "description": "Indices of critical questions that must be answered correctly"
     },
     "passing_score": {
       "type": "number",
-      "default": 70,
-      "description": "Minimum percentage to pass"
+      "default": 95,
+      "description": "Minimum percentage to pass (95% for sales training)"
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Module IDs that must be completed before this module"
+    },
+    "has_assignment": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this module has a required assignment"
+    },
+    "assignment_description": {
+      "type": "string",
+      "description": "Description of the required assignment"
+    },
+    "competency_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Competencies covered by this module"
     },
     "active": {
       "type": "boolean",

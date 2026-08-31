@@ -1,0 +1,123 @@
+{
+  "name": "TrainingAttempt",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID"
+    },
+    "sales_member_email": {
+      "type": "string"
+    },
+    "attempt_type": {
+      "type": "string",
+      "enum": [
+        "MODULE_QUIZ",
+        "FINAL_EXAM",
+        "ROLEPLAY",
+        "PRACTICUM"
+      ],
+      "description": "Type of assessment attempt"
+    },
+    "module_id": {
+      "type": "string",
+      "description": "Module ID for module quizzes"
+    },
+    "module_version": {
+      "type": "integer"
+    },
+    "product_truth_version": {
+      "type": "string",
+      "description": "Product Truth version used for this attempt"
+    },
+    "score": {
+      "type": "number",
+      "description": "Percentage 0-100"
+    },
+    "passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "total_questions": {
+      "type": "integer"
+    },
+    "correct_answers": {
+      "type": "integer"
+    },
+    "critical_questions_total": {
+      "type": "integer"
+    },
+    "critical_questions_correct": {
+      "type": "integer"
+    },
+    "all_critical_correct": {
+      "type": "boolean",
+      "default": false
+    },
+    "question_set_snapshot": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Snapshot of questions used in this attempt"
+    },
+    "answer_summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_id": {
+            "type": "string"
+          },
+          "selected_index": {
+            "type": "integer"
+          },
+          "correct": {
+            "type": "boolean"
+          },
+          "is_critical": {
+            "type": "boolean"
+          },
+          "competency": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Per-question answer summary"
+    },
+    "critical_failures_detected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_seconds": {
+      "type": "integer"
+    },
+    "evaluator": {
+      "type": "string",
+      "description": "Manager who evaluated roleplay/practicum"
+    },
+    "roleplay_scores": {
+      "type": "object",
+      "description": "Roleplay scorecard breakdown"
+    },
+    "practicum_scores": {
+      "type": "object",
+      "description": "Practicum scorecard breakdown"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "attempt_type",
+    "score"
+  ]
+}

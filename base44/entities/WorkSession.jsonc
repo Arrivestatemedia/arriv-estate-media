@@ -1,0 +1,61 @@
+{
+  "name": "WorkSession",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID"
+    },
+    "sales_member_email": {
+      "type": "string"
+    },
+    "work_type": {
+      "type": "string",
+      "enum": [
+        "TRAINING",
+        "FIELD_PROSPECTING",
+        "DIGITAL_PROSPECTING",
+        "CALLING",
+        "FOLLOW_UP",
+        "CRM",
+        "POST_SERVICE_FOLLOWUP",
+        "MEETING_COACHING",
+        "OTHER"
+      ]
+    },
+    "clock_in": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "clock_out": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    },
+    "week_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Monday of the week this session belongs to"
+    },
+    "is_friday_work": {
+      "type": "boolean",
+      "default": false
+    },
+    "overtime_flag": {
+      "type": "boolean",
+      "default": false,
+      "description": "Set when weekly hours exceed 40 for nonexempt employees"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "work_type",
+    "clock_in"
+  ]
+}

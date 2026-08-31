@@ -1,0 +1,74 @@
+{
+  "name": "AuditEvent",
+  "type": "object",
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "description": "One of the defined audit event types (VIDEO_STARTED, VIDEO_COMPLETED, QUIZ_STARTED, QUIZ_FAILED, QUIZ_PASSED, MODULE_UNLOCKED, ASSIGNMENT_SUBMITTED, ASSIGNMENT_APPROVED, CALLING_AUTHORIZED_SUPERVISED, CALLING_AUTHORIZED_TRAINING_INDEPENDENT, FINAL_EXAM_PASSED, ROLEPLAY_FAILED, ROLEPLAY_PASSED, PRACTICUM_FAILED, PRACTICUM_PASSED, REMEDIATION_ASSIGNED, SALES_CERTIFIED, CERTIFICATION_SUSPENDED, CERTIFICATION_RESTORED, DISCOUNT_REQUESTED, DISCOUNT_APPROVED, DISCOUNT_DENIED, REFERRAL_CREDIT_EARNED, REFERRAL_CREDIT_REDEEMED, REFERRAL_CREDIT_REVERSED, POST_SERVICE_FOLLOWUP_COMPLETED, CUSTOMER_RECOVERY_CREATED, CUSTOMER_RECOVERY_RESOLVED, CUSTOMER_RECOVERY_CLOSED_LOOP, BONUS_MILESTONE_EARNED, BONUS_APPROVED, BONUS_PAID, ADMIN_CORRECTION)"
+    },
+    "sales_member_id": {
+      "type": "string"
+    },
+    "sales_member_name": {
+      "type": "string"
+    },
+    "actor_id": {
+      "type": "string",
+      "description": "Who performed the action"
+    },
+    "actor_name": {
+      "type": "string"
+    },
+    "actor_role": {
+      "type": "string",
+      "enum": [
+        "REP",
+        "MANAGER",
+        "ADMIN",
+        "SYSTEM"
+      ]
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Type of entity affected"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of entity affected"
+    },
+    "details": {
+      "type": "object",
+      "description": "Additional event-specific details"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "event_type",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

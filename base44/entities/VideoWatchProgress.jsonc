@@ -1,0 +1,75 @@
+{
+  "name": "VideoWatchProgress",
+  "type": "object",
+  "properties": {
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID"
+    },
+    "module_id": {
+      "type": "string",
+      "description": "TrainingModule module_id"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "video_duration_seconds": {
+      "type": "number"
+    },
+    "watched_seconds": {
+      "type": "number",
+      "default": 0,
+      "description": "Total unique seconds watched"
+    },
+    "completion_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Percentage of unique content watched (0-100)"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True only when >=95% watch completion achieved without seeking to end"
+    },
+    "last_position_seconds": {
+      "type": "number",
+      "default": 0
+    },
+    "seeking_detected": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if user sought to end without watching"
+    },
+    "watch_segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "number"
+          },
+          "end": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Actual watched segments for seek detection"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "module_id"
+  ]
+}
