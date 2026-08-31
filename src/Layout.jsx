@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -111,6 +111,9 @@ function LayoutContent({ children, currentPageName }) {
           { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
           { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
           { label: "Training", page: "SalesTrainingPortal", icon: Award },
+          { label: "Field Prospecting", page: "FieldProspectingPage", icon: MapPin },
+          { label: "Referrals", page: "ReferralProgramPage", icon: Gift },
+          { label: "Customer Success", page: "CustomerSuccessPage", icon: CheckCircle2 },
           { label: "My Recordings", page: "Recordings", icon: Film },
           { label: "My Profile", page: "EmployeeProfile", icon: Award },
           { label: "Time Off", page: "TimeOff", icon: CalendarOff },
@@ -121,6 +124,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "Training Admin", page: "SalesTrainingAdmin", icon: Shield },
+            { label: "Discount Approvals", page: "DiscountApprovalPage", icon: Tag },
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
             { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
             { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck },

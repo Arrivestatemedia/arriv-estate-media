@@ -38,6 +38,10 @@ import EstateMediaAuthorityConsole from './pages/EstateMediaAuthorityConsole';
 import AdminPlatformAccess from './pages/AdminPlatformAccess';
 import SalesTrainingPortal from './pages/SalesTrainingPortal';
 import SalesTrainingAdmin from './pages/SalesTrainingAdmin';
+import FieldProspectingPage from './pages/FieldProspectingPage';
+import DiscountApprovalPage from './pages/DiscountApprovalPage';
+import ReferralProgramPage from './pages/ReferralProgramPage';
+import CustomerSuccessPage from './pages/CustomerSuccessPage';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -333,6 +337,38 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="SalesTrainingAdmin">
             <SalesTrainingAdmin />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/FieldProspectingPage"
+        element={
+          <LayoutWrapper currentPageName="FieldProspectingPage">
+            <FieldProspectingPage />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/DiscountApprovalPage"
+        element={
+          <LayoutWrapper currentPageName="DiscountApprovalPage">
+            <DiscountApprovalPage />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/ReferralProgramPage"
+        element={
+          <LayoutWrapper currentPageName="ReferralProgramPage">
+            <ReferralProgramPage />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/CustomerSuccessPage"
+        element={
+          <LayoutWrapper currentPageName="CustomerSuccessPage">
+            <CustomerSuccessPage />
           </LayoutWrapper>
         }
       />
