@@ -42,6 +42,7 @@ import FieldProspectingPage from './pages/FieldProspectingPage';
 import DiscountApprovalPage from './pages/DiscountApprovalPage';
 import ReferralProgramPage from './pages/ReferralProgramPage';
 import CustomerSuccessPage from './pages/CustomerSuccessPage';
+import EmailPreview from './pages/EmailPreview';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -369,6 +370,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="CustomerSuccessPage">
             <CustomerSuccessPage />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/EmailPreview"
+        element={
+          <LayoutWrapper currentPageName="EmailPreview">
+            <EmailPreview />
           </LayoutWrapper>
         }
       />
