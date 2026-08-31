@@ -24,14 +24,12 @@ export default function EmailPreview() {
     if (salesRole === "admin") {
       setIsAdmin(true);
       setAdminName(salesName || "admin");
-      setLoading(false);
       return;
     }
 
     if (userRole === "admin") {
       setIsAdmin(true);
       setAdminName(userName || "admin");
-      setLoading(false);
       return;
     }
 
@@ -66,6 +64,7 @@ export default function EmailPreview() {
 
   useEffect(() => {
     if (isAdmin) fetchTemplates();
+    else setLoading(false);
   }, [isAdmin, fetchTemplates]);
 
   const savedMap = new Map(templates.map((t) => [t.template_key, t]));
@@ -136,7 +135,7 @@ export default function EmailPreview() {
         <div>
           <h1 className="text-xl font-semibold text-[#1A1A1A]">Email Template Manager</h1>
           <p className="text-sm text-[#1A1A1A]/50">
-            {loading ? "Loading…" : `${templates.length} customized · ${savedKeys.size > 0 ? `${savedKeys.size} saved` : "No custom templates yet"}`}
+            {templates.length} customized · {savedKeys.size > 0 ? `${savedKeys.size} saved` : "No custom templates yet"}
           </p>
         </div>
       </div>
@@ -145,17 +144,11 @@ export default function EmailPreview() {
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Sidebar */}
         <div className="w-72 border-r border-[#B8956A]/15 bg-white shrink-0 flex flex-col">
-          {loading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-[#B8956A]/30 border-t-[#B8956A] rounded-full animate-spin" />
-            </div>
-          ) : (
-            <EmailTemplateList
-              savedKeys={savedKeys}
-              selectedKey={selectedKey}
-              onSelect={setSelectedKey}
-            />
-          )}
+          <EmailTemplateList
+            savedKeys={savedKeys}
+            selectedKey={selectedKey}
+            onSelect={setSelectedKey}
+          />
         </div>
 
         {/* Editor */}
