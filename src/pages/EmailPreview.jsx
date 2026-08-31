@@ -52,8 +52,8 @@ export default function EmailPreview() {
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const list = await base44.entities.EmailTemplate.list();
-      setTemplates(list || []);
+      const res = await base44.functions.invoke("manageEmailTemplates", { action: "list" });
+      setTemplates(res?.templates || []);
     } catch (err) {
       console.error("Failed to load templates:", err);
       toast.error("Failed to load templates");
@@ -76,23 +76,17 @@ export default function EmailPreview() {
     if (!entry) return;
     setSaving(true);
     try {
-      const existing = templates.find((t) => t.template_key === entry.key);
-      const data = {
-        template_key: entry.key,
+      await base44.functions.invoke("manageEmailTemplates", {
+        action: "save",
+        templateKey: entry.key,
         name: entry.name,
         description: entry.description,
         category: entry.category,
         subject,
-        html_body: htmlBody,
+        htmlBody,
         variables: entry.variables || [],
-        active: true,
-        updated_by: adminName,
-      };
-      if (existing) {
-        await base44.entities.EmailTemplate.update(existing.id, data);
-      } else {
-        await base44.entities.EmailTemplate.create(data);
-      }
+        updatedBy: adminName,
+      });
       toast.success("Template saved");
       await fetchTemplates();
     } catch (err) {
@@ -106,7 +100,10 @@ export default function EmailPreview() {
     if (!entry) return;
     setSaving(true);
     try {
-      await base44.entities.EmailTemplate.deleteMany({ template_key: entry.key });
+      await base44.functions.invoke("manageEmailTemplates", {
+        action: "reset",
+        templateKey: entry.key,
+      });
       toast.success("Template reset to default");
       await fetchTemplates();
     } catch (err) {
