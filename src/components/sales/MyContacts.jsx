@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, Mail, Calendar, Building2, User, Plus, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp, Home } from "lucide-react";
+import { Phone, Mail, Calendar, Building2, User, UserPlus, Plus, Tag, Clock, CheckCircle2, Circle, ChevronDown, ChevronUp, Home } from "lucide-react";
 import RealtorListingsPage from "@/components/sales/RealtorListingsPage";
 import InAppBrowser from "@/components/sales/InAppBrowser";
+import ConvertToCustomerModal from "./ConvertToCustomerModal";
+import DiscountRequestModal from "./DiscountRequestModal";
 import { format, formatDistanceToNow } from "date-fns";
 import { createPageUrl } from "@/utils";
 
@@ -24,6 +26,8 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
   const [saving, setSaving] = useState(false);
   const [secondaryInfo, setSecondaryInfo] = useState({});
   const [listingsContact, setListingsContact] = useState(null);
+  const [convertContact, setConvertContact] = useState(null);
+  const [discountContact, setDiscountContact] = useState(null);
 
   // In-app navigation stack: clicking a contact's NAME opens their listings
   // inline, replacing that contact's card — identical functioning to the
@@ -464,19 +468,38 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
                           View Other Listings
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-2 w-full"
-                          style={{ borderColor: '#B8956A', color: '#B8956A' }}
-                          onClick={() => {
-                            setShowFollowUpForm(contact.key);
-                            setFollowUpData({ notes: "", activity_date: "", activity_type: "call" });
-                          }}
-                        >
-                          <Plus className="w-3 h-3" />
-                          Schedule Follow-up
-                        </Button>
-                      </div>
+                           size="sm"
+                           variant="outline"
+                           className="gap-2 w-full"
+                           style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                           onClick={() => {
+                             setShowFollowUpForm(contact.key);
+                             setFollowUpData({ notes: "", activity_date: "", activity_type: "call" });
+                           }}
+                         >
+                           <Plus className="w-3 h-3" />
+                           Schedule Follow-up
+                         </Button>
+                         <Button
+                           size="sm"
+                           className="gap-2 w-full"
+                           style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+                           onClick={() => setConvertContact(contact)}
+                         >
+                           <UserPlus className="w-3 h-3" />
+                           Convert to Customer
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           className="gap-2 w-full"
+                           style={{ borderColor: 'rgba(184,149,106,0.4)', color: '#B8956A' }}
+                           onClick={() => setDiscountContact(contact)}
+                         >
+                           <Tag className="w-3 h-3" />
+                           Request Discount
+                         </Button>
+                        </div>
                     )}
                   </div>
                 )}
@@ -510,6 +533,21 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
           salesMemberId={salesMemberId}
           mode="fullPage"
           onClose={() => setListingsContact(null)}
+        />
+      )}
+
+      {convertContact && (
+        <ConvertToCustomerModal
+          contact={{ email: convertContact.email, name: convertContact.name, company: convertContact.company, phone: convertContact.activities?.find(a => a.contact_phone)?.contact_phone || '' }}
+          onClose={() => setConvertContact(null)}
+          onConverted={() => { loadActivities(); }}
+        />
+      )}
+
+      {discountContact && (
+        <DiscountRequestModal
+          contact={{ firstname: discountContact.name?.split(' ')[0] || '', lastname: discountContact.name?.split(' ').slice(1).join(' ') || '', email: discountContact.email, company: discountContact.company, id: '' }}
+          onClose={() => setDiscountContact(null)}
         />
       )}
     </div>
