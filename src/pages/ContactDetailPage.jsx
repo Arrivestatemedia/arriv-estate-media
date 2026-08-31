@@ -19,6 +19,7 @@ import LogActivityModal from "@/components/sales/LogActivityModal";
 import ConvertToJobModal from "@/components/sales/ConvertToJobModal";
 import ConvertToCustomerModal from "@/components/sales/ConvertToCustomerModal";
 import DiscountRequestModal from "@/components/sales/DiscountRequestModal";
+import Customer360 from "@/components/sales/Customer360";
 import { CallStatusProvider } from "@/components/CallStatusContext";
 import CallMapModal from "@/components/sales/CallMapModal";
 
@@ -43,6 +44,7 @@ export default function ContactDetailPage() {
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [showConvertCustomerModal, setShowConvertCustomerModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [isCustomer, setIsCustomer] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -115,12 +117,35 @@ export default function ContactDetailPage() {
         return true;
       }).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
       setActivities(filtered);
-      
-      if (filtered.length > 0) {
+
+      // ── Also fetch the Contact entity to check customer status ──
+      let contactEntity = null;
+      try {
+        const contactResults = await base44.entities.Contact.filter({ email: contactKey });
+        if (contactResults && contactResults.length > 0) {
+          contactEntity = contactResults[0];
+        }
+      } catch (ce) {
+        // Contact entity lookup is best-effort
+      }
+
+      if (contactEntity && contactEntity.lifecycle_stage === 'customer') {
+        setIsCustomer(true);
+        const fullName = [contactEntity.firstname, contactEntity.lastname].filter(Boolean).join(' ') || contactEntity.email || contactKey;
+        setContact({
+          key: contactKey,
+          name: fullName,
+          email: contactEntity.email || contactKey,
+          company: contactEntity.company || '',
+          phone: contactEntity.phone || '',
+          lead_status: contactEntity.lead_status,
+          lifecycle_stage: contactEntity.lifecycle_stage,
+        });
+      } else if (filtered.length > 0) {
         const contactEmail = filtered[0].contact_email || '';
         const contactName = filtered[0].contact_name || '';
         let phone = filtered[0].contact_phone || '';
-        
+
         const baseContact = {
           key: contactKey,
           name: contactName,
@@ -140,7 +165,7 @@ export default function ContactDetailPage() {
               let match = contacts.find(r => r.email?.toLowerCase() === contactEmail.toLowerCase());
               // Fall back to first result if no exact match
               if (!match) match = contacts[0];
-              
+
               const hsPhone = match?.phone || '';
               if (hsPhone) {
                 setContact(prev => ({ ...prev, phone: hsPhone }));
@@ -199,6 +224,19 @@ export default function ContactDetailPage() {
     );
   }
 
+  // ── POST-CONVERSION: Customer 360 view ──
+  if (isCustomer) {
+    return (
+      <Customer360
+        contact={contact}
+        contactKey={contactKey}
+        activities={activities}
+        onReload={loadActivities}
+      />
+    );
+  }
+
+  // ── PRE-CONVERSION: existing lead/prospect detail view (unchanged) ──
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ backgroundColor: '#FFFBF5' }}>
       <div className="max-w-4xl mx-auto">
