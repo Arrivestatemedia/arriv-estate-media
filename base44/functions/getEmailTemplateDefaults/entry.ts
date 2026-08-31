@@ -1,4 +1,3 @@
-import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { buildWelcomeHtml } from "../../shared/brevoWelcomeEmail.ts";
 import { buildInterviewScheduledHtml, buildInterviewRescheduledHtml } from "../../shared/interviewScheduledEmail.ts";
 import { buildOfferNotExtendedHtml } from "../../shared/offerNotExtendedEmail.ts";
@@ -439,7 +438,6 @@ function getSharedDefault(templateKey: string): { subject: string; html: string 
 
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const templateKey = body?.templateKey;
 
