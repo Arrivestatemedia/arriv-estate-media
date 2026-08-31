@@ -24,12 +24,14 @@ export default function EmailPreview() {
     if (salesRole === "admin") {
       setIsAdmin(true);
       setAdminName(salesName || "admin");
+      setLoading(false);
       return;
     }
 
     if (userRole === "admin") {
       setIsAdmin(true);
       setAdminName(userName || "admin");
+      setLoading(false);
       return;
     }
 
@@ -51,17 +53,16 @@ export default function EmailPreview() {
   }, []);
 
   const fetchTemplates = useCallback(async () => {
-    if (!isAdmin) return;
     try {
-      const res = await base44.functions.invoke("manageEmailTemplates", { action: "list" });
-      setTemplates(res?.templates || []);
+      const list = await base44.entities.EmailTemplate.list();
+      setTemplates(list || []);
     } catch (err) {
       console.error("Failed to load templates:", err);
       toast.error("Failed to load templates");
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, []);
 
   useEffect(() => {
     if (isAdmin) fetchTemplates();
@@ -76,17 +77,23 @@ export default function EmailPreview() {
     if (!entry) return;
     setSaving(true);
     try {
-      await base44.functions.invoke("manageEmailTemplates", {
-        action: "save",
-        templateKey: entry.key,
+      const existing = templates.find((t) => t.template_key === entry.key);
+      const data = {
+        template_key: entry.key,
         name: entry.name,
         description: entry.description,
         category: entry.category,
         subject,
-        htmlBody,
+        html_body: htmlBody,
         variables: entry.variables || [],
-        updatedBy: adminName,
-      });
+        active: true,
+        updated_by: adminName,
+      };
+      if (existing) {
+        await base44.entities.EmailTemplate.update(existing.id, data);
+      } else {
+        await base44.entities.EmailTemplate.create(data);
+      }
       toast.success("Template saved");
       await fetchTemplates();
     } catch (err) {
@@ -100,10 +107,7 @@ export default function EmailPreview() {
     if (!entry) return;
     setSaving(true);
     try {
-      await base44.functions.invoke("manageEmailTemplates", {
-        action: "reset",
-        templateKey: entry.key,
-      });
+      await base44.entities.EmailTemplate.deleteMany({ template_key: entry.key });
       toast.success("Template reset to default");
       await fetchTemplates();
     } catch (err) {
