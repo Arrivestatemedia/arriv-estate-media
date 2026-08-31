@@ -1,0 +1,141 @@
+import React, { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Save, RotateCcw, Eye, Code } from "lucide-react";
+
+export default function EmailTemplateEditor({ entry, savedTemplate, onSave, onReset, saving }) {
+  const [subject, setSubject] = useState("");
+  const [htmlBody, setHtmlBody] = useState("");
+  const [showPreview, setShowPreview] = useState(true);
+  const [dirty, setDirty] = useState(false);
+  const previewRef = useRef(null);
+
+  useEffect(() => {
+    if (savedTemplate) {
+      setSubject(savedTemplate.subject || "");
+      setHtmlBody(savedTemplate.html_body || "");
+    } else {
+      setSubject("");
+      setHtmlBody("");
+    }
+    setDirty(false);
+  }, [entry?.key, savedTemplate?.id]);
+
+  const handleSubjectChange = (val) => { setSubject(val); setDirty(true); };
+  const handleBodyChange = (val) => { setHtmlBody(val); setDirty(true); };
+
+  const handleSave = () => {
+    onSave({ subject, htmlBody });
+    setDirty(false);
+  };
+
+  const handleReset = () => {
+    onReset();
+    setSubject("");
+    setHtmlBody("");
+    setDirty(false);
+  };
+
+  if (!entry) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-[#1A1A1A]/40">
+        <div className="text-center">
+          <p className="text-lg font-medium">Select an email template</p>
+          <p className="text-sm mt-1">Choose a template from the list to view and edit it</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-[#B8956A]/15">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-semibold text-[#1A1A1A]">{entry.name}</h2>
+          {savedTemplate && (
+            <span className="text-xs px-2 py-1 rounded-full bg-[#B8956A]/10 text-[#B8956A] font-medium">
+              Customized
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-[#1A1A1A]/60">{entry.description}</p>
+        {entry.variables?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {entry.variables.map((v) => (
+              <span key={v} className="text-xs px-2 py-0.5 rounded bg-[#1A1A1A]/5 text-[#1A1A1A]/50 font-mono">
+                {`{{${v}}}`}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Subject */}
+      <div className="px-6 py-3 border-b border-[#B8956A]/15">
+        <label className="text-xs font-semibold uppercase tracking-wider text-[#B8956A] mb-1.5 block">Subject Line</label>
+        <Input
+          value={subject}
+          onChange={(e) => handleSubjectChange(e.target.value)}
+          placeholder="Email subject line..."
+          className="font-medium"
+        />
+      </div>
+
+      {/* Body Editor + Preview */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-1/2 flex flex-col border-r border-[#B8956A]/15">
+          <div className="px-4 py-2 flex items-center justify-between bg-[#FFFBF5] border-b border-[#B8956A]/15">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#B8956A]">HTML Editor</span>
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className="text-xs text-[#1A1A1A]/50 hover:text-[#1A1A1A] flex items-center gap-1"
+            >
+              {showPreview ? <Code className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showPreview ? "Hide Preview" : "Show Preview"}
+            </button>
+          </div>
+          <textarea
+            value={htmlBody}
+            onChange={(e) => handleBodyChange(e.target.value)}
+            placeholder="Enter HTML email body..."
+            className="flex-1 w-full p-4 font-mono text-xs leading-relaxed bg-[#1A1A1A] text-[#FFFBF5] resize-none outline-none border-0"
+            spellCheck={false}
+          />
+        </div>
+        {showPreview && (
+          <div className="w-1/2 flex flex-col">
+            <div className="px-4 py-2 bg-[#FFFBF5] border-b border-[#B8956A]/15">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#B8956A]">Live Preview</span>
+            </div>
+            <iframe
+              ref={previewRef}
+              title="Email Preview"
+              srcDoc={htmlBody || "<p style='color:#999;padding:20px;'>Preview will appear here...</p>"}
+              className="flex-1 w-full border-0 bg-white"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="px-6 py-3 border-t border-[#B8956A]/15 flex items-center justify-between bg-[#FFFBF5]">
+        <div className="text-sm text-[#1A1A1A]/50">
+          {dirty ? <span className="text-[#B8956A]">● Unsaved changes</span> : savedTemplate ? `Last edited by ${savedTemplate.updated_by || "admin"}` : "Not yet customized"}
+        </div>
+        <div className="flex gap-2">
+          {savedTemplate && (
+            <Button variant="outline" onClick={handleReset} disabled={saving} className="border-[#B8956A]/30 text-[#1A1A1A]/70">
+              <RotateCcw className="w-4 h-4 mr-1.5" />
+              Reset to Default
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={saving || !dirty} className="bg-[#B8956A] text-[#1A1A1A] hover:bg-[#A68559]">
+            <Save className="w-4 h-4 mr-1.5" />
+            {saving ? "Saving..." : "Save Template"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

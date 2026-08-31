@@ -1,0 +1,81 @@
+{
+  "name": "EmailTemplate",
+  "type": "object",
+  "properties": {
+    "template_key": {
+      "type": "string",
+      "description": "Unique key identifying this email template (matches the backend function name)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable template name"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this email is for"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Interview",
+        "Application",
+        "Booking",
+        "Onboarding",
+        "Payroll",
+        "Sales",
+        "System"
+      ],
+      "description": "Template category for grouping"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line (supports template variables like {{firstName}})"
+    },
+    "html_body": {
+      "type": "string",
+      "description": "HTML email body (supports template variables)"
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of template variables available for substitution"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "Name of the admin who last edited this template"
+    }
+  },
+  "required": [
+    "template_key",
+    "name",
+    "category"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,85 +1,132 @@
-import React from "react";
-
-const EMAIL_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-</head>
-<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
-        <tr>
-          <td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
-            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
-          </td>
-        </tr>
-        <tr><td style="padding:40px 44px;">
-          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi Patrice,</h1>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Congratulations!</strong></p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">After carefully reviewing your application, we're excited to invite you to move forward in the hiring process for the Sales Growth Advisor position with Arriv Estate Media.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We were impressed by your background and would love the opportunity to learn more about you and discuss how you could contribute to our growing team.</p>
-
-          <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#1A1A1A;">The interview will be a virtual conversation where we'll discuss:</p>
-          <ul style="margin:0 0 20px;padding-left:22px;font-size:16px;line-height:1.7;color:#1A1A1A;">
-            <li>Your background and professional experience</li>
-            <li>Why you're interested in joining Arriv Estate Media</li>
-            <li>The responsibilities of the Sales Growth Advisor role</li>
-            <li>Compensation, training, and growth opportunities</li>
-            <li>Any questions you may have about the position or our company</li>
-          </ul>
-
-          <h2 style="margin:28px 0 12px;font-size:18px;color:#B8956A;">Next Steps</h2>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Please reply to this email with 2&ndash;3 dates and times that work best for you for an interview.</p>
-          <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#1A1A1A;">Our interview availability (Eastern Time) is:</p>
-          <ul style="margin:0 0 20px;padding-left:22px;font-size:16px;line-height:1.7;color:#1A1A1A;">
-            <li>Mondays: 2:30 PM &ndash; 5:30 PM</li>
-            <li>Tuesdays: 3:30 PM &ndash; 5:30 PM</li>
-            <li>Wednesdays: 12:30 PM &ndash; 1:45 PM &amp; 4:00 PM</li>
-            <li>Thursdays: 10:00 AM &ndash; 11:15 AM &amp; 3:30 PM &ndash; 5:30 PM</li>
-            <li>Fridays: 10:15 AM</li>
-          </ul>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">When you reply, please include your preferred dates and times within the windows above, and we'll confirm the interview as soon as possible.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Once your interview has been scheduled, you'll receive a confirmation email with your meeting details and interview link.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You can also log in to your Arriv Candidate Portal at any time to view your application status and receive updates throughout the hiring process.</p>
-
-          <p style="margin:0 0 20px;">
-            <a href="#" style="color:#B8956A;font-weight:600;text-decoration:none;word-break:break-all;">\u{1F449} View My Candidate Portal</a>
-          </p>
-
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Thank you again for your interest in joining Arriv Estate Media. We're looking forward to learning more about you and sharing our vision for the future.</p>
-        </td></tr>
-        <tr><td style="padding:0 44px 36px;">
-          <p style="margin:0 0 4px;font-size:16px;line-height:1.6;color:#1A1A1A;">Best regards,</p>
-          <p style="margin:0;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Brad Burke</strong><br/>Founder &amp; CEO<br/>Arriv Estate Media</p>
-        </td></tr>
-        <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
-          <p style="margin:0;font-size:12px;color:#9a8560;">© Arriv Estate Media, LLC · careers@arrivestatemedia.com</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+import React, { useState, useEffect, useCallback } from "react";
+import { base44 } from "@/api/base44Client";
+import { getCatalogEntry } from "@/lib/emailCatalog";
+import EmailTemplateList from "@/components/email/EmailTemplateList";
+import EmailTemplateEditor from "@/components/email/EmailTemplateEditor";
+import { toast } from "sonner";
+import { Mail } from "lucide-react";
 
 export default function EmailPreview() {
+  const [templates, setTemplates] = useState([]);
+  const [selectedKey, setSelectedKey] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const salesMemberId = localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
+
+  const fetchTemplates = useCallback(async () => {
+    if (!salesMemberId) { setLoading(false); return; }
+    try {
+      const res = await base44.functions.invoke("manageEmailTemplates", {
+        action: "list",
+        salesMemberId,
+      });
+      setTemplates(res?.templates || []);
+    } catch (err) {
+      console.error("Failed to load templates:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [salesMemberId]);
+
+  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
+
+  const savedMap = new Map(templates.map((t) => [t.template_key, t]));
+  const savedKeys = new Set(savedMap.keys());
+  const entry = selectedKey ? getCatalogEntry(selectedKey) : null;
+  const savedTemplate = selectedKey ? savedMap.get(selectedKey) : null;
+
+  const handleSave = async ({ subject, htmlBody }) => {
+    if (!salesMemberId || !entry) return;
+    setSaving(true);
+    try {
+      await base44.functions.invoke("manageEmailTemplates", {
+        action: "save",
+        salesMemberId,
+        templateKey: entry.key,
+        name: entry.name,
+        description: entry.description,
+        category: entry.category,
+        subject,
+        htmlBody,
+        variables: entry.variables || [],
+      });
+      toast.success("Template saved");
+      await fetchTemplates();
+    } catch (err) {
+      toast.error("Failed to save: " + (err.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!salesMemberId || !entry) return;
+    setSaving(true);
+    try {
+      await base44.functions.invoke("manageEmailTemplates", {
+        action: "reset",
+        salesMemberId,
+        templateKey: entry.key,
+      });
+      toast.success("Template reset to default");
+      await fetchTemplates();
+    } catch (err) {
+      toast.error("Failed to reset: " + (err.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!salesMemberId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]">
+        <div className="text-center">
+          <Mail className="w-12 h-12 text-[#B8956A]/40 mx-auto mb-3" />
+          <p className="text-lg font-medium text-[#1A1A1A]">Admin access required</p>
+          <p className="text-sm text-[#1A1A1A]/50 mt-1">Log in as an admin to manage email templates</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#FFFBF5] p-4 md:p-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-[#1A1A1A]">Interview Invitation Email Preview</h1>
-            <p className="text-sm text-[#1A1A1A]/60">Subject: Interview Invitation – Arriv Sales Growth Advisor</p>
-          </div>
+    <div className="h-screen flex flex-col bg-[#FFFBF5]">
+      {/* Top bar */}
+      <div className="px-6 py-4 border-b border-[#B8956A]/20 bg-white flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-[#1A1A1A]">Email Template Manager</h1>
+          <p className="text-sm text-[#1A1A1A]/50">
+            {templates.length} customized · {savedKeys.size > 0 ? `${savedKeys.size} saved` : "No custom templates yet"}
+          </p>
         </div>
-        <div className="rounded-xl border border-[#B8956A]/25 bg-white overflow-hidden shadow-sm">
-          <iframe
-            title="Email Preview"
-            srcDoc={EMAIL_HTML}
-            style={{ width: "100%", height: "80vh", border: "none", display: "block" }}
-          />
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-72 border-r border-[#B8956A]/15 bg-white shrink-0 flex flex-col">
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-[#B8956A]/30 border-t-[#B8956A] rounded-full animate-spin" />
+            </div>
+          ) : (
+            <EmailTemplateList
+              savedKeys={savedKeys}
+              selectedKey={selectedKey}
+              onSelect={setSelectedKey}
+            />
+          )}
         </div>
+
+        {/* Editor */}
+        <EmailTemplateEditor
+          entry={entry}
+          savedTemplate={savedTemplate}
+          onSave={handleSave}
+          onReset={handleReset}
+          saving={saving}
+        />
       </div>
     </div>
   );
