@@ -32,15 +32,13 @@ function buildReminderHtml(firstName: string, meetingLink: string): string {
         </tr>
         <tr><td style="padding:40px 44px;">
           <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your interview with Arriv Estate Media begins in approximately 30 minutes.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Just a reminder that your first-round interview with Arriv Estate Media begins in approximately 30 minutes.</p>
 
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You&rsquo;ll be meeting with <strong>Ashley</strong>, our Virtual Recruiting Assistant, for your first-round interview. Ashley will guide you through a conversational video interview covering your experience, background, and a series of questions related to the position.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your interview will be conducted by <strong>Ashley</strong>, our Virtual Recruiting Assistant, and will take approximately 15 minutes. Ashley will guide you through a short conversational interview covering your experience, work style, and interest in the opportunity.</p>
 
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We understand that a virtual first-round interview may be different from the interview process you&rsquo;re accustomed to. We&rsquo;ve designed this stage of our hiring process to provide every applicant with a consistent and fair interview experience, ensuring each candidate is evaluated using the same core criteria.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">This first-round format allows us to provide every candidate with a consistent and fair interview experience. Your responses will be reviewed by our recruiting team, and selected candidates will be invited to a live second-round interview with Arriv Estate Media leadership.</p>
 
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">There&rsquo;s nothing special you need to prepare. Simply speak naturally and answer Ashley&rsquo;s questions as you would during any other interview.</p>
-
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Following your interview, our recruiting team will review your responses. Candidates selected to move forward will be invited to a second-round interview with Arriv Estate Media leadership.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">There&rsquo;s nothing special you need to prepare. Just find a quiet location, make sure your camera and microphone are available, and answer each question naturally based on your own experiences.</p>
 
           <table cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
             <tr><td style="border-radius:8px;background-color:#B8956A;">
@@ -49,9 +47,7 @@ function buildReminderHtml(firstName: string, meetingLink: string): string {
           </table>
           <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#1A1A1A;word-break:break-all;">Or copy this link: <a href="${meetingLink}" style="color:#B8956A;">${meetingLink}</a></p>
 
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">If you experience a technical interruption during your interview, simply rejoin using the same interview link.</p>
-
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Please join from a quiet location with a working camera and microphone. We recommend opening your interview room a few minutes before your scheduled start time.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We recommend opening the link a few minutes early. If you experience a technical interruption during the interview, simply use the same link above to rejoin.</p>
 
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We look forward to learning more about you.</p>
         </td></tr>
