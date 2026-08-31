@@ -704,17 +704,21 @@ export default function ContactDetailPage() {
       />
 
       {/* Convert to Customer Modal */}
-      <ConvertToCustomerModal
-        contact={contact}
-        onClose={() => setShowConvertCustomerModal(false)}
-        onConverted={() => { setShowConvertCustomerModal(false); loadActivities(); }}
-      />
+      {showConvertCustomerModal && (
+        <ConvertToCustomerModal
+          contact={contact}
+          onClose={() => setShowConvertCustomerModal(false)}
+          onConverted={() => { setShowConvertCustomerModal(false); loadActivities(); }}
+        />
+      )}
 
       {/* Discount Request Modal */}
-      <DiscountRequestModal
-        contact={contact}
-        onClose={() => setShowDiscountModal(false)}
-      />
+      {showDiscountModal && (
+        <DiscountRequestModal
+          contact={contact}
+          onClose={() => setShowDiscountModal(false)}
+        />
+      )}
 
       {/* Log Activity Modal */}
       <LogActivityModal
