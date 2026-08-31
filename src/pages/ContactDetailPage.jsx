@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Mail, Building2, User, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus, Trash2, Pencil, Briefcase } from "lucide-react";
+import { Phone, Mail, Building2, User, UserPlus, Tag, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus, Trash2, Pencil, Briefcase } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { createPortal } from "react-dom";
@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
 import LogActivityModal from "@/components/sales/LogActivityModal";
 import ConvertToJobModal from "@/components/sales/ConvertToJobModal";
+import ConvertToCustomerModal from "@/components/sales/ConvertToCustomerModal";
+import DiscountRequestModal from "@/components/sales/DiscountRequestModal";
 import { CallStatusProvider } from "@/components/CallStatusContext";
 import CallMapModal from "@/components/sales/CallMapModal";
 
@@ -39,6 +41,8 @@ export default function ContactDetailPage() {
   const [saving, setSaving] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showConvertCustomerModal, setShowConvertCustomerModal] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -259,6 +263,25 @@ export default function ContactDetailPage() {
              >
                <Briefcase className="w-4 h-4" />
                Convert to Job
+             </Button>
+             <Button
+               size="sm"
+               className="gap-2"
+               style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+               onClick={() => setShowConvertCustomerModal(true)}
+             >
+               <UserPlus className="w-4 h-4" />
+               Convert to Customer
+             </Button>
+             <Button
+               size="sm"
+               variant="outline"
+               className="gap-2"
+               style={{ borderColor: '#B8956A', color: '#B8956A' }}
+               onClick={() => setShowDiscountModal(true)}
+             >
+               <Tag className="w-4 h-4" />
+               Request Discount
              </Button>
              {contact.phone && (
                <TooltipProvider>
@@ -678,6 +701,19 @@ export default function ContactDetailPage() {
         onClose={() => setShowConvertModal(false)}
         contact={contact}
         onSent={() => setShowConvertModal(false)}
+      />
+
+      {/* Convert to Customer Modal */}
+      <ConvertToCustomerModal
+        contact={contact}
+        onClose={() => setShowConvertCustomerModal(false)}
+        onConverted={() => { setShowConvertCustomerModal(false); loadActivities(); }}
+      />
+
+      {/* Discount Request Modal */}
+      <DiscountRequestModal
+        contact={contact}
+        onClose={() => setShowDiscountModal(false)}
       />
 
       {/* Log Activity Modal */}
