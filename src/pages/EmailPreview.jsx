@@ -80,7 +80,7 @@ export default function EmailPreview() {
 
   if (!salesMemberId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]">
+      <div className="min-h-[60vh] flex items-center justify-center bg-[#FFFBF5]">
         <div className="text-center">
           <Mail className="w-12 h-12 text-[#B8956A]/40 mx-auto mb-3" />
           <p className="text-lg font-medium text-[#1A1A1A]">Admin access required</p>
@@ -91,19 +91,19 @@ export default function EmailPreview() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#FFFBF5]">
+    <div className="flex flex-col bg-[#FFFBF5]" style={{ height: "calc(100vh - 4rem)" }}>
       {/* Top bar */}
-      <div className="px-6 py-4 border-b border-[#B8956A]/20 bg-white flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-[#B8956A]/20 bg-white flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-[#1A1A1A]">Email Template Manager</h1>
           <p className="text-sm text-[#1A1A1A]/50">
-            {templates.length} customized · {savedKeys.size > 0 ? `${savedKeys.size} saved` : "No custom templates yet"}
+            {loading ? "Loading…" : `${templates.length} customized · ${savedKeys.size > 0 ? `${savedKeys.size} saved` : "No custom templates yet"}`}
           </p>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Sidebar */}
         <div className="w-72 border-r border-[#B8956A]/15 bg-white shrink-0 flex flex-col">
           {loading ? (
