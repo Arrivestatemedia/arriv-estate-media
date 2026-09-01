@@ -1,33 +1,79 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Save, RotateCcw, Eye, Code } from "lucide-react";
+import {
+  Save, RotateCcw, Eye, Code,
+  Bold, Italic, Underline, List, Link as LinkIcon, Undo2, Redo2,
+} from "lucide-react";
 import { getEmailDefault } from "@/lib/emailDefaults";
 
 export default function EmailTemplateEditor({ entry, savedTemplate, onSave, onReset, saving }) {
   const [subject, setSubject] = useState("");
   const [htmlBody, setHtmlBody] = useState("");
-  const [showPreview, setShowPreview] = useState(true);
+  const [iframeSrc, setIframeSrc] = useState("");
+  const [view, setView] = useState("visual"); // "visual" | "code"
   const [dirty, setDirty] = useState(false);
   const previewRef = useRef(null);
 
+  // Load content when template changes
   useEffect(() => {
+    let content = "";
+    let subj = "";
     if (savedTemplate) {
-      setSubject(savedTemplate.subject || "");
-      setHtmlBody(savedTemplate.html_body || "");
-    } else if (entry) {
-      const def = getEmailDefault(entry.key);
-      setSubject(def.subject || entry.defaultSubject || "");
-      setHtmlBody(def.htmlBody || "");
-    } else {
-      setSubject("");
-      setHtmlBody("");
+      content = savedTemplate.html_body || "";
+      subj = savedTemplate.subject || "";
     }
+    if (!content && entry) {
+      const def = getEmailDefault(entry.key);
+      content = def.htmlBody || "";
+      subj = def.subject || entry.defaultSubject || "";
+    }
+    setHtmlBody(content);
+    setSubject(subj);
+    setIframeSrc(content);
     setDirty(false);
   }, [entry?.key, savedTemplate?.id]);
 
+  // Turn the iframe into an editable surface and capture edits
+  const handleIframeLoad = useCallback(() => {
+    const doc = previewRef.current?.contentDocument;
+    if (!doc) return;
+    doc.designMode = "on";
+    const sync = () => {
+      const html = doc.documentElement.outerHTML;
+      setHtmlBody(html);
+      setDirty(true);
+    };
+    doc.addEventListener("input", sync);
+    doc.addEventListener("keyup", sync);
+    doc.addEventListener("blur", sync);
+  }, []);
+
+  // Run a formatting command inside the iframe
+  const exec = useCallback((cmd, val) => {
+    const doc = previewRef.current?.contentDocument;
+    if (!doc) return;
+    doc.execCommand(cmd, false, val);
+    const html = doc.documentElement.outerHTML;
+    setHtmlBody(html);
+    setDirty(true);
+    // refocus so the user can keep typing
+    previewRef.current?.contentWindow?.focus();
+  }, []);
+
+  const handleLink = () => {
+    const url = window.prompt("Enter URL (https://...)");
+    if (url) exec("createLink", url);
+  };
+
   const handleSubjectChange = (val) => { setSubject(val); setDirty(true); };
-  const handleBodyChange = (val) => { setHtmlBody(val); setDirty(true); };
+
+  // Source-mode textarea: update both state and reload the iframe
+  const handleSourceChange = (val) => {
+    setHtmlBody(val);
+    setIframeSrc(val);
+    setDirty(true);
+  };
 
   const handleSave = () => {
     onSave({ subject, htmlBody });
@@ -37,8 +83,10 @@ export default function EmailTemplateEditor({ entry, savedTemplate, onSave, onRe
   const handleReset = () => {
     onReset();
     const def = getEmailDefault(entry.key);
+    const content = def.htmlBody || "";
     setSubject(def.subject || entry?.defaultSubject || "");
-    setHtmlBody(def.htmlBody || "");
+    setHtmlBody(content);
+    setIframeSrc(content);
     setDirty(false);
   };
 
@@ -53,17 +101,49 @@ export default function EmailTemplateEditor({ entry, savedTemplate, onSave, onRe
     );
   }
 
+  const ToolBtn = ({ icon: Icon, cmd, label }) => (
+    <button
+      type="button"
+      title={label}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => exec(cmd)}
+      className="w-8 h-8 flex items-center justify-center rounded text-[#1A1A1A]/70 hover:bg-[#B8956A]/15 hover:text-[#1A1A1A] transition-colors"
+    >
+      <Icon className="w-4 h-4" />
+    </button>
+  );
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-[#B8956A]/15">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-semibold text-[#1A1A1A]">{entry.name}</h2>
-          {savedTemplate && (
-            <span className="text-xs px-2 py-1 rounded-full bg-[#B8956A]/10 text-[#B8956A] font-medium">
-              Customized
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {savedTemplate && (
+              <span className="text-xs px-2 py-1 rounded-full bg-[#B8956A]/10 text-[#B8956A] font-medium">
+                Customized
+              </span>
+            )}
+            <div className="flex bg-[#1A1A1A]/5 rounded-lg p-0.5">
+              <button
+                onClick={() => setView("visual")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  view === "visual" ? "bg-white text-[#1A1A1A] shadow-sm" : "text-[#1A1A1A]/50"
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" /> Visual
+              </button>
+              <button
+                onClick={() => setView("code")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  view === "code" ? "bg-white text-[#1A1A1A] shadow-sm" : "text-[#1A1A1A]/50"
+                }`}
+              >
+                <Code className="w-3.5 h-3.5" /> Code
+              </button>
+            </div>
+          </div>
         </div>
         <p className="text-sm text-[#1A1A1A]/60">{entry.description}</p>
         {entry.variables?.length > 0 && (
@@ -88,39 +168,48 @@ export default function EmailTemplateEditor({ entry, savedTemplate, onSave, onRe
         />
       </div>
 
-      {/* Body Editor + Preview */}
+      {/* Formatting toolbar (visual mode only) */}
+      {view === "visual" && (
+        <div className="px-4 py-1.5 flex items-center gap-0.5 border-b border-[#B8956A]/15 bg-[#FFFBF5]">
+          <ToolBtn icon={Bold} cmd="bold" label="Bold" />
+          <ToolBtn icon={Italic} cmd="italic" label="Italic" />
+          <ToolBtn icon={Underline} cmd="underline" label="Underline" />
+          <div className="w-px h-5 bg-[#B8956A]/20 mx-1" />
+          <ToolBtn icon={List} cmd="insertUnorderedList" label="Bullet List" />
+          <button
+            type="button"
+            title="Insert Link"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleLink}
+            className="w-8 h-8 flex items-center justify-center rounded text-[#1A1A1A]/70 hover:bg-[#B8956A]/15 hover:text-[#1A1A1A] transition-colors"
+          >
+            <LinkIcon className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-[#B8956A]/20 mx-1" />
+          <ToolBtn icon={Undo2} cmd="undo" label="Undo" />
+          <ToolBtn icon={Redo2} cmd="redo" label="Redo" />
+          <div className="ml-auto text-xs text-[#1A1A1A]/40 pr-2">Click the preview and type to edit</div>
+        </div>
+      )}
+
+      {/* Body */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-1/2 flex flex-col border-r border-[#B8956A]/15">
-          <div className="px-4 py-2 flex items-center justify-between bg-[#FFFBF5] border-b border-[#B8956A]/15">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#B8956A]">HTML Editor</span>
-            <button
-              onClick={() => setShowPreview(!showPreview)}
-              className="text-xs text-[#1A1A1A]/50 hover:text-[#1A1A1A] flex items-center gap-1"
-            >
-              {showPreview ? <Code className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              {showPreview ? "Hide Preview" : "Show Preview"}
-            </button>
-          </div>
+        {view === "visual" ? (
+          <iframe
+            ref={previewRef}
+            title="Email Editor"
+            srcDoc={iframeSrc || "<p style='color:#999;padding:20px;'>Preview will appear here...</p>"}
+            onLoad={handleIframeLoad}
+            className="flex-1 w-full border-0 bg-white"
+          />
+        ) : (
           <textarea
             value={htmlBody}
-            onChange={(e) => handleBodyChange(e.target.value)}
+            onChange={(e) => handleSourceChange(e.target.value)}
             placeholder="Enter HTML email body..."
             className="flex-1 w-full p-4 font-mono text-xs leading-relaxed bg-[#1A1A1A] text-[#FFFBF5] resize-none outline-none border-0"
             spellCheck={false}
           />
-        </div>
-        {showPreview && (
-          <div className="w-1/2 flex flex-col">
-            <div className="px-4 py-2 bg-[#FFFBF5] border-b border-[#B8956A]/15">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#B8956A]">Live Preview</span>
-            </div>
-            <iframe
-              ref={previewRef}
-              title="Email Preview"
-              srcDoc={htmlBody || "<p style='color:#999;padding:20px;'>Preview will appear here...</p>"}
-              className="flex-1 w-full border-0 bg-white"
-            />
-          </div>
         )}
       </div>
 
