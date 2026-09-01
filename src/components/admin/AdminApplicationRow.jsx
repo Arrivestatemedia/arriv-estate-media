@@ -7,13 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { APPLICATION_STATUSES, getStatusLabel, getStatusColor } from "@/lib/applicationStatus";
-import { ChevronDown, ChevronRight, MessageSquarePlus, Trash2, Mail, Phone, MapPin, Eye, Send } from "lucide-react";
+import { ChevronDown, ChevronRight, MessageSquarePlus, Trash2, Mail, Phone, MapPin, Eye, Send, Video } from "lucide-react";
 import moment from "moment";
 import DeleteApplicationDialog from "./DeleteApplicationDialog";
 
 export default function AdminApplicationRow({ app, onUpdate, onDelete }) {
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [invitingAsync, setInvitingAsync] = useState(false);
+  const [asyncSession, setAsyncSession] = useState(null);
+  const [showAsyncModal, setShowAsyncModal] = useState(false);
 
   const confirmDelete = async () => {
     setDeleting(true);
@@ -44,6 +47,24 @@ export default function AdminApplicationRow({ app, onUpdate, onDelete }) {
       alert("Failed to send email: " + (err?.message || "Unknown error"));
     } finally {
       setSendingWelcome(false);
+    }
+  };
+
+  const inviteAsync = async () => {
+    setInvitingAsync(true);
+    try {
+      const res = await base44.functions.invoke("inviteToAsyncInterview", { applicationId: app.id });
+      if (res?.status === "exists") {
+        alert("An active async interview invitation already exists for this candidate.");
+      } else if (res?.status === "success") {
+        alert("Async interview invitation sent to " + app.email);
+      } else if (res?.error) {
+        alert("Failed: " + res.error);
+      }
+    } catch (err) {
+      alert("Failed to send async invitation: " + (err?.message || "Unknown error"));
+    } finally {
+      setInvitingAsync(false);
     }
   };
 
@@ -144,6 +165,16 @@ export default function AdminApplicationRow({ app, onUpdate, onDelete }) {
               >
                 <Send className="w-4 h-4 mr-1" />
                 {sendingWelcome ? "Sending…" : "Send Invitation-Coming Email"}
+              </Button>
+              <Button
+                onClick={inviteAsync}
+                disabled={invitingAsync}
+                size="sm"
+                variant="outline"
+                className="border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10"
+              >
+                <Video className="w-4 h-4 mr-1" />
+                {invitingAsync ? "Sending…" : "Invite to Async Interview"}
               </Button>
               <Button
                 onClick={() => setShowDelete(true)}

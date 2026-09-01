@@ -44,6 +44,7 @@ import ReferralProgramPage from './pages/ReferralProgramPage';
 import CustomerSuccessPage from './pages/CustomerSuccessPage';
 import EmailPreview from './pages/EmailPreview';
 import AsyncInterview from './pages/AsyncInterview';
+import AsyncInterviewManager from './pages/AsyncInterviewManager';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -385,6 +386,14 @@ const AuthenticatedApp = () => {
       <Route
         path="/AsyncInterview"
         element={<AsyncInterview />}
+      />
+      <Route
+        path="/AsyncInterviewManager"
+        element={
+          <LayoutWrapper currentPageName="AsyncInterviewManager">
+            <AsyncInterviewManager />
+          </LayoutWrapper>
+        }
       />
 
       <Route path="*" element={<PageNotFound />} />

@@ -1,0 +1,44 @@
+{
+  "description": "Hourly scan of active async InterviewSessions \u2014 sends 24h and 4h deadline reminders, started-incomplete reminders, and expires past-deadline sessions.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "async_interview_reminder_scheduler",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "process_reminders": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processAsyncInterviewReminders"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Process async reminders",
+            "description": "Send 24h/4h/started-incomplete reminders + expire sessions"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Async Interview Reminder Scheduler"
+}
