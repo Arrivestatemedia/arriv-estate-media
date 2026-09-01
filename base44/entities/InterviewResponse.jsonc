@@ -1,0 +1,70 @@
+{
+  "name": "InterviewResponse",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "InterviewSession ID this response belongs to"
+    },
+    "application_id": {
+      "type": "string",
+      "description": "JobApplication ID (denormalized for query convenience)"
+    },
+    "candidate_id": {
+      "type": "string",
+      "description": "HireCandidate ID if linked"
+    },
+    "question_id": {
+      "type": "string",
+      "description": "Canonical question identifier (e.g. Q1\u2013Q8) \u2014 the system knows which question this answers"
+    },
+    "question_text": {
+      "type": "string",
+      "description": "The question text snapshot (denormalized for review display)"
+    },
+    "question_index": {
+      "type": "integer",
+      "description": "0-based index of the question in the canonical set"
+    },
+    "recording_url": {
+      "type": "string",
+      "description": "URL of the uploaded video response file"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "default": 0,
+      "description": "Duration of the recorded response"
+    },
+    "file_size": {
+      "type": "number",
+      "default": 0
+    },
+    "transcript": {
+      "type": "string",
+      "description": "Transcribed text of the response (from Whisper/speech-to-text)"
+    },
+    "transcribed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_rerecord": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if the candidate used their one intentional re-record for this question"
+    },
+    "is_final": {
+      "type": "boolean",
+      "default": true,
+      "description": "True when this is the evaluated response (the latest accepted recording)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "session_id",
+    "question_id",
+    "question_index"
+  ]
+}

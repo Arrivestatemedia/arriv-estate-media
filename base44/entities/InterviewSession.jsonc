@@ -1,0 +1,155 @@
+{
+  "name": "InterviewSession",
+  "type": "object",
+  "properties": {
+    "session_token": {
+      "type": "string",
+      "description": "Opaque secure token used in the candidate interview link (unique per invitation)"
+    },
+    "application_id": {
+      "type": "string",
+      "description": "JobApplication ID this interview session belongs to"
+    },
+    "candidate_name": {
+      "type": "string",
+      "description": "Candidate full name (denormalized for display)"
+    },
+    "candidate_email": {
+      "type": "string",
+      "description": "Candidate email (denormalized)"
+    },
+    "position_title": {
+      "type": "string",
+      "description": "Position the candidate applied for (denormalized for the landing page)"
+    },
+    "round": {
+      "type": "integer",
+      "default": 1,
+      "description": "Interview round (1 = first round async)"
+    },
+    "delivery_mode": {
+      "type": "string",
+      "enum": [
+        "CONVERSATIONAL_AI",
+        "SELF_GUIDED_VIDEO"
+      ],
+      "description": "Candidate-selected interview format. NOT used for scoring \u2014 operational/analytics only."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "INVITED",
+        "OPENED",
+        "FORMAT_SELECTED",
+        "STARTED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "EXPIRED",
+        "TECHNICAL_ISSUE",
+        "REOPENED"
+      ],
+      "default": "INVITED",
+      "description": "Interview delivery status (separate from hiring pipeline status)"
+    },
+    "deadline_hours": {
+      "type": "integer",
+      "default": 48,
+      "description": "Hours the candidate has to complete the interview from invitation"
+    },
+    "invited_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the invitation was sent"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Exact deadline for completing the interview"
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the candidate first opened the interview link"
+    },
+    "format_selected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the candidate began the actual interview (after equipment check)"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the interview was fully completed"
+    },
+    "current_question_index": {
+      "type": "integer",
+      "default": 0,
+      "description": "Self-Guided: index of the next question to answer (for resume support)"
+    },
+    "responses_saved_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Self-Guided: number of question responses saved so far"
+    },
+    "conference_id": {
+      "type": "string",
+      "description": "Conference ID when the Conversational AI path creates a Tavus conversation"
+    },
+    "tavus_conversation_id": {
+      "type": "string",
+      "description": "Tavus conversation ID for the Conversational AI path"
+    },
+    "scorecard_saved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the scorecard has been populated from this session"
+    },
+    "review_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the transcript/responses could not fully populate the scorecard"
+    },
+    "reminder_24h_sent": {
+      "type": "boolean",
+      "default": false
+    },
+    "reminder_4h_sent": {
+      "type": "boolean",
+      "default": false
+    },
+    "reminder_started_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the 'started but incomplete' reminder was sent"
+    },
+    "extended_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When an admin last extended the deadline"
+    },
+    "extended_by": {
+      "type": "string",
+      "description": "Admin who extended the deadline"
+    },
+    "technical_retries": {
+      "type": "integer",
+      "default": 0,
+      "description": "Count of technical-failure retries (does NOT consume intentional re-records)"
+    },
+    "created_by_id": {
+      "type": "string",
+      "description": "Admin/recruiter who created the invitation"
+    }
+  },
+  "required": [
+    "session_token",
+    "application_id",
+    "candidate_name",
+    "invited_at",
+    "expires_at"
+  ]
+}

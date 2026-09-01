@@ -43,6 +43,7 @@ import DiscountApprovalPage from './pages/DiscountApprovalPage';
 import ReferralProgramPage from './pages/ReferralProgramPage';
 import CustomerSuccessPage from './pages/CustomerSuccessPage';
 import EmailPreview from './pages/EmailPreview';
+import AsyncInterview from './pages/AsyncInterview';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -380,6 +381,10 @@ const AuthenticatedApp = () => {
             <EmailPreview />
           </LayoutWrapper>
         }
+      />
+      <Route
+        path="/AsyncInterview"
+        element={<AsyncInterview />}
       />
 
       <Route path="*" element={<PageNotFound />} />
