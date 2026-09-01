@@ -77,6 +77,15 @@ export default function SelfGuidedInterviewRecorder({ token, questions, candidat
     setResponseLimit(QUESTION_RESPONSE_LIMITS[questionId] || DEFAULT_RESPONSE_LIMIT_SECONDS);
   }, [questionId]);
 
+  // Re-attach the live camera stream to the <video> element whenever the
+  // phase changes — each phase renders its own <video> element, so the
+  // srcObject set during equipment check is lost on re-mount.
+  useEffect(() => {
+    if (streamRef.current && videoRef.current && (phase === "equipment" || phase === "prep" || phase === "recording")) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [phase, camReady]);
+
   // ── Toggle mic/video ──
   const toggleMic = () => {
     const next = !micOn;
