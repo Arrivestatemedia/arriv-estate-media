@@ -302,30 +302,29 @@ export function buildConversionEmail(firstName, interviewUrl, deadlineDisplay) {
           <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
         </td></tr>
         <tr><td style="padding:40px 44px;">
-          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We're reaching out with an update regarding your first-round interview with Arriv Estate Media.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>You no longer need to attend your interview at the originally scheduled time.</strong> We've updated our interview process to give you more flexibility and convenience.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You now have <strong>48 hours</strong> to complete your first-round interview at your convenience &mdash; on your own schedule, from anywhere.</p>
-          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">The interview takes approximately <strong>15 minutes</strong>.</p>
-          <h2 style="margin:28px 0 12px;font-size:18px;color:#B8956A;">Choose Your Interview Format</h2>
-          <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#1A1A1A;">When you open your interview link, you'll choose between two experiences:</p>
+          <h1 style="margin:0 0 20px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi ${firstName},</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We're making an update to our first-round interview process that gives candidates more flexibility in when and how they complete their interview.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You no longer need to attend your interview at the time you originally scheduled.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Instead, you can complete your first-round interview at any time that's convenient for you within the next <strong>48 hours</strong>.</p>
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#1A1A1A;">You'll also be able to choose the interview experience you prefer:</p>
           <ul style="margin:0 0 20px;padding-left:22px;font-size:16px;line-height:1.7;color:#1A1A1A;">
-            <li><strong>Conversational Interview with Ashley</strong> &mdash; meet with Ashley, our AI-powered virtual recruiting assistant, who will guide you through the interview in a natural conversation.</li>
-            <li><strong>Self-Guided Video Interview</strong> &mdash; complete the same interview independently by viewing each question on screen and recording your response.</li>
+            <li style="margin-bottom:10px;"><strong>Conversational Interview</strong> &mdash; Meet with Ashley, our AI-powered virtual recruiting assistant, who will guide you through the interview.</li>
+            <li><strong>Self-Guided Video Interview</strong> &mdash; Complete the same interview independently. Each question will appear on screen, you'll have a brief moment to prepare, and then you'll record your response.</li>
           </ul>
-          <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:rgba(26,26,26,0.7);">Both formats contain the <strong>same interview questions</strong> and are evaluated using the <strong>same criteria</strong>. Your choice of format will <strong>not affect your candidacy</strong> in any way.</p>
+          <p style="margin:0 0 28px;font-size:16px;line-height:1.6;color:#1A1A1A;">Both formats contain the same interview questions and are evaluated using the same criteria. Your choice will not affect your candidacy.</p>
+          <p style="margin:0 0 8px;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Complete Your Interview:</strong></p>
           <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
             <tr><td style="border-radius:8px;background-color:#B8956A;">
               <a href="${interviewUrl}" style="display:inline-block;padding:15px 36px;font-size:16px;font-weight:600;color:#1A1A1A;text-decoration:none;border-radius:8px;">COMPLETE MY INTERVIEW</a>
             </td></tr>
           </table>
-          <p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#1A1A1A;">Please complete your interview by:</p>
+          <p style="margin:0 0 8px;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Please complete your interview by:</strong></p>
           <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#B8956A;font-weight:600;">${deadlineDisplay}</p>
-          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(26,26,26,0.7);">Use the secure link above to begin your interview at any time before the deadline. You do not need to schedule an appointment &mdash; simply click the link when you're ready.</p>
-          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(26,26,26,0.7);">Candidates selected to move forward will be contacted regarding the next step in the hiring process.</p>
+          <p style="margin:0 0 28px;font-size:16px;line-height:1.6;color:#1A1A1A;">The interview takes approximately <strong>15 minutes</strong>.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">We appreciate your flexibility as we make this improvement to our interview process and look forward to learning more about you.</p>
         </td></tr>
         <tr><td style="padding:0 44px 36px;">
-          <p style="margin:0 0 4px;font-size:16px;line-height:1.6;color:#1A1A1A;">Best regards,</p>
+          <p style="margin:0 0 4px;font-size:16px;line-height:1.6;color:#1A1A1A;">Best,</p>
           <p style="margin:0;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Arriv Estate Media Recruiting</strong></p>
         </td></tr>
         <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
