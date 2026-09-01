@@ -3,11 +3,12 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Video, Loader2, AlertTriangle, Brain } from "lucide-react";
+import { X, Video, Loader2, AlertTriangle, Clock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import moment from "moment";
 
 export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
+  const [interviewMode, setInterviewMode] = useState("human"); // "human" | "async"
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("16:30");
   const [durationMinutes, setDurationMinutes] = useState(30);
@@ -15,11 +16,8 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
   const [organizer, setOrganizer] = useState(null);
   const [existingConfs, setExistingConfs] = useState([]);
   const [conflict, setConflict] = useState(null);
-  const [useAiInterviewer, setUseAiInterviewer] = useState(false);
 
   useEffect(() => {
-    // This app uses custom sales auth (localStorage) — try that first,
-    // then fall back to Base44 platform auth for platform admins.
     const getItem = (k) => localStorage.getItem(k) || sessionStorage.getItem(k);
     const salesId = getItem('sales_member_id');
     const salesName = getItem('sales_member_name');
@@ -29,7 +27,6 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
     } else {
       base44.auth.me().then(setOrganizer).catch(() => setOrganizer(null));
     }
-    // Load existing scheduled interviews for conflict detection
     base44.entities.Conference.filter({ status: "scheduled" }, "-scheduled_date", 500)
       .then(res => {
         const list = res?.data ?? res ?? [];
@@ -38,19 +35,16 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
       .catch(() => setExistingConfs([]));
   }, []);
 
-  // Live conflict check whenever date/time/duration changes
+  // Live conflict check — only for human mode
   useEffect(() => {
-    if (!scheduledDate || !scheduledTime) { setConflict(null); return; }
+    if (interviewMode !== "human" || !scheduledDate || !scheduledTime) { setConflict(null); return; }
     const [y, m, d] = scheduledDate.split('-').map(Number);
     const [h, mi] = scheduledTime.split(':').map(Number);
     const reqStart = new Date(Date.UTC(y, m - 1, d, h, mi));
     const reqEnd = new Date(reqStart.getTime() + (durationMinutes || 0) * 60000);
-    const newMode = useAiInterviewer ? "ai" : "human";
     const found = existingConfs.find(conf => {
       if (!conf.scheduled_date || !conf.scheduled_time) return false;
-      // AI interviews run themselves, so they never conflict with a human or
-      // another AI interview. Only block when BOTH are human.
-      if (newMode === "ai" || (conf.interview_mode || "human") === "ai") return false;
+      if ((conf.interview_mode || "human") === "ai") return false; // AI interviews don't conflict
       const [cy, cm, cd] = conf.scheduled_date.split('-').map(Number);
       const [ch, cmi] = conf.scheduled_time.split(':').map(Number);
       const cStart = new Date(Date.UTC(cy, cm - 1, cd, ch, cmi));
@@ -58,10 +52,10 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
       return reqStart < cEnd && cStart < reqEnd;
     });
     setConflict(found || null);
-  }, [scheduledDate, scheduledTime, durationMinutes, existingConfs, useAiInterviewer]);
+  }, [scheduledDate, scheduledTime, durationMinutes, existingConfs, interviewMode]);
 
   const handleSchedule = async () => {
-    if (!scheduledDate || !scheduledTime) {
+    if (interviewMode === "human" && (!scheduledDate || !scheduledTime)) {
       toast.error("Please choose a date and time");
       return;
     }
@@ -72,36 +66,57 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
 
     setLoading(true);
     try {
-      const title = `Sales Growth Advisor Interview — ${app.full_name}`;
-      const description = `Interview with ${app.full_name} for the Sales Growth Advisor position at Arriv Estate Media.\n\nApplicant email: ${app.email}\nApplicant phone: ${app.phone || "N/A"}`;
-
-      const confRes = await base44.functions.invoke("scheduleConference", {
-        title,
-        description,
-        scheduledDate,
-        scheduledTime,
-        durationMinutes,
-        participants: [{ id: app.id, name: app.full_name, email: app.email }],
-        organizerId: organizer.id,
-        organizerName: organizer.full_name,
-        organizerEmail: organizer.email,
-        applicationId: app.id,
-        interviewMode: useAiInterviewer ? "ai" : "human",
-      });
-
-      if (!confRes?.data?.success) {
-        throw new Error(confRes?.data?.error || "Failed to schedule interview");
-      }
-
-      const conference = confRes.data.conference;
-
-      if (confRes.data.email_sent) {
-        toast.success("Interview scheduled. Google invite + confirmation email sent to applicant.");
+      if (interviewMode === "async") {
+        // Async mode: create an InterviewSession and send the 48-hour invitation email immediately
+        const res = await base44.functions.invoke("inviteToAsyncInterview", {
+          applicationId: app.id,
+          deadlineHours: 48,
+          createdBy: organizer.id,
+        });
+        const data = res?.data ?? res;
+        if (data?.error) throw new Error(data.error);
+        if (data?.status === "exists") {
+          toast.info("An active async interview invitation already exists for this candidate.");
+        } else if (data?.email_sent) {
+          toast.success("Async interview invitation sent. Candidate has 48 hours to complete it.");
+        } else {
+          toast.warning("Async interview session created, but the email may not have delivered. Check the candidate's email.");
+        }
+        if (onScheduled) onScheduled(data?.session || data);
+        onClose();
       } else {
-        toast.warning("Interview scheduled, but the confirmation email may not have delivered. Use the resend option or check the applicant's email.");
+        // Human mode: schedule a video interview with date/time
+        const title = `Sales Growth Advisor Interview — ${app.full_name}`;
+        const description = `Interview with ${app.full_name} for the Sales Growth Advisor position at Arriv Estate Media.\n\nApplicant email: ${app.email}\nApplicant phone: ${app.phone || "N/A"}`;
+
+        const confRes = await base44.functions.invoke("scheduleConference", {
+          title,
+          description,
+          scheduledDate,
+          scheduledTime,
+          durationMinutes,
+          participants: [{ id: app.id, name: app.full_name, email: app.email }],
+          organizerId: organizer.id,
+          organizerName: organizer.full_name,
+          organizerEmail: organizer.email,
+          applicationId: app.id,
+          interviewMode: "human",
+        });
+
+        if (!confRes?.data?.success) {
+          throw new Error(confRes?.data?.error || "Failed to schedule interview");
+        }
+
+        const conference = confRes.data.conference;
+
+        if (confRes.data.email_sent) {
+          toast.success("Interview scheduled. Google invite + confirmation email sent to applicant.");
+        } else {
+          toast.warning("Interview scheduled, but the confirmation email may not have delivered. Use the resend option or check the applicant's email.");
+        }
+        if (onScheduled) onScheduled(conference);
+        onClose();
       }
-      if (onScheduled) onScheduled(conference);
-      onClose();
     } catch (error) {
       console.error("Error scheduling interview:", error);
       toast.error(error.message || "Failed to schedule interview");
@@ -111,6 +126,7 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
   };
 
   const minDate = moment().format("YYYY-MM-DD");
+  const isAsync = interviewMode === "async";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -130,61 +146,101 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
           <p className="text-xs text-gray-500 break-all">{app.email}</p>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
-          This schedules a video interview through Arriv's built-in calling system, sends the applicant a Google Calendar invite, and emails them the join link.
-        </p>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-1">Date *</Label>
-              <Input
-                type="date"
-                min={minDate}
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-1">Time *</Label>
-              <Input
-                type="time"
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-              />
-              <p className="text-xs text-gray-400 mt-1">Eastern Time</p>
-            </div>
+        {/* Interview mode selection */}
+        <div className="mb-4">
+          <Label className="block text-sm font-medium text-gray-700 mb-2">Interview Format</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setInterviewMode("human")}
+              className={`p-3 rounded-lg border-2 text-left transition-all ${
+                !isAsync
+                  ? "border-[#B8956A] bg-[#B8956A]/8"
+                  : "border-gray-200 hover:border-[#B8956A]/40"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Video className="w-4 h-4" style={{ color: isAsync ? "#9ca3af" : "#B8956A" }} />
+                <span className="text-sm font-semibold text-gray-900">Human Interview</span>
+              </div>
+              <p className="text-xs text-gray-500">Schedule a live video interview at a specific date & time.</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setInterviewMode("async")}
+              className={`p-3 rounded-lg border-2 text-left transition-all ${
+                isAsync
+                  ? "border-[#B8956A] bg-[#B8956A]/8"
+                  : "border-gray-200 hover:border-[#B8956A]/40"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4" style={{ color: isAsync ? "#B8956A" : "#9ca3af" }} />
+                <span className="text-sm font-semibold text-gray-900">Async Interview</span>
+              </div>
+              <p className="text-xs text-gray-500">Candidate gets 48 hours to complete it on their own time.</p>
+            </button>
           </div>
-
-          <div>
-            <Label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</Label>
-            <Input
-              type="number"
-              min="15"
-              max="120"
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 30)}
-            />
-            <p className="text-xs text-gray-400 mt-1">Interviews are typically Mon–Fri, 4:00–6:00 PM ET.</p>
-          </div>
-
-          <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors" style={{ backgroundColor: useAiInterviewer ? "rgba(184,149,106,0.08)" : "#FFFBF5", border: `1px solid ${useAiInterviewer ? "rgba(184,149,106,0.3)" : "rgba(184,149,106,0.15)"}` }}>
-            <input
-              type="checkbox"
-              checked={useAiInterviewer}
-              onChange={(e) => setUseAiInterviewer(e.target.checked)}
-              className="w-4 h-4 rounded"
-              style={{ accentColor: "#B8956A" }}
-            />
-            <Brain className="w-4 h-4" style={{ color: "#B8956A" }} />
-            <div>
-              <p className="text-sm font-medium text-gray-900">Use AI Interviewer</p>
-              <p className="text-xs text-gray-500">The applicant joins the same link and is interviewed by AI instead of a human interviewer.</p>
-            </div>
-          </label>
         </div>
 
-        {conflict && (
+        {isAsync ? (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2">
+            <Mail className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-blue-900 font-medium">Async invitation email sent immediately</p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                The candidate will receive an email with a secure link to complete their first-round interview.
+                They'll have <strong>48 hours from now</strong> to finish it, choosing between Conversational (Ashley AI)
+                or Self-Guided Video format.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600 mb-4">
+            This schedules a live video interview through Arriv's built-in calling system, sends the applicant a Google Calendar invite, and emails them the join link.
+          </p>
+        )}
+
+        <div className="space-y-4">
+          {!isAsync && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">Date *</Label>
+                  <Input
+                    type="date"
+                    min={minDate}
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">Time *</Label>
+                  <Input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Eastern Time</p>
+                </div>
+              </div>
+
+              <div>
+                <Label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</Label>
+                <Input
+                  type="number"
+                  min="15"
+                  max="120"
+                  value={durationMinutes}
+                  onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 30)}
+                />
+                <p className="text-xs text-gray-400 mt-1">Interviews are typically Mon–Fri, 4:00–6:00 PM ET.</p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {conflict && !isAsync && (
           <div className="p-3 bg-red-50 border border-red-300 rounded-lg flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <div>
@@ -203,13 +259,13 @@ export default function InterviewSchedulerModal({ app, onClose, onScheduled }) {
           </Button>
           <Button
             onClick={handleSchedule}
-            disabled={loading || !!conflict}
+            disabled={loading || (!isAsync && !!conflict)}
             className="flex-1 bg-[#B8956A] hover:bg-[#A68559] text-white"
           >
             {loading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Scheduling...</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {isAsync ? "Sending..." : "Scheduling..."}</>
             ) : (
-              "Schedule & Send Invites"
+              isAsync ? "Send Async Invitation" : "Schedule & Send Invites"
             )}
           </Button>
         </div>

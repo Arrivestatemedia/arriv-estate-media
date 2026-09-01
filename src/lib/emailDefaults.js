@@ -126,6 +126,48 @@ export const EMAIL_DEFAULTS = {
           <p style="margin:0 0 20px;"><a href="{{portalUrl}}" style="color:#B8956A;font-weight:600;text-decoration:none;word-break:break-all;">👉 View My Candidate Portal</a></p>
           <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Thank you again for your time and interest in joining Arriv Estate Media. We're excited to continue the conversation.</p>`),
   },
+  inviteToAsyncInterview: {
+    subject: "Arriv Estate Media | Complete Your First-Round Interview",
+    htmlBody: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#FFFBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A1A1A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FFFBF5;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:14px;border:1px solid rgba(184,149,106,0.25);overflow:hidden;">
+        <tr><td style="background-color:#1A1A1A;padding:36px 32px;text-align:center;">
+          <img src="${ARRIV_LOGO}" alt="Arriv Estate Media" height="110" style="height:110px;width:auto;display:block;margin:0 auto;" />
+        </td></tr>
+        <tr><td style="padding:40px 44px;">
+          <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;color:#1A1A1A;">Hi {{firstName}},</h1>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">You've been selected to complete a first-round interview for the <strong>{{positionTitle}}</strong> position with Arriv Estate Media.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">Your first-round interview is completed virtually and can be taken at your convenience. Please use the link below to complete your interview within 48 hours.</p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1A1A;">The interview takes approximately 15 minutes.</p>
+          <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#1A1A1A;">You'll be able to choose between two interview experiences:</p>
+          <ul style="margin:0 0 20px;padding-left:22px;font-size:16px;line-height:1.7;color:#1A1A1A;">
+            <li><strong>Conversational Interview</strong> — meet with Ashley, our AI-powered virtual recruiting assistant, who will guide you through the interview.</li>
+            <li><strong>Self-Guided Video Interview</strong> — complete the same interview independently by viewing each question on screen and recording your response.</li>
+          </ul>
+          <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:rgba(26,26,26,0.7);">Both formats contain the same interview questions and are evaluated using the same criteria. Your choice will not affect your candidacy.</p>
+          <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="border-radius:8px;background-color:#B8956A;">
+              <a href="{{interviewUrl}}" style="display:inline-block;padding:15px 36px;font-size:16px;font-weight:600;color:#1A1A1A;text-decoration:none;border-radius:8px;">COMPLETE MY INTERVIEW</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#1A1A1A;">Please complete your interview by:</p>
+          <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#B8956A;font-weight:600;">{{deadlineDisplay}}</p>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(26,26,26,0.7);">Candidates selected to move forward will be contacted regarding the next step.</p>
+        </td></tr>
+        <tr><td style="padding:0 44px 36px;">
+          <p style="margin:0 0 4px;font-size:16px;line-height:1.6;color:#1A1A1A;">Best regards,</p>
+          <p style="margin:0;font-size:16px;line-height:1.6;color:#1A1A1A;"><strong>Arriv Estate Media Recruiting</strong></p>
+        </td></tr>
+        <tr><td style="background-color:#F7F1E8;padding:18px 44px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#9a8560;">© Arriv Estate Media, LLC · careers@arrivestatemedia.com</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
+  },
   sendInterviewApologyEmail: {
     subject: "Your Arriv Interview — Let's Pick Up Where We Left Off",
     htmlBody: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
