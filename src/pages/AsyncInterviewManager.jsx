@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Clock, Brain, Video, CheckCircle2, AlertCircle, RefreshCw, ChevronRight, ChevronDown, Film, Play } from "lucide-react";
+import { Loader2, Clock, Brain, Video, CheckCircle2, AlertCircle, RefreshCw, ChevronRight, ChevronDown, Film, Play, CalendarClock } from "lucide-react";
 import { ROUND1_ALL_QUESTIONS } from "@/lib/round1Questions";
 import { FORMAT_LABELS } from "@/lib/asyncInterviewConfig";
+import ScheduledInterviewMigration from "@/components/interviews/ScheduledInterviewMigration";
 
 const isS3 = (url) => typeof url === "string" && url.startsWith("s3://");
 
@@ -37,6 +38,7 @@ export default function AsyncInterviewManager() {
   const [conference, setConference] = useState(null);
   const [tavusPlayableUrl, setTavusPlayableUrl] = useState(null);
   const [resolvingTavus, setResolvingTavus] = useState(false);
+  const [activeTab, setActiveTab] = useState("sessions");
 
   const fetchSessions = useCallback(async () => {
     setLoading(true);
@@ -118,6 +120,33 @@ export default function AsyncInterviewManager() {
             Refresh
           </button>
         </div>
+
+        {/* Tab toggle */}
+        <div className="flex gap-1 mb-6 bg-white rounded-xl border border-[#B8956A]/15 p-1">
+          <button
+            onClick={() => setActiveTab("sessions")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "sessions" ? "bg-[#B8956A] text-[#1A1A1A]" : "text-[#1A1A1A]/60 hover:bg-[#FFFBF5]"
+            }`}
+          >
+            <Video className="w-4 h-4" />
+            Async Sessions
+          </button>
+          <button
+            onClick={() => setActiveTab("migration")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "migration" ? "bg-[#B8956A] text-[#1A1A1A]" : "text-[#1A1A1A]/60 hover:bg-[#FFFBF5]"
+            }`}
+          >
+            <CalendarClock className="w-4 h-4" />
+            Scheduled Migration
+          </button>
+        </div>
+
+        {activeTab === "migration" ? (
+          <ScheduledInterviewMigration />
+        ) : (
+          <>
 
         {/* Analytics summary */}
         {!loading && sessions.length > 0 && (
@@ -337,6 +366,8 @@ export default function AsyncInterviewManager() {
             )}
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

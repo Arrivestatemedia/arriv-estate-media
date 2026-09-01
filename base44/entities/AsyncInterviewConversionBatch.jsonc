@@ -1,0 +1,138 @@
+{
+  "name": "AsyncInterviewConversionBatch",
+  "type": "object",
+  "properties": {
+    "batch_name": {
+      "type": "string",
+      "description": "Human-readable name for this conversion batch"
+    },
+    "conference_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Conference IDs approved for conversion in this batch"
+    },
+    "excluded_conference_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Conference IDs the admin explicitly excluded from this batch"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_authorization",
+        "scheduled",
+        "in_progress",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "default": "pending_authorization",
+      "description": "Batch lifecycle status"
+    },
+    "scheduled_for": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the batch is authorized to execute (the conversion activation time)"
+    },
+    "authorized_by": {
+      "type": "string",
+      "description": "Admin who authorized this batch"
+    },
+    "authorized_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the admin authorized this batch"
+    },
+    "executed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the batch actually executed"
+    },
+    "total_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Total number of conferences approved for conversion"
+    },
+    "completed_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of conferences successfully converted"
+    },
+    "skipped_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of conferences skipped (already converted or ineligible)"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "conference_id": {
+            "type": "string"
+          },
+          "candidate_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "async_session_id": {
+            "type": "string"
+          },
+          "interview_url": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "email_sent": {
+            "type": "boolean"
+          },
+          "previous_scheduled_at": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Per-conference conversion results for audit"
+    },
+    "is_test": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for synthetic test batches that should not execute real conversions"
+    }
+  },
+  "required": [
+    "conference_ids",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

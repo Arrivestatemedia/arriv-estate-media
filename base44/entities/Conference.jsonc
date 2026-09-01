@@ -187,6 +187,43 @@
       "type": "boolean",
       "default": false,
       "description": "When true, the 30-minute reminder is cancelled and will not be sent. Set from the Reminder Queue UI."
+    },
+    "round": {
+      "type": "integer",
+      "default": 1,
+      "description": "Interview round (1 = first-round, 2 = second-round/founder conversation). Used to protect second-round human interviews from async migration. Existing records default to 1 (first-round)."
+    },
+    "application_id": {
+      "type": "string",
+      "description": "JobApplication ID this conference was scheduled for (set when scheduled from the application management UI)"
+    },
+    "converted_to_async_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this scheduled interview was converted to the asynchronous format (null if not converted)"
+    },
+    "converted_by": {
+      "type": "string",
+      "description": "Name/ID of the admin who authorized the async conversion"
+    },
+    "previous_scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Original scheduled date/time preserved for audit when the interview is converted to async"
+    },
+    "new_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "New async interview expiration deadline set during conversion (48 hours from activation)"
+    },
+    "async_session_id": {
+      "type": "string",
+      "description": "InterviewSession ID created by the async conversion"
+    },
+    "conversion_email_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the 'Update to Your Interview' conversion email was sent to the candidate"
     }
   },
   "required": [

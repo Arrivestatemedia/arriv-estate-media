@@ -1,0 +1,45 @@
+{
+  "description": "One-time scheduled execution at September 1, 2026 7:30 AM ET. Finds and executes all authorized async interview conversion batches that are due. Only processes batches the admin has explicitly authorized \u2014 does NOT auto-convert anything. If no authorized batches exist, does nothing.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "september_1_async_conversion",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "execute_batches": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "executeAsyncConversionBatch",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Execute due conversion batches",
+            "description": "Process authorized batches at 7:30 AM ET"
+          }
+        }
+      }
+    ]
+  },
+  "name": "September 1 Async Interview Conversion",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "one_time",
+      "cron_expression": null,
+      "one_time_date": "2026-09-01T11:30:00Z",
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}
