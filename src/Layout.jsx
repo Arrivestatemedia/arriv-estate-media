@@ -134,7 +134,6 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
             { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
-            { label: "Async Interviews", page: "AsyncInterviewManager", icon: Video },
             { label: "Email Templates", page: "EmailPreview", icon: Send },
             { label: "My Recordings", page: "Recordings", icon: Film },
             { label: "My Profile", page: "EmployeeProfile", icon: Award },
