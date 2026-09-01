@@ -9,7 +9,6 @@ import { Mail } from "lucide-react";
 export default function EmailPreview() {
   const [templates, setTemplates] = useState([]);
   const [selectedKey, setSelectedKey] = useState(null);
-  const [defaultContent, setDefaultContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -72,23 +71,6 @@ export default function EmailPreview() {
   const savedKeys = new Set(savedMap.keys());
   const entry = selectedKey ? getCatalogEntry(selectedKey) : null;
   const savedTemplate = selectedKey ? savedMap.get(selectedKey) : null;
-
-  // Fetch default content from backend when no saved template exists
-  useEffect(() => {
-    if (!selectedKey || savedTemplate) {
-      setDefaultContent(null);
-      return;
-    }
-    let cancelled = false;
-    base44.functions.invoke("getEmailTemplateDefaults", { templateKey: selectedKey })
-      .then((res) => {
-        if (!cancelled) setDefaultContent(res);
-      })
-      .catch(() => {
-        if (!cancelled) setDefaultContent(null);
-      });
-    return () => { cancelled = true; };
-  }, [selectedKey, savedTemplate]);
 
   const handleSave = async ({ subject, htmlBody }) => {
     if (!entry) return;
@@ -170,7 +152,6 @@ export default function EmailPreview() {
         <EmailTemplateEditor
           entry={entry}
           savedTemplate={savedTemplate}
-          defaultContent={defaultContent}
           onSave={handleSave}
           onReset={handleReset}
           saving={saving}

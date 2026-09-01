@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Save, RotateCcw, Eye, Code } from "lucide-react";
+import { getEmailDefault } from "@/lib/emailDefaults";
 
-export default function EmailTemplateEditor({ entry, savedTemplate, defaultContent, onSave, onReset, saving }) {
+export default function EmailTemplateEditor({ entry, savedTemplate, onSave, onReset, saving }) {
   const [subject, setSubject] = useState("");
   const [htmlBody, setHtmlBody] = useState("");
   const [showPreview, setShowPreview] = useState(true);
@@ -14,15 +15,16 @@ export default function EmailTemplateEditor({ entry, savedTemplate, defaultConte
     if (savedTemplate) {
       setSubject(savedTemplate.subject || "");
       setHtmlBody(savedTemplate.html_body || "");
-    } else if (defaultContent) {
-      setSubject(defaultContent.subject || entry?.defaultSubject || "");
-      setHtmlBody(defaultContent.htmlBody || "");
+    } else if (entry) {
+      const def = getEmailDefault(entry.key);
+      setSubject(def.subject || entry.defaultSubject || "");
+      setHtmlBody(def.htmlBody || "");
     } else {
-      setSubject(entry?.defaultSubject || "");
+      setSubject("");
       setHtmlBody("");
     }
     setDirty(false);
-  }, [entry?.key, savedTemplate?.id, defaultContent]);
+  }, [entry?.key, savedTemplate?.id]);
 
   const handleSubjectChange = (val) => { setSubject(val); setDirty(true); };
   const handleBodyChange = (val) => { setHtmlBody(val); setDirty(true); };
@@ -34,8 +36,9 @@ export default function EmailTemplateEditor({ entry, savedTemplate, defaultConte
 
   const handleReset = () => {
     onReset();
-    setSubject(defaultContent?.subject || entry?.defaultSubject || "");
-    setHtmlBody(defaultContent?.htmlBody || "");
+    const def = getEmailDefault(entry.key);
+    setSubject(def.subject || entry?.defaultSubject || "");
+    setHtmlBody(def.htmlBody || "");
     setDirty(false);
   };
 
