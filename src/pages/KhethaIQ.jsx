@@ -296,16 +296,30 @@ export default function KhethaIQ() {
     { id: "learning", label: "Learning", icon: "Brain" },
     { id: "analytics", label: "Analytics", icon: "BarChart3" },
   ];
-  const hasReminders = baseTabs.some(t => t.id === "reminders");
-  const manifestTabs = hasReminders ? baseTabs : (() => {
+  // Inject Estate Media–local tabs that aren't in the central app manifest.
+  // async_interviews goes right after interviews; reminders goes after that.
+  const hasAsync = baseTabs.some(t => t.id === "async_interviews");
+  const withAsync = hasAsync ? baseTabs : (() => {
     const idx = baseTabs.findIndex(t => t.id === "interviews");
-    const remindersTab = { id: "reminders", label: "Reminders", icon: "Mail" };
+    const asyncTab = { id: "async_interviews", label: "Async Interviews", icon: "Video" };
     if (idx >= 0) {
       const copy = [...baseTabs];
+      copy.splice(idx + 1, 0, asyncTab);
+      return copy;
+    }
+    return [...baseTabs, asyncTab];
+  })();
+
+  const hasReminders = withAsync.some(t => t.id === "reminders");
+  const manifestTabs = hasReminders ? withAsync : (() => {
+    const idx = withAsync.findIndex(t => t.id === "interviews");
+    const remindersTab = { id: "reminders", label: "Reminders", icon: "Mail" };
+    if (idx >= 0) {
+      const copy = [...withAsync];
       copy.splice(idx + 1, 0, remindersTab);
       return copy;
     }
-    return [...baseTabs, remindersTab];
+    return [...withAsync, remindersTab];
   })();
 
   // Map manifest tab ids to the central app's view ids
