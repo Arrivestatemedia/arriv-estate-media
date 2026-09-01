@@ -54,6 +54,21 @@ export const CAPABILITIES: SupportCapabilityDef[] = [
     active: true,
   },
   // ... add more arriv_estate_media.* capabilities as needed
+  {
+    capability_id: "arriv_estate_media.async_interview.inspect",
+    level: "L0",
+    title: "Async Interview Status Inspection",
+    description: "Read-only inspection of asynchronous first-round interview sessions, including candidate format selection, completion status, and deadline information.",
+    category: "recruiting",
+    input_schema: { type: "object", properties: { session_id: { type: "string" }, application_id: { type: "string" } } },
+    max_attempts: 1,
+    idempotent: true,
+    verification_capability_id: null,
+    rollback_capability_id: null,
+    allowed_roles: ["admin", "tenant_admin"],
+    known_error_codes: ["UNAUTHORIZED", "SESSION_NOT_FOUND"],
+    active: true,
+  },
 ];
 
 export function getCapability(capabilityId: string): SupportCapabilityDef | undefined {

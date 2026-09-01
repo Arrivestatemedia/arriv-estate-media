@@ -80,6 +80,48 @@ export default function AsyncInterviewManager() {
           </button>
         </div>
 
+        {/* Analytics summary */}
+        {!loading && sessions.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {(() => {
+              const completed = sessions.filter(s => s.status === "COMPLETED").length;
+              const expired = sessions.filter(s => s.status === "EXPIRED").length;
+              const inProgress = sessions.filter(s => ["OPENED", "FORMAT_SELECTED", "STARTED", "IN_PROGRESS"].includes(s.status)).length;
+              const invited = sessions.filter(s => s.status === "INVITED").length;
+              const conversational = sessions.filter(s => s.delivery_mode === "CONVERSATIONAL_AI").length;
+              const selfGuided = sessions.filter(s => s.delivery_mode === "SELF_GUIDED_VIDEO").length;
+              const completionRate = sessions.length > 0 ? Math.round((completed / sessions.length) * 100) : 0;
+              const stats = [
+                { label: "Invited", value: invited, color: "#6b7280" },
+                { label: "In Progress", value: inProgress, color: "#f59e0b" },
+                { label: "Completed", value: completed, color: "#B8956A" },
+                { label: "Expired", value: expired, color: "#ef4444" },
+              ];
+              return (
+                <>
+                  {stats.map((s) => (
+                    <div key={s.label} className="bg-white rounded-xl border border-[#B8956A]/15 p-4">
+                      <p className="text-xs text-[#1A1A1A]/50 font-medium uppercase tracking-wide">{s.label}</p>
+                      <p className="text-2xl font-bold mt-1" style={{ color: s.color }}>{s.value}</p>
+                    </div>
+                  ))}
+                  <div className="col-span-2 md:col-span-4 bg-white rounded-xl border border-[#B8956A]/15 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs text-[#1A1A1A]/50 font-medium uppercase tracking-wide">Format Distribution</p>
+                      <p className="text-xs text-[#1A1A1A]/50">Completion rate: <span className="font-bold text-[#B8956A]">{completionRate}%</span></p>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="flex items-center gap-1.5"><Brain className="w-4 h-4 text-[#B8956A]" /> Conversational: <strong>{conversational}</strong></span>
+                      <span className="flex items-center gap-1.5"><Video className="w-4 h-4 text-[#B8956A]" /> Self-Guided: <strong>{selfGuided}</strong></span>
+                      <span className="text-[#1A1A1A]/40">Not yet chosen: <strong>{sessions.length - conversational - selfGuided}</strong></span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-4">
           {/* Session list */}
           <div className="space-y-2">
