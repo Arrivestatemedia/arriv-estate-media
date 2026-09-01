@@ -52,20 +52,15 @@ export default function ScheduledInterviewMigration() {
     setAuthorizing(true);
     try {
       const adminName = localStorage.getItem("sales_member_name") || sessionStorage.getItem("sales_member_name") || "admin";
-      const batch = await base44.entities.AsyncInterviewConversionBatch.create({
+      const batch = await base44.functions.invoke("authorizeAsyncConversionBatch", {
         batch_name: `Scheduled Interview Migration — ${new Date().toLocaleDateString()}`,
         conference_ids: selectedInterviews.map(s => s.conferenceId),
         excluded_conference_ids: eligible.filter(e => excludedIds.has(e.conferenceId)).map(e => e.conferenceId),
-        status: "scheduled",
         scheduled_for: SCHEDULED_EXECUTION_ISO,
         authorized_by: adminName,
-        authorized_at: new Date().toISOString(),
         total_count: selectedCount,
-        completed_count: 0,
-        skipped_count: 0,
-        is_test: false,
       });
-      setAuthorizedBatch(batch);
+      setAuthorizedBatch(batch?.data ?? batch);
       setShowConfirm(false);
     } catch (err) {
       console.error("Failed to authorize batch:", err);
