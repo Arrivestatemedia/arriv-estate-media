@@ -77,8 +77,10 @@ export default function Recordings() {
           });
         });
 
-        // Conference recordings
+        // Conference recordings (human interviews only — AI/Tavus interviews
+        // are reviewed in the Async Interview Manager, not here)
         confs.forEach((c) => {
+          if (c.interview_mode === "ai") return;
           const participant = c.participants?.[0];
           const pName = participant?.name || c.organizer_name || "";
           const addConf = (url, label) => {

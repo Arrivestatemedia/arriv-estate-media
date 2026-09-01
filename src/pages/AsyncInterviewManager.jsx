@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Clock, Brain, Video, CheckCircle2, AlertCircle, RefreshCw, ChevronRight, ChevronDown, Film } from "lucide-react";
+import { Loader2, Clock, Brain, Video, CheckCircle2, AlertCircle, RefreshCw, ChevronRight, ChevronDown, Film, Play } from "lucide-react";
 import { ROUND1_ALL_QUESTIONS } from "@/lib/round1Questions";
 import { FORMAT_LABELS } from "@/lib/asyncInterviewConfig";
+
+const isS3 = (url) => typeof url === "string" && url.startsWith("s3://");
+
+async function resolveTavusUrl(storageUri) {
+  if (!isS3(storageUri)) return storageUri;
+  const res = await base44.functions.invoke("getTavusRecordingUrl", {
+    storageUri,
+    responseContentType: "video/mp4",
+    responseContentDisposition: "inline",
+  });
+  return res?.url || res?.data?.url || null;
+}
 
 const STATUS_COLORS = {
   INVITED: "#6b7280",
@@ -22,6 +34,9 @@ export default function AsyncInterviewManager() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [responses, setResponses] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [conference, setConference] = useState(null);
+  const [tavusPlayableUrl, setTavusPlayableUrl] = useState(null);
+  const [resolvingTavus, setResolvingTavus] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     setLoading(true);
@@ -40,14 +55,38 @@ export default function AsyncInterviewManager() {
   const loadDetail = async (session) => {
     setSelectedSession(session);
     setLoadingDetail(true);
+    setConference(null);
+    setTavusPlayableUrl(null);
     try {
       const res = await base44.entities.InterviewResponse.filter({ session_id: session.id }, "question_index", 20);
       setResponses(res || []);
+      // For conversational AI sessions, fetch the Conference to surface the Tavus recording
+      if (session.delivery_mode === "CONVERSATIONAL_AI" && session.conference_id) {
+        try {
+          const conf = await base44.entities.Conference.get(session.conference_id);
+          setConference(conf || null);
+        } catch (err) {
+          console.error("Failed to load conference:", err);
+        }
+      }
     } catch (err) {
       console.error("Failed to load responses:", err);
       setResponses([]);
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  const handlePlayTavus = async () => {
+    if (!conference?.tavus_recording_storage_uri) return;
+    setResolvingTavus(true);
+    try {
+      const url = await resolveTavusUrl(conference.tavus_recording_storage_uri);
+      if (url) setTavusPlayableUrl(url);
+    } catch (err) {
+      console.error("Failed to resolve Tavus recording:", err);
+    } finally {
+      setResolvingTavus(false);
     }
   };
 
@@ -211,13 +250,48 @@ export default function AsyncInterviewManager() {
                   </div>
                 </div>
 
+                {/* Conversational AI — Tavus recording */}
+                {selectedSession.delivery_mode === "CONVERSATIONAL_AI" && conference?.tavus_recording_storage_uri && (
+                  <div className="mb-4 p-3 border border-[#B8956A]/20 rounded-lg bg-[#FFFBF5]">
+                    <p className="text-xs font-semibold text-[#B8956A] mb-2 flex items-center gap-1.5">
+                      <Brain className="w-3.5 h-3.5" /> Ashley AI Interview Recording
+                    </p>
+                    {tavusPlayableUrl ? (
+                      <video src={tavusPlayableUrl} controls autoPlay className="w-full rounded-lg bg-black max-h-72" />
+                    ) : (
+                      <button
+                        onClick={handlePlayTavus}
+                        disabled={resolvingTavus}
+                        className="w-full flex items-center justify-center gap-2 py-6 rounded-lg bg-black text-white/80 hover:text-white transition-colors"
+                      >
+                        {resolvingTavus ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>
+                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                              <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
+                            </div>
+                            <span className="text-sm">Click to load recording</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {conference.tavus_completed_at && (
+                      <p className="text-xs text-[#1A1A1A]/50 mt-2">
+                        Completed {new Date(conference.tavus_completed_at).toLocaleString("en-US", { timeZone: "America/New_York" })}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {responses.length === 0 ? (
                   <div className="text-center py-8 text-[#1A1A1A]/40">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">No responses recorded yet</p>
-                    {selectedSession.delivery_mode === "CONVERSATIONAL_AI" && selectedSession.conference_id && (
-                      <p className="text-xs mt-2">Conversational interview — view via KhethaIQ candidate panel</p>
-                    )}
+                    <p className="text-sm">
+                      {selectedSession.delivery_mode === "CONVERSATIONAL_AI"
+                        ? "No individual responses — Ashley conducts a free-form conversation"
+                        : "No responses recorded yet"}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto">
