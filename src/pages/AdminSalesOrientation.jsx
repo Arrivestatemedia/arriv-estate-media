@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ShieldCheck, AlertTriangle, CheckCircle2, Landmark, FileText, GraduationCap, FlaskConical } from "lucide-react";
+import { Loader2, ShieldCheck, AlertTriangle, CheckCircle2, Landmark, FileText, FlaskConical } from "lucide-react";
 import I9EmployerReviewModal from "@/components/orientation/I9EmployerReviewModal";
 
 function flag(o) {
@@ -29,7 +29,6 @@ export default function AdminSalesOrientation() {
   const [tab, setTab] = useState("queue");
   const [rows, setRows] = useState([]);
   const [templates, setTemplates] = useState([]);
-  const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -39,14 +38,12 @@ export default function AdminSalesOrientation() {
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [o, t, m] = await Promise.all([
+      const [o, t] = await Promise.all([
         base44.entities.SalesOrientation.list("-created_date", 200).catch(() => []),
         base44.entities.OrientationDocumentTemplate.list("-published_at", 100).catch(() => []),
-        base44.entities.TrainingModule.list("order", 100).catch(() => []),
       ]);
       setRows(o || []);
       setTemplates(t || []);
-      setModules(m || []);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   }, []);
 
@@ -79,20 +76,6 @@ export default function AdminSalesOrientation() {
       const res = await base44.functions.invoke("publishOrientationDocument", docForm);
       if (res.data?.success) { setDocForm({ document_id: "", title: "", version: "", change_summary: "", required: true }); await load(); }
       else setError(res.data?.error || "Publish failed.");
-    } catch (e) { setError(e.message); } finally { setBusy(""); }
-  };
-
-  // Training module save
-  const [modForm, setModForm] = useState({ module_id: "", title: "", description: "", order: 0, passing_score: 70, quizJson: "[]" });
-  const saveModule = async () => {
-    let quiz;
-    try { quiz = JSON.parse(modForm.quizJson || "[]"); } catch (e) { setError("Quiz JSON is invalid."); return; }
-    if (!modForm.module_id || !modForm.title) { setError("module_id and title are required"); return; }
-    setBusy("saveModule");
-    try {
-      const res = await base44.functions.invoke("saveTrainingModule", { ...modForm, quiz_questions: quiz });
-      if (res.data?.success) { setModForm({ module_id: "", title: "", description: "", order: 0, passing_score: 70, quizJson: "[]" }); await load(); }
-      else setError(res.data?.error || "Save failed.");
     } catch (e) { setError(e.message); } finally { setBusy(""); }
   };
 
@@ -129,7 +112,6 @@ export default function AdminSalesOrientation() {
       <div className="flex gap-2 flex-wrap">
         <TabBtn id="queue" icon={Landmark} label="Orientation Queue" />
         <TabBtn id="documents" icon={FileText} label="Documents" />
-        <TabBtn id="training" icon={GraduationCap} label="Training" />
         <TabBtn id="tests" icon={FlaskConical} label="Test Harness" />
       </div>
 
@@ -214,38 +196,6 @@ export default function AdminSalesOrientation() {
               </div>
             ))}
             {templates.length === 0 && <p className="text-xs text-[#1A1A1A]/50">No custom templates published yet — four default documents are active.</p>}
-          </div>
-        </div>
-      )}
-
-      {/* TRAINING */}
-      {tab === "training" && !loading && (
-        <div className="space-y-4">
-          <Card className="border border-[#B8956A]/20 bg-white">
-            <CardContent className="pt-4 space-y-3">
-              <h2 className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2"><GraduationCap className="w-4 h-4 text-[#B8956A]" /> Training Module</h2>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label className="text-xs">Module ID</Label><Input value={modForm.module_id} onChange={(e) => setModForm({ ...modForm, module_id: e.target.value })} placeholder="sales_101" /></div>
-                <div><Label className="text-xs">Title</Label><Input value={modForm.title} onChange={(e) => setModForm({ ...modForm, title: e.target.value })} /></div>
-                <div className="col-span-2"><Label className="text-xs">Description</Label><Input value={modForm.description} onChange={(e) => setModForm({ ...modForm, description: e.target.value })} /></div>
-                <div><Label className="text-xs">Order</Label><Input type="number" value={modForm.order} onChange={(e) => setModForm({ ...modForm, order: Number(e.target.value) })} /></div>
-                <div><Label className="text-xs">Passing score %</Label><Input type="number" value={modForm.passing_score} onChange={(e) => setModForm({ ...modForm, passing_score: Number(e.target.value) })} /></div>
-              </div>
-              <div>
-                <Label className="text-xs">Quiz questions (JSON array)</Label>
-                <Textarea rows={5} value={modForm.quizJson} onChange={(e) => setModForm({ ...modForm, quizJson: e.target.value })} placeholder='[{"question":"...","choices":["a","b","c"],"correct_index":0,"explanation":"..."}]' />
-              </div>
-              <Button size="sm" className="bg-[#B8956A] hover:bg-[#A68559] text-white" disabled={busy === "saveModule"} onClick={saveModule}>{busy === "saveModule" ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null} Save Module</Button>
-            </CardContent>
-          </Card>
-          <div className="space-y-2">
-            {modules.map((m) => (
-              <div key={m.id} className="border border-[#B8956A]/20 rounded-lg px-3 py-2 bg-white">
-                <p className="text-sm font-medium text-[#1A1A1A]">{m.title}</p>
-                <p className="text-xs text-[#1A1A1A]/50">{m.module_id} · v{m.version} · {(m.quiz_questions||[]).length} questions · pass {m.passing_score}%</p>
-              </div>
-            ))}
-            {modules.length === 0 && <p className="text-xs text-[#1A1A1A]/50">No training modules yet. Add one above.</p>}
           </div>
         </div>
       )}
