@@ -1,19 +1,19 @@
-# Training Admin System — App Layout
+# Training Admin System — App Layout (Theme-Aware)
 
-The full layout shell: sticky dark header with role-based navigation, mobile hamburger menu, mobile bottom tabs, page transitions, and the Arriv brand theme variables (Cream #FFFBF5, Gold #B8956A, Black #1A1A1A).
+The full layout shell — sticky header with role-based navigation, mobile hamburger menu, mobile bottom tabs, and page transitions. **Uses the target app's own theme tokens** (`bg-background`, `text-foreground`, `bg-primary`, `border-border`, etc.) so it automatically takes on whatever colors the app already defines in `src/index.css`. No hardcoded brand colors.
 
 ---
 
 ## `src/Layout.jsx`
 
-> Wraps every page. Reads the current user (sales session OR Base44 auth), renders role-based nav items in the header, handles mobile menu, logout, and mobile bottom tabs. Includes the brand theme variables as inline `<style>`.
+> Wraps every page. Reads the current user (sales session OR Base44 auth), renders role-based nav items in the header, handles mobile menu, logout, and mobile bottom tabs. All colors come from the app's shadcn/Tailwind theme tokens.
 
 ```jsx
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2 } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, Shield, Wallet, TrendingUp, Award, Film, MapPin, Gift, Tag, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MobileBottomTabs from "@/components/layout/MobileBottomTabs";
 import PageTransition from "@/components/layout/PageTransition";
@@ -65,7 +65,6 @@ function LayoutContent({ children, currentPageName }) {
         base44.auth.me().then((userData) => {
           if (userData) {
             if (salesMemberId && salesMemberName) {
-              // Merge: sales session for data access + platform role for admin nav
               setUser({
                 id: salesMemberId,
                 email: userData.email || salesMemberEmail,
@@ -106,8 +105,6 @@ function LayoutContent({ children, currentPageName }) {
           { label: "Customer Success", page: "CustomerSuccessPage", icon: CheckCircle2 },
           { label: "My Recordings", page: "Recordings", icon: Film },
           { label: "My Profile", page: "EmployeeProfile", icon: Award },
-          { label: "Time Off", page: "TimeOff", icon: CalendarOff },
-          { label: "My Benefits", page: "Benefits", icon: Heart },
         ]
       : (isAdmin || isSalesAdmin)
         ? [
@@ -117,18 +114,11 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Discount Approvals", page: "DiscountApprovalPage", icon: Tag },
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
             { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
-            { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck },
             { label: "Commissions", page: "AdminCommissions", icon: Wallet },
-            { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },
-            { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark },
-            { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
-            { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
-            { label: "Email Templates", page: "EmailPreview", icon: Send },
+            { label: "Email Templates", page: "EmailPreview", icon: FileText },
             { label: "My Recordings", page: "Recordings", icon: Film },
             { label: "My Profile", page: "EmployeeProfile", icon: Award },
-            { label: "Time Off", page: "TimeOff", icon: CalendarOff },
-            { label: "My Benefits", page: "Benefits", icon: Heart },
         ]
         : isClient
     ? [
@@ -152,55 +142,9 @@ function LayoutContent({ children, currentPageName }) {
   const showBackButton = user && !isPrimaryRoute && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
-      <style>{`
-        :root {
-          --color-cream: #FFFBF5;
-          --color-gold: #B8956A;
-          --color-black: #1A1A1A;
-          
-          /* Light mode */
-          --bg-primary: #FFFBF5;
-          --bg-secondary: #FFFFFF;
-          --text-primary: #1A1A1A;
-          --text-secondary: rgba(26, 26, 26, 0.6);
-          --accent-color: #B8956A;
-          --accent-hover: #A68559;
-          --border-color: rgba(184, 149, 106, 0.2);
-          --card-bg: #FFFFFF;
-        }
-
-        @media (prefers-color-scheme: dark) {
-          :root {
-            --bg-primary: #0A0A0A;
-            --bg-secondary: #1A1A1A;
-            --text-primary: #FFFBF5;
-            --text-secondary: rgba(255, 251, 245, 0.6);
-            --accent-color: #B8956A;
-            --accent-hover: #C9A87B;
-            --border-color: rgba(184, 149, 106, 0.3);
-            --card-bg: #1A1A1A;
-          }
-        }
-
-        body {
-          overscroll-behavior: none;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        button, a, [role="button"] {
-          -webkit-user-select: none;
-          user-select: none;
-          -webkit-tap-highlight-color: transparent;
-        }
-
-        nav::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
-
+    <div className="min-h-screen bg-background text-foreground" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
       <header 
-        className="sticky top-0 z-50 bg-[#1A1A1A] border-b border-[#B8956A]/20"
+        className="sticky top-0 z-50 bg-primary text-primary-foreground border-b border-border"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
           paddingLeft: 'env(safe-area-inset-left)',
@@ -214,7 +158,7 @@ function LayoutContent({ children, currentPageName }) {
                 variant="ghost"
                 size="sm"
                 onClick={() => window.history.back()}
-                className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10 mr-2"
+                className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 mr-2"
                 style={{ userSelect: 'none' }}
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -222,11 +166,7 @@ function LayoutContent({ children, currentPageName }) {
             )}
             {/* Logo — replace with your own */}
             <Link to={createPageUrl(user ? dashboardPage : "JobBoard")} className="flex items-center gap-3">
-              <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png" 
-                alt="Arriv" 
-                className="h-8"
-              />
+              <span className="text-lg font-bold">Your Logo</span>
             </Link>
             )}
 
@@ -240,8 +180,8 @@ function LayoutContent({ children, currentPageName }) {
                       to={createPageUrl(item.page)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
                         active
-                          ? "bg-[#B8956A] text-[#1A1A1A]"
-                          : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                          ? "bg-primary-foreground text-primary"
+                          : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -255,8 +195,8 @@ function LayoutContent({ children, currentPageName }) {
                     to={createPageUrl("PublicAccountSettings")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                       currentPageName === "PublicAccountSettings"
-                        ? "bg-[#B8956A] text-[#1A1A1A]"
-                        : "text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                        ? "bg-primary-foreground text-primary"
+                        : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
                     }`}
                   >
                     <Settings className="w-4 h-4" />
@@ -270,15 +210,15 @@ function LayoutContent({ children, currentPageName }) {
               {user && (
                 <div className="hidden md:flex items-center gap-3">
                   <div className="text-right">
-                    <p className="text-sm font-medium text-[#FFFBF5]">{user.full_name}</p>
-                    <p className="text-xs text-[#B8956A]">
+                    <p className="text-sm font-medium text-primary-foreground">{user.full_name}</p>
+                    <p className="text-xs text-primary-foreground/60">
                       {isSalesTeam ? "Sales Team" : isAdmin ? "Admin" : isClient ? "Client" : "Media Partner"}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-[#FFFBF5]/70 hover:text-[#FFFBF5] hover:bg-[#FFFBF5]/10"
+                    className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
                     onClick={() => {
                       localStorage.clear();
                       sessionStorage.clear();
@@ -291,7 +231,7 @@ function LayoutContent({ children, currentPageName }) {
                 </div>
               )}
               <button
-                className="md:hidden p-2 text-[#FFFBF5]"
+                className="md:hidden p-2 text-primary-foreground"
                 onClick={() => setMobileOpen(!mobileOpen)}
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -301,7 +241,7 @@ function LayoutContent({ children, currentPageName }) {
         </div>
 
         {mobileOpen && (
-          <div className="md:hidden border-t border-[#B8956A]/20 bg-[#1A1A1A] px-4 py-3 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
+          <div className="md:hidden border-t border-border bg-primary px-4 py-3 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
             {navItems.length > 0 && navItems.map((item) => {
                 const Icon = item.icon;
                 const active = currentPageName === item.page;
@@ -312,8 +252,8 @@ function LayoutContent({ children, currentPageName }) {
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
                       active
-                        ? "bg-[#B8956A] text-[#1A1A1A]"
-                        : "text-[#FFFBF5]/70 hover:bg-[#FFFBF5]/10"
+                        ? "bg-primary-foreground text-primary"
+                        : "text-primary-foreground/70 hover:bg-primary-foreground/10"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -327,8 +267,8 @@ function LayoutContent({ children, currentPageName }) {
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
                   currentPageName === "PublicAccountSettings"
-                    ? "bg-[#B8956A] text-[#1A1A1A]"
-                    : "text-[#FFFBF5]/70 hover:bg-[#FFFBF5]/10"
+                    ? "bg-primary-foreground text-primary"
+                    : "text-primary-foreground/70 hover:bg-primary-foreground/10"
                 }`}
               >
                 <Settings className="w-4 h-4" />
@@ -375,7 +315,7 @@ export default function Layout({ children, currentPageName }) {
 }
 ```
 
-> **Note:** The source app's Layout.jsx also wraps children in `MediaPartnerGate` and renders `NotificationPanel`/`AdminNotificationPanel`, `SupportProvider`/`SupportBubble`/`SupportPanel`, `CallStatusProvider`, `GoogleMapsLoader`, `TwilioSdkLoader`, and a `TrackLink` special-case. Those are app-specific providers — include only the ones your target app needs. The version above includes the core layout (header, nav, mobile menu, page transitions, bottom tabs) which is what gives the Training Admin system its look and feel.
+> **How the theming works:** Every color class uses the app's shadcn tokens — `bg-background`, `text-foreground`, `bg-primary`, `text-primary-foreground`, `border-border`. These map to the CSS variables in `src/index.css` (`--background`, `--foreground`, `--primary`, `--primary-foreground`, `--border`). Change those variables in your app's `src/index.css` and the entire layout recolors automatically — no edits to Layout.jsx needed. The header uses `bg-primary` so it takes the app's primary color; active nav items invert to `bg-primary-foreground text-primary`.
 
 ---
 
@@ -411,7 +351,7 @@ export default function PageTransition({ children }) {
 
 ## `src/components/layout/MobileBottomTabs.jsx`
 
-> Fixed bottom navigation bar for mobile (hidden on desktop and for sales team). Shows different tabs per user role. Includes scroll-position memory per route.
+> Fixed bottom navigation bar for mobile (hidden on desktop and for sales team). Shows different tabs per user role. Uses the app's theme tokens. Includes scroll-position memory per route.
 
 ```jsx
 import React, { useEffect, useRef, useCallback } from "react";
@@ -519,7 +459,7 @@ export default function MobileBottomTabs({ user }) {
 
   return (
     <div 
-      className="fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border-color)] z-40"
+      className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
@@ -537,7 +477,7 @@ export default function MobileBottomTabs({ user }) {
               className="flex flex-col items-center justify-center flex-1 h-full relative"
               style={{ userSelect: 'none' }}
             >
-              <div className={`flex flex-col items-center gap-1 ${isActive ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}`}>
+              <div className={`flex flex-col items-center gap-1 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
                 <Icon className="w-6 h-6" />
                 <span className="text-xs font-medium">{tab.label}</span>
               </div>
@@ -594,19 +534,19 @@ const LayoutWrapper = ({ children, currentPageName }) => (
 
 ---
 
-## Theme Variables
+## Theme Tokens Used
 
-The layout injects these CSS variables via an inline `<style>` tag, giving the whole app the Arriv brand look:
+All colors come from the app's existing shadcn theme tokens (defined in `src/index.css` and mapped in `tailwind.config.js`). No hardcoded hex values anywhere in the layout:
 
-| Variable | Light | Dark |
+| Token class | CSS variable | Used for |
 |---|---|---|
-| `--bg-primary` | `#FFFBF5` (cream) | `#0A0A0A` |
-| `--bg-secondary` | `#FFFFFF` | `#1A1A1A` |
-| `--text-primary` | `#1A1A1A` | `#FFFBF5` |
-| `--text-secondary` | `rgba(26,26,26,0.6)` | `rgba(255,251,245,0.6)` |
-| `--accent-color` | `#B8956A` (gold) | `#B8956A` |
-| `--accent-hover` | `#A68559` | `#C9A87B` |
-| `--border-color` | `rgba(184,149,106,0.2)` | `rgba(184,149,106,0.3)` |
-| `--card-bg` | `#FFFFFF` | `#1A1A1A` |
+| `bg-background` | `--background` | page body, bottom tabs background |
+| `text-foreground` | `--foreground` | page body text |
+| `bg-primary` | `--primary` | header background, mobile menu background |
+| `text-primary-foreground` | `--primary-foreground` | header text, inactive nav text |
+| `bg-primary-foreground` | `--primary-foreground` | active nav item background |
+| `text-primary` | `--primary` | active nav item text, active bottom tab |
+| `border-border` | `--border` | header bottom border, bottom tabs top border, mobile menu divider |
+| `text-muted-foreground` | `--muted-foreground` | inactive bottom tab text |
 
-The header is always dark (`bg-[#1A1A1A]`) with gold accents, regardless of light/dark mode. Active nav items use `bg-[#B8956A] text-[#1A1A1A]`.
+To recolor the entire layout, just change the `--primary`, `--background`, `--foreground`, and `--border` variables in your app's `src/index.css` — the layout follows automatically.
