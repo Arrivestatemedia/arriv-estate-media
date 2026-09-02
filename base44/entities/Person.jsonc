@@ -31,6 +31,19 @@
       "type": "string",
       "description": "HubSpot contact ID (when this person exists in HubSpot CRM)"
     },
+    "lifecycle_stage": {
+      "type": "string",
+      "enum": [
+        "subscriber",
+        "lead",
+        "mql",
+        "sql",
+        "opportunity",
+        "customer",
+        "churned"
+      ],
+      "description": "CRM lifecycle stage synced from Arriv One. This is the canonical stage \u2014 Estate Media reads it but does not write it (Arriv One owns CRM lifecycle)."
+    },
     "roles": {
       "type": "array",
       "items": {
@@ -43,7 +56,8 @@
               "customer",
               "candidate",
               "partner",
-              "applicant"
+              "applicant",
+              "media_specialist"
             ],
             "description": "Which role this person holds"
           },
@@ -76,7 +90,8 @@
         "customer",
         "candidate",
         "partner",
-        "applicant"
+        "applicant",
+        "media_specialist"
       ],
       "description": "The person's primary/current role"
     },

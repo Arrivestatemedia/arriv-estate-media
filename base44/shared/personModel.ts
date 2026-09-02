@@ -22,6 +22,7 @@ export const ROLE_TYPES = {
   CANDIDATE: "candidate",
   PARTNER: "partner",
   APPLICANT: "applicant",
+  MEDIA_SPECIALIST: "media_specialist",
 };
 
 /**
@@ -181,6 +182,7 @@ export async function getPersonRoles(base44, person) {
     candidate: "HireCandidate",
     applicant: "JobApplication",
     partner: "User",
+    media_specialist: "User",
   };
 
   const roles = {};
@@ -237,6 +239,13 @@ export function extractIdentity(roleType, record) {
         dob: record.dob || undefined,
       };
     case ROLE_TYPES.PARTNER:
+      return {
+        full_name: record.full_name || "",
+        email: record.email || "",
+        phone: record.phone || "",
+        dob: undefined,
+      };
+    case ROLE_TYPES.MEDIA_SPECIALIST:
       return {
         full_name: record.full_name || "",
         email: record.email || "",

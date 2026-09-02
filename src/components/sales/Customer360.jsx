@@ -129,6 +129,23 @@ export default function Customer360({ contact, contactKey, activities, onReload 
     return { label: "Activation Pending", color: "bg-amber-100 text-amber-700", icon: Clock };
   }, [pendingSignup]);
 
+  // Lifecycle stage — consumed from Arriv One CRM (contact.lifecycle_stage).
+  // Estate Media reads this but does not own it; Arriv One is the CRM authority.
+  // Falls back to deriving from Estate Media operational data when no CRM stage is synced.
+  const lifecycleStage = useMemo(() => {
+    const crmStage = contact?.lifecycle_stage;
+    if (crmStage === "customer") return { phase: "customer", label: "Customer", crmStage };
+    if (crmStage === "opportunity") return { phase: "opportunity", label: "Opportunity", crmStage };
+    if (crmStage && ["subscriber", "lead", "mql", "sql"].includes(crmStage)) return { phase: "lead", label: "Lead", crmStage };
+
+    // Derive from Estate Media data (no Arriv One CRM stage synced yet)
+    const hasCompleted = [...bookings, ...jobs].some(o => o.status === "completed" || o.status === "approved");
+    const hasPending = [...bookings, ...jobs].some(o => ["pending", "confirmed", "booked", "in_progress"].includes(o.status));
+    if (hasCompleted) return { phase: "customer", label: "Customer", crmStage: null };
+    if (hasPending) return { phase: "opportunity", label: "Opportunity", crmStage: null };
+    return { phase: "lead", label: "Lead", crmStage: null };
+  }, [contact, bookings, jobs]);
+
   const handleLogFollowUp = async () => {
     if (!followUpData.notes || !followUpData.activity_date) return;
     setSavingFollowUp(true);
@@ -279,6 +296,41 @@ export default function Customer360({ contact, contactKey, activities, onReload 
                 </Button>
               )}
             </div>
+
+            {/* Lifecycle Stage Pipeline — consumed from Arriv One CRM */}
+            <div className="mt-5 pt-5 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4" style={{ color: '#B8956A' }} />
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#B8956A' }}>
+                  Lifecycle Stage {lifecycleStage.crmStage && <span className="opacity-60 normal-case font-normal">({lifecycleStage.crmStage})</span>}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-2">
+                {[
+                  { phase: "lead", label: "Lead" },
+                  { phase: "opportunity", label: "Opportunity" },
+                  { phase: "customer", label: "Customer" },
+                ].map((stage, i) => {
+                  const active = lifecycleStage.phase === stage.phase;
+                  const passed = ["lead", "opportunity", "customer"].indexOf(lifecycleStage.phase) >= i;
+                  return (
+                    <div key={stage.phase} className="flex items-center gap-1 sm:gap-2 flex-1">
+                      <div
+                        className="flex-1 px-3 py-2 rounded-lg text-center text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: active ? '#B8956A' : passed ? 'rgba(184,149,106,0.2)' : 'rgba(255,255,255,0.05)',
+                          color: active ? '#1A1A1A' : passed ? '#B8956A' : 'rgba(255,251,245,0.4)',
+                          border: `1px solid ${active ? '#B8956A' : 'rgba(184,149,106,0.2)'}`,
+                        }}
+                      >
+                        {stage.label}
+                      </div>
+                      {i < 2 && <div className="w-4 h-px" style={{ backgroundColor: passed ? '#B8956A' : 'rgba(184,149,106,0.2)' }} />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -286,8 +338,9 @@ export default function Customer360({ contact, contactKey, activities, onReload 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4 bg-white border" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="communications">Communications</TabsTrigger>
             <TabsTrigger value="orders">Jobs & Orders</TabsTrigger>
+            <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -344,8 +397,8 @@ export default function Customer360({ contact, contactKey, activities, onReload 
             </div>
           </TabsContent>
 
-          {/* ── Activity Tab ───────────────────────────────────────── */}
-          <TabsContent value="activity">
+          {/* ── Communications Tab ──────────────────────────────────── */}
+          <TabsContent value="communications">
             {/* Follow-up form */}
             <div className="mb-4">
               {showFollowUpForm ? (
@@ -416,6 +469,11 @@ export default function Customer360({ contact, contactKey, activities, onReload 
           {/* ── Jobs & Orders Tab ──────────────────────────────────── */}
           <TabsContent value="orders">
             <OrdersTab bookings={bookings} jobs={jobs} />
+          </TabsContent>
+
+          {/* ── Projects Tab (Shoots — Estate Media vertical) ─────── */}
+          <TabsContent value="projects">
+            <ProjectsTab jobs={jobs} />
           </TabsContent>
 
           {/* ── Invoices Tab ───────────────────────────────────────── */}
@@ -932,6 +990,90 @@ function RelationshipTab({ bookings, jobs, invoices, activities, pendingSignup }
                     <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
                       {format(new Date(m.date), "MMM d, yyyy")}
                     </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Projects Tab (Shoots — Estate Media vertical) ─────────────────
+// Projects = shoots: jobs that have been booked and are in production or completed.
+// Shows media partner assignment, shoot status, and footage delivery — the Estate Media
+// operational layer that sits on top of the Arriv One CRM lifecycle.
+function ProjectsTab({ jobs }) {
+  const projects = jobs.filter(j => ["booked", "in_progress", "completed"].includes(j.status));
+
+  if (projects.length === 0) {
+    return (
+      <Card><CardContent className="pt-8 pb-8 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>
+        <Video className="w-10 h-10 mx-auto mb-2 opacity-30" />
+        <p>No shoots scheduled yet</p>
+      </CardContent></Card>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {projects.map(j => {
+        const isCompleted = j.status === "completed";
+        const isInProgress = j.status === "in_progress" || j.media_partner_status === "on_site" || j.media_partner_status === "on_the_way";
+        return (
+          <Card key={j.id}>
+            <CardContent className="pt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={isCompleted ? "bg-[#B8956A] text-[#1A1A1A]" : isInProgress ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}>
+                      {isCompleted ? "Completed" : isInProgress ? "In Progress" : "Booked"}
+                    </Badge>
+                    <span className="font-medium text-sm" style={{ color: '#1A1A1A' }}>{j.title}</span>
+                  </div>
+                  <div className="mt-2 space-y-1 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                    <p className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{j.location}</p>
+                    <p className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{j.date ? format(new Date(j.date), "MMM d, yyyy") : "—"}</p>
+                    {j.package && <p className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" />{PACKAGE_LABELS[j.package] || j.package}</p>}
+                  </div>
+
+                  {/* Media Partner — Estate Media vertical */}
+                  {j.booked_by_name && (
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(184,149,106,0.15)' }}>
+                      <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#B8956A' }}>Media Partner</p>
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.1)' }}>
+                          <User className="w-3 h-3" style={{ color: '#B8956A' }} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>{j.booked_by_name}</p>
+                          {j.media_partner_status && (
+                            <p className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                              {j.media_partner_status === "on_site" ? "On site" : j.media_partner_status === "on_the_way" ? "On the way" : j.media_partner_status === "job_completed" ? "Job completed" : "Awaiting arrival"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Footage & Delivery — Estate Media vertical */}
+                  {(j.footage_uploaded || j.google_drive_folder_url) && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {j.footage_uploaded && (
+                        <Badge className="bg-[#B8956A]/15 text-[#B8956A]">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Footage Uploaded
+                        </Badge>
+                      )}
+                      {j.google_drive_folder_url && (
+                        <a href={j.google_drive_folder_url} target="_blank" rel="noopener noreferrer"
+                          className="text-xs inline-flex items-center gap-1 hover:underline" style={{ color: '#B8956A' }}>
+                          <FileText className="w-3 h-3" /> Drive Folder
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
