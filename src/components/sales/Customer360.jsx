@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Phone, Mail, Building2, User, UserPlus, Tag, Clock, ArrowLeft,
   Plus, Briefcase, DollarSign, Home, Calendar, FileText, CheckCircle2,
-  AlertCircle, RefreshCw, ShoppingBag, TrendingUp, MapPin
+  AlertCircle, RefreshCw, ShoppingBag, TrendingUp, MapPin, Video
 } from "lucide-react";
 import { format } from "date-fns";
 import LogActivityModal from "@/components/sales/LogActivityModal";
@@ -50,6 +50,8 @@ export default function Customer360({ contact, contactKey, activities, onReload 
   const [jobs, setJobs] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [pendingSignup, setPendingSignup] = useState(null);
+  const [videoCalls, setVideoCalls] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [loading360, setLoading360] = useState(true);
   const [showLogActivity, setShowLogActivity] = useState(false);
   const [showNewJobModal, setShowNewJobModal] = useState(false);
@@ -68,17 +70,28 @@ export default function Customer360({ contact, contactKey, activities, onReload 
     if (!customerEmail) return;
     setLoading360(true);
     try {
-      const [bookingResults, jobResults, invoiceResults, signupResults] = await Promise.all([
+      const [bookingResults, jobResults, invoiceResults, signupResults, videoCallResults, docResults] = await Promise.all([
         base44.entities.Booking.list('-created_date', 200).catch(() => []),
         base44.entities.Job.list('-created_date', 200).catch(() => []),
         base44.entities.Invoice.list('-created_date', 200).catch(() => []),
         base44.entities.PendingSignup.filter({ email: customerEmail }).catch(() => []),
+        base44.entities.VideoCallMessage.filter({ recipient_email: customerEmail }).catch(() => []),
+        base44.entities.JobApplication.filter({ email: customerEmail }).catch(() => []),
       ]);
 
       setBookings(bookingResults.filter(b => (b.client_email || "").toLowerCase() === customerEmail));
       setJobs(jobResults.filter(j => (j.client_email || "").toLowerCase() === customerEmail));
       setInvoices(invoiceResults.filter(i => (i.client_email || "").toLowerCase() === customerEmail));
       setPendingSignup(signupResults && signupResults[0] ? signupResults[0] : null);
+      setVideoCalls(videoCallResults || []);
+      // Documents: aggregate from job applications (video_samples, picture_samples, documents)
+      const appDocs = [];
+      (docResults || []).forEach(app => {
+        (app.video_samples || []).forEach(url => appDocs.push({ type: 'Video Sample', url, date: app.created_date }));
+        (app.picture_samples || []).forEach(url => appDocs.push({ type: 'Picture Sample', url, date: app.created_date }));
+        (app.documents || []).forEach(url => appDocs.push({ type: 'Document', url, date: app.created_date }));
+      });
+      setDocuments(appDocs);
     } catch (e) {
       console.error("Customer360 load error:", e);
     } finally {
@@ -276,6 +289,10 @@ export default function Customer360({ contact, contactKey, activities, onReload 
             <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="orders">Jobs & Orders</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="video_calls">Video Calls</TabsTrigger>
+            <TabsTrigger value="relationship">Relationship</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
           </TabsList>
 
@@ -404,6 +421,26 @@ export default function Customer360({ contact, contactKey, activities, onReload 
           {/* ── Invoices Tab ───────────────────────────────────────── */}
           <TabsContent value="invoices">
             <InvoicesTab invoices={invoices} />
+          </TabsContent>
+
+          {/* ── Products Purchased Tab ─────────────────────────────── */}
+          <TabsContent value="products">
+            <ProductsTab bookings={bookings} jobs={jobs} invoices={invoices} />
+          </TabsContent>
+
+          {/* ── Documents Tab ─────────────────────────────────────── */}
+          <TabsContent value="documents">
+            <DocumentsTab documents={documents} />
+          </TabsContent>
+
+          {/* ── Video Calls Tab ────────────────────────────────────── */}
+          <TabsContent value="video_calls">
+            <VideoCallsTab videoCalls={videoCalls} />
+          </TabsContent>
+
+          {/* ── Account Relationship History Tab ──────────────────── */}
+          <TabsContent value="relationship">
+            <RelationshipTab bookings={bookings} jobs={jobs} invoices={invoices} activities={activities} pendingSignup={pendingSignup} />
           </TabsContent>
 
           {/* ── Account Tab ────────────────────────────────────────── */}
@@ -611,6 +648,297 @@ function InvoicesTab({ invoices }) {
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+// ── Products Purchased Tab ───────────────────────────────────────
+function ProductsTab({ bookings, jobs, invoices }) {
+  const allProducts = [];
+  bookings.forEach(b => {
+    allProducts.push({
+      type: 'package',
+      label: PACKAGE_LABELS[b.package] || b.package || '—',
+      add_ons: b.add_ons || [],
+      date: b.preferred_date || b.created_date,
+      price: b.total_price || b.custom_price_text,
+      status: b.status,
+    });
+  });
+  jobs.forEach(j => {
+    if (j.package) {
+      allProducts.push({
+        type: 'job',
+        label: PACKAGE_LABELS[j.package] || j.package,
+        add_ons: j.add_ons || [],
+        date: j.date || j.created_date,
+        price: j.pay_rate,
+        status: j.status,
+      });
+    }
+  });
+
+  // Aggregate add-on counts
+  const addOnCounts = {};
+  allProducts.forEach(p => {
+    (p.add_ons || []).forEach(a => {
+      const label = ADDON_LABELS[a] || a;
+      addOnCounts[label] = (addOnCounts[label] || 0) + 1;
+    });
+  });
+
+  if (allProducts.length === 0) {
+    return (
+      <Card><CardContent className="pt-8 pb-8 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>
+        <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-30" />
+        <p>No products purchased yet</p>
+      </CardContent></Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {Object.keys(addOnCounts).length > 0 && (
+        <Card>
+          <CardContent className="pt-5">
+            <h3 className="font-semibold mb-3" style={{ color: '#1A1A1A' }}>Add-on Summary</h3>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(addOnCounts).map(([label, count]) => (
+                <Badge key={label} className="bg-[#B8956A]/15 text-[#B8956A]">
+                  <Tag className="w-3 h-3 mr-1" />{label} ×{count}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      <div className="space-y-2">
+        {allProducts.map((p, i) => (
+          <Card key={i}>
+            <CardContent className="pt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className="bg-slate-100 text-slate-700">{p.type === 'package' ? 'Booking' : 'Job'}</Badge>
+                    <span className="font-medium text-sm" style={{ color: '#1A1A1A' }}>{p.label}</span>
+                  </div>
+                  {p.add_ons && p.add_ons.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {p.add_ons.map((a, idx) => (
+                        <span key={idx} className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(184,149,106,0.1)', color: '#B8956A' }}>
+                          {ADDON_LABELS[a] || a}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {p.date && (
+                    <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                      {format(new Date(p.date), "MMM d, yyyy")}
+                    </p>
+                  )}
+                </div>
+                {p.price && (
+                  <p className="font-bold shrink-0" style={{ color: '#1A1A1A' }}>
+                    {typeof p.price === 'number' ? `$${p.price.toLocaleString()}` : p.price}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Documents Tab ────────────────────────────────────────────────
+function DocumentsTab({ documents }) {
+  if (documents.length === 0) {
+    return (
+      <Card><CardContent className="pt-8 pb-8 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>
+        <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
+        <p>No documents on file</p>
+      </CardContent></Card>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {documents.map((doc, i) => (
+        <Card key={i}>
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
+                <FileText className="w-4 h-4" style={{ color: '#B8956A' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <Badge variant="outline">{doc.type}</Badge>
+                {doc.date && (
+                  <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                    {format(new Date(doc.date), "MMM d, yyyy")}
+                  </p>
+                )}
+                <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                  className="text-sm mt-1 block truncate hover:underline" style={{ color: '#B8956A' }}>
+                  {doc.url}
+                </a>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ── Video Calls Tab ───────────────────────────────────────────────
+function VideoCallsTab({ videoCalls }) {
+  if (!videoCalls || videoCalls.length === 0) {
+    return (
+      <Card><CardContent className="pt-8 pb-8 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>
+        <Video className="w-10 h-10 mx-auto mb-2 opacity-30" />
+        <p>No video calls with this customer</p>
+      </CardContent></Card>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {videoCalls.map(vc => (
+        <Card key={vc.id}>
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
+                <Video className="w-4 h-4" style={{ color: '#B8956A' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>{vc.subject || vc.message_body?.slice(0, 60) || "Video Call"}</p>
+                {vc.created_date && (
+                  <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                    {format(new Date(vc.created_date), "MMM d, yyyy h:mm a")}
+                  </p>
+                )}
+                {vc.recording_url && (
+                  <a href={vc.recording_url} target="_blank" rel="noopener noreferrer"
+                    className="text-xs mt-1 inline-block hover:underline" style={{ color: '#B8956A' }}>
+                    View Recording
+                  </a>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ── Account Relationship History Tab ─────────────────────────────
+function RelationshipTab({ bookings, jobs, invoices, activities, pendingSignup }) {
+  const milestones = [];
+
+  // Account creation
+  if (pendingSignup?.created_date) {
+    milestones.push({
+      icon: UserPlus,
+      label: 'Account Created',
+      date: pendingSignup.created_date,
+      detail: pendingSignup.status === 'completed' ? 'Activated their front-end account' : 'Signup initiated',
+    });
+  }
+
+  // First activity (first contact)
+  const firstActivity = [...activities].sort((a, b) => new Date(a.activity_date) - new Date(b.activity_date))[0];
+  if (firstActivity) {
+    milestones.push({
+      icon: Phone,
+      label: 'First Contact',
+      date: firstActivity.activity_date,
+      detail: `${firstActivity.activity_type || 'Activity'}: ${(firstActivity.notes || '').slice(0, 60)}`,
+    });
+  }
+
+  // First order
+  const allOrders = [...bookings, ...jobs].sort((a, b) => {
+    const da = new Date(a.preferred_date || a.date || a.created_date || 0);
+    const db = new Date(b.preferred_date || b.date || b.created_date || 0);
+    return da - db;
+  });
+  if (allOrders[0]) {
+    milestones.push({
+      icon: ShoppingBag,
+      label: 'First Order',
+      date: allOrders[0].preferred_date || allOrders[0].date || allOrders[0].created_date,
+      detail: PACKAGE_LABELS[allOrders[0].package] || allOrders[0].title || 'Order placed',
+    });
+  }
+
+  // First paid invoice
+  const firstPaid = invoices.filter(i => i.payment_status === 'paid').sort((a, b) => new Date(a.paid_at || 0) - new Date(b.paid_at || 0))[0];
+  if (firstPaid) {
+    milestones.push({
+      icon: DollarSign,
+      label: 'First Payment',
+      date: firstPaid.paid_at || firstPaid.created_date,
+      detail: `$${(firstPaid.amount || 0).toLocaleString()} paid`,
+    });
+  }
+
+  // Repeat customer milestone
+  if (allOrders.length > 1) {
+    milestones.push({
+      icon: TrendingUp,
+      label: 'Repeat Customer',
+      date: allOrders[1].preferred_date || allOrders[1].date || allOrders[1].created_date,
+      detail: `${allOrders.length} total orders`,
+    });
+  }
+
+  // Most recent activity
+  const lastActivity = [...activities].sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date))[0];
+  if (lastActivity && lastActivity !== firstActivity) {
+    milestones.push({
+      icon: Clock,
+      label: 'Last Contact',
+      date: lastActivity.activity_date,
+      detail: `${lastActivity.activity_type || 'Activity'}: ${(lastActivity.notes || '').slice(0, 60)}`,
+    });
+  }
+
+  milestones.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (milestones.length === 0) {
+    return (
+      <Card><CardContent className="pt-8 pb-8 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>
+        <Clock className="w-10 h-10 mx-auto mb-2 opacity-30" />
+        <p>No relationship history yet</p>
+      </CardContent></Card>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {milestones.map((m, i) => {
+        const Icon = m.icon;
+        return (
+          <Card key={i}>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.15)' }}>
+                  <Icon className="w-4 h-4" style={{ color: '#B8956A' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>{m.label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(26,26,26,0.6)' }}>{m.detail}</p>
+                  {m.date && (
+                    <p className="text-xs mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                      {format(new Date(m.date), "MMM d, yyyy")}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

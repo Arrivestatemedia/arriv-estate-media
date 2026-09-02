@@ -1,0 +1,124 @@
+{
+  "name": "Person",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Canonical full name of this person"
+    },
+    "email": {
+      "type": "string",
+      "description": "Primary email address (canonical identity key)"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Primary phone number"
+    },
+    "dob": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of birth"
+    },
+    "shared_person_id": {
+      "type": "string",
+      "description": "Immutable cross-system person identifier (shared across Arriv One, KhethaIQ, and Estate Media)"
+    },
+    "arriv_employee_id": {
+      "type": "string",
+      "description": "Arriv One employee ID (set when this person is an employee in Arriv One)"
+    },
+    "hubspot_id": {
+      "type": "string",
+      "description": "HubSpot contact ID (when this person exists in HubSpot CRM)"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role_type": {
+            "type": "string",
+            "enum": [
+              "employee",
+              "customer",
+              "candidate",
+              "partner",
+              "applicant"
+            ],
+            "description": "Which role this person holds"
+          },
+          "record_id": {
+            "type": "string",
+            "description": "ID of the role-specific record (SalesTeamMember, Contact, HireCandidate, User, JobApplication)"
+          },
+          "record_type": {
+            "type": "string",
+            "description": "Entity type of the role record (SalesTeamMember, Contact, HireCandidate, User, JobApplication)"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether this role is currently active"
+          },
+          "assumed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this role was assumed"
+          }
+        }
+      },
+      "description": "All roles this person holds across the ecosystem. A person may have multiple roles simultaneously."
+    },
+    "primary_role": {
+      "type": "string",
+      "enum": [
+        "employee",
+        "customer",
+        "candidate",
+        "partner",
+        "applicant"
+      ],
+      "description": "The person's primary/current role"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "tenant_id": {
+      "type": "string",
+      "default": "tnt_estate_media",
+      "description": "Canonical tenant ID for multi-tenant isolation"
+    }
+  },
+  "required": [
+    "full_name",
+    "email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
