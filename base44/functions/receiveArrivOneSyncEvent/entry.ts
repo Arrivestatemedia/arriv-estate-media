@@ -31,6 +31,7 @@ import {
 } from "../../shared/syncEntityAdapters.ts";
 import { translateCanonicalToLocal } from "../../shared/syncFieldAdapters.ts";
 import { processManifestPush } from "../../shared/manifestPushHandler.ts";
+import { getBoundaryViolation } from "../../shared/ecosystemBoundaries.ts";
 
 const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
 
@@ -181,6 +182,25 @@ export default async function (req) {
         manifest_version: manifestResult.version,
         manifest_id: manifestResult.manifestId,
       });
+    }
+
+    // 7.6. Ecosystem boundary validation — reject Arriv One events for
+    // Khetha IQ-owned recruiting entities. Arriv One has no authority over
+    // recruiting intelligence. This guardrail prevents future development
+    // from accidentally wiring Arriv One sync to recruiting entities.
+    const boundaryCheck = getBoundaryViolation("arriv_one", envelope.entity_type);
+    if (boundaryCheck?.violated) {
+      console.warn(`[ECOSYSTEM_BOUNDARY] Arriv One boundary violation rejected: entity_type="${envelope.entity_type}" event_id="${envelope.event_id}" owned_by="${boundaryCheck.owned_by}"`);
+      return Response.json(
+        {
+          accepted: false,
+          processing_status: "rejected",
+          reason: boundaryCheck.reason,
+          code: boundaryCheck.code,
+          owned_by: boundaryCheck.owned_by,
+        },
+        { status: 403 }
+      );
     }
 
     // 8. Validate entity type is sync-ready (not deferred)

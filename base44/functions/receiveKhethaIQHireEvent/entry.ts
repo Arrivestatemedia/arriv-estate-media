@@ -24,6 +24,7 @@ import {
   generateHandoffId,
   executeHandoff,
 } from "../../shared/hireHandoffShared.ts";
+import { isKhethaEventAllowed, getBoundaryViolation } from "../../shared/ecosystemBoundaries.ts";
 
 export default async function(req) {
   try {
@@ -43,8 +44,36 @@ export default async function(req) {
     const base44 = createClientFromRequest(req);
 
     const { event_type, candidate } = body;
-    if (event_type !== "candidate.hired") {
-      return Response.json({ error: `Unsupported event type: ${event_type}` }, { status: 400 });
+
+    // Ecosystem boundary guardrail: Khetha IQ may only send recruiting-related
+    // events. Reject any attempt to create/modify CRM, billing, employee,
+    // payroll, or marketplace entities.
+    if (!isKhethaEventAllowed(event_type)) {
+      console.warn(`[ECOSYSTEM_BOUNDARY] Khetha IQ event type rejected: event_type="${event_type}" — not in allowed recruiting event types`);
+      return Response.json(
+        {
+          error: `BOUNDARY VIOLATION: Khetha IQ event type "${event_type}" is not allowed. Khetha IQ may only send recruiting-related events (candidate.hired, candidate.updated, candidate.status_changed, interview.completed, offer.extended, offer.responded).`,
+          code: "khetha_boundary_violation",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Validate that Khetha is not trying to modify non-recruiting entities
+    // (future-proofing: if a generic entity_type field is added to the payload)
+    if (body.entity_type) {
+      const boundaryCheck = getBoundaryViolation("khetha_iq", body.entity_type);
+      if (boundaryCheck?.violated) {
+        console.warn(`[ECOSYSTEM_BOUNDARY] Khetha IQ entity boundary violation rejected: entity_type="${body.entity_type}" owned_by="${boundaryCheck.owned_by}"`);
+        return Response.json(
+          {
+            error: boundaryCheck.reason,
+            code: boundaryCheck.code,
+            owned_by: boundaryCheck.owned_by,
+          },
+          { status: 403 }
+        );
+      }
     }
 
     if (!candidate || !candidate.email) {
