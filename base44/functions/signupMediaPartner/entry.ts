@@ -38,6 +38,12 @@ Deno.serve(async (req) => {
         status: 'pending'
       });
     } else {
+      // Prevent duplicate identities — reject if email already registered
+      const existingByEmail = await base44.asServiceRole.entities.PendingSignup.filter({ email });
+      if (existingByEmail.length > 0) {
+        return Response.json({ error: 'Email already registered' }, { status: 400 });
+      }
+
       // Create new pending signup record
       await base44.asServiceRole.entities.PendingSignup.create({
         email,
