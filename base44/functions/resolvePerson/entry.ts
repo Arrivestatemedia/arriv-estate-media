@@ -49,8 +49,9 @@ export default async function(req) {
         ? extractIdentity(roleType, record)
         : { email, full_name: body.full_name || '', phone: body.phone || '' };
 
-      // Build a minimal role record for linking
-      const roleRecord = record || { id: recordId };
+      // Build a minimal role record for linking — always ensure id is set
+      // so the idempotency check in linkRoleToPerson works correctly.
+      const roleRecord = { ...(record || {}), id: record?.id || recordId };
 
       person = await linkRoleToPerson(admin, roleType, roleRecord, identityFields);
     }

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { sendCustomerOnboardingEmail } from "../../shared/brevoCustomerOnboardingEmail.ts";
+import { linkRoleToPerson, ROLE_TYPES } from "../../shared/personModel.ts";
 
 function generateSecurePassword(length = 12) {
   const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
@@ -83,6 +84,21 @@ export default async function(req) {
         contactUpdated = true;
       } catch (e) {
         console.error('Failed to update contact:', e);
+      }
+
+      // ── LINK CUSTOMER PROFILE TO PERSON (identity layer) ───────
+      // The Contact is the customer profile record. Link it to the
+      // canonical Person so this customer's identity is unified across
+      // all roles without duplicating Person records.
+      try {
+        await linkRoleToPerson(
+          base44.asServiceRole,
+          ROLE_TYPES.CUSTOMER,
+          { id: contact_id },
+          { full_name, email: normalizedEmail, phone: phone || '' }
+        );
+      } catch (e) {
+        console.error('Failed to link customer role to Person:', e);
       }
     }
 

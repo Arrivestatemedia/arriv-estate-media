@@ -3,6 +3,8 @@
 // Used by manageHireHandoff and any future function that needs to bridge
 // a KhethaIQ HireCandidate to an Estate Media worker record.
 
+import { linkRoleToPerson, ROLE_TYPES } from "./personModel.ts";
+
 export type TargetRole = "media_specialist" | "sales_growth_advisor" | "other";
 
 export interface HandoffResult {
@@ -207,6 +209,16 @@ export async function executeHandoff(base44, params: {
           });
         }
         await linkJobApplicationByEmail(base44, normalizedEmail, candidateId, sharedPersonId);
+        // Link media specialist profile (User) to canonical Person
+        try {
+          await linkRoleToPerson(
+            base44.asServiceRole,
+            ROLE_TYPES.MEDIA_SPECIALIST,
+            { id: existingUser.id },
+            { full_name: name || "", email: normalizedEmail, phone: phone || "" },
+            sharedPersonId
+          );
+        } catch (e) { console.error("linkRoleToPerson (media_specialist existing):", e); }
         return {
           success: true,
           already_existed: true,
@@ -232,6 +244,12 @@ export async function executeHandoff(base44, params: {
         });
       }
       await linkJobApplicationByEmail(base44, normalizedEmail, candidateId, sharedPersonId);
+      // NOTE: The media_specialist role link is deferred until the User record
+      // actually exists (after invite acceptance). The Person identity is already
+      // established via the candidate role link in handleProcessHire, and the
+      // shared_person_id on the HireCandidate preserves the identity chain.
+      // When the User later logs in, a workflow or login-time link can add the
+      // media_specialist role using the real User.id.
 
       return {
         success: true,
@@ -261,6 +279,16 @@ export async function executeHandoff(base44, params: {
           });
         }
         await linkJobApplicationByEmail(base44, normalizedEmail, candidateId, sharedPersonId);
+        // Link employee profile (existing SalesTeamMember) to canonical Person
+        try {
+          await linkRoleToPerson(
+            base44.asServiceRole,
+            ROLE_TYPES.EMPLOYEE,
+            { id: existingRep.id },
+            { full_name: name || "", email: normalizedEmail, phone: phone || "" },
+            sharedPersonId
+          );
+        } catch (e) { console.error("linkRoleToPerson (employee existing):", e); }
         return {
           success: true,
           already_existed: true,
@@ -297,6 +325,16 @@ export async function executeHandoff(base44, params: {
         });
       }
       await linkJobApplicationByEmail(base44, normalizedEmail, candidateId, sharedPersonId);
+      // Link employee profile (new SalesTeamMember) to canonical Person
+      try {
+        await linkRoleToPerson(
+          base44.asServiceRole,
+          ROLE_TYPES.EMPLOYEE,
+          { id: repRec.id },
+          { full_name: name || "", email: normalizedEmail, phone: phone || "" },
+          sharedPersonId
+        );
+      } catch (e) { console.error("linkRoleToPerson (employee new):", e); }
 
       return {
         success: true,

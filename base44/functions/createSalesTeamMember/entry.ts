@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { linkRoleToPerson, ROLE_TYPES } from "../../shared/personModel.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -46,6 +47,20 @@ Deno.serve(async (req) => {
 
     // The SalesTeamMember entity automation (handleSalesTeamMemberChange) auto-syncs
     // the new employee to Arriv Payroll on create — no explicit sync needed here.
+
+    // ── LINK EMPLOYEE PROFILE TO PERSON (identity layer) ──────────
+    // The SalesTeamMember is the employee profile record (owned by Arriv One).
+    // Link it to the canonical Person so this employee's identity is unified.
+    try {
+      await linkRoleToPerson(
+        base44.asServiceRole,
+        ROLE_TYPES.EMPLOYEE,
+        { id: member.id },
+        { full_name, email, phone: phone_number || '' }
+      );
+    } catch (e) {
+      console.error('Failed to link employee role to Person:', e);
+    }
 
     return Response.json({ 
       success: true,

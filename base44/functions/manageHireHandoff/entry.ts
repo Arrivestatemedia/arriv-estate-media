@@ -18,6 +18,7 @@ import {
   buildAskKhethaContext,
   executeHandoff,
 } from "../../shared/hireHandoffShared.ts";
+import { linkRoleToPerson, ROLE_TYPES } from "../../shared/personModel.ts";
 
 // ---------------------------------------------------------------------------
 // Action: process_hire
@@ -62,6 +63,23 @@ async function handleProcessHire(base44, body, user) {
     handoff_id: handoffId,
     handoff_status: "in_progress",
   });
+
+  // ── LINK CANDIDATE PROFILE TO PERSON (identity layer) ──────────
+  // The HireCandidate is the candidate profile record. Link it to the
+  // canonical Person so this candidate's identity is unified. The
+  // shared_person_id preserves the chain to the future employee/media
+  // specialist role when the handoff completes.
+  try {
+    await linkRoleToPerson(
+      base44.asServiceRole,
+      ROLE_TYPES.CANDIDATE,
+      { id: candidateId },
+      { full_name: candidate.name || "", email: candidate.email || "", phone: candidate.phone || "" },
+      sharedPersonId
+    );
+  } catch (e) {
+    console.error("Failed to link candidate role to Person:", e);
+  }
 
   const result = await executeHandoff(base44, {
     candidateId,
