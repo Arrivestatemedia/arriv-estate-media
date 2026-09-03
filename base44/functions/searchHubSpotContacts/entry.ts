@@ -33,7 +33,9 @@ Deno.serve(async (req) => {
       company: c.company || '',
       jobtitle: c.job_title || '',
       lead_status: c.lead_status || '',
-      lifecycle_stage: c.lifecycle_stage || ''
+      lifecycle_stage: c.lifecycle_stage || '',
+      sales_member_id: c.sales_member_id || '',
+      owner_id: c.owner_id || ''
     }));
 
     return Response.json({ contacts });

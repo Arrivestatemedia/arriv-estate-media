@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check, Plus, X, Trash2, Activity, Clock, ChevronRight, PenLine } from "lucide-react";
+import { Search, User, Building2, Mail, Phone, Loader2, ChevronDown, ChevronUp, Save, Check, Plus, X, Trash2, Activity, Clock, ChevronRight, PenLine, UserCircle } from "lucide-react";
 import LogActivityModal from "@/components/sales/LogActivityModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ActivityDetailModal from "@/components/sales/ActivityDetailModal";
@@ -129,6 +129,40 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
   const [secondaryInfo, setSecondaryInfo] = useState({});
   const [editingSecondaryId, setEditingSecondaryId] = useState(null);
   const [secondarySaving, setSecondarySaving] = useState(false);
+  const [ownerNameMap, setOwnerNameMap] = useState({});
+
+  // Build a tenant-scoped SalesTeamMember ID → full_name map for owner display.
+  // Only Estate Media local SalesTeamMember records are queried — no cross-tenant
+  // sales reps can appear. This consumes the existing sales_member_id/owner_id
+  // relationship; it does not create a competing ownership authority.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const members = await base44.entities.SalesTeamMember.list('-created_date', 500);
+        const map = {};
+        (members || []).forEach(m => {
+          if (m.id) map[m.id] = m.full_name || m.email || '';
+        });
+        if (!cancelled) setOwnerNameMap(map);
+      } catch (e) {
+        console.error("Failed to load sales team members for owner resolution:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Resolve the human-readable owner name for a contact. Prefers sales_member_id
+  // (local SalesTeamMember ID used for RLS), falls back to owner_id. Preserves
+  // both fields' established meanings — neither is overwritten.
+  const resolveOwnerName = (contact) => {
+    if (!contact) return null;
+    const smId = contact.sales_member_id;
+    if (smId && ownerNameMap[smId]) return ownerNameMap[smId];
+    const oId = contact.owner_id;
+    if (oId && ownerNameMap[oId]) return ownerNameMap[oId];
+    return null;
+  };
 
   // Activities shown below the search box (for both regular search results and new contact auto-search)
   const [inlineActivities, setInlineActivities] = useState(null);
@@ -570,6 +604,10 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                   {inlineContactInfo.email ? ` · ${inlineContactInfo.email}` : ''}
                   {inlineContactInfo.company ? ` · ${inlineContactInfo.company}` : ''}
                 </span>
+                <span className="block mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                  <span className="font-medium">Owner:</span>{' '}
+                  <span style={{ color: '#1A1A1A' }}>{resolveOwnerName(inlineContactInfo) || 'Unassigned'}</span>
+                </span>
               </div>
             )}
 
@@ -635,6 +673,12 @@ export default function ContactSearch({ salesMemberId, openNewContactForm, setOp
                           {contact.company && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{contact.company}</span>}
                         </div>
                         {contact.lead_status && <Badge className="mt-1 text-xs" variant="outline">{contact.lead_status}</Badge>}
+                        {/* Canonical Arriv One owner display — shows human-readable name, never raw IDs */}
+                        <div className="mt-1 text-xs flex items-center gap-1" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                          <UserCircle className="w-3 h-3" style={{ color: '#B8956A' }} />
+                          <span className="font-medium">Owner:</span>{' '}
+                          <span style={{ color: '#1A1A1A' }}>{resolveOwnerName(contact) || 'Unassigned'}</span>
+                        </div>
                         {/* Last contact info */}
                         {activities[contact.id] && activities[contact.id].length > 0 && (
                           <div className="mt-2 pt-2 border-t" style={{ borderColor: 'rgba(184,149,106,0.2)', color: 'rgba(26,26,26,0.6)' }}>
