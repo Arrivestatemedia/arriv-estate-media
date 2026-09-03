@@ -279,9 +279,10 @@ export default function KhethaIQ() {
     goJobsHome();
   };
 
-  // Build sidebar items from the manifest, mapping icon names to components.
-  // The Reminders tab is Estate Media–local (not in the central app manifest),
-  // so we always append it after the Interviews tab regardless of manifest.
+  // Build sidebar items directly from the canonical Khetha IQ manifest.
+  // The manifest is live-synced from the central app's IN_APP_NAVIGATION by
+  // syncKhethaIQLayout, so the sidebar stays in exact parity with Khetha IQ.
+  // No local tab injection — Estate Media renders the canonical tab set only.
   const baseTabs = manifest?.tabs?.length ? manifest.tabs : [
     { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
     { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
@@ -291,7 +292,6 @@ export default function KhethaIQ() {
     { id: "talent_pools", label: "Talent Pools", icon: "Users" },
     { id: "pipeline", label: "Pipeline", icon: "GitBranch" },
     { id: "interviews", label: "Interviews", icon: "Video" },
-    { id: "async_interviews", label: "Async Interviews", icon: "Video" },
     { id: "offers", label: "Offers", icon: "FileText" },
     { id: "tasks", label: "Tasks", icon: "SquareCheckBig" },
     { id: "applications", label: "Applications", icon: "FileText" },
@@ -299,31 +299,6 @@ export default function KhethaIQ() {
     { id: "learning", label: "Learning", icon: "Brain" },
     { id: "analytics", label: "Analytics", icon: "BarChart3" },
   ];
-  // Inject Estate Media–local tabs that aren't in the central app manifest.
-  // async_interviews goes right after interviews; reminders goes after that.
-  const hasAsync = baseTabs.some(t => t.id === "async_interviews");
-  const withAsync = hasAsync ? baseTabs : (() => {
-    const idx = baseTabs.findIndex(t => t.id === "interviews");
-    const asyncTab = { id: "async_interviews", label: "Async Interviews", icon: "Video" };
-    if (idx >= 0) {
-      const copy = [...baseTabs];
-      copy.splice(idx + 1, 0, asyncTab);
-      return copy;
-    }
-    return [...baseTabs, asyncTab];
-  })();
-
-  const hasReminders = withAsync.some(t => t.id === "reminders");
-  const manifestTabs = hasReminders ? withAsync : (() => {
-    const idx = withAsync.findIndex(t => t.id === "interviews");
-    const remindersTab = { id: "reminders", label: "Reminders", icon: "Mail" };
-    if (idx >= 0) {
-      const copy = [...withAsync];
-      copy.splice(idx + 1, 0, remindersTab);
-      return copy;
-    }
-    return [...withAsync, remindersTab];
-  })();
 
   // Map manifest tab ids to the central app's view ids
   const viewMap = {
@@ -349,7 +324,7 @@ export default function KhethaIQ() {
     analytics: "analytics",
   };
 
-  const sidebarItems = manifestTabs
+  const sidebarItems = baseTabs
     .map(t => ({ id: t.id, view: t.view || viewMap[t.id] || t.id, label: t.label, icon: ICON_MAP[t.icon] || Briefcase }))
     .filter(t => t.id);
 
