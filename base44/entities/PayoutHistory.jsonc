@@ -2,6 +2,11 @@
   "name": "PayoutHistory",
   "type": "object",
   "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
     "media_partner_email": {
       "type": "string",
       "description": "Email of the media partner"
@@ -60,5 +65,19 @@
     "amount",
     "payout_method",
     "payout_date"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "create": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "update": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "delete": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    }
+  }
 }

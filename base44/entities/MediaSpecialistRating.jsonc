@@ -99,5 +99,19 @@
     "media_specialist_id",
     "client_id",
     "overall_rating"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "create": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "update": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "delete": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    }
+  }
 }

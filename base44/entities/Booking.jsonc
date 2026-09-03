@@ -2,6 +2,11 @@
   "name": "Booking",
   "type": "object",
   "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
     "client_name": {
       "type": "string",
       "description": "Client's full name"
@@ -99,5 +104,19 @@
     "city",
     "state",
     "preferred_date"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "create": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "update": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "delete": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    }
+  }
 }

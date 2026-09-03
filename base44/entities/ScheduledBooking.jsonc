@@ -2,6 +2,11 @@
   "name": "ScheduledBooking",
   "type": "object",
   "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
     "scheduled_submit_at": {
       "type": "string",
       "format": "date-time",
@@ -106,5 +111,19 @@
     "state",
     "preferred_date",
     "preferred_time"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "create": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "update": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    },
+    "delete": {
+      "data.tenant_id": "{{user.data.tenant_id}}"
+    }
+  }
 }
