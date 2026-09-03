@@ -26,22 +26,25 @@ import { secrets } from "base44:runtime";
 const CACHE_KEY = "khethaiq_manifest_cache";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-// Tab list mirroring the central KhethaIQ app's sidebar (14 tabs).
+// Tab list mirroring the central KhethaIQ app's sidebar (16 tabs).
+// Extracted from the central app's compiled JS bundle via syncKhethaIQLayout.
 // Icons are lucide-react component names.
 const CENTRAL_TABS = [
   { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
-  { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
+  { id: "ask", label: "Ask Khetha", icon: "Sparkles" },
   { id: "jobs", label: "Jobs", icon: "Briefcase" },
   { id: "candidates", label: "Candidates", icon: "Users" },
-  { id: "talent_search", label: "Talent Search", icon: "Search" },
-  { id: "talent_pools", label: "Talent Pools", icon: "Users" },
+  { id: "search", label: "Talent Search", icon: "Search" },
+  { id: "pools", label: "Talent Pools", icon: "Users" },
   { id: "pipeline", label: "Pipeline", icon: "GitBranch" },
   { id: "interviews", label: "Interviews", icon: "Video" },
+  { id: "async_interviews", label: "Async Interviews", icon: "CalendarClock" },
   { id: "offers", label: "Offers", icon: "FileText" },
-  { id: "tasks", label: "Tasks", icon: "SquareCheckBig" },
+  { id: "tasks", label: "Tasks", icon: "CheckSquare" },
   { id: "applications", label: "Applications", icon: "FileText" },
   { id: "portal", label: "Applicant Portal", icon: "Search" },
   { id: "learning", label: "Learning", icon: "Brain" },
+  { id: "posthire", label: "Performance Data", icon: "Activity" },
   { id: "analytics", label: "Analytics", icon: "BarChart3" },
 ];
 
@@ -116,9 +119,12 @@ export default async function (req) {
           const logoUrl = extractLogoFromHtml(html);
 
           // Build the manifest: use the extracted logo, keep the central tab list
+          // Preserve synced tabs from syncKhethaIQLayout if available;
+          // only refresh the logo. Falls back to LOCAL_DEFAULT tabs only when
+          // no synced manifest exists in the stale cache.
           const manifest = {
-            ...LOCAL_DEFAULT,
-            logo_url: logoUrl || LOCAL_DEFAULT.logo_url,
+            ...(cached?.manifest || LOCAL_DEFAULT),
+            logo_url: logoUrl || (cached?.manifest?.logo_url) || LOCAL_DEFAULT.logo_url,
             updated_at: new Date().toISOString(),
           };
 

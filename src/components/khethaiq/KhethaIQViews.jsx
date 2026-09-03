@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import ConvertToAiButton from "@/components/interviews/ConvertToAiButton";
 import ConvertToHumanButton from "@/components/interviews/ConvertToHumanButton";
 import RescheduleInterviewModal from "@/components/interviews/RescheduleInterviewModal";
+import OfferLettersPanel from "@/components/hireiq/OfferLettersPanel";
 // Questionnaire now opens in-page via onOpenQuestionnaire (no modal)
 
 const GOLD = "#B8956A";
@@ -484,10 +485,10 @@ export function OffersView({ onSelectCandidate }) {
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "rgba(184,149,106,0.4)" }} /></div>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Offers</h1>
-        <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Candidates with pending offers</p>
+        <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Candidates with pending offers and offer letter templates</p>
       </div>
 
       {candidates.length === 0 ? (
@@ -509,6 +510,8 @@ export function OffersView({ onSelectCandidate }) {
           ))}
         </div>
       )}
+
+      <OfferLettersPanel />
     </div>
   );
 }

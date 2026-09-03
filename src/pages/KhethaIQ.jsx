@@ -6,6 +6,7 @@ import {
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, Award, HelpCircle, LayoutDashboard,
   GitBranch, Video, Globe, SquareCheckBig, ArrowLeft, Mail,
+  Activity, CheckSquare, CalendarClock,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -27,6 +28,7 @@ import GlobalSearch from "@/components/khethaiq/GlobalSearch";
 import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
 import ReminderQueueView from "@/components/khethaiq/ReminderQueueView";
 import AsyncInterviewManagerContent from "@/components/interviews/AsyncInterviewManagerContent";
+import PerformanceDataView from "@/components/hireiq/PerformanceDataView";
 
 // Map manifest icon names to lucide-react components.
 // Matches the central KhethaIQ app's ICON_MAP.
@@ -35,6 +37,7 @@ const ICON_MAP = {
   Video, FileText, SquareCheckBig, Brain, BarChart3: BarChart3,
   Radar, Users2, Target, TrendingUp, MessageSquare, Award,
   HelpCircle, Plus, Globe, Mail,
+  Activity, CheckSquare, CalendarClock,
 };
 
 // Estate Media color palette (kept per user request)
@@ -326,10 +329,13 @@ export default function KhethaIQ() {
   const viewMap = {
     dashboard: "dashboard",
     ask_khetha: "ask",
+    ask: "ask",
     jobs: "jobs",
     candidates: "candidates",
     talent_search: "search",
+    search: "search",
     talent_pools: "pools",
+    pools: "pools",
     pipeline: "pipeline",
     interviews: "interviews",
     async_interviews: "async_interviews",
@@ -339,6 +345,7 @@ export default function KhethaIQ() {
     applications: "applications",
     portal: "portal",
     learning: "learning",
+    posthire: "posthire",
     analytics: "analytics",
   };
 
@@ -484,6 +491,8 @@ export default function KhethaIQ() {
                 <AnalyticsPanel />
               ) : activeView === "learning" ? (
                 <LearningPanel />
+              ) : activeView === "posthire" ? (
+                <PerformanceDataView />
               ) : activeView === "jobs" ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
