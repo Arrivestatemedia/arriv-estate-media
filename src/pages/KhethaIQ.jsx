@@ -379,7 +379,7 @@ export default function KhethaIQ() {
         {/* Sidebar — rounded card matching central app layout */}
         <aside className="md:w-60 shrink-0">
           <div
-            className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 md:sticky md:top-24 md:h-[calc(100vh-7rem)] rounded-2xl p-3"
+            className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible md:overflow-y-auto pb-2 md:pb-0 md:sticky md:top-24 md:h-[calc(100vh-7rem)] rounded-2xl p-3"
             style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}
           >
             {/* Logo — centered at top, matching central app */}
