@@ -1,0 +1,118 @@
+/* ============================================================
+   Arriv One Connect Chat — Canonical Glassmorphism Design System
+   Reproduced from the canonical Connect chat spec.
+   One presentation, themed per-host via data-connect-chat.
+   ============================================================ */
+
+/* ── Host-aware theming cascade ── */
+[data-connect-chat] {
+  --chat-accent: #4B2A78;
+  --chat-accent-hover: #3E2263;
+  --chat-on-accent: #FFFFFF;
+}
+
+[data-connect-chat="arriv_one"] {
+  --chat-accent: #2563EB;
+  --chat-accent-hover: #1D4ED8;
+  --chat-on-accent: #FFFFFF;
+}
+
+[data-connect-chat="estate_media"] {
+  --chat-accent: var(--accent-color, #B8956A);
+  --chat-accent-hover: var(--accent-hover, #A68559);
+  --chat-on-accent: var(--on-primary, #FFFFFF);
+}
+
+/* ── Glassmorphism surface classes ── */
+.glass-sidebar {
+  background-color: rgba(255, 255, 255, 0.32);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-header {
+  background-color: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-chat {
+  background-color: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+}
+
+.glass-bubble-in {
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-input {
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-input:focus {
+  border-color: var(--chat-accent);
+  box-shadow: 0 0 0 1px var(--chat-accent);
+  outline: none;
+}
+
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Outgoing bubble — host-aware accent ── */
+.glass-bubble-out {
+  background-color: color-mix(in srgb, var(--chat-accent) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--chat-accent) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chat-accent) 30%, transparent);
+}
+
+/* ── Accent button (send, create) ── */
+.chat-accent-btn {
+  background-color: var(--chat-accent);
+  color: var(--chat-on-accent);
+}
+.chat-accent-btn:hover {
+  background-color: var(--chat-accent-hover);
+}
+
+/* ── Active conversation row ── */
+.chat-row-active {
+  background-color: var(--chat-accent);
+  color: var(--chat-on-accent);
+}
+
+/* ── Channel/DM initial square ── */
+.chat-initial-square {
+  background-color: color-mix(in srgb, var(--chat-accent) 15%, transparent);
+  color: var(--chat-accent);
+}
+
+/* ── Background orbs (glassmorphism needs a colorful backdrop) ── */
+.connect-bg-orbs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+.connect-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+}

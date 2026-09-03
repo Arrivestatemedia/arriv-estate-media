@@ -376,22 +376,22 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     e.target.value = "";
   };
 
-  const renderMessageContent = (content) => {
+  const renderMessageContent = (content, isOutgoing = false) => {
     if (!content) return null;
     if (content.startsWith("[contact]")) {
       return <ContactCardDisplay content={content} />;
     }
     if (content.startsWith("[image]")) {
       const url = content.slice(7);
-      return <img src={url} alt="shared" className="max-w-[240px] max-h-[200px] rounded-lg mt-1 cursor-pointer" onClick={() => window.open(url, '_blank')} />;
+      return <img src={url} alt="shared" className="max-w-[220px] max-h-[180px] rounded-lg mt-1 cursor-pointer" onClick={() => window.open(url, '_blank')} />;
     }
     if (content.startsWith("[file|")) {
       const match = content.match(/^\[file\|(.+?)\](.+)$/);
       if (match) {
-        return <a href={match[2]} target="_blank" rel="noopener noreferrer" className="text-[#B8956A] underline text-sm mt-1 block">📎 {match[1]}</a>;
+        return <a href={match[2]} target="_blank" rel="noopener noreferrer" className="underline text-sm mt-1 block" style={{ color: 'var(--chat-accent)' }}>📎 {match[1]}</a>;
       }
     }
-    return <p className="text-gray-700 text-sm mt-1 break-words">{content}</p>;
+    return <p className={`text-sm mt-1 break-words ${isOutgoing ? 'text-white' : 'text-slate-800'}`}>{content}</p>;
   };
 
   const handleDeleteMessage = async (messageId, messageType) => {
@@ -478,8 +478,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   if (showContactSearch) {
     return (
-      <div className="flex flex-col h-full bg-white">
-        <div className="border-b border-gray-200 p-4 flex items-center">
+      <div className="flex flex-col h-full glass-chat">
+        <div className="glass-header p-4 flex items-center">
           <Button variant="ghost" size="sm" onClick={() => setShowContactSearch(false)} className="mr-2">
             <X className="w-5 h-5" />
           </Button>
@@ -500,8 +500,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   if (!chatId) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        Select a channel or conversation to start chatting
+      <div className="flex items-center justify-center h-full text-slate-400">
+        Select a conversation to start messaging
       </div>
     );
   }
@@ -523,14 +523,14 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   return (
     <>
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full glass-chat">
       {/* Header */}
-      <div className="border-b border-gray-200 p-4 flex items-center justify-between">
+      <div className="glass-header h-14 px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {chatType === "dm" ? (
             <>
               <button
-                className="text-lg font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
+                className="text-lg font-semibold text-slate-900 hover:text-[var(--chat-accent)] hover:underline transition-colors"
                 onClick={() => setProfileMemberId(chatId)}
               >
                 {chatName}
@@ -592,7 +592,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                             setTimeout(() => setVideoCallError(null), 4000);
                           }
                         }}
-                        className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+                        className="p-1.5 text-slate-600 hover:text-[var(--chat-accent)] hover:bg-slate-100 rounded-lg transition"
                         title="Video Call"
                       >
                         <Video className="w-4 h-4" />
@@ -601,7 +601,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                     )}
                     </>
                     ) : (
-                    <h2 className="text-lg font-semibold text-gray-900">#{chatName}</h2>
+                    <h2 className="text-lg font-semibold text-slate-900">#{chatName}</h2>
                     )}
                     <button
                       onClick={() => setShowConferenceScheduler(true)}
@@ -615,41 +615,47 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {loading ? (
-          <div className="text-center text-gray-500 text-sm">Loading messages...</div>
+          <div className="text-center text-slate-400 text-sm">Loading messages...</div>
         ) : messages.length === 0 ? (
-          <div className="text-center text-gray-500 text-sm">No messages yet. Start the conversation!</div>
+          <div className="text-center text-slate-400 text-sm">No messages yet. Start the conversation!</div>
         ) : (
           messages.map((msg) => {
             const profileUrl = memberProfiles[msg.sender_id];
             const initials = (msg.sender_name || "?")[0].toUpperCase();
+            const isOutgoing = msg.sender_id === currentUserId;
             return (
-              <div key={msg.id} className="flex gap-3">
-                <div className="relative flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[#B8956A]/20 flex items-center justify-center text-[#B8956A] font-bold text-sm">
-                    {profileUrl ? (
-                      <img src={profileUrl} alt={msg.sender_name} className="w-full h-full object-cover" />
-                    ) : initials}
+              <div key={msg.id} className={`flex gap-2.5 ${isOutgoing ? 'flex-row-reverse' : ''}`}>
+                {!isOutgoing && (
+                  <div className="relative flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm"
+                      style={{ backgroundColor: 'var(--chat-accent)', color: 'var(--chat-on-accent)' }}>
+                      {profileUrl ? (
+                        <img src={profileUrl} alt={msg.sender_name} className="w-full h-full object-cover" />
+                      ) : initials}
+                    </div>
+                    {memberStatuses[msg.sender_id] && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white"
+                        style={{ backgroundColor: STATUS_COLORS[memberStatuses[msg.sender_id]] || "#6b7280" }} />
+                    )}
                   </div>
-                  {memberStatuses[msg.sender_id] && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
-                      style={{ backgroundColor: STATUS_COLORS[memberStatuses[msg.sender_id]] || "#6b7280" }} />
-                  )}
-                </div>
-                <div className="flex-1">
-                   <div className="flex items-baseline gap-2">
+                )}
+                <div className={`flex flex-col ${isOutgoing ? 'items-end' : 'items-start'}`} style={{ maxWidth: '75%' }}>
+                   {!isOutgoing && (
                      <button
-                       className="font-semibold text-gray-900 hover:text-[#B8956A] hover:underline transition-colors"
+                       className="text-xs font-medium text-slate-600 hover:underline transition-colors mb-1 px-1"
                        onClick={() => setProfileMemberId(msg.sender_id)}
                      >
                        {msg.sender_name}
                      </button>
-                    <span className="text-xs text-gray-500">
+                    )}
+                    <div className={`px-3.5 py-2.5 rounded-2xl text-sm ${isOutgoing ? 'glass-bubble-out rounded-br-md text-white' : 'glass-bubble-in rounded-bl-md text-slate-800'}`}>
+                      {renderMessageContent(msg.content, isOutgoing)}
+                    </div>
+                    <span className={`text-[10px] text-slate-400 mt-1 px-1 ${isOutgoing ? 'text-right' : ''}`}>
                       {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
                     </span>
-                  </div>
-                  {renderMessageContent(msg.content)}
                   <div className="flex flex-wrap gap-2 items-center mt-1.5">
                     <MessageReactions 
                       message={msg}
@@ -687,7 +693,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                     )}
                     <button
                       onClick={() => setSelectedThread(msg)}
-                      className="text-xs text-[#B8956A] hover:underline flex items-center gap-1"
+                      className="text-xs hover:underline flex items-center gap-1" style={{ color: 'var(--chat-accent)' }}
                     >
                       <MessageCircle className="w-3 h-3" />
                       {msg.thread_reply_count > 0 ? `${msg.thread_reply_count} ${msg.thread_reply_count === 1 ? 'reply' : 'replies'}` : 'Reply in thread'}
@@ -763,9 +769,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                   </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 p-3 relative">
+      <div className="border-t border-white/40 p-3 relative">
         {showEmojis && (
-          <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex flex-wrap gap-1 w-64 z-10">
+          <div className="absolute bottom-full left-0 mb-2 glass-panel rounded-xl p-2 flex flex-wrap gap-1 w-64 z-10">
             {EMOJIS.map(emoji => (
               <button key={emoji} type="button" className="text-xl hover:bg-gray-100 rounded p-1"
                 onClick={() => { setNewMessage(prev => prev + emoji); setShowEmojis(false); }}>
@@ -796,22 +802,22 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             chatType={chatType}
           />
           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-            className="text-gray-400 hover:text-[#B8956A] transition-colors p-1 flex-shrink-0">
+            className="text-slate-400 hover:text-[var(--chat-accent)] transition-colors p-1 flex-shrink-0">
             <Paperclip className="w-5 h-5" />
           </button>
           <button type="button" onClick={() => setShowEmojis(v => !v)}
-            className="text-gray-400 hover:text-[#B8956A] transition-colors p-1 flex-shrink-0">
+            className="text-slate-400 hover:text-[var(--chat-accent)] transition-colors p-1 flex-shrink-0">
             <Smile className="w-5 h-5" />
           </button>
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleSendMessage}
-            placeholder={uploading ? "Uploading..." : "Type a message..."}
-            className="flex-1"
+            placeholder={uploading ? "Uploading..." : "Message"}
+            className="flex-1 glass-input rounded-full px-4 py-2.5 text-sm border-transparent"
             disabled={uploading}
           />
-          <Button type="submit" size="sm" className="bg-[#B8956A] hover:bg-[#A68559]" disabled={uploading}>
+          <Button type="submit" size="icon" className="w-10 h-10 rounded-full chat-accent-btn" disabled={uploading}>
             <Send className="w-4 h-4" />
           </Button>
         </form>

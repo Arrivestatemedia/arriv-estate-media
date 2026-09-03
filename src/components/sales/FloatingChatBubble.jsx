@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "./ChatTab";
+import { ArrivOneConnectBadge } from "@/components/chat/ArrivOneConnectBadge";
 import { useCallStatus } from "@/components/CallStatusContext";
 
-const DRAG_THRESHOLD = 6; // px — movement below this counts as a click
-const EDGE_PADDING = 8; // px — keep button fully on-screen
+const DRAG_THRESHOLD = 6;
+const EDGE_PADDING = 8;
 
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, onVideoCallStarted, isVideoCallActive, onOpenChat, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
   const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
@@ -14,21 +15,18 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [localRemoteCallLive, setLocalRemoteCallLive] = useState(localStorage.getItem('remoteCallLive') === 'true');
 
   // ── Drag state ──
-  // Position is stored as { x, y } in pixels from top-left of the viewport.
-  // Defaults to bottom-right (matches the original fixed placement).
   const [pos, setPos] = useState(() => {
     const saved = localStorage.getItem('floatingChatPos');
     if (saved) {
       try { return JSON.parse(saved); } catch (_) {}
     }
-    return null; // null = use default bottom-right until measured
+    return null;
   });
   const dragging = useRef(false);
   const dragMoved = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const btnRef = useRef(null);
 
-  // Resolve from localStorage immediately so we don't wait for async prop
   const userId = currentUserId || localStorage.getItem('sales_member_id');
   const userName = currentUserName || localStorage.getItem('sales_member_name');
 
@@ -39,12 +37,10 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   };
 
   useEffect(() => {
-    // Listen for remoteCallLive changes
     const interval = setInterval(() => {
       const isLive = localStorage.getItem('remoteCallLive') === 'true';
       setLocalRemoteCallLive(isLive);
     }, 100);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -76,12 +72,11 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
 
   // ── Drag handlers ──
   const clampPos = useCallback((x, y) => {
-    const size = 56; // w-14 h-14 = 56px
+    const size = 56;
     const maxX = window.innerWidth - size - EDGE_PADDING;
     const maxY = window.innerHeight - size - EDGE_PADDING;
     return {
@@ -92,7 +87,6 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   const onPointerDown = (e) => {
     if (disabled || isInLiveCall || isVideoWindowOpen) return;
-    // Initialize default position (bottom-right) on first interaction
     let startPos = pos;
     if (!startPos) {
       const size = 56;
@@ -129,13 +123,11 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     dragging.current = false;
     e.currentTarget.releasePointerCapture?.(e.pointerId);
     if (dragMoved.current) {
-      // Persist position so it survives reloads
       setPos(prev => {
         localStorage.setItem('floatingChatPos', JSON.stringify(prev));
         return prev;
       });
     } else {
-      // Treat as a click — toggle the chat
       handleToggleChat();
     }
   };
@@ -143,18 +135,18 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const hidden = (disabled || isInLiveCall || isVideoWindowOpen);
   const hideOffset = (isInLiveCall || localRemoteCallLive);
 
-  // Compute button position style: custom drag position, or default bottom-right
   const btnStyle = hidden
     ? { bottom: '-500px', right: '1rem' }
     : pos
       ? { left: `${pos.x}px`, top: `${pos.y}px` }
       : { bottom: '1rem', right: '1rem' };
 
-  // Chat panel stays anchored bottom-right (not dragged) for consistent UX
+  // Panel: gradient backdrop so glassmorphism surfaces have something to blur.
+  // Connect badge replaces the old "Team Chat" header; close button floats top-right.
   const panelStyle = {
-    height: '520px',
-    backgroundColor: '#fff',
-    borderColor: 'rgba(184,149,106,0.3)',
+    height: '560px',
+    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 30%, #ec4899 65%, #f59e0b 100%)',
+    border: '1px solid rgba(255,255,255,0.3)',
     zIndex: 9000,
     bottom: hideOffset ? '-600px' : '5rem',
     right: '1rem',
@@ -162,19 +154,22 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   return (
     <div>
-      {/* Floating Chat Panel */}
+      {/* Floating Chat Panel — Arriv One Connect */}
       {open && (
-         <div
-          className="fixed w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden transition-all"
+        <div
+          className="fixed w-[700px] max-w-[95vw] rounded-xl shadow-2xl overflow-hidden relative"
           style={panelStyle}
         >
-          <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
-            <span className="text-sm font-semibold text-white">Team Chat</span>
-            <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div style={{ height: 'calc(100% - 40px)' }}>
+          {/* Close button — floats above the Connect badge bar */}
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute top-2 right-2 z-50 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-colors"
+            aria-label="Close chat"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          {/* ChatTab fills the panel — it carries the Connect badge + data-connect-chat theming */}
+          <div className="h-full">
             <ChatTab
               currentUserId={userId}
               currentUserName={userName}
@@ -192,7 +187,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onClick={(e) => e.preventDefault()} // prevent double-toggle; pointerup handles click
+        onClick={(e) => e.preventDefault()}
         className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105 select-none"
         style={{
           ...btnStyle,
@@ -201,7 +196,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
           opacity: hidden ? 0.5 : 1,
           pointerEvents: hidden ? 'none' : 'auto',
           cursor: hidden ? 'not-allowed' : (dragging.current ? 'grabbing' : 'grab'),
-          touchAction: 'none', // allow pointer drag on touch without scrolling
+          touchAction: 'none',
         }}
       >
         <MessageSquare className="w-6 h-6 text-white pointer-events-none" />

@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import VideoCallPanelV2 from "@/components/sales/VideoCallPanelV2";
 import IncomingVideoCallModal from "@/components/sales/IncomingVideoCallModal";
 import ConferenceScheduler from "@/components/chat/ConferenceScheduler";
+import { ArrivOneConnectBadge } from "@/components/chat/ArrivOneConnectBadge";
+import "@/components/chat/connectChat.css";
 
 export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const [selectedRepId, setSelectedRepId] = useState(null);
@@ -243,9 +245,16 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
 
   if (!selectedRepId) {
     return (
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-2">
-          <p className="text-xs font-medium" style={{ color: 'rgba(26,26,26,0.6)' }}>Select a sales rep to chat:</p>
+      <div className="flex-1 overflow-y-auto p-4 relative" data-connect-chat="estate_media">
+        <div className="connect-bg-orbs">
+          <div className="connect-bg-orb" style={{ width: 250, height: 250, top: -40, left: -40, backgroundColor: "#8B5CF6" }} />
+          <div className="connect-bg-orb" style={{ width: 200, height: 200, bottom: -30, right: -30, backgroundColor: "#3B82F6" }} />
+        </div>
+        <div className="relative z-10 glass-header px-4 py-2 mb-3 flex items-center">
+          <ArrivOneConnectBadge />
+        </div>
+        <div className="relative z-10 space-y-2">
+          <p className="text-xs font-medium text-slate-500">Select a sales rep to chat:</p>
           {salesReps.map(rep => (
             <button
               key={rep.id}
@@ -253,10 +262,10 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
                 setSelectedRepId(rep.id);
                 setSelectedRepName(rep.full_name);
               }}
-              className="w-full text-left p-3 rounded-lg border transition hover:bg-gray-50"
+              className="w-full text-left p-3 rounded-lg glass-panel hover:bg-slate-200/40 transition"
             >
-              <p className="font-medium text-sm" style={{ color: '#1A1A1A' }}>{rep.full_name}</p>
-              <p className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>{rep.email}</p>
+              <p className="font-medium text-sm text-slate-900">{rep.full_name}</p>
+              <p className="text-xs text-slate-500">{rep.email}</p>
             </button>
           ))}
         </div>
@@ -265,20 +274,28 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   }
 
   return (
-    <>
+    <div className="flex flex-col h-full relative" data-connect-chat="estate_media">
+      <div className="connect-bg-orbs">
+        <div className="connect-bg-orb" style={{ width: 250, height: 250, top: -40, left: -40, backgroundColor: "#8B5CF6" }} />
+        <div className="connect-bg-orb" style={{ width: 200, height: 200, bottom: -30, right: -30, backgroundColor: "#3B82F6" }} />
+      </div>
+      <div className="relative z-10 glass-header px-4 py-2 flex items-center">
+        <ArrivOneConnectBadge />
+      </div>
       {/* Back button, rep name, and action buttons */}
-      <div className="border-b p-3 flex items-center justify-between">
+      <div className="glass-header p-3 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
               setSelectedRepId(null);
               setSelectedRepName(null);
             }}
-            className="text-sm text-blue-600 hover:text-blue-700"
+            className="text-sm hover:underline"
+            style={{ color: 'var(--chat-accent)' }}
           >
             ← Back
           </button>
-          <p className="text-sm font-medium ml-2" style={{ color: '#1A1A1A' }}>{selectedRepName}</p>
+          <p className="text-sm font-medium ml-2 text-slate-900">{selectedRepName}</p>
         </div>
         {selectedRepId && (
           <div className="flex items-center gap-1">
@@ -292,14 +309,14 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
                 }
                 setShowVideoCall(true);
               }}
-              className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+              className="p-1.5 text-slate-600 hover:text-[var(--chat-accent)] hover:bg-slate-100 rounded-lg transition"
               title="Video Call"
             >
               <Video className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowConferenceScheduler(true)}
-              className="p-1.5 text-gray-600 hover:text-[#B8956A] hover:bg-gray-100 rounded-lg transition"
+              className="p-1.5 text-slate-600 hover:text-[var(--chat-accent)] hover:bg-slate-100 rounded-lg transition"
               title="Schedule Conference"
             >
               <Calendar className="w-4 h-4" />
@@ -310,10 +327,10 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
 
       {/* Incoming transfer notification */}
       {pendingTransfer && (
-        <div className="border-b p-3 bg-blue-50 flex items-center justify-between">
+        <div className="glass-header p-3 flex items-center justify-between relative z-10" style={{ backgroundColor: 'rgba(239, 246, 255, 0.6)' }}>
           <div>
-            <p className="text-sm font-medium text-gray-900">{pendingTransfer.from_member_name} is transferring a call</p>
-            <p className="text-xs text-gray-600">From: {pendingTransfer.caller_name || pendingTransfer.caller_number || "Unknown Caller"}</p>
+            <p className="text-sm font-medium text-slate-900">{pendingTransfer.from_member_name} is transferring a call</p>
+            <p className="text-xs text-slate-600">From: {pendingTransfer.caller_name || pendingTransfer.caller_number || "Unknown Caller"}</p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={declineTransfer} variant="outline" className="h-8 px-3 text-red-600 border-red-200 hover:bg-red-50">
@@ -327,59 +344,65 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative z-10">
         {messages.length === 0 ? (
-          <p className="text-center text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>No messages yet</p>
+          <p className="text-center text-sm text-slate-400">No messages yet. Start the conversation!</p>
         ) : (
-          messages.map(msg => (
+          messages.map(msg => {
+            const isOutgoing = msg.sender_id === currentUserId;
+            return (
             <div
               key={msg.id}
-              className={`flex ${msg.sender_id === currentUserId ? 'justify-end' : 'justify-start'}`}
+              className={`flex gap-2.5 ${isOutgoing ? 'flex-row-reverse' : ''}`}
             >
-              <div>
-                {msg.sender_id !== currentUserId && (
-                  <p className="text-xs text-gray-500 mb-1">{msg.sender_name}</p>
+              {!isOutgoing && (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
+                  style={{ backgroundColor: 'var(--chat-accent)', color: 'var(--chat-on-accent)' }}>
+                  {(msg.sender_name || "?")[0].toUpperCase()}
+                </div>
+              )}
+              <div className={`flex flex-col ${isOutgoing ? 'items-end' : 'items-start'}`} style={{ maxWidth: '75%' }}>
+                {!isOutgoing && (
+                  <p className="text-xs font-medium text-slate-600 mb-1 px-1">{msg.sender_name}</p>
                 )}
                 <div
-                  className={`max-w-xs px-4 py-2 rounded-lg text-sm ${msg.auto_response ? 'italic opacity-75' : ''}`}
-                  style={{
-                    backgroundColor: msg.sender_id === currentUserId ? '#B8956A' : '#E5E7EB',
-                    color: msg.sender_id === currentUserId ? '#FFFBF5' : '#1A1A1A'
-                  }}
+                  className={`px-3.5 py-2.5 rounded-2xl text-sm ${isOutgoing ? 'glass-bubble-out rounded-br-md text-white' : 'glass-bubble-in rounded-bl-md text-slate-800'} ${msg.auto_response ? 'italic opacity-75' : ''}`}
                 >
                   {msg.content}
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-[10px] text-slate-400 mt-1 px-1">
                   {formatDistanceToNow(new Date(msg.timestamp || msg.created_date), { addSuffix: true })}
                 </p>
               </div>
             </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="border-t p-3 flex gap-2">
+      <div className="border-t border-white/40 p-3 flex gap-2 relative z-10">
         <Input
-          placeholder="Type a message..."
+          placeholder="Message"
           value={messageText}
           onChange={(e) => setMessageText(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
           disabled={sendMessageMutation.isPending}
+          className="glass-input rounded-full border-transparent"
         />
         <Button
           size="icon"
           onClick={handleSendMessage}
           disabled={!messageText.trim() || sendMessageMutation.isPending}
-          style={{ backgroundColor: '#B8956A', color: '#FFFBF5' }}
+          className="w-10 h-10 rounded-full chat-accent-btn"
         >
           <Send className="w-4 h-4" />
         </Button>
       </div>
 
       {videoCallError && (
-        <div className="border-t bg-red-50 border-red-200 p-3 flex items-center gap-2">
+        <div className="border-t border-red-200 p-3 flex items-center gap-2 relative z-10" style={{ backgroundColor: 'rgba(254, 242, 242, 0.6)' }}>
           <AlertCircle className="w-4 h-4 text-red-600" />
           <p className="text-sm text-red-700">{videoCallError}</p>
         </div>
@@ -446,6 +469,6 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
           onClose={() => setShowConferenceScheduler(false)}
         />
       )}
-      </>
+      </div>
       );
       }

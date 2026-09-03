@@ -17,12 +17,10 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
   };
 
   useEffect(() => {
-    // Listen for remoteCallLive changes
     const interval = setInterval(() => {
       const isLive = localStorage.getItem('remoteCallLive') === 'true';
       setLocalRemoteCallLive(isLive);
     }, 100);
-    
     return () => clearInterval(interval);
   }, []);
 
@@ -31,16 +29,17 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
     if (!userId) return;
 
     const loadUnread = async () => {
-      const msgs = await base44.entities.DirectMessage.filter({
-        recipient_id: userId,
-        read: false
-      });
-      setUnreadCount(msgs?.length || 0);
+      try {
+        const msgs = await base44.entities.DirectMessage.filter({
+          recipient_id: userId,
+          read: false
+        });
+        setUnreadCount(msgs?.length || 0);
+      } catch (_) {}
     };
 
     loadUnread();
 
-    // Subscribe to new DMs
     const unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
       if (event.type === "create" && event.data?.recipient_id === userId) {
         setUnreadCount(prev => prev + 1);
@@ -51,27 +50,40 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
     });
 
     return unsubscribe;
-  }, [currentUserId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // When opened, don't show badge
   const displayCount = open ? 0 : unreadCount;
 
-  // Standard floating chat bubble (chat panel opens when clicked)
+  // Panel: gradient backdrop so glassmorphism surfaces have something to blur.
+  // Connect badge is inside ChatTab; close button floats top-right.
+  const panelStyle = {
+    height: '560px',
+    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 30%, #ec4899 65%, #f59e0b 100%)',
+    border: '1px solid rgba(255,255,255,0.3)',
+    zIndex: 9000,
+    bottom: (isInLiveCall || localRemoteCallLive) ? '-600px' : '5rem',
+    right: '1rem',
+  };
+
   return (
     <div>
-      {/* Floating Chat Panel */}
+      {/* Floating Chat Panel — Arriv One Connect */}
       {open && (
-         <div
-          className="fixed w-[700px] max-w-[95vw] rounded-xl shadow-2xl border overflow-hidden transition-all"
-          style={{ height: '520px', backgroundColor: '#fff', borderColor: 'rgba(184,149,106,0.3)', zIndex: 9000, bottom: (isInLiveCall || localRemoteCallLive) ? '-600px' : '5rem', right: '1rem' }}
+        <div
+          className="fixed w-[700px] max-w-[95vw] rounded-xl shadow-2xl overflow-hidden relative"
+          style={panelStyle}
         >
-          <div className="flex items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: '#1A1A1A', borderColor: 'rgba(184,149,106,0.2)' }}>
-            <span className="text-sm font-semibold text-white">Team Chat</span>
-            <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div style={{ height: 'calc(100% - 40px)' }}>
+          {/* Close button — floats above the Connect badge bar */}
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute top-2 right-2 z-50 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-colors"
+            aria-label="Close chat"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          {/* ChatTab fills the panel — it carries the Connect badge + data-connect-chat theming */}
+          <div className="h-full">
             <ChatTab
               currentUserId={currentUserId}
               currentUserName={currentUserName}
@@ -87,7 +99,15 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
       <button
         onClick={handleToggleChat}
         className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
-        style={{ bottom: (isInLiveCall || localRemoteCallLive) ? '-500px' : '1rem', right: '1rem', zIndex: 9000, backgroundColor: '#B8956A', opacity: (disabled || isInLiveCall || isVideoWindowOpen) ? 0.5 : 1, pointerEvents: (disabled || isInLiveCall || isVideoWindowOpen) ? 'none' : 'auto', cursor: (disabled || isInLiveCall || isVideoWindowOpen) ? 'not-allowed' : 'pointer' }}
+        style={{
+          bottom: (isInLiveCall || localRemoteCallLive) ? '-500px' : '1rem',
+          right: '1rem',
+          zIndex: 9000,
+          backgroundColor: '#B8956A',
+          opacity: (disabled || isInLiveCall || isVideoWindowOpen) ? 0.5 : 1,
+          pointerEvents: (disabled || isInLiveCall || isVideoWindowOpen) ? 'none' : 'auto',
+          cursor: (disabled || isInLiveCall || isVideoWindowOpen) ? 'not-allowed' : 'pointer',
+        }}
       >
         <MessageSquare className="w-6 h-6 text-white" />
 

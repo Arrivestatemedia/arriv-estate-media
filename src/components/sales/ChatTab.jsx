@@ -3,6 +3,8 @@ import { base44 } from "@/api/base44Client";
 import { ArrowLeft } from "lucide-react";
 import ChatSidebar from "./ChatSidebar";
 import ChatWindow from "./ChatWindow";
+import { ArrivOneConnectBadge } from "@/components/chat/ArrivOneConnectBadge";
+import "@/components/chat/connectChat.css";
 
 export default function ChatTab({ currentUserId, currentUserName, salesMemberId, isAdmin, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded }) {
   const [selectedChat, setSelectedChat] = useState(null);
@@ -65,49 +67,64 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
   };
 
   return (
-    <div className="flex h-full bg-gray-50">
-      {/* Mobile: show sidebar only when no chat selected */}
-      <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-64`}>
-        <ChatSidebar
-          currentUserId={currentUserId}
-          currentUserName={currentUserName}
-          onSelectChat={handleSelectChat}
-          memberStatuses={memberStatuses}
-        />
+    <div className="flex flex-col h-full relative" data-connect-chat="estate_media">
+      {/* Background orbs — glassmorphism needs a colorful backdrop to blur */}
+      <div className="connect-bg-orbs">
+        <div className="connect-bg-orb" style={{ width: 300, height: 300, top: -60, left: -60, backgroundColor: "#8B5CF6" }} />
+        <div className="connect-bg-orb" style={{ width: 250, height: 250, bottom: -40, right: -40, backgroundColor: "#3B82F6" }} />
+        <div className="connect-bg-orb" style={{ width: 200, height: 200, top: "30%", left: "40%", backgroundColor: "#EC4899" }} />
       </div>
-      {/* Mobile: show chat window only when chat selected */}
-      <div className={`${selectedChat ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
-        {selectedChat ? (
-          <>
-            {/* Mobile back button */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#1A1A1A] md:hidden">
-              <button
-                onClick={() => setSelectedChat(null)}
-                className="text-white flex items-center gap-1 text-sm"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </button>
-              <span className="text-white text-sm font-medium truncate">{selectedChat.name}</span>
+
+      {/* Connect product identity badge bar */}
+      <div className="relative z-10 glass-header px-4 py-2 flex items-center">
+        <ArrivOneConnectBadge />
+      </div>
+
+      {/* Chat shell — sidebar + chat pane */}
+      <div className="flex flex-1 relative z-10 min-h-0">
+        {/* Sidebar — full width on mobile when no chat selected, 288px on desktop */}
+        <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-72`}>
+          <ChatSidebar
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            onSelectChat={handleSelectChat}
+            memberStatuses={memberStatuses}
+          />
+        </div>
+        {/* Chat pane — hidden on mobile until a conversation is selected */}
+        <div className={`${selectedChat ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-w-0`}>
+          {selectedChat ? (
+            <>
+              {/* Mobile back button — glass-header bar */}
+              <div className="flex items-center gap-2 px-3 py-2 glass-header md:hidden">
+                <button
+                  onClick={() => setSelectedChat(null)}
+                  className="text-slate-700 flex items-center gap-1 text-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </button>
+                <span className="text-slate-800 text-sm font-medium truncate">{selectedChat.name}</span>
+              </div>
+              <ChatWindow
+                chatType={selectedChat.type}
+                chatId={selectedChat.id}
+                chatName={selectedChat.name}
+                currentUserId={currentUserId}
+                currentUserName={currentUserName}
+                memberProfiles={memberProfiles}
+                memberStatuses={memberStatuses}
+                onInitiateTransfer={onInitiateTransfer}
+                onVideoCallStarted={onVideoCallStarted}
+                onVideoCallEnded={onVideoCallEnded}
+              />
+            </>
+          ) : (
+            <div className="hidden md:flex items-center justify-center h-full text-slate-400 text-sm">
+              Select a conversation to start messaging
             </div>
-            <ChatWindow
-              chatType={selectedChat.type}
-              chatId={selectedChat.id}
-              chatName={selectedChat.name}
-              currentUserId={currentUserId}
-              currentUserName={currentUserName}
-              memberProfiles={memberProfiles}
-              memberStatuses={memberStatuses}
-              onInitiateTransfer={onInitiateTransfer}
-              onVideoCallStarted={onVideoCallStarted}
-              onVideoCallEnded={onVideoCallEnded}
-            />
-          </>
-        ) : (
-          <div className="hidden md:flex items-center justify-center h-full text-gray-500">
-            Select a channel or conversation to start
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
