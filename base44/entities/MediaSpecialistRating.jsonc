@@ -1,0 +1,103 @@
+{
+  "name": "MediaSpecialistRating",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "media_specialist_id": {
+      "type": "string",
+      "description": "User ID of the media specialist (media_partner) being rated"
+    },
+    "media_specialist_name": {
+      "type": "string",
+      "description": "Media specialist name (denormalized for display)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job ID this rating is for (one rating per completed job per client)"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Booking ID that originated the job"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "User ID of the client who submitted the rating"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client name (denormalized)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Client email (denormalized)"
+    },
+    "overall_rating": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Overall star rating (1-5)"
+    },
+    "professionalism": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Professionalism sub-rating (1-5)"
+    },
+    "quality": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Quality of media deliverables sub-rating (1-5)"
+    },
+    "punctuality": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Punctuality / on-time arrival sub-rating (1-5)"
+    },
+    "communication": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Communication sub-rating (1-5)"
+    },
+    "review_text": {
+      "type": "string",
+      "description": "Optional written review from the client"
+    },
+    "would_recommend": {
+      "type": "boolean",
+      "description": "Whether the client would recommend this media specialist"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this rating is visible on the public marketplace profile"
+    },
+    "admin_response": {
+      "type": "string",
+      "description": "Optional admin/media specialist response to the review"
+    },
+    "admin_response_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "flagged": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the rating has been flagged for admin review"
+    },
+    "flagged_reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "media_specialist_id",
+    "client_id",
+    "overall_rating"
+  ]
+}

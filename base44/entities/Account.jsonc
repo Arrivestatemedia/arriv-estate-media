@@ -1,0 +1,108 @@
+{
+  "name": "Account",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "ID of the sales team member who owns this account (local SalesTeamMember ID, used for per-rep RLS isolation)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Account / company name (brokerage, real estate team, builder, developer, agency)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "brokerage",
+        "real_estate_team",
+        "builder",
+        "developer",
+        "agency",
+        "other"
+      ],
+      "description": "Account type \u2014 maps to Estate Media prospect types"
+    },
+    "email": {
+      "type": "string",
+      "description": "Primary email address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Primary phone number"
+    },
+    "website": {
+      "type": "string",
+      "description": "Company website URL"
+    },
+    "address": {
+      "type": "string",
+      "description": "Street address"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "zip": {
+      "type": "string"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry vertical (real_estate, construction, property_management, etc.)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Account description / notes"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "ID of the sales rep who owns this account"
+    },
+    "lifecycle_stage": {
+      "type": "string",
+      "enum": [
+        "lead",
+        "mql",
+        "sql",
+        "opportunity",
+        "customer",
+        "churned"
+      ],
+      "description": "CRM lifecycle stage (synced from Arriv One \u2014 Arriv One owns CRM lifecycle)"
+    },
+    "hubspot_id": {
+      "type": "string",
+      "description": "Original HubSpot company/account ID (for migration mapping)"
+    },
+    "record_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Monotonic record version for sync conflict detection"
+    },
+    "sync_source": {
+      "type": "string",
+      "enum": [
+        "estate_media",
+        "arriv_one"
+      ],
+      "description": "Which application last wrote this record via sync"
+    },
+    "origin_event_id": {
+      "type": "string",
+      "description": "Inbound event ID that caused the last sync write (loop prevention)"
+    },
+    "immutable_shared_id": {
+      "type": "string",
+      "description": "Immutable cross-app shared identifier"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

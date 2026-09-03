@@ -31,6 +31,10 @@
       "type": "string",
       "description": "Company name"
     },
+    "account_id": {
+      "type": "string",
+      "description": "Account ID this contact belongs to (links to Account entity for B2B company-level tracking)"
+    },
     "job_title": {
       "type": "string",
       "description": "Job title"

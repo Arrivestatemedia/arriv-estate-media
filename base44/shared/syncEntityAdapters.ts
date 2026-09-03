@@ -19,6 +19,12 @@ export const ENTITY_ADAPTERS = {
     arriv_one_local: "Contact",
     status: "active",
   },
+  Account: {
+    canonical: "Account",
+    estate_media_local: "Account",
+    arriv_one_local: "Account",
+    status: "active",
+  },
   ActivityLog: {
     canonical: "ActivityLog",
     estate_media_local: "ActivityLog",
@@ -139,6 +145,9 @@ export const EVENT_TYPE_REGISTRY = {
   "contact.created": { entity: "Contact", operation: "create", authority: "bidirectional", payload_schema: "1.0.0" },
   "contact.updated": { entity: "Contact", operation: "update", authority: "bidirectional", payload_schema: "1.0.0" },
   "contact.owner_changed": { entity: "Contact", operation: "update", authority: "arriv_one_authoritative", payload_schema: "1.0.0" },
+  "account.created": { entity: "Account", operation: "create", authority: "bidirectional", payload_schema: "1.0.0" },
+  "account.updated": { entity: "Account", operation: "update", authority: "bidirectional", payload_schema: "1.0.0" },
+  "account.owner_changed": { entity: "Account", operation: "update", authority: "arriv_one_authoritative", payload_schema: "1.0.0" },
   "activity.created": { entity: "ActivityLog", operation: "create", authority: "originating", payload_schema: "1.0.0" },
   "activity.updated": { entity: "ActivityLog", operation: "update", authority: "originating", payload_schema: "1.0.0" },
   "deal.created": { entity: "Deal", operation: "create", authority: "bidirectional", payload_schema: "1.0.0" },
@@ -175,6 +184,9 @@ export function getEventType(canonicalEntityType, operation, changedFields = [])
   // Special event types
   if (canonicalEntityType === "Contact" && operation === "update" && changedFields.includes("owner_id")) {
     return "contact.owner_changed";
+  }
+  if (canonicalEntityType === "Account" && operation === "update" && changedFields.includes("owner_id")) {
+    return "account.owner_changed";
   }
   if (canonicalEntityType === "SalesTeamMember" && operation === "update") {
     if (changedFields.includes("employment_status") || changedFields.includes("employment_classification")) {
