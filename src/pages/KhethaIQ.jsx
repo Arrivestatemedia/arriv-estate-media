@@ -279,10 +279,14 @@ export default function KhethaIQ() {
     goJobsHome();
   };
 
-  // Build sidebar items from the manifest, mapping icon names to components.
-  // The Reminders tab is Estate Media–local (not in the central app manifest),
-  // so we always append it after the Interviews tab regardless of manifest.
-  const baseTabs = manifest?.tabs?.length ? manifest.tabs : [
+  // ── Canonical Khetha IQ sidebar ──
+  // Reconciled to match the central Khetha IQ app's tab structure exactly
+  // (order, labels, icons) for functional parity. The manifest logo is still
+  // consumed from the central app; tab structure is canonical so this app
+  // never shows extra tabs the central app doesn't.
+  // The Reminders tab is Estate Media–local (not in the central app) — kept
+  // per user request, to be backfilled to the central app.
+  const CANONICAL_TABS = [
     { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard" },
     { id: "ask_khetha", label: "Ask Khetha", icon: "Sparkles" },
     { id: "jobs", label: "Jobs", icon: "Briefcase" },
@@ -291,41 +295,18 @@ export default function KhethaIQ() {
     { id: "talent_pools", label: "Talent Pools", icon: "Users" },
     { id: "pipeline", label: "Pipeline", icon: "GitBranch" },
     { id: "interviews", label: "Interviews", icon: "Video" },
-    { id: "async_interviews", label: "Async Interviews", icon: "Video" },
+    { id: "async_interviews", label: "Async Interviews", icon: "CalendarClock" },
+    { id: "reminders", label: "Reminders", icon: "Mail" },
     { id: "offers", label: "Offers", icon: "FileText" },
-    { id: "tasks", label: "Tasks", icon: "SquareCheckBig" },
+    { id: "tasks", label: "Tasks", icon: "CheckSquare" },
     { id: "applications", label: "Applications", icon: "FileText" },
     { id: "portal", label: "Applicant Portal", icon: "Search" },
     { id: "learning", label: "Learning", icon: "Brain" },
+    { id: "posthire", label: "Performance Data", icon: "Activity" },
     { id: "analytics", label: "Analytics", icon: "BarChart3" },
   ];
-  // Inject Estate Media–local tabs that aren't in the central app manifest.
-  // async_interviews goes right after interviews; reminders goes after that.
-  const hasAsync = baseTabs.some(t => t.id === "async_interviews");
-  const withAsync = hasAsync ? baseTabs : (() => {
-    const idx = baseTabs.findIndex(t => t.id === "interviews");
-    const asyncTab = { id: "async_interviews", label: "Async Interviews", icon: "Video" };
-    if (idx >= 0) {
-      const copy = [...baseTabs];
-      copy.splice(idx + 1, 0, asyncTab);
-      return copy;
-    }
-    return [...baseTabs, asyncTab];
-  })();
 
-  const hasReminders = withAsync.some(t => t.id === "reminders");
-  const manifestTabs = hasReminders ? withAsync : (() => {
-    const idx = withAsync.findIndex(t => t.id === "interviews");
-    const remindersTab = { id: "reminders", label: "Reminders", icon: "Mail" };
-    if (idx >= 0) {
-      const copy = [...withAsync];
-      copy.splice(idx + 1, 0, remindersTab);
-      return copy;
-    }
-    return [...withAsync, remindersTab];
-  })();
-
-  // Map manifest tab ids to the central app's view ids
+  // Map canonical tab ids to the local renderer's view ids
   const viewMap = {
     dashboard: "dashboard",
     ask_khetha: "ask",
@@ -349,8 +330,19 @@ export default function KhethaIQ() {
     analytics: "analytics",
   };
 
-  const sidebarItems = manifestTabs
-    .map(t => ({ id: t.id, view: t.view || viewMap[t.id] || t.id, label: t.label, icon: ICON_MAP[t.icon] || Briefcase }))
+  // Build sidebar from the canonical list. If the manifest has a matching tab,
+  // prefer its label (picks up central-app label changes); structure/order/
+  // icons stay canonical so extra manifest tabs are filtered out.
+  const manifestTabsById = {};
+  (manifest?.tabs || []).forEach(t => { manifestTabsById[t.id] = t; });
+
+  const sidebarItems = CANONICAL_TABS
+    .map(t => ({
+      id: t.id,
+      view: viewMap[t.id] || t.id,
+      label: manifestTabsById[t.id]?.label || t.label,
+      icon: ICON_MAP[t.icon] || Briefcase,
+    }))
     .filter(t => t.id);
 
   const manifestLogo = manifest?.logo_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/698b3b9e4b7d348873dbf213/4c4bb5dc6_ArrivLogo.png";
