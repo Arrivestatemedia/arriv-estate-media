@@ -54,7 +54,64 @@ export const FIELD_AUTHORITY = {
       "lifecycle_stage",
       "social_media",
     ],
-    arrivOneAuthoritative: ["owner_id"],
+    arrivOneAuthoritative: [
+      "owner_id",
+      // ── Canonical Arriv One Customer360 intelligence fields ──
+      // Arriv One is the canonical owner of customer intelligence.
+      // Estate Media reads these via sync but must never write them.
+      // PROFILE intelligence
+      "engagement_score",
+      "relationship_age_days",
+      // RELATIONSHIP intelligence
+      "communication_preferences",
+      "preferred_contact_method",
+      "relationship_health",
+      "churn_risk",
+      // SALES intelligence
+      "next_best_action",
+      "next_best_action_timing",
+      "upsell_opportunities",
+      "recommended_products",
+      // AI SALES MEMORY
+      "sales_memory",
+      // LEARNING / recommendation outcomes
+      "recommendation_outcomes",
+      "recommendation_conversion_rate",
+      "what_worked_previously",
+      // Intelligence sync metadata
+      "intelligence_synced_at",
+      "intelligence_version",
+    ],
+  },
+  Account: {
+    bidirectional: [
+      "name",
+      "type",
+      "email",
+      "phone",
+      "website",
+      "address",
+      "city",
+      "state",
+      "zip",
+      "industry",
+      "description",
+      "lifecycle_stage",
+      "hubspot_id",
+    ],
+    arrivOneAuthoritative: [
+      "owner_id",
+      // ── Canonical Arriv One Customer360 account-level intelligence ──
+      "account_engagement_score",
+      "account_lifetime_value",
+      "account_buying_patterns",
+      "account_relationship_health",
+      "account_churn_risk",
+      "account_next_best_action",
+      "account_upsell_opportunities",
+      "account_sales_memory",
+      "account_intelligence_synced_at",
+    ],
   },
   ActivityLog: {
     // Originating application authoritative — append/mirror, never overwrite

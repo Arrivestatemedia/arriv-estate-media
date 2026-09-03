@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import LogActivityModal from "@/components/sales/LogActivityModal";
 import ConvertToJobModal from "@/components/sales/ConvertToJobModal";
 import DiscountRequestModal from "@/components/sales/DiscountRequestModal";
+import CustomerIntelligencePanel from "@/components/sales/CustomerIntelligencePanel";
 
 const PACKAGE_LABELS = {
   mls_walkthrough: "MLS Walkthrough",
@@ -338,6 +339,7 @@ export default function Customer360({ contact, contactKey, activities, onReload 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4 bg-white border" style={{ borderColor: 'rgba(184,149,106,0.2)' }}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="intelligence">Customer Intelligence</TabsTrigger>
             <TabsTrigger value="communications">Communications</TabsTrigger>
             <TabsTrigger value="orders">Jobs & Orders</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
@@ -395,6 +397,11 @@ export default function Customer360({ contact, contactKey, activities, onReload 
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* ── Customer Intelligence Tab (canonical Arriv One Customer360) ── */}
+          <TabsContent value="intelligence">
+            <CustomerIntelligencePanel contact={contact} />
           </TabsContent>
 
           {/* ── Communications Tab ──────────────────────────────────── */}

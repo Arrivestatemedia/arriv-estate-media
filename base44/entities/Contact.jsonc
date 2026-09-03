@@ -82,6 +82,151 @@
     "immutable_shared_id": {
       "type": "string",
       "description": "Immutable cross-app shared identifier"
+    },
+    "engagement_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Canonical Arriv One Customer360 engagement score (0-100). Arriv One-authoritative \u2014 Estate Media reads but never writes."
+    },
+    "relationship_age_days": {
+      "type": "integer",
+      "description": "Canonical relationship age in days since first contact. Arriv One-authoritative."
+    },
+    "communication_preferences": {
+      "type": "string",
+      "description": "Canonical communication preferences summary from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "preferred_contact_method": {
+      "type": "string",
+      "enum": [
+        "email",
+        "phone",
+        "text",
+        "none"
+      ],
+      "description": "Canonical preferred contact method from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "relationship_health": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "at_risk",
+        "critical",
+        "churned"
+      ],
+      "description": "Canonical relationship health from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "churn_risk": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Canonical churn risk score (0-100) from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "next_best_action": {
+      "type": "string",
+      "description": "Canonical recommended next best action from Arriv One Customer360 sales intelligence. Arriv One-authoritative."
+    },
+    "next_best_action_timing": {
+      "type": "string",
+      "description": "Canonical recommended outreach timing for the next best action. Arriv One-authoritative."
+    },
+    "upsell_opportunities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Canonical upsell opportunities from Arriv One Customer360 sales intelligence. Arriv One-authoritative."
+    },
+    "recommended_products": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Canonical recommended next products from Arriv One Customer360 sales intelligence. Arriv One-authoritative."
+    },
+    "sales_memory": {
+      "type": "object",
+      "properties": {
+        "successful_approaches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Sales approaches that worked previously with this customer"
+        },
+        "objections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Known objections raised by this customer"
+        },
+        "decision_maker_preferences": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Decision-maker preferences and priorities"
+        },
+        "relationship_notes": {
+          "type": "string",
+          "description": "Historical relationship context notes"
+        },
+        "historical_context": {
+          "type": "string",
+          "description": "Historical selling context from Arriv One AI sales memory"
+        }
+      },
+      "description": "Canonical AI sales memory from Arriv One Customer360. Arriv One-authoritative \u2014 Estate Media reads but never writes."
+    },
+    "recommendation_outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "recommendation": {
+            "type": "string",
+            "description": "The recommendation that was made"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "converted",
+              "not_converted",
+              "pending"
+            ],
+            "description": "Whether the recommendation converted"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "Canonical recommendation outcome history from Arriv One Customer360 learning. Arriv One-authoritative."
+    },
+    "recommendation_conversion_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Canonical recommendation conversion rate (0-100) from Arriv One Customer360 learning. Arriv One-authoritative."
+    },
+    "what_worked_previously": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Canonical sales approach learning \u2014 what worked previously with this customer. Arriv One-authoritative."
+    },
+    "intelligence_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Arriv One last refreshed the Customer360 intelligence fields on this contact. Arriv One-authoritative."
+    },
+    "intelligence_version": {
+      "type": "integer",
+      "description": "Monotonic version for intelligence updates from Arriv One. Arriv One-authoritative."
     }
   },
   "required": [],

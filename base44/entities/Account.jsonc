@@ -100,6 +100,73 @@
     "immutable_shared_id": {
       "type": "string",
       "description": "Immutable cross-app shared identifier"
+    },
+    "account_engagement_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Canonical Arriv One Customer360 account-level engagement score (0-100). Arriv One-authoritative \u2014 Estate Media reads but never writes."
+    },
+    "account_lifetime_value": {
+      "type": "number",
+      "description": "Canonical account-level lifetime value from Arriv One Customer360 purchase intelligence. Arriv One-authoritative."
+    },
+    "account_buying_patterns": {
+      "type": "string",
+      "description": "Canonical account-level buying pattern analysis from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "account_relationship_health": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "at_risk",
+        "critical",
+        "churned"
+      ],
+      "description": "Canonical account-level relationship health from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "account_churn_risk": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Canonical account-level churn risk (0-100) from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "account_next_best_action": {
+      "type": "string",
+      "description": "Canonical account-level recommended next best action from Arriv One Customer360 sales intelligence. Arriv One-authoritative."
+    },
+    "account_upsell_opportunities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Canonical account-level upsell opportunities from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "account_sales_memory": {
+      "type": "object",
+      "properties": {
+        "successful_approaches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "objections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "relationship_notes": {
+          "type": "string"
+        }
+      },
+      "description": "Canonical account-level AI sales memory from Arriv One Customer360. Arriv One-authoritative."
+    },
+    "account_intelligence_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Arriv One last refreshed account-level Customer360 intelligence. Arriv One-authoritative."
     }
   },
   "required": [

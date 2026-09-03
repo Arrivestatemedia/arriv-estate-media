@@ -132,7 +132,12 @@ export default function ContactDetailPage() {
       if (contactEntity && contactEntity.lifecycle_stage === 'customer') {
         setIsCustomer(true);
         const fullName = [contactEntity.firstname, contactEntity.lastname].filter(Boolean).join(' ') || contactEntity.email || contactKey;
+        // Spread the full contactEntity so canonical Arriv One Customer360 intelligence
+        // fields (engagement_score, sales_memory, next_best_action, etc.) are available
+        // to the Customer360 / CustomerIntelligencePanel. Estate Media reads these but
+        // never writes them — Arriv One is authoritative.
         setContact({
+          ...contactEntity,
           key: contactKey,
           name: fullName,
           email: contactEntity.email || contactKey,
