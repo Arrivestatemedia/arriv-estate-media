@@ -296,40 +296,36 @@ export default function ChatSidebar({ currentUserId, currentUserName, currentUse
           })}
         </div>
 
-        {/* Arriv One — cross-app contacts (same company) */}
-        {currentUserEmail && (
+        {/* Arriv One — cross-app contacts (same company).
+            Hidden entirely when no contacts are available so the section
+            header never shows up empty. */}
+        {currentUserEmail && !loadingArrivOne && arrivOneContacts.length > 0 && (
           <>
             <p className="text-xs font-semibold uppercase text-slate-500 px-2 py-2 mt-3 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#B8956A]"></span>
               Arriv One
             </p>
             <div className="space-y-1">
-              {loadingArrivOne ? (
-                <p className="text-sm text-slate-400 text-center px-2 py-3">Loading…</p>
-              ) : arrivOneContacts.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center px-2 py-3">No same-company contacts</p>
-              ) : (
-                arrivOneContacts
-                  .filter(c => !searchQuery || (c.full_name || c.email).toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((contact) => {
-                    const active = selectedChat?.id === contact.email && selectedChat?.type === "cross_app_dm";
-                    return (
-                      <button
-                        key={contact.email}
-                        onClick={() => handleStartCrossAppDM(contact)}
-                        className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors ${
-                          active ? "chat-row-active" : "text-slate-700 hover:bg-slate-200/60"
-                        }`}
-                      >
-                        <Avatar name={contact.full_name || contact.email} size={28} />
-                        <div className="flex-1 min-w-0 text-left">
-                          <p className="truncate">{contact.full_name || contact.email}</p>
-                          <p className="text-xs text-slate-400 truncate">Arriv One</p>
-                        </div>
-                      </button>
-                    );
-                  })
-              )}
+              {arrivOneContacts
+                .filter(c => !searchQuery || (c.full_name || c.email).toLowerCase().includes(searchQuery.toLowerCase()))
+                .map((contact) => {
+                  const active = selectedChat?.id === contact.email && selectedChat?.type === "cross_app_dm";
+                  return (
+                    <button
+                      key={contact.email}
+                      onClick={() => handleStartCrossAppDM(contact)}
+                      className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors ${
+                        active ? "chat-row-active" : "text-slate-700 hover:bg-slate-200/60"
+                      }`}
+                    >
+                      <Avatar name={contact.full_name || contact.email} size={28} />
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="truncate">{contact.full_name || contact.email}</p>
+                        <p className="text-xs text-slate-400 truncate">Arriv One</p>
+                      </div>
+                    </button>
+                  );
+                })}
             </div>
           </>
         )}
