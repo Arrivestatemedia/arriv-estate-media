@@ -261,8 +261,8 @@ export default async function (req) {
     // would be mirrored into Estate Media.
     if (envelope.entity_type === "SalesTeamMember") {
       const email = envelope.payload?.email || "";
-      const allowedDomain = "arrivestatemedia.com";
-      if (email && !email.toLowerCase().endsWith("@" + allowedDomain)) {
+      const allowedDomains = ["arrivestatemedia.com", "arrivonehq.com"];
+      if (email && !allowedDomains.includes(email.toLowerCase().split("@").pop())) {
         console.warn(`[SYNC_COMPANY_GUARD] Rejected SalesTeamMember sync: email="${email}" does not belong to ${allowedDomain}`);
         return Response.json(
           {
