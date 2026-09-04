@@ -151,6 +151,7 @@ export default async function (req) {
     let ackBody = {};
     let lastRawBody = "";
     let lastEndpoint = "";
+    const attempts = [];
 
     outer:
     for (const ep of endpointsToTry) {
@@ -163,6 +164,7 @@ export default async function (req) {
         lastRawBody = await response.text().catch(() => "");
         ackBody = (() => { try { return JSON.parse(lastRawBody); } catch { return {}; } })();
         lastEndpoint = ep;
+        attempts.push({ endpoint: ep, secret: secretName, status: response.status, body: lastRawBody.substring(0, 200) });
         if (response.ok && (ackBody.accepted || ackBody.processing_status === "applied")) {
           break outer;
         }
@@ -195,6 +197,7 @@ export default async function (req) {
         body: lastRawBody.substring(0, 500),
         contentType: response.headers.get("content-type"),
         endpoint: lastEndpoint,
+        attempts,
       },
     });
   } catch (error) {
