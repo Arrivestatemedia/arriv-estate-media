@@ -147,7 +147,7 @@ export default async function (req) {
       OUTBOUND_SECRET,
       INBOUND_SECRET,
       SHARED_SECRET,
-    ];
+    ].filter((s) => secrets.get(s));
     const serviceToken = secrets.get("ARRIV_ONE_SERVICE_TOKEN");
     const authHeaders = serviceToken
       ? { "Content-Type": "application/json", "Authorization": `Bearer ${serviceToken}` }
