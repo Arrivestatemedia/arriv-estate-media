@@ -261,7 +261,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             if (recipientEmail) {
               const crossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
               crossAppMsgs = await base44.entities.ChatMessage.filter(
-                { cross_app_channel_id: crossAppChannelId, parent_message_id: null },
+                { cross_app_channel_id: crossAppChannelId, parent_message_id: null, origin_app: "arriv_one" },
                 "timestamp", 50
               );
             }
@@ -399,6 +399,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           unsubscribeCrossApp = base44.entities.ChatMessage.subscribe((event) => {
             if (event.data?.cross_app_channel_id !== dmCrossAppChannelId) return;
             if (event.data?.parent_message_id) return;
+            if (event.data?.origin_app !== "arriv_one") return;
             if (event.type === "create") {
               setMessages(prev => {
                 const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
@@ -452,6 +453,19 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         });
       } else {
         await base44.entities.DirectMessage.create({ sender_id: currentUserId, sender_name: currentUserName, recipient_id: chatId, recipient_name: chatName, content, timestamp: new Date().toISOString() });
+        const fileRecipient = transferTargets.find(m => m.id === chatId);
+        if (fileRecipient?.email && (fileRecipient.arriv_employee_id || fileRecipient.sync_source === "arriv_one" || fileRecipient.immutable_shared_id)) {
+          try {
+            await base44.functions.invoke('sendCrossAppChatMessage', {
+              recipient_email: fileRecipient.email,
+              content,
+              sender_name: currentUserName,
+              sender_email: currentUserEmail,
+            });
+          } catch (e) {
+            console.error("Cross-app file propagation failed:", e);
+          }
+        }
       }
     } catch (err) {
       console.error("Upload error:", err);
@@ -551,6 +565,26 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           timestamp: new Date().toISOString(),
           reactions: {}
         });
+
+        // If the recipient is an Arriv One-linked employee, also propagate the
+        // message cross-app so it appears in the Arriv One ChatTab. The local
+        // DirectMessage remains for the Estate Media view; the cross-app
+        // ChatMessage (origin_app="estate_media") is filtered out of the unified
+        // DM view to avoid duplicates (only inbound origin_app="arriv_one"
+        // messages are shown from the cross-app store).
+        const dmRecipient = transferTargets.find(m => m.id === chatId);
+        if (dmRecipient?.email && (dmRecipient.arriv_employee_id || dmRecipient.sync_source === "arriv_one" || dmRecipient.immutable_shared_id)) {
+          try {
+            await base44.functions.invoke('sendCrossAppChatMessage', {
+              recipient_email: dmRecipient.email,
+              content: text,
+              sender_name: currentUserName,
+              sender_email: currentUserEmail,
+            });
+          } catch (e) {
+            console.error("Cross-app propagation failed:", e);
+          }
+        }
 
        // Send auto-response if recipient is in a meeting
        if (memberStatuses[chatId] === 'in_meeting') {
