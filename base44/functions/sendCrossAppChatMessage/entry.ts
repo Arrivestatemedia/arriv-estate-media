@@ -143,15 +143,10 @@ export default async function (req) {
     const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
     const SHARED_SECRET = "ARRIV_ESTATE_MEDIA_SECRET";
     const secretsToTry = [
+      "ARRIV_ONE_CHAT_SECRET",
       OUTBOUND_SECRET,
       INBOUND_SECRET,
       SHARED_SECRET,
-      "ARRIV_ONE_SERVICE_TOKEN",
-      "BASE44_SERVICE_TOKEN",
-      "ARRIV_PAYROLL_HANDOFF_SECRET",
-      "ESTATE_MEDIA_PAYROLL_SYNC_SECRET",
-      "ARRIV_PAYROLL_WEBHOOK_SECRET",
-      "ARRIV_PAYROLL_API_SECRET",
     ];
     const serviceToken = secrets.get("ARRIV_ONE_SERVICE_TOKEN");
     const authHeaders = serviceToken
