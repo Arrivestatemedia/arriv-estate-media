@@ -127,7 +127,6 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Discount Approvals", page: "DiscountApprovalPage", icon: Tag },
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
             { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },
-            { label: "Reassign Contacts", page: "AdminContactReassignment", icon: Users },
             { label: "Background Checks", page: "AdminBackgroundChecks", icon: ShieldCheck },
             { label: "Commissions", page: "AdminCommissions", icon: Wallet },
             { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },

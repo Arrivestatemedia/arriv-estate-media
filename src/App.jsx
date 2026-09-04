@@ -45,7 +45,6 @@ import CustomerSuccessPage from './pages/CustomerSuccessPage';
 import EmailPreview from './pages/EmailPreview';
 import AsyncInterview from './pages/AsyncInterview';
 import AsyncInterviewManager from './pages/AsyncInterviewManager';
-import AdminContactReassignment from './pages/AdminContactReassignment';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -396,15 +395,6 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
-      <Route
-        path="/AdminContactReassignment"
-        element={
-          <LayoutWrapper currentPageName="AdminContactReassignment">
-            <AdminContactReassignment />
-          </LayoutWrapper>
-        }
-      />
-
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

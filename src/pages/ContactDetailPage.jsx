@@ -22,6 +22,7 @@ import DiscountRequestModal from "@/components/sales/DiscountRequestModal";
 import Customer360 from "@/components/sales/Customer360";
 import { CallStatusProvider } from "@/components/CallStatusContext";
 import CallMapModal from "@/components/sales/CallMapModal";
+import ContactOwnerDropdown from "@/components/sales/ContactOwnerDropdown";
 
 export default function ContactDetailPage() {
   const location = useLocation();
@@ -31,6 +32,7 @@ export default function ContactDetailPage() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [contact, setContact] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -51,6 +53,21 @@ export default function ContactDetailPage() {
   useEffect(() => {
     loadActivities();
   }, [contactKey]);
+
+  // Determine admin status (sales session role or platform auth role)
+  useEffect(() => {
+    const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+    if (salesRole === 'admin') {
+      setIsAdmin(true);
+    }
+    base44.auth.isAuthenticated().then(isAuth => {
+      if (isAuth) {
+        base44.auth.me().then(me => {
+          if (me?.role === 'admin') setIsAdmin(true);
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
 
   // Listen for openDialer event and store phone for dialer
   useEffect(() => {
@@ -284,6 +301,11 @@ export default function ContactDetailPage() {
               <p className="text-sm mt-2" style={{ color: 'rgba(26,26,26,0.6)' }}>
                 {activities.length} activit{activities.length !== 1 ? 'ies' : 'y'}
               </p>
+              {isAdmin && contact?.id && (
+                <div className="mt-3">
+                  <ContactOwnerDropdown contactId={contact.id} salesMemberId={contact.sales_member_id} />
+                </div>
+              )}
             </div>
           </div>
 
