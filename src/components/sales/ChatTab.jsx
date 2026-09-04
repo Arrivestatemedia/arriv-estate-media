@@ -70,9 +70,9 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
     <div className="flex flex-col h-full relative" data-connect-chat="estate_media">
       {/* Background orbs — glassmorphism needs a colorful backdrop to blur */}
       <div className="connect-bg-orbs">
-        <div className="connect-bg-orb" style={{ width: 300, height: 300, top: -60, left: -60, backgroundColor: "#8B5CF6" }} />
-        <div className="connect-bg-orb" style={{ width: 250, height: 250, bottom: -40, right: -40, backgroundColor: "#3B82F6" }} />
-        <div className="connect-bg-orb" style={{ width: 200, height: 200, top: "30%", left: "40%", backgroundColor: "#EC4899" }} />
+        <div className="connect-bg-orb" style={{ width: 300, height: 300, top: -60, left: -60, backgroundColor: "#B8956A" }} />
+        <div className="connect-bg-orb" style={{ width: 250, height: 250, bottom: -40, right: -40, backgroundColor: "#D4B896" }} />
+        <div className="connect-bg-orb" style={{ width: 200, height: 200, top: "30%", left: "40%", backgroundColor: "#E8D5B8" }} />
       </div>
 
       {/* Connect product identity badge bar */}

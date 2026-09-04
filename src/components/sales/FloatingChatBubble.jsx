@@ -141,15 +141,47 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       ? { left: `${pos.x}px`, top: `${pos.y}px` }
       : { bottom: '1rem', right: '1rem' };
 
-  // Panel: gradient backdrop so glassmorphism surfaces have something to blur.
-  // Connect badge replaces the old "Team Chat" header; close button floats top-right.
+  // Panel: cream/gold transparent backdrop. Opens next to the bubble's current position.
+  const panelWidth = Math.min(700, window.innerWidth - 16);
+  const panelHeight = 560;
+  const bubbleSize = 56;
+  const panelMargin = 8;
+
+  let bubbleX, bubbleY;
+  if (pos) {
+    bubbleX = pos.x;
+    bubbleY = pos.y;
+  } else {
+    bubbleX = window.innerWidth - bubbleSize - 16;
+    bubbleY = window.innerHeight - bubbleSize - 16;
+  }
+
+  let panelLeft, panelTop;
+  if (bubbleX + bubbleSize / 2 > window.innerWidth / 2) {
+    panelLeft = bubbleX - panelWidth - panelMargin;
+  } else {
+    panelLeft = bubbleX + bubbleSize + panelMargin;
+  }
+  if (bubbleY + bubbleSize / 2 > window.innerHeight / 2) {
+    panelTop = bubbleY - panelHeight - panelMargin;
+  } else {
+    panelTop = bubbleY + bubbleSize + panelMargin;
+  }
+  panelLeft = Math.max(panelMargin, Math.min(panelLeft, window.innerWidth - panelWidth - panelMargin));
+  panelTop = Math.max(panelMargin, Math.min(panelTop, window.innerHeight - panelHeight - panelMargin));
+
   const panelStyle = {
-    height: '560px',
-    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 30%, #ec4899 65%, #f59e0b 100%)',
-    border: '1px solid rgba(255,255,255,0.3)',
+    height: `${panelHeight}px`,
+    width: `${panelWidth}px`,
+    maxWidth: '95vw',
+    background: 'rgba(255, 251, 245, 0.88)',
+    border: '1px solid rgba(184, 149, 106, 0.3)',
     zIndex: 9000,
-    bottom: hideOffset ? '-600px' : '5rem',
-    right: '1rem',
+    left: `${panelLeft}px`,
+    top: `${panelTop}px`,
+    transform: hideOffset ? 'translateY(700px)' : 'translateY(0)',
+    opacity: hideOffset ? 0 : 1,
+    transition: 'transform 0.3s ease, opacity 0.3s ease',
   };
 
   return (
@@ -157,13 +189,13 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       {/* Floating Chat Panel — Arriv One Connect */}
       {open && (
         <div
-          className="fixed w-[700px] max-w-[95vw] rounded-xl shadow-2xl overflow-hidden relative"
+          className="fixed rounded-xl shadow-2xl overflow-hidden relative"
           style={panelStyle}
         >
           {/* Close button — floats above the Connect badge bar */}
           <button
             onClick={() => setOpen(false)}
-            className="absolute top-2 right-2 z-50 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-colors"
+            className="absolute top-2 right-2 z-50 w-8 h-8 rounded-full bg-[#B8956A]/20 hover:bg-[#B8956A]/40 text-[#2a3536] flex items-center justify-center transition-colors"
             aria-label="Close chat"
           >
             <X className="w-4 h-4" />

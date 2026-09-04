@@ -55,12 +55,11 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   const displayCount = open ? 0 : unreadCount;
 
-  // Panel: gradient backdrop so glassmorphism surfaces have something to blur.
-  // Connect badge is inside ChatTab; close button floats top-right.
+  // Panel: cream/gold transparent backdrop, opens near the bubble.
   const panelStyle = {
     height: '560px',
-    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 30%, #ec4899 65%, #f59e0b 100%)',
-    border: '1px solid rgba(255,255,255,0.3)',
+    background: 'rgba(255, 251, 245, 0.88)',
+    border: '1px solid rgba(184, 149, 106, 0.3)',
     zIndex: 9000,
     bottom: (isInLiveCall || localRemoteCallLive) ? '-600px' : '5rem',
     right: '1rem',
@@ -77,7 +76,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
           {/* Close button — floats above the Connect badge bar */}
           <button
             onClick={() => setOpen(false)}
-            className="absolute top-2 right-2 z-50 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition-colors"
+            className="absolute top-2 right-2 z-50 w-8 h-8 rounded-full bg-[#B8956A]/20 hover:bg-[#B8956A]/40 text-[#2a3536] flex items-center justify-center transition-colors"
             aria-label="Close chat"
           >
             <X className="w-4 h-4" />

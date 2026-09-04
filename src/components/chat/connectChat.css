@@ -9,6 +9,10 @@
   --chat-accent: #4B2A78;
   --chat-accent-hover: #3E2263;
   --chat-on-accent: #FFFFFF;
+  --chat-surface: rgba(255, 255, 255, 0.32);
+  --chat-surface-light: rgba(255, 255, 255, 0.38);
+  --chat-surface-bubble: rgba(255, 255, 255, 0.6);
+  --chat-border: rgba(255, 255, 255, 0.5);
 }
 
 [data-connect-chat="arriv_one"] {
@@ -21,41 +25,49 @@
   --chat-accent: var(--accent-color, #B8956A);
   --chat-accent-hover: var(--accent-hover, #A68559);
   --chat-on-accent: var(--on-primary, #FFFFFF);
+  --chat-surface: rgba(255, 251, 245, 0.5);
+  --chat-surface-light: rgba(255, 251, 245, 0.35);
+  --chat-surface-bubble: rgba(255, 251, 245, 0.6);
+  --chat-border: rgba(184, 149, 106, 0.25);
+}
+
+[data-connect-chat="estate_media"] .connect-bg-orb {
+  opacity: 0.18;
 }
 
 /* ── Glassmorphism surface classes ── */
 .glass-sidebar {
-  background-color: rgba(255, 255, 255, 0.32);
+  background-color: var(--chat-surface);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
-  border-right: 1px solid rgba(255, 255, 255, 0.5);
+  border-right: 1px solid var(--chat-border);
 }
 
 .glass-header {
-  background-color: rgba(255, 255, 255, 0.35);
+  background-color: var(--chat-surface-light);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid var(--chat-border);
 }
 
 .glass-chat {
-  background-color: rgba(255, 255, 255, 0.38);
+  background-color: var(--chat-surface-light);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
 }
 
 .glass-bubble-in {
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: var(--chat-surface-bubble);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--chat-border);
 }
 
 .glass-input {
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: var(--chat-surface-bubble);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--chat-border);
 }
 
 .glass-input:focus {
@@ -65,10 +77,10 @@
 }
 
 .glass-panel {
-  background-color: rgba(255, 255, 255, 0.38);
+  background-color: var(--chat-surface-light);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--chat-border);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
