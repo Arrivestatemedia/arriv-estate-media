@@ -20,15 +20,23 @@ export default async function (req) {
     }
 
     // Tenant allowlist gate — Estate Media may only chat with employees from
-    // tnt_arriv_one or tnt_estate_media. Look up the recipient's Person record
-    // to verify their tenant_id is in the allowed list.
-    const recipientPersons = await base44.asServiceRole.entities.Person.filter({
+    // tnt_arriv_one or tnt_estate_media. Look up the recipient's SalesTeamMember
+    // record (synced employees have arriv_employee_id). When tenant_id is present
+    // on the record, enforce the allowlist; when absent, arriv_employee_id proves
+    // the Arriv One link.
+    const recipientMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({
       email: recipient_email.toLowerCase(),
     });
-    const recipientPerson = (recipientPersons || []).find(
-      (p) => p.email && p.email.toLowerCase() === recipient_email.toLowerCase()
+    const recipientMember = (recipientMembers || []).find(
+      (m) => m.email && m.email.toLowerCase() === recipient_email.toLowerCase()
     );
-    if (!recipientPerson || !isAllowedCrossAppTenant(recipientPerson.tenant_id)) {
+    if (!recipientMember || !recipientMember.arriv_employee_id) {
+      return Response.json(
+        { error: "Recipient is not a synced Arriv One employee" },
+        { status: 403 }
+      );
+    }
+    if (recipientMember.tenant_id && !isAllowedCrossAppTenant(recipientMember.tenant_id)) {
       return Response.json(
         { error: "Cross-app chat is restricted to allowed company contacts" },
         { status: 403 }

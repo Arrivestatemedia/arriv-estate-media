@@ -16,21 +16,26 @@ export default async function (req) {
       return Response.json({ error: "Could not determine your email" }, { status: 400 });
     }
 
-    // Query the Person entity for people who exist in Arriv One (have arriv_employee_id)
-    // and belong to one of the allowed cross-app tenants.
-    const persons = await base44.asServiceRole.entities.Person.filter({
-      status: "active",
+    // Synced employees live in SalesTeamMember (sync_source="arriv_one", arriv_employee_id set).
+    // The Person table is the canonical identity layer but is not populated by sync,
+    // so we query SalesTeamMember directly for cross-app contacts.
+    const members = await base44.asServiceRole.entities.SalesTeamMember.filter({
+      is_active: true,
     });
 
-    const contacts = (persons || [])
-      .filter((p) => {
-        if (!p.email || !p.arriv_employee_id) return false;
-        return isAllowedCrossAppTenant(p.tenant_id);
+    const contacts = (members || [])
+      .filter((m) => {
+        if (!m.email || !m.arriv_employee_id) return false;
+        if (m.is_active === false) return false;
+        // tenant_id may be unset on legacy sync records; when present, enforce allowlist.
+        // When absent, arriv_employee_id presence proves the Arriv One link.
+        if (m.tenant_id && !isAllowedCrossAppTenant(m.tenant_id)) return false;
+        return true;
       })
-      .map((p) => ({
-        email: p.email,
-        full_name: p.full_name,
-        arriv_employee_id: p.arriv_employee_id,
+      .map((m) => ({
+        email: m.email,
+        full_name: m.full_name,
+        arriv_employee_id: m.arriv_employee_id,
       }))
       .filter((c) => c.email.toLowerCase() !== currentUserEmail.toLowerCase())
       .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
