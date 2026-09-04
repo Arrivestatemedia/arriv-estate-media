@@ -288,6 +288,8 @@ export default function ContactDetailPage() {
         contactKey={contactKey}
         activities={activities}
         onReload={loadActivities}
+        isAdmin={isAdmin}
+        repReassignmentEnabled={repReassignmentEnabled}
       />
     );
   }

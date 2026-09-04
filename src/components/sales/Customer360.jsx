@@ -14,6 +14,7 @@ import LogActivityModal from "@/components/sales/LogActivityModal";
 import ConvertToJobModal from "@/components/sales/ConvertToJobModal";
 import DiscountRequestModal from "@/components/sales/DiscountRequestModal";
 import CustomerIntelligencePanel from "@/components/sales/CustomerIntelligencePanel";
+import ContactOwnerDropdown from "@/components/sales/ContactOwnerDropdown";
 
 const PACKAGE_LABELS = {
   mls_walkthrough: "MLS Walkthrough",
@@ -45,7 +46,7 @@ const INVOICE_STATUS_COLORS = {
   unpaid: "bg-amber-100 text-amber-700",
 };
 
-export default function Customer360({ contact, contactKey, activities, onReload }) {
+export default function Customer360({ contact, contactKey, activities, onReload, isAdmin, repReassignmentEnabled }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [bookings, setBookings] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -252,6 +253,11 @@ export default function Customer360({ contact, contactKey, activities, onReload 
                     </button>
                   )}
                 </div>
+                {contact?.id && (isAdmin || repReassignmentEnabled) && (
+                  <div className="mt-3">
+                    <ContactOwnerDropdown contactId={contact.id} salesMemberId={contact.sales_member_id} />
+                  </div>
+                )}
               </div>
             </div>
 
