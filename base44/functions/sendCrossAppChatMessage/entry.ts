@@ -3,6 +3,7 @@ import { secrets } from "base44:runtime";
 import { signEnvelope, SCHEMA_VERSION, generateEventId, generateNonce } from "../../shared/syncEnvelope.ts";
 import { SIGNATURE_VERSION } from "../../shared/syncEntityAdapters.ts";
 import { generateCrossAppChannelId, isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
+import { getTenantConfig } from "../../shared/syncTenantConfig.ts";
 
 const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 
@@ -24,13 +25,30 @@ export default async function (req) {
     // record (synced employees have arriv_employee_id). When tenant_id is present
     // on the record, enforce the allowlist; when absent, arriv_employee_id proves
     // the Arriv One link.
-    const recipientMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({
-      email: recipient_email.toLowerCase(),
+    // Database filter is case-sensitive — try both the raw and lowercased email
+    // to find the recipient regardless of how it was stored.
+    let recipientMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({
+      email: recipient_email,
     });
-    const recipientMember = (recipientMembers || []).find(
+    let recipientMember = (recipientMembers || []).find(
       (m) => m.email && m.email.toLowerCase() === recipient_email.toLowerCase()
     );
-    if (!recipientMember || !recipientMember.arriv_employee_id) {
+    if (!recipientMember) {
+      recipientMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({
+        email: recipient_email.toLowerCase(),
+      });
+      recipientMember = (recipientMembers || []).find(
+        (m) => m.email && m.email.toLowerCase() === recipient_email.toLowerCase()
+      );
+    }
+    // Accept any Arriv One-linked employee: arriv_employee_id, sync_source=arriv_one,
+    // or immutable_shared_id all prove the Arriv One link.
+    const isArrivOneLinked = recipientMember && (
+      recipientMember.arriv_employee_id ||
+      recipientMember.sync_source === "arriv_one" ||
+      recipientMember.immutable_shared_id
+    );
+    if (!isArrivOneLinked) {
       return Response.json(
         { error: "Recipient is not a synced Arriv One employee" },
         { status: 403 }
@@ -59,15 +77,29 @@ export default async function (req) {
       cross_app_channel_id: channelId,
     });
 
-    // 2. Deliver to Arriv One via HMAC-signed webhook
-    const endpoint = secrets.get("ARRIV_ONE_CHAT_WEBHOOK_URL");
-    if (!endpoint) {
-      // Message saved locally but not delivered — Arriv One endpoint not configured
+    // 2. Deliver to Arriv One. Try the dedicated chat receiver first (derived from
+    //    the sync endpoint URL), then fall back to the chat webhook URL, then the
+    //    sync event endpoint.
+    const cfg = await getTenantConfig(base44);
+    const syncEndpoint = cfg?.arriv_one_sync_endpoint || "";
+    // Derive chat receiver URL: replace receiveEstateMediaSyncEvent with receiveEstateMediaChatMessage
+    const derivedChatEndpoint = syncEndpoint.replace(
+      "receiveEstateMediaSyncEvent",
+      "receiveEstateMediaChatMessage"
+    );
+    const chatWebhookUrl = secrets.get("ARRIV_ONE_CHAT_WEBHOOK_URL");
+    // Priority: dedicated chat receiver > configured chat webhook > sync endpoint
+    const endpointsToTry = [
+      derivedChatEndpoint,
+      chatWebhookUrl,
+      syncEndpoint,
+    ].filter(Boolean);
+    if (endpointsToTry.length === 0) {
       return Response.json({
         success: false,
         delivered: false,
         local_message_id: localMessageId,
-        error: "ARRIV_ONE_CHAT_WEBHOOK_URL not configured",
+        error: "No Arriv One endpoint configured",
       });
     }
 
@@ -83,11 +115,15 @@ export default async function (req) {
       entity_type: "ChatMessage",
       entity_id: localMessageId,
       immutable_shared_id: channelId,
+      external_mapping_id: "",
       operation: "create",
       occurred_at: timestamp,
       source_updated_at: timestamp,
       record_version: 1,
       idempotency_key: `${localMessageId}|${timestamp}|create`,
+      correlation_id: "",
+      causation_id: "",
+      origin_event_id: "",
       payload: {
         message_id: localMessageId,
         channel_id: channelId,
@@ -102,16 +138,40 @@ export default async function (req) {
       signature_nonce: generateNonce(),
     };
 
-    const signature = await signEnvelope(envelope, OUTBOUND_SECRET);
-    envelope.signature = signature;
+    // Try each endpoint × each secret until one succeeds.
+    const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
+    const SHARED_SECRET = "ARRIV_ESTATE_MEDIA_SECRET";
+    const secretsToTry = [OUTBOUND_SECRET, INBOUND_SECRET, SHARED_SECRET];
+    const serviceToken = secrets.get("ARRIV_ONE_SERVICE_TOKEN");
+    const authHeaders = serviceToken
+      ? { "Content-Type": "application/json", "Authorization": `Bearer ${serviceToken}` }
+      : { "Content-Type": "application/json" };
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(envelope),
-    });
+    let response;
+    let ackBody = {};
+    let lastRawBody = "";
+    let lastEndpoint = "";
 
-    const ackBody = await response.json().catch(() => ({}));
+    outer:
+    for (const ep of endpointsToTry) {
+      for (const secretName of secretsToTry) {
+        response = await fetch(ep, {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({ ...envelope, signature: await signEnvelope(envelope, secretName) }),
+        });
+        lastRawBody = await response.text().catch(() => "");
+        ackBody = (() => { try { return JSON.parse(lastRawBody); } catch { return {}; } })();
+        lastEndpoint = ep;
+        if (response.ok && (ackBody.accepted || ackBody.processing_status === "applied")) {
+          break outer;
+        }
+        // 401 = wrong secret, try next secret; other errors = try next endpoint
+        if (response.status !== 401) {
+          break; // try next endpoint
+        }
+      }
+    }
 
     if (response.ok && (ackBody.accepted || ackBody.processing_status === "applied")) {
       return Response.json({
@@ -129,6 +189,13 @@ export default async function (req) {
       local_message_id: localMessageId,
       channel_id: channelId,
       delivery_error: ackBody.reason || `HTTP ${response.status}`,
+      diagnostic: {
+        status: response.status,
+        statusText: response.statusText,
+        body: lastRawBody.substring(0, 500),
+        contentType: response.headers.get("content-type"),
+        endpoint: lastEndpoint,
+      },
     });
   } catch (error) {
     console.error("sendCrossAppChatMessage error:", error);

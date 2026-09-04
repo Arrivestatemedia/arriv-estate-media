@@ -12,6 +12,7 @@ import { isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
 // naming mismatch doesn't silently drop messages.
 const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
 const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
+const SHARED_SECRET = "ARRIV_ESTATE_MEDIA_SECRET";
 
 export default async function (req) {
   try {
@@ -55,6 +56,9 @@ export default async function (req) {
     let sigValid = await verifySignature(envelope, INBOUND_SECRET).catch(() => false);
     if (!sigValid) {
       sigValid = await verifySignature(envelope, OUTBOUND_SECRET).catch(() => false);
+    }
+    if (!sigValid) {
+      sigValid = await verifySignature(envelope, SHARED_SECRET).catch(() => false);
     }
     if (!sigValid) {
       return Response.json(
