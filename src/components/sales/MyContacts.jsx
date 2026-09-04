@@ -63,6 +63,8 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
   const contactListingsKey = (c) => `${c.name || ''}||${c.company || ''}`;
 
   useEffect(() => {
+    // Guard: don't fetch until we know who the user is
+    if (!isAdmin && !salesMemberId) return;
     loadActivities();
     loadDbContacts();
     loadSecondaryInfo();
@@ -81,11 +83,13 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
       unsub2();
       unsub3();
     };
-  }, [salesMemberId, salesMemberEmail]);
+  }, [salesMemberId, salesMemberEmail, isAdmin]);
 
   const loadDbContacts = async () => {
     try {
-      const all = await base44.entities.Contact.list('-updated_date', 500);
+      const all = isAdmin
+        ? await base44.entities.Contact.list('-updated_date', 500)
+        : await base44.entities.Contact.filter({ sales_member_id: salesMemberId }, '-updated_date', 500);
       setDbContacts(all || []);
     } catch (e) {
       console.error(e);
@@ -108,14 +112,13 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
   const loadActivities = async () => {
     setLoading(true);
     try {
-      const all = await base44.entities.ActivityLog.list('-activity_date', 500);
-      // Admins see all activities; individual reps see only their own
-      const mine = isAdmin ? all : all.filter(a =>
-        a.sales_member_id === salesMemberId ||
-        a.sales_member_email === salesMemberEmail ||
-        a.created_by === salesMemberEmail
-      );
-      setActivities(mine);
+      // Server-side filtering: reps only get their own activities from the API,
+      // admins get all. This prevents other reps' or admin's data from ever
+      // reaching a non-admin user's browser.
+      const all = isAdmin
+        ? await base44.entities.ActivityLog.list('-activity_date', 500)
+        : await base44.entities.ActivityLog.filter({ sales_member_id: salesMemberId }, '-activity_date', 500);
+      setActivities(all || []);
     } catch (e) {
       console.error(e);
     } finally {
