@@ -156,17 +156,9 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
     bubbleY = window.innerHeight - bubbleSize - 16;
   }
 
-  let panelLeft, panelTop;
-  if (bubbleX + bubbleSize / 2 > window.innerWidth / 2) {
-    panelLeft = bubbleX - panelWidth - panelMargin;
-  } else {
-    panelLeft = bubbleX + bubbleSize + panelMargin;
-  }
-  if (bubbleY + bubbleSize / 2 > window.innerHeight / 2) {
-    panelTop = bubbleY - panelHeight - panelMargin;
-  } else {
-    panelTop = bubbleY + bubbleSize + panelMargin;
-  }
+  // Panel's bottom-right corner sits at the center of the bubble
+  let panelLeft = bubbleX + bubbleSize / 2 - panelWidth;
+  let panelTop = bubbleY + bubbleSize / 2 - panelHeight;
   panelLeft = Math.max(panelMargin, Math.min(panelLeft, window.innerWidth - panelWidth - panelMargin));
   panelTop = Math.max(panelMargin, Math.min(panelTop, window.innerHeight - panelHeight - panelMargin));
 
