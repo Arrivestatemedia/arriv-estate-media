@@ -23,7 +23,6 @@ import Customer360 from "@/components/sales/Customer360";
 import { CallStatusProvider } from "@/components/CallStatusContext";
 import CallMapModal from "@/components/sales/CallMapModal";
 import ContactOwnerDropdown from "@/components/sales/ContactOwnerDropdown";
-import ContactReassignmentSettingToggle from "@/components/sales/ContactReassignmentSettingToggle";
 
 export default function ContactDetailPage() {
   const location = useLocation();
@@ -183,6 +182,10 @@ export default function ContactDetailPage() {
           email: contactEmail,
           company: filtered[0].company_name || '',
           phone,
+          // Preserve Contact entity id + sales_member_id so the owner
+          // reassignment dropdown works even for non-customer contacts.
+          id: contactEntity?.id,
+          sales_member_id: contactEntity?.sales_member_id,
         };
         setContact(baseContact);
 
@@ -314,12 +317,6 @@ export default function ContactDetailPage() {
                 <div className="mt-3">
                   <ContactOwnerDropdown contactId={contact.id} salesMemberId={contact.sales_member_id} />
                 </div>
-              )}
-              {isAdmin && (
-                <ContactReassignmentSettingToggle
-                  enabled={repReassignmentEnabled}
-                  onToggle={setRepReassignmentEnabled}
-                />
               )}
             </div>
           </div>

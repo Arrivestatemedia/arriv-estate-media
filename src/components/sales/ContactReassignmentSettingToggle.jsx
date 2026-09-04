@@ -36,10 +36,10 @@ export default function ContactReassignmentSettingToggle({ enabled, onToggle }) 
   };
 
   return (
-    <div className="flex items-center gap-2 mt-3 p-2.5 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
+    <div className="flex items-center gap-2 shrink-0">
       <Switch checked={enabled} onCheckedChange={handleChange} disabled={saving} />
-      <span className="text-xs" style={{ color: 'rgba(26,26,26,0.7)' }}>
-        Allow non-admin reps to reassign contacts
+      <span className="text-xs whitespace-nowrap" style={{ color: 'rgba(26,26,26,0.7)' }}>
+        {saving ? 'Saving…' : 'Reps can reassign contacts'}
       </span>
     </div>
   );

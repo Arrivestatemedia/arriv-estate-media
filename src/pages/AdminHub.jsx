@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Activity } from "lucide-react";
+import { LayoutDashboard, Activity, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import AdminDashboardGrid from "@/components/admin/AdminDashboardGrid";
+import ContactReassignmentSettingToggle from "@/components/sales/ContactReassignmentSettingToggle";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
@@ -37,6 +38,7 @@ export default function AdminHub() {
   const [hasUnreadNotification, setHasUnreadNotification] = useState(false);
   const [callStatus, setCallStatus] = useState("idle");
   const [lastCallEvent, setLastCallEvent] = useState("");
+  const [repReassignmentEnabled, setRepReassignmentEnabled] = useState(true);
 
   // Derive isInLiveCall from callStatus (single source of truth)
   const isInLiveCall = callStatus !== 'idle';
@@ -254,6 +256,15 @@ export default function AdminHub() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch org-wide non-admin contact reassignment setting
+  useEffect(() => {
+    base44.entities.AppSetting.filter({ key: "non_admin_contact_reassignment" })
+      .then(rows => {
+        if (rows && rows.length > 0) setRepReassignmentEnabled(rows[0].value !== "false");
+      })
+      .catch(() => {});
+  }, []);
+
   const handleEnablePermissions = async () => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -340,6 +351,17 @@ export default function AdminHub() {
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
+            <div className="mb-6 flex items-center gap-3 p-4 rounded-xl" style={{ backgroundColor: 'rgba(184,149,106,0.08)', border: '1px solid rgba(184,149,106,0.25)' }}>
+              <Settings className="w-5 h-5 shrink-0" style={{ color: '#B8956A' }} />
+              <div className="flex-1">
+                <p className="text-sm font-semibold" style={{ color: '#1A1A1A' }}>Organization Settings</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(26,26,26,0.6)' }}>Control what your sales reps can do.</p>
+              </div>
+              <ContactReassignmentSettingToggle
+                enabled={repReassignmentEnabled}
+                onToggle={setRepReassignmentEnabled}
+              />
+            </div>
             <AdminDashboardGrid />
           </TabsContent>
 
