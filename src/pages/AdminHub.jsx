@@ -65,32 +65,53 @@ export default function AdminHub() {
     setCallStatus("idle");
     setLastCallEvent("");
 
-    const salesMemberId = localStorage.getItem('sales_member_id');
-    const salesMemberEmail = localStorage.getItem('sales_member_email');
-    
-    if (!salesMemberId || !salesMemberEmail) {
-      window.location.href = '/SalesLogin';
-      return;
-    }
+    const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+    const salesMemberEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email');
+    const salesMemberName = localStorage.getItem('sales_member_name') || sessionStorage.getItem('sales_member_name');
 
-    // Verify this user is an admin
-    base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-      if (members?.[0]?.role === 'admin') {
-        setUser({
-          id: salesMemberId,
-          email: salesMemberEmail,
-          full_name: localStorage.getItem('sales_member_name'),
-          role: 'admin',
-          profile_picture_url: members[0].profile_picture_url
-        });
-        setProfilePicUrl(members[0].profile_picture_url || "");
-        setTimeout(() => setShowPermissionBanner(true), 500);
-      } else {
-        // Not an admin, redirect to activity log
-        window.location.href = '/HubSpotActivityLog';
+    // Check Base44 platform admin role (takes precedence over SalesTeamMember role)
+    const checkPlatformAdmin = base44.auth.isAuthenticated()
+      .then((isAuth) => isAuth ? base44.auth.me() : null)
+      .then((me) => me?.role === 'admin')
+      .catch(() => false);
+
+    checkPlatformAdmin.then((platformIsAdmin) => {
+      if (!salesMemberId || !salesMemberEmail) {
+        if (platformIsAdmin) {
+          // Platform admin without a sales session — allow access
+          setUser({ id: null, email: null, full_name: null, role: 'admin' });
+          setTimeout(() => setShowPermissionBanner(true), 500);
+        } else {
+          window.location.href = '/SalesLogin';
+        }
+        return;
       }
-    }).catch(() => {
-      window.location.href = '/SalesLogin';
+
+      // Verify this user is an admin (SalesTeamMember role OR platform admin role)
+      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+        const member = members?.[0];
+        if (member?.role === 'admin' || platformIsAdmin) {
+          setUser({
+            id: salesMemberId,
+            email: salesMemberEmail,
+            full_name: salesMemberName,
+            role: 'admin',
+            profile_picture_url: member?.profile_picture_url
+          });
+          setProfilePicUrl(member?.profile_picture_url || "");
+          setTimeout(() => setShowPermissionBanner(true), 500);
+        } else {
+          // Not an admin, redirect to activity log
+          window.location.href = '/HubSpotActivityLog';
+        }
+      }).catch(() => {
+        if (platformIsAdmin) {
+          setUser({ id: salesMemberId, email: salesMemberEmail, full_name: salesMemberName, role: 'admin' });
+          setTimeout(() => setShowPermissionBanner(true), 500);
+        } else {
+          window.location.href = '/SalesLogin';
+        }
+      });
     });
   }, []);
 
