@@ -86,7 +86,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
       {/* Floating Chat Panel — Arriv One Connect */}
       {open && (
         <div
-          className="fixed rounded-xl shadow-2xl overflow-hidden relative"
+          className="fixed rounded-xl shadow-2xl overflow-hidden"
           style={panelStyle}
         >
           {/* Close button — floats above the Connect badge bar */}
