@@ -10,14 +10,49 @@ const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Sales team members use custom auth (SalesLogin), not Base44 built-in auth.
+    // Try me() first; if it fails, resolve the sender from the request body's
+    // sender_email via a SalesTeamMember lookup (asServiceRole).
+    let user = null;
+    try {
+      user = await base44.auth.me();
+    } catch (e) {
+      // Custom auth — sender identity comes from the request body
+    }
 
     const body = await req.json();
     const { recipient_email, content, sender_name, sender_email } = body;
 
     if (!recipient_email || !content || !sender_email) {
       return Response.json({ error: "recipient_email, content, and sender_email are required" }, { status: 400 });
+    }
+
+    // Resolve sender_id: prefer Base44 user.id, fall back to SalesTeamMember lookup
+    let senderId = user?.id;
+    if (!senderId) {
+      try {
+        const senderMembers = await base44.asServiceRole.entities.SalesTeamMember.filter({
+          email: sender_email,
+        });
+        const senderMember = (senderMembers || []).find(
+          (m) => m.email && m.email.toLowerCase() === sender_email.toLowerCase()
+        );
+        if (senderMember) {
+          senderId = senderMember.id;
+        } else {
+          // Try lowercased email
+          const senderMembersLower = await base44.asServiceRole.entities.SalesTeamMember.filter({
+            email: sender_email.toLowerCase(),
+          });
+          const senderMemberLower = (senderMembersLower || []).find(
+            (m) => m.email && m.email.toLowerCase() === sender_email.toLowerCase()
+          );
+          senderId = senderMemberLower?.id || sender_email;
+        }
+      } catch (e) {
+        senderId = sender_email;
+      }
     }
 
     // Tenant allowlist gate — Estate Media may only chat with employees from
@@ -65,11 +100,13 @@ export default async function (req) {
     const timestamp = new Date().toISOString();
     const localMessageId = crypto.randomUUID();
 
-    // 1. Create the message locally so the sender sees it immediately
-    await base44.entities.ChatMessage.create({
+    // 1. Create the message locally so the sender sees it immediately.
+    //    Use asServiceRole so this works for custom-auth (SalesLogin) users
+    //    who don't have a Base44 auth token.
+    await base44.asServiceRole.entities.ChatMessage.create({
       channel_id: channelId,
-      sender_id: user.id,
-      sender_name: sender_name || user.full_name || sender_email,
+      sender_id: senderId,
+      sender_name: sender_name || user?.full_name || sender_email,
       sender_email,
       content,
       timestamp,
@@ -127,8 +164,8 @@ export default async function (req) {
       payload: {
         message_id: localMessageId,
         channel_id: channelId,
-        sender_id: user.id,
-        sender_name: sender_name || user.full_name || sender_email,
+        sender_id: senderId,
+        sender_name: sender_name || user?.full_name || sender_email,
         sender_email,
         recipient_email,
         content,
