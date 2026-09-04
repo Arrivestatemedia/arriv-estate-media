@@ -248,43 +248,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
 
       return () => { smsSub(); callSub(); videoCallSub(); };
     } else {
-      // No sales session — but don't redirect yet. Check if the user is
-      // authenticated via platform auth (admin). If so, look up their
-      // SalesTeamMember by email and set the user so they can see data.
-      base44.auth.isAuthenticated().then(isAuth => {
-        if (!isAuth) {
-          window.location.replace('/SalesLogin');
-          return;
-        }
-        base44.auth.me().then(async userData => {
-          if (!userData) {
-            window.location.replace('/SalesLogin');
-            return;
-          }
-          let memberId = userData.data?.sales_member_id || userData.id;
-          let memberName = userData.full_name;
-          let memberEmail = userData.email;
-          try {
-            let members = await base44.entities.SalesTeamMember.filter({ email: userData.email });
-            if (!members || members.length === 0) {
-              const allMembers = await base44.entities.SalesTeamMember.list();
-              members = (allMembers || []).filter(m => m.email && m.email.toLowerCase() === userData.email.toLowerCase());
-            }
-            if (members?.[0]) {
-              memberId = members[0].id;
-              memberName = members[0].full_name;
-              memberEmail = members[0].email;
-            }
-          } catch (e) { /* fall back to platform user id */ }
-          setUser({
-            id: memberId,
-            full_name: memberName,
-            email: memberEmail,
-            type: 'sales',
-            role: userData.role || 'user'
-          });
-        }).catch(() => window.location.replace('/SalesLogin'));
-      }).catch(() => window.location.replace('/SalesLogin'));
+      window.location.replace('/SalesLogin');
     }
   }, []);
 
