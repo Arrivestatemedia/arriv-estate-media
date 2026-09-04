@@ -330,9 +330,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
   useEffect(() => {
     if (!showForm || !user?.id) return;
     setLoadingContacts(true);
-    const contactPromise = user?.role === 'admin'
-      ? base44.entities.ActivityLog.list('-activity_date', 100)
-      : base44.entities.ActivityLog.filter({ sales_member_id: user.id }, '-activity_date', 100);
+    const contactPromise = base44.entities.ActivityLog.filter({ sales_member_id: user.id }, '-activity_date', 100);
     contactPromise
       .then(logs => {
         const isPhoneOrExtension = (name) => !name || /^[+\d\s\-().]+$/.test(name.trim()) || /^\d{1,4}$/.test(name.trim());
@@ -359,11 +357,8 @@ export default function HubSpotActivityLog({ embedded = false }) {
     : null;
 
   const { data: activities = [] } = useQuery({
-    queryKey: ['activities', user?.email, user?.role],
+    queryKey: ['activities', user?.email],
     queryFn: async () => {
-      if (user?.role === 'admin') {
-        return await base44.entities.ActivityLog.list('-activity_date', 500) || [];
-      }
       const allActivities = await base44.entities.ActivityLog.filter({ sales_member_id: user?.id }, '-activity_date', 500);
       return allActivities || [];
     },
@@ -376,15 +371,13 @@ export default function HubSpotActivityLog({ embedded = false }) {
     if (!user?.id) return;
     
     const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
-      // Admins see all activities, so invalidate on ANY change.
-      // Reps only see their own, so only invalidate on their own changes.
-      if (user?.role === 'admin' || event.data?.sales_member_id === user.id) {
-        queryClient.invalidateQueries({ queryKey: ['activities', user?.email, user?.role] });
+      if (event.data?.sales_member_id === user.id) {
+        queryClient.invalidateQueries({ queryKey: ['activities', user?.email] });
       }
     });
     
     return unsubscribe;
-  }, [user?.id, user?.email, user?.role, queryClient]);
+  }, [user?.id, user?.email, queryClient]);
 
   // Build a phone lookup from entire history
   const phoneLookup = {};
@@ -895,11 +888,11 @@ export default function HubSpotActivityLog({ embedded = false }) {
         )}
 
         {activeTab === "mycontacts" && (
-          <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} isAdmin={user?.role === 'admin'} />
+          <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
         )}
 
         {activeTab === "queue" && (
-          <DailyCallQueue salesMemberId={user?.id} salesMemberEmail={user?.email} repName={user?.full_name} isAdmin={user?.role === 'admin'} />
+          <DailyCallQueue salesMemberId={user?.id} salesMemberEmail={user?.email} repName={user?.full_name} />
         )}
 
         {activeTab === "calendar" && (
