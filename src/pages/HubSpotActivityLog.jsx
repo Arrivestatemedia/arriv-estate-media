@@ -110,19 +110,36 @@ export default function HubSpotActivityLog({ embedded = false }) {
 
 
   useEffect(() => {
-    const salesMemberId = localStorage.getItem('sales_member_id');
+    const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
     if (salesMemberId) {
+      // Set user IMMEDIATELY from localStorage so the activity query can start
+      // without waiting for the SalesTeamMember lookup (which only fetches the
+      // profile picture). This prevents a blank screen if that lookup is slow.
+      const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role') || 'user';
+      setUser({
+        id: salesMemberId,
+        full_name: localStorage.getItem('sales_member_name') || sessionStorage.getItem('sales_member_name'),
+        email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email'),
+        type: 'sales',
+        role: salesRole
+      });
+
+      // Then fetch profile picture (non-blocking)
       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-        const u = {
-          id: salesMemberId,
-          full_name: localStorage.getItem('sales_member_name'),
-          email: localStorage.getItem('sales_member_email'),
-          type: 'sales',
-          role: localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role') || 'user'
-        };
-        setUser(u);
         if (members?.[0]?.profile_picture_url) {
           setProfilePicUrl(members[0].profile_picture_url);
+        }
+      }).catch(() => {});
+
+      // Also check platform auth — if the platform user is an admin, upgrade
+      // the role so the admin sees all data on the front end.
+      base44.auth.isAuthenticated().then(isAuth => {
+        if (isAuth) {
+          base44.auth.me().then(userData => {
+            if (userData?.role === 'admin') {
+              setUser(prev => prev ? { ...prev, role: 'admin' } : userData);
+            }
+          }).catch(() => {});
         }
       }).catch(() => {});
 
@@ -359,13 +376,15 @@ export default function HubSpotActivityLog({ embedded = false }) {
     if (!user?.id) return;
     
     const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
-      if (event.data?.sales_member_id === user.id) {
-        queryClient.invalidateQueries({ queryKey: ['activities', user?.email] });
+      // Admins see all activities, so invalidate on ANY change.
+      // Reps only see their own, so only invalidate on their own changes.
+      if (user?.role === 'admin' || event.data?.sales_member_id === user.id) {
+        queryClient.invalidateQueries({ queryKey: ['activities', user?.email, user?.role] });
       }
     });
     
     return unsubscribe;
-  }, [user?.id, user?.email, queryClient]);
+  }, [user?.id, user?.email, user?.role, queryClient]);
 
   // Build a phone lookup from entire history
   const phoneLookup = {};
@@ -880,7 +899,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
         )}
 
         {activeTab === "queue" && (
-          <DailyCallQueue salesMemberId={user?.id} salesMemberEmail={user?.email} repName={user?.full_name} />
+          <DailyCallQueue salesMemberId={user?.id} salesMemberEmail={user?.email} repName={user?.full_name} isAdmin={user?.role === 'admin'} />
         )}
 
         {activeTab === "calendar" && (

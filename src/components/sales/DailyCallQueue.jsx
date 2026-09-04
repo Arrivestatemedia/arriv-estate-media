@@ -536,7 +536,7 @@ function UpcomingCard({ contact, scheduled, meta, onDeleted }) {
   );
 }
 
-export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repName }) {
+export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repName, isAdmin }) {
   const [contacts, setContacts] = useState([]);
   // scheduledMap: contactKey -> ActivityLog record (the saved follow-up)
   const [scheduledMap, setScheduledMap] = useState({});
@@ -577,7 +577,8 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
       setInsightCount(pastInsights.length);
       const learnedContext = buildLearnedContext(pastInsights);
 
-      const mine = all.filter(a =>
+      // Admins see all activities; reps see only their own
+      const mine = isAdmin ? all : all.filter(a =>
         a.sales_member_id === sid ||
         a.sales_member_email === sem ||
         a.created_by === sem
