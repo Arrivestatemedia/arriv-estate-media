@@ -435,8 +435,8 @@ export default function Layout({ children, currentPageName }) {
         <LayoutContent currentPageName={currentPageName}>
           {children}
         </LayoutContent>
-        <SupportBubble />
-        <SupportPanel />
+        {currentPageName !== "HubSpotActivityLog" && <SupportBubble />}
+        {currentPageName !== "HubSpotActivityLog" && <SupportPanel />}
       </SupportProvider>
     </CallStatusProvider>
   );
