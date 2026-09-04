@@ -1837,8 +1837,8 @@ Keep every section short and conversational. Brad is calling directly — write 
           </div>
         )}
 
-        {/* Chat bubble - hidden during live call, disabled when video call active */}
-         {((callStatus === 'idle') || hasUnreadNotification) && (
+        {/* Chat bubble - hidden during live call, disabled when video call active, suppressed when embedded in AdminHub (which renders its own AdminChatBubble) */}
+         {!embedded && ((callStatus === 'idle') || hasUnreadNotification) && (
             <FloatingChatBubble
               currentUserId={user?.id}
               currentUserName={user?.full_name}
