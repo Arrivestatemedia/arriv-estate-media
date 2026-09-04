@@ -4,7 +4,7 @@ import {
   validateEnvelopeShape,
   validateTimestamp,
 } from "../../shared/syncEnvelope.ts";
-import { isSameCompany } from "../../shared/crossAppChat.ts";
+import { isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
 
 const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
 
@@ -74,10 +74,11 @@ export default async function (req) {
       );
     }
 
-    // 6. Same-company gate
-    if (!isSameCompany(sender_email, recipient_email)) {
+    // 6. Tenant allowlist gate — only messages from allowed tenants are accepted.
+    // The envelope's tenant_id identifies the sender's Arriv One tenant.
+    if (!isAllowedCrossAppTenant(envelope.tenant_id)) {
       return Response.json(
-        { accepted: false, processing_status: "rejected", reason: "Cross-company message rejected" },
+        { accepted: false, processing_status: "rejected", reason: "Sender tenant not in cross-app allowlist" },
         { status: 403 }
       );
     }

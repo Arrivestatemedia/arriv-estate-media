@@ -24,6 +24,25 @@ export function getEmailDomain(email: string): string {
 }
 
 /**
+ * Tenant allowlist for cross-app chat. Arriv Estate Media may only see and
+ * communicate with employees from these two Arriv One tenants:
+ *   - tnt_arriv_one      (Arriv One company)
+ *   - tnt_estate_media   (Arriv Estate Media company)
+ * No other Arriv One tenant (e.g. Test Company Inc) is visible or reachable.
+ */
+export const ALLOWED_CROSS_APP_TENANTS: string[] = [
+  "tnt_arriv_one",
+  "tnt_estate_media",
+];
+
+/**
+ * Returns true if the given tenant_id is in the cross-app chat allowlist.
+ */
+export function isAllowedCrossAppTenant(tenantId: string | undefined | null): boolean {
+  return !!tenantId && ALLOWED_CROSS_APP_TENANTS.includes(tenantId);
+}
+
+/**
  * Same-company check: two users belong to the same company if their email
  * domains match. This is the gate for cross-app chat — only same-company
  * users can see each other and exchange messages.

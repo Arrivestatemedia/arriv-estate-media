@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
-import { getEmailDomain } from "../../shared/crossAppChat.ts";
+import { isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
 
 export default async function (req) {
   try {
@@ -16,13 +16,8 @@ export default async function (req) {
       return Response.json({ error: "Could not determine your email" }, { status: 400 });
     }
 
-    const myDomain = getEmailDomain(currentUserEmail);
-    if (!myDomain) {
-      return Response.json({ contacts: [] });
-    }
-
     // Query the Person entity for people who exist in Arriv One (have arriv_employee_id)
-    // and share the same email domain (same company).
+    // and belong to one of the allowed cross-app tenants.
     const persons = await base44.asServiceRole.entities.Person.filter({
       status: "active",
     });
@@ -30,7 +25,7 @@ export default async function (req) {
     const contacts = (persons || [])
       .filter((p) => {
         if (!p.email || !p.arriv_employee_id) return false;
-        return getEmailDomain(p.email) === myDomain;
+        return isAllowedCrossAppTenant(p.tenant_id);
       })
       .map((p) => ({
         email: p.email,

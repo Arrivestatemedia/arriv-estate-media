@@ -2,7 +2,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
 import { signEnvelope, SCHEMA_VERSION, generateEventId, generateNonce } from "../../shared/syncEnvelope.ts";
 import { SIGNATURE_VERSION } from "../../shared/syncEntityAdapters.ts";
-import { generateCrossAppChannelId, isSameCompany } from "../../shared/crossAppChat.ts";
+import { generateCrossAppChannelId, isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
 
 const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 
@@ -19,9 +19,20 @@ export default async function (req) {
       return Response.json({ error: "recipient_email, content, and sender_email are required" }, { status: 400 });
     }
 
-    // Same-company gate — only same-domain users can cross-app chat
-    if (!isSameCompany(sender_email, recipient_email)) {
-      return Response.json({ error: "Cross-app chat is restricted to same-company contacts" }, { status: 403 });
+    // Tenant allowlist gate — Estate Media may only chat with employees from
+    // tnt_arriv_one or tnt_estate_media. Look up the recipient's Person record
+    // to verify their tenant_id is in the allowed list.
+    const recipientPersons = await base44.asServiceRole.entities.Person.filter({
+      email: recipient_email.toLowerCase(),
+    });
+    const recipientPerson = (recipientPersons || []).find(
+      (p) => p.email && p.email.toLowerCase() === recipient_email.toLowerCase()
+    );
+    if (!recipientPerson || !isAllowedCrossAppTenant(recipientPerson.tenant_id)) {
+      return Response.json(
+        { error: "Cross-app chat is restricted to allowed company contacts" },
+        { status: 403 }
+      );
     }
 
     const channelId = generateCrossAppChannelId(sender_email, recipient_email);
