@@ -15,7 +15,7 @@ import DiscountRequestModal from "./DiscountRequestModal";
 import { format, formatDistanceToNow } from "date-fns";
 import { createPageUrl } from "@/utils";
 
-export default function MyContacts({ salesMemberId, salesMemberEmail }) {
+export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin }) {
   const [activities, setActivities] = useState([]);
   const [dbContacts, setDbContacts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,8 +109,8 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
     setLoading(true);
     try {
       const all = await base44.entities.ActivityLog.list('-activity_date', 500);
-      // Filter to only this rep's activities
-      const mine = all.filter(a =>
+      // Admins see all activities; individual reps see only their own
+      const mine = isAdmin ? all : all.filter(a =>
         a.sales_member_id === salesMemberId ||
         a.sales_member_email === salesMemberEmail ||
         a.created_by === salesMemberEmail

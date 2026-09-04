@@ -133,7 +133,11 @@ export default function HubSpotActivityLog({ embedded = false }) {
           const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
           setUnreadSmsCount(total);
         }).catch(() => {});
-        base44.entities.ActivityLog.filter({ activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_id: salesMemberId }).then(logs => {
+        const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+        const missedFilter = salesRole === 'admin'
+          ? { activity_type: 'call', missed: true, missed_acknowledged: false }
+          : { activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_id: salesMemberId };
+        base44.entities.ActivityLog.filter(missedFilter).then(logs => {
           setMissedCallsCount(logs?.length || 0);
         }).catch(() => {});
       };
@@ -289,11 +293,29 @@ export default function HubSpotActivityLog({ embedded = false }) {
     };
   }, []);
 
+  // Platform auth fallback: if no sales session, load user from platform auth
+  // so admin users (logged in via Base44 auth, not sales login) can see data.
+  useEffect(() => {
+    const salesMemberId = localStorage.getItem('sales_member_id');
+    if (!salesMemberId && !user) {
+      base44.auth.isAuthenticated().then(isAuth => {
+        if (isAuth) {
+          base44.auth.me().then(userData => {
+            if (userData) setUser(userData);
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
   // Load contacts when form opens
   useEffect(() => {
     if (!showForm || !user?.id) return;
     setLoadingContacts(true);
-    base44.entities.ActivityLog.filter({ sales_member_id: user.id }, '-activity_date', 100)
+    const contactPromise = user?.role === 'admin'
+      ? base44.entities.ActivityLog.list('-activity_date', 100)
+      : base44.entities.ActivityLog.filter({ sales_member_id: user.id }, '-activity_date', 100);
+    contactPromise
       .then(logs => {
         const isPhoneOrExtension = (name) => !name || /^[+\d\s\-().]+$/.test(name.trim()) || /^\d{1,4}$/.test(name.trim());
         const uniqueContacts = {};
@@ -319,8 +341,11 @@ export default function HubSpotActivityLog({ embedded = false }) {
     : null;
 
   const { data: activities = [] } = useQuery({
-    queryKey: ['activities', user?.email],
+    queryKey: ['activities', user?.email, user?.role],
     queryFn: async () => {
+      if (user?.role === 'admin') {
+        return await base44.entities.ActivityLog.list('-activity_date', 500) || [];
+      }
       const allActivities = await base44.entities.ActivityLog.filter({ sales_member_id: user?.id }, '-activity_date', 500);
       return allActivities || [];
     },
@@ -850,7 +875,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
         )}
 
         {activeTab === "mycontacts" && (
-          <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} />
+          <MyContacts salesMemberId={user?.id} salesMemberEmail={user?.email} isAdmin={user?.role === 'admin'} />
         )}
 
         {activeTab === "queue" && (
