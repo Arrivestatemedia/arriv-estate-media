@@ -33,9 +33,11 @@ export default async function (req) {
         return true;
       })
       .map((m) => ({
+        id: m.id,
         email: m.email,
         full_name: m.full_name,
         arriv_employee_id: m.arriv_employee_id,
+        extension: m.extension,
       }))
       .filter((c) => c.email.toLowerCase() !== currentUserEmail.toLowerCase())
       .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));

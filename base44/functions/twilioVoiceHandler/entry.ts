@@ -98,7 +98,11 @@ Deno.serve(async (req) => {
 </Response>`);
         }
 
-        const targetIdentity = `sales_rep_${target.id.replace(/-/g, '_')}`;
+        // Cross-tenant targets (synced Arriv One employees) use arriv_employee_id as
+        // their browser client identity so both apps can reach them on the shared Twilio account.
+        const targetIdentity = target.arriv_employee_id && target.sync_source === 'arriv_one'
+          ? `sales_rep_${target.arriv_employee_id}`
+          : `sales_rep_${target.id.replace(/-/g, '_')}`;
         const callerIdentityStr = callerMember ? `sales_rep_${callerMember.id.replace(/-/g, '_')}` : '';
         console.log('Extension → client identity:', targetIdentity, 'callerIdentity:', callerIdentityStr, 'cell fallback:', target.phone_number);
 

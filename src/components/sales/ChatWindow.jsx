@@ -535,6 +535,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     );
   }
 
+  // Cross-app DM recipient — look up the synced SalesTeamMember by email to get extension + id
+  const crossAppRecipient = chatType === "cross_app_dm"
+    ? transferTargets.find(m => m.email?.toLowerCase() === chatId?.toLowerCase())
+    : null;
+
   if (!chatId) {
     return (
       <div className="flex items-center justify-center h-full text-slate-400">
@@ -635,6 +640,57 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                         <Video className="w-4 h-4" />
                       </button>
                     </>
+                    )}
+                    </>
+                    ) : chatType === "cross_app_dm" ? (
+                    <>
+                    <h2 className="text-lg font-semibold text-slate-900">{chatName}</h2>
+                    {crossAppRecipient?.extension && (
+                      <>
+                       <button
+                         onClick={() => {
+                           const ext = crossAppRecipient?.extension;
+                           if (ext) {
+                             localStorage.setItem('dialerPhone', String(ext));
+                             window.dispatchEvent(new Event('dialerCardReady'));
+                           }
+                         }}
+                         className="p-1.5 text-slate-600 hover:text-[var(--chat-accent)] hover:bg-slate-100 rounded-lg transition"
+                         title="Call"
+                       >
+                         <Phone className="w-4 h-4" />
+                       </button>
+                       <button
+                         onClick={async () => {
+                           if (!crossAppRecipient) return;
+                           try {
+                             const res = await base44.functions.invoke('initiateCrossTenantVideoCall', {
+                               salesMemberId: currentUserId,
+                               recipientMemberId: crossAppRecipient.id,
+                             });
+                             if (res.data?.success) {
+                               const callData = { roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName };
+                               if (onVideoCallStarted) {
+                                 onVideoCallStarted(callData);
+                               } else {
+                                 setOutgoingCallData(callData);
+                                 setShowVideoCall(true);
+                               }
+                             } else {
+                               setVideoCallError('Failed to start cross-tenant video call');
+                               setTimeout(() => setVideoCallError(null), 3000);
+                             }
+                           } catch (err) {
+                             setVideoCallError('Failed to start video call: ' + err.message);
+                             setTimeout(() => setVideoCallError(null), 4000);
+                           }
+                         }}
+                         className="p-1.5 text-slate-600 hover:text-[var(--chat-accent)] hover:bg-slate-100 rounded-lg transition"
+                         title="Video Call"
+                       >
+                         <Video className="w-4 h-4" />
+                       </button>
+                      </>
                     )}
                     </>
                     ) : (
