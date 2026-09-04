@@ -255,6 +255,27 @@ export default async function (req) {
       }
     }
 
+    // 10.5. Company guard — reject SalesTeamMember sync events for employees
+    // whose email domain is not Arriv Estate Media. Arriv One is multi-company;
+    // without this guard, employees from other companies (e.g. "test company")
+    // would be mirrored into Estate Media.
+    if (envelope.entity_type === "SalesTeamMember") {
+      const email = envelope.payload?.email || "";
+      const allowedDomain = "arrivestatemedia.com";
+      if (email && !email.toLowerCase().endsWith("@" + allowedDomain)) {
+        console.warn(`[SYNC_COMPANY_GUARD] Rejected SalesTeamMember sync: email="${email}" does not belong to ${allowedDomain}`);
+        return Response.json(
+          {
+            accepted: false,
+            processing_status: "rejected",
+            reason: `SalesTeamMember email domain not allowed: ${email}`,
+            code: "company_filter_rejected",
+          },
+          { status: 200 }
+        );
+      }
+    }
+
     // 11. Process the event
     const result = await processEvent(base44, envelope, cfg);
 
