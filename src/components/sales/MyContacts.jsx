@@ -17,6 +17,7 @@ import { createPageUrl } from "@/utils";
 
 export default function MyContacts({ salesMemberId, salesMemberEmail }) {
   const [activities, setActivities] = useState([]);
+  const [dbContacts, setDbContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedContact, setExpandedContact] = useState(null);
   const [contactsPage, setContactsPage] = useState(0);
@@ -63,6 +64,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
 
   useEffect(() => {
     loadActivities();
+    loadDbContacts();
     loadSecondaryInfo();
     // Subscribe to real-time updates
     const unsub = base44.entities.ActivityLog.subscribe((event) => {
@@ -71,11 +73,24 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
     const unsub2 = base44.entities.SecondaryContactInfo.subscribe((event) => {
       loadSecondaryInfo();
     });
+    const unsub3 = base44.entities.Contact.subscribe((event) => {
+      loadDbContacts();
+    });
     return () => {
       unsub();
       unsub2();
+      unsub3();
     };
   }, [salesMemberId, salesMemberEmail]);
+
+  const loadDbContacts = async () => {
+    try {
+      const all = await base44.entities.Contact.list('-updated_date', 500);
+      setDbContacts(all || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const loadSecondaryInfo = async () => {
     try {
@@ -139,6 +154,30 @@ export default function MyContacts({ salesMemberId, salesMemberEmail }) {
     // Merge best known name/company
     if (!contactMap[key].name && a.contact_name) contactMap[key].name = a.contact_name;
     if (!contactMap[key].company && a.company_name) contactMap[key].company = a.company_name;
+  });
+
+  // Merge in Contact records from the Contact entity (e.g., migrated booking
+  // clients) that may not have any ActivityLog entries yet. This ensures all
+  // CRM contacts appear in the My Contacts list even before any activity is
+  // logged against them.
+  dbContacts.forEach(c => {
+    const fullName = `${c.firstname || ''} ${c.lastname || ''}`.trim();
+    const key = c.email || fullName || c.id;
+    if (!contactMap[key]) {
+      contactMap[key] = {
+        key,
+        name: fullName,
+        email: c.email || '',
+        company: c.company || '',
+        activities: [],
+        upcoming: [],
+        past: [],
+      };
+    } else {
+      // Fill in missing name/company from the Contact record
+      if (!contactMap[key].name && fullName) contactMap[key].name = fullName;
+      if (!contactMap[key].company && c.company) contactMap[key].company = c.company;
+    }
   });
 
   const contacts = Object.values(contactMap).filter(c => {
