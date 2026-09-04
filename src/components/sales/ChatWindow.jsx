@@ -248,9 +248,35 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           "timestamp",
           50
         );
-        setMessages(msgs);
 
-        // Mark messages as read
+        // Also load cross-app messages if the recipient is Arriv One-linked.
+        // This unifies the conversation so messages from both apps appear in one
+        // logical DM thread. The recipient's email is used to compute the
+        // deterministic cross-app channel ID (same convention as the backend).
+        let crossAppMsgs = [];
+        if (currentUserEmail) {
+          try {
+            const recipientMembers = await base44.entities.SalesTeamMember.filter({ id: chatId });
+            const recipientEmail = recipientMembers?.[0]?.email;
+            if (recipientEmail) {
+              const crossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
+              crossAppMsgs = await base44.entities.ChatMessage.filter(
+                { cross_app_channel_id: crossAppChannelId, parent_message_id: null },
+                "timestamp", 50
+              );
+            }
+          } catch (e) {
+            console.error('Cross-app message load error:', e);
+          }
+        }
+
+        // Merge and sort by timestamp
+        const allMsgs = [...msgs, ...crossAppMsgs].sort((a, b) =>
+          new Date(a.timestamp || a.created_date) - new Date(b.timestamp || b.created_date)
+        );
+        setMessages(allMsgs);
+
+        // Mark local messages as read
         msgs.forEach(msg => {
           if (msg.recipient_id === currentUserId && !msg.read) {
             base44.entities.DirectMessage.update(msg.id, { read: true });
@@ -264,6 +290,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
     // Subscribe to real-time updates
     const crossAppChannelId = chatType === "cross_app_dm" ? generateCrossAppChannelId(currentUserEmail, chatId) : null;
+    let unsubscribeCrossApp = null;
     const unsubscribe = (chatType === "channel" || chatType === "cross_app_dm")
       ? base44.entities.ChatMessage.subscribe((event) => {
           const matches = chatType === "cross_app_dm"
@@ -360,7 +387,41 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           }
         });
 
-    return unsubscribe;
+    // For "dm" chatType, also subscribe to cross-app ChatMessage events so
+    // inbound Arriv One messages appear in the unified local DM conversation.
+    if (chatType === "dm" && currentUserEmail) {
+      (async () => {
+        try {
+          const members = await base44.entities.SalesTeamMember.filter({ id: chatId });
+          const recipientEmail = members?.[0]?.email;
+          if (!recipientEmail) return;
+          const dmCrossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
+          unsubscribeCrossApp = base44.entities.ChatMessage.subscribe((event) => {
+            if (event.data?.cross_app_channel_id !== dmCrossAppChannelId) return;
+            if (event.data?.parent_message_id) return;
+            if (event.type === "create") {
+              setMessages(prev => {
+                const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
+                return [...withoutOptimistic, event.data].sort((a, b) =>
+                  new Date(a.timestamp || a.created_date) - new Date(b.timestamp || b.created_date)
+                );
+              });
+              if (event.data?.sender_id !== currentUserId) {
+                playDing();
+                toast.message(event.data?.sender_name, { description: event.data?.content });
+              }
+            }
+          });
+        } catch (e) {
+          console.error('Cross-app subscription error:', e);
+        }
+      })();
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+      if (unsubscribeCrossApp) unsubscribeCrossApp();
+    };
   }, [chatId, chatType, currentUserId, currentUserEmail]);
 
   const handleFileUpload = async (e) => {
@@ -419,7 +480,12 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   const handleDeleteMessage = async (messageId, messageType) => {
     try {
-      if (messageType === "channel" || messageType === "cross_app_dm") {
+      // Detect cross-app messages merged into a "dm" view: they have
+      // cross_app_channel_id or channel_id (ChatMessage entity), not recipient_id.
+      const msg = messages.find(m => m.id === messageId);
+      const isChatMessage = messageType === "channel" || messageType === "cross_app_dm" ||
+        (msg && (msg.cross_app_channel_id || msg.channel_id));
+      if (isChatMessage) {
         await base44.entities.ChatMessage.delete(messageId);
       } else {
         await base44.entities.DirectMessage.delete(messageId);

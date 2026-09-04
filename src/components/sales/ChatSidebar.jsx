@@ -62,6 +62,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, currentUse
   const [directMessages, setDirectMessages] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [arrivOneContacts, setArrivOneContacts] = useState([]);
+  const [externalArrivOneContacts, setExternalArrivOneContacts] = useState([]);
   const [loadingArrivOne, setLoadingArrivOne] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
@@ -116,6 +117,23 @@ export default function ChatSidebar({ currentUserId, currentUserName, currentUse
     });
     return unsub;
   }, [currentUserId, memberStatuses, currentUserEmail]);
+
+  // Deduplicate Arriv One contacts: hide contacts who are already local team
+  // members. For the mapped Arriv Estate Media organization, the same person may
+  // have both a local SalesTeamMember record and a synced Arriv One record. They
+  // represent ONE human and must appear as ONE chat identity. Only genuinely
+  // external Arriv One contacts (not in the local team) appear in the "Arriv One"
+  // section — these are Arriv One company employees outside Estate Media's org.
+  useEffect(() => {
+    const localEmails = new Set(
+      teamMembers.map(m => m.email?.toLowerCase()).filter(Boolean)
+    );
+    if (currentUserEmail) localEmails.add(currentUserEmail.toLowerCase());
+    const external = arrivOneContacts.filter(
+      c => !localEmails.has(c.email?.toLowerCase())
+    );
+    setExternalArrivOneContacts(external);
+  }, [teamMembers, arrivOneContacts, currentUserEmail]);
 
   const handleSetStatus = async (val) => {
     setMyStatus(val);
@@ -299,14 +317,14 @@ export default function ChatSidebar({ currentUserId, currentUserName, currentUse
         {/* Arriv One — cross-app contacts (same company).
             Hidden entirely when no contacts are available so the section
             header never shows up empty. */}
-        {currentUserEmail && !loadingArrivOne && arrivOneContacts.length > 0 && (
+        {currentUserEmail && !loadingArrivOne && externalArrivOneContacts.length > 0 && (
           <>
             <p className="text-xs font-semibold uppercase text-slate-500 px-2 py-2 mt-3 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#B8956A]"></span>
               Arriv One
             </p>
             <div className="space-y-1">
-              {arrivOneContacts
+              {externalArrivOneContacts
                 .filter(c => !searchQuery || (c.full_name || c.email).toLowerCase().includes(searchQuery.toLowerCase()))
                 .map((contact) => {
                   const active = selectedChat?.id === contact.email && selectedChat?.type === "cross_app_dm";
