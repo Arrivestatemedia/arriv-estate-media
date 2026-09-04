@@ -117,7 +117,8 @@ export default function HubSpotActivityLog({ embedded = false }) {
           id: salesMemberId,
           full_name: localStorage.getItem('sales_member_name'),
           email: localStorage.getItem('sales_member_email'),
-          type: 'sales'
+          type: 'sales',
+          role: localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role') || 'user'
         };
         setUser(u);
         if (members?.[0]?.profile_picture_url) {
