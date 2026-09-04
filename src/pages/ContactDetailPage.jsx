@@ -176,6 +176,28 @@ export default function ContactDetailPage() {
         const contactName = filtered[0].contact_name || '';
         let phone = filtered[0].contact_phone || '';
 
+        // If no Contact entity exists yet, auto-create one from the activity
+        // data so the owner-reassignment dropdown has a record to act on.
+        if (!contactEntity && contactEmail) {
+          const [firstname, ...rest] = contactName.split(' ');
+          const lastname = rest.join(' ');
+          try {
+            const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+            contactEntity = await base44.entities.Contact.create({
+              firstname: firstname || '',
+              lastname: lastname || '',
+              email: contactEmail,
+              phone: phone || '',
+              company: filtered[0].company_name || '',
+              sales_member_id: salesMemberId || '',
+              lifecycle_stage: 'lead',
+              lead_status: 'OPEN',
+            });
+          } catch (ce) {
+            console.error('Auto-create Contact entity failed:', ce);
+          }
+        }
+
         const baseContact = {
           key: contactKey,
           name: contactName,
