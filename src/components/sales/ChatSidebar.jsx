@@ -57,10 +57,12 @@ function Avatar({ name, size = 28, profileUrl, status }) {
   );
 }
 
-export default function ChatSidebar({ currentUserId, currentUserName, onSelectChat, memberStatuses = {} }) {
+export default function ChatSidebar({ currentUserId, currentUserName, currentUserEmail, onSelectChat, memberStatuses = {} }) {
   const [channels, setChannels] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [arrivOneContacts, setArrivOneContacts] = useState([]);
+  const [loadingArrivOne, setLoadingArrivOne] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -76,10 +78,26 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Fetch same-company Arriv One contacts for cross-app chat
+  const loadArrivOneContacts = async () => {
+    if (!currentUserEmail) return;
+    setLoadingArrivOne(true);
+    try {
+      const res = await base44.functions.invoke('listArrivOneChatContacts', { user_email: currentUserEmail });
+      setArrivOneContacts(res?.data?.contacts || []);
+    } catch (err) {
+      console.error('Failed to load Arriv One contacts:', err);
+      setArrivOneContacts([]);
+    } finally {
+      setLoadingArrivOne(false);
+    }
+  };
+
   useEffect(() => {
     loadChannels();
     loadDirectMessages();
     loadTeamMembers();
+    loadArrivOneContacts();
     if (currentUserId && memberStatuses[currentUserId]) {
       setMyStatus(memberStatuses[currentUserId]);
     } else if (currentUserId) {
@@ -97,7 +115,7 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
       }
     });
     return unsub;
-  }, [currentUserId, memberStatuses]);
+  }, [currentUserId, memberStatuses, currentUserEmail]);
 
   const handleSetStatus = async (val) => {
     setMyStatus(val);
@@ -176,6 +194,11 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
     if (!existing) {
       setDirectMessages([...directMessages, { id: memberId, name: memberName }]);
     }
+    setSearchQuery("");
+  };
+
+  const handleStartCrossAppDM = (contact) => {
+    handleSelectChat("cross_app_dm", contact.email, contact.full_name || contact.email);
     setSearchQuery("");
   };
 
@@ -272,6 +295,44 @@ export default function ChatSidebar({ currentUserId, currentUserName, onSelectCh
             );
           })}
         </div>
+
+        {/* Arriv One — cross-app contacts (same company) */}
+        {currentUserEmail && (
+          <>
+            <p className="text-xs font-semibold uppercase text-slate-500 px-2 py-2 mt-3 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#B8956A]"></span>
+              Arriv One
+            </p>
+            <div className="space-y-1">
+              {loadingArrivOne ? (
+                <p className="text-sm text-slate-400 text-center px-2 py-3">Loading…</p>
+              ) : arrivOneContacts.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center px-2 py-3">No same-company contacts</p>
+              ) : (
+                arrivOneContacts
+                  .filter(c => !searchQuery || (c.full_name || c.email).toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((contact) => {
+                    const active = selectedChat?.id === contact.email && selectedChat?.type === "cross_app_dm";
+                    return (
+                      <button
+                        key={contact.email}
+                        onClick={() => handleStartCrossAppDM(contact)}
+                        className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors ${
+                          active ? "chat-row-active" : "text-slate-700 hover:bg-slate-200/60"
+                        }`}
+                      >
+                        <Avatar name={contact.full_name || contact.email} size={28} />
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="truncate">{contact.full_name || contact.email}</p>
+                          <p className="text-xs text-slate-400 truncate">Arriv One</p>
+                        </div>
+                      </button>
+                    );
+                  })
+              )}
+            </div>
+          </>
+        )}
 
         {/* People search results */}
         {searchQuery && (

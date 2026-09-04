@@ -712,3 +712,169 @@ style={{
 - Panel contains ChatTab (sidebar + chat pane)
 - Glassmorphism surfaces blur the background orbs
 - All accent colors (buttons, active rows, outgoing bubbles, hover states) use `var(--chat-accent)` and auto-theme
+
+---
+
+## 10. Cross-App Chat Bridge (Real-Time Messaging Between Apps)
+
+> **Purpose:** Allow a user in Estate Media's Chattab to send direct messages to a user in Arriv One's Chattab — and vice versa — in real time, restricted to same-company contacts.
+
+### 10.1 Architecture
+
+The bridge uses the **same HMAC-signed webhook pattern** as the existing entity sync system (`syncEnvelope.ts`). Chat messages are append-only events (not mutable records), so they bypass the sync mapping/conflict machinery and use a dedicated, simpler handler.
+
+```
+Estate Media user types message
+  → sendCrossAppChatMessage function
+    → creates ChatMessage locally (origin_app=estate_media)
+    → POSTs HMAC-signed envelope to Arriv One's chat webhook
+      → Arriv One's receiveEstateMediaChatMessage function
+        → validates HMAC, checks same-company, deduplicates
+        → creates ChatMessage in Arriv One (origin_app=estate_media)
+
+Arriv One user types message
+  → Arriv One's sendEstateMediaChatMessage function
+    → creates ChatMessage locally (origin_app=arriv_one)
+    → POSTs HMAC-signed envelope to Estate Media's chat webhook
+      → receiveArrivOneChatMessage function
+        → validates HMAC, checks same-company, deduplicates
+        → creates ChatMessage in Estate Media (origin_app=arriv_one)
+        → real-time subscription fires → message appears in Chattab
+```
+
+### 10.2 Channel ID Convention (SHARED — both apps must match)
+
+Cross-app DMs use a **deterministic channel ID** from the two participants' emails:
+
+```
+cross_app_dm:<lower_email_alphabetically_first>:<lower_email_alphabetically_second>
+```
+
+Example: `brad@arrivestatemedia.com` chatting with `sarah@arrivestatemedia.com` →
+`cross_app_dm:brad@arrivestatemedia.com:sarah@arrivestatemedia.com`
+
+Both apps compute the same ID, so messages from both sides land in the same conversation.
+
+### 10.3 Same-Company Gate
+
+Cross-app chat is restricted to users with the **same email domain**. The backend checks `getEmailDomain(sender_email) === getEmailDomain(recipient_email)` before accepting any message. This prevents cross-company data leakage.
+
+### 10.4 Estate Media Side (ALREADY IMPLEMENTED)
+
+Estate Media has three backend functions and entity changes in place:
+
+| Component | Path | Purpose |
+|---|---|---|
+| `sendCrossAppChatMessage` | `base44/functions/sendCrossAppChatMessage/entry.ts` | Creates local ChatMessage + POSTs to Arriv One webhook |
+| `receiveArrivOneChatMessage` | `base44/functions/receiveArrivOneChatMessage/entry.ts` | Webhook receiver — validates HMAC, creates inbound ChatMessage |
+| `listArrivOneChatContacts` | `base44/functions/listArrivOneChatContacts/entry.ts` | Queries Person entity for same-domain Arriv One users |
+| `crossAppChat.ts` | `base44/shared/crossAppChat.ts` | Shared helpers: channel ID, email domain, same-company check |
+| `ChatMessage.jsonc` | `base44/entities/ChatMessage.jsonc` | Added `origin_app`, `cross_app_channel_id`, `remote_message_id`, `sender_email` |
+| `ChatChannel.jsonc` | `base44/entities/ChatChannel.jsonc` | Added `is_cross_app`, `cross_app_channel_id`, `participant_emails` |
+
+**Secrets used:**
+- `ARRIV_ONE_CHAT_WEBHOOK_URL` — full URL of Arriv One's chat receiver endpoint
+- `ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET` — HMAC signing (Estate Media → Arriv One)
+- `ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET` — HMAC verification (Arriv One → Estate Media)
+
+**Frontend changes:**
+- `ChatSidebar.jsx` — new "Arriv One" section showing same-company contacts from `listArrivOneChatContacts`
+- `ChatWindow.jsx` — handles `chatType === "cross_app_dm"`: loads by `cross_app_channel_id`, subscribes to ChatMessage, sends via `sendCrossAppChatMessage`
+- `ChatTab.jsx` — resolves `currentUserEmail` and passes to sidebar + window
+
+### 10.5 Arriv One Side (TO BE IMPLEMENTED)
+
+Arriv One needs to build the **mirror image** of the Estate Media side:
+
+#### 10.5.1 Backend Functions
+
+1. **`receiveEstateMediaChatMessage`** (webhook endpoint)
+   - Validates HMAC using the **same shared secret** (`ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET` from Arriv One's perspective = `ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET` from Estate Media's perspective — both apps share the same secret value)
+   - Wait — actually the secrets are directional. Arriv One needs:
+     - `ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET` — for signing messages Arriv One → Estate Media (same value as Estate Media's inbound secret)
+     - `ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET` — for verifying messages from Estate Media (same value as Estate Media's outbound secret)
+   - Validates `source_application === "estate_media"`, `destination_application === "arriv_one"`
+   - Checks same-company (email domain match)
+   - Deduplicates by `remote_message_id`
+   - Creates ChatMessage locally with `origin_app: "estate_media"`
+
+2. **`sendEstateMediaChatMessage`** (user-facing function)
+   - Creates ChatMessage locally with `origin_app: "arriv_one"`
+   - Builds HMAC-signed envelope (same format as Estate Media's, but `source_application: "arriv_one"`, `destination_application: "estate_media"`)
+   - POSTs to Estate Media's webhook: `https://arrivestatemedia.base44.app/functions/receiveArrivOneChatMessage`
+   - Secret: `ESTATE_MEDIA_ARRIV_ONE_CHAT_WEBHOOK_URL` (Arriv One's secret pointing to Estate Media's endpoint)
+
+3. **`listEstateMediaChatContacts`** (user-facing function)
+   - Queries Arriv One's Person entity for people with Estate Media roles and same email domain
+   - Returns contact list for the sidebar
+
+#### 10.5.2 Entity Changes
+
+Arriv One's `ChatMessage` entity needs the same fields:
+- `origin_app` — `"estate_media" | "arriv_one"`
+- `cross_app_channel_id` — deterministic channel ID
+- `remote_message_id` — for dedup
+- `sender_email` — for same-company verification
+
+#### 10.5.3 Frontend Changes
+
+Mirror the Estate Media frontend changes:
+- ChatSidebar — add "Estate Media" section showing same-company Estate Media contacts
+- ChatWindow — handle `chatType === "cross_app_dm"` with the same channel ID convention
+- ChatTab — resolve current user's email and pass to sidebar + window
+
+#### 10.5.4 Secrets to Set in Arriv One
+
+| Secret Name | Value |
+|---|---|
+| `ESTATE_MEDIA_ARRIV_ONE_CHAT_WEBHOOK_URL` | `https://arrivestatemedia.base44.app/functions/receiveArrivOneChatMessage` |
+| `ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET` | Same value as Estate Media's `ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET` |
+| `ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET` | Same value as Estate Media's `ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET` |
+
+### 10.6 HMAC Envelope Format for Chat Messages
+
+The envelope uses the **exact same format** as entity sync (`syncEnvelope.ts`):
+
+```json
+{
+  "event_id": "<uuid>",
+  "event_type": "chat.message.sent",
+  "schema_version": "1.0.0",
+  "signature_version": "sync_hmac_v1",
+  "source_application": "estate_media",
+  "destination_application": "arriv_one",
+  "tenant_id": "tnt_estate_media",
+  "entity_type": "ChatMessage",
+  "entity_id": "<local message UUID>",
+  "immutable_shared_id": "<cross_app_channel_id>",
+  "operation": "create",
+  "occurred_at": "<ISO timestamp>",
+  "source_updated_at": "<ISO timestamp>",
+  "record_version": 1,
+  "idempotency_key": "<message_id>|<timestamp>|create",
+  "payload": {
+    "message_id": "<local UUID>",
+    "channel_id": "<cross_app_channel_id>",
+    "sender_id": "<sender user ID>",
+    "sender_name": "<sender full name>",
+    "sender_email": "<sender email>",
+    "recipient_email": "<recipient email>",
+    "content": "<message text>",
+    "timestamp": "<ISO timestamp>"
+  },
+  "signature_timestamp": "<ISO timestamp>",
+  "signature_nonce": "<random nonce>",
+  "signature": "<HMAC-SHA256 hex>"
+}
+```
+
+The canonical signing string (11 pipe-delimited fields, same as entity sync):
+```
+source_application|destination_application|tenant_id|entity_type|immutable_shared_id|record_version|operation|occurred_at|signature_timestamp|signature_nonce|sha256(payload)
+```
+
+### 10.7 Person Entity Prerequisite
+
+The `listArrivOneChatContacts` function queries the **Person entity** for people with `arriv_employee_id` set. For cross-app contacts to appear in the sidebar, Person records must exist linking Estate Media users to their Arriv One employee IDs. This is populated by the existing Person model / `resolvePerson` infrastructure.
+
+If Person records are not yet populated, the "Arriv One" section in the sidebar will show "No same-company contacts" until they are.

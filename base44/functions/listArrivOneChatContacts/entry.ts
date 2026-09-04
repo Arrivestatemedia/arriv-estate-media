@@ -7,25 +7,11 @@ export default async function (req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    // Determine the current user's email — check both Base44 auth and sales session
-    let currentUserEmail = user.email;
-    if (!currentUserEmail) {
-      const salesEmail = base44.asServiceRole
-        ? null
-        : null; // fallback handled below
-    }
+    const body = await req.json().catch(() => ({}));
+    const { user_email: paramEmail } = body;
 
-    // Sales session fallback (custom auth): look up the sales member by ID
-    if (!currentUserEmail) {
-      const salesMemberId =
-        (typeof localStorage !== "undefined" && localStorage.getItem("sales_member_id")) ||
-        "";
-      if (salesMemberId) {
-        const members = await base44.entities.SalesTeamMember.filter({ id: salesMemberId });
-        if (members?.[0]?.email) currentUserEmail = members[0].email;
-      }
-    }
-
+    // Determine the current user's email — Base44 auth first, then frontend param
+    let currentUserEmail = user.email || paramEmail;
     if (!currentUserEmail) {
       return Response.json({ error: "Could not determine your email" }, { status: 400 });
     }
@@ -51,7 +37,6 @@ export default async function (req) {
         full_name: p.full_name,
         arriv_employee_id: p.arriv_employee_id,
       }))
-      // Exclude self
       .filter((c) => c.email.toLowerCase() !== currentUserEmail.toLowerCase())
       .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
 

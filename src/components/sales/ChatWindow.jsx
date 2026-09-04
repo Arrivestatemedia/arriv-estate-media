@@ -19,6 +19,14 @@ import ConferenceScheduler from "@/components/chat/ConferenceScheduler";
 
 const EMOJIS = ["😀","😂","😍","🥰","😎","🤔","👍","👎","❤️","🔥","🎉","✅","😅","🙏","💪","😢","😡","🤣","👀","💯","🚀","⭐","😊","🤝","👏"];
 
+// Deterministic cross-app DM channel ID (must match backend crossAppChat.ts)
+const generateCrossAppChannelId = (emailA, emailB) => {
+  const a = (emailA || "").toLowerCase().trim();
+  const b = (emailB || "").toLowerCase().trim();
+  const sorted = [a, b].sort();
+  return `cross_app_dm:${sorted[0]}:${sorted[1]}`;
+};
+
 const STATUS_COLORS = {
   online: "#22c55e", available: "#22c55e", busy: "#ef4444",
   in_meeting: "#f97316", away: "#eab308", lunch: "#a855f7",
@@ -49,7 +57,7 @@ const playDing = () => {
 };
 
 
-export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, memberProfiles = {}, memberStatuses = {}, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded }) {
+export default function ChatWindow({ chatType, chatId, chatName, currentUserId, currentUserName, currentUserEmail, memberProfiles = {}, memberStatuses = {}, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -227,6 +235,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       if (chatType === "channel") {
           const msgs = await base44.entities.ChatMessage.filter({ channel_id: chatId, parent_message_id: null }, "timestamp", 50);
           setMessages(msgs);
+      } else if (chatType === "cross_app_dm") {
+        const channelId = generateCrossAppChannelId(currentUserEmail, chatId);
+        const msgs = await base44.entities.ChatMessage.filter({ cross_app_channel_id: channelId, parent_message_id: null }, "timestamp", 50);
+        setMessages(msgs);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
           { $or: [
@@ -251,9 +263,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     loadMessages();
 
     // Subscribe to real-time updates
-    const unsubscribe = chatType === "channel"
+    const crossAppChannelId = chatType === "cross_app_dm" ? generateCrossAppChannelId(currentUserEmail, chatId) : null;
+    const unsubscribe = (chatType === "channel" || chatType === "cross_app_dm")
       ? base44.entities.ChatMessage.subscribe((event) => {
-          if (event.data?.channel_id === chatId) {
+          const matches = chatType === "cross_app_dm"
+            ? event.data?.cross_app_channel_id === crossAppChannelId
+            : event.data?.channel_id === chatId;
+          if (matches) {
             if (event.type === "create") {
               // Only show main messages in channel (filter out thread replies)
               if (!event.data?.parent_message_id) {
@@ -263,7 +279,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 });
                 if (event.data?.sender_id !== currentUserId) {
                   playDing();
-                  toast.message(`#${chatName}`, {
+                  toast.message(chatType === "cross_app_dm" ? (event.data?.sender_name || chatName) : `#${chatName}`, {
                     description: `${event.data?.sender_name}: ${event.data?.content}`,
                   });
                   if (Notification.permission === "granted") {
@@ -345,7 +361,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         });
 
     return unsubscribe;
-  }, [chatId, chatType, currentUserId]);
+  }, [chatId, chatType, currentUserId, currentUserEmail]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -366,6 +382,13 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       setMessages(prev => [...prev, optimisticMsg]);
       if (chatType === "channel") {
         await base44.entities.ChatMessage.create({ channel_id: chatId, sender_id: currentUserId, sender_name: currentUserName, content, timestamp: new Date().toISOString() });
+      } else if (chatType === "cross_app_dm") {
+        await base44.functions.invoke('sendCrossAppChatMessage', {
+          recipient_email: chatId,
+          content,
+          sender_name: currentUserName,
+          sender_email: currentUserEmail,
+        });
       } else {
         await base44.entities.DirectMessage.create({ sender_id: currentUserId, sender_name: currentUserName, recipient_id: chatId, recipient_name: chatName, content, timestamp: new Date().toISOString() });
       }
@@ -396,7 +419,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   const handleDeleteMessage = async (messageId, messageType) => {
     try {
-      if (messageType === "channel") {
+      if (messageType === "channel" || messageType === "cross_app_dm") {
         await base44.entities.ChatMessage.delete(messageId);
       } else {
         await base44.entities.DirectMessage.delete(messageId);
@@ -423,7 +446,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       sender_name: currentUserName,
       content: text,
       timestamp: new Date().toISOString(),
-      ...(chatType === "channel" ? { channel_id: chatId } : { recipient_id: chatId, recipient_name: chatName }),
+      ...(chatType === "channel"
+        ? { channel_id: chatId }
+        : chatType === "cross_app_dm"
+          ? { cross_app_channel_id: generateCrossAppChannelId(currentUserEmail, chatId) }
+          : { recipient_id: chatId, recipient_name: chatName }),
     };
     setMessages(prev => [...prev, optimisticMsg]);
     setNewMessage("");
@@ -438,6 +465,16 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           timestamp: new Date().toISOString(),
           reactions: {}
         });
+      } else if (chatType === "cross_app_dm") {
+        const res = await base44.functions.invoke('sendCrossAppChatMessage', {
+          recipient_email: chatId,
+          content: text,
+          sender_name: currentUserName,
+          sender_email: currentUserEmail,
+        });
+        if (res?.data && !res.data.delivered && res.data.delivery_error) {
+          toast.error(`Not delivered to Arriv One: ${res.data.delivery_error}`);
+        }
       } else if (chatType === "dm") {
         await base44.entities.DirectMessage.create({
           sender_id: currentUserId,

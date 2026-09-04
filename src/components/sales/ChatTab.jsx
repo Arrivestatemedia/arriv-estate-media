@@ -10,7 +10,20 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
   const [selectedChat, setSelectedChat] = useState(null);
   const [memberProfiles, setMemberProfiles] = useState({});
   const [memberStatuses, setMemberStatuses] = useState({});
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
   const syncIntervalRef = React.useRef(null);
+
+  // Resolve current user's email for cross-app chat (sales session or Base44 auth)
+  useEffect(() => {
+    const sessionEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email');
+    if (sessionEmail) {
+      setCurrentUserEmail(sessionEmail);
+    } else {
+      base44.auth.me().then(user => {
+        if (user?.email) setCurrentUserEmail(user.email);
+      }).catch(() => {});
+    }
+  }, []);
 
   // Auto-sync chat status with Google Calendar every 1 minute
   useEffect(() => {
@@ -87,6 +100,7 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
           <ChatSidebar
             currentUserId={currentUserId}
             currentUserName={currentUserName}
+            currentUserEmail={currentUserEmail}
             onSelectChat={handleSelectChat}
             memberStatuses={memberStatuses}
           />
@@ -112,6 +126,7 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
                 chatName={selectedChat.name}
                 currentUserId={currentUserId}
                 currentUserName={currentUserName}
+                currentUserEmail={currentUserEmail}
                 memberProfiles={memberProfiles}
                 memberStatuses={memberStatuses}
                 onInitiateTransfer={onInitiateTransfer}
