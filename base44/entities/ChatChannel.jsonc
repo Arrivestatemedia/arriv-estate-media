@@ -25,6 +25,22 @@
         "type": "string"
       },
       "description": "List of sales member IDs in this channel"
+    },
+    "is_cross_app": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this channel bridges Estate Media and Arriv One"
+    },
+    "cross_app_channel_id": {
+      "type": "string",
+      "description": "Deterministic cross-app DM channel ID (cross_app_dm:<sorted emails>)"
+    },
+    "participant_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Email addresses of all participants in this cross-app channel (for same-company verification)"
     }
   },
   "required": [

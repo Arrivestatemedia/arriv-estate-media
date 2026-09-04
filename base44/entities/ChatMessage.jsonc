@@ -14,6 +14,10 @@
       "type": "string",
       "description": "Sender's full name"
     },
+    "sender_email": {
+      "type": "string",
+      "description": "Sender's email address (used for cross-app same-company verification)"
+    },
     "content": {
       "type": "string",
       "description": "Message content"
@@ -41,6 +45,23 @@
       "type": "integer",
       "default": 0,
       "description": "Number of replies in this thread (for main messages)"
+    },
+    "origin_app": {
+      "type": "string",
+      "enum": [
+        "estate_media",
+        "arriv_one"
+      ],
+      "default": "estate_media",
+      "description": "Which app this message originated from. Inbound messages from Arriv One are marked 'arriv_one'."
+    },
+    "cross_app_channel_id": {
+      "type": "string",
+      "description": "Deterministic cross-app DM channel ID (cross_app_dm:<sorted emails>). Present when this message belongs to a cross-app conversation."
+    },
+    "remote_message_id": {
+      "type": "string",
+      "description": "Message ID in the originating remote app (for cross-app dedup). Set on inbound messages from Arriv One."
     }
   },
   "required": [
