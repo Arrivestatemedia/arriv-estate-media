@@ -88,6 +88,25 @@ export default function SupportPanel() {
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
 
+  // ── Bubble position — read from localStorage (shared with SupportBubble) ──
+  const [bubblePos, setBubblePos] = useState(() => {
+    const saved = localStorage.getItem('arrivAssistPos');
+    if (saved) { try { return JSON.parse(saved); } catch (_) {} }
+    return null;
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const refresh = () => setBubblePos(() => {
+      const saved = localStorage.getItem('arrivAssistPos');
+      if (saved) { try { return JSON.parse(saved); } catch (_) {} }
+      return null;
+    });
+    refresh();
+    window.addEventListener('storage', refresh);
+    return () => window.removeEventListener('storage', refresh);
+  }, [open]);
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, sending, connecting, agentTyping]);
@@ -100,6 +119,24 @@ export default function SupportPanel() {
   }, [open, setOpen]);
 
   if (!open) return null;
+
+  // ── Panel positioning: bottom-right corner at the center of the bubble ──
+  const BTN_SIZE = 56;
+  const panelWidth = Math.min(400, window.innerWidth - 16);
+  const panelHeight = Math.min(window.innerHeight * 0.85, 600);
+  const panelMargin = 8;
+  let bubbleX, bubbleY;
+  if (bubblePos) {
+    bubbleX = bubblePos.x;
+    bubbleY = bubblePos.y;
+  } else {
+    bubbleX = 16;
+    bubbleY = window.innerHeight - BTN_SIZE - 16;
+  }
+  let panelLeft = bubbleX + BTN_SIZE / 2 - panelWidth;
+  let panelTop = bubbleY + BTN_SIZE / 2 - panelHeight;
+  panelLeft = Math.max(panelMargin, Math.min(panelLeft, window.innerWidth - panelWidth - panelMargin));
+  panelTop = Math.max(panelMargin, Math.min(panelTop, window.innerHeight - panelHeight - panelMargin));
 
   const hasConversation = !!conversation;
   const showIntake = available && !loading && !hasConversation && !connecting && !closed;
@@ -121,8 +158,18 @@ export default function SupportPanel() {
     <div
       role="dialog"
       aria-label="Arriv Assist support chat"
-      className="fixed z-[70] inset-x-0 bottom-0 md:inset-x-auto md:bottom-6 md:left-6 md:w-[400px] bg-white rounded-t-2xl md:rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
-      style={{ maxHeight: "85vh", paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed z-[70] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+      style={{
+        left: `${panelLeft}px`,
+        top: `${panelTop}px`,
+        width: `${panelWidth}px`,
+        height: `${panelHeight}px`,
+        background: 'rgba(255, 251, 245, 0.92)',
+        border: '1px solid rgba(184, 149, 106, 0.3)',
+        backdropFilter: 'blur(22px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(22px) saturate(150%)',
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-[#B8956A] text-white">
