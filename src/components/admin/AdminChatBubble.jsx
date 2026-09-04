@@ -1,14 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import ChatTab from "@/components/sales/ChatTab";
 import { useCallStatus } from "@/components/CallStatusContext";
+
+const DRAG_THRESHOLD = 6;
+const EDGE_PADDING = 8;
 
 export default function AdminChatBubble({ currentUserId, currentUserName, onInitiateTransfer, onVideoCallStarted, isVideoCallActive, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
   const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [localRemoteCallLive, setLocalRemoteCallLive] = useState(localStorage.getItem('remoteCallLive') === 'true');
+
+  // ── Drag state ──
+  const [pos, setPos] = useState(() => {
+    const saved = localStorage.getItem('adminChatPos');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (_) {}
+    }
+    return null;
+  });
+  const dragging = useRef(false);
+  const dragMoved = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const btnRef = useRef(null);
 
   const handleToggleChat = () => {
     if (disabled || isInLiveCall || isVideoWindowOpen) return;
@@ -55,13 +71,89 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   const displayCount = open ? 0 : unreadCount;
 
-  // Panel: cream/gold transparent backdrop. Bottom-right corner opens at the center of the bubble.
+  // ── Drag handlers ──
+  const clampPos = useCallback((x, y) => {
+    const size = 56;
+    const maxX = window.innerWidth - size - EDGE_PADDING;
+    const maxY = window.innerHeight - size - EDGE_PADDING;
+    return {
+      x: Math.min(Math.max(x, EDGE_PADDING), maxX),
+      y: Math.min(Math.max(y, EDGE_PADDING), maxY),
+    };
+  }, []);
+
+  const onPointerDown = (e) => {
+    if (disabled || isInLiveCall || isVideoWindowOpen) return;
+    let startPos = pos;
+    if (!startPos) {
+      const size = 56;
+      startPos = {
+        x: window.innerWidth - size - 16,
+        y: window.innerHeight - size - 16,
+      };
+      setPos(startPos);
+    }
+    dragging.current = true;
+    dragMoved.current = false;
+    dragStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      posX: startPos.x,
+      posY: startPos.y,
+    };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+      dragMoved.current = true;
+    }
+    const next = clampPos(dragStart.current.posX + dx, dragStart.current.posY + dy);
+    setPos(next);
+  };
+
+  const onPointerUp = (e) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    if (dragMoved.current) {
+      setPos(prev => {
+        localStorage.setItem('adminChatPos', JSON.stringify(prev));
+        return prev;
+      });
+    } else {
+      handleToggleChat();
+    }
+  };
+
+  const hidden = (disabled || isInLiveCall || isVideoWindowOpen);
+  const hideOffset = (isInLiveCall || localRemoteCallLive);
+
+  const btnStyle = hidden
+    ? { bottom: '-500px', right: '1rem' }
+    : pos
+      ? { left: `${pos.x}px`, top: `${pos.y}px` }
+      : { bottom: '1rem', right: '1rem' };
+
+  // Panel: cream/gold transparent backdrop. Opens next to the bubble's current position.
   const panelWidth = Math.min(700, window.innerWidth - 16);
   const panelHeight = 560;
   const bubbleSize = 56;
   const panelMargin = 8;
-  const bubbleX = window.innerWidth - bubbleSize - 16;
-  const bubbleY = window.innerHeight - bubbleSize - 16;
+
+  let bubbleX, bubbleY;
+  if (pos) {
+    bubbleX = pos.x;
+    bubbleY = pos.y;
+  } else {
+    bubbleX = window.innerWidth - bubbleSize - 16;
+    bubbleY = window.innerHeight - bubbleSize - 16;
+  }
+
+  // Panel's bottom-right corner sits at the center of the bubble
   let panelLeft = bubbleX + bubbleSize / 2 - panelWidth;
   let panelTop = bubbleY + bubbleSize / 2 - panelHeight;
   panelLeft = Math.max(panelMargin, Math.min(panelLeft, window.innerWidth - panelWidth - panelMargin));
@@ -76,8 +168,8 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
     zIndex: 9000,
     left: `${panelLeft}px`,
     top: `${panelTop}px`,
-    transform: (isInLiveCall || localRemoteCallLive) ? 'translateY(700px)' : 'translateY(0)',
-    opacity: (isInLiveCall || localRemoteCallLive) ? 0 : 1,
+    transform: hideOffset ? 'translateY(700px)' : 'translateY(0)',
+    opacity: hideOffset ? 0 : 1,
     transition: 'transform 0.3s ease, opacity 0.3s ease',
   };
 
@@ -110,25 +202,30 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
         </div>
       )}
 
-      {/* Bubble Button */}
+      {/* Bubble Button — draggable via pointer events */}
       <button
-        onClick={handleToggleChat}
-        className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105"
+        ref={btnRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onClick={(e) => e.preventDefault()}
+        className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-105 select-none"
         style={{
-          bottom: (isInLiveCall || localRemoteCallLive) ? '-500px' : '1rem',
-          right: '1rem',
+          ...btnStyle,
           zIndex: 9000,
           backgroundColor: '#B8956A',
-          opacity: (disabled || isInLiveCall || isVideoWindowOpen) ? 0.5 : 1,
-          pointerEvents: (disabled || isInLiveCall || isVideoWindowOpen) ? 'none' : 'auto',
-          cursor: (disabled || isInLiveCall || isVideoWindowOpen) ? 'not-allowed' : 'pointer',
+          opacity: hidden ? 0.5 : 1,
+          pointerEvents: hidden ? 'none' : 'auto',
+          cursor: hidden ? 'not-allowed' : (dragging.current ? 'grabbing' : 'grab'),
+          touchAction: 'none',
         }}
       >
-        <MessageSquare className="w-6 h-6 text-white" />
+        <MessageSquare className="w-6 h-6 text-white pointer-events-none" />
 
         {displayCount > 0 && (
           <span
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white pointer-events-none"
             style={{ backgroundColor: '#ef4444', minWidth: '1.25rem' }}
           >
             {displayCount > 9 ? '9+' : displayCount}
