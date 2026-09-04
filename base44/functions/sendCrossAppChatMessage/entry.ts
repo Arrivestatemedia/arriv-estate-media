@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { secrets } from "base44:runtime";
-import { signEnvelope, SCHEMA_VERSION, generateEventId, generateNonce } from "../../shared/syncEnvelope.ts";
+import { signEnvelope, buildCanonicalString, SCHEMA_VERSION, generateEventId, generateNonce } from "../../shared/syncEnvelope.ts";
 import { SIGNATURE_VERSION } from "../../shared/syncEntityAdapters.ts";
 import { generateCrossAppChannelId, isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
 import { getTenantConfig } from "../../shared/syncTenantConfig.ts";
@@ -191,6 +191,8 @@ export default async function (req) {
     }
 
     // Delivery failed but message saved locally
+    const canonicalString = await buildCanonicalString(envelope).catch(() => "error");
+    const firstSig = secretsToTry[0] ? await signEnvelope(envelope, secretsToTry[0]).catch(() => "error") : "no-secret";
     return Response.json({
       success: true,
       delivered: false,
@@ -204,6 +206,21 @@ export default async function (req) {
         contentType: response.headers.get("content-type"),
         endpoint: lastEndpoint,
         attempts,
+        canonical_string: canonicalString,
+        first_signature: firstSig,
+        first_secret_name: secretsToTry[0] || null,
+        envelope: {
+          source_application: envelope.source_application,
+          destination_application: envelope.destination_application,
+          tenant_id: envelope.tenant_id,
+          entity_type: envelope.entity_type,
+          immutable_shared_id: envelope.immutable_shared_id,
+          record_version: envelope.record_version,
+          operation: envelope.operation,
+          occurred_at: envelope.occurred_at,
+          signature_timestamp: envelope.signature_timestamp,
+          signature_nonce: envelope.signature_nonce,
+        },
       },
     });
   } catch (error) {
