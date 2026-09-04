@@ -151,10 +151,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
           const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
           setUnreadSmsCount(total);
         }).catch(() => {});
-        const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
-        const missedFilter = salesRole === 'admin'
-          ? { activity_type: 'call', missed: true, missed_acknowledged: false }
-          : { activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_id: salesMemberId };
+        const missedFilter = { activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_id: salesMemberId };
         base44.entities.ActivityLog.filter(missedFilter).then(logs => {
           setMissedCallsCount(logs?.length || 0);
         }).catch(() => {});
@@ -313,13 +310,39 @@ export default function HubSpotActivityLog({ embedded = false }) {
 
   // Platform auth fallback: if no sales session, load user from platform auth
   // so admin users (logged in via Base44 auth, not sales login) can see data.
+  // The platform user ID is NOT the same as the SalesTeamMember ID — activities
+  // are stored with sales_member_id = SalesTeamMember ID. So we look up the
+  // SalesTeamMember by email and use THAT as user.id so queries match.
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id');
     if (!salesMemberId && !user) {
       base44.auth.isAuthenticated().then(isAuth => {
         if (isAuth) {
-          base44.auth.me().then(userData => {
-            if (userData) setUser(userData);
+          base44.auth.me().then(async userData => {
+            if (userData) {
+              // Try to find the linked SalesTeamMember by email (case-insensitive,
+              // same as salesTeamLogin backend — emails may have mixed casing)
+              let memberId = userData.data?.sales_member_id || userData.id;
+              let memberName = userData.full_name;
+              try {
+                let members = await base44.entities.SalesTeamMember.filter({ email: userData.email });
+                if (!members || members.length === 0) {
+                  const allMembers = await base44.entities.SalesTeamMember.list();
+                  members = (allMembers || []).filter(m => m.email && m.email.toLowerCase() === userData.email.toLowerCase());
+                }
+                if (members?.[0]) {
+                  memberId = members[0].id;
+                  memberName = members[0].full_name;
+                }
+              } catch (e) { /* fall back to platform user id */ }
+              setUser({
+                ...userData,
+                id: memberId,
+                full_name: memberName,
+                email: userData.email,
+                type: 'sales',
+              });
+            }
           }).catch(() => {});
         }
       }).catch(() => {});
