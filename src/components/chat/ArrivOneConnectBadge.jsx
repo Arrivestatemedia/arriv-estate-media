@@ -33,16 +33,7 @@ export function ArrivOneConnectBadge({ compact = false, className = "" }) {
       >
         Arriv One
       </span>
-      <span
-        style={{
-          color: "#4e6ccf",
-          fontSize: "11px",
-          fontWeight: 600,
-          textTransform: "uppercase",
-        }}
-      >
-        |
-      </span>
+
       <span
         style={{
           backgroundColor: "#482d71",
