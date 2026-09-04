@@ -55,14 +55,30 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
   const displayCount = open ? 0 : unreadCount;
 
-  // Panel: cream/gold transparent backdrop, opens near the bubble.
+  // Panel: cream/gold transparent backdrop. Bottom-right corner opens at the center of the bubble.
+  const panelWidth = Math.min(700, window.innerWidth - 16);
+  const panelHeight = 560;
+  const bubbleSize = 56;
+  const panelMargin = 8;
+  const bubbleX = window.innerWidth - bubbleSize - 16;
+  const bubbleY = window.innerHeight - bubbleSize - 16;
+  let panelLeft = bubbleX + bubbleSize / 2 - panelWidth;
+  let panelTop = bubbleY + bubbleSize / 2 - panelHeight;
+  panelLeft = Math.max(panelMargin, Math.min(panelLeft, window.innerWidth - panelWidth - panelMargin));
+  panelTop = Math.max(panelMargin, Math.min(panelTop, window.innerHeight - panelHeight - panelMargin));
+
   const panelStyle = {
-    height: '560px',
+    height: `${panelHeight}px`,
+    width: `${panelWidth}px`,
+    maxWidth: '95vw',
     background: 'rgba(255, 251, 245, 0.88)',
     border: '1px solid rgba(184, 149, 106, 0.3)',
     zIndex: 9000,
-    bottom: (isInLiveCall || localRemoteCallLive) ? '-600px' : '5rem',
-    right: '1rem',
+    left: `${panelLeft}px`,
+    top: `${panelTop}px`,
+    transform: (isInLiveCall || localRemoteCallLive) ? 'translateY(700px)' : 'translateY(0)',
+    opacity: (isInLiveCall || localRemoteCallLive) ? 0 : 1,
+    transition: 'transform 0.3s ease, opacity 0.3s ease',
   };
 
   return (
@@ -70,7 +86,7 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
       {/* Floating Chat Panel — Arriv One Connect */}
       {open && (
         <div
-          className="fixed w-[700px] max-w-[95vw] rounded-xl shadow-2xl overflow-hidden relative"
+          className="fixed rounded-xl shadow-2xl overflow-hidden relative"
           style={panelStyle}
         >
           {/* Close button — floats above the Connect badge bar */}
