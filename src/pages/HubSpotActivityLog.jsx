@@ -248,7 +248,43 @@ export default function HubSpotActivityLog({ embedded = false }) {
 
       return () => { smsSub(); callSub(); videoCallSub(); };
     } else {
-      window.location.replace('/SalesLogin');
+      // No sales session — but don't redirect yet. Check if the user is
+      // authenticated via platform auth (admin). If so, look up their
+      // SalesTeamMember by email and set the user so they can see data.
+      base44.auth.isAuthenticated().then(isAuth => {
+        if (!isAuth) {
+          window.location.replace('/SalesLogin');
+          return;
+        }
+        base44.auth.me().then(async userData => {
+          if (!userData) {
+            window.location.replace('/SalesLogin');
+            return;
+          }
+          let memberId = userData.data?.sales_member_id || userData.id;
+          let memberName = userData.full_name;
+          let memberEmail = userData.email;
+          try {
+            let members = await base44.entities.SalesTeamMember.filter({ email: userData.email });
+            if (!members || members.length === 0) {
+              const allMembers = await base44.entities.SalesTeamMember.list();
+              members = (allMembers || []).filter(m => m.email && m.email.toLowerCase() === userData.email.toLowerCase());
+            }
+            if (members?.[0]) {
+              memberId = members[0].id;
+              memberName = members[0].full_name;
+              memberEmail = members[0].email;
+            }
+          } catch (e) { /* fall back to platform user id */ }
+          setUser({
+            id: memberId,
+            full_name: memberName,
+            email: memberEmail,
+            type: 'sales',
+            role: userData.role || 'user'
+          });
+        }).catch(() => window.location.replace('/SalesLogin'));
+      }).catch(() => window.location.replace('/SalesLogin'));
     }
   }, []);
 
@@ -306,47 +342,6 @@ export default function HubSpotActivityLog({ embedded = false }) {
       window.removeEventListener('openEmailComposer', handleOpenEmailComposer);
       window.removeEventListener('switchToQueueTab', handleSwitchToQueue);
     };
-  }, []);
-
-  // Platform auth fallback: if no sales session, load user from platform auth
-  // so admin users (logged in via Base44 auth, not sales login) can see data.
-  // The platform user ID is NOT the same as the SalesTeamMember ID — activities
-  // are stored with sales_member_id = SalesTeamMember ID. So we look up the
-  // SalesTeamMember by email and use THAT as user.id so queries match.
-  useEffect(() => {
-    const salesMemberId = localStorage.getItem('sales_member_id');
-    if (!salesMemberId && !user) {
-      base44.auth.isAuthenticated().then(isAuth => {
-        if (isAuth) {
-          base44.auth.me().then(async userData => {
-            if (userData) {
-              // Try to find the linked SalesTeamMember by email (case-insensitive,
-              // same as salesTeamLogin backend — emails may have mixed casing)
-              let memberId = userData.data?.sales_member_id || userData.id;
-              let memberName = userData.full_name;
-              try {
-                let members = await base44.entities.SalesTeamMember.filter({ email: userData.email });
-                if (!members || members.length === 0) {
-                  const allMembers = await base44.entities.SalesTeamMember.list();
-                  members = (allMembers || []).filter(m => m.email && m.email.toLowerCase() === userData.email.toLowerCase());
-                }
-                if (members?.[0]) {
-                  memberId = members[0].id;
-                  memberName = members[0].full_name;
-                }
-              } catch (e) { /* fall back to platform user id */ }
-              setUser({
-                ...userData,
-                id: memberId,
-                full_name: memberName,
-                email: userData.email,
-                type: 'sales',
-              });
-            }
-          }).catch(() => {});
-        }
-      }).catch(() => {});
-    }
   }, []);
 
   // Load contacts when form opens
