@@ -6,7 +6,12 @@ import {
 } from "../../shared/syncEnvelope.ts";
 import { isAllowedCrossAppTenant } from "../../shared/crossAppChat.ts";
 
+// Arriv One may sign chat messages with either the INBOUND secret (canonical
+// Arriv One → Estate Media direction) or the OUTBOUND secret (if the Arriv One
+// sender reuses the outbound signing key). Try both so a secret rotation or
+// naming mismatch doesn't silently drop messages.
 const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
+const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 
 export default async function (req) {
   try {
@@ -45,8 +50,12 @@ export default async function (req) {
       );
     }
 
-    // 4. Verify HMAC signature
-    const sigValid = await verifySignature(envelope, INBOUND_SECRET);
+    // 4. Verify HMAC signature — try INBOUND first, then OUTBOUND as fallback.
+    //    Arriv One's chat sender may sign with either secret depending on config.
+    let sigValid = await verifySignature(envelope, INBOUND_SECRET).catch(() => false);
+    if (!sigValid) {
+      sigValid = await verifySignature(envelope, OUTBOUND_SECRET).catch(() => false);
+    }
     if (!sigValid) {
       return Response.json(
         { accepted: false, processing_status: "rejected", reason: "Invalid signature" },
