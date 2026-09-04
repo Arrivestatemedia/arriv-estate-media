@@ -23,6 +23,7 @@ import Customer360 from "@/components/sales/Customer360";
 import { CallStatusProvider } from "@/components/CallStatusContext";
 import CallMapModal from "@/components/sales/CallMapModal";
 import ContactOwnerDropdown from "@/components/sales/ContactOwnerDropdown";
+import ContactReassignmentSettingToggle from "@/components/sales/ContactReassignmentSettingToggle";
 
 export default function ContactDetailPage() {
   const location = useLocation();
@@ -47,6 +48,7 @@ export default function ContactDetailPage() {
   const [showConvertCustomerModal, setShowConvertCustomerModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [isCustomer, setIsCustomer] = useState(false);
+  const [repReassignmentEnabled, setRepReassignmentEnabled] = useState(true);
 
   const queryClient = useQueryClient();
 
@@ -67,6 +69,13 @@ export default function ContactDetailPage() {
         }).catch(() => {});
       }
     }).catch(() => {});
+
+    // Fetch org-wide setting for non-admin reassignment (default enabled)
+    base44.entities.AppSetting.filter({ key: "non_admin_contact_reassignment" })
+      .then(rows => {
+        if (rows && rows.length > 0) setRepReassignmentEnabled(rows[0].value !== "false");
+      })
+      .catch(() => {});
   }, []);
 
   // Listen for openDialer event and store phone for dialer
@@ -301,10 +310,16 @@ export default function ContactDetailPage() {
               <p className="text-sm mt-2" style={{ color: 'rgba(26,26,26,0.6)' }}>
                 {activities.length} activit{activities.length !== 1 ? 'ies' : 'y'}
               </p>
-              {isAdmin && contact?.id && (
+              {contact?.id && (isAdmin || repReassignmentEnabled) && (
                 <div className="mt-3">
                   <ContactOwnerDropdown contactId={contact.id} salesMemberId={contact.sales_member_id} />
                 </div>
+              )}
+              {isAdmin && (
+                <ContactReassignmentSettingToggle
+                  enabled={repReassignmentEnabled}
+                  onToggle={setRepReassignmentEnabled}
+                />
               )}
             </div>
           </div>
