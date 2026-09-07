@@ -59,10 +59,12 @@ export async function getActiveDocumentTemplates(base44) {
   }));
 }
 
-export async function getActiveTrainingModules(base44) {
+export async function getActiveTrainingModules(base44, moduleType?: string) {
   let mods = [];
   try {
-    mods = await base44.asServiceRole.entities.TrainingModule.filter({ active: true });
+    const filter: any = { active: true };
+    if (moduleType) filter.module_type = moduleType;
+    mods = await base44.asServiceRole.entities.TrainingModule.filter(filter);
   } catch (e) {}
   if (!mods || !mods.length) return [];
   return mods.sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -83,8 +85,8 @@ export async function buildDocumentList(base44, o) {
   });
 }
 
-export async function buildTrainingList(base44, o) {
-  const modules = await getActiveTrainingModules(base44);
+export async function buildTrainingList(base44, o, moduleType?: string) {
+  const modules = await getActiveTrainingModules(base44, moduleType);
   let completions = [];
   try {
     completions = await base44.asServiceRole.entities.TrainingCompletion.filter({ arriv_employee_id: o.arriv_employee_id });

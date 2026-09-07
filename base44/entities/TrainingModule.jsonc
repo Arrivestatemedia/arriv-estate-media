@@ -6,6 +6,16 @@
       "type": "string",
       "description": "Stable module identifier (e.g. 'mod_01_welcome')"
     },
+    "module_type": {
+      "type": "string",
+      "enum": [
+        "orientation",
+        "sales_training",
+        "staging_certification"
+      ],
+      "default": "sales_training",
+      "description": "Module type: orientation (O1-O7 sales orientation), sales_training (13-module sales certification), or staging_certification (future add-on)"
+    },
     "title": {
       "type": "string"
     },

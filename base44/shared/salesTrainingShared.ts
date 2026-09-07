@@ -79,6 +79,22 @@ export const BONUS_MILESTONES = [
 ] as const;
 
 export const REFERRAL_CREDIT_AMOUNT = 20;
+export const REFERRAL_CREDIT_AMOUNT_PREFERRED = 40;
+export const REFERRAL_CASH_OUT_MINIMUM = 260;
+
+export const PREFERRED_MEMBERSHIP = {
+  monthly_price: 29.99,
+  regular_discount_rate: 0.10,
+  mls_flat_discount: 5,
+  mls_discount_type: "flat",
+  plan: "preferred_monthly",
+} as const;
+
+export const STAGING_AWARENESS = {
+  currently_sellable: false,
+  message: "Physical staging is coming to Arriv Estate Media. Staging IQ will support staging operations. Staging is NOT currently authorized for sale. A separate Staging Sales Certification will be required.",
+  future_certification: "ARRIV ESTATE MEDIA — STAGING SALES CERTIFICATION",
+} as const;
 
 export const OVERTIME_THRESHOLD_HOURS = 40;
 export const NORMAL_PAID_WORKWEEK_HOURS = 32;
