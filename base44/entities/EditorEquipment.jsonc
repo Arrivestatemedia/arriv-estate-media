@@ -1,0 +1,119 @@
+{
+  "name": "EditorEquipment",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "asset_id": {
+      "type": "string",
+      "description": "Unique asset identifier (e.g. AST-001)"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the employee currently assigned this equipment"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Assigned employee name (denormalized)"
+    },
+    "device_type": {
+      "type": "string",
+      "enum": [
+        "editing_workstation",
+        "laptop",
+        "monitor",
+        "camera",
+        "lens",
+        "drone",
+        "software_license",
+        "other"
+      ],
+      "description": "Type of equipment"
+    },
+    "manufacturer": {
+      "type": "string",
+      "description": "Manufacturer / brand"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model name/number"
+    },
+    "serial_number": {
+      "type": "string",
+      "description": "Serial number for tracking"
+    },
+    "purchase_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the equipment was purchased"
+    },
+    "purchase_cost": {
+      "type": "number",
+      "description": "Purchase cost in dollars"
+    },
+    "assigned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the equipment was assigned to the current employee"
+    },
+    "returned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the equipment was returned by the previous employee"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_stock",
+        "assigned",
+        "repair",
+        "retired",
+        "lost",
+        "returned"
+      ],
+      "default": "in_stock",
+      "description": "Equipment lifecycle status"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "asset_id",
+    "device_type",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

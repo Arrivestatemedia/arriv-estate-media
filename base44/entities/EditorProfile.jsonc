@@ -1,0 +1,88 @@
+{
+  "name": "EditorProfile",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the Arriv employee who serves as an editor"
+    },
+    "employee_email": {
+      "type": "string",
+      "description": "Employee email (denormalized for lookup)"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Employee full name (denormalized)"
+    },
+    "declared_editor_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Editing capabilities the employee claims to have (not yet verified)"
+    },
+    "verified_editor_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Editing capabilities verified by Arriv. Only verified capabilities determine assignment eligibility."
+    },
+    "editor_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Whether this editor is currently available for assignment"
+    },
+    "max_weekly_hours": {
+      "type": "number",
+      "description": "Optional max weekly editing hours for this editor (capacity planning)"
+    },
+    "hourly_wage": {
+      "type": "number",
+      "description": "Editor hourly wage in dollars (from payroll config, used for editing labor cost analytics). Not hard-coded; set per editor."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "employee_id",
+    "employee_email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

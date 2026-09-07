@@ -1,0 +1,263 @@
+{
+  "name": "EditingTask",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Booking ID this editing task originates from"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job (capture job) this editing task belongs to"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client name (denormalized from booking/job for queue display)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Client email (denormalized)"
+    },
+    "media_partner_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the Media Partner who captured the source media"
+    },
+    "media_partner_name": {
+      "type": "string",
+      "description": "Media Partner name (denormalized)"
+    },
+    "property_address": {
+      "type": "string",
+      "description": "Property address (denormalized from job for context)"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "Package ID this task was generated from"
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "photo_editing",
+        "mls_walkthrough_edit",
+        "cinematic_video_edit",
+        "vertical_reel_edit",
+        "drone_post",
+        "twilight_edit",
+        "ai_staging_edit",
+        "3d_post_processing"
+      ],
+      "description": "Type of editing work required"
+    },
+    "task_label": {
+      "type": "string",
+      "description": "Human-readable label (e.g. 'Photo Editing', 'Vertical Reel #1')"
+    },
+    "task_index": {
+      "type": "integer",
+      "default": 1,
+      "description": "Index for duplicate task types (e.g. Vertical Reel #1, #2)"
+    },
+    "required_editor_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Verified editor capabilities required for assignment eligibility"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "waiting_for_upload",
+        "ready_for_editing",
+        "assigned",
+        "editing",
+        "submitted_for_qc",
+        "revision_required",
+        "approved",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "waiting_for_upload",
+      "description": "Current editing task status"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "rush"
+      ],
+      "default": "normal",
+      "description": "Task priority (rush_delivery add-on sets to 'rush')"
+    },
+    "editor_id": {
+      "type": "string",
+      "description": "EditorProfile ID of the assigned editor"
+    },
+    "editor_name": {
+      "type": "string",
+      "description": "Assigned editor name (denormalized)"
+    },
+    "assigned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "assigned_by": {
+      "type": "string",
+      "description": "User ID/email who assigned this task"
+    },
+    "source_media_location": {
+      "type": "string",
+      "description": "Google Drive folder URL or storage path for source media"
+    },
+    "source_media_verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When source media was confirmed complete and task released for editing"
+    },
+    "editing_started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When editing first started (first clock-in)"
+    },
+    "editing_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When editor submitted for QC"
+    },
+    "active_editing_minutes": {
+      "type": "integer",
+      "default": 0,
+      "description": "Total active editing minutes (sum of completed time sessions, excludes paused time)"
+    },
+    "submitted_for_qc_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "qc_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "revision_required"
+      ],
+      "default": "pending",
+      "description": "QC review outcome"
+    },
+    "qc_reviewer_id": {
+      "type": "string",
+      "description": "User ID/email of QC reviewer"
+    },
+    "qc_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "qc_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "qc_notes": {
+      "type": "string",
+      "description": "QC reviewer notes"
+    },
+    "revision_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of times this task was sent back for revision"
+    },
+    "revision_requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revision_reason": {
+      "type": "string",
+      "description": "Reason for the most recent revision request"
+    },
+    "revision_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delivery_deadline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Customer-facing delivery deadline (calculated from source-ready time + package SLA)"
+    },
+    "editing_deadline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Internal editing completion deadline (before QC + delivery buffer)"
+    },
+    "sla_status": {
+      "type": "string",
+      "enum": [
+        "on_track",
+        "due_soon",
+        "at_risk",
+        "overdue"
+      ],
+      "default": "on_track",
+      "description": "SLA health indicator"
+    },
+    "final_media_location": {
+      "type": "string",
+      "description": "Storage location of finished/edited media"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When final media was delivered to the customer"
+    },
+    "editing_standards_version": {
+      "type": "string",
+      "description": "Editing standards version applicable at task creation"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes for the editor"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "task_type",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

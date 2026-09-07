@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { releaseEditingTasksForJob, ensureEditingTasksForJob } from '../../shared/editingQueueEngine.ts';
 
 // Extracts the Google Drive folder ID from a Drive folder URL.
 function extractFolderId(url) {
@@ -63,6 +64,17 @@ Deno.serve(async (req) => {
           footage_uploaded: true,
           status: 'completed'
         });
+
+        // ── EDITING QUEUE INTEGRATION ──
+        // Source media confirmed → create editing tasks (if not yet created) and
+        // release them from WAITING_FOR_UPLOAD → READY_FOR_EDITING.
+        try {
+          await ensureEditingTasksForJob(base44, job, 'system');
+          await releaseEditingTasksForJob(base44, job.id, job.google_drive_folder_url, 'system');
+        } catch (editErr) {
+          console.warn(`Editing task release failed for job ${job.id}:`, editErr.message);
+        }
+
         autoCompleted.push({ id: job.id, location: job.location, booked_by: job.booked_by });
       }
     }

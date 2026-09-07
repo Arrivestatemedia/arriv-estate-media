@@ -1,0 +1,80 @@
+{
+  "name": "EditingTimeSession",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "editing_task_id": {
+      "type": "string",
+      "description": "EditingTask ID this session belongs to"
+    },
+    "editor_id": {
+      "type": "string",
+      "description": "EditorProfile ID of the editor who clocked in"
+    },
+    "editor_name": {
+      "type": "string",
+      "description": "Editor name (denormalized)"
+    },
+    "clock_in_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this session started (or resumed)"
+    },
+    "clock_out_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this session ended (paused or completed)"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "default": 0,
+      "description": "Calculated duration in minutes (clock_out - clock_in)"
+    },
+    "session_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "completed"
+      ],
+      "default": "active",
+      "description": "Whether this session is currently running, paused, or finalized"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "editing_task_id",
+    "editor_id",
+    "clock_in_at",
+    "session_status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

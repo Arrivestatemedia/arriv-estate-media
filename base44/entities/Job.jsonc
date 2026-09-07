@@ -166,6 +166,16 @@
       "format": "date-time",
       "description": "When footage upload reminder was sent"
     },
+    "delivered_to_customer": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the final edited media has been delivered to the customer. Separate from footage_uploaded (capture upload) and status:completed (capture complete). The editing queue sets this when all editing tasks are delivered."
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the final edited media was delivered to the customer"
+    },
     "paid_out_at": {
       "type": "string",
       "format": "date-time",

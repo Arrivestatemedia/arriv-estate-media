@@ -1,0 +1,90 @@
+{
+  "name": "EditingTaskAuditLog",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "editing_task_id": {
+      "type": "string",
+      "description": "EditingTask ID this audit entry relates to"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "task_created",
+        "task_assigned",
+        "task_reassigned",
+        "editing_started",
+        "editing_paused",
+        "editing_resumed",
+        "submitted_for_qc",
+        "revision_requested",
+        "revision_completed",
+        "qc_approved",
+        "delivery_completed",
+        "deadline_changed",
+        "time_record_corrected",
+        "capability_changed",
+        "task_cancelled",
+        "priority_changed",
+        "status_changed"
+      ],
+      "description": "The audited action"
+    },
+    "actor": {
+      "type": "string",
+      "description": "User ID or email who performed the action"
+    },
+    "actor_email": {
+      "type": "string",
+      "description": "Actor email (denormalized for readability)"
+    },
+    "before_value": {
+      "type": "string",
+      "description": "Previous value (JSON or plain text)"
+    },
+    "after_value": {
+      "type": "string",
+      "description": "New value (JSON or plain text)"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for the change (required for corrections)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "editing_task_id",
+    "action",
+    "actor",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

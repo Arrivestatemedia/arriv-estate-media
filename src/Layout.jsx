@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -110,6 +110,7 @@ function LayoutContent({ children, currentPageName }) {
       ? [
           { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
           { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
+          { label: "Editor Workspace", page: "EditorWorkspace", icon: Scissors },
           { label: "Training", page: "SalesTrainingPortal", icon: Award },
           { label: "Field Prospecting", page: "FieldProspectingPage", icon: MapPin },
           { label: "Referrals", page: "ReferralProgramPage", icon: Gift },
@@ -134,6 +135,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
             { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
+            { label: "Editing Queue", page: "EditingQueuePage", icon: Scissors },
             { label: "Email Templates", page: "EmailPreview", icon: Send },
             { label: "My Recordings", page: "Recordings", icon: Film },
             { label: "My Profile", page: "EmployeeProfile", icon: Award },

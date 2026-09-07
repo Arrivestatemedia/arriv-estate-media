@@ -1,0 +1,119 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { calculateSlaStatus } from '../../shared/packageEditingConfig.ts';
+
+/**
+ * Returns the editor's personal workspace data:
+ * - Their editor profile (resolved by employee email)
+ * - Assigned tasks (assigned, editing, revision_required, submitted_for_qc)
+ * - Available unassigned tasks (ready_for_editing) they're qualified for
+ * - Active time session (if any)
+ * - Completed work (delivered tasks, this week)
+ */
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+
+    // Resolve current user — supports both platform auth and SalesLogin custom auth
+    let userEmail = null;
+    let userId = null;
+    try {
+      const user = await base44.auth.me();
+      if (user) {
+        userEmail = user.email;
+        userId = user.id;
+      }
+    } catch (e) { /* not logged in via platform auth */ }
+
+    // Fallback: SalesLogin custom auth (email in request body)
+    const body = await req.json().catch(() => ({}));
+    if (!userEmail && body.email) userEmail = body.email;
+    if (!userId && body.employee_id) userId = body.employee_id;
+
+    if (!userEmail) {
+      return Response.json({ error: 'Unable to resolve editor identity' }, { status: 401 });
+    }
+
+    // Find editor profile by email
+    const profiles = await base44.asServiceRole.entities.EditorProfile.filter({
+      employee_email: userEmail,
+    });
+
+    if (!profiles || profiles.length === 0) {
+      return Response.json({
+        success: true,
+        editor_profile: null,
+        message: 'No editor profile found for this user. An admin must create an editor profile for you.',
+        my_tasks: [],
+        available_tasks: [],
+        completed_tasks: [],
+        active_session: null,
+      });
+    }
+
+    const profile = profiles[0];
+
+    // Fetch all tasks
+    const allTasks = await base44.asServiceRole.entities.EditingTask.list('-created_date', 5000);
+
+    // Update SLA for active tasks
+    const now = new Date();
+    for (const task of allTasks) {
+      if (['delivered', 'cancelled'].includes(task.status)) continue;
+      const newSla = calculateSlaStatus(task.delivery_deadline);
+      if (newSla !== task.sla_status) {
+        await base44.asServiceRole.entities.EditingTask.update(task.id, {
+          sla_status: newSla,
+          updated_at: now.toISOString(),
+        });
+        task.sla_status = newSla;
+      }
+    }
+
+    // My tasks (assigned to this editor, not yet delivered)
+    const myActiveStatuses = ['assigned', 'editing', 'revision_required', 'submitted_for_qc', 'approved'];
+    const myTasks = allTasks.filter(
+      (t) => t.editor_id === profile.id && myActiveStatuses.includes(t.status)
+    );
+
+    // Available tasks (ready_for_editing, unassigned, editor has required capability)
+    const verified = profile.verified_editor_capabilities || [];
+    const availableTasks = allTasks.filter((t) => {
+      if (t.status !== 'ready_for_editing') return false;
+      if (t.editor_id) return false; // already assigned
+      const required = t.required_editor_capabilities || [];
+      return required.every((cap) => verified.includes(cap));
+    });
+
+    // Completed work (delivered, this week)
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const completedTasks = allTasks.filter(
+      (t) => t.editor_id === profile.id && t.status === 'delivered' &&
+      t.delivered_at && new Date(t.delivered_at) >= weekAgo
+    );
+
+    // Active time session
+    const activeSessions = await base44.asServiceRole.entities.EditingTimeSession.filter({
+      editor_id: profile.id,
+      session_status: 'active',
+    });
+    const activeSession = activeSessions && activeSessions.length > 0 ? activeSessions[0] : null;
+
+    // Weekly hours
+    const weeklyMinutes = completedTasks.reduce((sum, t) => sum + (t.active_editing_minutes || 0), 0);
+
+    return Response.json({
+      success: true,
+      editor_profile: profile,
+      my_tasks: myTasks,
+      available_tasks: availableTasks,
+      completed_tasks: completedTasks,
+      active_session: activeSession,
+      weekly_hours: Math.round((weeklyMinutes / 60) * 10) / 10,
+      weekly_minutes: weeklyMinutes,
+    });
+  } catch (error) {
+    console.error('getEditorWorkspace error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
