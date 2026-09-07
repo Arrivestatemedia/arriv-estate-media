@@ -124,6 +124,7 @@ function LayoutContent({ children, currentPageName }) {
           { label: "My Profile", page: "EmployeeProfile", icon: Award },
           { label: "Time Off", page: "TimeOff", icon: CalendarOff },
           { label: "My Benefits", page: "Benefits", icon: Heart },
+          ...((isDualAdmin && adminMode === 'editing') ? [{ label: "Editing Queue", page: "EditingQueuePage", icon: Scissors }] : []),
         ]
       : (isAdmin || isSalesAdmin)
         ? [
