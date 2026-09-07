@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'answers (array of selected indices) is required' }, { status: 400 });
     }
     const bundle = await getOrientationBundle(base44, body.sales_member_id);
-    const modules = await getActiveTrainingModules(base44);
+    const modules = await getActiveTrainingModules(base44, "orientation");
     const mod = modules.find((m) => m.module_id === body.module_id);
     if (!mod) return Response.json({ error: 'Training module not found' }, { status: 404 });
     const questions = mod.quiz_questions || [];

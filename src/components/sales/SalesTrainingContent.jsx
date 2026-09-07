@@ -45,7 +45,7 @@ export default function SalesTrainingContent() {
     if (!memberId) return;
     try {
       const [mods, certs, prog, atts] = await Promise.all([
-        base44.entities.TrainingModule.list('order', 50),
+        base44.entities.TrainingModule.filter({ active: true, module_type: "sales_training" }, 'order', 50),
         base44.entities.SalesCertification.filter({ sales_member_id: memberId }),
         base44.entities.VideoWatchProgress.filter({ sales_member_id: memberId }),
         base44.entities.TrainingAttempt.filter({ sales_member_id: memberId }),

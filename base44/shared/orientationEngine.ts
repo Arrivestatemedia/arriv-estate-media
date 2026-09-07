@@ -153,7 +153,7 @@ export async function recomputeOrientation(base44, o) {
   const documents_completed_count = docs.filter((d) => d.signed).length;
   const documents_required_count = requiredDocs.length;
 
-  const training = await buildTrainingList(base44, o);
+  const training = await buildTrainingList(base44, o, "orientation");
   const totalModules = training.length;
   const doneModules = training.filter((t) => t.complete).length;
   const training_completion_percent = totalModules ? Math.round((doneModules / totalModules) * 100) : (o.training_status === "complete" ? 100 : 0);
@@ -192,7 +192,7 @@ export async function getOrientationBundle(base44, salesMemberId) {
     orientation = await startOrientation(base44, member, { actor: "system" });
   }
   const documents = await buildDocumentList(base44, orientation);
-  const training = await buildTrainingList(base44, orientation);
+  const training = await buildTrainingList(base44, orientation, "orientation");
   const readiness = computeReadiness(orientation);
   return { orientation, employee: { id: member.id, full_name: member.full_name, email: member.email, arriv_employee_id: member.arriv_employee_id }, documents, training, readiness };
 }
