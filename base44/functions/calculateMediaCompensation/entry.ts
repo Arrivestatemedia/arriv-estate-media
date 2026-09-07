@@ -10,7 +10,6 @@ export default async function (req) {
       commissionable_service_value,
       package_id,
       property_pricing_tier,
-      is_new_customer_mls_qualifying,
       sales_member_id,
     } = body;
 
@@ -26,7 +25,6 @@ export default async function (req) {
       commissionable_service_value: commissionable_service_value || 0,
       package_id,
       property_pricing_tier,
-      is_new_customer_mls_qualifying: is_new_customer_mls_qualifying || false,
       sales_member_id: sales_member_id || "",
     });
 

@@ -62,7 +62,7 @@ export default function SalesTrainingContent() {
           sales_member_email: memberEmail,
           training_status: TRAINING_STATUS.NOT_STARTED,
           calling_authorization: CALLING_AUTH.CALLING_LOCKED,
-          modules_total: 13,
+          modules_total: 14,
         });
         setCertification(created);
       }

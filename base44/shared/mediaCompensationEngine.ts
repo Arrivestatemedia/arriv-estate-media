@@ -10,16 +10,14 @@
 //     post_sales_value = CSV - sales_commission
 //     media_partner_payout = post_sales_value × 0.40
 //     arriv_contribution = CSV - sales_commission - media_partner_payout
+//     Effective: 15% Sales / 34% Provider / 51% Arriv
 //
 //   MLS WALKTHROUGH:
-//     sales_commission = CSV × 0.15 (or $40 if new-customer bonus qualifies)
-//     media_partner_payout = from MLS guaranteed payout table (by tier)
+//     sales_commission = CSV × 0.15 (standard 15%, same as all packages)
+//     media_partner_payout = from MLS guaranteed payout table (FIXED by tier)
 //     arriv_contribution = CSV - sales_commission - media_partner_payout
-//
-//   NEW CUSTOMER $40 MLS BONUS (replaces 15% for that qualifying first order):
-//     sales_commission = $40.00 (4000 cents)
-//     media_partner_payout = from MLS table
-//     arriv_contribution = CSV - $40 - media_partner_payout
+//     TIER_1 ($100): $15 Sales / $50 Provider / $35 Arriv
+//     MLS does NOT use the standard 40%-of-remainder provider formula.
 //
 //   PREFERRED RESIDUAL ($10/month per active paid billing period):
 //     Separate from transaction commission. Uses existing commission architecture.
@@ -41,7 +39,6 @@ export interface MediaCompensationConfig {
   standard_sales_rate: number; // 0.15
   standard_partner_rate: number; // 0.40
   mls_payout_table: MlsPayoutTier[];
-  new_customer_mls_bonus: number; // 40.00 (in DOLLARS)
   preferred_monthly_price: number; // 29.99
   preferred_monthly_residual: number; // 10.00 (sales rep residual per active paid month)
   preferred_arriv_retention: number; // 19.99 (Arriv retains after residual)
@@ -53,7 +50,6 @@ export interface CompensationInput {
   commissionable_service_value: number; // in CENTS
   package_id: string;
   property_pricing_tier: string; // TIER_1..TIER_5, CUSTOM
-  is_new_customer_mls_qualifying: boolean; // from checkNewCustomerMlsBonus
   sales_member_id: string;
 }
 
@@ -66,7 +62,7 @@ export interface CompensationResult {
   // All amounts in CENTS
   commissionable_service_value: number;
   sales_commission: number;
-  sales_compensation_rule: string; // "STANDARD_15_PERCENT" | "NEW_CUSTOMER_MLS_BONUS"
+  sales_compensation_rule: string; // "STANDARD_15_PERCENT"
   post_sales_value: number;
   media_partner_payout: number;
   provider_compensation_rule: string; // "STANDARD_40_PERCENT_AFTER_SALES" | "MLS_GUARANTEED_PAYOUT"
@@ -86,7 +82,6 @@ export function calculateMediaCompensation(
     commissionable_service_value,
     package_id,
     property_pricing_tier,
-    is_new_customer_mls_qualifying,
   } = input;
 
   const csv = roundCents(commissionable_service_value);
@@ -131,14 +126,10 @@ export function calculateMediaCompensation(
     mediaPartnerPayout = dollarsToCents(mlsTier.payout);
     providerRule = "MLS_GUARANTEED_PAYOUT";
 
-    if (is_new_customer_mls_qualifying) {
-      // $40 bonus replaces 15% for qualifying first MLS order
-      salesCommission = dollarsToCents(config.new_customer_mls_bonus);
-      salesRule = "NEW_CUSTOMER_MLS_BONUS";
-    } else {
-      salesCommission = applyRate(csv, config.standard_sales_rate);
-      salesRule = "STANDARD_15_PERCENT";
-    }
+    // MLS Walkthrough uses standard 15% sales commission (same as all packages).
+    // The $40 new-customer MLS bonus was removed — no separate authorized rule exists.
+    salesCommission = applyRate(csv, config.standard_sales_rate);
+    salesRule = "STANDARD_15_PERCENT";
   } else {
     // Standard: 15% sales, 40% of remainder to partner
     salesCommission = applyRate(csv, config.standard_sales_rate);
@@ -190,7 +181,6 @@ export const DEFAULT_COMPENSATION_CONFIG: MediaCompensationConfig = {
     { tier: "TIER_4", payout: 90 },
     { tier: "TIER_5", payout: 120 },
   ],
-  new_customer_mls_bonus: 40.00,
   preferred_monthly_price: 29.99,
   preferred_monthly_residual: 10.00,
   preferred_arriv_retention: 19.99,

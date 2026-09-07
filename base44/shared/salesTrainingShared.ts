@@ -150,7 +150,7 @@ export function checkCertificationEligibility(cert: {
   remediation_modules?: string[];
 }): { eligible: boolean; missing: string[] } {
   const missing: string[] = [];
-  if ((cert.modules_passed_count || 0) < 13) missing.push("All 13 modules passed");
+  if ((cert.modules_passed_count || 0) < 14) missing.push("All 14 modules passed");
   if ((cert.quiz_average_score || 0) < CERTIFICATION_REQUIREMENTS.module_quiz_min_score) missing.push("Quiz average >= 95%");
   if (cert.critical_questions_status !== "ALL_CORRECT") missing.push("All critical questions correct");
   if (!cert.final_exam_passed) missing.push("Final exam passed");
