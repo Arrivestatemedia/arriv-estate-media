@@ -44,6 +44,22 @@
     "timestamp": {
       "type": "string",
       "format": "date-time"
+    },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "STANDARD_REFERRAL_REWARD",
+        "PREFERRED_REFERRAL_REWARD",
+        "PROMOTIONAL_CREDIT",
+        "SERVICE_RECOVERY_CREDIT",
+        "ADMIN_CREDIT"
+      ],
+      "description": "Type of referral credit. Only STANDARD_REFERRAL_REWARD and PREFERRED_REFERRAL_REWARD are cash-eligible."
+    },
+    "cash_eligible": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this credit is cash-eligible (only genuine earned referral rewards are cashable)"
     }
   },
   "required": [

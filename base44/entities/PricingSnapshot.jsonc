@@ -1,0 +1,161 @@
+{
+  "name": "PricingSnapshot",
+  "type": "object",
+  "properties": {
+    "pricing_version": {
+      "type": "string",
+      "description": "Pricing engine version that produced this snapshot (e.g. AEM_MEDIA_PRICING_V1)"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Booking ID this snapshot belongs to (set when booking is finalized)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job ID this snapshot belongs to (set when job is created from booking)"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "Selected package ID (mls_walkthrough, photo_essentials, photo_cinematic, premium_bundle)"
+    },
+    "package_name": {
+      "type": "string",
+      "description": "Package display name (denormalized)"
+    },
+    "property_address": {
+      "type": "string",
+      "description": "Original property address as entered"
+    },
+    "normalized_address": {
+      "type": "string",
+      "description": "Normalized/validated property address"
+    },
+    "property_sqft": {
+      "type": "number",
+      "description": "Property square footage used for pricing"
+    },
+    "property_sqft_source": {
+      "type": "string",
+      "description": "Source of sqft data (provider_api, manual_customer, manual_sales, manual_admin, admin_override)"
+    },
+    "property_sqft_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether sqft was verified by a property-data provider"
+    },
+    "property_pricing_tier": {
+      "type": "string",
+      "description": "Pricing tier determined from sqft (TIER_1 through TIER_5, CUSTOM)"
+    },
+    "property_adjusted_package_price": {
+      "type": "integer",
+      "description": "Package price after property-size adjustment, in CENTS"
+    },
+    "selected_add_ons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "integer",
+            "description": "Price in CENTS"
+          }
+        }
+      },
+      "description": "Selected add-ons with prices at time of snapshot"
+    },
+    "add_ons_subtotal": {
+      "type": "integer",
+      "description": "Sum of add-on prices, in CENTS"
+    },
+    "preferred_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether Preferred membership discount was active"
+    },
+    "preferred_discount": {
+      "type": "integer",
+      "description": "Preferred discount amount applied, in CENTS"
+    },
+    "approved_discount_amount": {
+      "type": "integer",
+      "description": "Approved true discount amount, in CENTS"
+    },
+    "approved_discount_id": {
+      "type": "string",
+      "description": "DiscountApproval ID if a true discount was applied"
+    },
+    "referral_rewards_redeemed": {
+      "type": "integer",
+      "description": "Referral reward tender applied, in CENTS (does NOT reduce commissionable value)"
+    },
+    "commissionable_service_value": {
+      "type": "integer",
+      "description": "Commissionable service value after Preferred and approved discounts, in CENTS. Referral tender does NOT reduce this."
+    },
+    "customer_service_total": {
+      "type": "integer",
+      "description": "Customer service total before referral tender, in CENTS (= commissionable_service_value)"
+    },
+    "payment_amount_due": {
+      "type": "integer",
+      "description": "Amount due via payment method after referral tender, in CENTS"
+    },
+    "payment_timing": {
+      "type": "string",
+      "enum": [
+        "pay_up_front",
+        "pay_at_closing"
+      ],
+      "description": "Payment timing selection"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "Sales rep ID attributed to this order (for commission)"
+    },
+    "sales_compensation_rule": {
+      "type": "string",
+      "description": "Compensation rule applied (STANDARD_15_PERCENT, NEW_CUSTOMER_MLS_BONUS, etc.)"
+    },
+    "sales_compensation_amount": {
+      "type": "integer",
+      "description": "Sales commission amount, in CENTS"
+    },
+    "provider_compensation_rule": {
+      "type": "string",
+      "description": "Provider compensation rule (STANDARD_40_PERCENT_AFTER_SALES, MLS_GUARANTEED_PAYOUT)"
+    },
+    "provider_compensation_amount": {
+      "type": "integer",
+      "description": "Media Partner payout amount, in CENTS"
+    },
+    "arriv_contribution_before_processing": {
+      "type": "integer",
+      "description": "Arriv contribution before payment processing/other direct costs, in CENTS"
+    },
+    "compensation_version": {
+      "type": "string",
+      "description": "Compensation engine version (e.g. AEM_MEDIA_PROVIDER_COMP_V1)"
+    },
+    "calculation_json": {
+      "type": "string",
+      "description": "Full canonical JSON calculation snapshot for audit/reproduction"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "pricing_version",
+    "package_id",
+    "property_pricing_tier",
+    "commissionable_service_value"
+  ]
+}

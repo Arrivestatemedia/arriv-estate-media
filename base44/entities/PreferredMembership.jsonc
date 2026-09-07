@@ -1,0 +1,104 @@
+{
+  "name": "PreferredMembership",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Contact ID of the Preferred member (customer)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Client email (denormalized for lookup)"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client name (denormalized)"
+    },
+    "account_id": {
+      "type": "string",
+      "description": "Account ID if applicable (B2B membership)"
+    },
+    "plan": {
+      "type": "string",
+      "default": "preferred_monthly",
+      "description": "Membership plan identifier"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "past_due",
+        "canceled",
+        "incomplete",
+        "trialing",
+        "paused"
+      ],
+      "default": "active",
+      "description": "Membership lifecycle status (mirrors Stripe subscription status)"
+    },
+    "monthly_price": {
+      "type": "number",
+      "default": 29.99,
+      "description": "Monthly membership price in dollars"
+    },
+    "sales_originator_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep who originated this membership (for $10/month residual)"
+    },
+    "sales_originator_name": {
+      "type": "string",
+      "description": "Sales originator name (denormalized)"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe customer ID"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "Stripe subscription ID"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the membership started"
+    },
+    "current_period_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Start of the current billing period"
+    },
+    "current_period_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "End of the current billing period"
+    },
+    "cancel_at_period_end": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the membership will cancel at the end of the current period"
+    },
+    "cancelled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the membership was cancelled"
+    },
+    "last_successful_payment_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last successful monthly payment was collected"
+    },
+    "last_residual_commission_id": {
+      "type": "string",
+      "description": "ID of the last Commission record created for the $10 monthly residual (idempotency)"
+    },
+    "last_residual_period_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The billing period end date for which the last residual was paid (idempotency)"
+    }
+  },
+  "required": [
+    "client_id",
+    "status"
+  ]
+}

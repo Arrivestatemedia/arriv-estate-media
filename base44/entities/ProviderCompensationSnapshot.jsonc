@@ -1,0 +1,82 @@
+{
+  "name": "ProviderCompensationSnapshot",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job ID this compensation snapshot belongs to"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Booking/order ID that originated this job"
+    },
+    "provider_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the Media Partner who accepted this job"
+    },
+    "provider_name": {
+      "type": "string",
+      "description": "Provider name (denormalized)"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "Package ID for this job"
+    },
+    "property_sqft": {
+      "type": "number",
+      "description": "Property square footage used for pricing"
+    },
+    "property_pricing_tier": {
+      "type": "string",
+      "description": "Pricing tier (TIER_1 through TIER_5)"
+    },
+    "pricing_rule_version": {
+      "type": "string",
+      "description": "Pricing engine version at time of acceptance"
+    },
+    "compensation_rule_version": {
+      "type": "string",
+      "description": "Compensation engine version at time of acceptance"
+    },
+    "commissionable_service_value_snapshot": {
+      "type": "integer",
+      "description": "Commissionable service value at time of acceptance, in CENTS"
+    },
+    "sales_commission_snapshot": {
+      "type": "integer",
+      "description": "Sales commission at time of acceptance (internal, not shown to provider), in CENTS"
+    },
+    "provider_payout": {
+      "type": "integer",
+      "description": "Guaranteed Media Partner payout, in CENTS. Immutable after acceptance."
+    },
+    "provider_compensation_rule": {
+      "type": "string",
+      "description": "Compensation rule used (STANDARD_40_PERCENT_AFTER_SALES, MLS_GUARANTEED_PAYOUT)"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the provider accepted the job (payout locked)"
+    },
+    "accepted_job_version": {
+      "type": "integer",
+      "description": "Job record version at time of acceptance (for immutability tracking)"
+    },
+    "is_historical": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for jobs accepted before the compensation migration effective date (not recalculated)"
+    }
+  },
+  "required": [
+    "job_id",
+    "provider_id",
+    "provider_payout",
+    "accepted_at"
+  ]
+}

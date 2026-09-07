@@ -1,0 +1,33 @@
+{
+  "name": "MediaCompensationConfig",
+  "type": "object",
+  "properties": {
+    "compensation_version": {
+      "type": "string",
+      "description": "Unique version identifier (e.g. AEM_MEDIA_PROVIDER_COMP_V1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this is the currently active compensation configuration"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this compensation version became effective"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Full canonical JSON of the MediaCompensationConfig (rates, MLS payout table, bonus amounts)"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Admin who created/activated this config version"
+    }
+  },
+  "required": [
+    "compensation_version",
+    "is_active",
+    "config_json"
+  ]
+}

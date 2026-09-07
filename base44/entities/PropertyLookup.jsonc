@@ -1,0 +1,82 @@
+{
+  "name": "PropertyLookup",
+  "type": "object",
+  "properties": {
+    "input_address": {
+      "type": "string",
+      "description": "Original address as entered by user"
+    },
+    "normalized_address": {
+      "type": "string",
+      "description": "Normalized/validated address"
+    },
+    "property_lat": {
+      "type": "number",
+      "description": "Property latitude"
+    },
+    "property_lng": {
+      "type": "number",
+      "description": "Property longitude"
+    },
+    "property_sqft": {
+      "type": "number",
+      "description": "Property square footage (living area)"
+    },
+    "property_sqft_source": {
+      "type": "string",
+      "description": "Source of sqft data (provider name, 'manual_customer', 'manual_sales', 'manual_admin', 'admin_override', 'none')"
+    },
+    "property_sqft_source_record_id": {
+      "type": "string",
+      "description": "External record ID from the property data provider (if available)"
+    },
+    "property_sqft_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether sqft was verified by a property-data provider"
+    },
+    "property_sqft_verification_method": {
+      "type": "string",
+      "enum": [
+        "provider_api",
+        "manual_customer",
+        "manual_sales",
+        "manual_admin",
+        "admin_override"
+      ],
+      "description": "How sqft was determined"
+    },
+    "property_pricing_tier": {
+      "type": "string",
+      "description": "Pricing tier determined from sqft (TIER_1 through TIER_5, CUSTOM, UNKNOWN)"
+    },
+    "lookup_status": {
+      "type": "string",
+      "enum": [
+        "VERIFIED",
+        "MANUAL_REQUIRED",
+        "REVIEW_REQUIRED",
+        "CUSTOM_QUOTE_REQUIRED",
+        "FAILED"
+      ],
+      "description": "Result of the property lookup"
+    },
+    "lookup_error": {
+      "type": "string",
+      "description": "Error message if lookup failed"
+    },
+    "lookup_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the lookup was performed"
+    },
+    "lookup_by": {
+      "type": "string",
+      "description": "User ID or 'system' for who initiated the lookup"
+    }
+  },
+  "required": [
+    "input_address",
+    "lookup_status"
+  ]
+}

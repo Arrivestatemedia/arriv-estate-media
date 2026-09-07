@@ -1,0 +1,33 @@
+{
+  "name": "MediaPricingConfig",
+  "type": "object",
+  "properties": {
+    "pricing_version": {
+      "type": "string",
+      "description": "Unique version identifier (e.g. AEM_MEDIA_PRICING_V1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this is the currently active pricing configuration"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this pricing version became effective"
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Full canonical JSON of the MediaPricingConfig (tier prices, add-ons, preferred config)"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Admin who created/activated this config version"
+    }
+  },
+  "required": [
+    "pricing_version",
+    "is_active",
+    "config_json"
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "name": "ReferralCashOutRequest",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "Contact ID of the customer requesting cash-out"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Customer name (denormalized)"
+    },
+    "customer_email": {
+      "type": "string",
+      "description": "Customer email (denormalized)"
+    },
+    "requested_amount": {
+      "type": "number",
+      "description": "Amount requested for cash-out, in DOLLARS"
+    },
+    "cash_eligible_balance_at_request": {
+      "type": "number",
+      "description": "Cash-eligible referral balance at time of request, in DOLLARS"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "paid",
+        "denied",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Cash-out request lifecycle status"
+    },
+    "payout_method": {
+      "type": "string",
+      "description": "Payout method (stripe_transfer, zelle, bank_account, etc.)"
+    },
+    "payout_reference": {
+      "type": "string",
+      "description": "Stripe transfer ID or other payout reference"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the customer requested the cash-out"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When an admin reviewed the request"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Admin who reviewed/approved/denied the request"
+    },
+    "review_notes": {
+      "type": "string",
+      "description": "Admin review notes"
+    },
+    "paid_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the cash-out was paid"
+    },
+    "fraud_check_passed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether fraud/eligibility validation passed"
+    },
+    "fraud_check_notes": {
+      "type": "string",
+      "description": "Fraud check notes or flags"
+    },
+    "ledger_entry_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ReferralCreditLedger entry IDs redeemed for this cash-out"
+    }
+  },
+  "required": [
+    "customer_id",
+    "requested_amount",
+    "status"
+  ]
+}
