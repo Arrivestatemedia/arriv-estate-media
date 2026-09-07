@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, Video, AlertTriangle, Sparkles, ListChecks, MessageSquare, Target, Building2, MapPin, ExternalLink, RefreshCw, X } from "lucide-react";
+import { Loader2, FileText, Video, AlertTriangle, Sparkles, ListChecks, MessageSquare, Target, Building2, MapPin, ExternalLink, RefreshCw, X, User, Briefcase, Package } from "lucide-react";
 
 const VIDEO_STATUS_CONFIG = {
   UNKNOWN: { label: "Unknown", color: "#6b7280", bg: "rgba(107,114,128,0.12)" },
@@ -160,6 +160,39 @@ export default function ProspectBriefPanel({ prospect, salesMemberId, onClose })
                     Confidence: {brief.research_confidence}
                   </Badge>
                 )}
+              </div>
+
+              {/* Product × Role × Account Context */}
+              <div className="rounded-lg border p-3" style={{ borderColor: "rgba(184,149,106,0.3)", backgroundColor: "rgba(184,149,106,0.06)" }}>
+                <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: "#B8956A" }}>
+                  <Sparkles className="w-3.5 h-3.5" /> Product × Role × Account Context
+                </p>
+                <div className="space-y-2">
+                  {brief.role_context && (
+                    <div>
+                      <p className="text-xs font-medium mb-0.5 flex items-center gap-1" style={{ color: "rgba(26,26,26,0.7)" }}>
+                        <User className="w-3 h-3" /> Role
+                      </p>
+                      <p className="text-xs leading-relaxed" style={{ color: "rgba(26,26,26,0.75)" }}>{brief.role_context}</p>
+                    </div>
+                  )}
+                  {brief.account_context && (
+                    <div>
+                      <p className="text-xs font-medium mb-0.5 flex items-center gap-1" style={{ color: "rgba(26,26,26,0.7)" }}>
+                        <Briefcase className="w-3 h-3" /> Account
+                      </p>
+                      <p className="text-xs leading-relaxed" style={{ color: "rgba(26,26,26,0.75)" }}>{brief.account_context}</p>
+                    </div>
+                  )}
+                  {brief.product_fit && (
+                    <div>
+                      <p className="text-xs font-medium mb-0.5 flex items-center gap-1" style={{ color: "rgba(26,26,26,0.7)" }}>
+                        <Package className="w-3 h-3" /> Product Fit
+                      </p>
+                      <p className="text-xs leading-relaxed" style={{ color: "rgba(26,26,26,0.75)" }}>{brief.product_fit}</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Why Them */}

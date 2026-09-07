@@ -138,6 +138,18 @@
       },
       "description": "Sources consulted during research (for rep verification)"
     },
+    "role_context": {
+      "type": "string",
+      "description": "The prospect's role context (individual agent, team lead, broker, builder) and how it shapes the approach"
+    },
+    "account_context": {
+      "type": "string",
+      "description": "CRM account context: lifecycle stage, existing relationship, previous interactions, Customer360 intelligence"
+    },
+    "product_fit": {
+      "type": "string",
+      "description": "Which currently sellable Estate Media products best fit this prospect's role and situation, and why"
+    },
     "generated_at": {
       "type": "string",
       "format": "date-time"
