@@ -29,6 +29,26 @@ Deno.serve(async (req) => {
       console.error('Apparel eligibility check failed:', e.message);
     }
 
+    // Server-side capability enforcement — provider must have all required capabilities
+    try {
+      const job = await base44.asServiceRole.entities.Job.get(jobId);
+      const requiredCaps = job.required_capabilities || [];
+      if (requiredCaps.length > 0) {
+        const partnerUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+        const partner = partnerUsers[0];
+        const verifiedCaps = partner?.verified_capabilities || [];
+        const missing = requiredCaps.filter(cap => !verifiedCaps.includes(cap));
+        if (missing.length > 0) {
+          return Response.json({
+            error: `You lack the required capabilities for this job: ${missing.join(', ')}. Please contact Arriv to get verified.`,
+            code: 'CAPABILITY_REQUIRED'
+          }, { status: 403 });
+        }
+      }
+    } catch (e) {
+      console.error('Capability check failed:', e.message);
+    }
+
     // Look up media partner's phone number from User entity if not already set
     if (!jobData.booked_by_phone && mediaPartnerEmail) {
       const users = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });

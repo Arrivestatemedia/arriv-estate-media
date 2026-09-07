@@ -103,8 +103,8 @@ export function calculateMediaPricing(
 ): PricingResult {
   const { package_id, property_sqft, add_on_ids, preferred_active, approved_discount_amount, referral_tender_amount } = input;
 
-  // 1. Determine tier
-  const tier = determinePricingTier(property_sqft);
+  // 1. Determine tier (default to TIER_1 when sqft not yet available — matches legacy flat prices)
+  const tier = property_sqft == null ? "TIER_1" : determinePricingTier(property_sqft);
   if (tier === "UNKNOWN" || tier === "CUSTOM") {
     return {
       status: tier === "CUSTOM" ? "CUSTOM_QUOTE_REQUIRED" : "INVALID_INPUT",

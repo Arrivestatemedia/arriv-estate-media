@@ -2,7 +2,15 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film, ShieldCheck } from "lucide-react";
+import { MapPin, Calendar, Clock, DollarSign, Camera, Video, Film, ShieldCheck, CheckCircle2 } from "lucide-react";
+
+const CAPABILITY_LABELS = {
+  photography: "Photography",
+  videography: "Videography",
+  drone: "Drone",
+  tour_3d: "3D Tour",
+  twilight_capture: "Twilight",
+};
 import { format, parse as parseDate } from "date-fns";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
@@ -247,8 +255,19 @@ export default function JobCard({ job, isAdmin, onBook, onManage, onCancel, onBo
           )}
 
           {job.add_ons && job.add_ons.length > 0 && (
-            <div className="text-xs text-[#1A1A1A]/60 mb-4">
+            <div className="text-xs text-[#1A1A1A]/60 mb-2">
               <span className="font-medium">Add-ons:</span> {job.add_ons.map(addon => addon.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ')}
+            </div>
+          )}
+
+          {job.required_capabilities && job.required_capabilities.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {job.required_capabilities.map(cap => (
+                <span key={cap} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-[#B8956A]/10 text-[#B8956A] border border-[#B8956A]/20">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {CAPABILITY_LABELS[cap] || cap}
+                </span>
+              ))}
             </div>
           )}
 

@@ -20,8 +20,43 @@ Deno.serve(async (req) => {
       status: isPastShoot ? 'approved' : 'pending'
     });
 
-    // If this booking came from a sales-rep invite, create a pending 15% commission
-    // tied to that rep so the sale is credited (commission flows through approval → payroll).
+    // Calculate canonical pricing via the authoritative engine and create a PricingSnapshot
+    let canonicalPricing = null;
+    let commissionableServiceValueCents = 0;
+    try {
+      const pricingRes = await base44.asServiceRole.functions.invoke('calculateFullMediaPricing', {
+        package_id: booking.package,
+        property_sqft: booking.property_sqft || null,
+        add_on_ids: booking.add_ons || [],
+        preferred_active: booking.preferred_active || false,
+        approved_discount_amount: booking.approved_discount_amount || 0,
+        referral_tender_amount: booking.referral_tender_amount || 0,
+        contact_id: booking.contact_id || '',
+        contact_email: booking.client_email || '',
+        sales_member_id: booking.sales_member_id || '',
+        payment_timing: booking.request_pay_at_closing ? 'pay_at_closing' : 'pay_up_front',
+        property_address: propertyAddress,
+        create_snapshot: true,
+      });
+      if (pricingRes?.data?.status === 'OK') {
+        canonicalPricing = pricingRes.data;
+        commissionableServiceValueCents = pricingRes.data.pricing?.commissionable_service_value || 0;
+        await base44.asServiceRole.entities.Booking.update(createdBooking.id, {
+          pricing_snapshot_id: pricingRes.data.pricing_snapshot_id || '',
+          property_pricing_tier: pricingRes.data.pricing?.property_pricing_tier || '',
+          commissionable_service_value: commissionableServiceValueCents,
+          preferred_discount: pricingRes.data.pricing?.preferred_discount || 0,
+          approved_discount_amount: pricingRes.data.pricing?.approved_discount_amount || 0,
+          referral_tender_amount: pricingRes.data.pricing?.referral_tender_amount || 0,
+        });
+      }
+    } catch (pricingErr) {
+      console.error('Canonical pricing calculation error:', pricingErr.message);
+    }
+
+    // If this booking came from a sales-rep invite, create a pending commission
+    // tied to that rep. Uses the canonical commissionable_service_value from the
+    // pricing engine when available; falls back to legacy total_price * 0.15.
     if (booking.sales_member_id) {
       try {
         let repData = null;
@@ -30,8 +65,17 @@ Deno.serve(async (req) => {
           repData = reps && reps[0] ? reps[0] : null;
         } catch (e) { /* ignore */ }
 
-        const baseAmount = parseFloat(booking.total_price) || 0;
-        const commissionAmount = Math.round(baseAmount * 0.15 * 100) / 100;
+        let commissionAmount;
+        let commissionDescription;
+        if (commissionableServiceValueCents > 0) {
+          const compData = canonicalPricing?.compensation;
+          commissionAmount = compData ? compData.sales_commission / 100 : 0;
+          commissionDescription = `${compData?.sales_compensation_rule || 'Commission'} on ${booking.package} booking`;
+        } else {
+          const baseAmount = parseFloat(booking.total_price) || 0;
+          commissionAmount = Math.round(baseAmount * 0.15 * 100) / 100;
+          commissionDescription = `15% commission on ${booking.package} booking`;
+        }
         if (commissionAmount > 0) {
           await base44.asServiceRole.entities.Commission.create({
             employee_id: booking.sales_member_id,
@@ -42,7 +86,7 @@ Deno.serve(async (req) => {
             commission_plan_id: 'standard_15',
             deal_id: createdBooking.id,
             customer_name: booking.client_name,
-            description: `15% commission on ${booking.package} booking`,
+            description: commissionDescription,
             gross_amount: commissionAmount,
             earned_date: new Date().toISOString().slice(0, 10),
             intended_pay_period: new Date().toISOString().slice(0, 7),
