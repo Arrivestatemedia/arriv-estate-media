@@ -9,9 +9,10 @@ import { getRequiredCapabilities } from "../../shared/mediaCapabilities.ts";
 //
 // This function:
 //   1. Calculates authoritative pricing (package + add-ons + Preferred + discounts)
-//   2. Calculates authoritative compensation (sales + provider + Arriv)
-//   3. Optionally creates a PricingSnapshot
-//   4. Returns the complete financial breakdown
+//   2. Checks new-customer MLS bonus eligibility
+//   3. Calculates authoritative compensation (sales + provider + Arriv)
+//   4. Optionally creates a PricingSnapshot
+//   5. Returns the complete financial breakdown
 //
 // Called by: client booking, sales convert-to-job, admin job creation, booking changes.
 // Never trusts frontend-submitted totals — server recalculates everything.
@@ -62,13 +63,29 @@ export default async function (req) {
       });
     }
 
-    // 3. Calculate authoritative compensation
-    // The $40 new-customer MLS bonus was removed — no separate authorized rule exists.
-    // All packages, including MLS Walkthrough, use standard 15% sales commission.
+    // 3. Check new-customer MLS bonus eligibility
+    let isNewCustomerMlsQualifying = false;
+    if (package_id === "mls_walkthrough" && pricingResult.property_pricing_tier === "TIER_1") {
+      try {
+        const bonusCheckRes = await base44.functions.invoke("checkNewCustomerMlsBonus", {
+          contact_id,
+          contact_email,
+          package_id,
+          property_pricing_tier: pricingResult.property_pricing_tier,
+          sales_member_id,
+        });
+        isNewCustomerMlsQualifying = bonusCheckRes?.data?.eligible || false;
+      } catch (e) {
+        // If bonus check fails, default to false (standard 15% applies)
+      }
+    }
+
+    // 4. Calculate authoritative compensation
     const compensationResult = calculateMediaCompensation(compensationConfig, {
       commissionable_service_value: pricingResult.commissionable_service_value,
       package_id,
       property_pricing_tier: pricingResult.property_pricing_tier,
+      is_new_customer_mls_qualifying: isNewCustomerMlsQualifying,
       sales_member_id: sales_member_id || "",
     });
 
@@ -81,6 +98,7 @@ export default async function (req) {
       pricing: pricingResult,
       compensation: compensationResult,
       required_capabilities: requiredCapabilities,
+      is_new_customer_mls_qualifying: isNewCustomerMlsQualifying,
     };
 
     // 7. Optionally create a PricingSnapshot
