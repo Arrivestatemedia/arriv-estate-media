@@ -151,8 +151,20 @@ export default function EditorWorkspace() {
               <Card key={task.id} className="p-3 border-l-4 border-l-blue-400">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#1A1A1A]">{task.task_label}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-[#1A1A1A]">{task.task_label}</p>
+                      {task.required_source_media && task.required_source_media !== "all" && (
+                        <Badge variant="outline" className="text-xs text-[#B8956A] border-[#B8956A]/30">
+                          {task.required_source_media}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-[#1A1A1A]/60">{task.client_name} • {task.property_address}</p>
+                    {task.storage_folder_url && (
+                      <a href={task.storage_folder_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#B8956A] hover:underline mt-1 inline-block">
+                        <FolderOpen className="w-3 h-3 inline mr-1" />Source footage
+                      </a>
+                    )}
                   </div>
                   <Button
                     size="sm"
