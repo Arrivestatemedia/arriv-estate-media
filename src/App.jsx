@@ -47,6 +47,7 @@ import AsyncInterview from './pages/AsyncInterview';
 import AsyncInterviewManager from './pages/AsyncInterviewManager';
 import EditingQueuePage from './pages/EditingQueuePage';
 import EditorWorkspace from './pages/EditorWorkspace';
+import JobDetail from './pages/JobDetail';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -410,6 +411,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="EditorWorkspace">
             <EditorWorkspace />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/JobDetail"
+        element={
+          <LayoutWrapper currentPageName="JobDetail">
+            <JobDetail />
           </LayoutWrapper>
         }
       />

@@ -53,6 +53,23 @@ export const EDITOR_CAPABILITY_LABELS: Record<string, string> = {
   "3d_post_processing": "3D Post-Processing",
 };
 
+/**
+ * Maps each editing task type to the source-media category it depends on.
+ * Tasks only release from WAITING_FOR_UPLOAD when their required category
+ * is confirmed uploaded. This enables per-category release (photo tasks
+ * release when photo upload is done, video tasks wait for video, etc.).
+ */
+export const TASK_TYPE_REQUIRED_SOURCE_MEDIA: Record<string, "photo" | "video" | "drone" | "all"> = {
+  photo_editing: "photo",
+  mls_walkthrough_edit: "video",
+  cinematic_video_edit: "video",
+  vertical_reel_edit: "video",
+  drone_post: "drone",
+  twilight_edit: "photo",
+  ai_staging_edit: "photo",
+  "3d_post_processing": "all",
+};
+
 /** Maps each editing task type to the verified editor capability required. */
 export const TASK_TYPE_REQUIRED_CAPABILITY: Record<string, string> = {
   photo_editing: "photo_editing",

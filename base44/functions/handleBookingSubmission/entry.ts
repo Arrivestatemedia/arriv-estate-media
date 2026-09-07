@@ -108,6 +108,7 @@ Deno.serve(async (req) => {
       const payRate = (packagePrices[booking.package] || 0) + addOnsTotal;
 
       try {
+        const now = new Date().toISOString();
         await base44.asServiceRole.entities.Job.create({
           title: `${booking.package} – ${propertyAddress}`,
           type: booking.package === 'mls_walkthrough' ? 'video' : (booking.package === 'photo_essentials' ? 'photo' : 'photo_video'),
@@ -117,6 +118,12 @@ Deno.serve(async (req) => {
           pay_rate: payRate,
           client_price: parseFloat(booking.total_price),
           status: 'completed',
+          production_status: 'no_editing_required',
+          capture_status: 'captured',
+          source_upload_status: 'complete',
+          delivery_status: 'delivered',
+          media_partner_fulfillment_status: 'completed',
+          capture_fulfillment_completed_at: now,
           media_partner_status: 'job_completed',
           booked_by: adminEmail,
           booked_by_name: adminName,
@@ -129,6 +136,9 @@ Deno.serve(async (req) => {
           from_booking: true,
           booking_id: createdBooking.id,
           footage_uploaded: true,
+          completed_at: now,
+          delivered_to_customer: true,
+          delivered_at: now,
         });
       } catch (jobErr) {
         console.error('Job creation error (past shoot):', jobErr.message);

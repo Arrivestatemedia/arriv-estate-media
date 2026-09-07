@@ -1,11 +1,12 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Clock, Play, Pause, CheckCircle2, Send, AlertTriangle, X, FileText } from "lucide-react";
+import { Loader2, Clock, Play, Pause, CheckCircle2, Send, AlertTriangle, X, FileText, FolderOpen, ArrowUpRight, Cloud } from "lucide-react";
 
 const STATUS_LABELS = {
   waiting_for_upload: "Waiting for Upload",
@@ -20,6 +21,7 @@ const STATUS_LABELS = {
 };
 
 export default function EditingTaskDetail({ task, editors, onClose, onActionComplete }) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [selectedEditor, setSelectedEditor] = useState(task.editor_id || "");
   const [finalMediaLocation, setFinalMediaLocation] = useState(task.final_media_location || "");
@@ -78,17 +80,64 @@ export default function EditingTaskDetail({ task, editors, onClose, onActionComp
             )}
           </div>
 
-          {/* Source media */}
-          {task.source_media_location && (
+          {/* Source media — editor accesses raw footage through existing Google Drive */}
+          {(task.storage_folder_url || task.source_media_location) && (
+            <div className="rounded-lg border border-[#B8956A]/20 bg-[#FFFBF5] p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs text-[#1A1A1A]/60 flex items-center gap-1">
+                    <Cloud className="w-3 h-3" /> Source Media ({task.storage_provider || "GOOGLE_DRIVE"})
+                  </Label>
+                  {task.required_source_media && task.required_source_media !== "all" && (
+                    <p className="text-xs text-[#B8956A] mt-0.5">
+                      Required: {task.required_source_media.toUpperCase()}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(task.storage_folder_url || task.source_media_location, "_blank");
+                  }}
+                  className="bg-[#B8956A] hover:bg-[#A68559] text-white"
+                >
+                  <FolderOpen className="w-4 h-4 mr-1" /> Open Source Footage
+                </Button>
+              </div>
+              {task.upload_completed_at && (
+                <p className="text-xs text-[#1A1A1A]/50">
+                  Upload confirmed: {new Date(task.upload_completed_at).toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Parent Job link — trace back to the canonical Job record */}
+          {task.job_id && (
             <div>
-              <Label className="text-xs text-[#1A1A1A]/60">Source Media Location</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/JobDetail?job_id=${task.job_id}`)}
+                className="text-[#1A1A1A]/70 hover:text-[#B8956A]"
+              >
+                View Parent Job <ArrowUpRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+          )}
+
+          {/* Final deliverable media — distinct from source footage */}
+          {task.final_media_location && (
+            <div>
+              <Label className="text-xs text-[#1A1A1A]/60">Final Deliverable Media</Label>
               <a
-                href={task.source_media_location}
+                href={task.final_media_location}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-sm text-[#B8956A] hover:underline mt-1"
+                className="block text-sm text-green-700 hover:underline mt-1"
               >
-                {task.source_media_location}
+                {task.final_media_location}
               </a>
             </div>
           )}

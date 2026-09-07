@@ -64,7 +64,67 @@
         "archived"
       ],
       "default": "open",
-      "description": "Current status of the job"
+      "description": "OVERALL job status. Only reaches 'completed' when ALL customer fulfillment (capture, upload, post-production, QC, delivery) is complete. Media Partner payout eligibility uses media_partner_fulfillment_status, NOT this field."
+    },
+    "production_status": {
+      "type": "string",
+      "enum": [
+        "awaiting_capture",
+        "awaiting_upload",
+        "partial_upload",
+        "ready_for_editing",
+        "editing",
+        "quality_control",
+        "revision",
+        "ready_for_delivery",
+        "delivered",
+        "no_editing_required"
+      ],
+      "default": "awaiting_capture",
+      "description": "Post-production status derived from child EditingTask states. Server-authoritative \u2014 set by editingQueueEngine.updateJobProductionStatus()."
+    },
+    "capture_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "on_site",
+        "captured"
+      ],
+      "default": "pending",
+      "description": "Media Partner capture status (derived from media_partner_status)."
+    },
+    "source_upload_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "partial",
+        "complete"
+      ],
+      "default": "not_started",
+      "description": "Source media upload status. 'complete' when all required source media is confirmed uploaded to Google Drive."
+    },
+    "delivery_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "delivered"
+      ],
+      "default": "pending",
+      "description": "Customer delivery status. 'delivered' when all editing tasks are delivered to the customer."
+    },
+    "media_partner_fulfillment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed"
+      ],
+      "default": "pending",
+      "description": "Media Partner fulfillment milestone. Set to 'completed' when capture + source upload are done. This is the PAYOUT ELIGIBILITY field \u2014 Media Partner payouts depend on this, NOT Job.status. Separates capture fulfillment from overall job completion."
+    },
+    "capture_fulfillment_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the Media Partner's capture + upload fulfillment was completed (payout eligibility timestamp)."
     },
     "media_partner_status": {
       "type": "string",
@@ -150,11 +210,20 @@
     "completed_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When media partner completed the job"
+      "description": "When media partner completed the capture (on-site completion). NOT the same as overall job completion."
     },
     "google_drive_folder_url": {
       "type": "string",
-      "description": "Google Drive folder URL for uploading footage"
+      "description": "Google Drive folder URL for uploading footage. This is the EXISTING source-media upload location \u2014 preserved and consumed by the Editing Queue."
+    },
+    "source_storage_provider": {
+      "type": "string",
+      "default": "GOOGLE_DRIVE",
+      "description": "Storage provider for source media. Currently GOOGLE_DRIVE. Abstracted to permit future migration to S3 or another provider without rebuilding the Editing Queue."
+    },
+    "source_storage_folder_id": {
+      "type": "string",
+      "description": "Google Drive folder ID extracted from google_drive_folder_url. Stored separately for API-level access."
     },
     "footage_uploaded": {
       "type": "boolean",
@@ -169,7 +238,7 @@
     "delivered_to_customer": {
       "type": "boolean",
       "default": false,
-      "description": "Whether the final edited media has been delivered to the customer. Separate from footage_uploaded (capture upload) and status:completed (capture complete). The editing queue sets this when all editing tasks are delivered."
+      "description": "Whether the final edited media has been delivered to the customer. Set by the editing queue when all editing tasks are delivered."
     },
     "delivered_at": {
       "type": "string",

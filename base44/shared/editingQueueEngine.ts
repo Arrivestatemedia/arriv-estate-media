@@ -15,10 +15,20 @@ import {
   calculateEditingDeadline,
   calculateSlaStatus,
   TASK_TYPE_REQUIRED_CAPABILITY,
+  TASK_TYPE_REQUIRED_SOURCE_MEDIA,
   EDITING_TASK_LABELS,
 } from "./packageEditingConfig.ts";
 
 const TENANT_ID = "tnt_estate_media";
+
+// ── STORAGE HELPERS ──────────────────────────────────────────────────────────
+
+/** Extract a Google Drive folder ID from a Drive folder URL. */
+export function extractDriveFolderId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const m = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : null;
+}
 
 // ── AUDIT ──────────────────────────────────────────────────────────────────
 
@@ -79,11 +89,17 @@ export async function ensureEditingTasksForJob(
   const now = new Date().toISOString();
   const createdTasks: any[] = [];
 
+  // Resolve the existing Google Drive source-media folder from the Job.
+  // Reuse the EXISTING folder — never create a duplicate.
+  const sourceFolderUrl = job.google_drive_folder_url || null;
+  const sourceFolderId = extractDriveFolderId(sourceFolderUrl);
+
   for (const spec of taskSpecs) {
     const requiredCap = TASK_TYPE_REQUIRED_CAPABILITY[spec.task_type] || "";
     const label = EDITING_TASK_LABELS[spec.task_type] || spec.task_type;
     const taskLabel =
       spec.task_index > 1 ? `${label} #${spec.task_index}` : label;
+    const requiredSourceMedia = TASK_TYPE_REQUIRED_SOURCE_MEDIA[spec.task_type] || "all";
 
     const task = await base44.asServiceRole.entities.EditingTask.create({
       tenant_id: TENANT_ID,
@@ -99,9 +115,14 @@ export async function ensureEditingTasksForJob(
       task_label: taskLabel,
       task_index: spec.task_index,
       required_editor_capabilities: requiredCap ? [requiredCap] : [],
+      required_source_media: requiredSourceMedia,
       status: "waiting_for_upload",
       priority: isRush ? "rush" : "normal",
-      source_media_location: job.google_drive_folder_url || null,
+      storage_provider: "GOOGLE_DRIVE",
+      storage_folder_id: sourceFolderId,
+      storage_folder_url: sourceFolderUrl,
+      source_media_location: sourceFolderUrl,
+      upload_status: "waiting",
       active_editing_minutes: 0,
       revision_count: 0,
       qc_status: "pending",
@@ -116,6 +137,9 @@ export async function ensureEditingTasksForJob(
     createdTasks.push(task);
   }
 
+  // Update job production_status to reflect that editing tasks now exist
+  await updateJobProductionStatus(base44, job.id);
+
   return createdTasks;
 }
 
@@ -123,27 +147,49 @@ export async function ensureEditingTasksForJob(
 
 /**
  * Release editing tasks from WAITING_FOR_UPLOAD to READY_FOR_EDITING when
- * source media is confirmed complete. Integrates with the existing Media
- * Partner upload/footage system — call this when footage_uploaded becomes true.
+ * their required source-media category is confirmed complete.
  *
- * Only releases tasks whose required source media category is available.
- * Currently the existing system tracks a single footage_uploaded flag per job,
- * so all tasks for a job release together. Future enhancement: per-category
- * source tracking (photo vs video vs drone).
+ * PER-CATEGORY RELEASE:
+ *   - photo tasks release when photo upload is confirmed
+ *   - video tasks release when video upload is confirmed
+ *   - drone tasks release when drone upload is confirmed
+ *   - 'all' tasks release when any upload is confirmed
+ *
+ * This integrates with the EXISTING Media Partner upload system. The existing
+ * system tracks a single footage_uploaded flag per job. When that flag becomes
+ * true, all categories are considered available and all tasks release.
+ *
+ * Future enhancement: per-category source tracking (photo vs video vs drone)
+ * will allow partial releases when only some categories are uploaded.
+ *
+ * IDEMPOTENT: Calling this multiple times for the same job does not duplicate
+ * tasks or re-release already-released tasks.
+ *
+ * STORAGE: Attaches the existing Google Drive folder references to each task.
+ * No duplicate folders are created — tasks reference the Job's existing folder.
  */
 export async function releaseEditingTasksForJob(
   base44: any,
   jobId: string,
   sourceMediaLocation?: string,
-  actor: string = "system"
+  actor: string = "system",
+  completedCategories?: string[]
 ): Promise<{ released: number; tasks: any[] }> {
   // Safety guard: verify the job actually has footage uploaded before releasing.
-  // This prevents accidental release when called manually without upload confirmation.
   const job = await base44.asServiceRole.entities.Job.get(jobId);
   if (!job) return { released: 0, tasks: [] };
   if (!job.footage_uploaded) {
     return { released: 0, tasks: [] };
   }
+
+  // Resolve the existing Google Drive folder references from the Job
+  const folderUrl = sourceMediaLocation || job.google_drive_folder_url || null;
+  const folderId = extractDriveFolderId(folderUrl);
+
+  // If no completedCategories specified, treat all as complete (legacy behavior
+  // — the existing system has a single footage_uploaded flag, so all categories
+  // are available when footage_uploaded is true).
+  const availableCategories = completedCategories || ["photo", "video", "drone", "all"];
 
   const tasks = await base44.asServiceRole.entities.EditingTask.filter({
     job_id: jobId,
@@ -155,13 +201,26 @@ export async function releaseEditingTasksForJob(
   for (const task of tasks) {
     if (task.status !== "waiting_for_upload") continue;
 
+    // Per-category gate: only release if the task's required source media
+    // category is in the availableCategories list
+    const requiredCategory = task.required_source_media || "all";
+    if (!availableCategories.includes(requiredCategory)) {
+      continue;
+    }
+
     const deliveryDeadline = calculateDeliveryDeadline(task.task_type, task.priority === "rush");
     const editingDeadline = calculateEditingDeadline(task.task_type, task.priority === "rush");
 
     await base44.asServiceRole.entities.EditingTask.update(task.id, {
       status: "ready_for_editing",
       source_media_verified_at: now,
-      source_media_location: sourceMediaLocation || task.source_media_location,
+      editing_ready_at: now,
+      upload_status: "complete",
+      upload_completed_at: now,
+      storage_provider: "GOOGLE_DRIVE",
+      storage_folder_id: folderId || task.storage_folder_id,
+      storage_folder_url: folderUrl || task.storage_folder_url,
+      source_media_location: folderUrl || task.source_media_location,
       delivery_deadline: deliveryDeadline.toISOString(),
       editing_deadline: editingDeadline.toISOString(),
       sla_status: calculateSlaStatus(deliveryDeadline),
@@ -176,13 +235,128 @@ export async function releaseEditingTasksForJob(
       actor,
       "waiting_for_upload",
       "ready_for_editing",
-      "Source media upload confirmed"
+      `Source media (${requiredCategory}) upload confirmed`
     );
 
     released.push(task.id);
   }
 
+  // Update job production_status after releasing tasks
+  await updateJobProductionStatus(base44, jobId);
+
   return { released: released.length, tasks: released };
+}
+
+/**
+ * Release tasks for a specific source-media category only.
+ * Call this when a specific category (photo, video, drone) is confirmed
+ * uploaded, without requiring the entire job upload to be complete.
+ */
+export async function releaseEditingTasksForCategory(
+  base44: any,
+  jobId: string,
+  category: "photo" | "video" | "drone",
+  sourceMediaLocation?: string,
+  actor: string = "system"
+): Promise<{ released: number; tasks: any[] }> {
+  return releaseEditingTasksForJob(base44, jobId, sourceMediaLocation, actor, [category, "all"]);
+}
+
+// ── JOB PRODUCTION STATUS DERIVATION ─────────────────────────────────────────
+
+/**
+ * Derive and update Job.production_status from the states of its child
+ * EditingTasks. This is the SERVER-AUTHORITATIVE production status — never
+ * set production_status from the frontend.
+ *
+ * Derivation rules:
+ *   - No editing tasks → 'no_editing_required' (or 'awaiting_upload' if footage not uploaded)
+ *   - Any task waiting_for_upload and footage not uploaded → 'awaiting_upload'
+ *   - Any task waiting_for_upload but footage partially uploaded → 'partial_upload'
+ *   - At least one task ready_for_editing, none editing → 'ready_for_editing'
+ *   - At least one task editing/assigned → 'editing'
+ *   - All tasks submitted_for_qc → 'quality_control'
+ *   - Any task revision_required → 'revision'
+ *   - All tasks approved (not yet delivered) → 'ready_for_delivery'
+ *   - All tasks delivered/cancelled → 'delivered'
+ */
+export async function updateJobProductionStatus(base44: any, jobId: string): Promise<string> {
+  const job = await base44.asServiceRole.entities.Job.get(jobId);
+  if (!job) return "awaiting_capture";
+
+  const tasks = await base44.asServiceRole.entities.EditingTask.filter({ job_id: jobId });
+
+  // No editing tasks — job doesn't require post-production
+  if (!tasks || tasks.length === 0) {
+    if (job.footage_uploaded) {
+      await base44.asServiceRole.entities.Job.update(jobId, {
+        production_status: "no_editing_required",
+        source_upload_status: "complete",
+      });
+      return "no_editing_required";
+    }
+    const status = job.footage_uploaded ? "no_editing_required" : "awaiting_upload";
+    await base44.asServiceRole.entities.Job.update(jobId, { production_status: status });
+    return status;
+  }
+
+  const activeTasks = tasks.filter((t: any) => t.status !== "cancelled");
+
+  // If all tasks cancelled, treat as no_editing_required
+  if (activeTasks.length === 0) {
+    await base44.asServiceRole.entities.Job.update(jobId, { production_status: "no_editing_required" });
+    return "no_editing_required";
+  }
+
+  const statuses = activeTasks.map((t: any) => t.status);
+  const hasWaiting = statuses.includes("waiting_for_upload");
+  const hasReady = statuses.includes("ready_for_editing");
+  const hasEditing = statuses.includes("editing") || statuses.includes("assigned");
+  const hasSubmitted = statuses.includes("submitted_for_qc");
+  const hasRevision = statuses.includes("revision_required");
+  const hasApproved = statuses.includes("approved");
+  const allDelivered = activeTasks.every((t: any) => t.status === "delivered");
+
+  let productionStatus: string;
+
+  if (allDelivered) {
+    productionStatus = "delivered";
+  } else if (hasRevision) {
+    productionStatus = "revision";
+  } else if (activeTasks.every((t: any) => t.status === "approved")) {
+    productionStatus = "ready_for_delivery";
+  } else if (activeTasks.every((t: any) => t.status === "submitted_for_qc")) {
+    productionStatus = "quality_control";
+  } else if (hasEditing) {
+    productionStatus = "editing";
+  } else if (hasReady || hasSubmitted || hasApproved) {
+    // At least one task is past upload stage, and none are actively editing
+    productionStatus = "ready_for_editing";
+  } else if (hasWaiting) {
+    // All tasks still waiting for upload
+    if (job.footage_uploaded) {
+      productionStatus = "ready_for_editing";
+    } else {
+      productionStatus = "awaiting_upload";
+    }
+  } else {
+    productionStatus = "awaiting_upload";
+  }
+
+  // Also update source_upload_status
+  let sourceUploadStatus = "not_started";
+  if (job.footage_uploaded) {
+    sourceUploadStatus = "complete";
+  } else if (activeTasks.some((t: any) => t.upload_status === "partial")) {
+    sourceUploadStatus = "partial";
+  }
+
+  await base44.asServiceRole.entities.Job.update(jobId, {
+    production_status: productionStatus,
+    source_upload_status: sourceUploadStatus,
+  });
+
+  return productionStatus;
 }
 
 // ── CAPABILITY ENFORCEMENT ──────────────────────────────────────────────────
@@ -253,17 +427,19 @@ export async function assignEditingTask(
   });
 
   await writeAudit(
-    base44,
-    taskId,
-    previousEditor ? "task_reassigned" : "task_assigned",
-    actor,
-    actorEmail,
-    previousEditor || "unassigned",
-    editorProfileId
+  base44,
+  taskId,
+  previousEditor ? "task_reassigned" : "task_assigned",
+  actor,
+  actorEmail,
+  previousEditor || "unassigned",
+  editorProfileId
   );
 
+  await updateJobProductionStatus(base44, task.job_id);
+
   return { success: true, task: updated };
-}
+  }
 
 // ── TIME TRACKING ────────────────────────────────────────────────────────────
 
@@ -340,6 +516,8 @@ export async function startEditing(
     "editing"
   );
 
+  await updateJobProductionStatus(base44, task.job_id);
+
   return { success: true };
 }
 
@@ -394,6 +572,8 @@ export async function pauseEditing(
   });
 
   await writeAudit(base44, taskId, "editing_paused", actor, actorEmail, "editing", "assigned");
+
+  await updateJobProductionStatus(base44, task.job_id);
 
   return { success: true, sessionMinutes: totalSessionMinutes };
 }
@@ -451,6 +631,8 @@ export async function submitForQc(
 
   await writeAudit(base44, taskId, "submitted_for_qc", actor, actorEmail, task.status, "submitted_for_qc");
 
+  await updateJobProductionStatus(base44, task.job_id);
+
   return { success: true };
 }
 
@@ -486,6 +668,8 @@ export async function approveQc(
   });
 
   await writeAudit(base44, taskId, "qc_approved", reviewerId, reviewerEmail, "submitted_for_qc", "approved", notes);
+
+  await updateJobProductionStatus(base44, task.job_id);
 
   return { success: true };
 }
@@ -534,6 +718,8 @@ export async function requestRevision(
     revisionReason
   );
 
+  await updateJobProductionStatus(base44, task.job_id);
+
   return { success: true };
 }
 
@@ -566,12 +752,22 @@ export async function deliverTask(
 
   await writeAudit(base44, taskId, "delivery_completed", actor, actorEmail, "approved", "delivered");
 
+  // Check if all tasks for this job are now delivered → mark job complete
+  await checkJobDeliveryComplete(base44, task.job_id);
+  await updateJobProductionStatus(base44, task.job_id);
+
   return { success: true };
 }
 
 /**
  * Check if all editing tasks for a job are delivered, and if so, mark
- * the job as fully delivered to the customer.
+ * the job as fully delivered to the customer AND set overall Job.status
+ * to 'completed' (all customer fulfillment is now complete).
+ *
+ * This is the ONLY place that sets Job.status = 'completed' for booking jobs
+ * that go through post-production. Media Partner payout eligibility is based
+ * on media_partner_fulfillment_status, which was set earlier — so payouts
+ * are NOT delayed by post-production.
  */
 export async function checkJobDeliveryComplete(base44: any, jobId: string): Promise<boolean> {
   const tasks = await base44.asServiceRole.entities.EditingTask.filter({ job_id: jobId });
@@ -580,15 +776,16 @@ export async function checkJobDeliveryComplete(base44: any, jobId: string): Prom
   const allDelivered = tasks.every((t: any) => t.status === "delivered" || t.status === "cancelled");
   if (!allDelivered) return false;
 
-  // All tasks delivered — update job delivery status if field exists
-  try {
-    await base44.asServiceRole.entities.Job.update(jobId, {
-      delivered_to_customer: true,
-      delivered_at: new Date().toISOString(),
-    });
-  } catch (e) {
-    // Job entity may not have delivered_to_customer field yet — non-fatal
-  }
+  const now = new Date().toISOString();
+
+  // All tasks delivered — mark job as fully complete
+  await base44.asServiceRole.entities.Job.update(jobId, {
+    delivered_to_customer: true,
+    delivered_at: now,
+    delivery_status: "delivered",
+    production_status: "delivered",
+    status: "completed",
+  });
 
   return true;
 }
@@ -634,6 +831,8 @@ export async function cancelEditingTask(
   });
 
   await writeAudit(base44, taskId, "task_cancelled", actor, actorEmail, task.status, "cancelled", reason);
+
+  await updateJobProductionStatus(base44, task.job_id);
 
   return { success: true };
 }

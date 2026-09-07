@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, Pause, Send, Clock, AlertTriangle, CheckCircle2, Film, RefreshCw, FileText } from "lucide-react";
+import { Loader2, Play, Pause, Send, Clock, AlertTriangle, CheckCircle2, Film, RefreshCw, FileText, FolderOpen } from "lucide-react";
 import { EDITING_TASK_LABELS, STATUS_LABELS } from "@/lib/editingConfig";
 
 const SLA_COLORS = {
@@ -223,10 +223,23 @@ function EditorTaskRow({ task, actionLoading, finalMediaUrl, onUrlChange, onActi
           </div>
           <p className="text-sm text-[#1A1A1A]/70 mt-0.5">{task.client_name}</p>
           <p className="text-xs text-[#1A1A1A]/50">{task.property_address}</p>
-          {task.source_media_location && (
-            <a href={task.source_media_location} target="_blank" rel="noopener noreferrer" className="text-xs text-[#B8956A] hover:underline mt-1 inline-block">
-              Open source files →
-            </a>
+          {task.required_source_media && task.required_source_media !== "all" && (
+            <span className="text-xs text-[#B8956A] mt-1 inline-block">
+              Source: {task.required_source_media.toUpperCase()}
+            </span>
+          )}
+          {(task.storage_folder_url || task.source_media_location) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(task.storage_folder_url || task.source_media_location, "_blank");
+              }}
+              className="mt-2 text-[#B8956A] border-[#B8956A]/30 hover:bg-[#B8956A]/10"
+            >
+              <FolderOpen className="w-4 h-4 mr-1" /> Open Source Footage
+            </Button>
           )}
         </div>
         <div className="flex flex-col items-end gap-1">

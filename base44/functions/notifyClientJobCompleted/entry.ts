@@ -42,9 +42,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required job data' }, { status: 400 });
     }
 
-    // Update job status (keep status as 'booked' until footage is uploaded)
+    // Update job: Media Partner has completed on-site capture.
+    // Keep status as 'booked' until footage is uploaded (autoCompleteJobsWithFootage
+    // transitions to 'in_progress' when upload is confirmed). Set capture_status
+    // to 'captured' — this is separate from upload and delivery status.
     await base44.asServiceRole.entities.Job.update(jobId, {
       media_partner_status: 'job_completed',
+      capture_status: 'captured',
       completed_at: new Date().toISOString()
     });
 

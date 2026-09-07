@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { ensureEditingTasksForJob } from '../../shared/editingQueueEngine.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
     const existingJobs = await base44.asServiceRole.entities.Job.filter({ booking_id: bookingId });
     
     if (!existingJobs || existingJobs.length === 0) {
-      await base44.asServiceRole.entities.Job.create({
+      const newJob = await base44.asServiceRole.entities.Job.create({
         title: `Photography - ${propertyAddress}`,
         type: 'photo',
         description: `Property: ${propertyAddress}\nPackage: ${booking.package}\nNotes: ${booking.notes || 'N/A'}`,
@@ -60,6 +61,11 @@ Deno.serve(async (req) => {
         pay_rate: contractorPayRate,
         client_price: booking.total_price,
         status: 'open',
+        production_status: 'awaiting_capture',
+        capture_status: 'pending',
+        source_upload_status: 'not_started',
+        delivery_status: 'pending',
+        media_partner_fulfillment_status: 'pending',
         from_booking: true,
         booking_id: bookingId,
         package: booking.package,
@@ -68,6 +74,16 @@ Deno.serve(async (req) => {
         client_email: booking.client_email,
         client_phone: booking.client_phone
       });
+
+      // ── EDITING QUEUE INTEGRATION ──
+      // Create EditingTasks at job creation time (WAITING_FOR_UPLOAD status).
+      // Idempotent: if tasks already exist for this job, returns existing.
+      // Tasks will be released to READY_FOR_EDITING when source media is uploaded.
+      try {
+        await ensureEditingTasksForJob(base44, newJob, 'system');
+      } catch (editErr) {
+        console.error('Editing task creation failed for job', newJob.id, ':', editErr.message);
+      }
     }
 
     await base44.asServiceRole.entities.Booking.update(bookingId, { status: 'approved' });

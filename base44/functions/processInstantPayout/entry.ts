@@ -28,12 +28,23 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Stripe setup incomplete. Finish onboarding to use instant payouts.' }, { status: 400 });
     }
 
-    // Calculate current balance from completed, unpaid jobs this pay period.
+    // Calculate current balance from fulfilled, unpaid jobs this pay period.
+    // Payout eligibility uses media_partner_fulfillment_status (new field) OR
+    // status='completed' (legacy). Merge and deduplicate by job ID.
     const periodStart = getPayPeriodStartUTC();
-    const completedJobs = await base44.asServiceRole.entities.Job.filter({
+    const fulfilledJobs = await base44.asServiceRole.entities.Job.filter({
+      media_partner_fulfillment_status: 'completed',
+      booked_by: email
+    });
+    const legacyCompleted = await base44.asServiceRole.entities.Job.filter({
       status: 'completed',
       booked_by: email
     });
+    const jobMap = new Map();
+    for (const j of fulfilledJobs) jobMap.set(j.id, j);
+    for (const j of legacyCompleted) if (!jobMap.has(j.id)) jobMap.set(j.id, j);
+    const completedJobs = Array.from(jobMap.values());
+
     const eligible = completedJobs.filter(j =>
       j.from_booking === true &&
       j.completed_at &&
@@ -42,7 +53,7 @@ Deno.serve(async (req) => {
       clientPaymentCleared(j)
     );
 
-    // Jobs that are complete but whose client payment hasn't settled yet.
+    // Jobs that are fulfilled but whose client payment hasn't settled yet.
     const pendingJobs = completedJobs.filter(j =>
       j.from_booking === true &&
       j.completed_at &&

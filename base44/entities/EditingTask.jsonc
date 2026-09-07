@@ -13,7 +13,7 @@
     },
     "job_id": {
       "type": "string",
-      "description": "Job (capture job) this editing task belongs to"
+      "description": "Job (capture job) this editing task belongs to. REQUIRED \u2014 every EditingTask must trace to its parent Job."
     },
     "client_name": {
       "type": "string",
@@ -69,6 +69,17 @@
       },
       "description": "Verified editor capabilities required for assignment eligibility"
     },
+    "required_source_media": {
+      "type": "string",
+      "enum": [
+        "photo",
+        "video",
+        "drone",
+        "all"
+      ],
+      "default": "all",
+      "description": "Source media category this task depends on. 'photo' tasks release when photo upload is complete; 'video' tasks release when video upload is complete; 'drone' tasks release when drone upload is complete; 'all' releases when any upload is confirmed."
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -112,14 +123,54 @@
       "type": "string",
       "description": "User ID/email who assigned this task"
     },
+    "storage_provider": {
+      "type": "string",
+      "default": "GOOGLE_DRIVE",
+      "description": "Storage provider for source media. Currently GOOGLE_DRIVE. Abstracted to permit future migration without rebuilding the Editing Queue."
+    },
+    "storage_folder_id": {
+      "type": "string",
+      "description": "Google Drive folder ID for source media (extracted from the Job's google_drive_folder_url). Reuses the EXISTING Drive folder \u2014 no duplicate folders created."
+    },
+    "storage_folder_url": {
+      "type": "string",
+      "description": "Google Drive folder URL for source media. References the existing Job's Drive folder."
+    },
+    "storage_file_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Specific Google Drive file IDs for source media (when individually tracked)."
+    },
     "source_media_location": {
       "type": "string",
-      "description": "Google Drive folder URL or storage path for source media"
+      "description": "Human-readable source media location (legacy compatibility). Mirrors storage_folder_url."
     },
     "source_media_verified_at": {
       "type": "string",
       "format": "date-time",
       "description": "When source media was confirmed complete and task released for editing"
+    },
+    "editing_ready_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the task was released into the Editing Queue (same as source_media_verified_at; explicit field for queue age calculations)."
+    },
+    "upload_status": {
+      "type": "string",
+      "enum": [
+        "waiting",
+        "partial",
+        "complete"
+      ],
+      "default": "waiting",
+      "description": "Source media upload status for this task's required category."
+    },
+    "upload_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the required source media upload was confirmed complete for this task."
     },
     "editing_started_at": {
       "type": "string",
@@ -206,7 +257,12 @@
     },
     "final_media_location": {
       "type": "string",
-      "description": "Storage location of finished/edited media"
+      "description": "Storage location of finished/edited media (FINAL deliverable, distinct from source footage)."
+    },
+    "final_storage_provider": {
+      "type": "string",
+      "default": "GOOGLE_DRIVE",
+      "description": "Storage provider for final deliverable media."
     },
     "delivered_at": {
       "type": "string",

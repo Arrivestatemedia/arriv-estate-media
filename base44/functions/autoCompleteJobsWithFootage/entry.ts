@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { releaseEditingTasksForJob, ensureEditingTasksForJob } from '../../shared/editingQueueEngine.ts';
+import { releaseEditingTasksForJob, ensureEditingTasksForJob, updateJobProductionStatus } from '../../shared/editingQueueEngine.ts';
 
 // Extracts the Google Drive folder ID from a Drive folder URL.
 function extractFolderId(url) {
@@ -60,14 +60,33 @@ Deno.serve(async (req) => {
       }
 
       if (hasFiles) {
+        const now = new Date().toISOString();
+        const folderId = extractFolderId(job.google_drive_folder_url);
+
+        // ── PAYOUT-PRESERVING STATUS TRANSITION ──
+        // Do NOT set status='completed' here. The overall Job.status only reaches
+        // 'completed' when ALL customer fulfillment (including post-production +
+        // delivery) is done. Instead, set media_partner_fulfillment_status=
+        // 'completed' — this is the PAYOUT ELIGIBILITY field. Media Partner
+        // payouts are based on this field, NOT Job.status.
+        //
+        // Set status='in_progress' to indicate post-production is underway.
+        // Set source_upload_status='complete' and capture_fulfillment_completed_at.
         await base44.asServiceRole.entities.Job.update(job.id, {
           footage_uploaded: true,
-          status: 'completed'
+          status: 'in_progress',
+          media_partner_fulfillment_status: 'completed',
+          capture_fulfillment_completed_at: now,
+          source_upload_status: 'complete',
+          source_storage_provider: 'GOOGLE_DRIVE',
+          source_storage_folder_id: folderId,
         });
 
         // ── EDITING QUEUE INTEGRATION ──
         // Source media confirmed → create editing tasks (if not yet created) and
         // release them from WAITING_FOR_UPLOAD → READY_FOR_EDITING.
+        // The release function attaches the existing Google Drive folder references
+        // to each task (no duplicate folders created) and updates job production_status.
         try {
           await ensureEditingTasksForJob(base44, job, 'system');
           await releaseEditingTasksForJob(base44, job.id, job.google_drive_folder_url, 'system');

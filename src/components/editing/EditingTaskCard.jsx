@@ -1,7 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, AlertTriangle, CheckCircle2, Film, MapPin, User } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, Film, MapPin, User, FolderOpen, ArrowUpRight } from "lucide-react";
+
+const SOURCE_MEDIA_LABELS = {
+  photo: "Photo Source",
+  video: "Video Source",
+  drone: "Drone Source",
+  all: "All Source",
+};
 
 const STATUS_LABELS = {
   waiting_for_upload: "Waiting for Upload",
@@ -42,8 +50,19 @@ const PRIORITY_COLORS = {
 };
 
 export default function EditingTaskCard({ task, onClick, editors, onActionComplete }) {
+  const navigate = useNavigate();
   const deadline = task.delivery_deadline ? new Date(task.delivery_deadline) : null;
   const hoursLeft = deadline ? Math.round((deadline.getTime() - Date.now()) / (60 * 60 * 1000)) : null;
+
+  const handleOpenSource = (e) => {
+    e.stopPropagation();
+    if (task.storage_folder_url) window.open(task.storage_folder_url, "_blank");
+  };
+
+  const handleViewJob = (e) => {
+    e.stopPropagation();
+    if (task.job_id) navigate(`/JobDetail?job_id=${task.job_id}`);
+  };
 
   return (
     <Card
@@ -65,6 +84,11 @@ export default function EditingTaskCard({ task, onClick, editors, onActionComple
             <span className="font-medium text-[#1A1A1A] truncate">{task.task_label}</span>
             {task.priority === "rush" && (
               <Badge className="bg-red-500 text-white text-xs">RUSH</Badge>
+            )}
+            {task.required_source_media && task.required_source_media !== "all" && (
+              <Badge variant="outline" className="text-xs text-[#B8956A] border-[#B8956A]/30">
+                {SOURCE_MEDIA_LABELS[task.required_source_media] || task.required_source_media}
+              </Badge>
             )}
           </div>
           <p className="text-sm text-[#1A1A1A]/70 truncate">{task.client_name || "Unknown client"}</p>
@@ -88,6 +112,22 @@ export default function EditingTaskCard({ task, onClick, editors, onActionComple
               <span className="text-xs text-orange-600 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" /> Rev {task.revision_count}
               </span>
+            )}
+            {task.storage_folder_url && (
+              <button
+                onClick={handleOpenSource}
+                className="text-xs text-[#B8956A] hover:underline flex items-center gap-1"
+              >
+                <FolderOpen className="w-3 h-3" /> Source
+              </button>
+            )}
+            {task.job_id && (
+              <button
+                onClick={handleViewJob}
+                className="text-xs text-[#1A1A1A]/50 hover:text-[#B8956A] flex items-center gap-0.5"
+              >
+                Job <ArrowUpRight className="w-3 h-3" />
+              </button>
             )}
           </div>
         </div>

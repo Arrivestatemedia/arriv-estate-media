@@ -6,7 +6,12 @@ import JobCard from "@/components/jobs/JobCard";
 
 export default function CompletedJobsSection({ jobs, user, onEdit, onBook, onUpdateBackup }) {
   const [open, setOpen] = useState(false);
-  const completed = jobs.filter((j) => j.status === "completed" || j.status === "archived");
+  // Show jobs where the media partner has fulfilled their capture+upload
+  // responsibility — either overall completed/archived, OR media_partner_fulfillment_status
+  // is 'completed' (post-production may still be in progress, but the partner's work is done).
+  const completed = jobs.filter(
+    (j) => j.status === "completed" || j.status === "archived" || j.media_partner_fulfillment_status === "completed"
+  );
 
   return (
     <div className="mb-8">

@@ -13,8 +13,18 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'));
     const periodStart = getPayPeriodStartUTC();
 
-    // Pull every completed booking job this pay period that hasn't been paid out yet.
-    const completedJobs = await base44.asServiceRole.entities.Job.filter({ status: 'completed' });
+    // Pull every booking job whose Media Partner fulfillment is complete (new
+    // field) OR whose status is 'completed' (legacy jobs pre-migration). Merge
+    // and deduplicate by job ID. Media Partner payout eligibility is based on
+    // media_partner_fulfillment_status, NOT Job.status — post-production does
+    // NOT delay payouts.
+    const fulfilledJobs = await base44.asServiceRole.entities.Job.filter({ media_partner_fulfillment_status: 'completed' });
+    const legacyCompleted = await base44.asServiceRole.entities.Job.filter({ status: 'completed' });
+    const jobMap = new Map();
+    for (const j of fulfilledJobs) jobMap.set(j.id, j);
+    for (const j of legacyCompleted) if (!jobMap.has(j.id)) jobMap.set(j.id, j);
+    const completedJobs = Array.from(jobMap.values());
+
     const eligible = completedJobs.filter(j =>
       j.from_booking === true &&
       j.booked_by &&
