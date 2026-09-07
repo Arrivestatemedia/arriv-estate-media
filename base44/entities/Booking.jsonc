@@ -76,7 +76,7 @@
     },
     "total_price": {
       "type": "number",
-      "description": "Total calculated price"
+      "description": "Total calculated price (legacy field; for new bookings post-migration, the authoritative price is in the PricingSnapshot)"
     },
     "custom_price_text": {
       "type": "string",
@@ -95,6 +95,51 @@
     "invoice_id": {
       "type": "string",
       "description": "Related invoice ID"
+    },
+    "property_address": {
+      "type": "string",
+      "description": "Original property address as entered"
+    },
+    "normalized_address": {
+      "type": "string",
+      "description": "Normalized/validated property address"
+    },
+    "property_sqft": {
+      "type": "number",
+      "description": "Property square footage used for pricing"
+    },
+    "property_sqft_source": {
+      "type": "string",
+      "description": "Source of sqft data (provider_api, manual_customer, manual_sales, manual_admin, admin_override, none)"
+    },
+    "property_sqft_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether sqft was verified by a property-data provider"
+    },
+    "property_pricing_tier": {
+      "type": "string",
+      "description": "Pricing tier determined from sqft (TIER_1 through TIER_5, CUSTOM)"
+    },
+    "pricing_snapshot_id": {
+      "type": "string",
+      "description": "PricingSnapshot ID with the authoritative pricing calculation for this booking"
+    },
+    "commissionable_service_value": {
+      "type": "integer",
+      "description": "Commissionable service value after Preferred and approved discounts, in CENTS. Referral tender does NOT reduce this."
+    },
+    "preferred_discount": {
+      "type": "integer",
+      "description": "Preferred discount applied, in CENTS"
+    },
+    "approved_discount_amount": {
+      "type": "integer",
+      "description": "Approved true discount amount, in CENTS"
+    },
+    "referral_tender_amount": {
+      "type": "integer",
+      "description": "Referral reward tender applied, in CENTS (does NOT reduce commissionable value)"
     }
   },
   "required": [

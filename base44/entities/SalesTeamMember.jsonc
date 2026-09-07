@@ -288,6 +288,20 @@
     "immutable_shared_id": {
       "type": "string",
       "description": "Immutable cross-app shared identifier for Arriv One sync"
+    },
+    "declared_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Capabilities the Media Partner claims to have (not yet verified). Marketplace eligibility uses verified_capabilities only."
+    },
+    "verified_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Capabilities verified by Arriv (photography, videography, drone, tour_3d, twilight_capture). Used for job board eligibility."
     }
   },
   "required": [

@@ -47,11 +47,11 @@
     },
     "pay_rate": {
       "type": "number",
-      "description": "Pay amount in dollars (contractor payout)"
+      "description": "Pay amount in dollars (contractor payout). For new jobs post-migration, this is the guaranteed provider payout from the compensation engine."
     },
     "client_price": {
       "type": "number",
-      "description": "Original client price (visible to admin)"
+      "description": "Original client price (visible to admin only)"
     },
     "status": {
       "type": "string",
@@ -175,6 +175,21 @@
       "type": "string",
       "format": "date-time",
       "description": "When the client's Stripe payment settles into the platform balance and partner funds become available for payout. null means already cleared or not applicable."
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Verified capabilities required for a Media Partner to accept this job (photography, videography, drone, tour_3d, twilight_capture). Enforced server-side at acceptance."
+    },
+    "pricing_snapshot_id": {
+      "type": "string",
+      "description": "PricingSnapshot ID with the authoritative pricing for this job"
+    },
+    "provider_compensation_snapshot_id": {
+      "type": "string",
+      "description": "ProviderCompensationSnapshot ID with the immutable guaranteed payout"
     }
   },
   "required": [

@@ -87,7 +87,7 @@
       "type": "number",
       "minimum": 0,
       "maximum": 100,
-      "description": "Canonical Arriv One Customer360 engagement score (0-100). Arriv One-authoritative \u2014 Estate Media reads but never writes."
+      "description": "Canonical Arriv One Customer360 engagement score (0-100). Arriv One-authoritative."
     },
     "relationship_age_days": {
       "type": "integer",
@@ -178,7 +178,7 @@
           "description": "Historical selling context from Arriv One AI sales memory"
         }
       },
-      "description": "Canonical AI sales memory from Arriv One Customer360. Arriv One-authoritative \u2014 Estate Media reads but never writes."
+      "description": "Canonical AI sales memory from Arriv One Customer360. Arriv One-authoritative."
     },
     "recommendation_outcomes": {
       "type": "array",
@@ -227,6 +227,29 @@
     "intelligence_version": {
       "type": "integer",
       "description": "Monotonic version for intelligence updates from Arriv One. Arriv One-authoritative."
+    },
+    "new_customer_bonus_eligible": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this customer is eligible for the $40 new-customer MLS sales bonus. True for brand-new customers who haven't consumed the bonus yet."
+    },
+    "new_customer_bonus_consumed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the $40 new-customer MLS bonus has been consumed for this customer/account"
+    },
+    "new_customer_bonus_consumed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the $40 new-customer MLS bonus was consumed"
+    },
+    "new_customer_bonus_order_id": {
+      "type": "string",
+      "description": "Order/Booking ID that consumed the new-customer MLS bonus"
+    },
+    "new_customer_bonus_sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep who earned the $40 new-customer MLS bonus"
     }
   },
   "required": [],
