@@ -25,10 +25,31 @@ export const CERTIFICATION_REQUIREMENTS = {
   module_quiz_min_score: 95,
   critical_questions_required: 100,
   final_exam_min_score: 95,
-  final_exam_total_questions: 40,
+  final_exam_total_questions: 43,
   roleplay_min_score: 95,
   practicum_min_score: 95,
   min_watch_percentage: 95,
+  prospect_prep_exercise_required: true,
+} as const;
+
+export const PROSPECT_PREP_EXERCISE = {
+  title: "Prospect Brief Preparation Exercise",
+  description: "A practical prospect-preparation exercise using the Arriv One Prospect Brief capability configured for Estate Media. The rep must VERIFY research rather than blindly trust AI.",
+  steps: [
+    { step: 1, description: "Find or select an appropriate real prospect (agent, team, brokerage, or builder)." },
+    { step: 2, description: "Create or review the Prospect Brief using the Prospect Brief / Call Prep tool." },
+    { step: 3, description: "Identify a relevant listing from the brief's listing intelligence." },
+    { step: 4, description: "Perform the professional-video check and confirm the status (UNKNOWN is acceptable when evidence is insufficient)." },
+    { step: 5, description: "Complete the 'Why Them' section with specific, evidence-based reasoning." },
+    { step: 6, description: "Identify the likely opportunity (currently sellable services only — NO physical staging)." },
+    { step: 7, description: "Select 3-5 discovery questions from the brief that are most relevant to this prospect." },
+    { step: 8, description: "Prepare a personalized opening using actual research from the brief." },
+    { step: 9, description: "Make or simulate the call according to Estate Media sales training." },
+    { step: 10, description: "Record the outcome in Arriv One CRM (result, notes, next action, due date)." },
+    { step: 11, description: "Schedule or create an appropriate follow-up based on the call outcome." },
+  ],
+  verification_requirement: "The rep must VERIFY the brief's research against at least one independent source before making the call. Blindly trusting AI output without verification is a critical failure.",
+  staging_boundary: "Physical staging is NOT currently sales authorized. Reps may document interest only.",
 } as const;
 
 export const CRITICAL_FAILURES = [
@@ -42,6 +63,8 @@ export const CRITICAL_FAILURES = [
   "serious_unprofessional_conduct",
   "critical_customer_data_crm_violation",
   "fundamental_inability_to_explain_estate_media",
+  "blindly_trusting_ai_without_verification",
+  "selling_unauthorized_staging",
 ] as const;
 
 export const ROLEPLAY_RUBRIC = {

@@ -96,6 +96,9 @@ export const QUIZ_QUESTION_BANK = [
   { question_id: "Q38", question: "Can a sales rep alter a Media Specialist's provider payout or apply an unauthorized discount?", choices: ["Yes, reps can adjust provider payouts to close deals", "Yes, with manager verbal approval", "No — reps cannot alter provider payouts or apply unauthorized discounts. Provider payouts and discounts are separate systems.", "Only on MLS orders"], correct_index: 2, competency: "BOUNDARIES", is_critical: true, explanation: "Sales commission and provider payout are separate systems. Reps cannot alter provider payouts or apply unauthorized discounts." },
   { question_id: "Q39", question: "Where does approved sales compensation flow after Estate Media calculates and attributes it?", choices: ["Directly to the rep's bank account", "To Arriv Payroll, which pays it in the applicable payroll period/payout", "To Stripe, which pays it instantly", "It stays as a credit on the rep's account"], correct_index: 1, competency: "BOUNDARIES", is_critical: true, explanation: "Estate Media calculates → attributes → approves → Arriv Payroll → applicable payroll period/payout. Arriv Payroll does not independently recalculate the commission." },
   { question_id: "Q40", question: "Does a salesperson earn commission on every future order from a customer they originally acquired?", choices: ["Yes, original acquisition means permanent lifetime ownership of all future orders", "No — commission requires eligible collected revenue on orders actually attributable to the salesperson under existing sales attribution rules", "Yes, for the first 5 years", "Only on MLS orders"], correct_index: 1, competency: "BOUNDARIES", is_critical: true, explanation: "Commission requires eligible collected revenue and proper attribution. Original customer acquisition does not create permanent/lifetime sales ownership of every future order." },
+  { question_id: "Q41", question: "After generating a Prospect Brief using the Arriv One research capability, what must the rep do before making the call?", choices: ["Call immediately using the AI-generated opening without checking anything", "VERIFY the brief's research (listing intelligence, professional video status, contact info) against at least one independent source before calling", "Delete the brief and start over from scratch", "Send the brief directly to the prospect"], correct_index: 1, competency: "PROSPECTING", is_critical: true, explanation: "The rep must VERIFY research rather than blindly trust AI. Blindly trusting AI output without verification is a critical failure in the Prospect Prep Exercise." },
+  { question_id: "Q42", question: "If a Prospect Brief identifies a staging-interest signal, what may the rep do?", choices: ["Quote staging pricing and promise a launch date", "Package staging into the current order", "Document the interest only — physical staging is NOT currently sales authorized. A separate Staging Sales Certification will be required", "Promise specific unfinished staging capabilities to close the deal"], correct_index: 2, competency: "BOUNDARIES", is_critical: true, explanation: "Physical staging is NOT currently sales authorized. Reps may document interest but may NOT quote, sell, promise pricing/launch date, package into orders, or promise specific unfinished staging capabilities. A separate Staging Sales Certification is required." },
+  { question_id: "Q43", question: "What is the primary Estate Media prospecting gate checked by the Prospect Brief?", choices: ["Whether the prospect has a large brokerage", "Whether professional video is present on the prospect's listings", "Whether the prospect's listings are expensive", "Whether the prospect uses social media"], correct_index: 1, competency: "PROSPECTING", is_critical: true, explanation: "Professional video presence is the primary Estate Media prospecting gate. If evidence is insufficient, the brief uses UNKNOWN rather than guessing." },
 ];
 
 // ─── Roleplay Scorecard ───────────────────────────────────────────────────
@@ -139,6 +142,8 @@ export const CRITICAL_FAILURES = [
   "serious_unprofessional_conduct",
   "critical_customer_data_crm_violation",
   "fundamental_inability_to_explain_estate_media",
+  "blindly_trusting_ai_without_verification",
+  "selling_unauthorized_staging",
 ];
 
 // ─── Professional Video Status ────────────────────────────────────────────
@@ -217,12 +222,46 @@ export const CERTIFICATION_REQUIREMENTS = {
   module_quiz_min_score: 95,
   critical_questions_required: 100,
   final_exam_min_score: 95,
-  final_exam_total_questions: 40,
-  final_exam_randomized: 32,
+  final_exam_total_questions: 43,
+  final_exam_randomized: 35,
   final_exam_critical: 8,
   roleplay_min_score: 95,
   practicum_min_score: 95,
   min_watch_percentage: 95,
+  prospect_prep_exercise_required: true,
+};
+
+// ─── Prospect Preparation Exercise (Practicum Component) ─────────────────
+// Reps must learn to VERIFY research rather than blindly trust AI.
+export const PROSPECT_PREP_EXERCISE = {
+  title: "Prospect Brief Preparation Exercise",
+  description: "A practical prospect-preparation exercise using the Arriv One Prospect Brief capability configured for Estate Media. The rep must VERIFY research rather than blindly trust AI.",
+  steps: [
+    { step: 1, description: "Find or select an appropriate real prospect (agent, team, brokerage, or builder)." },
+    { step: 2, description: "Create or review the Prospect Brief using the Prospect Brief / Call Prep tool." },
+    { step: 3, description: "Identify a relevant listing from the brief's listing intelligence." },
+    { step: 4, description: "Perform the professional-video check and confirm the status (UNKNOWN is acceptable when evidence is insufficient)." },
+    { step: 5, description: "Complete the 'Why Them' section with specific, evidence-based reasoning." },
+    { step: 6, description: "Identify the likely opportunity (currently sellable services only — NO physical staging)." },
+    { step: 7, description: "Select 3-5 discovery questions from the brief that are most relevant to this prospect." },
+    { step: 8, description: "Prepare a personalized opening using actual research from the brief." },
+    { step: 9, description: "Make or simulate the call according to Estate Media sales training (permission-based opener, specific listing, genuine observation, media opportunity, value, low-pressure question, discovery, next step)." },
+    { step: 10, description: "Record the outcome in Arriv One CRM (result, notes, next action, due date, relevant prospect/listing data)." },
+    { step: 11, description: "Schedule or create an appropriate follow-up based on the call outcome." },
+  ],
+  verification_requirement: "The rep must VERIFY the brief's research (listing intelligence, professional video status, contact info) against at least one independent source before making the call. Blindly trusting AI output without verification is a critical failure.",
+  staging_boundary: "If the brief identifies a staging-interest signal, the rep must acknowledge the boundary: physical staging is NOT currently sales authorized. The rep may document interest but may NOT quote, sell, promise pricing, promise launch date, package staging into an order, or promise specific unfinished staging capabilities. A separate Staging Sales Certification will be required before authorization.",
+  grading: {
+    included_in_practicum: true,
+    points_within_practicum: 15,
+    failure_conditions: [
+      "blindly_trusting_ai_without_verification",
+      "recommending_physical_staging_as_sellable",
+      "fabricating_listing_data_not_in_brief",
+      "skipping_professional_video_check",
+      "using_generic_opening_not_based_on_research",
+    ],
+  },
 };
 
 // ─── Bonus Milestones ──────────────────────────────────────────────────────

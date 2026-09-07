@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2, Globe, History, Home, ExternalLink } from "lucide-react";
+import { MapPin, Phone, PhoneOff, Mail, Loader2, RefreshCw, Navigation, ChevronDown, ChevronUp, Building2, Tag, Sparkles, SlidersHorizontal, X, UserCheck, Users, UserPlus, Share2, Globe, History, Home, ExternalLink, FileText } from "lucide-react";
 import InAppBrowser from "@/components/sales/InAppBrowser";
 import RealtorListingsPage from "@/components/sales/RealtorListingsPage";
+import ProspectBriefPanel from "@/components/sales/ProspectBriefPanel";
 
 const CALL_STATES = { IDLE: "idle", CONNECTING: "connecting", RINGING: "ringing", IN_CALL: "in_call", ENDED: "ended" };
 
@@ -27,6 +28,7 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
   const [claimingId, setClaimingId] = useState(null);
   const [claimError, setClaimError] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  const [briefProspect, setBriefProspect] = useState(null);
 
   // In-app navigation history: one stack so Back/Forward move between the
   // listings view and any opened listing/website pages, exactly like a browser.
@@ -621,6 +623,15 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
                       <Button size="sm" onClick={() => startCall(r)} disabled={callState !== CALL_STATES.IDLE && callState !== CALL_STATES.ENDED} className="gap-2" style={{ backgroundColor: '#16a34a', color: 'white' }}>
                         <Phone className="w-4 h-4" /> Call
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setBriefProspect(r)}
+                        className="gap-1.5 h-8 text-xs"
+                        style={{ borderColor: '#B8956A', color: '#B8956A' }}
+                      >
+                        <FileText className="w-3.5 h-3.5" /> Prospect Brief
+                      </Button>
                       {r.email && !r.email.toLowerCase().includes('not found') && (
                         <button
                           onClick={() => window.dispatchEvent(new CustomEvent('openEmailComposer', { detail: { email: r.email } }))}
@@ -736,6 +747,15 @@ export default function ProspectingTab({ salesMemberId, active = true }) {
       )}
 
       {/* browser renders inline within the results grid (or standalone above when opened from saved sites) */}
+
+      {/* Prospect Brief / Call Prep modal */}
+      {briefProspect && (
+        <ProspectBriefPanel
+          prospect={briefProspect}
+          salesMemberId={salesMemberId}
+          onClose={() => setBriefProspect(null)}
+        />
+      )}
 
     </div>
   );

@@ -1,0 +1,151 @@
+{
+  "name": "ProspectBrief",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep who owns this prospect brief"
+    },
+    "contact_id": {
+      "type": "string",
+      "description": "Contact ID this prospect brief is associated with (if claimed in CRM)"
+    },
+    "prospect_name": {
+      "type": "string",
+      "description": "Prospect name (agent, team lead, broker, etc.)"
+    },
+    "prospect_role": {
+      "type": "string",
+      "description": "Prospect role (e.g. Real Estate Agent, Broker, Builder)"
+    },
+    "prospect_brokerage": {
+      "type": "string",
+      "description": "Brokerage / company / team name"
+    },
+    "prospect_market": {
+      "type": "string",
+      "description": "Market area / location"
+    },
+    "prospect_phone": {
+      "type": "string",
+      "description": "Contact phone where legitimately available"
+    },
+    "prospect_email": {
+      "type": "string",
+      "description": "Contact email where legitimately available"
+    },
+    "prospect_website": {
+      "type": "string",
+      "description": "Prospect website URL"
+    },
+    "listing_address": {
+      "type": "string",
+      "description": "Specific listing address that triggered this prospect research"
+    },
+    "why_them": {
+      "type": "string",
+      "description": "Why THIS particular prospect is worth contacting"
+    },
+    "why_this_business": {
+      "type": "string",
+      "description": "Why the brokerage/team/builder may represent an Estate Media opportunity"
+    },
+    "listing_intelligence": {
+      "type": "string",
+      "description": "Active/recent listings, property/location context, approximate listing activity/volume, price range, relevant listing characteristics. UNKNOWN where evidence is insufficient."
+    },
+    "listing_price_range": {
+      "type": "string",
+      "description": "Approximate listing price range where supported (UNKNOWN if unavailable)"
+    },
+    "listing_activity_volume": {
+      "type": "string",
+      "description": "Approximate listing activity/volume where supported (UNKNOWN if unavailable)"
+    },
+    "media_audit": {
+      "type": "string",
+      "description": "Evaluation of available listing/media evidence: professional photography, professional video, virtual tour/video presence, relevant visible media opportunities"
+    },
+    "professional_video_status": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "NO_PROFESSIONAL_VIDEO",
+        "PROFESSIONAL_VIDEO_PRESENT",
+        "COMING_SOON_NO_MEDIA",
+        "MEDIA_NOT_YET_VERIFIABLE"
+      ],
+      "description": "Professional video check result \u2014 primary Estate Media prospecting gate"
+    },
+    "professional_video_notes": {
+      "type": "string",
+      "description": "Evidence supporting the professional video status conclusion"
+    },
+    "potential_opportunity": {
+      "type": "string",
+      "description": "Currently sellable Estate Media opportunities based on evidence (photography, videography, combined, etc.). Does NOT include physical staging."
+    },
+    "suggested_opening": {
+      "type": "string",
+      "description": "Prospect-specific opening using actual research (e.g. lead with video capability if professional video appears absent)"
+    },
+    "questions_to_ask": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Prospect-specific discovery questions (listing volume, current media provider, photography, video, turnaround, consistency, scheduling, pain points, upcoming listings, workflow, what they value)"
+    },
+    "likely_objections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Likely objections based on Estate Media training truth (existing photographer, photographer does video, no video need, phone quality, price, loyalty, availability, discount)"
+    },
+    "rep_notes": {
+      "type": "string",
+      "description": "Rep's own observations (added after generation)"
+    },
+    "staging_interest_signal": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a future staging-interest signal was detected. Physical staging is NOT currently sales authorized."
+    },
+    "staging_boundary_note": {
+      "type": "string",
+      "description": "Boundary note: physical staging is NOT currently sellable. Separate Staging Sales Certification required."
+    },
+    "research_confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MODERATE",
+        "LOW",
+        "UNKNOWN"
+      ],
+      "description": "Overall confidence in the research findings"
+    },
+    "research_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Sources consulted during research (for rep verification)"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "sales_member_id",
+    "prospect_name"
+  ],
+  "rls": {}
+}
