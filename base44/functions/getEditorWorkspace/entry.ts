@@ -11,6 +11,10 @@ import { calculateSlaStatus } from '../../shared/packageEditingConfig.ts';
  */
 Deno.serve(async (req) => {
   try {
+    // Read body FIRST — createClientFromRequest/auth.me() may consume the stream
+    const body = await req.clone().json().catch(() => ({}));
+    const salesEmail = body.email || null;
+
     const base44 = createClientFromRequest(req);
 
     // Resolve current user — supports both platform auth and SalesLogin custom auth
@@ -24,9 +28,6 @@ Deno.serve(async (req) => {
       }
     } catch (e) { /* not logged in via platform auth */ }
 
-    // Fallback: SalesLogin custom auth (email in request body)
-    const body = await req.json().catch(() => ({}));
-    const salesEmail = body.email || null;
     if (!userId && body.employee_id) userId = body.employee_id;
 
     // Try all available emails (platform email may differ from sales email used to create the profile)

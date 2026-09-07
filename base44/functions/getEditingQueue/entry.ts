@@ -8,8 +8,10 @@ import { calculateSlaStatus } from '../../shared/packageEditingConfig.ts';
  */
 Deno.serve(async (req) => {
   try {
+    // Read body FIRST — createClientFromRequest may consume the stream
+    const body = await req.clone().json().catch(() => ({}));
+
     const base44 = createClientFromRequest(req);
-    const body = await req.json().catch(() => ({}));
 
     // Check platform auth role first
     let platformEmail = null;
