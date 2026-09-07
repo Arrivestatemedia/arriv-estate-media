@@ -5,8 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Gift, Plus, X, DollarSign, Users } from "lucide-react";
+import { Gift, Plus, X, DollarSign, Users, Wallet } from "lucide-react";
 import { REFERRAL_CREDIT_AMOUNT } from "@/lib/salesTrainingData";
+
+const CASH_OUT_MINIMUM = 260;
 
 const getMember = () => ({
   id: localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id'),
@@ -41,6 +43,7 @@ export default function ReferralProgramPage() {
         if (!balMap[entry.customer_id]) balMap[entry.customer_id] = { customer_id: entry.customer_id, customer_name: entry.customer_name, balance: 0, credits_earned: 0 };
         balMap[entry.customer_id].balance += entry.amount;
         if (entry.transaction_type === "EARN") balMap[entry.customer_id].credits_earned += 1;
+        if (entry.cash_eligible) balMap[entry.customer_id].cash_eligible += entry.amount;
       });
       setBalances(Object.values(balMap));
     } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -64,36 +67,44 @@ export default function ReferralProgramPage() {
 
   const handleQualify = async (ref) => {
     try {
-      const now = new Date().toISOString();
-      await base44.entities.Referral.update(ref.id, {
-        qualification_status: "QUALIFIED",
-        qualifying_event: "Manually qualified",
-        qualifying_event_date: now,
-        credit_earned: true,
-      });
-      // Create ledger entry
-      const currentBalance = balances.find(b => b.customer_id === ref.referrer_customer_id)?.balance || 0;
-      await base44.entities.ReferralCreditLedger.create({
-        customer_id: ref.referrer_customer_id,
-        customer_name: ref.referrer_customer_name,
+      const result = await base44.functions.invoke('qualifyReferral', {
         referral_id: ref.id,
-        transaction_type: "EARN",
-        amount: REFERRAL_CREDIT_AMOUNT,
-        balance_after: currentBalance + REFERRAL_CREDIT_AMOUNT,
-        reason: `Qualifying referral: ${ref.referred_party_name}`,
-        actor: member.name,
-        timestamp: now,
+        qualifying_event: 'Manually qualified',
+        actor_id: member.id,
+        actor_name: member.name,
       });
-      await base44.entities.AuditEvent.create({
-        event_type: "REFERRAL_CREDIT_EARNED",
-        sales_member_id: member.id, sales_member_name: member.name,
-        actor_id: member.id, actor_name: member.name, actor_role: "REP",
-        entity_type: "Referral", entity_id: ref.id,
-        details: { amount: REFERRAL_CREDIT_AMOUNT, customer: ref.referrer_customer_name },
-        timestamp: now,
+      if (result?.data?.success) {
+        await load();
+      } else {
+        alert(result?.data?.error || 'Failed to qualify referral');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err?.data?.error || 'Failed to qualify referral');
+    }
+  };
+
+  const handleCashOut = async (balance) => {
+    if (!balance?.customer_id) return;
+    const confirmed = confirm(`Request cash-out of $${balance.cash_eligible.toFixed(2)} for ${balance.customer_name || 'this customer'}? This will submit a request for admin review.`);
+    if (!confirmed) return;
+    try {
+      const result = await base44.functions.invoke('requestReferralCashOut', {
+        customer_id: balance.customer_id,
+        customer_name: balance.customer_name,
+        customer_email: '',
+        requested_amount: balance.cash_eligible,
+        payout_method: 'stripe_transfer',
       });
-      await load();
-    } catch (err) { console.error(err); }
+      if (result?.data?.success) {
+        alert('Cash-out request submitted for admin review.');
+      } else {
+        alert(result?.data?.error || 'Cash-out request failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err?.data?.error || 'Cash-out request failed');
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#B8956A]/30 border-t-[#B8956A] rounded-full animate-spin" /></div>;
@@ -107,7 +118,7 @@ export default function ReferralProgramPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-[#1A1A1A] mb-1">Referral Program</h1>
-            <p className="text-slate-600">Log referrals and track customer credit balances (${REFERRAL_CREDIT_AMOUNT} per qualifying referral)</p>
+            <p className="text-slate-600">$20 per qualifying referral · $40 for Preferred members · Cash-out at ${CASH_OUT_MINIMUM}+</p>
           </div>
           <Button className="bg-[#B8956A] hover:bg-[#A68559] text-[#1A1A1A]" onClick={() => setShowForm(true)}><Plus className="w-4 h-4 mr-2" /> Log Referral</Button>
         </div>
@@ -139,8 +150,24 @@ export default function ReferralProgramPage() {
               <div>
                 <p className="font-medium text-[#1A1A1A]">{b.customer_name || "Unknown Customer"}</p>
                 <p className="text-xs text-slate-400">{b.credits_earned} qualifying referral{b.credits_earned !== 1 ? "s" : ""}</p>
+                {b.cash_eligible > 0 && (
+                  <p className="text-xs text-[#B8956A]">Cash-eligible: ${b.cash_eligible.toFixed(2)}</p>
+                )}
               </div>
-              <Badge className="bg-[#B8956A] text-[#1A1A1A] text-sm">${b.balance}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-[#B8956A] text-[#1A1A1A] text-sm">${b.balance}</Badge>
+                {b.cash_eligible >= CASH_OUT_MINIMUM && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-[#B8956A] text-[#B8956A] hover:bg-[#B8956A]/10"
+                    onClick={() => handleCashOut(b)}
+                  >
+                    <Wallet className="w-3 h-3 mr-1" />
+                    Cash Out
+                  </Button>
+                )}
+              </div>
             </Card>
           ))}
         </div>

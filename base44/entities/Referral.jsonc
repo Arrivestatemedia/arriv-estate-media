@@ -55,7 +55,23 @@
     "credit_amount": {
       "type": "number",
       "default": 20,
-      "description": "Referral credit amount ($20 per qualifying referral)"
+      "description": "Referral credit amount ($20 standard, $40 Preferred)"
+    },
+    "is_preferred_referrer": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the referrer was an active Preferred member at time of qualification. Determines $40 vs $20 reward."
+    },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "STANDARD_REFERRAL_REWARD",
+        "PREFERRED_REFERRAL_REWARD",
+        "PROMOTIONAL_CREDIT",
+        "SERVICE_RECOVERY_CREDIT",
+        "ADMIN_CREDIT"
+      ],
+      "description": "Type of referral reward. Only STANDARD_REFERRAL_REWARD and PREFERRED_REFERRAL_REWARD are cash-eligible."
     },
     "notes": {
       "type": "string"
@@ -72,5 +88,6 @@
   "required": [
     "referrer_customer_id",
     "referred_party_name"
-  ]
+  ],
+  "rls": {}
 }

@@ -732,9 +732,12 @@ Deno.serve(async (req) => {
     } else if (!isPastShoot) {
       // Pay-at-closing: send simple confirmation via Gmail (skip for past shoots)
       try {
+        const exactPrice = commissionableServiceValueCents > 0
+          ? `$${(commissionableServiceValueCents / 100).toFixed(2)}`
+          : `$${booking.total_price}`;
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
         const emailSubject = 'Your Booking Request Confirmation';
-        const emailBody = `Thank you for your booking request!\n\nWe've received your request for:\n\nPackage: ${booking.package}\nProperty: ${propertyAddress}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\n\nWe'll be in contact to discuss your Pay-at-closing details.\n\nThank you!`;
+        const emailBody = `Thank you for your booking request!\n\nWe've received your request for:\n\nPackage: ${booking.package}\nProperty: ${propertyAddress}\nPreferred Date: ${booking.preferred_date}\nPreferred Time: ${booking.preferred_time}\nService Total: ${exactPrice}\n\nYour payment will be collected at closing. We'll be in touch to confirm the details.\n\nThank you!`;
 
         const messageLines = [
           `To: ${booking.client_email}`, `From: ${adminEmail}`, `Subject: ${emailSubject}`,
@@ -768,7 +771,10 @@ Deno.serve(async (req) => {
         const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
         const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
         const adminPhone = Deno.env.get('ADMIN_PHONE');
-        const smsMessage = `PAY-AT-CLOSING REQUESTED\n\nClient: ${booking.client_name}\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nPackage: ${booking.package}\nTotal: $${booking.total_price}`;
+        const exactPrice = commissionableServiceValueCents > 0
+          ? `$${(commissionableServiceValueCents / 100).toFixed(2)}`
+          : `$${booking.total_price}`;
+        const smsMessage = `PAY-AT-CLOSING REQUESTED\n\nClient: ${booking.client_name}\nProperty: ${propertyAddress}\nDate: ${booking.preferred_date}\nPackage: ${booking.package}\nTotal: ${exactPrice}`;
 
         const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
           method: 'POST',

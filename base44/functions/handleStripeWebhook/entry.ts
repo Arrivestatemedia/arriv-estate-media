@@ -211,6 +211,127 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Preferred membership: handle subscription lifecycle + $10 monthly residual
+    if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
+      const sub = event.data.object;
+      const clientId = sub.metadata?.client_id;
+      const clientEmail = sub.metadata?.client_email;
+      const clientName = sub.metadata?.client_name || '';
+      const salesOriginatorId = sub.metadata?.sales_originator_id || '';
+      const salesOriginatorName = sub.metadata?.sales_originator_name || '';
+
+      if (clientId || clientEmail) {
+        try {
+          const existing = await base44.asServiceRole.entities.PreferredMembership.filter({
+            stripe_subscription_id: sub.id,
+          });
+          const statusMap: Record<string, string> = {
+            active: 'active', past_due: 'past_due', canceled: 'canceled',
+            incomplete: 'incomplete', trialing: 'trialing', paused: 'paused',
+          };
+          const membershipData = {
+            client_id: clientId || '',
+            client_email: clientEmail || '',
+            client_name: clientName,
+            plan: 'preferred_monthly',
+            status: statusMap[sub.status] || sub.status,
+            monthly_price: 29.99,
+            sales_originator_id: salesOriginatorId,
+            sales_originator_name: salesOriginatorName,
+            stripe_customer_id: sub.customer,
+            stripe_subscription_id: sub.id,
+            current_period_start: sub.current_period_start
+              ? new Date(sub.current_period_start * 1000).toISOString() : null,
+            current_period_end: sub.current_period_end
+              ? new Date(sub.current_period_end * 1000).toISOString() : null,
+            cancel_at_period_end: sub.cancel_at_period_end || false,
+            started_at: sub.start_date ? new Date(sub.start_date * 1000).toISOString() : null,
+          };
+
+          if (existing && existing[0]) {
+            await base44.asServiceRole.entities.PreferredMembership.update(existing[0].id, membershipData);
+          } else {
+            await base44.asServiceRole.entities.PreferredMembership.create(membershipData);
+          }
+        } catch (e) {
+          console.warn('subscription event: could not sync PreferredMembership:', e.message);
+        }
+      }
+    }
+
+    if (event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object;
+      try {
+        const existing = await base44.asServiceRole.entities.PreferredMembership.filter({
+          stripe_subscription_id: sub.id,
+        });
+        if (existing && existing[0]) {
+          await base44.asServiceRole.entities.PreferredMembership.update(existing[0].id, {
+            status: 'canceled',
+            cancelled_at: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.warn('subscription.deleted: could not update PreferredMembership:', e.message);
+      }
+    }
+
+    // Preferred membership: $10 monthly residual commission on invoice.paid
+    if (event.type === 'invoice.paid') {
+      const invoice = event.data.object;
+      const subscriptionId = invoice.subscription;
+      if (subscriptionId) {
+        try {
+          const memberships = await base44.asServiceRole.entities.PreferredMembership.filter({
+            stripe_subscription_id: subscriptionId,
+          });
+          const membership = memberships?.[0];
+          if (membership && membership.sales_originator_id && membership.status === 'active') {
+            const periodEnd = invoice.period_end
+              ? new Date(invoice.period_end * 1000).toISOString() : null;
+
+            // Idempotency: skip if residual already paid for this period
+            if (periodEnd && membership.last_residual_period_end === periodEnd) {
+              console.log('Residual already paid for period:', periodEnd);
+            } else {
+              // Look up the sales rep for the commission
+              const reps = await base44.asServiceRole.entities.SalesTeamMember.filter({
+                id: membership.sales_originator_id,
+              });
+              const rep = reps?.[0];
+
+              const commission = await base44.asServiceRole.entities.Commission.create({
+                employee_id: membership.sales_originator_id,
+                employee_email: rep?.email || '',
+                employee_name: rep?.full_name || membership.sales_originator_name || '',
+                payroll_employee_id: rep?.payroll_employee_id || '',
+                compensation_type: 'commission',
+                commission_plan_id: 'preferred_residual',
+                deal_id: membership.id,
+                customer_name: membership.client_name || membership.client_email,
+                description: `$10 monthly Preferred residual — ${membership.client_email}`,
+                gross_amount: 10.00,
+                earned_date: new Date().toISOString().slice(0, 10),
+                intended_pay_period: new Date().toISOString().slice(0, 7),
+                approval_status: 'approved',
+                payroll_status: 'not_sent',
+                compensation_version: 1,
+              });
+
+              await base44.asServiceRole.entities.PreferredMembership.update(membership.id, {
+                last_residual_commission_id: commission.id,
+                last_residual_period_end: periodEnd,
+                last_successful_payment_at: new Date().toISOString(),
+              });
+              console.log('Created $10 residual commission for rep:', membership.sales_originator_id);
+            }
+          }
+        } catch (e) {
+          console.warn('invoice.paid: could not process Preferred residual:', e.message);
+        }
+      }
+    }
+
     return Response.json({ received: true });
 
   } catch (error) {
