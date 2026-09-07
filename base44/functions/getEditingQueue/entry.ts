@@ -9,9 +9,35 @@ import { calculateSlaStatus } from '../../shared/packageEditingConfig.ts';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (user?.role !== 'admin') {
-      return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+    const body = await req.json().catch(() => ({}));
+
+    // Check platform auth role first
+    let platformEmail = null;
+    let isPlatformAdmin = false;
+    try {
+      const user = await base44.auth.me();
+      if (user) {
+        platformEmail = user.email;
+        isPlatformAdmin = user.role === 'admin';
+      }
+    } catch (e) { /* not logged in via platform auth */ }
+
+    // If not platform admin, check SalesTeamMember role
+    if (!isPlatformAdmin) {
+      const salesEmail = body.email || platformEmail;
+      if (salesEmail) {
+        const members = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date', 500);
+        const member = members.find((m) =>
+          m.email && m.email.toLowerCase() === salesEmail.toLowerCase()
+        );
+        if (member && member.role === 'admin') {
+          // authorized via SalesTeamMember admin role
+        } else {
+          return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+        }
+      } else {
+        return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+      }
     }
 
     const url = new URL(req.url);

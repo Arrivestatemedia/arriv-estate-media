@@ -45,7 +45,9 @@ export default function EditingQueuePage() {
   const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("getEditingQueue");
+      const salesEmail =
+        localStorage.getItem("sales_member_email") || sessionStorage.getItem("sales_member_email");
+      const res = await base44.functions.invoke("getEditingQueue", { email: salesEmail });
       setQueueData(res);
     } catch (err) {
       console.error("Failed to load editing queue:", err);
