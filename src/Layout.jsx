@@ -24,6 +24,9 @@ function LayoutContent({ children, currentPageName }) {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [adminMode, setAdminMode] = useState(
+    localStorage.getItem('admin_mode') || null
+  );
 
   // Force password change gate for newly-onboarded sales reps
   useEffect(() => {
@@ -105,8 +108,10 @@ function LayoutContent({ children, currentPageName }) {
   const hasSalesSession = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
   const isSalesTeam = hasSalesSession && salesMemberRole !== 'admin' && !isAdmin;
   const isSalesAdmin = hasSalesSession && salesMemberRole === 'admin';
+  const isDualAdmin = hasSalesSession && (isAdmin || isSalesAdmin);
 
-  const navItems = isSalesTeam
+  const effectiveIsSalesTeam = isSalesTeam || (isDualAdmin && adminMode === 'editing');
+  const navItems = effectiveIsSalesTeam
       ? [
           { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
           { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
@@ -156,12 +161,12 @@ function LayoutContent({ children, currentPageName }) {
       ]
     : [];
 
-  const dashboardPage = isAdmin ? "AdminHub" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
+  const dashboardPage = (isDualAdmin && adminMode === 'editing') ? "EditorWorkspace" : isAdmin ? "AdminHub" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
   // Determine if current page is a primary route (shows bottom tabs)
   const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess", "PayoutRecords"];
   const isPrimaryRoute = primaryRoutes.includes(currentPageName);
-  const showBackButton = user && !isPrimaryRoute && !isSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
+  const showBackButton = user && !isPrimaryRoute && !effectiveIsSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]" style={{ paddingBottom: user && isPrimaryRoute ? '4rem' : '0' }}>
@@ -308,6 +313,19 @@ function LayoutContent({ children, currentPageName }) {
             <div className="flex items-center gap-3">
               {user && (
                 <div className="hidden md:flex items-center gap-3">
+                  {isDualAdmin && adminMode && (
+                    <button
+                      onClick={() => {
+                        const newMode = adminMode === 'sales' ? 'editing' : 'sales';
+                        localStorage.setItem('admin_mode', newMode);
+                        setAdminMode(newMode);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#B8956A]/15 text-[#B8956A] hover:bg-[#B8956A]/25 transition-colors"
+                    >
+                      {adminMode === 'sales' ? <Briefcase className="w-3.5 h-3.5" /> : <Scissors className="w-3.5 h-3.5" />}
+                      {adminMode === 'sales' ? 'Sales' : 'Editing'} Mode
+                    </button>
+                  )}
                   <div className="text-right">
                     <p className="text-sm font-medium text-[#FFFBF5]">{user.full_name}</p>
                     <p className="text-xs text-[#B8956A]">
@@ -341,6 +359,19 @@ function LayoutContent({ children, currentPageName }) {
 
         {mobileOpen && (
           <div className="md:hidden border-t border-[#B8956A]/20 bg-[#1A1A1A] px-4 py-3 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
+            {isDualAdmin && adminMode && (
+              <button
+                onClick={() => {
+                  const newMode = adminMode === 'sales' ? 'editing' : 'sales';
+                  localStorage.setItem('admin_mode', newMode);
+                  setAdminMode(newMode);
+                }}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium bg-[#B8956A]/15 text-[#B8956A] w-full mb-1"
+              >
+                {adminMode === 'sales' ? <Scissors className="w-4 h-4" /> : <Briefcase className="w-4 h-4" />}
+                Switch to {adminMode === 'sales' ? 'Editing' : 'Sales'}
+              </button>
+            )}
             {navItems.length > 0 && navItems.map((item) => {
                 const Icon = item.icon;
                 const active = currentPageName === item.page;
@@ -404,7 +435,42 @@ function LayoutContent({ children, currentPageName }) {
           isAdmin={false}
           queueUrl={createPageUrl('HubSpotActivityLog') + '?tab=queue'}
         />}
-        {currentPageName === "TrackLink" ? (
+        {isDualAdmin && !adminMode ? (
+          <div className="min-h-[70vh] flex items-center justify-center px-4">
+            <div className="max-w-lg w-full">
+              <h1 className="text-4xl font-serif text-[#1A1A1A] text-center mb-3">
+                Hi {user?.full_name?.split(' ')[0] || 'there'},
+              </h1>
+              <p className="text-lg text-[#1A1A1A]/60 text-center mb-10">
+                How're you? What are you looking to do today?
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    localStorage.setItem('admin_mode', 'sales');
+                    setAdminMode('sales');
+                  }}
+                  className="group p-6 rounded-2xl border border-[#B8956A]/30 bg-white hover:border-[#B8956A] hover:bg-[#B8956A]/5 transition-all text-left"
+                >
+                  <Briefcase className="w-8 h-8 text-[#B8956A] mb-3" />
+                  <h3 className="text-xl font-medium text-[#1A1A1A] mb-1">Sales</h3>
+                  <p className="text-sm text-[#1A1A1A]/50">Manage your sales team, commissions, payroll, and operations.</p>
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('admin_mode', 'editing');
+                    setAdminMode('editing');
+                  }}
+                  className="group p-6 rounded-2xl border border-[#B8956A]/30 bg-white hover:border-[#B8956A] hover:bg-[#B8956A]/5 transition-all text-left"
+                >
+                  <Scissors className="w-8 h-8 text-[#B8956A] mb-3" />
+                  <h3 className="text-xl font-medium text-[#1A1A1A] mb-1">Editing</h3>
+                  <p className="text-sm text-[#1A1A1A]/50">Work on editing tasks assigned to you in the post-production queue.</p>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : currentPageName === "TrackLink" ? (
           <TrackLink />
         ) : (
           <MediaPartnerGate>
