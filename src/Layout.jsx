@@ -450,6 +450,7 @@ function LayoutContent({ children, currentPageName }) {
                   onClick={() => {
                     localStorage.setItem('admin_mode', 'sales');
                     setAdminMode('sales');
+                    navigate(createPageUrl('AdminHub'));
                   }}
                   className="group p-6 rounded-2xl border border-[#B8956A]/30 bg-white hover:border-[#B8956A] hover:bg-[#B8956A]/5 transition-all text-left"
                 >
@@ -461,6 +462,7 @@ function LayoutContent({ children, currentPageName }) {
                   onClick={() => {
                     localStorage.setItem('admin_mode', 'editing');
                     setAdminMode('editing');
+                    navigate(createPageUrl('EditorWorkspace'));
                   }}
                   className="group p-6 rounded-2xl border border-[#B8956A]/30 bg-white hover:border-[#B8956A] hover:bg-[#B8956A]/5 transition-all text-left"
                 >
