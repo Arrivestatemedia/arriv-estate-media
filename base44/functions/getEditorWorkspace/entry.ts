@@ -35,14 +35,21 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unable to resolve editor identity' }, { status: 401 });
     }
 
-    let profile = null;
-    for (const email of emailsToTry) {
-      const profiles = await base44.asServiceRole.entities.EditorProfile.filter({
-        employee_email: email,
-      });
-      if (profiles && profiles.length > 0) {
-        profile = profiles[0];
-        break;
+    // Case-insensitive email matching: list all profiles and match by lowercased email
+    const allProfiles = await base44.asServiceRole.entities.EditorProfile.list('-created_date', 500);
+    const lowerEmails = emailsToTry.map((e) => e.toLowerCase());
+    let profile = allProfiles.find((p) =>
+      p.employee_email && lowerEmails.includes(p.employee_email.toLowerCase())
+    );
+
+    // Fallback: look up SalesTeamMember by email (case-insensitive), then find EditorProfile by employee_id
+    if (!profile) {
+      const allMembers = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date', 500);
+      const matchedMember = allMembers.find((m) =>
+        m.email && lowerEmails.includes(m.email.toLowerCase())
+      );
+      if (matchedMember) {
+        profile = allProfiles.find((p) => p.employee_id === matchedMember.id);
       }
     }
 

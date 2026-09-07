@@ -26,7 +26,14 @@ export default function EditorWorkspace() {
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("getEditorWorkspace", { email: salesEmail });
+      let email = salesEmail;
+      if (!email) {
+        try {
+          const user = await base44.auth.me();
+          if (user) email = user.email;
+        } catch (e) { /* not logged in via platform auth */ }
+      }
+      const res = await base44.functions.invoke("getEditorWorkspace", { email });
       setData(res);
     } catch (err) {
       console.error("Failed to load editor workspace:", err);
