@@ -14,31 +14,39 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     // Resolve current user — supports both platform auth and SalesLogin custom auth
-    let userEmail = null;
+    let platformEmail = null;
     let userId = null;
     try {
       const user = await base44.auth.me();
       if (user) {
-        userEmail = user.email;
+        platformEmail = user.email;
         userId = user.id;
       }
     } catch (e) { /* not logged in via platform auth */ }
 
     // Fallback: SalesLogin custom auth (email in request body)
     const body = await req.json().catch(() => ({}));
-    if (!userEmail && body.email) userEmail = body.email;
+    const salesEmail = body.email || null;
     if (!userId && body.employee_id) userId = body.employee_id;
 
-    if (!userEmail) {
+    // Try all available emails (platform email may differ from sales email used to create the profile)
+    const emailsToTry = [platformEmail, salesEmail].filter(Boolean);
+    if (emailsToTry.length === 0) {
       return Response.json({ error: 'Unable to resolve editor identity' }, { status: 401 });
     }
 
-    // Find editor profile by email
-    const profiles = await base44.asServiceRole.entities.EditorProfile.filter({
-      employee_email: userEmail,
-    });
+    let profile = null;
+    for (const email of emailsToTry) {
+      const profiles = await base44.asServiceRole.entities.EditorProfile.filter({
+        employee_email: email,
+      });
+      if (profiles && profiles.length > 0) {
+        profile = profiles[0];
+        break;
+      }
+    }
 
-    if (!profiles || profiles.length === 0) {
+    if (!profile) {
       return Response.json({
         success: true,
         editor_profile: null,
@@ -49,8 +57,6 @@ Deno.serve(async (req) => {
         active_session: null,
       });
     }
-
-    const profile = profiles[0];
 
     // Fetch all tasks
     const allTasks = await base44.asServiceRole.entities.EditingTask.list('-created_date', 5000);
