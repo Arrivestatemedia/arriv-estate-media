@@ -8,12 +8,17 @@ import { calculateSlaStatus } from '../../shared/packageEditingConfig.ts';
  */
 Deno.serve(async (req) => {
   try {
-    // Read body FIRST as text (clone can fail in some runtimes)
+    // Read body FIRST — use clone to avoid stream consumption issues
     let body = {};
     try {
-      const bodyText = await req.text();
+      const bodyText = await req.clone().text();
       if (bodyText) body = JSON.parse(bodyText);
     } catch (e) { /* empty body */ }
+
+    // Also check query params (fallback if body is consumed by platform middleware)
+    const url = new URL(req.url);
+    const queryEmail = url.searchParams.get('email');
+    const querySalesMemberId = url.searchParams.get('sales_member_id');
 
     const base44 = createClientFromRequest(req);
 
@@ -30,8 +35,8 @@ Deno.serve(async (req) => {
 
     // If not platform admin, check SalesTeamMember role (by email or ID)
     if (!isPlatformAdmin) {
-      const salesEmail = body.email || platformEmail;
-      const salesMemberId = body.sales_member_id;
+      const salesEmail = body.email || queryEmail || platformEmail;
+      const salesMemberId = body.sales_member_id || querySalesMemberId;
       let member = null;
       if (salesEmail || salesMemberId) {
         const members = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date', 500);
@@ -51,7 +56,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const url = new URL(req.url);
     const statusFilter = url.searchParams.get('status');
     const editorFilter = url.searchParams.get('editor_id');
     const taskTypeFilter = url.searchParams.get('task_type');

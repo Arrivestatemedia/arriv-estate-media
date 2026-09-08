@@ -35,7 +35,13 @@ export default function EditorWorkspace() {
       }
       const salesMemberId =
         localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
-      const res = await base44.functions.invoke("getEditorWorkspace", { email, sales_member_id: salesMemberId });
+      // Pass identity as query params too — platform middleware can consume the JSON body
+      const params = new URLSearchParams();
+      if (email) params.set("email", email);
+      if (salesMemberId) params.set("sales_member_id", salesMemberId);
+      const qs = params.toString();
+      const fnName = qs ? `getEditorWorkspace?${qs}` : "getEditorWorkspace";
+      const res = await base44.functions.invoke(fnName, { email, sales_member_id: salesMemberId });
       setData(res);
     } catch (err) {
       console.error("Failed to load editor workspace:", err);

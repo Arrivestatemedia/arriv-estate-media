@@ -11,13 +11,22 @@ import { calculateSlaStatus } from '../../shared/packageEditingConfig.ts';
  */
 Deno.serve(async (req) => {
   try {
-    // Read body FIRST as text (clone can fail in some runtimes)
+    // Read body FIRST — use clone to avoid stream consumption issues with platform middleware
     let body = {};
     try {
-      const bodyText = await req.text();
+      const bodyText = await req.clone().text();
       if (bodyText) body = JSON.parse(bodyText);
     } catch (e) { /* empty body */ }
-    const salesEmail = body.email || null;
+
+    // Also check query params (fallback if body is consumed by middleware)
+    const url = new URL(req.url);
+    const queryEmail = url.searchParams.get('email');
+    const querySalesMemberId = url.searchParams.get('sales_member_id');
+
+    const salesEmail = body.email || queryEmail || null;
+    const salesMemberIdFromBody = body.sales_member_id || querySalesMemberId || null;
+
+    console.error('getEditorWorkspace body:', JSON.stringify(body), 'query:', { queryEmail, querySalesMemberId });
 
     const base44 = createClientFromRequest(req);
 
@@ -29,11 +38,14 @@ Deno.serve(async (req) => {
       if (user) {
         platformEmail = user.email;
         userId = user.id;
+        console.error('getEditorWorkspace auth.me success:', platformEmail);
       }
-    } catch (e) { /* not logged in via platform auth */ }
+    } catch (e) { console.error('getEditorWorkspace auth.me failed:', e.message); }
 
     if (!userId && body.employee_id) userId = body.employee_id;
-    const salesMemberId = body.sales_member_id || null;
+    const salesMemberId = salesMemberIdFromBody;
+
+    console.error('getEditorWorkspace resolving:', { salesMemberId, salesEmail, platformEmail });
 
     // Try all available emails (platform email may differ from sales email used to create the profile)
     const emailsToTry = [platformEmail, salesEmail].filter(Boolean);
@@ -46,6 +58,7 @@ Deno.serve(async (req) => {
     // 1) Direct match by sales_member_id → employee_id
     if (salesMemberId) {
       profile = allProfiles.find((p) => p.employee_id === salesMemberId);
+      console.error('getEditorWorkspace match by salesMemberId:', salesMemberId, '→', profile ? profile.id : 'NOT FOUND');
     }
 
     // 2) Match by email (case-insensitive)
@@ -54,6 +67,7 @@ Deno.serve(async (req) => {
       profile = allProfiles.find((p) =>
         p.employee_email && lowerEmails.includes(p.employee_email.toLowerCase())
       );
+      console.error('getEditorWorkspace match by email:', emailsToTry, '→', profile ? profile.id : 'NOT FOUND');
     }
 
     // 3) Fallback: look up SalesTeamMember by email, then find EditorProfile by employee_id
@@ -65,6 +79,28 @@ Deno.serve(async (req) => {
       );
       if (matchedMember) {
         profile = allProfiles.find((p) => p.employee_id === matchedMember.id);
+        console.error('getEditorWorkspace match via SalesTeamMember:', matchedMember.email, '→', profile ? profile.id : 'NOT FOUND');
+      }
+    }
+
+    // 4) NUCLEAR FALLBACK: if no profile found and this is an admin, find the admin's EditorProfile
+    if (!profile) {
+      console.error('getEditorWorkspace NO PROFILE FOUND. Trying admin fallback...');
+      const allMembers = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date', 500);
+      // Try to find any SalesTeamMember with role 'admin' that has an EditorProfile
+      for (const m of allMembers) {
+        if (m.role === 'admin') {
+          const adminProfile = allProfiles.find((p) => p.employee_id === m.id);
+          if (adminProfile) {
+            // Only use this if the email matches one of our emailsToTry
+            const adminEmail = m.email || adminProfile.employee_email;
+            if (emailsToTry.some(e => e.toLowerCase() === adminEmail.toLowerCase())) {
+              profile = adminProfile;
+              console.error('getEditorWorkspace admin fallback match:', adminEmail, '→', profile.id);
+              break;
+            }
+          }
+        }
       }
     }
 

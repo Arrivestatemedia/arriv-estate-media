@@ -49,7 +49,13 @@ export default function EditingQueuePage() {
         localStorage.getItem("sales_member_email") || sessionStorage.getItem("sales_member_email");
       const salesMemberId =
         localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
-      const res = await base44.functions.invoke("getEditingQueue", { email: salesEmail, sales_member_id: salesMemberId });
+      // Pass identity as query params too — platform middleware can consume the JSON body
+      const params = new URLSearchParams();
+      if (salesEmail) params.set("email", salesEmail);
+      if (salesMemberId) params.set("sales_member_id", salesMemberId);
+      const qs = params.toString();
+      const fnName = qs ? `getEditingQueue?${qs}` : "getEditingQueue";
+      const res = await base44.functions.invoke(fnName, { email: salesEmail, sales_member_id: salesMemberId });
       setQueueData(res);
     } catch (err) {
       console.error("Failed to load editing queue:", err);
