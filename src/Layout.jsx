@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -27,6 +27,7 @@ function LayoutContent({ children, currentPageName }) {
   const [adminMode, setAdminMode] = useState(
     localStorage.getItem('admin_mode') || null
   );
+  const [hasEditorProfile, setHasEditorProfile] = useState(null);
 
   // Force password change gate for newly-onboarded sales reps
   useEffect(() => {
@@ -111,6 +112,30 @@ function LayoutContent({ children, currentPageName }) {
   const isDualAdmin = hasSalesSession && (isAdmin || isSalesAdmin);
 
   const effectiveIsSalesTeam = isSalesTeam || (isDualAdmin && adminMode === 'editing');
+
+  // Check if this dual admin has an EditorProfile — only show the mode
+  // selection prompt if they do. If not, auto-default to Sales mode.
+  useEffect(() => {
+    if (!isDualAdmin) return;
+    const checkEditorProfile = async () => {
+      try {
+        const email = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || user?.email;
+        const res = await base44.functions.invoke('getEditorWorkspace', { email });
+        setHasEditorProfile(!!res?.editor_profile);
+        if (!res?.editor_profile && !localStorage.getItem('admin_mode')) {
+          localStorage.setItem('admin_mode', 'sales');
+          setAdminMode('sales');
+        }
+      } catch (e) {
+        setHasEditorProfile(false);
+        if (!localStorage.getItem('admin_mode')) {
+          localStorage.setItem('admin_mode', 'sales');
+          setAdminMode('sales');
+        }
+      }
+    };
+    checkEditorProfile();
+  }, [isDualAdmin, user?.email]);
   const navItems = effectiveIsSalesTeam
       ? [
           { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
@@ -314,7 +339,7 @@ function LayoutContent({ children, currentPageName }) {
             <div className="flex items-center gap-3">
               {user && (
                 <div className="hidden md:flex items-center gap-3">
-                  {isDualAdmin && adminMode && (
+                  {isDualAdmin && adminMode && hasEditorProfile && (
                     <button
                       onClick={() => {
                         const newMode = adminMode === 'sales' ? 'editing' : 'sales';
@@ -360,10 +385,10 @@ function LayoutContent({ children, currentPageName }) {
 
         {mobileOpen && (
           <div className="md:hidden border-t border-[#B8956A]/20 bg-[#1A1A1A] px-4 py-3 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
-            {isDualAdmin && adminMode && (
-              <button
-                onClick={() => {
-                  const newMode = adminMode === 'sales' ? 'editing' : 'sales';
+            {isDualAdmin && adminMode && hasEditorProfile && (
+                            <button
+                              onClick={() => {
+                                const newMode = adminMode === 'sales' ? 'editing' : 'sales';
                   localStorage.setItem('admin_mode', newMode);
                   setAdminMode(newMode);
                 }}
@@ -437,6 +462,7 @@ function LayoutContent({ children, currentPageName }) {
           queueUrl={createPageUrl('HubSpotActivityLog') + '?tab=queue'}
         />}
         {isDualAdmin && !adminMode ? (
+          hasEditorProfile ? (
           <div className="min-h-[70vh] flex items-center justify-center px-4">
             <div className="max-w-lg w-full">
               <h1 className="text-4xl font-serif text-[#1A1A1A] text-center mb-3">
@@ -473,6 +499,11 @@ function LayoutContent({ children, currentPageName }) {
               </div>
             </div>
           </div>
+          ) : (
+            <div className="min-h-[70vh] flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-[#B8956A]" />
+            </div>
+          )
         ) : currentPageName === "TrackLink" ? (
           <TrackLink />
         ) : (
