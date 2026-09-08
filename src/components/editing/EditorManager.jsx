@@ -19,7 +19,8 @@ export default function EditorManager({ editors, onRefresh }) {
   const loadUnassigned = async () => {
     try {
       const res = await base44.functions.invoke("manageEditorProfile", { action: "list_employees" });
-      setUnassigned(res.unassigned_employees || []);
+      const resData = res?.data || res;
+      setUnassigned(resData?.unassigned_employees || []);
     } catch (err) {
       console.error(err);
     }

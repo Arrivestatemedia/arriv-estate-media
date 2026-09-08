@@ -42,7 +42,7 @@ export default function EditorWorkspace() {
       const qs = params.toString();
       const fnName = qs ? `getEditorWorkspace?${qs}` : "getEditorWorkspace";
       const res = await base44.functions.invoke(fnName, { email, sales_member_id: salesMemberId });
-      setData(res);
+      setData(res?.data || res);
     } catch (err) {
       console.error("Failed to load editor workspace:", err);
     } finally {

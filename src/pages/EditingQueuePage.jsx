@@ -56,7 +56,7 @@ export default function EditingQueuePage() {
       const qs = params.toString();
       const fnName = qs ? `getEditingQueue?${qs}` : "getEditingQueue";
       const res = await base44.functions.invoke(fnName, { email: salesEmail, sales_member_id: salesMemberId });
-      setQueueData(res);
+      setQueueData(res?.data || res);
     } catch (err) {
       console.error("Failed to load editing queue:", err);
     } finally {

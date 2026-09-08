@@ -127,8 +127,9 @@ function LayoutContent({ children, currentPageName }) {
         const qs = params.toString();
         const fnName = qs ? `getEditorWorkspace?${qs}` : 'getEditorWorkspace';
         const res = await base44.functions.invoke(fnName, { email, sales_member_id: salesMemberId });
-        setHasEditorProfile(!!res?.editor_profile);
-        if (!res?.editor_profile && !localStorage.getItem('admin_mode')) {
+        const resData = res?.data || res;
+        setHasEditorProfile(!!resData?.editor_profile);
+        if (!resData?.editor_profile && !localStorage.getItem('admin_mode')) {
           localStorage.setItem('admin_mode', 'sales');
           setAdminMode('sales');
         }

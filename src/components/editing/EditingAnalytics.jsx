@@ -14,7 +14,8 @@ export default function EditingAnalytics({ refreshKey }) {
       setLoading(true);
       try {
         const res = await base44.functions.invoke("getEditingAnalytics");
-        setAnalytics(res.analytics);
+        const resData = res?.data || res;
+        setAnalytics(resData?.analytics);
       } catch (err) {
         console.error(err);
       } finally {
