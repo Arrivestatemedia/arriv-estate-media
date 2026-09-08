@@ -11,8 +11,12 @@ import { calculateSlaStatus } from '../../shared/packageEditingConfig.ts';
  */
 Deno.serve(async (req) => {
   try {
-    // Read body FIRST — createClientFromRequest/auth.me() may consume the stream
-    const body = await req.clone().json().catch(() => ({}));
+    // Read body FIRST as text (clone can fail in some runtimes)
+    let body = {};
+    try {
+      const bodyText = await req.text();
+      if (bodyText) body = JSON.parse(bodyText);
+    } catch (e) { /* empty body */ }
     const salesEmail = body.email || null;
 
     const base44 = createClientFromRequest(req);
@@ -29,23 +33,33 @@ Deno.serve(async (req) => {
     } catch (e) { /* not logged in via platform auth */ }
 
     if (!userId && body.employee_id) userId = body.employee_id;
+    const salesMemberId = body.sales_member_id || null;
 
     // Try all available emails (platform email may differ from sales email used to create the profile)
     const emailsToTry = [platformEmail, salesEmail].filter(Boolean);
-    if (emailsToTry.length === 0) {
-      return Response.json({ error: 'Unable to resolve editor identity' }, { status: 401 });
-    }
 
     // Case-insensitive email matching: list all profiles and match by lowercased email
     const allProfiles = await base44.asServiceRole.entities.EditorProfile.list('-created_date', 500);
-    const lowerEmails = emailsToTry.map((e) => e.toLowerCase());
-    let profile = allProfiles.find((p) =>
-      p.employee_email && lowerEmails.includes(p.employee_email.toLowerCase())
-    );
 
-    // Fallback: look up SalesTeamMember by email (case-insensitive), then find EditorProfile by employee_id
-    if (!profile) {
+    let profile = null;
+
+    // 1) Direct match by sales_member_id → employee_id
+    if (salesMemberId) {
+      profile = allProfiles.find((p) => p.employee_id === salesMemberId);
+    }
+
+    // 2) Match by email (case-insensitive)
+    if (!profile && emailsToTry.length > 0) {
+      const lowerEmails = emailsToTry.map((e) => e.toLowerCase());
+      profile = allProfiles.find((p) =>
+        p.employee_email && lowerEmails.includes(p.employee_email.toLowerCase())
+      );
+    }
+
+    // 3) Fallback: look up SalesTeamMember by email, then find EditorProfile by employee_id
+    if (!profile && emailsToTry.length > 0) {
       const allMembers = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date', 500);
+      const lowerEmails = emailsToTry.map((e) => e.toLowerCase());
       const matchedMember = allMembers.find((m) =>
         m.email && lowerEmails.includes(m.email.toLowerCase())
       );

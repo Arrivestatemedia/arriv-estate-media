@@ -8,8 +8,12 @@ import { calculateSlaStatus } from '../../shared/packageEditingConfig.ts';
  */
 Deno.serve(async (req) => {
   try {
-    // Read body FIRST — createClientFromRequest may consume the stream
-    const body = await req.clone().json().catch(() => ({}));
+    // Read body FIRST as text (clone can fail in some runtimes)
+    let body = {};
+    try {
+      const bodyText = await req.text();
+      if (bodyText) body = JSON.parse(bodyText);
+    } catch (e) { /* empty body */ }
 
     const base44 = createClientFromRequest(req);
 
@@ -24,19 +28,24 @@ Deno.serve(async (req) => {
       }
     } catch (e) { /* not logged in via platform auth */ }
 
-    // If not platform admin, check SalesTeamMember role
+    // If not platform admin, check SalesTeamMember role (by email or ID)
     if (!isPlatformAdmin) {
       const salesEmail = body.email || platformEmail;
-      if (salesEmail) {
+      const salesMemberId = body.sales_member_id;
+      let member = null;
+      if (salesEmail || salesMemberId) {
         const members = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date', 500);
-        const member = members.find((m) =>
-          m.email && m.email.toLowerCase() === salesEmail.toLowerCase()
-        );
-        if (member && member.role === 'admin') {
-          // authorized via SalesTeamMember admin role
-        } else {
-          return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+        if (salesMemberId) {
+          member = members.find((m) => m.id === salesMemberId);
         }
+        if (!member && salesEmail) {
+          member = members.find((m) =>
+            m.email && m.email.toLowerCase() === salesEmail.toLowerCase()
+          );
+        }
+      }
+      if (member && member.role === 'admin') {
+        // authorized via SalesTeamMember admin role
       } else {
         return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
       }

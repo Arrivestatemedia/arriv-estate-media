@@ -47,7 +47,9 @@ export default function EditingQueuePage() {
     try {
       const salesEmail =
         localStorage.getItem("sales_member_email") || sessionStorage.getItem("sales_member_email");
-      const res = await base44.functions.invoke("getEditingQueue", { email: salesEmail });
+      const salesMemberId =
+        localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
+      const res = await base44.functions.invoke("getEditingQueue", { email: salesEmail, sales_member_id: salesMemberId });
       setQueueData(res);
     } catch (err) {
       console.error("Failed to load editing queue:", err);

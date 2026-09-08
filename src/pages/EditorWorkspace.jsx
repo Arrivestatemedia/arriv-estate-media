@@ -33,7 +33,9 @@ export default function EditorWorkspace() {
           if (user) email = user.email;
         } catch (e) { /* not logged in via platform auth */ }
       }
-      const res = await base44.functions.invoke("getEditorWorkspace", { email });
+      const salesMemberId =
+        localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
+      const res = await base44.functions.invoke("getEditorWorkspace", { email, sales_member_id: salesMemberId });
       setData(res);
     } catch (err) {
       console.error("Failed to load editor workspace:", err);
