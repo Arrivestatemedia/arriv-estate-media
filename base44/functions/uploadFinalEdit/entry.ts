@@ -128,18 +128,18 @@ Deno.serve(async (req) => {
     }
 
     const uploadData = await uploadRes.json();
-    const driveFileUrl = uploadData.webViewLink || `https://drive.google.com/file/d/${uploadData.id}/view`;
 
-    // 7. Update the editing task with the final media location
+    // 7. Update the editing task with the Final Edits FOLDER URL (not the individual file)
+    //    The deliverable link points to the folder containing all final edits.
     await base44.asServiceRole.entities.EditingTask.update(task_id, {
-      final_media_location: driveFileUrl,
+      final_media_location: finalEditsFolderUrl,
       final_storage_provider: 'GOOGLE_DRIVE',
     });
 
     return Response.json({
       success: true,
       file_id: uploadData.id,
-      file_url: driveFileUrl,
+      file_url: finalEditsFolderUrl,
       file_name: uploadData.name,
       final_edits_folder_url: finalEditsFolderUrl,
     });
