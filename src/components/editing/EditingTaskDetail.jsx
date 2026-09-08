@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Clock, Play, Pause, CheckCircle2, Send, AlertTriangle, X, FileText, FolderOpen, ArrowUpRight, Cloud } from "lucide-react";
+import { Loader2, Clock, Play, Pause, CheckCircle2, Send, AlertTriangle, X, FileText, FolderOpen, ArrowUpRight, Cloud, Upload, ExternalLink } from "lucide-react";
 
 const STATUS_LABELS = {
   waiting_for_upload: "Waiting for Upload",
@@ -25,6 +25,9 @@ export default function EditingTaskDetail({ task, editors, onClose, onActionComp
   const [loading, setLoading] = useState(false);
   const [selectedEditor, setSelectedEditor] = useState(task.editor_id || "");
   const [finalMediaLocation, setFinalMediaLocation] = useState(task.final_media_location || "");
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
   const [qcNotes, setQcNotes] = useState("");
   const [revisionReason, setRevisionReason] = useState("");
   const [cancelReason, setCancelReason] = useState("");
@@ -35,12 +38,57 @@ export default function EditingTaskDetail({ task, editors, onClose, onActionComp
   const callAction = async (action, extra = {}) => {
     setLoading(true);
     try {
-      await base44.functions.invoke("manageEditingTask", { action, task_id: task.id, ...extra });
+      const salesEmail = localStorage.getItem("sales_member_email") || sessionStorage.getItem("sales_member_email");
+      const salesMemberId = localStorage.getItem("sales_member_id") || sessionStorage.getItem("sales_member_id");
+      await base44.functions.invoke("manageEditingTask", {
+        action,
+        task_id: task.id,
+        email: salesEmail,
+        sales_member_id: salesMemberId,
+        ...extra,
+      });
       onActionComplete();
     } catch (err) {
       alert(`Action failed: ${err.message || err.error || "Unknown error"}`);
       setLoading(false);
     }
+  };
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const file_url = uploadRes?.file_url || uploadRes?.data?.file_url;
+      if (!file_url) throw new Error("Failed to get file URL from upload");
+
+      const res = await base44.functions.invoke("uploadFinalEdit", {
+        task_id: task.id,
+        file_url,
+        file_name: file.name,
+        content_type: file.type || "application/octet-stream",
+      });
+      const resData = res?.data || res;
+      if (!resData?.file_url) throw new Error("Google Drive upload failed");
+      setFinalMediaLocation(resData.file_url);
+    } catch (err) {
+      alert(err.message || err.error || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
   };
 
   const handleAssign = () => {
@@ -208,17 +256,63 @@ export default function EditingTaskDetail({ task, editors, onClose, onActionComp
             {/* SUBMIT FOR QC */}
             {(task.status === "editing" || task.status === "revision_required") && (
               <div className="space-y-2">
-                <Label>Final Media Location (URL)</Label>
+                <Label>Final Deliverable Upload</Label>
                 <input
-                  type="text"
-                  value={finalMediaLocation}
-                  onChange={(e) => setFinalMediaLocation(e.target.value)}
-                  placeholder="Google Drive link to finished media..."
-                  className="w-full px-3 py-2 rounded-lg border border-[#B8956A]/20 text-sm"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  accept="image/*,video/*,.zip,.mp4,.mov,.jpg,.jpeg,.png"
                 />
+                <div
+                  onClick={() => !uploading && fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  className={`rounded-lg border-2 border-dashed p-4 text-center cursor-pointer transition-all ${
+                    dragOver
+                      ? "border-[#B8956A] bg-[#B8956A]/10"
+                      : "border-[#B8956A]/30 bg-[#B8956A]/5 hover:border-[#B8956A]/50 hover:bg-[#B8956A]/10"
+                  } ${uploading ? "opacity-60 pointer-events-none" : ""}`}
+                >
+                  {uploading ? (
+                    <div className="flex items-center justify-center gap-2 text-sm text-[#B8956A]">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Uploading to Google Drive...
+                    </div>
+                  ) : finalMediaLocation ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center gap-2 text-sm text-[#B8956A]">
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span className="font-medium">Final edit uploaded to Drive</span>
+                      </div>
+                      <a
+                        href={finalMediaLocation}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-xs text-[#B8956A] hover:underline"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Open in Google Drive
+                      </a>
+                      <p className="text-xs text-[#1A1A1A]/40">Click or drop to replace</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Upload className="w-6 h-6 text-[#B8956A]/50 mx-auto" />
+                      <p className="text-sm font-medium text-[#1A1A1A]/70">
+                        Drop final edit here or click to upload
+                      </p>
+                      <p className="text-xs text-[#1A1A1A]/40">
+                        Uploads directly to Google Drive "Final Edits" folder
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <Button
                   onClick={() => callAction("submit_for_qc", { editor_profile_id: task.editor_id, final_media_location: finalMediaLocation })}
-                  disabled={loading}
+                  disabled={loading || uploading || !finalMediaLocation}
                   className="w-full"
                 >
                   <Send className="w-4 h-4 mr-2" /> Submit for QC

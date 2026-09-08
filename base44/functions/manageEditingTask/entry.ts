@@ -14,17 +14,62 @@ import {
 
 Deno.serve(async (req) => {
   try {
+    // Read body FIRST — use clone to avoid stream consumption issues with platform middleware
+    let body = {};
+    try {
+      const bodyText = await req.clone().text();
+      if (bodyText) body = JSON.parse(bodyText);
+    } catch (e) { /* empty body */ }
+
+    // Also check query params (fallback if body is consumed by middleware)
+    const url = new URL(req.url);
+    const queryEmail = url.searchParams.get('email');
+    const querySalesMemberId = url.searchParams.get('sales_member_id');
+
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (user?.role !== 'admin') {
-      return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+
+    // Check platform auth role first
+    let platformEmail = null;
+    let platformUserId = null;
+    let isPlatformAdmin = false;
+    try {
+      const user = await base44.auth.me();
+      if (user) {
+        platformEmail = user.email;
+        platformUserId = user.id;
+        isPlatformAdmin = user.role === 'admin';
+      }
+    } catch (e) { /* not logged in via platform auth */ }
+
+    // If not platform admin, check SalesTeamMember role (by email or ID)
+    let actor = platformUserId;
+    let actorEmail = platformEmail;
+
+    if (!isPlatformAdmin) {
+      const salesEmail = body.email || queryEmail || platformEmail;
+      const salesMemberId = body.sales_member_id || querySalesMemberId;
+      let member = null;
+      if (salesEmail || salesMemberId) {
+        const members = await base44.asServiceRole.entities.SalesTeamMember.list('-created_date', 500);
+        if (salesMemberId) {
+          member = members.find((m) => m.id === salesMemberId);
+        }
+        if (!member && salesEmail) {
+          member = members.find((m) =>
+            m.email && m.email.toLowerCase() === salesEmail.toLowerCase()
+          );
+        }
+      }
+      if (member && member.role === 'admin') {
+        // authorized via SalesTeamMember admin role
+        if (!actor) actor = member.id;
+        if (!actorEmail) actorEmail = member.email;
+      } else {
+        return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+      }
     }
 
-    const body = await req.json();
     const { action, task_id, editor_profile_id, final_media_location, qc_notes, revision_reason, new_active_minutes, reason } = body;
-
-    const actor = user.id;
-    const actorEmail = user.email;
 
     let result;
 
