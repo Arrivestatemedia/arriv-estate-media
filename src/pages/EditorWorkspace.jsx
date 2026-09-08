@@ -227,19 +227,17 @@ function EditorTaskRow({ task, actionLoading, onAction }) {
   const hoursLeft = deadline ? Math.round((deadline.getTime() - Date.now()) / (60 * 60 * 1000)) : null;
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState(task.final_media_location || "");
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
+  const handleFile = async (file) => {
     if (!file) return;
     setUploading(true);
     try {
-      // Step 1: Upload to Base44 temporary storage
       const uploadRes = await base44.integrations.Core.UploadFile({ file });
       const file_url = uploadRes?.file_url || uploadRes?.data?.file_url;
       if (!file_url) throw new Error("Failed to get file URL from upload");
 
-      // Step 2: Push to Google Drive "Final Edits" folder + update task
       const res = await base44.functions.invoke("uploadFinalEdit", {
         task_id: task.id,
         file_url,
@@ -255,6 +253,18 @@ function EditorTaskRow({ task, actionLoading, onAction }) {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
   };
 
   return (
@@ -335,36 +345,61 @@ function EditorTaskRow({ task, actionLoading, onAction }) {
           </Button>
         )}
         {(task.status === "editing" || task.status === "revision_required") && (
-            <div className="flex flex-wrap gap-2 w-full items-center">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                accept="image/*,video/*,.zip,.mp4,.mov,.jpg,.jpeg,.png"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={actionLoading || uploading}
-                className="text-[#B8956A] border-[#B8956A]/30 hover:bg-[#B8956A]/10"
-              >
-                {uploading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-                {uploading ? "Uploading to Drive..." : "Upload Final Edit"}
-              </Button>
-              {uploadedUrl && (
-                <a
-                  href={uploadedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-[#B8956A] hover:underline"
-                >
-                  <CheckCircle2 className="w-3 h-3" />
-                  Final edit uploaded
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+          <div className="w-full mt-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+              accept="image/*,video/*,.zip,.mp4,.mov,.jpg,.jpeg,.png"
+            />
+            <div
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              className={`rounded-lg border-2 border-dashed p-4 text-center cursor-pointer transition-all ${
+                dragOver
+                  ? "border-[#B8956A] bg-[#B8956A]/10"
+                  : "border-[#B8956A]/30 bg-[#B8956A]/5 hover:border-[#B8956A]/50 hover:bg-[#B8956A]/10"
+              } ${uploading ? "opacity-60 pointer-events-none" : ""}`}
+            >
+              {uploading ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-[#B8956A]">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Uploading to Google Drive...
+                </div>
+              ) : uploadedUrl ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-sm text-[#B8956A]">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span className="font-medium">Final edit uploaded to Drive</span>
+                  </div>
+                  <a
+                    href={uploadedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-xs text-[#B8956A] hover:underline"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Open in Google Drive
+                  </a>
+                  <p className="text-xs text-[#1A1A1A]/40">Click or drop to replace</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Upload className="w-6 h-6 text-[#B8956A]/50 mx-auto" />
+                  <p className="text-sm font-medium text-[#1A1A1A]/70">
+                    Drop final edit here or click to upload
+                  </p>
+                  <p className="text-xs text-[#1A1A1A]/40">
+                    Uploads directly to Google Drive "Final Edits" folder
+                  </p>
+                </div>
               )}
+            </div>
+            <div className="flex justify-end mt-2">
               <Button
                 size="sm"
                 onClick={() => onAction("submit_for_qc", task.id, { editor_profile_id: task.editor_id, final_media_location: uploadedUrl })}
@@ -373,7 +408,8 @@ function EditorTaskRow({ task, actionLoading, onAction }) {
                 <Send className="w-4 h-4 mr-1" /> Submit QC
               </Button>
             </div>
-          )}
+          </div>
+        )}
         {task.active_editing_minutes > 0 && (
           <span className="text-xs text-[#1A1A1A]/60 flex items-center gap-1 ml-auto">
             <Clock className="w-3 h-3" /> {task.active_editing_minutes} min
