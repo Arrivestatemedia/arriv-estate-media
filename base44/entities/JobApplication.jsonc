@@ -2,6 +2,11 @@
   "name": "JobApplication",
   "type": "object",
   "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Multi-tenant isolation key",
+      "default": "tnt_estate_media"
+    },
     "full_name": {
       "type": "string",
       "description": "Applicant's full name"
@@ -51,7 +56,7 @@
         "two_or_more",
         "prefer_not_to_answer"
       ],
-      "description": "Applicant's race/ethnicity (EEOC)"
+      "description": "Applicant's race/ethnicity (EEOC) \u2014 NEVER sync to external systems"
     },
     "eeoc_agreed": {
       "type": "boolean",
@@ -60,34 +65,35 @@
     },
     "signature": {
       "type": "string",
-      "description": "Applicant's electronic signature (typed full name)"
+      "description": "Applicant's electronic signature (typed full name) \u2014 NEVER sync to external systems"
     },
     "video_samples": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Google Drive URLs of video samples"
+      "description": "Google Drive URLs of video samples \u2014 NEVER sync to external systems"
     },
     "picture_samples": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Google Drive URLs of picture samples"
+      "description": "Google Drive URLs of picture samples \u2014 NEVER sync to external systems"
     },
     "documents": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Additional document links the applicant uploaded"
+      "description": "Additional document links the applicant uploaded (resume URL stored here)"
     },
     "position": {
       "type": "string",
       "enum": [
         "media_specialist",
-        "sales_growth_advisor"
+        "sales_growth_advisor",
+        "general"
       ],
       "default": "media_specialist",
       "description": "Which role the applicant applied for"
@@ -96,6 +102,10 @@
       "type": "string",
       "description": "HireJob ID this application is for (if created from a Khetha IQ job posting)"
     },
+    "job_opening_id": {
+      "type": "string",
+      "description": "JobOpening.job_id this application was submitted for (public careers flow)"
+    },
     "hire_candidate_id": {
       "type": "string",
       "description": "KhethaIQ HireCandidate ID this application was synced to"
@@ -103,6 +113,89 @@
     "shared_person_id": {
       "type": "string",
       "description": "Cross-system person identifier linking this application to KhethaIQ and Estate Media records"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "standalone",
+        "arriv_one",
+        "arriv_estate_media"
+      ],
+      "default": "arriv_estate_media",
+      "description": "Which application originated this record"
+    },
+    "application_source": {
+      "type": "string",
+      "enum": [
+        "direct",
+        "indeed",
+        "linkedin",
+        "handshake",
+        "facebook",
+        "x",
+        "email",
+        "qr_code",
+        "company_website",
+        "employee_referral",
+        "other",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Server-authoritative source attribution (normalized server-side, never trust raw client input)"
+    },
+    "application_source_detail": {
+      "type": "string",
+      "description": "Additional detail about the application source"
+    },
+    "utm_source": {
+      "type": "string"
+    },
+    "utm_medium": {
+      "type": "string"
+    },
+    "utm_campaign": {
+      "type": "string"
+    },
+    "utm_content": {
+      "type": "string"
+    },
+    "referrer_url": {
+      "type": "string",
+      "description": "Referrer URL (max 500 chars)"
+    },
+    "landing_page_url": {
+      "type": "string",
+      "description": "Landing page URL (max 500 chars)"
+    },
+    "first_touch_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the applicant first touched the landing page"
+    },
+    "application_started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the applicant started the application form"
+    },
+    "application_submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the application was submitted"
+    },
+    "origin_application": {
+      "type": "string",
+      "enum": [
+        "khethaiq",
+        "arriv_one",
+        "arriv_estate_media",
+        "system"
+      ],
+      "default": "arriv_estate_media",
+      "description": "Provenance for loop suppression"
+    },
+    "origin_event_id": {
+      "type": "string",
+      "description": "Idempotency event ID from the webhook"
     },
     "status": {
       "type": "string",
@@ -121,7 +214,7 @@
         "offer_not_extended"
       ],
       "default": "received",
-      "description": "Application status (media specialist uses received/reviewing/accepted_pending/accepted/accepted_waitlist/denied; sales growth advisor uses received/under_review/interview_invitation/final_review/offer_extended/hired/offer_not_extended)"
+      "description": "Application status"
     },
     "updates": {
       "type": "array",
@@ -184,14 +277,6 @@
   "required": [
     "full_name",
     "email",
-    "phone",
-    "address",
-    "dob",
-    "linkedin",
-    "portfolio_link",
-    "last_related_job",
-    "why_good_fit",
-    "eeoc_agreed",
-    "signature"
+    "phone"
   ]
 }

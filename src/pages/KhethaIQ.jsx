@@ -29,6 +29,8 @@ import { CandidatesView, InterviewsView, OffersView } from "@/components/khethai
 import ReminderQueueView from "@/components/khethaiq/ReminderQueueView";
 import AsyncInterviewManagerContent from "@/components/interviews/AsyncInterviewManagerContent";
 import PerformanceDataView from "@/components/hireiq/PerformanceDataView";
+import JobPageBuilder from "@/components/khethaiq/JobPageBuilder";
+import CareersHubSettings from "@/components/khethaiq/CareersHubSettings";
 
 // Map manifest icon names to lucide-react components.
 // Matches the central KhethaIQ app's ICON_MAP.
@@ -81,6 +83,9 @@ export default function KhethaIQ() {
   const [initialTab, setInitialTab] = useState(null);
   const [preselectedCandidateId, setPreselectedCandidateId] = useState(null);
   const [pendingAppAction, setPendingAppAction] = useState(null);
+  const [showJobPageBuilder, setShowJobPageBuilder] = useState(false);
+  const [showCareersHubSettings, setShowCareersHubSettings] = useState(false);
+  const [jobOpenings, setJobOpenings] = useState([]);
 
   // Navigation history stack — each entry is a snapshot of the view state.
   // Push the current state before navigating to a new one so the back button
@@ -144,6 +149,12 @@ export default function KhethaIQ() {
       const res = await base44.entities.HireJob.list("-created_date", 50);
       const list = res?.data ?? res;
       setJobs(Array.isArray(list) ? list : []);
+    } catch (_) {}
+    // Load JobOpenings (public-facing job pages)
+    try {
+      const res = await base44.entities.JobOpening.list("-published_at", 100);
+      const list = res?.data ?? res;
+      setJobOpenings(Array.isArray(list) ? list : []);
     } catch (_) {}
     setLoading(false);
   };
@@ -486,19 +497,62 @@ export default function KhethaIQ() {
               ) : activeView === "posthire" ? (
                 <PerformanceDataView />
               ) : activeView === "jobs" ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
+            <div className="space-y-5">
+              {/* Header with action buttons */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Jobs</h1>
-                  <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Manage job openings and candidates</p>
+                  <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Open Jobs Needing Candidates</p>
                 </div>
-                <Button
-                  onClick={() => setShowCreate(true)}
-                  style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
-                >
-                  <Plus className="w-4 h-4 mr-1.5" /> Create Job Opening
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    onClick={() => setShowJobPageBuilder(true)}
+                    style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" /> Create Job Page
+                  </Button>
+                  <Button
+                    onClick={() => setShowCareersHubSettings(true)}
+                    variant="outline"
+                    style={{ backgroundColor: "#FFFFFF", color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+                  >
+                    <Globe className="w-4 h-4 mr-1.5" /> Careers Hub
+                  </Button>
+                  <Button
+                    onClick={() => setShowCreate(true)}
+                    variant="outline"
+                    style={{ backgroundColor: "#FFFFFF", color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+                  >
+                    Request New Hire
+                  </Button>
+                </div>
               </div>
+
+              {/* Summary cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+                {[
+                  { label: "Open Jobs", value: jobOpenings.filter(j => j.status === "open").length, icon: Briefcase },
+                  { label: "No Prospects", value: 0, icon: Users },
+                  { label: "New Prospects", value: 0, icon: Users },
+                  { label: "Awaiting Review", value: 0, icon: FileText },
+                  { label: "Outreach Approved", value: 0, icon: CheckSquare },
+                  { label: "Follow-Ups Due", value: 0, icon: CalendarClock },
+                  { label: "Warm Prospects", value: 0, icon: Target },
+                  { label: "Converted", value: 0, icon: TrendingUp },
+                ].map((card, i) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={i} className="p-3 rounded-xl" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.15)" }}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Icon className="w-3.5 h-3.5" style={{ color: GOLD }} />
+                        <span className="text-xs font-medium" style={{ color: MUTED_DARK }}>{card.label}</span>
+                      </div>
+                      <p className="text-xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>{card.value}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
               {syncing && (
                 <div className="flex items-center gap-2 text-sm rounded-lg p-3" style={{ backgroundColor: "rgba(184,149,106,0.08)", color: MUTED_DARK }}>
                   <Loader2 className="w-4 h-4 animate-spin" style={{ color: GOLD }} />
@@ -509,20 +563,26 @@ export default function KhethaIQ() {
                 <div className="flex justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin" style={{ color: GOLD }} />
                 </div>
-              ) : jobs.length === 0 ? (
-                <div className="text-center py-16">
+              ) : jobOpenings.filter(j => j.status === "open").length === 0 ? (
+                <div className="text-center py-16 rounded-xl" style={{ border: "1px solid rgba(184,149,106,0.15)", backgroundColor: "#FFFFFF" }}>
                   <Briefcase className="w-12 h-12 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
-                  <p className="font-medium" style={{ color: TEXT_DARK }}>No job openings yet</p>
-                  <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Create your first job opening to start hiring.</p>
+                  <p className="font-medium" style={{ color: TEXT_DARK }}>No open jobs yet. Create a job and Khetha IQ will recruit for it.</p>
+                  <Button
+                    onClick={() => setShowJobPageBuilder(true)}
+                    className="mt-4"
+                    style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" /> Create Job Page
+                  </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {jobs.map(job => {
+                  {jobOpenings.filter(j => j.status === "open").map(job => {
                     const ss = statusStyle(job.status);
                     return (
                       <div
                         key={job.id}
-                        onClick={() => handleSelectJob(job)}
+                        onClick={() => window.open(`/careers/${job.public_slug || job.job_id}`, "_blank")}
                         className="p-4 cursor-pointer transition-all hover:-translate-y-0.5"
                         style={card}
                         onMouseEnter={e => e.currentTarget.style.boxShadow = "0 8px 32px rgba(184,149,106,0.15)"}
@@ -533,9 +593,10 @@ export default function KhethaIQ() {
                           <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: ss.bg, color: ss.text }}>{job.status}</span>
                         </div>
                         <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
-                        <div className="flex items-center gap-3 text-xs" style={{ color: MUTED_LIGHT }}>
-                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Candidates</span>
-                          {job.role_profile_approved && <span className="flex items-center gap-1" style={{ color: GOLD }}><Brain className="w-3 h-3" /> Profile Approved</span>}
+                        <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
+                          {job.location && <span>{job.location}</span>}
+                          {job.employment_type && <span className="capitalize">{job.employment_type.replace(/_/g, " ")}</span>}
+                          {job.work_arrangement && <span className="capitalize">{job.work_arrangement}</span>}
                         </div>
                       </div>
                     );
@@ -564,6 +625,19 @@ export default function KhethaIQ() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Create Job Page modal */}
+      {showJobPageBuilder && (
+        <JobPageBuilder
+          onClose={() => setShowJobPageBuilder(false)}
+          onCreated={() => { loadJobs(); }}
+        />
+      )}
+
+      {/* Careers Hub Settings modal */}
+      {showCareersHubSettings && (
+        <CareersHubSettings onClose={() => setShowCareersHubSettings(false)} />
       )}
     </div>
   );

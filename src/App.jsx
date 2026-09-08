@@ -48,6 +48,9 @@ import AsyncInterviewManager from './pages/AsyncInterviewManager';
 import EditingQueuePage from './pages/EditingQueuePage';
 import EditorWorkspace from './pages/EditorWorkspace';
 import JobDetail from './pages/JobDetail';
+import CareersHub from './pages/CareersHub';
+import PublicJobPage from './pages/PublicJobPage';
+import PublicJobApplication from './pages/PublicJobApplication';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -421,6 +424,22 @@ const AuthenticatedApp = () => {
             <JobDetail />
           </LayoutWrapper>
         }
+      />
+      <Route
+        path="/careers/company/:companySlug"
+        element={<CareersHub />}
+      />
+      <Route
+        path="/careers"
+        element={<CareersHub />}
+      />
+      <Route
+        path="/careers/:jobId/apply"
+        element={<PublicJobApplication />}
+      />
+      <Route
+        path="/careers/:jobId"
+        element={<PublicJobPage />}
       />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -1,0 +1,83 @@
+{
+  "name": "JobPageEvent",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Multi-tenant isolation key",
+      "default": "tnt_estate_media"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "JobOpening job_id (empty for hub-level events)"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "page_view",
+        "apply_click",
+        "application_started",
+        "application_completed",
+        "careers_hub_view"
+      ],
+      "description": "Type of analytics event"
+    },
+    "source": {
+      "type": "string",
+      "description": "Normalized source (direct, indeed, linkedin, etc.)"
+    },
+    "utm_source": {
+      "type": "string"
+    },
+    "utm_medium": {
+      "type": "string"
+    },
+    "utm_campaign": {
+      "type": "string"
+    },
+    "utm_content": {
+      "type": "string"
+    },
+    "referrer_url": {
+      "type": "string",
+      "description": "Referrer URL (max 500 chars)"
+    },
+    "landing_page_url": {
+      "type": "string",
+      "description": "Landing page URL (max 500 chars)"
+    },
+    "visitor_ip_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of visitor IP (never store raw IP)"
+    },
+    "visitor_session_id": {
+      "type": "string",
+      "description": "Visitor session identifier"
+    }
+  },
+  "required": [
+    "event_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

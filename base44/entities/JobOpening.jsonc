@@ -1,0 +1,222 @@
+{
+  "name": "JobOpening",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Multi-tenant isolation key (maps to Khetha company_id)",
+      "default": "tnt_estate_media"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Stable identifier (foreign key for candidates/scorecards). Generated as em_job_{timestamp}_{random}."
+    },
+    "public_slug": {
+      "type": "string",
+      "description": "Clean URL slug for the public page, unique within tenant. Auto-generated from title."
+    },
+    "page_description": {
+      "type": "string",
+      "description": "Tenant's natural-language description of what they want the page to convey (separate from raw JD)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Job title"
+    },
+    "department": {
+      "type": "string",
+      "description": "Department or team"
+    },
+    "description_text": {
+      "type": "string",
+      "description": "Raw job description text"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "URL if imported from web"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "url",
+        "text",
+        "file",
+        "auto"
+      ],
+      "default": "text",
+      "description": "How the job description was provided"
+    },
+    "responsibilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Key responsibilities"
+    },
+    "required_qualifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Required qualifications"
+    },
+    "preferred_qualifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Preferred qualifications"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Key skills"
+    },
+    "experience_requirements": {
+      "type": "string",
+      "description": "Experience requirements text"
+    },
+    "performance_expectations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Performance expectations"
+    },
+    "compensation": {
+      "type": "string",
+      "description": "Compensation description"
+    },
+    "work_schedule": {
+      "type": "string",
+      "description": "Work schedule description"
+    },
+    "employment_type": {
+      "type": "string",
+      "enum": [
+        "full_time",
+        "part_time",
+        "contract",
+        "temporary",
+        "internship",
+        "volunteer"
+      ],
+      "default": "full_time",
+      "description": "Employment type"
+    },
+    "work_arrangement": {
+      "type": "string",
+      "enum": [
+        "remote",
+        "hybrid",
+        "onsite"
+      ],
+      "default": "onsite",
+      "description": "Work arrangement"
+    },
+    "location": {
+      "type": "string",
+      "description": "City, state or 'Remote'"
+    },
+    "travel_requirements": {
+      "type": "string",
+      "description": "Travel requirements"
+    },
+    "benefits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Benefits offered"
+    },
+    "public_visibility": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this job appears publicly"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When first published"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the job was closed"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "open",
+        "paused",
+        "closed",
+        "filled"
+      ],
+      "default": "open",
+      "description": "Job opening status"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Name of the user who created this job opening"
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this job opening has been archived"
+    },
+    "archived_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When archived"
+    },
+    "archived_by": {
+      "type": "string",
+      "description": "Who archived this job opening"
+    },
+    "origin_application": {
+      "type": "string",
+      "enum": [
+        "khethaiq",
+        "arriv_one",
+        "arriv_estate_media",
+        "system"
+      ],
+      "default": "arriv_estate_media",
+      "description": "Provenance for loop suppression"
+    },
+    "origin_event_id": {
+      "type": "string",
+      "description": "Idempotency event ID from the webhook"
+    }
+  },
+  "required": [
+    "job_id",
+    "title",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

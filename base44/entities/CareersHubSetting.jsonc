@@ -1,0 +1,117 @@
+{
+  "name": "CareersHubSetting",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Multi-tenant isolation key",
+      "default": "tnt_estate_media"
+    },
+    "career_page_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the public careers page is enabled"
+    },
+    "career_company_slug": {
+      "type": "string",
+      "description": "URL slug for the public careers page (falls back to subdomain)"
+    },
+    "career_company_description": {
+      "type": "string",
+      "description": "Company description shown on the careers hub"
+    },
+    "career_hero_image": {
+      "type": "string",
+      "description": "Hero image URL for the careers hub"
+    },
+    "career_culture_text": {
+      "type": "string",
+      "description": "Workplace culture description"
+    },
+    "career_benefits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Benefits and perks listed on the careers hub"
+    },
+    "career_locations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Office locations"
+    },
+    "career_social_links": {
+      "type": "object",
+      "properties": {
+        "linkedin": {
+          "type": "string"
+        },
+        "facebook": {
+          "type": "string"
+        },
+        "x": {
+          "type": "string"
+        },
+        "instagram": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        }
+      },
+      "description": "Social media links"
+    },
+    "career_contact_email": {
+      "type": "string",
+      "description": "Contact email for career inquiries"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Company name displayed on the careers hub"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Company logo URL"
+    },
+    "primary_color": {
+      "type": "string",
+      "default": "#B8956A",
+      "description": "Primary brand color for the careers hub"
+    },
+    "accent_color": {
+      "type": "string",
+      "description": "Accent brand color"
+    },
+    "custom_domain": {
+      "type": "string",
+      "description": "Custom domain for the careers hub"
+    }
+  },
+  "required": [
+    "tenant_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
