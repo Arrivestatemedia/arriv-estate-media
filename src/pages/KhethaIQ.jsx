@@ -376,14 +376,34 @@ export default function KhethaIQ() {
           )}
           <GlobalSearch />
         </div>
-        <Button
-          onClick={() => setShowCreate(true)}
-          className="gap-1.5"
-          style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
-        >
-          <Sparkles className="w-4 h-4" />
-          Request New Hire
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            onClick={() => setShowJobPageBuilder(true)}
+            className="gap-1.5"
+            style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+          >
+            <Plus className="w-4 h-4" />
+            Create Job Page
+          </Button>
+          <Button
+            onClick={() => setShowCareersHubSettings(true)}
+            variant="outline"
+            className="gap-1.5"
+            style={{ backgroundColor: "#FFFFFF", color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+          >
+            <Globe className="w-4 h-4" />
+            Careers Hub
+          </Button>
+          <Button
+            onClick={() => setShowCreate(true)}
+            variant="outline"
+            className="gap-1.5"
+            style={{ backgroundColor: "#FFFFFF", color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
+          >
+            <Sparkles className="w-4 h-4" />
+            Request New Hire
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -498,59 +518,10 @@ export default function KhethaIQ() {
                 <PerformanceDataView />
               ) : activeView === "jobs" ? (
             <div className="space-y-5">
-              {/* Header with action buttons */}
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Jobs</h1>
-                  <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Open Jobs Needing Candidates</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Button
-                    onClick={() => setShowJobPageBuilder(true)}
-                    style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
-                  >
-                    <Plus className="w-4 h-4 mr-1.5" /> Create Job Page
-                  </Button>
-                  <Button
-                    onClick={() => setShowCareersHubSettings(true)}
-                    variant="outline"
-                    style={{ backgroundColor: "#FFFFFF", color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
-                  >
-                    <Globe className="w-4 h-4 mr-1.5" /> Careers Hub
-                  </Button>
-                  <Button
-                    onClick={() => setShowCreate(true)}
-                    variant="outline"
-                    style={{ backgroundColor: "#FFFFFF", color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
-                  >
-                    Request New Hire
-                  </Button>
-                </div>
-              </div>
-
-              {/* Summary cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
-                {[
-                  { label: "Open Jobs", value: jobOpenings.filter(j => j.status === "open").length, icon: Briefcase },
-                  { label: "No Prospects", value: 0, icon: Users },
-                  { label: "New Prospects", value: 0, icon: Users },
-                  { label: "Awaiting Review", value: 0, icon: FileText },
-                  { label: "Outreach Approved", value: 0, icon: CheckSquare },
-                  { label: "Follow-Ups Due", value: 0, icon: CalendarClock },
-                  { label: "Warm Prospects", value: 0, icon: Target },
-                  { label: "Converted", value: 0, icon: TrendingUp },
-                ].map((card, i) => {
-                  const Icon = card.icon;
-                  return (
-                    <div key={i} className="p-3 rounded-xl" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.15)" }}>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Icon className="w-3.5 h-3.5" style={{ color: GOLD }} />
-                        <span className="text-xs font-medium" style={{ color: MUTED_DARK }}>{card.label}</span>
-                      </div>
-                      <p className="text-xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>{card.value}</p>
-                    </div>
-                  );
-                })}
+              {/* Header */}
+              <div>
+                <h1 className="text-2xl font-bold" style={{ ...SERIF, color: TEXT_DARK }}>Jobs</h1>
+                <p className="text-sm mt-1" style={{ color: MUTED_DARK }}>Open Jobs Needing Candidates</p>
               </div>
 
               {syncing && (
@@ -563,20 +534,33 @@ export default function KhethaIQ() {
                 <div className="flex justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin" style={{ color: GOLD }} />
                 </div>
-              ) : jobOpenings.filter(j => j.status === "open").length === 0 ? (
-                <div className="text-center py-16 rounded-xl" style={{ border: "1px solid rgba(184,149,106,0.15)", backgroundColor: "#FFFFFF" }}>
-                  <Briefcase className="w-12 h-12 mx-auto mb-3" style={{ color: "rgba(184,149,106,0.3)" }} />
-                  <p className="font-medium" style={{ color: TEXT_DARK }}>No open jobs yet. Create a job and Khetha IQ will recruit for it.</p>
-                  <Button
-                    onClick={() => setShowJobPageBuilder(true)}
-                    className="mt-4"
-                    style={{ backgroundColor: "#1A1A1A", color: CREAM, border: "1px solid rgba(184,149,106,0.3)", fontWeight: 600 }}
-                  >
-                    <Plus className="w-4 h-4 mr-1.5" /> Create Job Page
-                  </Button>
-                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Existing job pages */}
+                  {[
+                    { title: "Sales Growth Advisor", department: "Sales", location: "Remote / Hybrid", type: "Full-Time", href: "/SalesGrowthAdvisor" },
+                    { title: "Media Specialist", department: "Media Production", location: "On-Site", type: "Full-Time", href: "/MediaSpecialist" },
+                  ].map(job => (
+                    <div
+                      key={job.href}
+                      onClick={() => window.open(job.href, "_blank")}
+                      className="p-4 cursor-pointer transition-all hover:-translate-y-0.5"
+                      style={card}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = "0 8px 32px rgba(184,149,106,0.15)"}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.12)"}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold" style={{ ...SERIF, color: CREAM }}>{job.title}</h3>
+                        <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: GOLD, color: "#1A1A1A" }}>open</span>
+                      </div>
+                      <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department}</p>
+                      <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
+                        <span>{job.location}</span>
+                        <span>{job.type}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {/* JobOpening records from the new system */}
                   {jobOpenings.filter(j => j.status === "open").map(job => {
                     const ss = statusStyle(job.status);
                     return (
