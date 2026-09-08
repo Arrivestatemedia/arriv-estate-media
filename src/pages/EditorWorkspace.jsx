@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, Pause, Send, Clock, AlertTriangle, CheckCircle2, Film, RefreshCw, FileText, FolderOpen } from "lucide-react";
+import { Loader2, Play, Pause, Send, Clock, AlertTriangle, CheckCircle2, Film, RefreshCw, FileText, FolderOpen, Upload, ExternalLink } from "lucide-react";
 import { EDITING_TASK_LABELS, STATUS_LABELS } from "@/lib/editingConfig";
 
 const SLA_COLORS = {
@@ -17,7 +17,6 @@ export default function EditorWorkspace() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [finalMediaUrl, setFinalMediaUrl] = useState({});
   const [refreshKey, setRefreshKey] = useState(0);
 
   const salesEmail =
@@ -144,8 +143,6 @@ export default function EditorWorkspace() {
                 key={task.id}
                 task={task}
                 actionLoading={actionLoading}
-                finalMediaUrl={finalMediaUrl[task.id] || ""}
-                onUrlChange={(url) => setFinalMediaUrl({ ...finalMediaUrl, [task.id]: url })}
                 onAction={callAction}
               />
             ))}
@@ -225,9 +222,40 @@ export default function EditorWorkspace() {
   );
 }
 
-function EditorTaskRow({ task, actionLoading, finalMediaUrl, onUrlChange, onAction }) {
+function EditorTaskRow({ task, actionLoading, onAction }) {
   const deadline = task.delivery_deadline ? new Date(task.delivery_deadline) : null;
   const hoursLeft = deadline ? Math.round((deadline.getTime() - Date.now()) / (60 * 60 * 1000)) : null;
+  const [uploading, setUploading] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState(task.final_media_location || "");
+  const fileInputRef = useRef(null);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      // Step 1: Upload to Base44 temporary storage
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const file_url = uploadRes?.file_url || uploadRes?.data?.file_url;
+      if (!file_url) throw new Error("Failed to get file URL from upload");
+
+      // Step 2: Push to Google Drive "Final Edits" folder + update task
+      const res = await base44.functions.invoke("uploadFinalEdit", {
+        task_id: task.id,
+        file_url,
+        file_name: file.name,
+        content_type: file.type || "application/octet-stream",
+      });
+      const resData = res?.data || res;
+      if (!resData?.file_url) throw new Error("Google Drive upload failed");
+      setUploadedUrl(resData.file_url);
+    } catch (err) {
+      alert(err.message || err.error || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   return (
     <Card
@@ -307,18 +335,40 @@ function EditorTaskRow({ task, actionLoading, finalMediaUrl, onUrlChange, onActi
           </Button>
         )}
         {(task.status === "editing" || task.status === "revision_required") && (
-            <div className="flex gap-2 w-full">
+            <div className="flex flex-wrap gap-2 w-full items-center">
               <input
-                type="text"
-                value={finalMediaUrl}
-                onChange={(e) => onUrlChange(e.target.value)}
-                placeholder="Final media URL (Google Drive link)..."
-                className="flex-1 px-3 py-1.5 rounded-lg border border-[#B8956A]/20 text-sm"
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept="image/*,video/*,.zip,.mp4,.mov,.jpg,.jpeg,.png"
               />
               <Button
                 size="sm"
-                onClick={() => onAction("submit_for_qc", task.id, { editor_profile_id: task.editor_id, final_media_location: finalMediaUrl })}
-                disabled={actionLoading}
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={actionLoading || uploading}
+                className="text-[#B8956A] border-[#B8956A]/30 hover:bg-[#B8956A]/10"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                {uploading ? "Uploading to Drive..." : "Upload Final Edit"}
+              </Button>
+              {uploadedUrl && (
+                <a
+                  href={uploadedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-[#B8956A] hover:underline"
+                >
+                  <CheckCircle2 className="w-3 h-3" />
+                  Final edit uploaded
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+              <Button
+                size="sm"
+                onClick={() => onAction("submit_for_qc", task.id, { editor_profile_id: task.editor_id, final_media_location: uploadedUrl })}
+                disabled={actionLoading || uploading || !uploadedUrl}
               >
                 <Send className="w-4 h-4 mr-1" /> Submit QC
               </Button>

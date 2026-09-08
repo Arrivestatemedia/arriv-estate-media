@@ -225,6 +225,14 @@
       "type": "string",
       "description": "Google Drive folder ID extracted from google_drive_folder_url. Stored separately for API-level access."
     },
+    "final_edits_folder_id": {
+      "type": "string",
+      "description": "Google Drive folder ID for the 'Final Edits' subfolder where editors upload finished deliverables."
+    },
+    "final_edits_folder_url": {
+      "type": "string",
+      "description": "Google Drive folder URL for the 'Final Edits' subfolder."
+    },
     "footage_uploaded": {
       "type": "boolean",
       "default": false,
