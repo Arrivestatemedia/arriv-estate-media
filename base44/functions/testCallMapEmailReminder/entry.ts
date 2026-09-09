@@ -166,10 +166,16 @@ async function generateCallMapPDF(repName, contactName, callTime, callMapContent
 }
 
 Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
+   try {
+     const base44 = createClientFromRequest(req);
 
-    const all = await base44.asServiceRole.entities.ActivityLog.filter(
+     // ADMIN GATE — Round 2 remediation
+     const user = await base44.auth.me().catch(() => null);
+     if (!user || user.role !== 'admin') {
+       return Response.json({ error: 'Admin access required' }, { status: 403 });
+     }
+
+     const all = await base44.asServiceRole.entities.ActivityLog.filter(
       { contact_name: 'Chloe-Ray Iacob' }, 'activity_date', 50
     );
 

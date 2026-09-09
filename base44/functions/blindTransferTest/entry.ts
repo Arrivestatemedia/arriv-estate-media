@@ -1,10 +1,16 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
+   try {
+     const base44 = createClientFromRequest(req);
 
-    const { senderCallSid, externalCallerNumber, recipientExtension } = await req.json();
+     // ADMIN GATE — Round 2 remediation
+     const user = await base44.auth.me().catch(() => null);
+     if (!user || user.role !== 'admin') {
+       return Response.json({ error: 'Admin access required' }, { status: 403 });
+     }
+
+     const { senderCallSid, externalCallerNumber, recipientExtension } = await req.json();
 
     if (!senderCallSid || !externalCallerNumber || !recipientExtension) {
       return Response.json({ 

@@ -34,6 +34,13 @@ const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+
+    // ADMIN GATE — Round 2 remediation
+    const user = await base44.auth.me().catch(() => null);
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const body = await req.json();
     const mode = body?.mode || "emit"; // "emit" | "simulate_inbound"
     const localEntityType = body?.entity_type || "Contact"; // Estate Media local entity name
