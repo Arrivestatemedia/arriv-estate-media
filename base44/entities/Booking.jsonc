@@ -76,11 +76,11 @@
     },
     "total_price": {
       "type": "number",
-      "description": "Total calculated price (legacy field; for new bookings post-migration, the authoritative price is in the PricingSnapshot)"
+      "description": "Total calculated price (legacy field)"
     },
     "custom_price_text": {
       "type": "string",
-      "description": "Custom text to display instead of total_price (for pay-at-closing, etc.)"
+      "description": "Custom text to display instead of total_price"
     },
     "request_pay_at_closing": {
       "type": "boolean",
@@ -90,7 +90,7 @@
     "payment_locked": {
       "type": "boolean",
       "default": false,
-      "description": "Whether approval buttons are locked pending payment (pay-up-front only)"
+      "description": "Whether approval buttons are locked pending payment"
     },
     "invoice_id": {
       "type": "string",
@@ -110,7 +110,7 @@
     },
     "property_sqft_source": {
       "type": "string",
-      "description": "Source of sqft data (provider_api, manual_customer, manual_sales, manual_admin, admin_override, none)"
+      "description": "Source of sqft data"
     },
     "property_sqft_verified": {
       "type": "boolean",
@@ -119,15 +119,15 @@
     },
     "property_pricing_tier": {
       "type": "string",
-      "description": "Pricing tier determined from sqft (TIER_1 through TIER_5, CUSTOM)"
+      "description": "Pricing tier determined from sqft"
     },
     "pricing_snapshot_id": {
       "type": "string",
-      "description": "PricingSnapshot ID with the authoritative pricing calculation for this booking"
+      "description": "PricingSnapshot ID with the authoritative pricing calculation"
     },
     "commissionable_service_value": {
       "type": "integer",
-      "description": "Commissionable service value after Preferred and approved discounts, in CENTS. Referral tender does NOT reduce this."
+      "description": "Commissionable service value after discounts, in CENTS"
     },
     "preferred_discount": {
       "type": "integer",
@@ -139,7 +139,7 @@
     },
     "referral_tender_amount": {
       "type": "integer",
-      "description": "Referral reward tender applied, in CENTS (does NOT reduce commissionable value)"
+      "description": "Referral reward tender applied, in CENTS"
     }
   },
   "required": [
@@ -150,5 +150,22 @@
     "state",
     "preferred_date"
   ],
-  "rls": {}
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

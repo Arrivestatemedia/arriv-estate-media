@@ -100,11 +100,11 @@
     },
     "job_id": {
       "type": "string",
-      "description": "HireJob ID this application is for (if created from a Khetha IQ job posting)"
+      "description": "HireJob ID this application is for"
     },
     "job_opening_id": {
       "type": "string",
-      "description": "JobOpening.job_id this application was submitted for (public careers flow)"
+      "description": "JobOpening.job_id this application was submitted for"
     },
     "hire_candidate_id": {
       "type": "string",
@@ -112,7 +112,7 @@
     },
     "shared_person_id": {
       "type": "string",
-      "description": "Cross-system person identifier linking this application to KhethaIQ and Estate Media records"
+      "description": "Cross-system person identifier"
     },
     "source": {
       "type": "string",
@@ -141,7 +141,7 @@
         "unknown"
       ],
       "default": "unknown",
-      "description": "Server-authoritative source attribution (normalized server-side, never trust raw client input)"
+      "description": "Server-authoritative source attribution"
     },
     "application_source_detail": {
       "type": "string",
@@ -222,13 +222,11 @@
         "type": "object",
         "properties": {
           "message": {
-            "type": "string",
-            "description": "Update message shown to the applicant"
+            "type": "string"
           },
           "created_at": {
             "type": "string",
-            "format": "date-time",
-            "description": "When the update was posted"
+            "format": "date-time"
           }
         }
       },
@@ -251,32 +249,50 @@
     "portal_view_count": {
       "type": "integer",
       "default": 0,
-      "description": "How many times the applicant has looked up their application in the portal"
+      "description": "How many times the applicant has looked up their application"
     },
     "offer_extended_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the offer was extended to the applicant"
+      "description": "When the offer was extended"
     },
     "offer_accepted_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the applicant accepted their offer (sales growth advisor)"
+      "description": "When the applicant accepted their offer"
     },
     "offer_declined_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the applicant declined their offer (sales growth advisor)"
+      "description": "When the applicant declined their offer"
     },
     "archived": {
       "type": "boolean",
       "default": false,
-      "description": "Whether this application has been archived after closure (denied or offer not extended)"
+      "description": "Whether this application has been archived after closure"
     }
   },
   "required": [
     "full_name",
     "email",
     "phone"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

@@ -8,7 +8,7 @@
     },
     "company_email": {
       "type": "string",
-      "description": "Company email address to send emails from (e.g. john@arriv.com)"
+      "description": "Company email address to send emails from"
     },
     "full_name": {
       "type": "string",
@@ -16,7 +16,7 @@
     },
     "title": {
       "type": "string",
-      "description": "Job title (e.g. Sales Representative)"
+      "description": "Job title"
     },
     "phone_number": {
       "type": "string",
@@ -28,7 +28,7 @@
     },
     "twilio_phone_number": {
       "type": "string",
-      "description": "Assigned Twilio phone number for this rep (e.g. +15551234567)"
+      "description": "Assigned Twilio phone number for this rep"
     },
     "extension": {
       "type": "integer",
@@ -38,7 +38,7 @@
     },
     "password_hash": {
       "type": "string",
-      "description": "Hashed password. Optional for sync-created mirrored members (is_active=false until local onboarding establishes credentials)."
+      "description": "Hashed password. PBKDF2 format: pbkdf2$<iterations>$<salt_hex>$<hash_hex>. Legacy SHA-256 hashes are migrated on next login."
     },
     "is_active": {
       "type": "boolean",
@@ -80,7 +80,7 @@
     },
     "payroll_employee_id": {
       "type": "string",
-      "description": "Arriv Payroll employee ID mapping for this sales team member"
+      "description": "Arriv Payroll employee ID mapping"
     },
     "payroll_sync_status": {
       "type": "string",
@@ -104,7 +104,7 @@
     },
     "arriv_employee_id": {
       "type": "string",
-      "description": "Immutable ARRIV_EMPLOYEE_ID \u2014 primary cross-system identifier. Assigned once at activation and never changed."
+      "description": "Immutable ARRIV_EMPLOYEE_ID \u2014 primary cross-system identifier"
     },
     "legal_first_name": {
       "type": "string",
@@ -112,7 +112,7 @@
     },
     "legal_middle_name": {
       "type": "string",
-      "description": "Legal middle name (when provided)"
+      "description": "Legal middle name"
     },
     "legal_last_name": {
       "type": "string",
@@ -187,7 +187,7 @@
     "termination_date": {
       "type": "string",
       "format": "date",
-      "description": "Termination date, when applicable"
+      "description": "Termination date"
     },
     "payroll_eligible": {
       "type": "boolean",
@@ -219,7 +219,7 @@
     "commission_effective_date": {
       "type": "string",
       "format": "date",
-      "description": "Date the current commission rate/plan became effective for this employee"
+      "description": "Date the current commission rate/plan became effective"
     },
     "manager_id": {
       "type": "string",
@@ -240,7 +240,7 @@
     },
     "stripe_account_id": {
       "type": "string",
-      "description": "Stripe connected account ID, when available"
+      "description": "Stripe connected account ID"
     },
     "stripe_onboarding_status": {
       "type": "string",
@@ -294,18 +294,54 @@
       "items": {
         "type": "string"
       },
-      "description": "Capabilities the Media Partner claims to have (not yet verified). Marketplace eligibility uses verified_capabilities only."
+      "description": "Capabilities the Media Partner claims to have (not yet verified)"
     },
     "verified_capabilities": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Capabilities verified by Arriv (photography, videography, drone, tour_3d, twilight_capture). Used for job board eligibility."
+      "description": "Capabilities verified by Arriv. Used for job board eligibility."
     }
   },
   "required": [
     "email",
     "full_name"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "$or": [
+        {
+          "id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
