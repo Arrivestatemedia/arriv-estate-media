@@ -1,20 +1,38 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { createComposition, getCompositionMediaUrl } from "../../shared/twilioRecording.ts";
+import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
+import { auditLog } from '../../shared/securityAudit.ts';
 
 Deno.serve(async (req) => {
   try {
-    // Twilio sends status callbacks as form-encoded data, but also accept JSON for testing
+    // Read raw body first for signature validation
+    const rawBody = await req.text();
     const contentType = req.headers.get('content-type') || '';
+
+    // ── Twilio webhook signature verification ──
+    const signatureValid = await validateTwilioRequest(req, rawBody);
+    if (!signatureValid) {
+      const base44 = createClientFromRequest(req);
+      await auditLog(base44, req, {
+        event_type: 'webhook_verification_failure',
+        actor_type: 'webhook',
+        action: 'twilioRecordingCallback',
+        result: 'denied',
+        reason: 'invalid_twilio_signature',
+      });
+      return Response.json({ received: true });
+    }
+
+    // Parse body — Twilio sends form-encoded, but also accept JSON for testing
     let params: URLSearchParams;
     if (contentType.includes('application/json')) {
-      const json = await req.json();
+      const json = JSON.parse(rawBody);
       params = new URLSearchParams();
       for (const [key, value] of Object.entries(json)) {
         if (value !== null && value !== undefined) params.append(key, String(value));
       }
     } else {
-      const text = await req.text();
-      params = new URLSearchParams(text);
+      params = new URLSearchParams(rawBody);
     }
 
     const eventType = params.get('StatusCallbackEvent') || '';

@@ -1,5 +1,7 @@
 import twilio from 'npm:twilio@5.3.3';
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
+import { auditLog } from '../../shared/securityAudit.ts';
 
 const xmlResponse = (twiml) => new Response(twiml, {
   status: 200,
@@ -9,6 +11,23 @@ const xmlResponse = (twiml) => new Response(twiml, {
 Deno.serve(async (req) => {
   try {
     const body = await req.text();
+
+    // ── Twilio webhook signature verification ──
+    const signatureValid = await validateTwilioRequest(req, body);
+    if (!signatureValid) {
+      try {
+        const base44Audit = createClientFromRequest(req);
+        await auditLog(base44Audit, req, {
+          event_type: 'webhook_verification_failure',
+          actor_type: 'webhook',
+          action: 'twilioVoiceHandler',
+          result: 'denied',
+          reason: 'invalid_twilio_signature',
+        });
+      } catch (_) {}
+      return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
+    }
+
     const contentType = req.headers.get('content-type') || '';
     console.log('Content-Type:', contentType, 'Body:', body.substring(0, 300));
 

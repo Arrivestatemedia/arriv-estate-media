@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { verifyPassword, hashPassword, isLegacyHash, generateSecurePassword, generateSecureToken } from '../../shared/passwordKdf.ts';
 import { checkRateLimit, RATE_LIMITS } from '../../shared/rateLimiter.ts';
+import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 
 /**
  * Security Regression Test — Arriv Estate Media Round 2 Remediation
@@ -138,6 +139,90 @@ Deno.serve(async (req) => {
       });
     } catch (e) {
       results.push({ test: 'RLS on critical entities', passed: false, detail: (e as Error).message });
+    }
+
+    // ── Test 7: Twilio webhook signature validation ──
+    // Uses an INDEPENDENT signing implementation (not the shared utility's
+    // functions) to generate Twilio-compatible signatures, providing
+    // independent verification that validateTwilioRequest is correct.
+    try {
+      const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      if (!authToken) {
+        results.push({ test: 'Twilio webhook signature validation', passed: false, detail: 'TWILIO_AUTH_TOKEN not set' });
+      } else {
+        // Construct the canonical URL that getExternalUrl() would produce
+        const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'https://test.example.com';
+        const webhookPath = '/functions/twilioSmsWebhook';
+        const canonicalUrl = appDomain.replace(/\/+$/, '') + webhookPath;
+
+        const testParams: Record<string, string> = {
+          From: '+15551234567',
+          To: '+15557654321',
+          Body: 'Hello+world',
+          MessageSid: 'SM123456789',
+        };
+        const bodyStr = new URLSearchParams(testParams).toString();
+
+        // Independent HMAC-SHA1+Base64 implementation using Web Crypto API.
+        // This is a SEPARATE code path from twilioWebhookValidation.ts —
+        // it does not import or call any function from that module.
+        async function independentSign(url: string, params: Record<string, string>): Promise<string> {
+          const sortedKeys = Object.keys(params).sort();
+          let data = url;
+          for (const key of sortedKeys) {
+            data += key + (params[key] || '');
+          }
+          const enc = new TextEncoder();
+          const key = await crypto.subtle.importKey('raw', enc.encode(authToken), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+          const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(data));
+          const bytes = new Uint8Array(sigBuf);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          return btoa(binary);
+        }
+
+        function makeRequest(url: string, body: string, sig: string | null, ct = 'application/x-www-form-urlencoded'): Request {
+          const headers: Record<string, string> = { 'Content-Type': ct };
+          if (sig !== null) headers['X-Twilio-Signature'] = sig;
+          return new Request(url, { method: 'POST', headers, body });
+        }
+
+        // 1. Valid signature → ACCEPTED
+        const validSig = await independentSign(canonicalUrl, testParams);
+        const validResult = await validateTwilioRequest(makeRequest(canonicalUrl, bodyStr, validSig), bodyStr);
+
+        // 2. Incorrect signature → REJECTED
+        const invalidResult = await validateTwilioRequest(makeRequest(canonicalUrl, bodyStr, 'bogus-signature'), bodyStr);
+
+        // 3. Missing signature → REJECTED
+        const missingResult = await validateTwilioRequest(makeRequest(canonicalUrl, bodyStr, null), bodyStr);
+
+        // 4. Tampered parameter after signing → REJECTED
+        const tamperedParams = { ...testParams, Body: 'Tampered' };
+        const tamperedBody = new URLSearchParams(tamperedParams).toString();
+        const tamperedResult = await validateTwilioRequest(makeRequest(canonicalUrl, tamperedBody, validSig), tamperedBody);
+
+        // 5. Changed webhook URL after signing → REJECTED
+        const differentUrl = appDomain.replace(/\/+$/, '') + '/functions/twilioVoiceHandler';
+        const changedUrlResult = await validateTwilioRequest(makeRequest(differentUrl, bodyStr, validSig), bodyStr);
+
+        // 6. JSON webhook with bodySHA256 → ACCEPTED
+        const jsonBody = JSON.stringify({ StatusCallbackEvent: 'room-ended', RoomSid: 'RM123' });
+        const jsonUrl = appDomain.replace(/\/+$/, '') + '/functions/twilioRecordingCallback';
+        const bodyHashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(jsonBody));
+        const bodyHashHex = Array.from(new Uint8Array(bodyHashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        const jsonSig = await independentSign(`${jsonUrl}?bodySHA256=${bodyHashHex}`, {});
+        const jsonResult = await validateTwilioRequest(makeRequest(jsonUrl, jsonBody, jsonSig, 'application/json'), jsonBody);
+
+        const twilioPassed = validResult && !invalidResult && !missingResult && !tamperedResult && !changedUrlResult && jsonResult;
+        results.push({
+          test: 'Twilio webhook signature validation',
+          passed: twilioPassed,
+          detail: `Valid=${validResult}, Invalid rejected=${!invalidResult}, Missing rejected=${!missingResult}, Tampered rejected=${!tamperedResult}, Changed URL rejected=${!changedUrlResult}, JSON=${jsonResult}`,
+        });
+      }
+    } catch (e) {
+      results.push({ test: 'Twilio webhook signature validation', passed: false, detail: (e as Error).message });
     }
 
     // ── Summary ──

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { auditLog } from '../../shared/securityAudit.ts';
+import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 
 const norm = (n) => {
   if (!n) return '';
@@ -30,56 +31,7 @@ async function sendTwilioSms(to, body) {
   return res.json();
 }
 
-/**
- * Verify Twilio webhook signature using the official Twilio validation method.
- * Twilio signs requests with an X-Twilio-Signature header computed as:
- *   HMAC-SHA-256(auth_token, url + params)
- * where params are sorted and concatenated as keyvalue pairs.
- *
- * See: https://www.twilio.com/docs/usage/webhooks/webhooks-security
- */
-async function verifyTwilioSignature(req: Request, body: string): Promise<boolean> {
-  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-  if (!authToken) return false;
 
-  const signature = req.headers.get('X-Twilio-Signature');
-  if (!signature) return false;
-
-  // Build the URL that Twilio signed (including any query params)
-  const url = req.url;
-
-  // Parse the body as URL-encoded params
-  const params = new URLSearchParams(body);
-
-  // Sort parameters alphabetically and build the signature string
-  const sortedKeys = Array.from(params.keys()).sort();
-  let data = url;
-  for (const key of sortedKeys) {
-    data += key + (params.get(key) || '');
-  }
-
-  // Compute HMAC-SHA-256
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    enc.encode(authToken),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(data));
-  const computed = Array.from(new Uint8Array(sigBuf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-
-  // Constant-time comparison
-  if (computed.length !== signature.length) return false;
-  let result = 0;
-  for (let i = 0; i < computed.length; i++) {
-    result |= computed.charCodeAt(i) ^ signature.charCodeAt(i);
-  }
-  return result === 0;
-}
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -88,7 +40,7 @@ Deno.serve(async (req) => {
 
     // ── Twilio webhook signature verification ──
     // Round 1 found NO authentication on this webhook. Now verified.
-    const signatureValid = await verifyTwilioSignature(req, body);
+    const signatureValid = await validateTwilioRequest(req, body);
     if (!signatureValid) {
       await auditLog(base44, req, {
         event_type: 'webhook_verification_failure',

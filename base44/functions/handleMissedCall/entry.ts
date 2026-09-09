@@ -1,10 +1,27 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
+import { auditLog } from '../../shared/securityAudit.ts';
 
 // Called by Twilio after an inbound <Dial> completes.
 // If DialCallStatus is "no-answer" or "failed" (nobody picked up), log a missed call for each active rep.
 Deno.serve(async (req) => {
   try {
     const body = await req.text();
+
+    // ── Twilio webhook signature verification ──
+    const signatureValid = await validateTwilioRequest(req, body);
+    if (!signatureValid) {
+      const base44 = createClientFromRequest(req);
+      await auditLog(base44, req, {
+        event_type: 'webhook_verification_failure',
+        actor_type: 'webhook',
+        action: 'handleMissedCall',
+        result: 'denied',
+        reason: 'invalid_twilio_signature',
+      });
+      return new Response('OK', { status: 200 });
+    }
+
     const params = new URLSearchParams(body);
     const dialStatus = params.get('DialCallStatus') || '';
     const from = params.get('From') || '';
