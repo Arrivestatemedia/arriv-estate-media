@@ -536,30 +536,43 @@ export default function KhethaIQ() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Existing job pages */}
-                  {[
-                    { title: "Sales Growth Advisor", department: "Sales", location: "Remote / Hybrid", type: "Full-Time", href: "/SalesGrowthAdvisor" },
-                    { title: "Media Specialist", department: "Media Production", location: "On-Site", type: "Full-Time", href: "/MediaSpecialist" },
-                  ].map(job => (
-                    <div
-                      key={job.href}
-                      onClick={() => window.open(job.href, "_blank")}
-                      className="p-4 cursor-pointer transition-all hover:-translate-y-0.5"
-                      style={card}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = "0 8px 32px rgba(184,149,106,0.15)"}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.12)"}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold" style={{ ...SERIF, color: CREAM }}>{job.title}</h3>
-                        <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: GOLD, color: "#1A1A1A" }}>open</span>
+                  {/* Existing jobs — clicking opens the job detail (questionnaire, applicants, etc.) */}
+                  {jobs.map(job => {
+                    const ss = statusStyle(job.status);
+                    const listingUrl = job.source_url
+                      || (job.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
+                        : job.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
+                    return (
+                      <div
+                        key={job.id}
+                        onClick={() => handleSelectJob(job)}
+                        className="p-4 cursor-pointer transition-all hover:-translate-y-0.5"
+                        style={card}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = "0 8px 32px rgba(184,149,106,0.15)"}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.12)"}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold" style={{ ...SERIF, color: CREAM }}>{job.title || "Untitled"}</h3>
+                          <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: ss.bg, color: ss.text }}>{job.status}</span>
+                        </div>
+                        <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
+                            {job.experience_requirements && <span>{job.experience_requirements}</span>}
+                          </div>
+                          {listingUrl && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); window.open(listingUrl, "_blank"); }}
+                              className="text-xs px-2.5 py-1 rounded-lg font-medium shrink-0"
+                              style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
+                            >
+                              View Listing
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department}</p>
-                      <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
-                        <span>{job.location}</span>
-                        <span>{job.type}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {/* JobOpening records from the new system */}
                   {jobOpenings.filter(j => j.status === "open").map(job => {
                     const ss = statusStyle(job.status);
