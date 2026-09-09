@@ -69,7 +69,7 @@
     },
     "media_audit": {
       "type": "string",
-      "description": "Evaluation of available listing/media evidence: professional photography, professional video, virtual tour/video presence, relevant visible media opportunities"
+      "description": "Evaluation of available listing/media evidence"
     },
     "professional_video_status": {
       "type": "string",
@@ -80,7 +80,7 @@
         "COMING_SOON_NO_MEDIA",
         "MEDIA_NOT_YET_VERIFIABLE"
       ],
-      "description": "Professional video check result \u2014 primary Estate Media prospecting gate"
+      "description": "Professional video check result"
     },
     "professional_video_notes": {
       "type": "string",
@@ -88,25 +88,25 @@
     },
     "potential_opportunity": {
       "type": "string",
-      "description": "Currently sellable Estate Media opportunities based on evidence (photography, videography, combined, etc.). Does NOT include physical staging."
+      "description": "Currently sellable Estate Media opportunities based on evidence"
     },
     "suggested_opening": {
       "type": "string",
-      "description": "Prospect-specific opening using actual research (e.g. lead with video capability if professional video appears absent)"
+      "description": "Prospect-specific opening using actual research"
     },
     "questions_to_ask": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Prospect-specific discovery questions (listing volume, current media provider, photography, video, turnaround, consistency, scheduling, pain points, upcoming listings, workflow, what they value)"
+      "description": "Prospect-specific discovery questions"
     },
     "likely_objections": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Likely objections based on Estate Media training truth (existing photographer, photographer does video, no video need, phone quality, price, loyalty, availability, discount)"
+      "description": "Likely objections based on Estate Media training truth"
     },
     "rep_notes": {
       "type": "string",
@@ -115,11 +115,11 @@
     "staging_interest_signal": {
       "type": "boolean",
       "default": false,
-      "description": "Whether a future staging-interest signal was detected. Physical staging is NOT currently sales authorized."
+      "description": "Whether a future staging-interest signal was detected"
     },
     "staging_boundary_note": {
       "type": "string",
-      "description": "Boundary note: physical staging is NOT currently sellable. Separate Staging Sales Certification required."
+      "description": "Boundary note: physical staging is NOT currently sellable"
     },
     "research_confidence": {
       "type": "string",
@@ -140,7 +140,7 @@
     },
     "role_context": {
       "type": "string",
-      "description": "The prospect's role context (individual agent, team lead, broker, builder) and how it shapes the approach"
+      "description": "The prospect's role context and how it shapes the approach"
     },
     "account_context": {
       "type": "string",
@@ -159,5 +159,47 @@
     "sales_member_id",
     "prospect_name"
   ],
-  "rls": {}
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

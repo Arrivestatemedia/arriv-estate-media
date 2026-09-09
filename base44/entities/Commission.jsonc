@@ -112,7 +112,7 @@
         "failed"
       ],
       "default": "not_sent",
-      "description": "Payroll synchronization / payment lifecycle. Driven by Arriv Payroll responses and status webhooks."
+      "description": "Payroll synchronization / payment lifecycle"
     },
     "payroll_compensation_import_id": {
       "type": "string",
@@ -133,7 +133,7 @@
     },
     "net_pay": {
       "type": "number",
-      "description": "Net pay returned by Arriv Payroll for employee-facing display only. Arriv One never computes this."
+      "description": "Net pay returned by Arriv Payroll for employee-facing display only"
     },
     "payroll_sync_error": {
       "type": "string",
@@ -151,11 +151,11 @@
     "compensation_version": {
       "type": "integer",
       "default": 1,
-      "description": "Version number, incremented on corrections. Used to build the idempotency key."
+      "description": "Version number, incremented on corrections"
     },
     "idempotency_key": {
       "type": "string",
-      "description": "Idempotency key = source_record_id-v<version>. Prevents the same compensation from being paid twice."
+      "description": "Idempotency key = source_record_id-v<version>"
     }
   },
   "required": [
@@ -163,5 +163,34 @@
     "compensation_type",
     "gross_amount",
     "earned_date"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.employee_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

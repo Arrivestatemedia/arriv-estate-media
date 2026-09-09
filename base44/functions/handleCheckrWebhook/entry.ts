@@ -1,15 +1,70 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { processBackgroundCheckFailure } from '../../shared/backgroundCheck.ts';
 import { applyCheckrResultToOrientation } from '../../shared/orientationEngine.ts';
+import { auditLog } from '../../shared/securityAudit.ts';
+
+/**
+ * Checkr webhook handler.
+ *
+ * Round 1 found authentication via a shared secret in the URL query parameter
+ * (?secret=X) — query params are logged in access logs, browser history, and
+ * proxy logs. No timestamp or nonce — replay attacks possible.
+ *
+ * Remediation: Move the secret to the X-Checkr-Webhook-Secret header.
+ * Checkr does not provide a native webhook signature, so we use a shared secret
+ * in a custom header (not a query parameter).
+ *
+ * Backwards compatibility: If the header is absent, fall back to the query
+ * parameter for a transition period, but log a deprecation warning.
+ */
+async function verifyCheckrSecret(req: Request, url: URL): Promise<{ valid: boolean; deprecated: boolean }> {
+  const expectedSecret = Deno.env.get('CHECKR_WEBHOOK_SECRET');
+  if (!expectedSecret) {
+    return { valid: false, deprecated: false };
+  }
+
+  // Preferred: header-based secret
+  const headerSecret = req.headers.get('X-Checkr-Webhook-Secret');
+  if (headerSecret) {
+    if (expectedSecret.length !== headerSecret.length) return { valid: false, deprecated: false };
+    let result = 0;
+    for (let i = 0; i < expectedSecret.length; i++) {
+      result |= expectedSecret.charCodeAt(i) ^ headerSecret.charCodeAt(i);
+    }
+    return { valid: result === 0, deprecated: false };
+  }
+
+  // Deprecated fallback: query parameter (for transition period)
+  const querySecret = url.searchParams.get('secret');
+  if (querySecret) {
+    if (expectedSecret.length !== querySecret.length) return { valid: false, deprecated: true };
+    let result = 0;
+    for (let i = 0; i < expectedSecret.length; i++) {
+      result |= expectedSecret.charCodeAt(i) ^ querySecret.charCodeAt(i);
+    }
+    return { valid: result === 0, deprecated: true };
+  }
+
+  return { valid: false, deprecated: false };
+}
 
 Deno.serve(async (req) => {
+  const base44 = createClientFromRequest(req);
   try {
-    const base44 = createClientFromRequest(req);
     const url = new URL(req.url);
-    const secret = url.searchParams.get('secret');
-    const expectedSecret = Deno.env.get('CHECKR_WEBHOOK_SECRET');
-    if (!expectedSecret || secret !== expectedSecret) {
+    const check = await verifyCheckrSecret(req, url);
+    if (!check.valid) {
+      await auditLog(base44, req, {
+        event_type: 'webhook_verification_failure',
+        actor_type: 'webhook',
+        action: 'handleCheckrWebhook',
+        result: 'denied',
+        reason: 'invalid_checkr_secret',
+      });
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (check.deprecated) {
+      console.warn('Checkr webhook using deprecated query-parameter secret — migrate to X-Checkr-Webhook-Secret header');
     }
 
     const body = await req.json();

@@ -1,0 +1,128 @@
+{
+  "name": "SecurityAuditLog",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "login_success",
+        "login_failure",
+        "password_reset_request",
+        "password_change",
+        "account_creation",
+        "account_deactivation",
+        "role_change",
+        "permission_change",
+        "admin_action",
+        "sensitive_export",
+        "data_deletion",
+        "webhook_verification_failure",
+        "rate_limit_triggered",
+        "suspicious_request",
+        "security_config_change",
+        "mfa_challenge",
+        "mfa_failure"
+      ],
+      "description": "Type of security audit event"
+    },
+    "actor_id": {
+      "type": "string",
+      "description": "User/member ID of the actor (empty for anonymous/system events)"
+    },
+    "actor_email": {
+      "type": "string",
+      "description": "Actor email (denormalized for readability)"
+    },
+    "actor_role": {
+      "type": "string",
+      "description": "Actor role at time of event (admin, user, sales, media_partner, anonymous, system)"
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": [
+        "platform_user",
+        "sales_team_member",
+        "anonymous",
+        "system",
+        "webhook",
+        "integration"
+      ],
+      "description": "Type of actor"
+    },
+    "action": {
+      "type": "string",
+      "description": "Specific action performed (e.g. 'salesTeamLogin', 'changeSalesRepPassword')"
+    },
+    "target_type": {
+      "type": "string",
+      "description": "Type of target entity (e.g. 'SalesTeamMember', 'Contact')"
+    },
+    "target_id": {
+      "type": "string",
+      "description": "ID of the target record"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure",
+        "denied",
+        "error"
+      ],
+      "description": "Outcome of the event"
+    },
+    "reason": {
+      "type": "string",
+      "description": "High-level reason/error code (NEVER log secrets, passwords, tokens, or OTPs)"
+    },
+    "ip_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the source IP (never store raw IP)"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "Truncated user agent string (max 200 chars)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional non-sensitive context (NEVER include secrets, passwords, tokens, OTPs, or full payloads)",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "event_type",
+    "actor_type",
+    "action",
+    "result"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

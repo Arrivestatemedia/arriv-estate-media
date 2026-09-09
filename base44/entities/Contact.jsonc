@@ -152,30 +152,25 @@
           "type": "array",
           "items": {
             "type": "string"
-          },
-          "description": "Sales approaches that worked previously with this customer"
+          }
         },
         "objections": {
           "type": "array",
           "items": {
             "type": "string"
-          },
-          "description": "Known objections raised by this customer"
+          }
         },
         "decision_maker_preferences": {
           "type": "array",
           "items": {
             "type": "string"
-          },
-          "description": "Decision-maker preferences and priorities"
+          }
         },
         "relationship_notes": {
-          "type": "string",
-          "description": "Historical relationship context notes"
+          "type": "string"
         },
         "historical_context": {
-          "type": "string",
-          "description": "Historical selling context from Arriv One AI sales memory"
+          "type": "string"
         }
       },
       "description": "Canonical AI sales memory from Arriv One Customer360. Arriv One-authoritative."
@@ -186,8 +181,7 @@
         "type": "object",
         "properties": {
           "recommendation": {
-            "type": "string",
-            "description": "The recommendation that was made"
+            "type": "string"
           },
           "outcome": {
             "type": "string",
@@ -195,8 +189,7 @@
               "converted",
               "not_converted",
               "pending"
-            ],
-            "description": "Whether the recommendation converted"
+            ]
           },
           "date": {
             "type": "string",
@@ -217,12 +210,12 @@
       "items": {
         "type": "string"
       },
-      "description": "Canonical sales approach learning \u2014 what worked previously with this customer. Arriv One-authoritative."
+      "description": "Canonical sales approach learning. Arriv One-authoritative."
     },
     "intelligence_synced_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When Arriv One last refreshed the Customer360 intelligence fields on this contact. Arriv One-authoritative."
+      "description": "When Arriv One last refreshed the Customer360 intelligence fields. Arriv One-authoritative."
     },
     "intelligence_version": {
       "type": "integer",
@@ -231,12 +224,12 @@
     "new_customer_bonus_eligible": {
       "type": "boolean",
       "default": true,
-      "description": "Whether this customer is eligible for the $40 new-customer MLS sales bonus. True for brand-new customers who haven't consumed the bonus yet."
+      "description": "Whether this customer is eligible for the $40 new-customer MLS sales bonus."
     },
     "new_customer_bonus_consumed": {
       "type": "boolean",
       "default": false,
-      "description": "Whether the $40 new-customer MLS bonus has been consumed for this customer/account"
+      "description": "Whether the $40 new-customer MLS bonus has been consumed."
     },
     "new_customer_bonus_consumed_at": {
       "type": "string",
@@ -253,5 +246,47 @@
     }
   },
   "required": [],
-  "rls": {}
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

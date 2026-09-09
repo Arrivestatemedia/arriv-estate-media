@@ -93,6 +93,10 @@ export default async function(req: Request): Promise<Response> {
     }).catch(() => {}));
 
     // Emit recruiting.mutation to Khetha
+    // PII MINIMIZATION: Round 1 found that race, DOB, and signature were being
+    // transmitted to Khetha IQ via webhook despite the entity descriptions
+    // explicitly stating these fields should "NEVER sync to external systems."
+    // These EEOC-protected fields are now excluded from the webhook payload.
     const secret = secrets.get("ARRIV_ESTATE_MEDIA_SECRET") || "";
     const webhookUrl = "https://khetha-iq-by-arriv.base44.app/functions/estateMediaIntegrationWebhook";
     if (secret) {
@@ -104,14 +108,12 @@ export default async function(req: Request): Promise<Response> {
         email: email.toLowerCase(),
         phone,
         address: address || "",
-        dob: dob || "",
+        // EXCLUDED: dob, race, signature — EEOC-protected, never sync externally
         linkedin: linkedin || "",
         portfolio_link: portfolio_link || "",
         last_related_job: last_related_job || "",
         why_good_fit: why_good_fit || "",
-        race: race || "",
         eeoc_agreed: eeoc_agreed || false,
-        signature: signature || "",
         resume_url: resume_url || "",
         application_source: normalizedSource,
         utm_source: utm_source || "",
