@@ -123,7 +123,7 @@ export function isLegacyHash(storedHash: string): boolean {
  * Uses crypto.getRandomValues (not Math.random).
  */
 export function generateSecurePassword(length: number = 16): string {
-  const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
   const bytes = crypto.getRandomValues(new Uint8Array(length));
   let result = "";
   for (let i = 0; i < length; i++) {
