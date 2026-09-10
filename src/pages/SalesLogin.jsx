@@ -71,6 +71,13 @@ export default function SalesLogin() {
           localStorage.setItem(k, v);
           sessionStorage.setItem(k, v);
         });
+        // If the backend obtained a platform access token, set it on the SDK
+        // so RLS rules evaluate correctly (user.data.sales_member_id, user.role).
+        if (data.platform_access_token) {
+          try {
+            base44.auth.setToken(data.platform_access_token);
+          } catch (e) { /* non-critical — sales session still works */ }
+        }
         const tabHint = new URLSearchParams(window.location.search).get('tab');
         const tabSuffix = tabHint ? `?tab=${encodeURIComponent(tabHint)}` : '';
         // Force a password change before anything else (newly-onboarded reps)

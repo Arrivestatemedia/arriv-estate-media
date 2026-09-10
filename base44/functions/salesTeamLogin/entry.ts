@@ -148,6 +148,7 @@ Deno.serve(async (req) => {
 
     // Link platform user to sales team member for RLS
     let platformRole: string | null = null;
+    let platformAccessToken: string | null = null;
     try {
       const allUsers = await base44.asServiceRole.entities.User.list();
       const platformUser = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
@@ -158,6 +159,17 @@ Deno.serve(async (req) => {
         if (platformUser.role === 'admin') {
           platformRole = 'admin';
         }
+        // Try to obtain a platform access token so the browser SDK has a real
+        // platform session — this makes RLS rules (user.data.sales_member_id,
+        // user.role) evaluate correctly. If the platform password differs from
+        // the sales password this silently fails and the caller falls back to
+        // the sales-only session (same behaviour as before this change).
+        try {
+          const loginResult = await base44.auth.loginViaEmailPassword(email, password);
+          if (loginResult?.access_token) {
+            platformAccessToken = loginResult.access_token;
+          }
+        } catch (e) { /* platform password may differ — non-critical */ }
       }
     } catch (e) { /* non-critical */ }
 
@@ -177,7 +189,8 @@ Deno.serve(async (req) => {
       name: member.full_name,
       email: member.email,
       role: platformRole || member.role || 'user',
-      forcePasswordChange: member.force_password_change === true
+      forcePasswordChange: member.force_password_change === true,
+      platform_access_token: platformAccessToken,
     });
 
   } catch (error) {
