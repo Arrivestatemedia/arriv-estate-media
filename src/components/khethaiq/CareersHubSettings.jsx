@@ -47,6 +47,7 @@ export default function CareersHubSettings({ onClose }) {
     career_locations: [],
     career_social_links: { linkedin: "", facebook: "", x: "", instagram: "", website: "" },
     career_contact_email: "",
+    custom_domain: "",
     company_name: "Arriv Estate Media",
     logo_url: "",
     primary_color: "#B8956A",
@@ -168,6 +169,20 @@ export default function CareersHubSettings({ onClose }) {
                 <ExternalLink className="w-3 h-3" /> Preview live page
               </a>
             )}
+          </div>
+
+          {/* Custom Domain */}
+          <div>
+            <label style={labelStyle}>Custom Domain</label>
+            <input
+              value={settings.custom_domain || ""}
+              onChange={e => setSettings({ ...settings, custom_domain: e.target.value })}
+              placeholder="e.g. careers.yourcompany.com"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = GOLD}
+              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+            />
+            <p className="text-xs mt-1.5" style={{ color: MUTED }}>Connect a custom domain to host your careers hub on your own URL.</p>
           </div>
 
           {/* Company Description */}
@@ -293,11 +308,21 @@ export default function CareersHubSettings({ onClose }) {
                 <label style={{ ...labelStyle, fontSize: "12px", marginBottom: "4px" }}>Company Website</label>
                 <input value={settings.career_social_links?.website || ""} onChange={e => setSettings({ ...settings, career_social_links: { ...settings.career_social_links, website: e.target.value } })} placeholder="https://..." style={inputStyle} onFocus={e => e.target.style.borderColor = GOLD} onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"} />
               </div>
-              <div>
-                <label style={{ ...labelStyle, fontSize: "12px", marginBottom: "4px" }}>Contact Email</label>
-                <input value={settings.career_contact_email || ""} onChange={e => setSettings({ ...settings, career_contact_email: e.target.value })} placeholder="careers@yourcompany.com" style={inputStyle} onFocus={e => e.target.style.borderColor = GOLD} onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"} />
-              </div>
             </div>
+          </div>
+
+          {/* Contact Email */}
+          <div>
+            <label style={labelStyle}>Contact Email</label>
+            <input
+              value={settings.career_contact_email || ""}
+              onChange={e => setSettings({ ...settings, career_contact_email: e.target.value })}
+              placeholder="careers@yourcompany.com"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = GOLD}
+              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+            />
+            <p className="text-xs mt-1.5" style={{ color: MUTED }}>Email address candidates can reach for career inquiries.</p>
           </div>
         </div>
 
