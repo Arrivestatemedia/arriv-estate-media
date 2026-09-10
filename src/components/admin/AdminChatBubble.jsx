@@ -56,14 +56,17 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
 
     loadUnread();
 
-    const unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
-      if (event.type === "create" && event.data?.recipient_id === userId) {
-        setUnreadCount(prev => prev + 1);
-      }
-      if (event.type === "update" && event.data?.recipient_id === userId && event.data?.read) {
-        loadUnread();
-      }
-    });
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = base44.entities.DirectMessage.subscribe((event) => {
+        if (event.type === "create" && event.data?.recipient_id === userId) {
+          setUnreadCount(prev => prev + 1);
+        }
+        if (event.type === "update" && event.data?.recipient_id === userId && event.data?.read) {
+          loadUnread();
+        }
+      });
+    } catch (e) { console.error('[AdminChatBubble] DirectMessage subscribe failed:', e); }
 
     return unsubscribe;
   // eslint-disable-next-line react-hooks/exhaustive-deps
