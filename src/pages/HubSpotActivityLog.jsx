@@ -201,14 +201,12 @@ export default function HubSpotActivityLog({ embedded = false }) {
           }
 
           // Load existing unread incoming video calls and mark them as read immediately to prevent resurfacing
-          base44.entities.PendingNotification.filter({
-            recipient_id: salesMemberId,
-            event_type: 'incoming_video_call',
-            is_read: false
-          }).then(existing => {
+          base44.functions.invoke('manageSalesActivity', { action: 'get_pending_notifications', sales_member_id: salesMemberId, event_type: 'incoming_video_call' }).then(res => {
+            const resData = res?.data || res;
+            const existing = resData?.notifications || [];
             if (existing?.[0]) {
               console.log(`[HUBSPOT_ACTIVITY] Found existing unread incoming call notification, marking as read:`, existing[0].id);
-              base44.entities.PendingNotification.update(existing[0].id, { is_read: true }).catch(e => console.error('Failed to mark notification as read:', e));
+              base44.functions.invoke('manageSalesActivity', { action: 'mark_notification_read', sales_member_id: salesMemberId, notification_id: existing[0].id }).catch(e => console.error('Failed to mark notification as read:', e));
             }
           }).catch(() => {});
 
@@ -477,7 +475,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
     setActiveVideoCall(incomingVideoCall);
     setLastCallEvent('ACCEPT_INBOUND');
     setCallStatus("connected");
-    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    await base44.functions.invoke('manageSalesActivity', { action: 'mark_notification_read', sales_member_id: user?.id, notification_id: incomingVideoCall.notificationId }).catch(() => {});
     setIsVideoWindowOpen(true);
     setIncomingVideoCall(null);
     setVideoCallProcessing(false);
@@ -485,7 +483,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
 
   const handleDeclineVideoCall = async () => {
     if (!incomingVideoCall) return;
-    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    await base44.functions.invoke('manageSalesActivity', { action: 'mark_notification_read', sales_member_id: user?.id, notification_id: incomingVideoCall.notificationId }).catch(() => {});
     setIncomingVideoCall(null);
     setCallStatus("idle");
     setHasUnreadNotification(false);
@@ -569,7 +567,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
       return;
     }
     try {
-      await base44.entities.ActivityLog.update(editFormData.id, editFormData);
+      await base44.functions.invoke('manageSalesActivity', { action: 'update', sales_member_id: user?.id, activity_id: editFormData.id, data: editFormData });
       queryClient.invalidateQueries({ queryKey: ['activities'] });
       setSelectedActivity(editFormData);
       setEditingActivity(null);
@@ -582,7 +580,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
   const handleDeleteActivity = async (activity) => {
     if (window.confirm("Are you sure you want to delete this activity?")) {
       try {
-        await base44.entities.ActivityLog.delete(activity.id);
+        await base44.functions.invoke('manageSalesActivity', { action: 'delete', sales_member_id: user?.id, activity_id: activity.id });
         queryClient.invalidateQueries({ queryKey: ['activities'] });
         setSelectedActivity(null);
       } catch (error) {
@@ -949,7 +947,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
             if (destination.droppableId === 'history') {
               // Synchronous move to history
               const newDate = new Date(Date.now() - 60000).toISOString();
-              base44.entities.ActivityLog.update(activity.id, { activity_date: newDate })
+              base44.functions.invoke('manageSalesActivity', { action: 'update', sales_member_id: user?.id, activity_id: activity.id, data: { activity_date: newDate } })
                 .then(() => queryClient.invalidateQueries({ queryKey: ['activities'] }));
             } else {
               // Optimistically set to tomorrow 10am ET, then let AI refine in background
@@ -962,7 +960,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
               const optimisticDate = tomorrow.toISOString();
 
               // Save optimistic date immediately so drag completes visually
-              base44.entities.ActivityLog.update(activity.id, { activity_date: optimisticDate })
+              base44.functions.invoke('manageSalesActivity', { action: 'update', sales_member_id: user?.id, activity_id: activity.id, data: { activity_date: optimisticDate } })
                 .then(() => queryClient.invalidateQueries({ queryKey: ['activities'] }));
 
               // Now run AI in background to pick a smarter time
@@ -1012,7 +1010,7 @@ Return ONLY valid JSON, no extra text:
                 const minDate = new Date();
                 minDate.setDate(minDate.getDate() + 1);
                 const finalDate = etDate > minDate ? etDate.toISOString() : minDate.toISOString();
-                return base44.entities.ActivityLog.update(activity.id, { activity_date: finalDate });
+                return base44.functions.invoke('manageSalesActivity', { action: 'update', sales_member_id: user?.id, activity_id: activity.id, data: { activity_date: finalDate } });
               }).then(() => queryClient.invalidateQueries({ queryKey: ['activities'] })).catch(() => {});
             }
           }}>
@@ -1501,7 +1499,7 @@ Return ONLY valid JSON, no extra text:
             try {
               const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
               const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${editedText}`;
-              await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+              await base44.functions.invoke('manageSalesActivity', { action: 'update', sales_member_id: user?.id, activity_id: callMapActivity.id, data: { notes: updatedNotes } });
               console.log('[HubSpot] Call map edit saved successfully');
               setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
               queryClient.invalidateQueries({ queryKey: ['activities'] });
@@ -1762,7 +1760,7 @@ Keep every section short and conversational. Brad is calling directly — write 
                const newCallMap = typeof result === 'string' ? result : result?.text || result?.content || '';
               const existingShortNote = raw.replace(/\n\n--- CALL MAP ---[\s\S]*/i, '').trim();
               const updatedNotes = `${existingShortNote}\n\n--- CALL MAP ---\n${newCallMap}`;
-              await base44.entities.ActivityLog.update(callMapActivity.id, { notes: updatedNotes });
+              await base44.functions.invoke('manageSalesActivity', { action: 'update', sales_member_id: user?.id, activity_id: callMapActivity.id, data: { notes: updatedNotes } });
               setCallMapActivity(prev => ({ ...prev, notes: updatedNotes }));
               queryClient.invalidateQueries({ queryKey: ['activities'] });
             } finally {
