@@ -16,7 +16,7 @@ export default function DistributeJobModal({ job, onClose }) {
   const [aiLoading, setAiLoading] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
 
-  const baseUrl = window.location.origin;
+  const baseUrl = window.location.origin.replace("preview--", "");
   const jobPath = `/careers/${job.public_slug || job.job_id}`;
   const publicUrl = `${baseUrl}${jobPath}`;
   const allJobsUrl = `${baseUrl}/careers`;
