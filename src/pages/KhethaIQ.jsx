@@ -229,18 +229,6 @@ export default function KhethaIQ() {
     }
     setLinkingJob(hireJob);
     try {
-      // Pre-populate design_description with the current Arriv brand design
-      // elements so the preview matches the existing page aesthetic and
-      // saving doesn't override the design with a generic look.
-      const defaultDesign = [
-        "Arriv Brand Elevated aesthetic.",
-        "Dark hero section (#1A1A1A) with cream (#FFFBF5) serif typography and gold (#B8956A) accent badges.",
-        "Cream (#FFFBF5) page background with white cards and gold-bordered sections.",
-        "Serif headings (Georgia) in dark (#1A1A1A), body text in muted dark.",
-        "Section-based layout: hero with 'Now Hiring' badge and Apply button, 'About the Role', icon-grid 'What You'll Do', checklist 'What We're Looking For', star 'Nice to Have', pill-shaped 'Key Skills', card-grid 'Benefits', compensation summary, and a dark CTA footer with Apply button.",
-        "Gold primary buttons with dark text. Clean, modern, professional tone.",
-      ].join(" ");
-
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
         title: hireJob.title || "Untitled",
@@ -255,7 +243,6 @@ export default function KhethaIQ() {
         work_schedule: hireJob.work_schedule || "",
         source_url: hireJob.source_url || "",
         source_type: "text",
-        design_description: defaultDesign,
         page_description: hireJob.description || "",
       });
       const data = res?.data ?? res;
@@ -599,9 +586,12 @@ export default function KhethaIQ() {
                   {/* Existing jobs — clicking opens the job detail (questionnaire, applicants, etc.) */}
                   {jobs.map(job => {
                     const ss = statusStyle(job.status);
-                    const listingUrl = job.source_url
-                      || (job.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
-                        : job.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
+                    const linkedOpening = jobOpenings.find(jo => jo.title === job.title);
+                    const listingUrl = linkedOpening
+                      ? `/careers/${linkedOpening.public_slug || linkedOpening.job_id}`
+                      : (job.source_url
+                        || (job.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
+                          : job.source_application_position === "media_specialist" ? "/MediaSpecialist" : null));
                     return (
                       <div
                         key={job.id}
@@ -647,8 +637,10 @@ export default function KhethaIQ() {
                       </div>
                     );
                   })}
-                  {/* JobOpening records from the new system */}
-                  {jobOpenings.filter(j => j.status === "open").map(job => {
+                  {/* JobOpening records — only show those WITHOUT a matching HireJob
+                      (HireJobs that have been linked to a JobOpening already display
+                      their own card above with View Listing + Edit Page buttons) */}
+                  {jobOpenings.filter(j => j.status === "open" && !jobs.some(hj => hj.title === j.title)).map(job => {
                     const ss = statusStyle(job.status);
                     return (
                       <div
