@@ -27,10 +27,14 @@ export default function AdminChatWindow({ currentUserId, currentUserName }) {
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
-  // Load sales reps (non-admin, active users)
+  // Load sales reps (non-admin, active users).
+  // Use backend function to bypass RLS — sales-authenticated admins can
+  // only read their own SalesTeamMember record via the SDK.
   useEffect(() => {
-    base44.entities.SalesTeamMember.list().then(members => {
-      const reps = members?.filter(m => m.is_active && m.role !== 'admin') || [];
+    base44.functions.invoke('listAllSalesTeamMembers').then(res => {
+      const data = res?.data || res;
+      const members = data?.members || [];
+      const reps = members.filter(m => m.is_active && m.role !== 'admin');
       setSalesReps(reps);
     }).catch(() => {});
   }, []);

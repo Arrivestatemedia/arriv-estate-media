@@ -50,7 +50,12 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
   }, [currentUserId, salesMemberId, isAdmin]);
 
   useEffect(() => {
-    base44.entities.SalesTeamMember.list().then(members => {
+    // Use backend function to bypass RLS — sales-authenticated users can
+    // only read their own SalesTeamMember record via the SDK, so profile
+    // pictures and chat statuses for other members would be missing.
+    base44.functions.invoke('listAllSalesTeamMembers').then(res => {
+      const data = res?.data || res;
+      const members = data?.members || [];
       const profiles = {};
       const statuses = {};
       members?.forEach(m => {

@@ -172,9 +172,18 @@ export default function ChatSidebar({ currentUserId, currentUserName, currentUse
 
     const conversationIds = Object.keys(conversations);
     if (conversationIds.length > 0) {
-      const members = await base44.entities.SalesTeamMember.filter({
-        id: { $in: conversationIds }
-      });
+      // Use backend function to bypass RLS — sales-authenticated users can
+      // only read their own SalesTeamMember record via the SDK, so the
+      // filter call returns nothing for other members and DM names fall
+      // back to raw IDs.
+      let members = [];
+      try {
+        const res = await base44.functions.invoke('listAllSalesTeamMembers');
+        const data = res?.data || res;
+        members = data?.members || [];
+      } catch (e) {
+        console.error('Failed to load team members for DM names:', e);
+      }
       const memberMap = {};
       members?.forEach(m => { memberMap[m.id] = m.full_name; });
 
@@ -190,8 +199,17 @@ export default function ChatSidebar({ currentUserId, currentUserName, currentUse
   };
 
   const loadTeamMembers = async () => {
-    const members = await base44.entities.SalesTeamMember.list();
-    setTeamMembers(members?.filter(m => m.id !== currentUserId && m.is_active !== false) || []);
+    // Use backend function to bypass RLS — sales-authenticated users can
+    // only read their own SalesTeamMember record via the SDK.
+    try {
+      const res = await base44.functions.invoke('listAllSalesTeamMembers');
+      const data = res?.data || res;
+      const members = data?.members || [];
+      setTeamMembers(members.filter(m => m.id !== currentUserId && m.is_active !== false));
+    } catch (e) {
+      console.error('Failed to load team members:', e);
+      setTeamMembers([]);
+    }
   };
 
   const handleCreateChannel = async () => {
