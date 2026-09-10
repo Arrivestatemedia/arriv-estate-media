@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { base44 } from "@/api/base44Client";
 import {
   Camera,
   Video,
@@ -20,9 +21,15 @@ import {
   FileText,
   UserCheck,
   ClipboardList,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BackToMainSiteButton from "@/components/BackToMainSiteButton";
+import { MEDIA_JOB_ATLANTA_DEFAULTS } from "@/lib/mediaJobAtlantaDefaults";
+
+const GOLD = "#B8956A";
+const TEXT_DARK = "#1A1A1A";
+const CREAM = "#FFFBF5";
 
 const PROJECTS = [
   { icon: Building2, label: "Residential real estate photography" },
@@ -87,12 +94,12 @@ function Section({ eyebrow, title, children, id }) {
   return (
     <section id={id} className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 py-12 sm:py-16">
       {eyebrow && (
-        <p className="text-xs font-semibold tracking-[0.18em] uppercase mb-3" style={{ color: "#B8956A" }}>
+        <p className="text-xs font-semibold tracking-[0.18em] uppercase mb-3" style={{ color: GOLD }}>
           {eyebrow}
         </p>
       )}
       {title && (
-        <h2 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: "#1A1A1A" }}>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: TEXT_DARK }}>
           {title}
         </h2>
       )}
@@ -113,10 +120,10 @@ function FaqItem({ q, a }) {
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between gap-4 text-left px-5 py-4"
       >
-        <span className="text-sm sm:text-base font-semibold" style={{ color: "#1A1A1A" }}>{q}</span>
+        <span className="text-sm sm:text-base font-semibold" style={{ color: TEXT_DARK }}>{q}</span>
         <ChevronDown
           className="w-5 h-5 flex-shrink-0 transition-transform"
-          style={{ color: "#B8956A", transform: open ? "rotate(180deg)" : "none" }}
+          style={{ color: GOLD, transform: open ? "rotate(180deg)" : "none" }}
         />
       </button>
       {open && (
@@ -129,12 +136,56 @@ function FaqItem({ q, a }) {
 }
 
 export default function AboutJobAtlanta() {
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await base44.functions.invoke("getPublicJobPage", {
+          source_url: "/MediaSpecialistAtl",
+          host: window.location.hostname,
+        });
+        const d = res?.data ?? res;
+        if (d?.job) {
+          setJob(d.job);
+          if (d.job.title) document.title = `${d.job.title} at Arriv Estate Media`;
+        }
+      } catch (_) {}
+      setLoading(false);
+    })();
+    return () => { document.title = "Arriv Estate Media"; };
+  }, []);
+
+  // Derive display values from the JobOpening, falling back to defaults.
+  const title = job?.title || MEDIA_JOB_ATLANTA_DEFAULTS.title;
+  const subtitle = job?.page_description || job?.description_text || MEDIA_JOB_ATLANTA_DEFAULTS.page_description;
+  const projectItems = job?.responsibilities?.length
+    ? job.responsibilities.map(label => ({ icon: Camera, label }))
+    : PROJECTS;
+  const qualifications = job?.required_qualifications?.length
+    ? job.required_qualifications
+    : MEDIA_JOB_ATLANTA_DEFAULTS.required_qualifications;
+  const preferred = job?.preferred_qualifications?.length
+    ? job.preferred_qualifications
+    : (job?.skills?.length ? job.skills : MEDIA_JOB_ATLANTA_DEFAULTS.preferred_qualifications);
+  const benefits = job?.benefits?.length ? job.benefits : MEDIA_JOB_ATLANTA_DEFAULTS.benefits;
+  const locationLabel = job?.location || "Metro Atlanta";
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: CREAM }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: GOLD }} />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#FFFBF5", color: "#1A1A1A" }}>
+    <div className="min-h-screen" style={{ backgroundColor: CREAM, color: TEXT_DARK }}>
       {/* Hero */}
       <header
         className="px-5 sm:px-6 lg:px-8 pt-16 pb-14 sm:pt-20 sm:pb-20"
-        style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}
+        style={{ backgroundColor: "#1A1A1A", color: CREAM }}
       >
         <div className="max-w-5xl mx-auto">
           <BackToMainSiteButton />
@@ -142,29 +193,28 @@ export default function AboutJobAtlanta() {
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
             style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}
           >
-            <Star className="w-3.5 h-3.5" style={{ color: "#B8956A" }} />
-            <span className="text-xs font-semibold tracking-wide" style={{ color: "#B8956A" }}>
+            <Star className="w-3.5 h-3.5" style={{ color: GOLD }} />
+            <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>
               Founding Media Specialist – Metro Atlanta Launch
             </span>
           </div>
           <div className="flex items-center gap-2 mb-6">
-            <Camera className="w-4 h-4" style={{ color: "#B8956A" }} />
-            <span className="text-xs font-semibold tracking-[0.18em] uppercase" style={{ color: "#B8956A" }}>
+            <Camera className="w-4 h-4" style={{ color: GOLD }} />
+            <span className="text-xs font-semibold tracking-[0.18em] uppercase" style={{ color: GOLD }}>
               Careers
             </span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-bold leading-tight max-w-3xl">
-            Get paid for additional real estate media projects on your schedule.
+            {title}
           </h1>
           <p className="mt-5 text-base sm:text-lg max-w-2xl" style={{ color: "rgba(255,251,245,0.78)" }}>
-            Join Arriv Estate Media's growing network of professional photographers and videographers.
-            Accept only the projects you want while continuing to grow your own business.
+            {subtitle}
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button
               asChild
               className="rounded-lg font-semibold"
-              style={{ backgroundColor: "#B8956A", color: "#1A1A1A" }}
+              style={{ backgroundColor: GOLD, color: TEXT_DARK }}
             >
               <Link to={createPageUrl("JobApplication")}>
                 Apply Now <ArrowRight className="w-4 h-4 ml-1" />
@@ -173,7 +223,7 @@ export default function AboutJobAtlanta() {
             <a
               href="#how-it-works"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-              style={{ color: "#FFFBF5", border: "1px solid rgba(184,149,106,0.4)" }}
+              style={{ color: CREAM, border: "1px solid rgba(184,149,106,0.4)" }}
             >
               Learn more
             </a>
@@ -182,12 +232,12 @@ export default function AboutJobAtlanta() {
       </header>
 
       {/* Trust badges */}
-      <div style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}>
+      <div style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 pb-10 -mt-2">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             {TRUST.map((t) => (
               <div key={t} className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" style={{ color: "#B8956A" }} />
+                <CheckCircle2 className="w-4 h-4" style={{ color: GOLD }} />
                 <span className="text-sm font-medium" style={{ color: "rgba(255,251,245,0.9)" }}>{t}</span>
               </div>
             ))}
@@ -195,13 +245,13 @@ export default function AboutJobAtlanta() {
         </div>
       </div>
 
-      {/* Goal statement — moved higher */}
+      {/* Goal statement */}
       <Section id="goal">
         <div
           className="rounded-2xl p-6 sm:p-8"
           style={{ backgroundColor: "rgba(184,149,106,0.1)", border: "1px solid rgba(184,149,106,0.3)" }}
         >
-          <p className="text-base sm:text-lg leading-relaxed" style={{ color: "#1A1A1A" }}>
+          <p className="text-base sm:text-lg leading-relaxed" style={{ color: TEXT_DARK }}>
             <strong>Our goal:</strong> help fill gaps in your schedule while allowing you to continue growing
             your own business. Consistent project opportunities as our platform grows.
           </p>
@@ -219,11 +269,11 @@ export default function AboutJobAtlanta() {
             >
               <span
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm"
-                style={{ backgroundColor: "#1A1A1A", color: "#B8956A" }}
+                style={{ backgroundColor: "#1A1A1A", color: GOLD }}
               >
                 {i + 1}
               </span>
-              <span className="text-sm font-medium" style={{ color: "#1A1A1A" }}>{label}</span>
+              <span className="text-sm font-medium" style={{ color: TEXT_DARK }}>{label}</span>
             </div>
           ))}
         </div>
@@ -232,21 +282,20 @@ export default function AboutJobAtlanta() {
       {/* About */}
       <Section eyebrow="About Arriv Estate Media" id="about">
         <p className="text-lg leading-relaxed max-w-3xl" style={{ color: "rgba(26,26,26,0.78)" }}>
-          Arriv Estate Media connects real estate agents, builders, and property managers with trusted media
-          specialists. We handle the booking and project management so you can focus on creating great content.
+          {job?.description_text || MEDIA_JOB_ATLANTA_DEFAULTS.description_text}
         </p>
         <div
           className="mt-8 rounded-2xl p-6 sm:p-8"
           style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.25)" }}
         >
           <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: "#B8956A" }} />
+            <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: GOLD }} />
             <div>
-              <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>
-                Now launching in Metro Atlanta
+              <h3 className="font-semibold" style={{ color: TEXT_DARK }}>
+                Now launching in {locationLabel}
               </h3>
               <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-                We're currently expanding our network of media specialists as we prepare to launch in Metro Atlanta.
+                We're currently expanding our network of media specialists as we prepare to launch in {locationLabel}.
                 Join early and grow with us.
               </p>
             </div>
@@ -260,7 +309,7 @@ export default function AboutJobAtlanta() {
           As an independent contractor, you'll have the flexibility to accept projects that fit your schedule.
         </p>
         <div className="grid sm:grid-cols-2 gap-3">
-          {PROJECTS.map(({ icon: Icon, label }) => (
+          {projectItems.map(({ icon: Icon, label }) => (
             <div
               key={label}
               className="flex items-center gap-3 rounded-xl px-4 py-3.5"
@@ -270,9 +319,9 @@ export default function AboutJobAtlanta() {
                 className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "rgba(184,149,106,0.12)" }}
               >
-                <Icon className="w-5 h-5" style={{ color: "#B8956A" }} />
+                <Icon className="w-5 h-5" style={{ color: GOLD }} />
               </span>
-              <span className="text-sm font-medium" style={{ color: "#1A1A1A" }}>{label}</span>
+              <span className="text-sm font-medium" style={{ color: TEXT_DARK }}>{label}</span>
             </div>
           ))}
         </div>
@@ -295,11 +344,11 @@ export default function AboutJobAtlanta() {
                   className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
                   style={{ backgroundColor: "#1A1A1A" }}
                 >
-                  <Icon className="w-5 h-5" style={{ color: "#B8956A" }} />
+                  <Icon className="w-5 h-5" style={{ color: GOLD }} />
                 </span>
-                <h3 className="font-semibold flex items-center gap-1.5" style={{ color: "#1A1A1A" }}>
+                <h3 className="font-semibold flex items-center gap-1.5" style={{ color: TEXT_DARK }}>
                   {label}
-                  {isGrow && <ArrowRight className="w-4 h-4" style={{ color: "#B8956A" }} />}
+                  {isGrow && <ArrowRight className="w-4 h-4" style={{ color: GOLD }} />}
                 </h3>
                 <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>{desc}</p>
               </div>
@@ -318,34 +367,19 @@ export default function AboutJobAtlanta() {
       {/* Qualifications + Preferred */}
       <Section eyebrow="Qualifications" title="What we're looking for">
         <div className="grid sm:grid-cols-2 gap-x-10 gap-y-3">
-          {[
-            "Experience photographing residential real estate",
-            "Professional camera equipment",
-            "Reliable transportation",
-            "Strong communication skills",
-            "Ability to meet deadlines",
-            "Attention to detail",
-          ].map((q) => (
+          {qualifications.map((q) => (
             <div key={q} className="flex items-start gap-2.5 py-1">
-              <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: "#B8956A" }} />
+              <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: GOLD }} />
               <span className="text-sm" style={{ color: "rgba(26,26,26,0.8)" }}>{q}</span>
             </div>
           ))}
         </div>
 
-        <h3 className="text-lg font-semibold mt-10 mb-4" style={{ color: "#1A1A1A" }}>
+        <h3 className="text-lg font-semibold mt-10 mb-4" style={{ color: TEXT_DARK }}>
           Preferred Experience
         </h3>
         <div className="flex flex-wrap gap-2">
-          {[
-            "HDR Photography",
-            "Adobe Lightroom",
-            "Photoshop",
-            "Matterport",
-            "Zillow 3D Home",
-            "Real estate video editing",
-            "Drone photography",
-          ].map((p) => (
+          {preferred.map((p) => (
             <span
               key={p}
               className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-medium"
@@ -361,15 +395,17 @@ export default function AboutJobAtlanta() {
       <Section eyebrow="Job Type & Compensation">
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
-            <Clock className="w-5 h-5 mb-3" style={{ color: "#B8956A" }} />
-            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>Independent Contractor</h3>
+            <Clock className="w-5 h-5 mb-3" style={{ color: GOLD }} />
+            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>
+              {job?.employment_type ? job.employment_type.replace(/_/g, " ") : "Independent Contractor"}
+            </h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
-              Work is assigned on a per-project basis. Flexible schedule.
+              Work is assigned on a per-project basis. {job?.work_schedule || "Flexible schedule"}.
             </p>
           </div>
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
-            <Wallet className="w-5 h-5 mb-3" style={{ color: "#B8956A" }} />
-            <h3 className="font-semibold" style={{ color: "#1A1A1A" }}>Get Paid Per Project</h3>
+            <Wallet className="w-5 h-5 mb-3" style={{ color: GOLD }} />
+            <h3 className="font-semibold" style={{ color: TEXT_DARK }}>{job?.compensation || "Get Paid Per Project"}</h3>
             <p className="mt-1 text-sm" style={{ color: "rgba(26,26,26,0.65)" }}>
               Transparent per-project payouts based on the services requested.
             </p>
@@ -379,10 +415,12 @@ export default function AboutJobAtlanta() {
           className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl px-6 py-4"
           style={{ backgroundColor: "rgba(26,26,26,0.04)", border: "1px solid rgba(184,149,106,0.2)" }}
         >
-          <span className="text-xs font-semibold tracking-wide uppercase" style={{ color: "#B8956A" }}>Benefits</span>
-          <span className="text-sm" style={{ color: "rgba(26,26,26,0.75)" }}>Flexible schedule</span>
-          <span className="text-sm" style={{ color: "rgba(26,26,26,0.75)" }}>·</span>
-          <span className="text-sm" style={{ color: "rgba(26,26,26,0.75)" }}>Work Location: In person</span>
+          <span className="text-xs font-semibold tracking-wide uppercase" style={{ color: GOLD }}>Benefits</span>
+          {benefits.map((b, i) => (
+            <span key={i} className="text-sm" style={{ color: "rgba(26,26,26,0.75)" }}>
+              {b}{i < benefits.length - 1 && <span className="mx-2">·</span>}
+            </span>
+          ))}
         </div>
       </Section>
 
@@ -396,14 +434,14 @@ export default function AboutJobAtlanta() {
       </Section>
 
       {/* CTA */}
-      <section style={{ backgroundColor: "#1A1A1A", color: "#FFFBF5" }}>
+      <section style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 py-14 text-center">
           <div
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
             style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}
           >
-            <Star className="w-3.5 h-3.5" style={{ color: "#B8956A" }} />
-            <span className="text-xs font-semibold tracking-wide" style={{ color: "#B8956A" }}>
+            <Star className="w-3.5 h-3.5" style={{ color: GOLD }} />
+            <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>
               Limited onboarding spots available during our Metro Atlanta launch
             </span>
           </div>
@@ -416,7 +454,7 @@ export default function AboutJobAtlanta() {
               asChild
               size="lg"
               className="rounded-lg font-semibold"
-              style={{ backgroundColor: "#B8956A", color: "#1A1A1A" }}
+              style={{ backgroundColor: GOLD, color: TEXT_DARK }}
             >
               <Link to={createPageUrl("JobApplication")}>
                 Apply Now <ArrowRight className="w-4 h-4 ml-2" />

@@ -34,6 +34,7 @@ import EditJobPageModal from "@/components/khethaiq/EditJobPageModal";
 import CareersHubSettings from "@/components/khethaiq/CareersHubSettings";
 import { SALES_JOB_DEFAULTS } from "@/lib/salesJobDefaults";
 import { MEDIA_JOB_DEFAULTS } from "@/lib/mediaJobDefaults";
+import { MEDIA_JOB_ATLANTA_DEFAULTS } from "@/lib/mediaJobAtlantaDefaults";
 
 // Map manifest icon names to lucide-react components.
 // Matches the central KhethaIQ app's ICON_MAP.
@@ -226,8 +227,10 @@ export default function KhethaIQ() {
   // already exists (by title), open the edit modal with it. Otherwise, create
   // a JobOpening from the HireJob's data first, then open the edit modal.
   const handleEditPage = async (hireJob) => {
+    const isAtlanta = (hireJob.title || "").toLowerCase().includes("atlanta") || (hireJob.location || "").toLowerCase().includes("atlanta");
     const legacyUrl = hireJob.source_url
       || (hireJob.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
+        : isAtlanta ? "/MediaSpecialistAtl"
         : hireJob.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
     const match = jobOpenings.find(jo => jo.title === hireJob.title);
     if (match) {
@@ -258,6 +261,7 @@ export default function KhethaIQ() {
       // by default — so the edit modal opens with the same words the page
       // displays, and edits stay in sync with the preview.
       const d = legacyUrl === "/SalesGrowthAdvisor" ? SALES_JOB_DEFAULTS
+        : legacyUrl === "/MediaSpecialistAtl" ? MEDIA_JOB_ATLANTA_DEFAULTS
         : legacyUrl === "/MediaSpecialist" ? MEDIA_JOB_DEFAULTS : {};
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
