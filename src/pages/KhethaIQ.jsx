@@ -228,6 +228,20 @@ export default function KhethaIQ() {
         : hireJob.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
     const match = jobOpenings.find(jo => jo.title === hireJob.title);
     if (match) {
+      // Ensure the JobOpening is linked to its listing URL so the public page
+      // (e.g. /SalesGrowthAdvisor) can find and render it. Backfills older
+      // records that were created before source_url was stored.
+      if (!match.source_url && listingUrl) {
+        try {
+          const upd = await base44.functions.invoke("createJobPage", {
+            action: "update",
+            job_opening_id: match.id,
+            source_url: listingUrl,
+          });
+          const updated = upd?.data?.job_opening || upd?.job_opening || { ...match, source_url: listingUrl };
+          setJobOpenings(prev => prev.map(j => j.id === match.id ? { ...j, ...updated } : j));
+        } catch (_) {}
+      }
       setEditingPreviewUrl(listingUrl);
       setEditingJobOpening(match);
       return;
@@ -246,7 +260,7 @@ export default function KhethaIQ() {
         experience_requirements: hireJob.experience_requirements || "",
         compensation: hireJob.compensation || "",
         work_schedule: hireJob.work_schedule || "",
-        source_url: hireJob.source_url || "",
+        source_url: listingUrl || hireJob.source_url || "",
         source_type: "text",
         page_description: hireJob.description || "",
       });

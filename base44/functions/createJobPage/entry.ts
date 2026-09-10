@@ -69,13 +69,14 @@ export default async function(req: Request): Promise<Response> {
     // action === "update"
     if (action === "update") {
       if (!job_opening_id) return Response.json({ error: 'job_opening_id is required' }, { status: 400 });
-      if (!title) return Response.json({ error: 'Title is required' }, { status: 400 });
 
       // Fetch the existing record so we can preserve fields that aren't
       // explicitly provided in the update — prevents overriding existing
       // design elements with empty defaults.
       const existing = await base44.asServiceRole.entities.JobOpening.get(job_opening_id);
       const existingData = existing?.data ?? existing ?? {};
+
+      if (!title && !existingData.title) return Response.json({ error: 'Title is required' }, { status: 400 });
 
       const updateData = {
         title: title || existingData.title || "",
@@ -96,6 +97,7 @@ export default async function(req: Request): Promise<Response> {
         benefits: benefits || existingData.benefits || [],
         page_description: page_description || existingData.page_description || "",
         design_description: design_description || existingData.design_description || "",
+        source_url: source_url || existingData.source_url || "",
         public_visibility: body.public_visibility !== undefined ? body.public_visibility : (existingData.public_visibility !== false),
         status: body.status || existingData.status || "open",
       };

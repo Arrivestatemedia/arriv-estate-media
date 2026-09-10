@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const {
-      slug, job_id, host,
+      slug, job_id, source_url, host,
       source, utm_source, utm_medium, utm_campaign, utm_content,
       referrer_url, landing_page_url, session_id,
     } = body;
@@ -23,6 +23,11 @@ export default async function(req: Request): Promise<Response> {
     }
     if (!job && job_id) {
       const res = await base44.asServiceRole.entities.JobOpening.filter({ tenant_id: tenantId, job_id: job_id });
+      const list = res?.data ?? res ?? [];
+      job = Array.isArray(list) ? list[0] : null;
+    }
+    if (!job && source_url) {
+      const res = await base44.asServiceRole.entities.JobOpening.filter({ tenant_id: tenantId, source_url });
       const list = res?.data ?? res ?? [];
       job = Array.isArray(list) ? list[0] : null;
     }
