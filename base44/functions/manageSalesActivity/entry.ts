@@ -134,7 +134,11 @@ export default async function(req) {
 
       case 'create_queue_insight': {
         // DailyCallQueue — save AI learning insight
-        const insightData = { ...data, sales_member_id };
+        const insightData = {
+          ...data,
+          sales_member_id,
+          logged_at: data?.logged_at || new Date().toISOString(),
+        };
         const created = await base44.asServiceRole.entities.QueueInsight.create(insightData);
         return Response.json({ insight: created });
       }
