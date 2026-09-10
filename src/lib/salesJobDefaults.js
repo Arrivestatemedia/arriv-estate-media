@@ -34,4 +34,6 @@ export const SALES_JOB_DEFAULTS = {
   compensation: "100% Commission + $500 Training Bonus",
   work_schedule: "Flexible",
   location: "Remote – Work From Anywhere",
+  design_description:
+    "Professional, warm layout on a cream (#FFFBF5) background with gold (#B8956A) accents and dark text (#1A1A1A). Serif headings (Georgia/Times New Roman) with sans-serif body text. Hero section with large headline and 'Apply Now' CTA. 'Who You'll Build Relationships With' grid with five icon cards (agents, teams, brokerages, builders, property management). Responsibilities list section. Required qualifications section. Seven-item training topics grid with icons. 'Why Join' section with six benefit cards ($500 training bonus, uncapped commission, flexible, comprehensive training, career growth, shape the future). FAQ accordion. Final CTA section. Clean, modern structure with clear section breaks.",
 };

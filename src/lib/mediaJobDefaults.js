@@ -40,4 +40,6 @@ export const MEDIA_JOB_DEFAULTS = {
   work_schedule: "Flexible schedule",
   location: "Maryland",
   benefits: ["Flexible schedule", "Work Location: In person"],
+  design_description:
+    "Warm, inviting layout on a cream (#FFFBF5) background with gold (#B8956A) accents and dark text (#1A1A1A). Serif headings (Georgia/Times New Roman) with sans-serif body text. Hero section with large headline and 'Apply Now' CTA button. Six-item project types grid with icons (residential photography, luxury, video, drone, twilight, floor plans). 'Why Join' section with four icon cards (flexible schedule, additional income, grow with us, no exclusivity). Six-step 'How It Works' process with numbered icons. FAQ accordion with expand/collapse. Final CTA section with apply button. Clean, modern structure with generous whitespace and clear section breaks.",
 };

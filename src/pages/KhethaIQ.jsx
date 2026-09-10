@@ -296,6 +296,7 @@ export default function KhethaIQ() {
         source_url: legacyUrl || hireJob.source_url || "",
         source_type: "text",
         page_description: d.page_description || hireJob.description || "",
+        design_description: d.design_description || hireJob.design_description || "",
         email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "",
       });
       const data = res?.data ?? res;
