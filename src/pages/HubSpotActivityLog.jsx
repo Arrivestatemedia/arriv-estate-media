@@ -211,7 +211,8 @@ export default function HubSpotActivityLog({ embedded = false }) {
           }).catch(() => {});
 
           // Listen for incoming video call notifications (STRICTLY create events only)
-          const videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
+          let videoCallSub = () => {};
+          try { videoCallSub = base44.entities.PendingNotification.subscribe((event) => {
             console.log(`[HUBSPOT_ACTIVITY] PendingNotification event:`, {
               type: event.type,
               event_type: event.data?.event_type,
@@ -243,7 +244,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
                 recipientToken: d.recipientToken
               });
               }
-              });
+              }); } catch (e) { console.error('[HUBSPOT_ACTIVITY] PendingNotification subscribe failed:', e); }
 
       return () => { smsSub(); callSub(); videoCallSub(); };
     } else {
@@ -348,11 +349,14 @@ export default function HubSpotActivityLog({ embedded = false }) {
   useEffect(() => {
     if (!user?.id) return;
     
-    const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
-      if (event.data?.sales_member_id === user.id) {
-        queryClient.invalidateQueries({ queryKey: ['activities', user?.email] });
-      }
-    });
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
+        if (event.data?.sales_member_id === user.id) {
+          queryClient.invalidateQueries({ queryKey: ['activities', user?.email] });
+        }
+      });
+    } catch (e) { console.error('[HUBSPOT_ACTIVITY] ActivityLog subscribe failed:', e); }
     
     return unsubscribe;
   }, [user?.id, user?.email, queryClient]);

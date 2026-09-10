@@ -182,18 +182,17 @@ export default function AdminHub() {
   useEffect(() => {
     if (!user?.id) return;
 
-    // Mark any stale unread notifications as read
-    base44.entities.PendingNotification.filter({
-      recipient_id: user.id,
-      event_type: 'incoming_video_call',
-      is_read: false
-    }).then(existing => {
+    // Mark any stale unread notifications as read (via backend to bypass RLS)
+    base44.functions.invoke('manageSalesActivity', { action: 'get_pending_notifications', sales_member_id: user.id, event_type: 'incoming_video_call' }).then(res => {
+      const resData = res?.data || res;
+      const existing = resData?.notifications || [];
       if (existing?.[0]) {
-        base44.entities.PendingNotification.update(existing[0].id, { is_read: true }).catch(() => {});
+        base44.functions.invoke('manageSalesActivity', { action: 'mark_notification_read', sales_member_id: user.id, notification_id: existing[0].id }).catch(() => {});
       }
-    });
+    }).catch(() => {});
 
-    const unsub = base44.entities.PendingNotification.subscribe((event) => {
+    let unsub = () => {};
+    try { unsub = base44.entities.PendingNotification.subscribe((event) => {
        // When we initiated an outgoing call, hide the chat bubble immediately
        if (event.type === 'create' && event.data?.event_type === 'outgoing_video_call' && event.data?.recipient_id === user.id) {
          setCallStatus("calling");
@@ -218,7 +217,7 @@ export default function AdminHub() {
            recipientToken: d.recipientToken
          });
          }
-         });
+         }); } catch (e) { console.error('[ADMIN_HUB] PendingNotification subscribe failed:', e); }
 
         return () => unsub();
         }, [user?.id]);
@@ -228,7 +227,7 @@ export default function AdminHub() {
     setVideoCallProcessing(true);
     setCallStatus("connecting");
     setHasUnreadNotification(false);
-    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    await base44.functions.invoke('manageSalesActivity', { action: 'mark_notification_read', sales_member_id: user?.id, notification_id: incomingVideoCall.notificationId }).catch(() => {});
     setActiveVideoCall(incomingVideoCall);
     setLastCallEvent('ACCEPT_INBOUND');
     setCallStatus("connected");
@@ -240,7 +239,7 @@ export default function AdminHub() {
 
   const handleDeclineVideoCall = async () => {
     if (!incomingVideoCall) return;
-    await base44.entities.PendingNotification.update(incomingVideoCall.notificationId, { is_read: true }).catch(() => {});
+    await base44.functions.invoke('manageSalesActivity', { action: 'mark_notification_read', sales_member_id: user?.id, notification_id: incomingVideoCall.notificationId }).catch(() => {});
     setIncomingVideoCall(null);
   };
 
