@@ -20,26 +20,37 @@ export default function AdminSalesRepActivity() {
   const [activeTab, setActiveTab] = useState("activity");
 
   useEffect(() => {
-    const salesMemberId = localStorage.getItem('sales_member_id');
-    const salesMemberEmail = localStorage.getItem('sales_member_email');
+    const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+    const salesMemberEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email');
+    const salesMemberName = localStorage.getItem('sales_member_name') || sessionStorage.getItem('sales_member_name');
+    const salesMemberRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
 
-    if (salesMemberId && salesMemberEmail) {
-      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-        if (members?.[0]?.role === 'admin') {
-          setUser({ id: salesMemberId, email: salesMemberEmail, full_name: localStorage.getItem('sales_member_name'), role: 'admin' });
-        } else {
-          window.location.href = '/HubSpotActivityLog';
-        }
-      }).catch(() => { window.location.href = '/HubSpotActivityLog'; });
-    } else {
-      base44.auth.me().then((authUser) => {
-        if (authUser?.role === 'admin') {
-          setUser(authUser);
-        } else {
-          window.location.href = '/';
-        }
-      });
-    }
+    // Check Base44 platform admin role first (takes precedence over SalesTeamMember role)
+    const checkPlatformAdmin = base44.auth.isAuthenticated()
+      .then((isAuth) => isAuth ? base44.auth.me() : null)
+      .then((me) => me?.role === 'admin')
+      .catch(() => false);
+
+    checkPlatformAdmin.then((platformIsAdmin) => {
+      // Fast path: platform admin or stored sales admin role
+      if (platformIsAdmin || salesMemberRole === 'admin') {
+        setUser({ id: salesMemberId, email: salesMemberEmail, full_name: salesMemberName, role: 'admin' });
+        return;
+      }
+
+      if (salesMemberId && salesMemberEmail) {
+        base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
+          if (members?.[0]?.role === 'admin') {
+            setUser({ id: salesMemberId, email: salesMemberEmail, full_name: salesMemberName, role: 'admin' });
+          } else {
+            window.location.href = '/HubSpotActivityLog';
+          }
+        }).catch(() => { window.location.href = '/HubSpotActivityLog'; });
+      } else {
+        // No sales session — already checked platform admin above
+        window.location.href = '/';
+      }
+    });
   }, []);
 
   const { data: salesMembers = [] } = useQuery({
