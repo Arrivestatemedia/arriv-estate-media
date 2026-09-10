@@ -19,6 +19,10 @@
       "type": "string",
       "description": "Tenant's natural-language description of what they want the page to convey (separate from raw JD)"
     },
+    "design_description": {
+      "type": "string",
+      "description": "Tenant's natural-language description of the desired page design (colors, structure, layout style, etc.)"
+    },
     "title": {
       "type": "string",
       "description": "Job title"

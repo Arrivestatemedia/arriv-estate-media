@@ -30,6 +30,7 @@ import ReminderQueueView from "@/components/khethaiq/ReminderQueueView";
 import AsyncInterviewManagerContent from "@/components/interviews/AsyncInterviewManagerContent";
 import PerformanceDataView from "@/components/hireiq/PerformanceDataView";
 import JobPageBuilder from "@/components/khethaiq/JobPageBuilder";
+import EditJobPageModal from "@/components/khethaiq/EditJobPageModal";
 import CareersHubSettings from "@/components/khethaiq/CareersHubSettings";
 
 // Map manifest icon names to lucide-react components.
@@ -85,6 +86,7 @@ export default function KhethaIQ() {
   const [pendingAppAction, setPendingAppAction] = useState(null);
   const [showJobPageBuilder, setShowJobPageBuilder] = useState(false);
   const [showCareersHubSettings, setShowCareersHubSettings] = useState(false);
+  const [editingJobOpening, setEditingJobOpening] = useState(null);
   const [jobOpenings, setJobOpenings] = useState([]);
 
   // Navigation history stack — each entry is a snapshot of the view state.
@@ -590,10 +592,19 @@ export default function KhethaIQ() {
                           <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: ss.bg, color: ss.text }}>{job.status}</span>
                         </div>
                         <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
-                        <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
-                          {job.location && <span>{job.location}</span>}
-                          {job.employment_type && <span className="capitalize">{job.employment_type.replace(/_/g, " ")}</span>}
-                          {job.work_arrangement && <span className="capitalize">{job.work_arrangement}</span>}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
+                            {job.location && <span>{job.location}</span>}
+                            {job.employment_type && <span className="capitalize">{job.employment_type.replace(/_/g, " ")}</span>}
+                            {job.work_arrangement && <span className="capitalize">{job.work_arrangement}</span>}
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingJobOpening(job); }}
+                            className="text-xs px-2.5 py-1 rounded-lg font-medium shrink-0"
+                            style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
+                          >
+                            Edit Page
+                          </button>
                         </div>
                       </div>
                     );
@@ -635,6 +646,19 @@ export default function KhethaIQ() {
       {/* Careers Hub Settings modal */}
       {showCareersHubSettings && (
         <CareersHubSettings onClose={() => setShowCareersHubSettings(false)} />
+      )}
+
+      {/* Edit Job Page modal */}
+      {editingJobOpening && (
+        <EditJobPageModal
+          jobOpening={editingJobOpening}
+          onClose={() => setEditingJobOpening(null)}
+          onSaved={(updated) => {
+            setEditingJobOpening(null);
+            // Update the jobOpenings list in place
+            setJobOpenings(prev => prev.map(j => j.id === updated?.id ? { ...j, ...updated } : j));
+          }}
+        />
       )}
     </div>
   );

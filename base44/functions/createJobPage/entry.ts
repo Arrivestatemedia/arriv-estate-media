@@ -11,8 +11,10 @@ export default async function(req: Request): Promise<Response> {
 
     const body = await req.json();
     const {
-      action, // "create" | "analyze"
+      action, // "create" | "analyze" | "update"
+      job_opening_id, // for "update" action
       page_description,
+      design_description,
       source_type, // "text" | "url" | "file"
       source_text,
       source_url,
@@ -64,6 +66,67 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ success: true, extracted });
     }
 
+    // action === "update"
+    if (action === "update") {
+      if (!job_opening_id) return Response.json({ error: 'job_opening_id is required' }, { status: 400 });
+      if (!title) return Response.json({ error: 'Title is required' }, { status: 400 });
+
+      const updateData = {
+        title,
+        department: department || "",
+        description_text: description || "",
+        responsibilities: responsibilities || [],
+        required_qualifications: required_qualifications || [],
+        preferred_qualifications: preferred_qualifications || [],
+        skills: skills || [],
+        experience_requirements: experience_requirements || "",
+        performance_expectations: performance_expectations || [],
+        compensation: compensation || "",
+        work_schedule: work_schedule || "",
+        employment_type: employment_type || "full_time",
+        work_arrangement: work_arrangement || "onsite",
+        location: location || "",
+        travel_requirements: travel_requirements || "",
+        benefits: benefits || [],
+        page_description: page_description || "",
+        design_description: design_description || "",
+        public_visibility: body.public_visibility !== undefined ? body.public_visibility : true,
+        status: body.status || "open",
+      };
+
+      const updated = await base44.asServiceRole.entities.JobOpening.update(job_opening_id, updateData);
+
+      // Emit recruiting.mutation to Khetha
+      const secret = secrets.get("ARRIV_ESTATE_MEDIA_SECRET") || "";
+      const webhookUrl = "https://khetha-iq-by-arriv.base44.app/functions/estateMediaIntegrationWebhook";
+      if (secret) {
+        await emitRecruitingMutation("tnt_estate_media", "job_opening.updated", {
+          idempotency_key: `update-${job_opening_id}-${Date.now()}`,
+          job_id: updated?.job_id || "",
+          title,
+          department: department || "",
+          description_text: description || "",
+          responsibilities: responsibilities || [],
+          required_qualifications: required_qualifications || [],
+          preferred_qualifications: preferred_qualifications || [],
+          skills: skills || [],
+          experience_requirements: experience_requirements || "",
+          compensation: compensation || "",
+          work_schedule: work_schedule || "",
+          employment_type: employment_type || "full_time",
+          work_arrangement: work_arrangement || "onsite",
+          location: location || "",
+          public_slug: updated?.public_slug || "",
+          page_description: page_description || "",
+          design_description: design_description || "",
+          public_visibility: updateData.public_visibility,
+          status: updateData.status,
+        }, secret, webhookUrl).catch(() => {});
+      }
+
+      return Response.json({ success: true, job_opening: updated });
+    }
+
     // action === "create"
     if (!title) return Response.json({ error: 'Title is required' }, { status: 400 });
 
@@ -85,6 +148,7 @@ export default async function(req: Request): Promise<Response> {
       job_id: jobId,
       public_slug: publicSlug,
       page_description: page_description || "",
+      design_description: design_description || "",
       title,
       department: department || "",
       description_text: description || "",

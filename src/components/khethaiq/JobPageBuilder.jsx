@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Globe, X, Sparkles, FileText, Link as LinkIcon, Upload, Loader2, Check, ArrowLeft, Copy } from "lucide-react";
+import { Globe, X, Sparkles, FileText, Link as LinkIcon, Upload, Loader2, Check, ArrowLeft, Copy, Palette } from "lucide-react";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -38,6 +38,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [creating, setCreating] = useState(false);
   const [pageDescription, setPageDescription] = useState("");
+  const [designDescription, setDesignDescription] = useState("");
   const [sourceTab, setSourceTab] = useState("text");
   const [sourceText, setSourceText] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -62,6 +63,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
       const res = await base44.functions.invoke("createJobPage", {
         action: "analyze",
         page_description: pageDescription,
+        design_description: designDescription,
         source_type: sourceTab,
         source_text: sourceText,
         source_url: sourceUrl,
@@ -117,6 +119,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
         page_description: pageDescription,
+        design_description: designDescription,
         source_type: sourceTab,
         source_text: sourceText,
         source_url: sourceUrl,
@@ -199,6 +202,23 @@ export default function JobPageBuilder({ onClose, onCreated }) {
                 onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
               />
               <p className="text-xs mt-1.5" style={{ color: MUTED }}>This description appears on the public career page and gives the AI context for better analysis.</p>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-1.5" style={labelStyle}>
+                <Palette className="w-3.5 h-3.5" style={{ color: GOLD }} />
+                Describe the page design
+              </label>
+              <textarea
+                value={designDescription}
+                onChange={e => setDesignDescription(e.target.value)}
+                placeholder="Describe the visual design: colors, structure, layout style, tone... e.g. 'Warm, inviting layout with gold accents. Hero section with a large photo. Clean, modern structure with clear section breaks.'"
+                rows={3}
+                style={{ ...inputStyle, resize: "vertical", minHeight: "70px" }}
+                onFocus={e => e.target.style.borderColor = GOLD}
+                onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+              />
+              <p className="text-xs mt-1.5" style={{ color: MUTED }}>Describe the colors, structure, and layout style you want for the page.</p>
             </div>
 
             <div>
