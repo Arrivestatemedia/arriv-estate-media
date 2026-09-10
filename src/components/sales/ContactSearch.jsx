@@ -44,9 +44,13 @@ const NEW_CONTACT_DEFAULTS = {
   additional_phones: []
 };
 
-// Fetches all activities for a contact by email or name
+// Fetches all activities for a contact by email or name — via backend function
+// (bypasses RLS for sales-authenticated users without platform tokens)
 async function loadActivitiesForContact(contact) {
-  const allActivities = await base44.entities.ActivityLog.list('-activity_date', 500);
+  const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+  const res = await base44.functions.invoke('getSalesDashboardData', { sales_member_id: salesMemberId });
+  const data = res?.data || res;
+  const allActivities = data?.activities || [];
   const fullName = `${contact.firstname || ''} ${contact.lastname || ''}`.trim().toLowerCase();
   return allActivities.filter(a => {
     if (contact.email && a.contact_email === contact.email) return true;

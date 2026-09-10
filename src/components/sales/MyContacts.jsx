@@ -83,23 +83,15 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
   useEffect(() => {
     // Guard: don't fetch until we know who the user is
     if (!salesMemberId) return;
-    loadActivities();
-    loadDbContacts();
-    loadSecondaryInfo();
-    // Subscribe to real-time updates
+    // Initial data comes from useSalesDashboardData hook above.
+    // Subscribe to real-time updates — refetch the hook on any change.
     let unsub = () => {};
     let unsub2 = () => {};
     let unsub3 = () => {};
     try {
-      unsub = base44.entities.ActivityLog.subscribe((event) => {
-        loadActivities();
-      });
-      unsub2 = base44.entities.SecondaryContactInfo.subscribe((event) => {
-        loadSecondaryInfo();
-      });
-      unsub3 = base44.entities.Contact.subscribe((event) => {
-        loadDbContacts();
-      });
+      unsub = base44.entities.ActivityLog.subscribe(() => refetch());
+      unsub2 = base44.entities.SecondaryContactInfo.subscribe(() => refetch());
+      unsub3 = base44.entities.Contact.subscribe(() => refetch());
     } catch (e) {
       console.error('[MyContacts] subscribe failed:', e);
     }
@@ -108,41 +100,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
       unsub2();
       unsub3();
     };
-  }, [salesMemberId, salesMemberEmail]);
-
-  const loadDbContacts = async () => {
-    try {
-      const all = await base44.entities.Contact.filter({ sales_member_id: salesMemberId }, '-updated_date', 500);
-      setDbContacts(all || []);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const loadSecondaryInfo = async () => {
-    try {
-      const all = await base44.entities.SecondaryContactInfo.list();
-      const map = {};
-      all.forEach(info => {
-        map[info.contact_email] = info;
-      });
-      setSecondaryInfo(map);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const loadActivities = async () => {
-    setLoading(true);
-    try {
-      const all = await base44.entities.ActivityLog.filter({ sales_member_id: salesMemberId }, '-activity_date', 500);
-      setActivities(all || []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [salesMemberId, salesMemberEmail, refetch]);
 
   // Group by contact (by email or name)
   const contactMap = {};
@@ -233,19 +191,22 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
     setSaving(true);
     try {
       const contact = contacts.find(c => c.key === showFollowUpForm);
-      await base44.entities.ActivityLog.create({
-        activity_type: followUpData.activity_type,
-        contact_name: contact?.name || showFollowUpForm,
-        contact_email: contact?.email || '',
-        company_name: contact?.company || '',
-        activity_date: new Date(followUpData.activity_date).toISOString(),
-        notes: followUpData.notes,
+      await base44.functions.invoke('manageSalesActivity', {
+        action: 'create_activity',
         sales_member_id: salesMemberId,
         sales_member_email: salesMemberEmail,
+        activity: {
+          activity_type: followUpData.activity_type,
+          contact_name: contact?.name || showFollowUpForm,
+          contact_email: contact?.email || '',
+          company_name: contact?.company || '',
+          activity_date: new Date(followUpData.activity_date).toISOString(),
+          notes: followUpData.notes,
+        },
       });
       setShowFollowUpForm(null);
       setFollowUpData({ notes: "", activity_date: "", activity_type: "call" });
-      await loadActivities();
+      refetch();
     } catch (e) {
       console.error(e);
     } finally {
@@ -600,7 +561,7 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
         <ConvertToCustomerModal
           contact={{ email: convertContact.email, name: convertContact.name, company: convertContact.company, phone: convertContact.activities?.find(a => a.contact_phone)?.contact_phone || '' }}
           onClose={() => setConvertContact(null)}
-          onConverted={() => { loadActivities(); }}
+          onConverted={() => { refetch(); }}
         />
       )}
 

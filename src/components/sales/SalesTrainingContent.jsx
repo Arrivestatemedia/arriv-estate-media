@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useSalesDashboardData } from "@/hooks/useSalesDashboardData";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -41,39 +42,30 @@ export default function SalesTrainingContent() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('list');
 
-  const loadData = useCallback(async () => {
-    if (!memberId) return;
-    try {
-      const [mods, certs, prog, atts] = await Promise.all([
-        base44.entities.TrainingModule.filter({ active: true, module_type: "sales_training" }, 'order', 50),
-        base44.entities.SalesCertification.filter({ sales_member_id: memberId }),
-        base44.entities.VideoWatchProgress.filter({ sales_member_id: memberId }),
-        base44.entities.TrainingAttempt.filter({ sales_member_id: memberId }),
-      ]);
-      setModules(mods || []);
-      setProgress(prog || []);
-      setAttempts(atts || []);
-      if (certs && certs.length > 0) {
-        setCertification(certs[0]);
-      } else {
-        const created = await base44.entities.SalesCertification.create({
-          sales_member_id: memberId,
-          sales_member_name: memberName,
-          sales_member_email: memberEmail,
-          training_status: TRAINING_STATUS.NOT_STARTED,
-          calling_authorization: CALLING_AUTH.CALLING_LOCKED,
-          modules_total: 14,
-        });
-        setCertification(created);
-      }
-    } catch (err) {
-      console.error("Failed to load training data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [memberId, memberName, memberEmail]);
+  // Fetch all training data via backend function (bypasses RLS for sales-authenticated users)
+  const { data: dashboardData, refetch } = useSalesDashboardData(memberId);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    if (!dashboardData) return;
+    setModules(dashboardData.training_modules || []);
+    setProgress(dashboardData.video_watch_progress || []);
+    setAttempts(dashboardData.training_attempts || []);
+    if (dashboardData.sales_certification) {
+      setCertification(dashboardData.sales_certification);
+    } else if (memberId) {
+      // Create certification record via backend function (bypasses RLS)
+      base44.functions.invoke('manageSalesActivity', {
+        action: 'create_certification',
+        sales_member_id: memberId,
+        sales_member_name: memberName,
+        sales_member_email: memberEmail,
+      }).then(res => {
+        const data = res?.data || res;
+        if (data?.certification) setCertification(data.certification);
+      }).catch(err => console.error("Failed to create certification:", err));
+    }
+    setLoading(false);
+  }, [dashboardData, memberId, memberName, memberEmail]);
 
   const getModuleProgress = (moduleId) => progress.find(p => p.module_id === moduleId);
   const getModuleAttempts = (moduleId) => attempts.filter(a => a.module_id === moduleId && a.attempt_type === "MODULE_QUIZ");
@@ -188,14 +180,14 @@ export default function SalesTrainingContent() {
       {view === 'video' && selectedModule && (
         <VideoPlayer module={selectedModule} memberId={memberId} memberName={memberName} memberEmail={memberEmail}
           progress={getModuleProgress(selectedModule.module_id)}
-          onWatchComplete={async () => { await loadData(); setView('quiz'); }}
+          onWatchComplete={async () => { await refetch(); setView('quiz'); }}
           onBack={() => { setView('list'); setSelectedModule(null); }} />
       )}
 
       {view === 'quiz' && selectedModule && (
         <QuizInterface module={selectedModule} memberId={memberId} memberName={memberName} memberEmail={memberEmail}
           previousAttempts={getModuleAttempts(selectedModule.module_id)} certification={cert}
-          onQuizComplete={async () => { await loadData(); setView('list'); setSelectedModule(null); }}
+          onQuizComplete={async () => { await refetch(); setView('list'); setSelectedModule(null); }}
           onBack={() => setView('video')} />
       )}
     </div>
@@ -260,7 +252,8 @@ function VideoPlayer({ module, memberId, memberName, memberEmail, progress, onWa
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const data = {
+      const progressData = {
+        id: progress?.id,
         sales_member_id: memberId, module_id: module.module_id,
         video_url: module.video_url || "",
         video_duration_seconds: videoRef.current?.duration || module.video_duration_seconds || 0,
@@ -269,9 +262,13 @@ function VideoPlayer({ module, memberId, memberName, memberEmail, progress, onWa
         completed, last_position_seconds: videoRef.current?.currentTime || 0,
         seeking_detected: false, watch_segments: watchedSegmentsRef.current,
         last_updated_at: now, completed_at: completed ? now : undefined,
+        started_at: progress?.id ? undefined : now,
       };
-      if (progress?.id) await base44.entities.VideoWatchProgress.update(progress.id, data);
-      else await base44.entities.VideoWatchProgress.create({ ...data, started_at: now });
+      await base44.functions.invoke('manageSalesActivity', {
+        action: 'save_video_progress',
+        sales_member_id: memberId,
+        data: progressData,
+      });
     } catch (err) { console.error("Failed to save progress:", err); } finally { setSaving(false); }
   };
 
@@ -333,34 +330,27 @@ function QuizInterface({ module, memberId, memberName, memberEmail, previousAtte
       const allCriticalCorrect = criticalTotal === 0 || criticalCorrect === criticalTotal;
       const passed = allCriticalCorrect && score >= CERTIFICATION_REQUIREMENTS.module_quiz_min_score;
       const now = new Date().toISOString();
-      const attempt = await base44.entities.TrainingAttempt.create({
-        sales_member_id: memberId, sales_member_email: memberEmail,
+      const attemptData = {
         attempt_type: "MODULE_QUIZ", module_id: module.module_id, module_version: module.version || 1,
         product_truth_version: certification?.product_truth_version || "v1",
         score: Math.round(score * 10) / 10, passed, total_questions: total, correct_answers: correct,
         critical_questions_total: criticalTotal, critical_questions_correct: criticalCorrect,
         all_critical_correct: allCriticalCorrect, question_set_snapshot: questions,
         answer_summary: answerSummary, started_at: now, completed_at: now,
+      };
+      const res = await base44.functions.invoke('manageSalesActivity', {
+        action: 'submit_quiz',
+        sales_member_id: memberId,
+        sales_member_name: memberName,
+        sales_member_email: memberEmail,
+        data: {
+          attempt: attemptData,
+          certification,
+          module,
+          previous_attempts: previousAttempts || [],
+        },
       });
-      if (passed && certification?.id) {
-        const completedModules = [...new Set([...(certification.modules_completed || []), module.module_id])];
-        const allAttempts = [...(previousAttempts || []), attempt];
-        const quizScores = allAttempts.filter(a => a.passed).map(a => a.score);
-        const avgScore = quizScores.length > 0 ? quizScores.reduce((s, v) => s + v, 0) / quizScores.length : 0;
-        const allCritical = allAttempts.every(a => a.all_critical_correct);
-        await base44.entities.SalesCertification.update(certification.id, {
-          modules_completed: completedModules, modules_passed_count: completedModules.length,
-          quiz_average_score: Math.round(avgScore * 10) / 10,
-          critical_questions_status: allCritical ? "ALL_CORRECT" : "HAS_FAILURES",
-          training_status: completedModules.length >= 13 ? "TRAINING_COMPLETE" : "IN_PROGRESS",
-        });
-      }
-      await base44.entities.AuditEvent.create({
-        event_type: passed ? "QUIZ_PASSED" : "QUIZ_FAILED", sales_member_id: memberId, sales_member_name: memberName,
-        actor_id: memberId, actor_name: memberName, actor_role: "REP",
-        entity_type: "TrainingAttempt", entity_id: attempt.id,
-        details: { module_id: module.module_id, score: Math.round(score * 10) / 10, passed }, timestamp: now,
-      });
+      const created = res?.data?.attempt || res?.attempt;
       setResult({ score: Math.round(score * 10) / 10, correct, total, passed, criticalTotal, criticalCorrect });
     } catch (err) { console.error("Quiz submission failed:", err); } finally { setSubmitting(false); }
   };

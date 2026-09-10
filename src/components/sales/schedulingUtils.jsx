@@ -377,17 +377,21 @@ If they have NO active listing found: Skip the listing reference. Instead: "I wo
     console.error('[saveScheduledFollowUp] Failed to generate call map:', error);
   }
 
-  const record = await base44.entities.ActivityLog.create({
-    activity_type: "call",
-    contact_name: contact.name,
-    contact_email: contact.email,
-    contact_phone: contact.phone || "",
-    company_name: contact.company,
-    activity_date: followUpDate.toISOString(),
-    notes: initialNotes,
+  const res = await base44.functions.invoke('manageSalesActivity', {
+    action: 'create',
     sales_member_id: sid,
-    sales_member_email: sem,
+    data: {
+      activity_type: "call",
+      contact_name: contact.name,
+      contact_email: contact.email,
+      contact_phone: contact.phone || "",
+      company_name: contact.company,
+      activity_date: followUpDate.toISOString(),
+      notes: initialNotes,
+      sales_member_email: sem,
+    },
   });
+  const record = res?.data?.activity || res?.activity;
 
   return record;
 }

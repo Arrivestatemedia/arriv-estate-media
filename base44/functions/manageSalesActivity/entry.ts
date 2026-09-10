@@ -4,7 +4,8 @@ export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { action, sales_member_id, activity_id, data, notification_id } = body;
+    const { action, sales_member_id, activity_id, data, notification_id, activity,
+            sales_member_name, sales_member_email } = body;
 
     if (!sales_member_id) {
       return Response.json({ error: 'sales_member_id is required' }, { status: 400 });
@@ -23,6 +24,80 @@ export default async function(req) {
         };
         const created = await base44.asServiceRole.entities.ActivityLog.create(activityData);
         return Response.json({ activity: created });
+      }
+
+      case 'create_activity': {
+        // MyContacts follow-up logging — activity sub-object + sales_member_email
+        const activityData = {
+          ...activity,
+          sales_member_id,
+          sales_member_email: sales_member_email || undefined,
+        };
+        const created = await base44.asServiceRole.entities.ActivityLog.create(activityData);
+        return Response.json({ activity: created });
+      }
+
+      case 'create_certification': {
+        // SalesTrainingContent — auto-create certification record on first visit
+        const created = await base44.asServiceRole.entities.SalesCertification.create({
+          sales_member_id,
+          sales_member_name: sales_member_name || undefined,
+          sales_member_email: sales_member_email || undefined,
+          training_status: 'NOT_STARTED',
+          calling_authorization: 'CALLING_LOCKED',
+          modules_total: 14,
+        });
+        return Response.json({ certification: created });
+      }
+
+      case 'save_video_progress': {
+        // VideoPlayer — create or update VideoWatchProgress
+        const progressData = { ...data, sales_member_id };
+        if (data?.id) {
+          const updated = await base44.asServiceRole.entities.VideoWatchProgress.update(data.id, progressData);
+          return Response.json({ progress: updated });
+        }
+        const created = await base44.asServiceRole.entities.VideoWatchProgress.create(progressData);
+        return Response.json({ progress: created });
+      }
+
+      case 'submit_quiz': {
+        // QuizInterface — create TrainingAttempt, update SalesCertification, create AuditEvent
+        const { attempt, certification, module, previous_attempts } = data;
+        const created = await base44.asServiceRole.entities.TrainingAttempt.create({
+          ...attempt,
+          sales_member_id,
+          sales_member_email: sales_member_email || undefined,
+        });
+        if (attempt.passed && certification?.id) {
+          const completedModules = [...new Set([...(certification.modules_completed || []), module.module_id])];
+          const quizScores = [...(previous_attempts || []), created]
+            .filter(a => a.passed).map(a => a.score);
+          const avgScore = quizScores.length > 0
+            ? quizScores.reduce((s, v) => s + v, 0) / quizScores.length : 0;
+          const allCritical = [...(previous_attempts || []), created]
+            .every(a => a.all_critical_correct);
+          await base44.asServiceRole.entities.SalesCertification.update(certification.id, {
+            modules_completed: completedModules,
+            modules_passed_count: completedModules.length,
+            quiz_average_score: Math.round(avgScore * 10) / 10,
+            critical_questions_status: allCritical ? 'ALL_CORRECT' : 'HAS_FAILURES',
+            training_status: completedModules.length >= 13 ? 'TRAINING_COMPLETE' : 'IN_PROGRESS',
+          });
+        }
+        await base44.asServiceRole.entities.AuditEvent.create({
+          event_type: attempt.passed ? 'QUIZ_PASSED' : 'QUIZ_FAILED',
+          sales_member_id,
+          sales_member_name: sales_member_name || undefined,
+          actor_id: sales_member_id,
+          actor_name: sales_member_name || undefined,
+          actor_role: 'REP',
+          entity_type: 'TrainingAttempt',
+          entity_id: created.id,
+          details: { module_id: module.module_id, score: attempt.score, passed: attempt.passed },
+          timestamp: new Date().toISOString(),
+        });
+        return Response.json({ attempt: created });
       }
 
       case 'update': {
@@ -55,6 +130,13 @@ export default async function(req) {
         }
         await base44.asServiceRole.entities.ActivityLog.delete(activity_id);
         return Response.json({ success: true });
+      }
+
+      case 'create_queue_insight': {
+        // DailyCallQueue — save AI learning insight
+        const insightData = { ...data, sales_member_id };
+        const created = await base44.asServiceRole.entities.QueueInsight.create(insightData);
+        return Response.json({ insight: created });
       }
 
       case 'get_pending_notifications': {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useSalesDashboardData } from "@/hooks/useSalesDashboardData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ const channelConfig = {
   email: { label: "Email", icon: "✉️", color: "#8B5CF6" },
 };
 
-function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, urgency, channel, channelReason, reason, suggestedOpener, contactIntel, patternTags, onOutcomeLogged }) {
+function LeadCard({ contact, rank, repName, salesMemberId, scheduledFollowUp, urgency, channel, channelReason, reason, suggestedOpener, contactIntel, patternTags, onOutcomeLogged, queueInsights }) {
   const [expanded, setExpanded] = useState(false);
   const [generatingScript, setGeneratingScript] = useState(false);
   const [script, setScript] = useState(suggestedOpener || null);
@@ -142,7 +143,9 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
   const deleteFollowUp = async () => {
     if (!scheduledFollowUp) return;
     setDeletingFollowUp(true);
-    await base44.entities.ActivityLog.delete(scheduledFollowUp.id).catch(() => {});
+    await base44.functions.invoke('manageSalesActivity', {
+      action: 'delete', sales_member_id: salesMemberId, activity_id: scheduledFollowUp.id,
+    }).catch(() => {});
     setDeletingFollowUp(false);
     if (onOutcomeLogged) onOutcomeLogged();
   };
@@ -151,8 +154,9 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
     if (!scheduledFollowUp || !editDateValue) return;
     setSavingDate(true);
     try {
-      await base44.entities.ActivityLog.update(scheduledFollowUp.id, {
-        activity_date: new Date(editDateValue).toISOString()
+      await base44.functions.invoke('manageSalesActivity', {
+        action: 'update', sales_member_id: salesMemberId, activity_id: scheduledFollowUp.id,
+        data: { activity_date: new Date(editDateValue).toISOString() },
       });
       setEditingDate(false);
       if (onOutcomeLogged) onOutcomeLogged();
@@ -173,23 +177,28 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
 
     try {
       // 1. Log the completed call outcome as a real activity
-      await base44.entities.ActivityLog.create({
-        activity_type: "call",
-        contact_name: contact.name,
-        contact_email: contact.email,
-        contact_phone: contact.phone || "",
-        company_name: contact.company,
-        activity_date: new Date().toISOString(),
-        notes: `[Queue Call] Outcome: ${outcome.replace(/_/g, " ")} — ${outcomeNotes}`,
-        sales_member_id: sid,
-        sales_member_email: sem,
+      await base44.functions.invoke('manageSalesActivity', {
+        action: 'create', sales_member_id: sid,
+        data: {
+          activity_type: "call",
+          contact_name: contact.name,
+          contact_email: contact.email,
+          contact_phone: contact.phone || "",
+          company_name: contact.company,
+          activity_date: new Date().toISOString(),
+          notes: `[Queue Call] Outcome: ${outcome.replace(/_/g, " ")} — ${outcomeNotes}`,
+          sales_member_email: sem,
+        },
       });
 
       // 2. Update the old scheduled follow-up with the outcome so it moves to Activity History
       if (scheduledFollowUp) {
-        await base44.entities.ActivityLog.update(scheduledFollowUp.id, {
-          activity_date: new Date().toISOString(),
-          notes: `[Queue Call] Outcome: ${outcome.replace(/_/g, " ")} — ${outcomeNotes}`,
+        await base44.functions.invoke('manageSalesActivity', {
+          action: 'update', sales_member_id: sid, activity_id: scheduledFollowUp.id,
+          data: {
+            activity_date: new Date().toISOString(),
+            notes: `[Queue Call] Outcome: ${outcome.replace(/_/g, " ")} — ${outcomeNotes}`,
+          },
         }).catch(() => {});
       }
 
@@ -208,23 +217,23 @@ ${scriptPictureUrls.length > 0 ? `Read attached images for full context.\n` : ""
 
       // 4. Use the Scheduling AI to determine the correct next follow-up date & details
       //    based on the outcome notes and full history
-      const [pastInsights] = await Promise.all([
-        sid ? base44.entities.QueueInsight.filter({ sales_member_id: sid }, '-logged_at', 200).catch(() => []) : Promise.resolve([])
-      ]);
-      const learnedCtx = buildLearnedContext(pastInsights);
+      //    (queue_insights come from the shared dashboard hook, passed via prop)
+      const learnedCtx = buildLearnedContext(queueInsights || []);
       const analysis = await analyzeContact(updatedContact, learnedCtx);
 
       // 5. Save insight so AI learns
-      await base44.entities.QueueInsight.create({
-        sales_member_id: sid,
-        contact_key: contact.key,
-        contact_name: contact.name,
-        outcome,
-        outcome_notes: outcomeNotes,
-        ai_recommendation: analysis?.reason || reason || "",
-        next_contact_date: analysis?.follow_up_date_time ? format(new Date(analysis.follow_up_date_time), "yyyy-MM-dd") : null,
-        pattern_tags: patternTags || [],
-        logged_at: new Date().toISOString(),
+      await base44.functions.invoke('manageSalesActivity', {
+        action: 'create_queue_insight', sales_member_id: sid,
+        data: {
+          contact_key: contact.key,
+          contact_name: contact.name,
+          outcome,
+          outcome_notes: outcomeNotes,
+          ai_recommendation: analysis?.reason || reason || "",
+          next_contact_date: analysis?.follow_up_date_time ? format(new Date(analysis.follow_up_date_time), "yyyy-MM-dd") : null,
+          pattern_tags: patternTags || [],
+          logged_at: new Date().toISOString(),
+        },
       });
 
       // 6. Save the AI-scheduled follow-up with a fresh call map (unless urgency is "skip")
@@ -475,7 +484,10 @@ function UpcomingCard({ contact, scheduled, meta, onDeleted }) {
     e.stopPropagation();
     if (!scheduled) return;
     setDeleting(true);
-    await base44.entities.ActivityLog.delete(scheduled.id).catch(() => {});
+    const sid = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+    await base44.functions.invoke('manageSalesActivity', {
+      action: 'delete', sales_member_id: sid, activity_id: scheduled.id,
+    }).catch(() => {});
     setDeleting(false);
     if (onDeleted) onDeleted();
   };
@@ -552,9 +564,12 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
   const sid = salesMemberId || localStorage.getItem('sales_member_id');
   const sem = salesMemberEmail || localStorage.getItem('sales_member_email');
 
+  // Fetch all data via backend function (bypasses RLS for sales-authenticated users)
+  const { data: dashboardData, refetch } = useSalesDashboardData(sid);
+
   useEffect(() => {
-    loadQueue();
-  }, [salesMemberId, salesMemberEmail, refreshKey]);
+    if (dashboardData) loadQueue(dashboardData);
+  }, [dashboardData, refreshKey]);
 
   useEffect(() => {
     const handleOpenCallMapModal = (e) => {
@@ -565,14 +580,12 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
     return () => window.removeEventListener('openCallMapModal', handleOpenCallMapModal);
   }, []);
 
-  const loadQueue = async () => {
+  const loadQueue = async (dashData) => {
     setLoading(true);
 
     try {
-      const [all, pastInsights] = await Promise.all([
-        base44.entities.ActivityLog.list('-activity_date', 500),
-        sid ? base44.entities.QueueInsight.filter({ sales_member_id: sid }, '-logged_at', 200) : Promise.resolve([])
-      ]);
+      const all = dashData?.activities || [];
+      const pastInsights = dashData?.queue_insights || [];
 
       setInsightCount(pastInsights.length);
       const learnedContext = buildLearnedContext(pastInsights);
@@ -661,7 +674,9 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
           // ONLY delete duplicates that are AI-scheduled — never delete manually created tasks
           upcoming.slice(1).forEach(dupe => {
             if (dupe._isAIScheduled) {
-              deletePromises.push(base44.entities.ActivityLog.delete(dupe.id).catch(() => {}));
+              deletePromises.push(base44.functions.invoke('manageSalesActivity', {
+                action: 'delete', sales_member_id: sid, activity_id: dupe.id,
+              }).catch(() => {}));
             }
           });
         }
@@ -691,7 +706,9 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
         const isNew = pastReal.length === 0 || allNeverSpoken;
 
         if (isNew && new Date(scheduled.activity_date) > tomorrow) {
-          deleteWrongSchedules.push(base44.entities.ActivityLog.delete(scheduled.id).catch(() => {}));
+          deleteWrongSchedules.push(base44.functions.invoke('manageSalesActivity', {
+            action: 'delete', sales_member_id: sid, activity_id: scheduled.id,
+          }).catch(() => {}));
           delete newScheduledMap[contact.key];
         }
       });
@@ -852,8 +869,9 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
               if (callMap && typeof callMap === 'string' && callMap.trim().length > 0) {
                 console.log(`[DailyCallQueue loadQueue] Updating ActivityLog ${scheduled.id} with call_map, length: ${callMap.length}`);
                 const updatedNotes = `${scheduled.notes || ''}\n\n--- CALL MAP ---\n${callMap}`;
-                await base44.entities.ActivityLog.update(scheduled.id, {
-                  notes: updatedNotes
+                await base44.functions.invoke('manageSalesActivity', {
+                  action: 'update', sales_member_id: sid, activity_id: scheduled.id,
+                  data: { notes: updatedNotes },
                 });
                 // Directly update local state with the updated notes
                 newScheduledMap[contact.key] = { ...scheduled, notes: updatedNotes };
@@ -936,7 +954,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
             </p>
           )}
         </div>
-        <Button size="sm" variant="outline" onClick={() => setRefreshKey(k => k + 1)} className="gap-2" style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}>
+        <Button size="sm" variant="outline" onClick={() => { refetch(); setRefreshKey(k => k + 1); }} className="gap-2" style={{ borderColor: 'rgba(184,149,106,0.4)', color: 'rgba(26,26,26,0.6)' }}>
           <RefreshCw className="w-3 h-3" />
           Refresh
         </Button>
@@ -978,7 +996,8 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                 suggestedOpener={meta.suggestedOpener}
                 contactIntel={meta.contactIntel}
                 patternTags={meta.patternTags}
-                onOutcomeLogged={() => setRefreshKey(k => k + 1)}
+                queueInsights={dashboardData?.queue_insights || []}
+                onOutcomeLogged={() => { refetch(); setRefreshKey(k => k + 1); }}
               />
             );
           })}
@@ -995,7 +1014,7 @@ export default function DailyCallQueue({ salesMemberId, salesMemberEmail, repNam
                contact={contact}
                scheduled={scheduledMap[contact.key]}
                meta={metaMap[contact.key] || {}}
-               onDeleted={() => setRefreshKey(k => k + 1)}
+               onDeleted={() => { refetch(); setRefreshKey(k => k + 1); }}
              />
            ))}
          </div>
