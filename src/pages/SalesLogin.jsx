@@ -63,27 +63,6 @@ export default function SalesLogin() {
       const data = result?.data || result;
       
       if (data?.success) {
-        // If the platform password doesn't match, don't complete the login —
-        // the user would see no data (RLS blocks without a platform token).
-        // Show a sync prompt instead so they can reset their platform password.
-        if (data.platform_password_mismatch && !data.platform_access_token) {
-          setSyncMsg({
-            type: "warning",
-            text: "Your platform password needs to be synced for full data access. Click \"Sync Platform Password\" below to receive a reset email — set the new password to match your sales password, then sign in again.",
-          });
-          setLoading(false);
-          return;
-        }
-        // If a platform invitation was just sent, the user needs to set up
-        // their platform account before they can access data.
-        if (data.platform_invitation_sent && !data.platform_access_token) {
-          setSyncMsg({
-            type: "warning",
-            text: "We've sent you a platform setup invitation. Check your email, click the link, and set your platform password to match your sales password. Then sign in again.",
-          });
-          setLoading(false);
-          return;
-        }
         const salesData = {
           sales_member_id: data.memberId,
           sales_member_name: data.name,

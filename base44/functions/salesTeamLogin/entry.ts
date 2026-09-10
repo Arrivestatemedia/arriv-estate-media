@@ -152,47 +152,38 @@ Deno.serve(async (req) => {
     // evaluate correctly.
     let platformRole: string | null = null;
     let platformAccessToken: string | null = null;
-    let platformPasswordMismatch = false;
-    let platformInvitationSent = false;
     try {
       const allUsers = await base44.asServiceRole.entities.User.list();
       const platformUser = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
 
-      if (!platformUser) {
-        // No platform account yet — invite the user so they can set up their
-        // platform password. (register() requires OTP email verification,
-        // which we can't complete server-side, so inviteUser is the path.)
-        try {
-          await base44.users.inviteUser(email, member.role === 'admin' ? 'admin' : 'user');
-          platformInvitationSent = true;
-        } catch (e) {
-          console.error('Platform invite failed:', (e as Error).message);
-          // Fallback: show the sync prompt so the user has a path forward
-          platformPasswordMismatch = true;
-        }
-      } else {
+      if (platformUser) {
         if (platformUser.data?.sales_member_id !== member.id) {
           await base44.asServiceRole.entities.User.update(platformUser.id, { sales_member_id: member.id });
         }
         if (platformUser.role === 'admin') {
           platformRole = 'admin';
         } else if (member.role === 'admin') {
-          // Sales admin with a non-admin platform account — elevate it
           await base44.asServiceRole.entities.User.update(platformUser.id, { role: 'admin' });
           platformRole = 'admin';
         }
 
-        // Try to obtain a platform access token via standard login.
+        // Best-effort: try to obtain a platform access token so RLS rules
+        // evaluate correctly. If the platform password doesn't match the
+        // sales password, the token won't be returned — but the login still
+        // succeeds (sales session is valid). The user can sync their
+        // platform password later via the forgot-password flow.
         try {
           const loginResult = await base44.auth.loginViaEmailPassword(email, password);
           if (loginResult?.access_token) {
             platformAccessToken = loginResult.access_token;
           }
         } catch (e) {
-          // Platform password doesn't match the sales password.
-          platformPasswordMismatch = true;
+          // Non-critical — sales session still works without a platform token.
         }
       }
+      // If no platform account exists, we simply skip the token — the sales
+      // session is still valid and the user can log in. Platform account
+      // setup is handled separately (admin invites users from the admin panel).
     } catch (e) { /* non-critical */ }
 
     await auditLog(base44, req, {
@@ -213,8 +204,6 @@ Deno.serve(async (req) => {
       role: platformRole || member.role || 'user',
       forcePasswordChange: member.force_password_change === true,
       platform_access_token: platformAccessToken,
-      platform_password_mismatch: platformPasswordMismatch,
-      platform_invitation_sent: platformInvitationSent,
     });
 
   } catch (error) {
