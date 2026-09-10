@@ -786,7 +786,7 @@ export default function KhethaIQ() {
                         {listingUrl && (
                           <div className="flex justify-end mb-3">
                             <button
-                              onClick={(e) => { e.stopPropagation(); setDistributingJob({ ...job, public_slug: linkedOpening?.public_slug, job_id: linkedOpening?.job_id || job.id }); }}
+                              onClick={(e) => { e.stopPropagation(); setDistributingJob({ ...job, public_slug: linkedOpening?.public_slug, job_id: linkedOpening?.job_id || job.id, listingUrl }); }}
                               className="text-xs flex items-center gap-1.5 font-medium"
                               style={{ color: GOLD }}
                             >

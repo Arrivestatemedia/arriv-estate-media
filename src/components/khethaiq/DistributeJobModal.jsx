@@ -17,7 +17,7 @@ export default function DistributeJobModal({ job, onClose }) {
   const [copiedField, setCopiedField] = useState(null);
 
   const baseUrl = "https://app.arrivestatemedia.com";
-  const jobPath = `/careers/${job.public_slug || job.job_id}`;
+  const jobPath = job.listingUrl || `/careers/${job.public_slug || job.job_id}`;
   const publicUrl = `${baseUrl}${jobPath}`;
   const allJobsUrl = `${baseUrl}/careers`;
 
