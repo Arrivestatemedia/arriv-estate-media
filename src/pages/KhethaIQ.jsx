@@ -737,14 +737,15 @@ export default function KhethaIQ() {
                   {/* Existing jobs — clicking opens the job detail (questionnaire, applicants, etc.) */}
                   {jobs.map(job => {
                     const ss = statusStyle(job.status);
-                    const linkedOpening = jobOpenings.find(jo => jo.title === job.title);
-                    // All jobs pull from the page created for them (the JobOpening).
-                    // Legacy routes are only a fallback for older jobs not yet linked.
-                    const listingUrl = linkedOpening
+                    const jobPath = getLegacyPath(job);
+                    const linkedOpening = jobPath
+                      ? jobOpenings.find(jo => normalizeSourcePath(jo.source_url) === jobPath)
+                      : jobOpenings.find(jo => jo.title === job.title);
+                    // "View Listing" opens the special page itself (e.g.
+                    // /MediaSpecialist), which renders live from the JobOpening.
+                    const listingUrl = jobPath || (linkedOpening
                       ? `/careers/${linkedOpening.public_slug || linkedOpening.job_id}`
-                      : (job.source_url
-                        || (job.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
-                          : job.source_application_position === "media_specialist" ? "/MediaSpecialist" : null));
+                      : null);
                     return (
                       <div
                         key={job.id}
@@ -804,7 +805,10 @@ export default function KhethaIQ() {
                   {/* JobOpening records — only show those WITHOUT a matching HireJob
                       (HireJobs that have been linked to a JobOpening already display
                       their own card above with View Listing + Edit Page buttons) */}
-                  {jobOpenings.filter(j => j.status === "open" && !jobs.some(hj => hj.title === j.title)).map(job => {
+                  {jobOpenings.filter(j => j.status === "open" && !jobs.some(hj => {
+                    const hp = getLegacyPath(hj);
+                    return hp && normalizeSourcePath(j.source_url) === hp;
+                  })).map(job => {
                     const ss = statusStyle(job.status);
                     return (
                       <div
@@ -829,7 +833,8 @@ export default function KhethaIQ() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingPreviewUrl(`/careers/${job.public_slug || job.job_id}`);
+                              const jp = normalizeSourcePath(job.source_url);
+                              setEditingPreviewUrl(jp || `/careers/${job.public_slug || job.job_id}`);
                               setEditingJobOpening(job);
                             }}
                             className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
