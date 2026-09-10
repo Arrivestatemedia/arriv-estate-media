@@ -226,26 +226,27 @@ export default function KhethaIQ() {
   // already exists (by title), open the edit modal with it. Otherwise, create
   // a JobOpening from the HireJob's data first, then open the edit modal.
   const handleEditPage = async (hireJob) => {
-    const listingUrl = hireJob.source_url
+    const legacyUrl = hireJob.source_url
       || (hireJob.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
         : hireJob.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
     const match = jobOpenings.find(jo => jo.title === hireJob.title);
     if (match) {
-      // Ensure the JobOpening is linked to its listing URL so the public page
-      // (e.g. /SalesGrowthAdvisor) can find and render it. Backfills older
-      // records that were created before source_url was stored.
-      if (!match.source_url && listingUrl) {
+      // Backfill source_url so legacy pages (e.g. /SalesGrowthAdvisor) can
+      // find and render this JobOpening. Course-corrects older records that
+      // were created before source_url was stored.
+      if (!match.source_url && legacyUrl) {
         try {
           const upd = await base44.functions.invoke("createJobPage", {
             action: "update",
             job_opening_id: match.id,
-            source_url: listingUrl,
+            source_url: legacyUrl,
           });
-          const updated = upd?.data?.job_opening || upd?.job_opening || { ...match, source_url: listingUrl };
+          const updated = upd?.data?.job_opening || upd?.job_opening || { ...match, source_url: legacyUrl };
           setJobOpenings(prev => prev.map(j => j.id === match.id ? { ...j, ...updated } : j));
         } catch (_) {}
       }
-      setEditingPreviewUrl(listingUrl);
+      // Preview the canonical page created for this job
+      setEditingPreviewUrl(`/careers/${match.public_slug || match.job_id}`);
       setEditingJobOpening(match);
       return;
     }
@@ -255,8 +256,8 @@ export default function KhethaIQ() {
       // with the EXACT content the public page (/SalesGrowthAdvisor) shows
       // by default — so the edit modal opens with the same words the page
       // displays, and edits stay in sync with the preview.
-      const d = listingUrl === "/SalesGrowthAdvisor" ? SALES_JOB_DEFAULTS
-        : listingUrl === "/MediaSpecialist" ? MEDIA_JOB_DEFAULTS : {};
+      const d = legacyUrl === "/SalesGrowthAdvisor" ? SALES_JOB_DEFAULTS
+        : legacyUrl === "/MediaSpecialist" ? MEDIA_JOB_DEFAULTS : {};
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
         title: d.title || hireJob.title || "Untitled",
@@ -272,7 +273,7 @@ export default function KhethaIQ() {
         employment_type: d.employment_type || hireJob.employment_type || "full_time",
         work_arrangement: d.work_arrangement || hireJob.work_arrangement || "onsite",
         location: d.location || hireJob.location || "",
-        source_url: listingUrl || hireJob.source_url || "",
+        source_url: legacyUrl || hireJob.source_url || "",
         source_type: "text",
         page_description: d.page_description || hireJob.description || "",
       });
@@ -280,7 +281,7 @@ export default function KhethaIQ() {
       if (data?.success && data?.job_opening) {
         const newOpening = data.job_opening;
         setJobOpenings(prev => [newOpening, ...prev]);
-        setEditingPreviewUrl(listingUrl);
+        setEditingPreviewUrl(`/careers/${newOpening.public_slug || newOpening.job_id}`);
         setEditingJobOpening(newOpening);
       } else {
         alert(data?.error || "Failed to create job page");
@@ -357,6 +358,46 @@ export default function KhethaIQ() {
       await loadJobs();
     } catch (err) {
       alert("Failed to duplicate job: " + (err.message || "unknown error"));
+    } finally {
+      setDuplicating(null);
+    }
+  };
+
+  // Duplicate a JobOpening (job page) that has no matching HireJob — creates
+  // a copy of the public page with a "(Copy)" title suffix.
+  const handleDuplicateJobOpening = async (jobOpening) => {
+    setDuplicating(jobOpening);
+    try {
+      const newTitle = `${jobOpening.title || "Untitled"} (Copy)`;
+      const res = await base44.functions.invoke("createJobPage", {
+        action: "create",
+        title: newTitle,
+        department: jobOpening.department || "",
+        description: jobOpening.description_text || "",
+        responsibilities: jobOpening.responsibilities || [],
+        required_qualifications: jobOpening.required_qualifications || [],
+        preferred_qualifications: jobOpening.preferred_qualifications || [],
+        skills: jobOpening.skills || [],
+        experience_requirements: jobOpening.experience_requirements || "",
+        compensation: jobOpening.compensation || "",
+        work_schedule: jobOpening.work_schedule || "",
+        employment_type: jobOpening.employment_type || "full_time",
+        work_arrangement: jobOpening.work_arrangement || "onsite",
+        location: jobOpening.location || "",
+        benefits: jobOpening.benefits || [],
+        page_description: jobOpening.page_description || "",
+        design_description: jobOpening.design_description || "",
+        source_type: "text",
+        source_url: "",
+      });
+      const data = res?.data ?? res;
+      if (data?.success && data?.job_opening) {
+        setJobOpenings(prev => [data.job_opening, ...prev]);
+      } else {
+        alert(data?.error || "Failed to duplicate job page");
+      }
+    } catch (err) {
+      alert("Failed to duplicate job page: " + (err.message || "unknown error"));
     } finally {
       setDuplicating(null);
     }
@@ -686,9 +727,14 @@ export default function KhethaIQ() {
                   {/* Existing jobs — clicking opens the job detail (questionnaire, applicants, etc.) */}
                   {jobs.map(job => {
                     const ss = statusStyle(job.status);
-                    const listingUrl = job.source_url
-                      || (job.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
-                        : job.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
+                    const linkedOpening = jobOpenings.find(jo => jo.title === job.title);
+                    // All jobs pull from the page created for them (the JobOpening).
+                    // Legacy routes are only a fallback for older jobs not yet linked.
+                    const listingUrl = linkedOpening
+                      ? `/careers/${linkedOpening.public_slug || linkedOpening.job_id}`
+                      : (job.source_url
+                        || (job.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
+                          : job.source_application_position === "media_specialist" ? "/MediaSpecialist" : null));
                     return (
                       <div
                         key={job.id}
@@ -780,6 +826,17 @@ export default function KhethaIQ() {
                             style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
                           >
                             Edit Page
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDuplicateJobOpening(job); }}
+                            disabled={duplicating?.id === job.id}
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                            style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
+                          >
+                            {duplicating?.id === job.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : <Copy className="w-3 h-3" />}
+                            Duplicate
                           </button>
                         </div>
                       </div>
