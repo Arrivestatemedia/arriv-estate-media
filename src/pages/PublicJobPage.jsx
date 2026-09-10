@@ -8,15 +8,25 @@ const TEXT_DARK = "#1A1A1A";
 const MUTED = "rgba(26,26,26,0.6)";
 const SERIF = { fontFamily: "Georgia, 'Times New Roman', serif" };
 const SANS = { fontFamily: "Inter, system-ui, sans-serif" };
+const MONO = { fontFamily: "'Courier New', monospace" };
 
 const DEFAULT_SPEC = {
   hero_style: "full_bleed",
   primary_color: null,
   secondary_color: null,
+  accent_color: null,
   background_tone: "light",
   section_order: ["about", "responsibilities", "qualifications", "preferred", "experience", "performance", "skills", "benefits", "compensation"],
   layout_density: "spacious",
   tone: "classic",
+  font_family: null,
+  heading_font_family: null,
+  hero_image_url: null,
+  button_style: "rounded",
+  card_style: "bordered",
+  content_width: "standard",
+  show_logo: true,
+  show_badge: true,
 };
 
 function resolveSpec(spec) {
@@ -129,6 +139,7 @@ export default function PublicJobPage() {
 
   // Resolve colors
   const primary = spec.primary_color || tenant.primary_color || GOLD;
+  const accent = spec.accent_color || primary;
   const heroBg = spec.secondary_color || "#1A1A1A";
 
   // Resolve background tone
@@ -141,8 +152,34 @@ export default function PublicJobPage() {
   // Resolve density
   const sectionPy = spec.layout_density === "compact" ? "py-8" : "py-12";
 
-  // Resolve tone (heading font)
-  const headingFont = (spec.tone === "modern" || spec.tone === "professional") ? SANS : SERIF;
+  // Resolve fonts
+  const bodyFont = spec.font_family === "mono" ? MONO : spec.font_family === "sans" ? SANS : spec.font_family === "serif" ? SERIF : {};
+  const headingFont = spec.heading_font_family
+    ? (spec.heading_font_family === "mono" ? MONO : spec.heading_font_family === "sans" ? SANS : SERIF)
+    : (spec.tone === "modern" || spec.tone === "professional") ? SANS : SERIF;
+
+  // Resolve button style
+  const btnRadius = spec.button_style === "pill" ? "9999px" : spec.button_style === "square" ? "0px" : "8px";
+  const btnStyle = spec.button_style === "ghost"
+    ? { backgroundColor: "transparent", color: primary, border: `2px solid ${primary}`, borderRadius: btnRadius }
+    : { backgroundColor: primary, color: "#1A1A1A", border: "none", borderRadius: btnRadius };
+
+  // Resolve card style
+  const cardStyleObj = spec.card_style === "flat"
+    ? { backgroundColor: "transparent", border: "none" }
+    : spec.card_style === "tinted"
+    ? { backgroundColor: `${primary}08`, border: `1px solid ${primary}20` }
+    : spec.card_style === "elevated"
+    ? { backgroundColor: cardBg, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }
+    : { backgroundColor: cardBg, border: `1px solid ${cardBorder}` };
+
+  // Resolve content width
+  const contentMaxWidth = spec.content_width === "narrow" ? "max-w-2xl" : spec.content_width === "wide" ? "max-w-6xl" : "max-w-4xl";
+
+  // Resolve visibility & hero image
+  const showLogo = spec.show_logo !== false;
+  const showBadge = spec.show_badge !== false;
+  const heroImage = spec.hero_image_url || tenant.career_hero_image || "";
 
   const hubSlug = tenant.career_company_slug || "arriv-estate-media";
 
@@ -166,16 +203,18 @@ export default function PublicJobPage() {
             <Link to={`/careers/company/${hubSlug}`} className="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style={{ color: "rgba(255,251,245,0.6)" }}>
               <ArrowLeft className="w-4 h-4" /> All Careers
             </Link>
-            {tenant.logo_url && <img src={tenant.logo_url} alt={tenant.company_name} className="h-10 mx-auto mb-4" />}
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ backgroundColor: `${primary}30`, color: primary }}>
+            {showLogo && tenant.logo_url && <img src={tenant.logo_url} alt={tenant.company_name} className="h-10 mx-auto mb-4" />}
+            {showBadge && (
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ backgroundColor: `${accent}30`, color: accent }}>
               Now Hiring
             </div>
+          )}
             <h1 className="text-4xl font-bold mb-3" style={headingFont}>{job.title}</h1>
             {job.department && <p className="text-lg mb-4" style={{ color: "rgba(255,251,245,0.6)" }}>{job.department}</p>}
             <div className="flex items-center justify-center gap-4 flex-wrap text-sm mb-6" style={{ color: "rgba(255,251,245,0.7)" }}>
               {infoItems}
             </div>
-            <button onClick={handleApplyClick} className="px-8 py-3 rounded-lg font-semibold transition-all hover:opacity-90" style={{ backgroundColor: primary, color: "#1A1A1A" }}>
+            <button onClick={handleApplyClick} className="px-8 py-3 rounded-lg font-semibold transition-all hover:opacity-90" style={btnStyle}>
               Apply Now
             </button>
           </div>
@@ -190,23 +229,25 @@ export default function PublicJobPage() {
             <Link to={`/careers/company/${hubSlug}`} className="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style={{ color: "rgba(255,251,245,0.6)" }}>
               <ArrowLeft className="w-4 h-4" /> All Careers
             </Link>
-            {tenant.logo_url && <img src={tenant.logo_url} alt={tenant.company_name} className="h-10 mb-4" />}
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-3 w-fit" style={{ backgroundColor: `${primary}30`, color: primary }}>
+            {showLogo && tenant.logo_url && <img src={tenant.logo_url} alt={tenant.company_name} className="h-10 mb-4" />}
+            {showBadge && (
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-3 w-fit" style={{ backgroundColor: `${accent}30`, color: accent }}>
               Now Hiring
             </div>
+          )}
             <h1 className="text-3xl md:text-4xl font-bold mb-2" style={headingFont}>{job.title}</h1>
             {job.department && <p className="text-lg mb-3" style={{ color: "rgba(255,251,245,0.6)" }}>{job.department}</p>}
             {job.page_description && <p className="text-sm leading-relaxed" style={{ color: "rgba(255,251,245,0.7)" }}>{job.page_description}</p>}
           </div>
-          <div className="p-8 md:p-10 flex flex-col justify-center" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+          <div className="p-8 md:p-10 flex flex-col justify-center" style={{ backgroundColor: "rgba(255,255,255,0.04)", ...(heroImage ? { backgroundImage: `url(${heroImage})`, backgroundSize: "cover", backgroundPosition: "center" } : {}) }}>
             <div className="space-y-3 text-sm" style={{ color: "rgba(255,251,245,0.8)" }}>
-              {job.location && <div className="flex items-center gap-2"><MapPin className="w-4 h-4" style={{ color: primary }} /> {job.location}</div>}
-              {job.employment_type && <div className="flex items-center gap-2"><Briefcase className="w-4 h-4" style={{ color: primary }} /> {job.employment_type.replace(/_/g, " ")}</div>}
-              {job.work_arrangement && <div className="flex items-center gap-2 capitalize"><Check className="w-4 h-4" style={{ color: primary }} /> {job.work_arrangement}</div>}
-              {job.compensation && <div className="flex items-center gap-2"><DollarSign className="w-4 h-4" style={{ color: primary }} /> {job.compensation}</div>}
-              {job.work_schedule && <div className="flex items-center gap-2"><Clock className="w-4 h-4" style={{ color: primary }} /> {job.work_schedule}</div>}
+              {job.location && <div className="flex items-center gap-2"><MapPin className="w-4 h-4" style={{ color: accent }} /> {job.location}</div>}
+              {job.employment_type && <div className="flex items-center gap-2"><Briefcase className="w-4 h-4" style={{ color: accent }} /> {job.employment_type.replace(/_/g, " ")}</div>}
+              {job.work_arrangement && <div className="flex items-center gap-2 capitalize"><Check className="w-4 h-4" style={{ color: accent }} /> {job.work_arrangement}</div>}
+              {job.compensation && <div className="flex items-center gap-2"><DollarSign className="w-4 h-4" style={{ color: accent }} /> {job.compensation}</div>}
+              {job.work_schedule && <div className="flex items-center gap-2"><Clock className="w-4 h-4" style={{ color: accent }} /> {job.work_schedule}</div>}
             </div>
-            <button onClick={handleApplyClick} className="mt-6 px-6 py-3 rounded-lg font-semibold transition-all hover:opacity-90" style={{ backgroundColor: primary, color: "#1A1A1A" }}>
+            <button onClick={handleApplyClick} className="mt-6 px-6 py-3 rounded-lg font-semibold transition-all hover:opacity-90" style={btnStyle}>
               Apply Now
             </button>
           </div>
@@ -221,16 +262,18 @@ export default function PublicJobPage() {
             <Link to={`/careers/company/${hubSlug}`} className="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style={{ color: pageMuted }}>
               <ArrowLeft className="w-4 h-4" /> All Careers
             </Link>
-            {tenant.logo_url && <img src={tenant.logo_url} alt={tenant.company_name} className="h-9 mb-3" />}
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-3" style={{ backgroundColor: `${primary}20`, color: primary }}>
+            {showLogo && tenant.logo_url && <img src={tenant.logo_url} alt={tenant.company_name} className="h-9 mb-3" />}
+            {showBadge && (
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-3" style={{ backgroundColor: `${accent}20`, color: accent }}>
               Now Hiring
             </div>
+          )}
             <h1 className="text-3xl font-bold mb-1" style={headingFont}>{job.title}</h1>
             {job.department && <p className="text-base mb-3" style={{ color: pageMuted }}>{job.department}</p>}
             <div className="flex items-center gap-4 flex-wrap text-sm mb-5" style={{ color: pageMuted }}>
               {infoItems}
             </div>
-            <button onClick={handleApplyClick} className="px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90" style={{ backgroundColor: primary, color: "#1A1A1A" }}>
+            <button onClick={handleApplyClick} className="px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90" style={btnStyle}>
               Apply Now
             </button>
           </div>
@@ -241,23 +284,25 @@ export default function PublicJobPage() {
     // full_bleed (default)
     return (
       <div className="relative" style={{ backgroundColor: heroBg, color: "#FFFBF5" }}>
-        {tenant.career_hero_image && (
+        {heroImage && (
           <div className="absolute inset-0" style={{ backgroundImage: `url(${tenant.career_hero_image})`, backgroundSize: "cover", backgroundPosition: "center", opacity: 0.2 }} />
         )}
         <div className="relative max-w-4xl mx-auto px-6 py-14">
           <Link to={`/careers/company/${hubSlug}`} className="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style={{ color: "rgba(255,251,245,0.6)" }}>
             <ArrowLeft className="w-4 h-4" /> All Careers
           </Link>
-          {tenant.logo_url && <img src={tenant.logo_url} alt={tenant.company_name} className="h-10 mb-4" />}
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-3" style={{ backgroundColor: `${primary}30`, color: primary }}>
+          {showLogo && tenant.logo_url && <img src={tenant.logo_url} alt={tenant.company_name} className="h-10 mb-4" />}
+          {showBadge && (
+          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-3" style={{ backgroundColor: `${accent}30`, color: accent }}>
             Now Hiring
           </div>
+        )}
           <h1 className="text-4xl font-bold mb-2" style={headingFont}>{job.title}</h1>
           {job.department && <p className="text-lg mb-4" style={{ color: "rgba(255,251,245,0.6)" }}>{job.department}</p>}
           <div className="flex items-center gap-4 flex-wrap text-sm mb-5" style={{ color: "rgba(255,251,245,0.7)" }}>
             {infoItems}
           </div>
-          <button onClick={handleApplyClick} className="px-6 py-3 rounded-lg font-semibold transition-all hover:opacity-90" style={{ backgroundColor: primary, color: "#1A1A1A" }}>
+          <button onClick={handleApplyClick} className="px-6 py-3 rounded-lg font-semibold transition-all hover:opacity-90" style={btnStyle}>
             Apply Now
           </button>
         </div>
@@ -278,8 +323,8 @@ export default function PublicJobPage() {
         <h2 className="text-2xl font-bold mb-4" style={{ ...headingFont, color: pageText }}>What You'll Do</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {job.responsibilities.map((r, i) => (
-            <div key={i} className="p-4 rounded-xl flex items-start gap-3" style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}>
-              <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primary }} />
+            <div key={i} className="p-4 rounded-xl flex items-start gap-3" style={cardStyleObj}>
+              <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: accent }} />
               <span className="text-sm" style={{ color: pageText }}>{r}</span>
             </div>
           ))}
@@ -292,7 +337,7 @@ export default function PublicJobPage() {
         <div className="space-y-2">
           {job.required_qualifications.map((q, i) => (
             <div key={i} className="flex items-start gap-3">
-              <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primary }} />
+              <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: accent }} />
               <span className="text-sm" style={{ color: pageText }}>{q}</span>
             </div>
           ))}
@@ -305,7 +350,7 @@ export default function PublicJobPage() {
         <div className="space-y-2">
           {job.preferred_qualifications.map((q, i) => (
             <div key={i} className="flex items-start gap-3">
-              <Star className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primary }} />
+              <Star className="w-5 h-5 shrink-0 mt-0.5" style={{ color: accent }} />
               <span className="text-sm" style={{ color: pageText }}>{q}</span>
             </div>
           ))}
@@ -329,8 +374,8 @@ export default function PublicJobPage() {
         <h2 className="text-2xl font-bold mb-4" style={{ ...headingFont, color: pageText }}>Benefits</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {job.benefits.map((b, i) => (
-            <div key={i} className="p-4 rounded-xl flex items-start gap-3" style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}>
-              <Heart className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primary }} />
+            <div key={i} className="p-4 rounded-xl flex items-start gap-3" style={cardStyleObj}>
+              <Heart className="w-5 h-5 shrink-0 mt-0.5" style={{ color: accent }} />
               <span className="text-sm" style={{ color: pageText }}>{b}</span>
             </div>
           ))}
@@ -349,7 +394,7 @@ export default function PublicJobPage() {
         <div className="space-y-2">
           {job.performance_expectations.map((p, i) => (
             <div key={i} className="flex items-start gap-3">
-              <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primary }} />
+              <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: accent }} />
               <span className="text-sm" style={{ color: pageText }}>{p}</span>
             </div>
           ))}
@@ -357,7 +402,7 @@ export default function PublicJobPage() {
       </section>
     ),
     compensation: (job.compensation || job.work_schedule || job.travel_requirements) && (
-      <section key="compensation" className="p-6 rounded-xl" style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}>
+      <section key="compensation" className="p-6 rounded-xl" style={cardStyleObj}>
         <h2 className="text-xl font-bold mb-4" style={{ ...headingFont, color: pageText }}>Compensation & Schedule</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           {job.compensation && <div><p style={{ color: pageMuted }}>Compensation</p><p className="font-medium mt-1" style={{ color: pageText }}>{job.compensation}</p></div>}
@@ -374,16 +419,16 @@ export default function PublicJobPage() {
     .filter(Boolean);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: pageBg, color: pageText }}>
+    <div className="min-h-screen" style={{ backgroundColor: pageBg, color: pageText, ...bodyFont }}>
       {renderHero()}
 
-      <div className={`max-w-4xl mx-auto px-6 ${sectionPy} space-y-10`}>
+      <div className={`${contentMaxWidth} mx-auto px-6 ${sectionPy} space-y-10`}>
         {renderedSections}
       </div>
 
       <div className="py-12 text-center" style={{ backgroundColor: heroBg }}>
         <h2 className="text-2xl font-bold mb-4" style={{ ...headingFont, color: "#FFFBF5" }}>Ready to apply?</h2>
-        <button onClick={handleApplyClick} className="px-8 py-3 rounded-lg font-semibold transition-all hover:opacity-90" style={{ backgroundColor: primary, color: "#1A1A1A" }}>
+        <button onClick={handleApplyClick} className="px-8 py-3 rounded-lg font-semibold transition-all hover:opacity-90" style={btnStyle}>
           Apply Now
         </button>
       </div>

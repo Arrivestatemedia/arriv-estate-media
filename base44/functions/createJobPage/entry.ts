@@ -62,15 +62,24 @@ export default async function(req: Request): Promise<Response> {
       if (design_description) {
         prompt += `Design direction from the hiring manager: ${design_description}\n\n`;
       }
-      prompt += `Also generate a "design_spec" object describing the visual page design:\n`;
+      prompt += `Also generate a "design_spec" object describing the visual page design. Extract EVERY visual property the design direction mentions:\n`;
       prompt += `- hero_style: one of "full_bleed" (dark dramatic hero), "centered" (centered text focus), "split" (two-column with info card), "minimal" (simple, light)\n`;
       prompt += `- primary_color: hex color for buttons/accents (e.g. "#B8956A")\n`;
       prompt += `- secondary_color: hex color for hero/section backgrounds (e.g. "#1A1A1A")\n`;
+      prompt += `- accent_color: hex color for icons, badges, and highlights — set when the design mentions a distinct accent/highlight color; omit if not mentioned\n`;
       prompt += `- background_tone: one of "light", "dark", "warm"\n`;
       prompt += `- section_order: array ordering these section keys: "about", "responsibilities", "qualifications", "preferred", "experience", "performance", "skills", "benefits", "compensation"\n`;
       prompt += `- layout_density: one of "spacious", "compact"\n`;
       prompt += `- tone: one of "professional", "warm", "modern", "classic"\n`;
-      prompt += `Base the design_spec on the design direction above. If no design direction was given, use defaults: hero_style "full_bleed", primary_color "#B8956A", secondary_color "#1A1A1A", background_tone "light", layout_density "spacious", tone "classic".\n\n`;
+      prompt += `- font_family: one of "serif" (Georgia), "sans" (Inter), "mono" (monospace) — body text font; set when the design mentions a font style\n`;
+      prompt += `- heading_font_family: one of "serif", "sans", "mono" — heading font; set only when the design explicitly mentions heading typography\n`;
+      prompt += `- hero_image_url: URL string — set ONLY when the design description provides a specific image URL\n`;
+      prompt += `- button_style: one of "rounded" (default), "pill" (fully rounded), "square" (sharp corners), "ghost" (transparent with colored border)\n`;
+      prompt += `- card_style: one of "elevated" (shadow), "bordered" (thin border, default), "flat" (no border/shadow), "tinted" (subtle color fill)\n`;
+      prompt += `- content_width: one of "narrow", "standard" (default), "wide"\n`;
+      prompt += `- show_logo: true/false — whether to show the company logo (default true); set false when the design says to hide the logo\n`;
+      prompt += `- show_badge: true/false — whether to show the "Now Hiring" badge (default true); set false when the design says to hide it\n`;
+      prompt += `Base the ENTIRE design_spec on the design direction above. Map every visual detail the user described to the corresponding field. If no design direction was given, use defaults: hero_style "full_bleed", primary_color "#B8956A", secondary_color "#1A1A1A", background_tone "light", layout_density "spacious", tone "classic", button_style "rounded", card_style "bordered", content_width "standard", show_logo true, show_badge true.\n\n`;
       if (source_type === "url" && source_url) {
         prompt += `Job description URL: ${source_url}\n\nPlease use the URL content as the primary source.`;
       } else if (source_type === "file" && file_url) {
@@ -102,10 +111,19 @@ export default async function(req: Request): Promise<Response> {
                 hero_style: { type: "string" },
                 primary_color: { type: "string" },
                 secondary_color: { type: "string" },
+                accent_color: { type: "string" },
                 background_tone: { type: "string" },
                 section_order: { type: "array", items: { type: "string" } },
                 layout_density: { type: "string" },
                 tone: { type: "string" },
+                font_family: { type: "string" },
+                heading_font_family: { type: "string" },
+                hero_image_url: { type: "string" },
+                button_style: { type: "string" },
+                card_style: { type: "string" },
+                content_width: { type: "string" },
+                show_logo: { type: "boolean" },
+                show_badge: { type: "boolean" },
               },
             },
           },

@@ -45,6 +45,10 @@
           "type": "string",
           "description": "Secondary/background accent color (hex)"
         },
+        "accent_color": {
+          "type": "string",
+          "description": "Accent color for icons, badges, and highlights (hex). Falls back to primary_color."
+        },
         "background_tone": {
           "type": "string",
           "enum": [
@@ -89,6 +93,65 @@
             "classic"
           ],
           "description": "Overall typographic and visual tone"
+        },
+        "font_family": {
+          "type": "string",
+          "enum": [
+            "serif",
+            "sans",
+            "mono"
+          ],
+          "description": "Body text font family. serif=Georgia, sans=Inter, mono=monospace."
+        },
+        "heading_font_family": {
+          "type": "string",
+          "enum": [
+            "serif",
+            "sans",
+            "mono"
+          ],
+          "description": "Heading font family. Overrides tone-based font selection when set."
+        },
+        "hero_image_url": {
+          "type": "string",
+          "description": "Hero background image URL. Falls back to tenant career_hero_image."
+        },
+        "button_style": {
+          "type": "string",
+          "enum": [
+            "rounded",
+            "pill",
+            "square",
+            "ghost"
+          ],
+          "description": "Button border style. ghost = transparent with colored border."
+        },
+        "card_style": {
+          "type": "string",
+          "enum": [
+            "elevated",
+            "bordered",
+            "flat",
+            "tinted"
+          ],
+          "description": "Card visual style for content sections."
+        },
+        "content_width": {
+          "type": "string",
+          "enum": [
+            "narrow",
+            "standard",
+            "wide"
+          ],
+          "description": "Content container maximum width."
+        },
+        "show_logo": {
+          "type": "boolean",
+          "description": "Whether to show the company logo in the hero. Defaults to true."
+        },
+        "show_badge": {
+          "type": "boolean",
+          "description": "Whether to show the 'Now Hiring' badge. Defaults to true."
         }
       }
     },
