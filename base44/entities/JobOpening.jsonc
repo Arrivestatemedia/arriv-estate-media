@@ -23,6 +23,73 @@
       "type": "string",
       "description": "Tenant's natural-language description of the desired page design (colors, structure, layout style, etc.)"
     },
+    "design_spec": {
+      "type": "object",
+      "description": "AI-generated structured design specification for the public job page, derived from design_description",
+      "properties": {
+        "hero_style": {
+          "type": "string",
+          "enum": [
+            "full_bleed",
+            "centered",
+            "split",
+            "minimal"
+          ],
+          "description": "Hero section layout style"
+        },
+        "primary_color": {
+          "type": "string",
+          "description": "Primary accent color (hex)"
+        },
+        "secondary_color": {
+          "type": "string",
+          "description": "Secondary/background accent color (hex)"
+        },
+        "background_tone": {
+          "type": "string",
+          "enum": [
+            "light",
+            "dark",
+            "warm"
+          ],
+          "description": "Overall page background tone"
+        },
+        "section_order": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "about",
+              "responsibilities",
+              "qualifications",
+              "preferred",
+              "skills",
+              "benefits",
+              "compensation"
+            ]
+          },
+          "description": "Order of content sections on the public page"
+        },
+        "layout_density": {
+          "type": "string",
+          "enum": [
+            "spacious",
+            "compact"
+          ],
+          "description": "Spacing density between sections"
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "professional",
+            "warm",
+            "modern",
+            "classic"
+          ],
+          "description": "Overall typographic and visual tone"
+        }
+      }
+    },
     "title": {
       "type": "string",
       "description": "Job title"

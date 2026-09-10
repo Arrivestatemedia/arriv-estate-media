@@ -90,6 +90,7 @@ export default async function(req: Request): Promise<Response> {
         compensation: job.compensation || "",
         work_schedule: job.work_schedule || "",
         page_description: job.page_description || "",
+        design_spec: job.design_spec || null,
         employment_type: job.employment_type || "full_time",
         work_arrangement: job.work_arrangement || "onsite",
         location: job.location || "",

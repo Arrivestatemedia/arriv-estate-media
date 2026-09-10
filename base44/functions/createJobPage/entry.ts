@@ -21,6 +21,7 @@ export default async function(req: Request): Promise<Response> {
       employment_type, work_arrangement, location, travel_requirements,
       benefits,
       email: bodyEmail,
+      design_spec: bodyDesignSpec,
     } = body;
 
     const base44 = createClientFromRequest(req);
@@ -58,6 +59,18 @@ export default async function(req: Request): Promise<Response> {
       if (page_description) {
         prompt += `Additional context from the hiring manager: ${page_description}\n\n`;
       }
+      if (design_description) {
+        prompt += `Design direction from the hiring manager: ${design_description}\n\n`;
+      }
+      prompt += `Also generate a "design_spec" object describing the visual page design:\n`;
+      prompt += `- hero_style: one of "full_bleed" (dark dramatic hero), "centered" (centered text focus), "split" (two-column with info card), "minimal" (simple, light)\n`;
+      prompt += `- primary_color: hex color for buttons/accents (e.g. "#B8956A")\n`;
+      prompt += `- secondary_color: hex color for hero/section backgrounds (e.g. "#1A1A1A")\n`;
+      prompt += `- background_tone: one of "light", "dark", "warm"\n`;
+      prompt += `- section_order: array ordering these section keys: "about", "responsibilities", "qualifications", "preferred", "skills", "benefits", "compensation"\n`;
+      prompt += `- layout_density: one of "spacious", "compact"\n`;
+      prompt += `- tone: one of "professional", "warm", "modern", "classic"\n`;
+      prompt += `Base the design_spec on the design direction above. If no design direction was given, use defaults: hero_style "full_bleed", primary_color "#B8956A", secondary_color "#1A1A1A", background_tone "light", layout_density "spacious", tone "classic".\n\n`;
       if (source_type === "url" && source_url) {
         prompt += `Job description URL: ${source_url}\n\nPlease use the URL content as the primary source.`;
       } else if (source_type === "file" && file_url) {
@@ -83,12 +96,24 @@ export default async function(req: Request): Promise<Response> {
             performance_expectations: { type: "array", items: { type: "string" } },
             compensation: { type: "string" },
             work_schedule: { type: "string" },
+            design_spec: {
+              type: "object",
+              properties: {
+                hero_style: { type: "string" },
+                primary_color: { type: "string" },
+                secondary_color: { type: "string" },
+                background_tone: { type: "string" },
+                section_order: { type: "array", items: { type: "string" } },
+                layout_density: { type: "string" },
+                tone: { type: "string" },
+              },
+            },
           },
         },
       });
 
       const extracted = llmRes || {};
-      return Response.json({ success: true, extracted });
+      return Response.json({ success: true, extracted, design_spec: extracted.design_spec || null });
     }
 
     // action === "update"
@@ -200,6 +225,7 @@ export default async function(req: Request): Promise<Response> {
       location: location || "",
       travel_requirements: travel_requirements || "",
       benefits: benefits || [],
+      design_spec: bodyDesignSpec || null,
       public_visibility: true,
       published_at: new Date().toISOString(),
       status: "open",

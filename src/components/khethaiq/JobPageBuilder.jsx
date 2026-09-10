@@ -39,6 +39,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
   const [creating, setCreating] = useState(false);
   const [pageDescription, setPageDescription] = useState("");
   const [designDescription, setDesignDescription] = useState("");
+  const [designSpec, setDesignSpec] = useState(null);
   const [sourceTab, setSourceTab] = useState("text");
   const [sourceText, setSourceText] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -72,6 +73,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
       const data = res?.data ?? res;
       if (data?.extracted) {
         setExtracted(data.extracted);
+        if (data.design_spec) setDesignSpec(data.design_spec);
         setFields({
           title: data.extracted.title || "",
           department: data.extracted.department || "",
@@ -120,6 +122,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
         action: "create",
         page_description: pageDescription,
         design_description: designDescription,
+        design_spec: designSpec,
         source_type: sourceTab,
         source_text: sourceText,
         source_url: sourceUrl,
