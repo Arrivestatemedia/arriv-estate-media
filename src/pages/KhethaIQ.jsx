@@ -65,6 +65,8 @@ const card = {
   flexDirection: "column",
 };
 
+const LIVE_BASE_URL = "https://app.arrivestatemedia.com";
+
 const statusStyle = (s) => ({
   draft: { bg: "rgba(255,251,245,0.08)", text: "rgba(255,251,245,0.6)" },
   open: { bg: "#B8956A", text: "#1A1A1A" },
@@ -796,7 +798,7 @@ export default function KhethaIQ() {
                         <div className="flex items-center gap-2 mt-auto pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.12)" }}>
                           {listingUrl && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); window.open(listingUrl, "_blank"); }}
+                              onClick={(e) => { e.stopPropagation(); window.open(`${LIVE_BASE_URL}${listingUrl}`, "_blank"); }}
                               className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
                               style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
                             >
@@ -843,7 +845,7 @@ export default function KhethaIQ() {
                     return (
                       <div
                         key={job.id}
-                        onClick={() => window.open(`/careers/${job.public_slug || job.job_id}`, "_blank")}
+                        onClick={() => window.open(`${LIVE_BASE_URL}/careers/${job.public_slug || job.job_id}`, "_blank")}
                         className="p-4 cursor-pointer transition-all hover:-translate-y-0.5"
                         style={card}
                         onMouseEnter={e => e.currentTarget.style.boxShadow = "0 8px 32px rgba(184,149,106,0.15)"}

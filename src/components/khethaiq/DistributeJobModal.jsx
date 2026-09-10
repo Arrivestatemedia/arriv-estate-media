@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Share2, Copy, ExternalLink, X, QrCode, Linkedin, Facebook, Twitter, Mail, Sparkles, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
@@ -16,20 +16,7 @@ export default function DistributeJobModal({ job, onClose }) {
   const [aiLoading, setAiLoading] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
 
-  const [customDomain, setCustomDomain] = useState(null);
-
-  useEffect(() => {
-    base44.functions.invoke("getCareersHub", {}).then(res => {
-      const data = res?.data || res;
-      if (data?.tenant?.custom_domain) {
-        setCustomDomain(data.tenant.custom_domain.replace(/^https?:\/\//, ""));
-      }
-    }).catch(() => {});
-  }, []);
-
-  const baseUrl = customDomain
-    ? `https://${customDomain}`
-    : "https://app.arrivestatemedia.com";
+  const baseUrl = "https://app.arrivestatemedia.com";
   const jobPath = `/careers/${job.public_slug || job.job_id}`;
   const publicUrl = `${baseUrl}${jobPath}`;
   const allJobsUrl = `${baseUrl}/careers`;
