@@ -153,63 +153,28 @@ export default function CareersHubSettings({ onClose }) {
             </button>
           </div>
 
-          {/* URL Slug */}
+          {/* URL Slug with https:// prefix */}
           <div>
-            <label style={labelStyle}>Careers Page URL Slug</label>
-            <input
-              value={settings.career_company_slug}
-              onChange={e => setSettings({ ...settings, career_company_slug: e.target.value })}
-              placeholder="e.g. arriv-estate-media"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = GOLD}
-              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
-            />
+            <label style={labelStyle}>Careers Page URL</label>
+            <div className="flex items-stretch gap-0 rounded-lg overflow-hidden" style={{ border: "1px solid rgba(184,149,106,0.2)" }}>
+              <span className="flex items-center px-3 text-sm whitespace-nowrap" style={{ backgroundColor: "rgba(184,149,106,0.06)", color: MUTED }}>
+                https://
+              </span>
+              <input
+                value={settings.career_company_slug}
+                onChange={e => setSettings({ ...settings, career_company_slug: e.target.value })}
+                placeholder="arriv-estate-media"
+                className="flex-1 border-0"
+                style={{ ...inputStyle, border: "none", borderRadius: "0" }}
+                onFocus={e => e.target.parentElement.style.borderColor = GOLD}
+                onBlur={e => e.target.parentElement.style.borderColor = "rgba(184,149,106,0.2)"}
+              />
+            </div>
             {settings.career_page_enabled && settings.career_company_slug && (
               <a href={hubUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs mt-1.5 hover:underline" style={{ color: GOLD }}>
                 <ExternalLink className="w-3 h-3" /> Preview live page
               </a>
             )}
-          </div>
-
-          {/* Custom Domain */}
-          <div>
-            <label style={labelStyle}>Custom Domain</label>
-            <input
-              value={settings.custom_domain || ""}
-              onChange={e => setSettings({ ...settings, custom_domain: e.target.value })}
-              placeholder="e.g. careers.yourcompany.com"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = GOLD}
-              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
-            />
-            <p className="text-xs mt-1.5" style={{ color: MUTED }}>Connect a custom domain to host your careers hub on your own URL.</p>
-          </div>
-
-          {/* Company Description */}
-          <div>
-            <label style={labelStyle}>Company Description</label>
-            <textarea
-              value={settings.career_company_description}
-              onChange={e => setSettings({ ...settings, career_company_description: e.target.value })}
-              placeholder="Tell candidates about your company..."
-              rows={3}
-              style={{ ...inputStyle, resize: "vertical" }}
-              onFocus={e => e.target.style.borderColor = GOLD}
-              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
-            />
-          </div>
-
-          {/* Hero Image */}
-          <div>
-            <label style={labelStyle}>Hero Image URL</label>
-            <input
-              value={settings.career_hero_image}
-              onChange={e => setSettings({ ...settings, career_hero_image: e.target.value })}
-              placeholder="https://..."
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = GOLD}
-              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
-            />
           </div>
 
           {/* Workplace Culture */}
@@ -284,7 +249,7 @@ export default function CareersHubSettings({ onClose }) {
             )}
           </div>
 
-          {/* Social Links */}
+          {/* Social Links — 2x2 grid */}
           <div>
             <label style={labelStyle}>Social Links</label>
             <div className="grid grid-cols-2 gap-3">
@@ -304,11 +269,34 @@ export default function CareersHubSettings({ onClose }) {
                 <label style={{ ...labelStyle, fontSize: "12px", marginBottom: "4px" }}>Instagram</label>
                 <input value={settings.career_social_links?.instagram || ""} onChange={e => setSettings({ ...settings, career_social_links: { ...settings.career_social_links, instagram: e.target.value } })} placeholder="https://instagram.com/..." style={inputStyle} onFocus={e => e.target.style.borderColor = GOLD} onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"} />
               </div>
-              <div>
-                <label style={{ ...labelStyle, fontSize: "12px", marginBottom: "4px" }}>Company Website</label>
-                <input value={settings.career_social_links?.website || ""} onChange={e => setSettings({ ...settings, career_social_links: { ...settings.career_social_links, website: e.target.value } })} placeholder="https://..." style={inputStyle} onFocus={e => e.target.style.borderColor = GOLD} onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"} />
-              </div>
             </div>
+          </div>
+
+          {/* Company Website */}
+          <div>
+            <label style={labelStyle}>Company Website</label>
+            <input
+              value={settings.career_social_links?.website || ""}
+              onChange={e => setSettings({ ...settings, career_social_links: { ...settings.career_social_links, website: e.target.value } })}
+              placeholder="https://..."
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = GOLD}
+              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+            />
+          </div>
+
+          {/* Custom Domain (Optional) */}
+          <div>
+            <label style={labelStyle}>Custom Domain (Optional)</label>
+            <input
+              value={settings.custom_domain || ""}
+              onChange={e => setSettings({ ...settings, custom_domain: e.target.value })}
+              placeholder="careers.yourcompany.com"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = GOLD}
+              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+            />
+            <p className="text-xs mt-1.5" style={{ color: MUTED }}>Point a CNAME record for this domain to khetha-iq-by-arriv.base44.app, then enter the domain here. Your careers hub and job pages will use this domain instead of the default.</p>
           </div>
 
           {/* Contact Email */}
@@ -322,7 +310,6 @@ export default function CareersHubSettings({ onClose }) {
               onFocus={e => e.target.style.borderColor = GOLD}
               onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
             />
-            <p className="text-xs mt-1.5" style={{ color: MUTED }}>Email address candidates can reach for career inquiries.</p>
           </div>
         </div>
 
