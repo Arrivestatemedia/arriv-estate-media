@@ -234,7 +234,15 @@ export default async function(req: Request): Promise<Response> {
       }, secret, webhookUrl);
     }
 
-    const origin = typeof window !== 'undefined' ? window.location.origin : `https://${req.headers.get('host') || 'arrivestatemedia.base44.app'}`;
+    // Use the custom domain for public URLs when configured
+    let origin = typeof window !== 'undefined' ? window.location.origin : `https://${req.headers.get('host') || 'arrivestatemedia.base44.app'}`;
+    try {
+      const settingsRes = await base44.asServiceRole.entities.CareersHubSetting.filter({ tenant_id: tenantId });
+      const hubSettings = (settingsRes?.data ?? settingsRes ?? [])[0];
+      if (hubSettings?.custom_domain) {
+        origin = `https://${hubSettings.custom_domain.replace(/^https?:\/\//, "")}`;
+      }
+    } catch {}
     const publicUrl = `${origin}/careers/${publicSlug || jobId}`;
 
     return Response.json({

@@ -28,6 +28,7 @@ export default async function(req: Request): Promise<Response> {
           career_locations: settings.career_locations || [],
           career_social_links: settings.career_social_links || {},
           career_contact_email: settings.career_contact_email || "",
+          custom_domain: settings.custom_domain || "",
         };
       }
     } catch {}

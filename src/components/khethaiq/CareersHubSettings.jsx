@@ -116,7 +116,8 @@ export default function CareersHubSettings({ onClose }) {
     );
   }
 
-  const hubUrl = `${window.location.origin}/careers/company/${settings.career_company_slug || "arriv-estate-media"}`;
+  const hubBase = settings.custom_domain ? `https://${settings.custom_domain.replace(/^https?:\/\//, "")}` : window.location.origin;
+  const hubUrl = `${hubBase}/careers/company/${settings.career_company_slug || "arriv-estate-media"}`;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" style={{ backdropFilter: "blur(6px)" }} onClick={e => { e.stopPropagation(); if (!saving) onClose?.(); }}>
