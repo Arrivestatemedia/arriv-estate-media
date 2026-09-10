@@ -32,6 +32,7 @@ import PerformanceDataView from "@/components/hireiq/PerformanceDataView";
 import JobPageBuilder from "@/components/khethaiq/JobPageBuilder";
 import EditJobPageModal from "@/components/khethaiq/EditJobPageModal";
 import CareersHubSettings from "@/components/khethaiq/CareersHubSettings";
+import { SALES_JOB_DEFAULTS } from "@/lib/salesJobDefaults";
 
 // Map manifest icon names to lucide-react components.
 // Matches the central KhethaIQ app's ICON_MAP.
@@ -248,21 +249,30 @@ export default function KhethaIQ() {
     }
     setLinkingJob(hireJob);
     try {
+      // For the Sales Growth Advisor listing, pre-populate the JobOpening
+      // with the EXACT content the public page (/SalesGrowthAdvisor) shows
+      // by default — so the edit modal opens with the same words the page
+      // displays, and edits stay in sync with the preview.
+      const isSalesJob = listingUrl === "/SalesGrowthAdvisor";
+      const d = isSalesJob ? SALES_JOB_DEFAULTS : {};
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
-        title: hireJob.title || "Untitled",
+        title: d.title || hireJob.title || "Untitled",
         department: hireJob.department || "",
-        description: hireJob.description || "",
-        responsibilities: hireJob.responsibilities || [],
-        required_qualifications: hireJob.required_qualifications || [],
+        description: d.description_text || hireJob.description || "",
+        responsibilities: d.responsibilities || hireJob.responsibilities || [],
+        required_qualifications: d.required_qualifications || hireJob.required_qualifications || [],
         preferred_qualifications: hireJob.preferred_qualifications || [],
         skills: hireJob.skills || [],
         experience_requirements: hireJob.experience_requirements || "",
-        compensation: hireJob.compensation || "",
-        work_schedule: hireJob.work_schedule || "",
+        compensation: d.compensation || hireJob.compensation || "",
+        work_schedule: d.work_schedule || hireJob.work_schedule || "",
+        employment_type: d.employment_type || hireJob.employment_type || "full_time",
+        work_arrangement: d.work_arrangement || hireJob.work_arrangement || "onsite",
+        location: d.location || hireJob.location || "",
         source_url: listingUrl || hireJob.source_url || "",
         source_type: "text",
-        page_description: hireJob.description || "",
+        page_description: d.page_description || hireJob.description || "",
       });
       const data = res?.data ?? res;
       if (data?.success && data?.job_opening) {
