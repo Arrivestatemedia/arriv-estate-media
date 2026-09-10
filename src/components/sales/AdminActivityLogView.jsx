@@ -77,11 +77,16 @@ export default function AdminActivityLogView({ salesMemberId, salesMemberEmail, 
   useEffect(() => {
     if (!salesMemberId) return;
     
-    const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
-      if (event.data?.sales_member_id === salesMemberId && event.data?.call_map) {
-        queryClient.invalidateQueries({ queryKey: ['adminRepActivities', salesMemberId] });
-      }
-    });
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
+        if (event.data?.sales_member_id === salesMemberId && event.data?.call_map) {
+          queryClient.invalidateQueries({ queryKey: ['adminRepActivities', salesMemberId] });
+        }
+      });
+    } catch (e) {
+      console.error('[AdminActivityLogView] ActivityLog subscribe failed:', e);
+    }
     
     return unsubscribe;
   }, [salesMemberId, queryClient]);

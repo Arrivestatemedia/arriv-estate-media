@@ -75,11 +75,12 @@ export default function AdminSalesSignup() {
   const { data: salesMembers = [], error: fetchError } = useQuery({
     queryKey: ['salesTeam'],
     queryFn: async () => {
-      const result = await base44.entities.SalesTeamMember.list('-created_date');
-      console.log('Sales members fetched:', result);
-      return result;
+      const result = await base44.functions.invoke('listAllSalesTeamMembers');
+      const data = result?.data || result;
+      return data?.members || [];
     },
     initialData: [],
+    enabled: !!user && user.role === 'admin',
   });
 
   const createMutation = useMutation({

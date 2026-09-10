@@ -28,24 +28,43 @@ export default function AdminUsers() {
   useEffect(() => {
     const userRole = localStorage.getItem('user_role') || sessionStorage.getItem('user_role');
     const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
-    if (userRole !== 'admin' && salesRole !== 'admin') {
-      window.location.href = "/";
-    } else {
-      setUser({ role: 'admin' });
-    }
+
+    // Check Base44 platform admin role first (takes precedence)
+    const checkPlatformAdmin = base44.auth.isAuthenticated()
+      .then((isAuth) => isAuth ? base44.auth.me() : null)
+      .then((me) => me?.role === 'admin')
+      .catch(() => false);
+
+    checkPlatformAdmin.then((platformIsAdmin) => {
+      if (platformIsAdmin || userRole === 'admin' || salesRole === 'admin') {
+        setUser({ role: 'admin' });
+      } else {
+        window.location.href = "/";
+      }
+    });
   }, []);
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["all-users"],
     queryFn: async () => {
       const res = await base44.functions.invoke('listAllUsers');
-      return res.data?.users || [];
+      const data = res?.data || res;
+      return data?.users || [];
     },
+    enabled: !!user && user.role === 'admin',
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ["pending-signups"],
-    queryFn: () => base44.entities.PendingSignup.list(),
+    queryFn: async () => {
+      try {
+        return await base44.entities.PendingSignup.list();
+      } catch (e) {
+        console.error('PendingSignup list failed:', e);
+        return [];
+      }
+    },
+    enabled: !!user && user.role === 'admin',
   });
 
   const { data: jobs = [] } = useQuery({
@@ -189,6 +208,59 @@ export default function AdminUsers() {
             </CardContent>
           </Card>
         )}
+
+        <Card className="border-[var(--border-color)]">
+          <CardHeader>
+            <CardTitle>Platform Users ({allUsers.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border-color)]">
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">Name</th>
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">Email</th>
+                    <th className="text-left py-3 px-4 font-medium text-[var(--text-primary)]">Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsers.map((u) => (
+                    <tr key={u.id} className="border-b border-[var(--border-color)] hover:bg-[var(--accent-color)]/5 transition-colors">
+                      <td className="py-3 px-4 text-[var(--text-primary)]">{u.full_name || "—"}</td>
+                      <td className="py-3 px-4 text-[var(--text-secondary)]">{u.email}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant={u.role === "admin" ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+                          {u.role === "admin" ? (<><Shield className="w-3 h-3" />Admin</>) : "User"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                  {allUsers.length === 0 && (
+                    <tr><td colSpan={3} className="text-center py-8 text-[var(--text-secondary)]">No platform users found</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden space-y-3">
+              {allUsers.map((u) => (
+                <div key={u.id} className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-[var(--text-primary)]">{u.full_name || "—"}</h3>
+                      <p className="text-sm text-[var(--text-secondary)]">{u.email}</p>
+                    </div>
+                    <Badge variant={u.role === "admin" ? "default" : "secondary"} className="flex items-center gap-1">
+                      {u.role === "admin" ? (<><Shield className="w-3 h-3" />Admin</>) : "User"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+              {allUsers.length === 0 && (
+                <div className="text-center py-8 text-[var(--text-secondary)]">No platform users found</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="border-[var(--border-color)]">
           <CardHeader className="flex flex-row items-center justify-between pb-4">

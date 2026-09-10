@@ -55,14 +55,25 @@ export default function AdminSalesRepActivity() {
 
   const { data: salesMembers = [] } = useQuery({
     queryKey: ['salesMembers'],
-    queryFn: () => base44.entities.SalesTeamMember.list(),
-    enabled: !!user
+    queryFn: async () => {
+      const result = await base44.functions.invoke('listAllSalesTeamMembers');
+      const data = result?.data || result;
+      return data?.members || [];
+    },
+    enabled: !!user && user.role === 'admin'
   });
 
   const { data: allActivities = [] } = useQuery({
     queryKey: ['allActivities'],
-    queryFn: () => base44.entities.ActivityLog.list('-activity_date', 500),
-    enabled: !!user,
+    queryFn: async () => {
+      try {
+        return await base44.entities.ActivityLog.list('-activity_date', 500);
+      } catch (e) {
+        console.error('ActivityLog list failed:', e);
+        return [];
+      }
+    },
+    enabled: !!user && user.role === 'admin',
     refetchInterval: 15000,
   });
 

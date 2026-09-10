@@ -59,19 +59,24 @@ export default function ChatTab({ currentUserId, currentUserName, salesMemberId,
       });
       setMemberProfiles(profiles);
       setMemberStatuses(statuses);
-    });
+    }).catch(() => {});
 
     // Subscribe to real-time status updates
-    const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
-      if (event.type === "update") {
-        if (event.data?.chat_status) {
-          setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+    let unsub = () => {};
+    try {
+      unsub = base44.entities.SalesTeamMember.subscribe((event) => {
+        if (event.type === "update") {
+          if (event.data?.chat_status) {
+            setMemberStatuses(prev => ({ ...prev, [event.id]: event.data.chat_status }));
+          }
+          if (event.data?.profile_picture_url) {
+            setMemberProfiles(prev => ({ ...prev, [event.id]: event.data.profile_picture_url }));
+          }
         }
-        if (event.data?.profile_picture_url) {
-          setMemberProfiles(prev => ({ ...prev, [event.id]: event.data.profile_picture_url }));
-        }
-      }
-    });
+      });
+    } catch (e) {
+      console.error('[ChatTab] SalesTeamMember subscribe failed:', e);
+    }
     return unsub;
   }, []);
 

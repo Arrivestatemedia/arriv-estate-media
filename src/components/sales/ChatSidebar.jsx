@@ -107,14 +107,19 @@ export default function ChatSidebar({ currentUserId, currentUserName, currentUse
       }).catch(() => {});
     }
 
-    const unsub = base44.entities.SalesTeamMember.subscribe((event) => {
-      if (event.type === "update") {
-        setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
-        if (event.id === currentUserId && event.data?.chat_status) {
-          setMyStatus(event.data.chat_status);
+    let unsub = () => {};
+    try {
+      unsub = base44.entities.SalesTeamMember.subscribe((event) => {
+        if (event.type === "update") {
+          setTeamMembers(prev => prev.map(m => m.id === event.id ? { ...m, ...event.data } : m));
+          if (event.id === currentUserId && event.data?.chat_status) {
+            setMyStatus(event.data.chat_status);
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      console.error('[ChatSidebar] SalesTeamMember subscribe failed:', e);
+    }
     return unsub;
   }, [currentUserId, memberStatuses, currentUserEmail]);
 

@@ -54,6 +54,7 @@ import PublicJobApplication from './pages/PublicJobApplication';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -87,6 +88,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <ErrorBoundary>
     <Routes>
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
@@ -168,7 +170,6 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
-
       <Route
         path="/AdminBackgroundChecks"
         element={
@@ -443,6 +444,7 @@ const AuthenticatedApp = () => {
       />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </ErrorBoundary>
   );
 };
 
