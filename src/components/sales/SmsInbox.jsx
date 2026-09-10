@@ -40,20 +40,25 @@ export default function SmsInbox({ salesMemberId }) {
   // Load conversations
   useEffect(() => {
     loadConversations();
-    const unsub = base44.entities.SmsConversation.subscribe((event) => {
-      const isInbound = event.type === 'create' || 
-        (event.type === 'update' && event.data?.last_message_direction === 'inbound');
-      if (isInbound) {
-        playIphoneTextSound();
-        // Browser notification
-        if (Notification.permission === 'granted') {
-          const name = event.data?.contact_name || event.data?.from_number || 'Unknown';
-          const body = event.data?.last_message || 'New text message';
-          new Notification(`📱 Text from ${name}`, { body, tag: `sms-${event.id}` });
+    let unsub = () => {};
+    try {
+      unsub = base44.entities.SmsConversation.subscribe((event) => {
+        const isInbound = event.type === 'create' || 
+          (event.type === 'update' && event.data?.last_message_direction === 'inbound');
+        if (isInbound) {
+          playIphoneTextSound();
+          // Browser notification
+          if (Notification.permission === 'granted') {
+            const name = event.data?.contact_name || event.data?.from_number || 'Unknown';
+            const body = event.data?.last_message || 'New text message';
+            new Notification(`📱 Text from ${name}`, { body, tag: `sms-${event.id}` });
+          }
         }
-      }
-      loadConversations();
-    });
+        loadConversations();
+      });
+    } catch (e) {
+      console.error('[SmsInbox] SmsConversation subscribe failed:', e);
+    }
     return unsub;
   }, []);
 
@@ -65,11 +70,16 @@ export default function SmsInbox({ salesMemberId }) {
     // Mark as read
     base44.entities.SmsConversation.update(selectedConvo.id, { unread_count: 0 });
 
-    const unsub = base44.entities.SmsMessage.subscribe((event) => {
-      if (event.data?.conversation_id === selectedConvo.id) {
-        loadMessages(selectedConvo.id);
-      }
-    });
+    let unsub = () => {};
+    try {
+      unsub = base44.entities.SmsMessage.subscribe((event) => {
+        if (event.data?.conversation_id === selectedConvo.id) {
+          loadMessages(selectedConvo.id);
+        }
+      });
+    } catch (e) {
+      console.error('[SmsInbox] SmsMessage subscribe failed:', e);
+    }
     return unsub;
   }, [selectedConvo?.id]);
 

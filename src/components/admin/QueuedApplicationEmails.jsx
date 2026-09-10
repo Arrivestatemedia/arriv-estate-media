@@ -29,9 +29,14 @@ export default function QueuedApplicationEmails() {
   });
 
   useEffect(() => {
-    const unsub = base44.entities.QueuedApplicationEmail.subscribe(() =>
-      queryClient.invalidateQueries({ queryKey: ["queued-application-emails"] })
-    );
+    let unsub = () => {};
+    try {
+      unsub = base44.entities.QueuedApplicationEmail.subscribe(() =>
+        queryClient.invalidateQueries({ queryKey: ["queued-application-emails"] })
+      );
+    } catch (e) {
+      console.error('[QueuedApplicationEmails] subscribe failed:', e);
+    }
     return unsub;
   }, [queryClient]);
 

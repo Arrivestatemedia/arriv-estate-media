@@ -91,8 +91,14 @@ export default function IphoneDialer({ salesMemberId }) {
       loadConversations().catch(() => {});
     }, 500);
 
-      const callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
-      const convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
+      let callLogsUnsub = () => {};
+      let convoUnsub = () => {};
+      try {
+        callLogsUnsub = base44.entities.ActivityLog.subscribe(() => loadCallLogs().catch(() => {}));
+        convoUnsub = base44.entities.SmsConversation.subscribe(() => loadConversations().catch(() => {}));
+      } catch (e) {
+        console.error('[IphoneDialer] subscribe failed:', e);
+      }
 
       return () => {
         if (deviceRef.current) { deviceRef.current.destroy(); deviceRef.current = null; }

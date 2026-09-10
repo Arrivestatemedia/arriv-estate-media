@@ -267,10 +267,16 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
       }
     };
     loadDialerBadge();
-    const smsSub = base44.entities.SmsConversation.subscribe(loadDialerBadge);
-    const callSub = base44.entities.ActivityLog.subscribe((event) => {
-      if (event.data?.activity_type === 'call') loadDialerBadge();
-    });
+    let smsSub = () => {};
+    let callSub = () => {};
+    try {
+      smsSub = base44.entities.SmsConversation.subscribe(loadDialerBadge);
+      callSub = base44.entities.ActivityLog.subscribe((event) => {
+        if (event.data?.activity_type === 'call') loadDialerBadge();
+      });
+    } catch (e) {
+      console.error('[AdminActivityPage] subscribe failed:', e);
+    }
 
     return () => { smsSub(); callSub(); };
   }, [user?.email]);

@@ -32,9 +32,14 @@ export default function ApplicationsPanel({ pendingAction, onPendingActionConsum
   });
 
   useEffect(() => {
-    const unsub = base44.entities.JobApplication.subscribe(() =>
-      queryClient.invalidateQueries({ queryKey: ["job-applications"] })
-    );
+    let unsub = () => {};
+    try {
+      unsub = base44.entities.JobApplication.subscribe(() =>
+        queryClient.invalidateQueries({ queryKey: ["job-applications"] })
+      );
+    } catch (e) {
+      console.error('[ApplicationsPanel] subscribe failed:', e);
+    }
     return unsub;
   }, [queryClient]);
 

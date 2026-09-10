@@ -133,7 +133,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
   // Listen for incoming video calls via PendingNotification
   useEffect(() => {
-    const unsubscribe = base44.entities.PendingNotification.subscribe((event) => {
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = base44.entities.PendingNotification.subscribe((event) => {
       if (event.type === 'create' && event.data?.recipient_id === currentUserId && event.data?.event_type === 'incoming_video_call') {
         const eventData = event.data.event_data;
         console.log('Incoming video call received in ChatWindow:', eventData);
@@ -147,6 +149,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         });
       }
     });
+    } catch (e) {
+      console.error('[ChatWindow] PendingNotification subscribe failed:', e);
+    }
 
     return unsubscribe;
   }, [currentUserId]);
@@ -296,8 +301,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     // Subscribe to real-time updates
     const crossAppChannelId = chatType === "cross_app_dm" ? generateCrossAppChannelId(currentUserEmail, chatId) : null;
     let unsubscribeCrossApp = null;
-    const unsubscribe = (chatType === "channel" || chatType === "cross_app_dm")
-      ? base44.entities.ChatMessage.subscribe((event) => {
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = (chatType === "channel" || chatType === "cross_app_dm")
+        ? base44.entities.ChatMessage.subscribe((event) => {
           const matches = chatType === "cross_app_dm"
             ? event.data?.cross_app_channel_id === crossAppChannelId
             : event.data?.channel_id === chatId;
@@ -391,6 +398,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             }
           }
         });
+    } catch (e) {
+      console.error('[ChatWindow] message subscribe failed:', e);
+    }
 
     // For "dm" chatType, also subscribe to cross-app ChatMessage events so
     // inbound Arriv One messages appear in the unified local DM conversation.

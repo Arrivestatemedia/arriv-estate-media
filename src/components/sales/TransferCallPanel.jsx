@@ -84,11 +84,15 @@ export default function TransferCallPanel({ onClose, currentCallNumber, currentC
       }, 2000);
 
       // Also subscribe for instant response
-      unsubRef.current = base44.entities.PendingCallTransfer.subscribe((event) => {
-        const matchId = event.id === recordId || event.data?.id === recordId;
-        if (matchId && event.data?.status === "accepted") handleAccepted();
-        if (matchId && event.data?.status === "declined") handleDeclined();
-      });
+      try {
+        unsubRef.current = base44.entities.PendingCallTransfer.subscribe((event) => {
+          const matchId = event.id === recordId || event.data?.id === recordId;
+          if (matchId && event.data?.status === "accepted") handleAccepted();
+          if (matchId && event.data?.status === "declined") handleDeclined();
+        });
+      } catch (e) {
+        console.error('[TransferCallPanel] subscribe failed:', e);
+      }
 
       // Auto-expire after 60s
       setTimeout(() => {

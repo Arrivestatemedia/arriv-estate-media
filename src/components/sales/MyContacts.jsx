@@ -69,15 +69,22 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
     loadDbContacts();
     loadSecondaryInfo();
     // Subscribe to real-time updates
-    const unsub = base44.entities.ActivityLog.subscribe((event) => {
-      loadActivities();
-    });
-    const unsub2 = base44.entities.SecondaryContactInfo.subscribe((event) => {
-      loadSecondaryInfo();
-    });
-    const unsub3 = base44.entities.Contact.subscribe((event) => {
-      loadDbContacts();
-    });
+    let unsub = () => {};
+    let unsub2 = () => {};
+    let unsub3 = () => {};
+    try {
+      unsub = base44.entities.ActivityLog.subscribe((event) => {
+        loadActivities();
+      });
+      unsub2 = base44.entities.SecondaryContactInfo.subscribe((event) => {
+        loadSecondaryInfo();
+      });
+      unsub3 = base44.entities.Contact.subscribe((event) => {
+        loadDbContacts();
+      });
+    } catch (e) {
+      console.error('[MyContacts] subscribe failed:', e);
+    }
     return () => {
       unsub();
       unsub2();
