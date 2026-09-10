@@ -781,6 +781,18 @@ export default function KhethaIQ() {
                         {job.experience_requirements && (
                           <p className="text-xs mb-4" style={{ color: MUTED_LIGHT }}>{job.experience_requirements}</p>
                         )}
+                        {listingUrl && (
+                          <div className="flex justify-end mb-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDistributingJob({ ...job, public_slug: linkedOpening?.public_slug, job_id: linkedOpening?.job_id || job.id }); }}
+                              className="text-xs flex items-center gap-1.5 font-medium"
+                              style={{ color: GOLD }}
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                              Distribute
+                            </button>
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 mt-auto pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.12)" }}>
                           {listingUrl && (
                             <button
@@ -816,16 +828,6 @@ export default function KhethaIQ() {
                             ) : <Copy className="w-3 h-3" />}
                             Duplicate
                           </button>
-                          {listingUrl && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDistributingJob({ ...job, public_slug: linkedOpening?.public_slug, job_id: linkedOpening?.job_id || job.id }); }}
-                              className="text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1"
-                              style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
-                            >
-                              <Share2 className="w-3 h-3" />
-                              Distribute
-                            </button>
-                          )}
                         </div>
                       </div>
                     );
@@ -857,6 +859,16 @@ export default function KhethaIQ() {
                           {job.employment_type && <span className="capitalize">{job.employment_type.replace(/_/g, " ")}</span>}
                           {job.work_arrangement && <span className="capitalize">{job.work_arrangement}</span>}
                         </div>
+                        <div className="flex justify-end mb-3">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDistributingJob(job); }}
+                            className="text-xs flex items-center gap-1.5 font-medium"
+                            style={{ color: GOLD }}
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                            Distribute
+                          </button>
+                        </div>
                         <div className="flex items-center gap-2 mt-auto pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.12)" }}>
                           <button
                             onClick={(e) => {
@@ -880,14 +892,6 @@ export default function KhethaIQ() {
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : <Copy className="w-3 h-3" />}
                             Duplicate
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setDistributingJob(job); }}
-                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1"
-                            style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
-                          >
-                            <Share2 className="w-3 h-3" />
-                            Distribute
                           </button>
                         </div>
                       </div>
