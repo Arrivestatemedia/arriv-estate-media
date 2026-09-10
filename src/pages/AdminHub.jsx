@@ -70,6 +70,7 @@ export default function AdminHub() {
     const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
     const salesMemberEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email');
     const salesMemberName = localStorage.getItem('sales_member_name') || sessionStorage.getItem('sales_member_name');
+    const salesMemberRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
 
     // Check Base44 platform admin role (takes precedence over SalesTeamMember role)
     const checkPlatformAdmin = base44.auth.isAuthenticated()
@@ -92,7 +93,7 @@ export default function AdminHub() {
       // Verify this user is an admin (SalesTeamMember role OR platform admin role)
       base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
         const member = members?.[0];
-        if (member?.role === 'admin' || platformIsAdmin) {
+        if (member?.role === 'admin' || platformIsAdmin || salesMemberRole === 'admin') {
           setUser({
             id: salesMemberId,
             email: salesMemberEmail,
