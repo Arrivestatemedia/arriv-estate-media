@@ -71,27 +71,33 @@ export default async function(req: Request): Promise<Response> {
       if (!job_opening_id) return Response.json({ error: 'job_opening_id is required' }, { status: 400 });
       if (!title) return Response.json({ error: 'Title is required' }, { status: 400 });
 
+      // Fetch the existing record so we can preserve fields that aren't
+      // explicitly provided in the update — prevents overriding existing
+      // design elements with empty defaults.
+      const existing = await base44.asServiceRole.entities.JobOpening.get(job_opening_id);
+      const existingData = existing?.data ?? existing ?? {};
+
       const updateData = {
-        title,
-        department: department || "",
-        description_text: description || "",
-        responsibilities: responsibilities || [],
-        required_qualifications: required_qualifications || [],
-        preferred_qualifications: preferred_qualifications || [],
-        skills: skills || [],
-        experience_requirements: experience_requirements || "",
-        performance_expectations: performance_expectations || [],
-        compensation: compensation || "",
-        work_schedule: work_schedule || "",
-        employment_type: employment_type || "full_time",
-        work_arrangement: work_arrangement || "onsite",
-        location: location || "",
-        travel_requirements: travel_requirements || "",
-        benefits: benefits || [],
-        page_description: page_description || "",
-        design_description: design_description || "",
-        public_visibility: body.public_visibility !== undefined ? body.public_visibility : true,
-        status: body.status || "open",
+        title: title || existingData.title || "",
+        department: department || existingData.department || "",
+        description_text: description || existingData.description_text || "",
+        responsibilities: responsibilities || existingData.responsibilities || [],
+        required_qualifications: required_qualifications || existingData.required_qualifications || [],
+        preferred_qualifications: preferred_qualifications || existingData.preferred_qualifications || [],
+        skills: skills || existingData.skills || [],
+        experience_requirements: experience_requirements || existingData.experience_requirements || "",
+        performance_expectations: performance_expectations || existingData.performance_expectations || [],
+        compensation: compensation || existingData.compensation || "",
+        work_schedule: work_schedule || existingData.work_schedule || "",
+        employment_type: employment_type || existingData.employment_type || "full_time",
+        work_arrangement: work_arrangement || existingData.work_arrangement || "onsite",
+        location: location || existingData.location || "",
+        travel_requirements: travel_requirements || existingData.travel_requirements || "",
+        benefits: benefits || existingData.benefits || [],
+        page_description: page_description || existingData.page_description || "",
+        design_description: design_description || existingData.design_description || "",
+        public_visibility: body.public_visibility !== undefined ? body.public_visibility : (existingData.public_visibility !== false),
+        status: body.status || existingData.status || "open",
       };
 
       const updated = await base44.asServiceRole.entities.JobOpening.update(job_opening_id, updateData);

@@ -57,6 +57,8 @@ const card = {
   border: "1px solid rgba(184,149,106,0.2)",
   borderRadius: "14px",
   boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+  display: "flex",
+  flexDirection: "column",
 };
 
 const statusStyle = (s) => ({
@@ -227,6 +229,18 @@ export default function KhethaIQ() {
     }
     setLinkingJob(hireJob);
     try {
+      // Pre-populate design_description with the current Arriv brand design
+      // elements so the preview matches the existing page aesthetic and
+      // saving doesn't override the design with a generic look.
+      const defaultDesign = [
+        "Arriv Brand Elevated aesthetic.",
+        "Dark hero section (#1A1A1A) with cream (#FFFBF5) serif typography and gold (#B8956A) accent badges.",
+        "Cream (#FFFBF5) page background with white cards and gold-bordered sections.",
+        "Serif headings (Georgia) in dark (#1A1A1A), body text in muted dark.",
+        "Section-based layout: hero with 'Now Hiring' badge and Apply button, 'About the Role', icon-grid 'What You'll Do', checklist 'What We're Looking For', star 'Nice to Have', pill-shaped 'Key Skills', card-grid 'Benefits', compensation summary, and a dark CTA footer with Apply button.",
+        "Gold primary buttons with dark text. Clean, modern, professional tone.",
+      ].join(" ");
+
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
         title: hireJob.title || "Untitled",
@@ -241,6 +255,8 @@ export default function KhethaIQ() {
         work_schedule: hireJob.work_schedule || "",
         source_url: hireJob.source_url || "",
         source_type: "text",
+        design_description: defaultDesign,
+        page_description: hireJob.description || "",
       });
       const data = res?.data ?? res;
       if (data?.success && data?.job_opening) {
@@ -599,36 +615,34 @@ export default function KhethaIQ() {
                           <h3 className="font-semibold" style={{ ...SERIF, color: CREAM }}>{job.title || "Untitled"}</h3>
                           <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: ss.bg, color: ss.text }}>{job.status}</span>
                         </div>
-                        <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
-                            {job.experience_requirements && <span>{job.experience_requirements}</span>}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {listingUrl && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); window.open(listingUrl, "_blank"); }}
-                                className="text-xs px-2.5 py-1 rounded-lg font-medium"
-                                style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
-                              >
-                                View Listing
-                              </button>
-                            )}
+                        <p className="text-sm mb-1" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
+                        {job.experience_requirements && (
+                          <p className="text-xs mb-4" style={{ color: MUTED_LIGHT }}>{job.experience_requirements}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-auto pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.12)" }}>
+                          {listingUrl && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditPage(job);
-                              }}
-                              disabled={linkingJob?.id === job.id}
-                              className="text-xs px-2.5 py-1 rounded-lg font-medium flex items-center gap-1"
+                              onClick={(e) => { e.stopPropagation(); window.open(listingUrl, "_blank"); }}
+                              className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
                               style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
                             >
-                              {linkingJob?.id === job.id ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : null}
-                              Edit Page
+                              View Listing
                             </button>
-                          </div>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditPage(job);
+                            }}
+                            disabled={linkingJob?.id === job.id}
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                            style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
+                          >
+                            {linkingJob?.id === job.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : null}
+                            Edit Page
+                          </button>
                         </div>
                       </div>
                     );
@@ -649,16 +663,16 @@ export default function KhethaIQ() {
                           <h3 className="font-semibold" style={{ ...SERIF, color: CREAM }}>{job.title || "Untitled"}</h3>
                           <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: ss.bg, color: ss.text }}>{job.status}</span>
                         </div>
-                        <p className="text-sm mb-3" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
-                            {job.location && <span>{job.location}</span>}
-                            {job.employment_type && <span className="capitalize">{job.employment_type.replace(/_/g, " ")}</span>}
-                            {job.work_arrangement && <span className="capitalize">{job.work_arrangement}</span>}
-                          </div>
+                        <p className="text-sm mb-1" style={{ color: MUTED_LIGHT }}>{job.department || "No department"}</p>
+                        <div className="flex items-center gap-3 text-xs flex-wrap mb-4" style={{ color: MUTED_LIGHT }}>
+                          {job.location && <span>{job.location}</span>}
+                          {job.employment_type && <span className="capitalize">{job.employment_type.replace(/_/g, " ")}</span>}
+                          {job.work_arrangement && <span className="capitalize">{job.work_arrangement}</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-auto pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.12)" }}>
                           <button
                             onClick={(e) => { e.stopPropagation(); setEditingJobOpening(job); }}
-                            className="text-xs px-2.5 py-1 rounded-lg font-medium shrink-0"
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
                             style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
                           >
                             Edit Page
