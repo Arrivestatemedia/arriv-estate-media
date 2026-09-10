@@ -17,7 +17,10 @@ import ChatTab from "@/components/sales/ChatTab";
 export default function AdminSalesRepActivity() {
   const [user, setUser] = useState(null);
   const [selectedRep, setSelectedRep] = useState(null);
-  const [activeTab, setActiveTab] = useState("activity");
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tab") || "activity";
+  });
 
   useEffect(() => {
     const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
@@ -106,12 +109,12 @@ export default function AdminSalesRepActivity() {
           <h1 className="text-3xl font-bold mb-2" style={{ color: '#1A1A1A' }}>Sales Rep Activity</h1>
           <p className="mb-8 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>Select a rep to view their full dashboard</p>
           <div className="space-y-3">
-            {salesMembers.filter(rep => rep.is_active && rep.role !== 'admin').map((rep) => {
+            {salesMembers.filter(rep => rep.is_active).map((rep) => {
               const stats = getRepStats(rep.email);
               return (
                 <button
                   key={rep.id}
-                  onClick={() => { setSelectedRep(rep); setActiveTab("activity"); }}
+                  onClick={() => { setSelectedRep(rep); }}
                   className="w-full text-left p-4 rounded-xl border-2 transition hover:shadow-md"
                   style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(184,149,106,0.3)' }}
                 >
@@ -128,7 +131,7 @@ export default function AdminSalesRepActivity() {
                 </button>
               );
             })}
-            {salesMembers.filter(rep => rep.is_active && rep.role !== 'admin').length === 0 && (
+            {salesMembers.filter(rep => rep.is_active).length === 0 && (
               <Card><CardContent className="pt-6 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>No active sales reps found</CardContent></Card>
             )}
           </div>
