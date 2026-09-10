@@ -47,7 +47,24 @@ function computeStep(job, candidates) {
   return 1;
 }
 
-export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompare, onJobUpdated, onDelete, initialTab, preselectedCandidateId }) {
+export default function JobDetailPanel({ job, linkedOpening, onBack, onSelectCandidate, onCompare, onJobUpdated, onDelete, initialTab, preselectedCandidateId }) {
+  // Overview content prefers the linked JobOpening (the public listing page),
+  // falling back to the HireJob's own fields when no opening is linked.
+  const overview = {
+    description: linkedOpening?.description_text || job?.description,
+    responsibilities: linkedOpening?.responsibilities || job?.responsibilities || [],
+    required_qualifications: linkedOpening?.required_qualifications || job?.required_qualifications || [],
+    preferred_qualifications: linkedOpening?.preferred_qualifications || job?.preferred_qualifications || [],
+    skills: linkedOpening?.skills || job?.skills || [],
+    experience_requirements: linkedOpening?.experience_requirements || job?.experience_requirements,
+    compensation: linkedOpening?.compensation || job?.compensation,
+    work_schedule: linkedOpening?.work_schedule || job?.work_schedule,
+    performance_expectations: linkedOpening?.performance_expectations || job?.performance_expectations,
+    benefits: linkedOpening?.benefits || [],
+    location: linkedOpening?.location || job?.location,
+    employment_type: linkedOpening?.employment_type || job?.employment_type,
+    work_arrangement: linkedOpening?.work_arrangement || job?.work_arrangement,
+  };
   const [candidates, setCandidates] = useState([]);
   const [loadingCandidates, setLoadingCandidates] = useState(true);
   const [showAddCandidate, setShowAddCandidate] = useState(false);
@@ -192,19 +209,26 @@ export default function JobDetailPanel({ job, onBack, onSelectCandidate, onCompa
       <div className="p-5" style={card}>
         {tab === "overview" && (
           <div className="space-y-4">
-            {job?.description && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Description</p><p className="text-sm whitespace-pre-wrap" style={{ color: CREAM }}>{job.description}</p></div>}
+            {!overview.description && !overview.responsibilities.length && !overview.required_qualifications.length && !overview.preferred_qualifications.length && !overview.skills.length && !overview.experience_requirements && !overview.compensation && !overview.work_schedule && !overview.benefits.length ? (
+              <p className="text-sm text-center py-8" style={{ color: MUTED_LIGHT }}>No listing content linked. Use "Edit Page" to connect a job page.</p>
+            ) : (
+              <>
+            {overview.description && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Description</p><p className="text-sm whitespace-pre-wrap" style={{ color: CREAM }}>{overview.description}</p></div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {job?.responsibilities?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Responsibilities</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{job.responsibilities.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
-              {job?.required_qualifications?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Required Qualifications</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{job.required_qualifications.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
-              {job?.preferred_qualifications?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Preferred Qualifications</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{job.preferred_qualifications.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
-              {job?.skills?.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Skills</p><div className="flex flex-wrap gap-1">{job.skills.map((s, i) => <span key={i} className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: innerBg, color: CREAM }}>{s}</span>)}</div></div>}
+              {overview.responsibilities.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Responsibilities</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{overview.responsibilities.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
+              {overview.required_qualifications.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Required Qualifications</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{overview.required_qualifications.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
+              {overview.preferred_qualifications.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Preferred Qualifications</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{overview.preferred_qualifications.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
+              {overview.skills.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Skills</p><div className="flex flex-wrap gap-1">{overview.skills.map((s, i) => <span key={i} className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: innerBg, color: CREAM }}>{s}</span>)}</div></div>}
             </div>
+            {overview.benefits.length > 0 && <div><p className="text-sm font-semibold mb-1" style={{ color: MUTED_LIGHT }}>Benefits</p><ul className="text-sm space-y-0.5" style={{ color: CREAM }}>{overview.benefits.map((r, i) => <li key={i}>• {r}</li>)}</ul></div>}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.1)" }}>
-              {job?.experience_requirements && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Experience</p><p style={{ color: CREAM }}>{job.experience_requirements}</p></div>}
-              {job?.compensation && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Compensation</p><p style={{ color: CREAM }}>{job.compensation}</p></div>}
-              {job?.work_schedule && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Schedule</p><p style={{ color: CREAM }}>{job.work_schedule}</p></div>}
-              {job?.performance_expectations && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Performance Expectations</p><p style={{ color: CREAM }}>{job.performance_expectations}</p></div>}
+              {overview.experience_requirements && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Experience</p><p style={{ color: CREAM }}>{overview.experience_requirements}</p></div>}
+              {overview.compensation && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Compensation</p><p style={{ color: CREAM }}>{overview.compensation}</p></div>}
+              {overview.work_schedule && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Schedule</p><p style={{ color: CREAM }}>{overview.work_schedule}</p></div>}
+              {overview.performance_expectations && <div><p className="text-xs" style={{ color: MUTED_LIGHT }}>Performance Expectations</p><p style={{ color: CREAM }}>{overview.performance_expectations}</p></div>}
             </div>
+              </>
+            )}
           </div>
         )}
 

@@ -670,6 +670,7 @@ export default function KhethaIQ() {
             <div style={{ display: selectedCandidate || (compareMode && compareCandidates.length >= 2) ? "none" : "block" }}>
               <JobDetailPanel
                 job={selectedJob}
+                linkedOpening={selectedJob ? (jobOpenings.find(jo => normalizeSourcePath(jo.source_url) === getLegacyPath(selectedJob)) || jobOpenings.find(jo => jo.title === selectedJob.title) || null) : null}
                 onBack={goJobsHome}
                 onSelectCandidate={handleSelectCandidate}
                 onCompare={() => navigateTo(() => setCompareMode(true))}
