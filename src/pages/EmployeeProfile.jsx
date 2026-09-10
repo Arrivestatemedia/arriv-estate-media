@@ -34,22 +34,28 @@ export default function EmployeeProfile() {
     if (!repId) return;
     setLoading(true);
     try {
-      const [perfRes, goalsRes, notesRes] = await Promise.all([
+      // Fetch performance data and profile data in parallel.
+      // Each call is independent so one failure doesn't block the other.
+      const [perfRes, profileRes] = await Promise.allSettled([
         base44.functions.invoke('computeSalesPerformance', { sales_member_id: repId }),
-        base44.entities.SalesGoal.filter({ sales_member_id: repId, is_active: true }),
-        base44.entities.ManagerNote.filter({ sales_member_id: repId }, '-created_date', 50),
+        base44.functions.invoke('getEmployeeProfileData', { sales_member_id: repId }),
       ]);
-      setPerfData(perfRes.data);
-      setGoals(goalsRes || []);
-      setNotes(notesRes || []);
-      // Try to fetch training completions
-      try {
-        const rep = perfRes.data?.reps?.[0];
-        if (rep?.rep_email) {
-          const completions = await base44.entities.TrainingCompletion.list('-completed_at', 20);
-          setTraining(completions || []);
-        }
-      } catch (e) { setTraining([]); }
+
+      if (perfRes.status === 'fulfilled') {
+        const perfData = perfRes.value?.data || perfRes.value;
+        setPerfData(perfData);
+      } else {
+        console.error('Performance data load failed:', perfRes.reason);
+      }
+
+      if (profileRes.status === 'fulfilled') {
+        const profileData = profileRes.value?.data || profileRes.value;
+        setGoals(profileData?.goals || []);
+        setNotes(profileData?.notes || []);
+        setTraining(profileData?.training || []);
+      } else {
+        console.error('Profile data load failed:', profileRes.reason);
+      }
     } catch (e) {
       console.error('Profile load error:', e);
     } finally {
@@ -95,11 +101,15 @@ Generate JSON with:
   const handleAddNote = async () => {
     if (!newNote.content.trim()) return;
     try {
-      await base44.entities.ManagerNote.create({
+      await base44.functions.invoke('getEmployeeProfileData', {
+        action: 'add_note',
         sales_member_id: repId,
         author_id: localStorage.getItem('sales_member_id') || '',
         author_name: localStorage.getItem('sales_member_name') || 'Admin',
-        ...newNote,
+        content: newNote.content,
+        note_type: newNote.note_type,
+        is_recognition: newNote.is_recognition,
+        award_title: newNote.award_title,
       });
       setShowNoteModal(false);
       setNewNote({ content: '', note_type: 'general', is_recognition: false, award_title: '' });
@@ -107,8 +117,19 @@ Generate JSON with:
     } catch (e) { alert('Failed to add note: ' + e.message); }
   };
 
-  if (loading || !perfData) {
+  if (loading) {
     return <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FFFBF5' }}><Loader2 className="w-8 h-8 animate-spin" style={{ color: '#B8956A' }} /></div>;
+  }
+
+  if (!perfData || !perfData.reps || !perfData.reps.length) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FFFBF5' }}>
+        <Card><CardContent className="pt-6 text-center">
+          <p className="text-sm mb-2" style={{ color: 'rgba(26,26,26,0.6)' }}>Unable to load performance data.</p>
+          <Button onClick={() => loadData()} size="sm" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}>Retry</Button>
+        </CardContent></Card>
+      </div>
+    );
   }
 
   const rep = perfData.reps[0];

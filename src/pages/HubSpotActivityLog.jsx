@@ -308,6 +308,17 @@ export default function HubSpotActivityLog({ embedded = false }) {
     };
   }, []);
 
+  const { data: activities = [] } = useQuery({
+    queryKey: ['activities', user?.email],
+    queryFn: async () => {
+      const result = await base44.functions.invoke('getSalesDashboardData', { sales_member_id: user?.id });
+      const data = result?.data || result;
+      return data?.activities || [];
+    },
+    initialData: [],
+    enabled: !!user,
+  });
+
   // Load contacts when form opens (derived from activities already loaded via useQuery)
   useEffect(() => {
     if (!showForm || !user?.id) return;
@@ -333,17 +344,6 @@ export default function HubSpotActivityLog({ embedded = false }) {
   const selectedContactObj = selectedContact
     ? contacts.find(c => (c.email && c.email === selectedContact) || (c.name && c.name === selectedContact))
     : null;
-
-  const { data: activities = [] } = useQuery({
-    queryKey: ['activities', user?.email],
-    queryFn: async () => {
-      const result = await base44.functions.invoke('getSalesDashboardData', { sales_member_id: user?.id });
-      const data = result?.data || result;
-      return data?.activities || [];
-    },
-    initialData: [],
-    enabled: !!user,
-  });
 
   // Subscribe to ActivityLog changes for real-time call map updates
   useEffect(() => {
