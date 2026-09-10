@@ -6,7 +6,7 @@ import {
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, Award, HelpCircle, LayoutDashboard,
   GitBranch, Video, Globe, SquareCheckBig, ArrowLeft, Mail,
-  Activity, CheckSquare, CalendarClock,
+  Activity, CheckSquare, CalendarClock, Copy,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -33,6 +33,7 @@ import JobPageBuilder from "@/components/khethaiq/JobPageBuilder";
 import EditJobPageModal from "@/components/khethaiq/EditJobPageModal";
 import CareersHubSettings from "@/components/khethaiq/CareersHubSettings";
 import { SALES_JOB_DEFAULTS } from "@/lib/salesJobDefaults";
+import { MEDIA_JOB_DEFAULTS } from "@/lib/mediaJobDefaults";
 
 // Map manifest icon names to lucide-react components.
 // Matches the central KhethaIQ app's ICON_MAP.
@@ -93,6 +94,7 @@ export default function KhethaIQ() {
   const [editingPreviewUrl, setEditingPreviewUrl] = useState(null);
   const [jobOpenings, setJobOpenings] = useState([]);
   const [linkingJob, setLinkingJob] = useState(null);
+  const [duplicating, setDuplicating] = useState(null);
 
   // Navigation history stack — each entry is a snapshot of the view state.
   // Push the current state before navigating to a new one so the back button
@@ -253,8 +255,8 @@ export default function KhethaIQ() {
       // with the EXACT content the public page (/SalesGrowthAdvisor) shows
       // by default — so the edit modal opens with the same words the page
       // displays, and edits stay in sync with the preview.
-      const isSalesJob = listingUrl === "/SalesGrowthAdvisor";
-      const d = isSalesJob ? SALES_JOB_DEFAULTS : {};
+      const d = listingUrl === "/SalesGrowthAdvisor" ? SALES_JOB_DEFAULTS
+        : listingUrl === "/MediaSpecialist" ? MEDIA_JOB_DEFAULTS : {};
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
         title: d.title || hireJob.title || "Untitled",
@@ -291,6 +293,74 @@ export default function KhethaIQ() {
   };
 
   const goJobsHome = () => { goBack(); };
+
+  // Duplicate a job and all of its elements: the HireJob record plus its
+  // linked JobOpening (public job page), so the copy carries over every
+  // field the original had.
+  const handleDuplicateJob = async (job) => {
+    setDuplicating(job);
+    try {
+      const newTitle = `${job.title || "Untitled"} (Copy)`;
+      const res = await base44.entities.HireJob.create({
+        title: newTitle,
+        department: job.department,
+        description: job.description,
+        responsibilities: job.responsibilities || [],
+        required_qualifications: job.required_qualifications || [],
+        preferred_qualifications: job.preferred_qualifications || [],
+        skills: job.skills || [],
+        experience_requirements: job.experience_requirements || "",
+        performance_expectations: job.performance_expectations || "",
+        compensation: job.compensation || "",
+        work_schedule: job.work_schedule || "",
+        source_type: job.source_type,
+        source_url: job.source_url,
+        source_application_position: job.source_application_position,
+        role_success_profile: job.role_success_profile,
+        role_profile_approved: false,
+        scorecard_template: job.scorecard_template || [],
+        round1_scorecard: job.round1_scorecard,
+        status: "draft",
+        created_by_name: localStorage.getItem("sales_member_name") || localStorage.getItem("user_name") || "Admin",
+      });
+      const newJob = res?.data ?? res;
+
+      // Duplicate the linked JobOpening (job page) if one exists
+      const linkedOpening = jobOpenings.find(jo => jo.title === job.title);
+      if (linkedOpening) {
+        try {
+          await base44.functions.invoke("createJobPage", {
+            action: "create",
+            title: newTitle,
+            department: linkedOpening.department || "",
+            description: linkedOpening.description_text || "",
+            responsibilities: linkedOpening.responsibilities || [],
+            required_qualifications: linkedOpening.required_qualifications || [],
+            preferred_qualifications: linkedOpening.preferred_qualifications || [],
+            skills: linkedOpening.skills || [],
+            experience_requirements: linkedOpening.experience_requirements || "",
+            compensation: linkedOpening.compensation || "",
+            work_schedule: linkedOpening.work_schedule || "",
+            employment_type: linkedOpening.employment_type || "full_time",
+            work_arrangement: linkedOpening.work_arrangement || "onsite",
+            location: linkedOpening.location || "",
+            benefits: linkedOpening.benefits || [],
+            page_description: linkedOpening.page_description || "",
+            design_description: linkedOpening.design_description || "",
+            source_type: "text",
+            source_url: "",
+          });
+        } catch (_) {}
+      }
+
+      setJobs(prev => [newJob, ...prev]);
+      await loadJobs();
+    } catch (err) {
+      alert("Failed to duplicate job: " + (err.message || "unknown error"));
+    } finally {
+      setDuplicating(null);
+    }
+  };
 
   const DECISION_TO_APP_ACTION = {
     advance: { type: "select_status", status: "interview_invitation" },
@@ -659,6 +729,17 @@ export default function KhethaIQ() {
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : null}
                             Edit Page
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDuplicateJob(job); }}
+                            disabled={duplicating?.id === job.id}
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                            style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
+                          >
+                            {duplicating?.id === job.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : <Copy className="w-3 h-3" />}
+                            Duplicate
                           </button>
                         </div>
                       </div>
