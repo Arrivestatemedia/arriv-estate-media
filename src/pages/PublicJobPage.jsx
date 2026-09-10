@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowLeft, Check, Star, Heart, MapPin, Briefcase, Clock, DollarSign, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Star, Heart, MapPin, Briefcase, Clock, DollarSign, GripVertical, X, Loader2 } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 const GOLD = "#B8956A";
 const TEXT_DARK = "#1A1A1A";
@@ -74,6 +75,10 @@ export default function PublicJobPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [canEdit, setCanEdit] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [sectionOrderState, setSectionOrderState] = useState(null);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -89,6 +94,12 @@ export default function PublicJobPage() {
           setError(d.error);
         } else {
           setData(d);
+          const dc = d?.job?.design_spec;
+          setSectionOrderState(
+            (dc?.section_order && dc.section_order.length > 0)
+              ? dc.section_order
+              : ["about", "responsibilities", "qualifications", "preferred", "experience", "performance", "skills", "benefits", "compensation"]
+          );
           if (d.job) {
             document.title = `${d.job.title} at ${d.tenant?.company_name || "Arriv Estate Media"}`;
           }
@@ -100,6 +111,25 @@ export default function PublicJobPage() {
     })();
     return () => { document.title = "Arriv Estate Media"; };
   }, [jobId]);
+
+  // Check if current viewer is an authenticated admin who can edit
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const isAuth = await base44.auth.isAuthenticated();
+        if (isAuth) {
+          const me = await base44.auth.me();
+          if (me && me.role === "admin") {
+            setCanEdit(true);
+            return;
+          }
+        }
+      } catch {}
+      const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+      if (salesRole === "admin") setCanEdit(true);
+    };
+    checkAuth();
+  }, []);
 
   const handleApplyClick = () => {
     const attr = captureAttribution();
@@ -285,7 +315,7 @@ export default function PublicJobPage() {
     return (
       <div className="relative" style={{ backgroundColor: heroBg, color: "#FFFBF5" }}>
         {heroImage && (
-          <div className="absolute inset-0" style={{ backgroundImage: `url(${tenant.career_hero_image})`, backgroundSize: "cover", backgroundPosition: "center", opacity: 0.2 }} />
+          <div className="absolute inset-0" style={{ backgroundImage: `url(${heroImage})`, backgroundSize: "cover", backgroundPosition: "center", opacity: 0.2 }} />
         )}
         <div className="relative max-w-4xl mx-auto px-6 py-14">
           <Link to={`/careers/company/${hubSlug}`} className="inline-flex items-center gap-1.5 text-sm mb-6 hover:opacity-70" style={{ color: "rgba(255,251,245,0.6)" }}>
@@ -413,17 +443,116 @@ export default function PublicJobPage() {
     ),
   };
 
-  // Render sections in spec order, skipping falsy
-  const renderedSections = spec.section_order
-    .map(key => sections[key])
-    .filter(Boolean);
+  // Section labels for edit mode
+  const sectionLabels = {
+    about: "About the Role",
+    responsibilities: "What You'll Do",
+    qualifications: "What We're Looking For",
+    preferred: "Nice to Have",
+    experience: "Experience",
+    performance: "What We Expect",
+    skills: "Key Skills",
+    benefits: "Benefits",
+    compensation: "Compensation & Schedule",
+  };
+
+  const saveSectionOrder = async (newOrder) => {
+    setSavingOrder(true);
+    try {
+      const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id') || "";
+      const salesEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "";
+      const existingSpec = data?.job?.design_spec || {};
+      const mergedSpec = { ...existingSpec, section_order: newOrder };
+      const res = await base44.functions.invoke("createJobPage", {
+        action: "update",
+        job_opening_id: data.job.id,
+        email: salesEmail,
+        sales_member_id: salesMemberId,
+        design_spec: mergedSpec,
+      });
+      const resData = res?.data ?? res;
+      if (resData?.success) {
+        setData((prev) => ({ ...prev, job: { ...prev.job, design_spec: mergedSpec } }));
+      }
+    } catch (err) {
+      alert("Failed to save layout: " + (err.message || "unknown error"));
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const reordered = Array.from(sectionOrderState);
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
+    setSectionOrderState(reordered);
+    saveSectionOrder(reordered);
+  };
+
+  // Compute visible sections (non-null), using live state or spec fallback
+  const visibleSections = (sectionOrderState || spec.section_order).filter((key) => sections[key]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: pageBg, color: pageText, ...bodyFont }}>
+      {/* Edit bar for authenticated admins */}
+      {canEdit && (
+        <div className="sticky top-0 z-50 bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <GripVertical className="w-4 h-4" />
+            {editMode ? "Drag sections to reorder — changes save automatically" : "You can customize this page layout"}
+          </div>
+          <div className="flex items-center gap-2">
+            {savingOrder && <Loader2 className="w-4 h-4 animate-spin text-white/60" />}
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{ backgroundColor: editMode ? "rgba(255,255,255,0.15)" : "#2563EB" }}
+            >
+              {editMode ? <><X className="w-3.5 h-3.5" /> Exit Editing</> : <><GripVertical className="w-3.5 h-3.5" /> Edit Layout</>}
+            </button>
+          </div>
+        </div>
+      )}
+
       {renderHero()}
 
       <div className={`${contentMaxWidth} mx-auto px-6 ${sectionPy} space-y-10`}>
-        {renderedSections}
+        {editMode ? (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="sections">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef}>
+                  {visibleSections.map((key, index) => (
+                    <Draggable key={key} draggableId={key} index={index}>
+                      {(prov, snapshot) => (
+                        <div
+                          ref={prov.innerRef}
+                          {...prov.draggableProps}
+                          className={`relative group ${snapshot.isDragging ? "ring-2 ring-blue-500 shadow-2xl z-50" : "border-2 border-dashed border-transparent hover:border-blue-300"} transition-all`}
+                        >
+                          <div
+                            {...prov.dragHandleProps}
+                            className="absolute left-2 top-3 z-10 cursor-grab active:cursor-grabbing bg-slate-900 text-white rounded-md p-1.5 opacity-60 group-hover:opacity-100"
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </div>
+                          <div className="absolute top-3 left-12 z-10 bg-blue-600 text-white text-xs font-semibold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                            {sectionLabels[key] || key}
+                          </div>
+                          {sections[key]}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        ) : (
+          visibleSections.map((key) => sections[key])
+        )}
       </div>
 
       <div className="py-12 text-center" style={{ backgroundColor: heroBg }}>

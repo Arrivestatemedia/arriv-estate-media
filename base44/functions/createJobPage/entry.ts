@@ -165,6 +165,7 @@ export default async function(req: Request): Promise<Response> {
         benefits: benefits || existingData.benefits || [],
         page_description: page_description || existingData.page_description || "",
         design_description: design_description || existingData.design_description || "",
+        design_spec: bodyDesignSpec || existingData.design_spec || null,
         source_url: source_url || existingData.source_url || "",
         public_visibility: body.public_visibility !== undefined ? body.public_visibility : (existingData.public_visibility !== false),
         status: body.status || existingData.status || "open",
