@@ -424,7 +424,7 @@ export default function HubSpotActivityLog({ embedded = false }) {
 
   const createActivityMutation = useMutation({
     mutationFn: async (data) => {
-      const result = await base44.entities.ActivityLog.create(data);
+      const result = await base44.functions.invoke('manageSalesActivity', { action: 'create', sales_member_id: user?.id, data });
       return result;
     },
     onSuccess: () => {
