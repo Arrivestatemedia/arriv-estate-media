@@ -153,28 +153,49 @@ export default function CareersHubSettings({ onClose }) {
             </button>
           </div>
 
-          {/* URL Slug with https:// prefix */}
+          {/* URL Slug */}
           <div>
-            <label style={labelStyle}>Careers Page URL</label>
-            <div className="flex items-stretch gap-0 rounded-lg overflow-hidden" style={{ border: "1px solid rgba(184,149,106,0.2)" }}>
-              <span className="flex items-center px-3 text-sm whitespace-nowrap" style={{ backgroundColor: "rgba(184,149,106,0.06)", color: MUTED }}>
-                https://
-              </span>
-              <input
-                value={settings.career_company_slug}
-                onChange={e => setSettings({ ...settings, career_company_slug: e.target.value })}
-                placeholder="arriv-estate-media"
-                className="flex-1 border-0"
-                style={{ ...inputStyle, border: "none", borderRadius: "0" }}
-                onFocus={e => e.target.parentElement.style.borderColor = GOLD}
-                onBlur={e => e.target.parentElement.style.borderColor = "rgba(184,149,106,0.2)"}
-              />
-            </div>
+            <label style={labelStyle}>Careers Page URL Slug</label>
+            <input
+              value={settings.career_company_slug}
+              onChange={e => setSettings({ ...settings, career_company_slug: e.target.value })}
+              placeholder="e.g. acme-corp"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = GOLD}
+              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+            />
             {settings.career_page_enabled && settings.career_company_slug && (
               <a href={hubUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs mt-1.5 hover:underline" style={{ color: GOLD }}>
                 <ExternalLink className="w-3 h-3" /> Preview live page
               </a>
             )}
+          </div>
+
+          {/* Company Description */}
+          <div>
+            <label style={labelStyle}>Company Description</label>
+            <textarea
+              value={settings.career_company_description}
+              onChange={e => setSettings({ ...settings, career_company_description: e.target.value })}
+              placeholder="Tell candidates about your company..."
+              rows={3}
+              style={{ ...inputStyle, resize: "vertical" }}
+              onFocus={e => e.target.style.borderColor = GOLD}
+              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+            />
+          </div>
+
+          {/* Hero Image */}
+          <div>
+            <label style={labelStyle}>Hero Image URL</label>
+            <input
+              value={settings.career_hero_image}
+              onChange={e => setSettings({ ...settings, career_hero_image: e.target.value })}
+              placeholder="https://..."
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = GOLD}
+              onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+            />
           </div>
 
           {/* Workplace Culture */}
