@@ -91,8 +91,10 @@ export default function AdminHub() {
       }
 
       // Verify this user is an admin (SalesTeamMember role OR platform admin role)
-      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-        const member = members?.[0];
+      // Use backend function to bypass RLS (no platform token needed)
+      base44.functions.invoke('getSalesDashboardData', { sales_member_id: salesMemberId }).then(res => {
+        const data = res?.data || res;
+        const member = data?.profile;
         if (member?.role === 'admin' || platformIsAdmin || salesMemberRole === 'admin') {
           setUser({
             id: salesMemberId,

@@ -124,10 +124,11 @@ export default function HubSpotActivityLog({ embedded = false }) {
         role: salesRole
       });
 
-      // Then fetch profile picture (non-blocking)
-      base44.entities.SalesTeamMember.filter({ id: salesMemberId }).then(members => {
-        if (members?.[0]?.profile_picture_url) {
-          setProfilePicUrl(members[0].profile_picture_url);
+      // Fetch profile picture via backend function (bypasses RLS — no platform token needed)
+      base44.functions.invoke('getSalesDashboardData', { sales_member_id: salesMemberId }).then(res => {
+        const data = res?.data || res;
+        if (data?.profile?.profile_picture_url) {
+          setProfilePicUrl(data.profile.profile_picture_url);
         }
       }).catch(() => {});
 
@@ -147,21 +148,21 @@ export default function HubSpotActivityLog({ embedded = false }) {
 
       // Count unread SMS conversations + unacknowledged missed calls for the dialer badge
       const loadDialerBadge = () => {
-        base44.entities.SmsConversation.filter({ sales_member_id: salesMemberId }).then(convos => {
-          const total = convos?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
+        base44.functions.invoke('getSalesDashboardData', { sales_member_id: salesMemberId }).then(res => {
+          const data = res?.data || res;
+          const total = data?.sms_conversations?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
           setUnreadSmsCount(total);
-        }).catch(() => {});
-        const missedFilter = { activity_type: 'call', missed: true, missed_acknowledged: false, sales_member_id: salesMemberId };
-        base44.entities.ActivityLog.filter(missedFilter).then(logs => {
-          setMissedCallsCount(logs?.length || 0);
+          setMissedCallsCount(data?.missed_calls?.length || 0);
         }).catch(() => {});
       };
       loadDialerBadge();
 
-      const smsSub = base44.entities.SmsConversation.subscribe(loadDialerBadge);
-      const callSub = base44.entities.ActivityLog.subscribe((event) => {
+      let smsSub = () => {};
+      let callSub = () => {};
+      try { smsSub = base44.entities.SmsConversation.subscribe(loadDialerBadge); } catch (e) {}
+      try { callSub = base44.entities.ActivityLog.subscribe((event) => {
         if (event.data?.activity_type === 'call') loadDialerBadge();
-      });
+      }); } catch (e) {}
 
       // Initialize Twilio Video device and listener on mount
           const initializeVideoDevice = async () => {
@@ -308,31 +309,27 @@ export default function HubSpotActivityLog({ embedded = false }) {
     };
   }, []);
 
-  // Load contacts when form opens
+  // Load contacts when form opens (derived from activities already loaded via useQuery)
   useEffect(() => {
     if (!showForm || !user?.id) return;
     setLoadingContacts(true);
-    const contactPromise = base44.entities.ActivityLog.filter({ sales_member_id: user.id }, '-activity_date', 100);
-    contactPromise
-      .then(logs => {
-        const isPhoneOrExtension = (name) => !name || /^[+\d\s\-().]+$/.test(name.trim()) || /^\d{1,4}$/.test(name.trim());
-        const uniqueContacts = {};
-        logs?.forEach(log => {
-          if (isPhoneOrExtension(log.contact_name) && !log.contact_email) return;
-          const key = log.contact_email || log.contact_name;
-          if (key && !uniqueContacts[key]) {
-            uniqueContacts[key] = {
-              email: log.contact_email || "",
-              name: log.contact_name,
-              company: log.company_name
-            };
-          }
-        });
-        setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
-      })
-      .catch(() => setContacts([]))
-      .finally(() => setLoadingContacts(false));
-  }, [showForm, user?.id]);
+    const logs = activities;
+    const isPhoneOrExtension = (name) => !name || /^[+\d\s\-().]+$/.test(name.trim()) || /^\d{1,4}$/.test(name.trim());
+    const uniqueContacts = {};
+    logs?.forEach(log => {
+      if (isPhoneOrExtension(log.contact_name) && !log.contact_email) return;
+      const key = log.contact_email || log.contact_name;
+      if (key && !uniqueContacts[key]) {
+        uniqueContacts[key] = {
+          email: log.contact_email || "",
+          name: log.contact_name,
+          company: log.company_name
+        };
+      }
+    });
+    setContacts(Object.values(uniqueContacts).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+    setLoadingContacts(false);
+  }, [showForm, user?.id, activities]);
 
   const selectedContactObj = selectedContact
     ? contacts.find(c => (c.email && c.email === selectedContact) || (c.name && c.name === selectedContact))
@@ -341,8 +338,9 @@ export default function HubSpotActivityLog({ embedded = false }) {
   const { data: activities = [] } = useQuery({
     queryKey: ['activities', user?.email],
     queryFn: async () => {
-      const allActivities = await base44.entities.ActivityLog.filter({ sales_member_id: user?.id }, '-activity_date', 500);
-      return allActivities || [];
+      const result = await base44.functions.invoke('getSalesDashboardData', { sales_member_id: user?.id });
+      const data = result?.data || result;
+      return data?.activities || [];
     },
     initialData: [],
     enabled: !!user,
