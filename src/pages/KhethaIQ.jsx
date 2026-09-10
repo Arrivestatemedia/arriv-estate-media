@@ -226,32 +226,18 @@ export default function KhethaIQ() {
   // Tie an existing HireJob to a JobOpening page. If a matching JobOpening
   // already exists (by title), open the edit modal with it. Otherwise, create
   // a JobOpening from the HireJob's data first, then open the edit modal.
-  // Extract the path from a source_url that may be stored as a full URL.
-  // The special pages (AboutJob, AboutSalesJob, AboutJobAtlanta) look up
-  // their JobOpening by path-only source_url (e.g. "/MediaSpecialist").
-  const normalizeSourcePath = (url) => {
-    if (!url) return null;
-    try { return new URL(url, window.location.origin).pathname; }
-    catch { return url; }
-  };
-
   const handleEditPage = async (hireJob) => {
     const isAtlanta = (hireJob.title || "").toLowerCase().includes("atlanta") || (hireJob.location || "").toLowerCase().includes("atlanta");
-    const rawLegacyUrl = hireJob.source_url
+    const legacyUrl = hireJob.source_url
       || (hireJob.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
         : isAtlanta ? "/MediaSpecialistAtl"
         : hireJob.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
-    const legacyUrl = normalizeSourcePath(rawLegacyUrl);
-    // Match by source_url (the special page's path) so the modal edits the
-    // EXACT record the special page renders from — not a duplicate.
-    const match = legacyUrl
-      ? jobOpenings.find(jo => normalizeSourcePath(jo.source_url) === legacyUrl)
-      : jobOpenings.find(jo => jo.title === hireJob.title);
+    const match = jobOpenings.find(jo => jo.title === hireJob.title);
     if (match) {
       // Backfill source_url so legacy pages (e.g. /SalesGrowthAdvisor) can
       // find and render this JobOpening. Course-corrects older records that
       // were created before source_url was stored.
-      if (legacyUrl && normalizeSourcePath(match.source_url) !== legacyUrl) {
+      if (!match.source_url && legacyUrl) {
         try {
           const upd = await base44.functions.invoke("createJobPage", {
             action: "update",
@@ -263,9 +249,8 @@ export default function KhethaIQ() {
           setJobOpenings(prev => prev.map(j => j.id === match.id ? { ...j, ...updated } : j));
         } catch (_) {}
       }
-      // Preview the special page itself (e.g. /MediaSpecialist), which
-      // renders live from this JobOpening — not a generic /careers/ page.
-      setEditingPreviewUrl(legacyUrl || `/careers/${match.public_slug || match.job_id}`);
+      // Preview the canonical page created for this job
+      setEditingPreviewUrl(`/careers/${match.public_slug || match.job_id}`);
       setEditingJobOpening(match);
       return;
     }
@@ -293,7 +278,7 @@ export default function KhethaIQ() {
         employment_type: d.employment_type || hireJob.employment_type || "full_time",
         work_arrangement: d.work_arrangement || hireJob.work_arrangement || "onsite",
         location: d.location || hireJob.location || "",
-        source_url: legacyUrl || "",
+        source_url: legacyUrl || hireJob.source_url || "",
         source_type: "text",
         page_description: d.page_description || hireJob.description || "",
         email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "",
@@ -302,7 +287,7 @@ export default function KhethaIQ() {
       if (data?.success && data?.job_opening) {
         const newOpening = data.job_opening;
         setJobOpenings(prev => [newOpening, ...prev]);
-        setEditingPreviewUrl(legacyUrl || `/careers/${newOpening.public_slug || newOpening.job_id}`);
+        setEditingPreviewUrl(`/careers/${newOpening.public_slug || newOpening.job_id}`);
         setEditingJobOpening(newOpening);
       } else {
         alert(data?.error || "Failed to create job page");
