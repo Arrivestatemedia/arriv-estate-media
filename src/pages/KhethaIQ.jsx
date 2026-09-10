@@ -6,7 +6,7 @@ import {
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, Award, HelpCircle, LayoutDashboard,
   GitBranch, Video, Globe, SquareCheckBig, ArrowLeft, Mail,
-  Activity, CheckSquare, CalendarClock, Copy,
+  Activity, CheckSquare, CalendarClock, Copy, Share2,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -32,6 +32,7 @@ import PerformanceDataView from "@/components/hireiq/PerformanceDataView";
 import JobPageBuilder from "@/components/khethaiq/JobPageBuilder";
 import EditJobPageModal from "@/components/khethaiq/EditJobPageModal";
 import CareersHubSettings from "@/components/khethaiq/CareersHubSettings";
+import DistributeJobModal from "@/components/khethaiq/DistributeJobModal";
 import { SALES_JOB_DEFAULTS } from "@/lib/salesJobDefaults";
 import { MEDIA_JOB_DEFAULTS } from "@/lib/mediaJobDefaults";
 import { MEDIA_JOB_ATLANTA_DEFAULTS } from "@/lib/mediaJobAtlantaDefaults";
@@ -96,6 +97,7 @@ export default function KhethaIQ() {
   const [jobOpenings, setJobOpenings] = useState([]);
   const [linkingJob, setLinkingJob] = useState(null);
   const [duplicating, setDuplicating] = useState(null);
+  const [distributingJob, setDistributingJob] = useState(null);
 
   // Navigation history stack — each entry is a snapshot of the view state.
   // Push the current state before navigating to a new one so the back button
@@ -814,6 +816,16 @@ export default function KhethaIQ() {
                             ) : <Copy className="w-3 h-3" />}
                             Duplicate
                           </button>
+                          {listingUrl && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDistributingJob({ ...job, public_slug: linkedOpening?.public_slug, job_id: linkedOpening?.job_id || job.id }); }}
+                              className="text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                              style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
+                            >
+                              <Share2 className="w-3 h-3" />
+                              Distribute
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -869,6 +881,14 @@ export default function KhethaIQ() {
                             ) : <Copy className="w-3 h-3" />}
                             Duplicate
                           </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDistributingJob(job); }}
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                            style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
+                          >
+                            <Share2 className="w-3 h-3" />
+                            Distribute
+                          </button>
                         </div>
                       </div>
                     );
@@ -910,6 +930,14 @@ export default function KhethaIQ() {
       {/* Careers Hub Settings modal */}
       {showCareersHubSettings && (
         <CareersHubSettings onClose={() => setShowCareersHubSettings(false)} />
+      )}
+
+      {/* Distribute Job modal */}
+      {distributingJob && (
+        <DistributeJobModal
+          job={distributingJob}
+          onClose={() => setDistributingJob(null)}
+        />
       )}
 
       {/* Edit Job Page modal */}
