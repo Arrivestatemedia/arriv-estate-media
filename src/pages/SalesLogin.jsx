@@ -41,6 +41,8 @@ export default function SalesLogin() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState(null);
+  const [syncMsg, setSyncMsg] = useState(null);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   // SECURITY: The auto-login via URL query parameters (?auto=1&email=X&pw=Y)
   // was removed in Round 2 remediation. Passing credentials in URLs exposes
@@ -61,6 +63,27 @@ export default function SalesLogin() {
       const data = result?.data || result;
       
       if (data?.success) {
+        // If the platform password doesn't match, don't complete the login —
+        // the user would see no data (RLS blocks without a platform token).
+        // Show a sync prompt instead so they can reset their platform password.
+        if (data.platform_password_mismatch && !data.platform_access_token) {
+          setSyncMsg({
+            type: "warning",
+            text: "Your platform password needs to be synced for full data access. Click \"Sync Platform Password\" below to receive a reset email — set the new password to match your sales password, then sign in again.",
+          });
+          setLoading(false);
+          return;
+        }
+        // If a platform invitation was just sent, the user needs to set up
+        // their platform account before they can access data.
+        if (data.platform_invitation_sent && !data.platform_access_token) {
+          setSyncMsg({
+            type: "warning",
+            text: "We've sent you a platform setup invitation. Check your email, click the link, and set your platform password to match your sales password. Then sign in again.",
+          });
+          setLoading(false);
+          return;
+        }
         const salesData = {
           sales_member_id: data.memberId,
           sales_member_name: data.name,
@@ -103,6 +126,26 @@ export default function SalesLogin() {
     }
   };
 
+  const handleSyncPlatformPassword = async () => {
+    const syncEmail = (email || "").trim();
+    if (!syncEmail) {
+      setSyncMsg({ type: "error", text: "Please enter your email first" });
+      return;
+    }
+    setSyncLoading(true);
+    try {
+      await base44.auth.resetPasswordRequest(syncEmail);
+      setSyncMsg({
+        type: "success",
+        text: "Reset email sent! Check your inbox, click the link, and set your new password to match your sales password. Then sign in again.",
+      });
+    } catch (e) {
+      setSyncMsg({ type: "error", text: "Could not send reset email. Please contact support." });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   const handleForgotPassword = async () => {
     if (!forgotEmail.trim()) {
       setForgotMsg({ type: "error", text: "Please enter your email" });
@@ -142,6 +185,37 @@ export default function SalesLogin() {
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 items-start">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            {syncMsg && (
+              <div className={`p-3 rounded-lg flex gap-2 items-start ${
+                syncMsg.type === 'success' ? 'bg-green-50 border border-green-200' :
+                syncMsg.type === 'warning' ? 'bg-amber-50 border border-amber-200' :
+                'bg-red-50 border border-red-200'
+              }`}>
+                <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                  syncMsg.type === 'success' ? 'text-green-600' :
+                  syncMsg.type === 'warning' ? 'text-amber-600' : 'text-red-600'
+                }`} />
+                <div className="flex-1">
+                  <p className={`text-sm ${
+                    syncMsg.type === 'success' ? 'text-green-600' :
+                    syncMsg.type === 'warning' ? 'text-amber-700' : 'text-red-600'
+                  }`}>{syncMsg.text}</p>
+                  {syncMsg.type === 'warning' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={handleSyncPlatformPassword}
+                      disabled={syncLoading}
+                    >
+                      {syncLoading ? "Sending..." : "Sync Platform Password"}
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
