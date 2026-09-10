@@ -29,7 +29,7 @@ export default function DistributeJobModal({ job, onClose }) {
 
   const baseUrl = customDomain
     ? `https://${customDomain}`
-    : window.location.origin.replace("preview--", "");
+    : "https://app.arrivestatemedia.com";
   const jobPath = `/careers/${job.public_slug || job.job_id}`;
   const publicUrl = `${baseUrl}${jobPath}`;
   const allJobsUrl = `${baseUrl}/careers`;
