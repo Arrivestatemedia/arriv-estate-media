@@ -88,6 +88,7 @@ export default function KhethaIQ() {
   const [showCareersHubSettings, setShowCareersHubSettings] = useState(false);
   const [editingJobOpening, setEditingJobOpening] = useState(null);
   const [jobOpenings, setJobOpenings] = useState([]);
+  const [linkingJob, setLinkingJob] = useState(null);
 
   // Navigation history stack — each entry is a snapshot of the view state.
   // Push the current state before navigating to a new one so the back button
@@ -213,6 +214,47 @@ export default function KhethaIQ() {
   const handleJobUpdated = (updatedJob) => {
     setSelectedJob(updatedJob);
     setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
+  };
+
+  // Tie an existing HireJob to a JobOpening page. If a matching JobOpening
+  // already exists (by title), open the edit modal with it. Otherwise, create
+  // a JobOpening from the HireJob's data first, then open the edit modal.
+  const handleEditPage = async (hireJob) => {
+    const match = jobOpenings.find(jo => jo.title === hireJob.title);
+    if (match) {
+      setEditingJobOpening(match);
+      return;
+    }
+    setLinkingJob(hireJob);
+    try {
+      const res = await base44.functions.invoke("createJobPage", {
+        action: "create",
+        title: hireJob.title || "Untitled",
+        department: hireJob.department || "",
+        description: hireJob.description || "",
+        responsibilities: hireJob.responsibilities || [],
+        required_qualifications: hireJob.required_qualifications || [],
+        preferred_qualifications: hireJob.preferred_qualifications || [],
+        skills: hireJob.skills || [],
+        experience_requirements: hireJob.experience_requirements || "",
+        compensation: hireJob.compensation || "",
+        work_schedule: hireJob.work_schedule || "",
+        source_url: hireJob.source_url || "",
+        source_type: "text",
+      });
+      const data = res?.data ?? res;
+      if (data?.success && data?.job_opening) {
+        const newOpening = data.job_opening;
+        setJobOpenings(prev => [newOpening, ...prev]);
+        setEditingJobOpening(newOpening);
+      } else {
+        alert(data?.error || "Failed to create job page");
+      }
+    } catch (err) {
+      alert("Failed to create job page: " + (err.message || "unknown error"));
+    } finally {
+      setLinkingJob(null);
+    }
   };
 
   const goJobsHome = () => { goBack(); };
@@ -575,16 +617,15 @@ export default function KhethaIQ() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const match = jobOpenings.find(jo => jo.title === job.title);
-                                if (match) {
-                                  setEditingJobOpening(match);
-                                } else {
-                                  setShowJobPageBuilder(true);
-                                }
+                                handleEditPage(job);
                               }}
-                              className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                              disabled={linkingJob?.id === job.id}
+                              className="text-xs px-2.5 py-1 rounded-lg font-medium flex items-center gap-1"
                               style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
                             >
+                              {linkingJob?.id === job.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : null}
                               Edit Page
                             </button>
                           </div>
