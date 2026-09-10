@@ -89,6 +89,7 @@ export default function KhethaIQ() {
   const [showJobPageBuilder, setShowJobPageBuilder] = useState(false);
   const [showCareersHubSettings, setShowCareersHubSettings] = useState(false);
   const [editingJobOpening, setEditingJobOpening] = useState(null);
+  const [editingPreviewUrl, setEditingPreviewUrl] = useState(null);
   const [jobOpenings, setJobOpenings] = useState([]);
   const [linkingJob, setLinkingJob] = useState(null);
 
@@ -222,8 +223,12 @@ export default function KhethaIQ() {
   // already exists (by title), open the edit modal with it. Otherwise, create
   // a JobOpening from the HireJob's data first, then open the edit modal.
   const handleEditPage = async (hireJob) => {
+    const listingUrl = hireJob.source_url
+      || (hireJob.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
+        : hireJob.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
     const match = jobOpenings.find(jo => jo.title === hireJob.title);
     if (match) {
+      setEditingPreviewUrl(listingUrl);
       setEditingJobOpening(match);
       return;
     }
@@ -249,6 +254,7 @@ export default function KhethaIQ() {
       if (data?.success && data?.job_opening) {
         const newOpening = data.job_opening;
         setJobOpenings(prev => [newOpening, ...prev]);
+        setEditingPreviewUrl(listingUrl);
         setEditingJobOpening(newOpening);
       } else {
         alert(data?.error || "Failed to create job page");
@@ -586,12 +592,9 @@ export default function KhethaIQ() {
                   {/* Existing jobs — clicking opens the job detail (questionnaire, applicants, etc.) */}
                   {jobs.map(job => {
                     const ss = statusStyle(job.status);
-                    const linkedOpening = jobOpenings.find(jo => jo.title === job.title);
-                    const listingUrl = linkedOpening
-                      ? `/careers/${linkedOpening.public_slug || linkedOpening.job_id}`
-                      : (job.source_url
-                        || (job.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
-                          : job.source_application_position === "media_specialist" ? "/MediaSpecialist" : null));
+                    const listingUrl = job.source_url
+                      || (job.source_application_position === "sales_growth_advisor" ? "/SalesGrowthAdvisor"
+                        : job.source_application_position === "media_specialist" ? "/MediaSpecialist" : null);
                     return (
                       <div
                         key={job.id}
@@ -663,7 +666,11 @@ export default function KhethaIQ() {
                         </div>
                         <div className="flex items-center gap-2 mt-auto pt-3" style={{ borderTop: "1px solid rgba(184,149,106,0.12)" }}>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setEditingJobOpening(job); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingPreviewUrl(`/careers/${job.public_slug || job.job_id}`);
+                              setEditingJobOpening(job);
+                            }}
                             className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
                             style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
                           >
@@ -716,9 +723,11 @@ export default function KhethaIQ() {
       {editingJobOpening && (
         <EditJobPageModal
           jobOpening={editingJobOpening}
-          onClose={() => setEditingJobOpening(null)}
+          previewUrl={editingPreviewUrl}
+          onClose={() => { setEditingJobOpening(null); setEditingPreviewUrl(null); }}
           onSaved={(updated) => {
             setEditingJobOpening(null);
+            setEditingPreviewUrl(null);
             // Update the jobOpenings list in place
             setJobOpenings(prev => prev.map(j => j.id === updated?.id ? { ...j, ...updated } : j));
           }}

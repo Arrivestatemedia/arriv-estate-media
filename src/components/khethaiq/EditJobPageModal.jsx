@@ -38,7 +38,7 @@ const focusProps = {
   onBlur: (e) => (e.target.style.borderColor = "rgba(184,149,106,0.2)"),
 };
 
-export default function EditJobPageModal({ jobOpening, onClose, onSaved }) {
+export default function EditJobPageModal({ jobOpening, previewUrl, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [fields, setFields] = useState({
     title: jobOpening.title || "",
@@ -86,7 +86,7 @@ export default function EditJobPageModal({ jobOpening, onClose, onSaved }) {
     }
   };
 
-  const publicUrl = `/careers/${jobOpening.public_slug || jobOpening.job_id}`;
+  const publicUrl = previewUrl || `/careers/${jobOpening.public_slug || jobOpening.job_id}`;
 
   return (
     <div
