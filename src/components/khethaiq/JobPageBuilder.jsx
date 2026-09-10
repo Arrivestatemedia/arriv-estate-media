@@ -54,7 +54,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
     title: "", department: "", description: "",
     responsibilities: [], required_qualifications: [], preferred_qualifications: [],
     skills: [], experience_requirements: "", performance_expectations: [],
-    compensation: "", work_schedule: "",
+    compensation: "", work_schedule: "", benefits: [],
     employment_type: "full_time", work_arrangement: "onsite", location: "",
   });
 
@@ -86,6 +86,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
           performance_expectations: data.extracted.performance_expectations || [],
           compensation: data.extracted.compensation || "",
           work_schedule: data.extracted.work_schedule || "",
+          benefits: data.extracted.benefits || [],
           employment_type: "full_time",
           work_arrangement: "onsite",
           location: "",
@@ -138,6 +139,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
         performance_expectations: fields.performance_expectations,
         compensation: fields.compensation,
         work_schedule: fields.work_schedule,
+        benefits: fields.benefits,
         employment_type: fields.employment_type,
         work_arrangement: fields.work_arrangement,
         location: fields.location,
@@ -423,6 +425,42 @@ export default function JobPageBuilder({ onClose, onCreated }) {
                 value={Array.isArray(fields.required_qualifications) ? fields.required_qualifications.join("\n") : ""}
                 onChange={e => setFields({ ...fields, required_qualifications: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })}
                 rows={4}
+                style={{ ...inputStyle, resize: "vertical" }}
+                onFocus={e => e.target.style.borderColor = GOLD}
+                onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Preferred Qualifications (one per line)</label>
+              <textarea
+                value={Array.isArray(fields.preferred_qualifications) ? fields.preferred_qualifications.join("\n") : ""}
+                onChange={e => setFields({ ...fields, preferred_qualifications: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })}
+                rows={3}
+                style={{ ...inputStyle, resize: "vertical" }}
+                onFocus={e => e.target.style.borderColor = GOLD}
+                onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Performance Expectations (one per line)</label>
+              <textarea
+                value={Array.isArray(fields.performance_expectations) ? fields.performance_expectations.join("\n") : ""}
+                onChange={e => setFields({ ...fields, performance_expectations: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })}
+                rows={3}
+                style={{ ...inputStyle, resize: "vertical" }}
+                onFocus={e => e.target.style.borderColor = GOLD}
+                onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Benefits (one per line)</label>
+              <textarea
+                value={Array.isArray(fields.benefits) ? fields.benefits.join("\n") : ""}
+                onChange={e => setFields({ ...fields, benefits: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })}
+                rows={3}
                 style={{ ...inputStyle, resize: "vertical" }}
                 onFocus={e => e.target.style.borderColor = GOLD}
                 onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}

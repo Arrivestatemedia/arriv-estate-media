@@ -67,7 +67,7 @@ export default async function(req: Request): Promise<Response> {
       prompt += `- primary_color: hex color for buttons/accents (e.g. "#B8956A")\n`;
       prompt += `- secondary_color: hex color for hero/section backgrounds (e.g. "#1A1A1A")\n`;
       prompt += `- background_tone: one of "light", "dark", "warm"\n`;
-      prompt += `- section_order: array ordering these section keys: "about", "responsibilities", "qualifications", "preferred", "skills", "benefits", "compensation"\n`;
+      prompt += `- section_order: array ordering these section keys: "about", "responsibilities", "qualifications", "preferred", "experience", "performance", "skills", "benefits", "compensation"\n`;
       prompt += `- layout_density: one of "spacious", "compact"\n`;
       prompt += `- tone: one of "professional", "warm", "modern", "classic"\n`;
       prompt += `Base the design_spec on the design direction above. If no design direction was given, use defaults: hero_style "full_bleed", primary_color "#B8956A", secondary_color "#1A1A1A", background_tone "light", layout_density "spacious", tone "classic".\n\n`;

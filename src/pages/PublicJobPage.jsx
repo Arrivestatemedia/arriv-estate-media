@@ -14,19 +14,23 @@ const DEFAULT_SPEC = {
   primary_color: null,
   secondary_color: null,
   background_tone: "light",
-  section_order: ["about", "responsibilities", "qualifications", "preferred", "skills", "benefits", "compensation"],
+  section_order: ["about", "responsibilities", "qualifications", "preferred", "experience", "performance", "skills", "benefits", "compensation"],
   layout_density: "spacious",
   tone: "classic",
 };
 
 function resolveSpec(spec) {
   if (!spec || typeof spec !== "object") return DEFAULT_SPEC;
+  const specOrder = Array.isArray(spec.section_order) && spec.section_order.length > 0
+    ? spec.section_order
+    : DEFAULT_SPEC.section_order;
+  // Merge: ensure all default keys are present (handles old specs missing new keys)
+  const defaultKeys = DEFAULT_SPEC.section_order;
+  const merged = [...specOrder, ...defaultKeys.filter(k => !specOrder.includes(k))];
   return {
     ...DEFAULT_SPEC,
     ...spec,
-    section_order: Array.isArray(spec.section_order) && spec.section_order.length > 0
-      ? spec.section_order
-      : DEFAULT_SPEC.section_order,
+    section_order: merged,
   };
 }
 
@@ -328,6 +332,25 @@ export default function PublicJobPage() {
             <div key={i} className="p-4 rounded-xl flex items-start gap-3" style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}>
               <Heart className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primary }} />
               <span className="text-sm" style={{ color: pageText }}>{b}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    experience: job.experience_requirements && (
+      <section key="experience">
+        <h2 className="text-2xl font-bold mb-4" style={{ ...headingFont, color: pageText }}>Experience</h2>
+        <p className="text-base leading-relaxed" style={{ color: pageMuted }}>{job.experience_requirements}</p>
+      </section>
+    ),
+    performance: job.performance_expectations?.length > 0 && (
+      <section key="performance">
+        <h2 className="text-2xl font-bold mb-4" style={{ ...headingFont, color: pageText }}>What We Expect</h2>
+        <div className="space-y-2">
+          {job.performance_expectations.map((p, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <Check className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primary }} />
+              <span className="text-sm" style={{ color: pageText }}>{p}</span>
             </div>
           ))}
         </div>
