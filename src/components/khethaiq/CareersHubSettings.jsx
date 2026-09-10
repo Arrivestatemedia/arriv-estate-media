@@ -296,7 +296,7 @@ export default function CareersHubSettings({ onClose }) {
               onFocus={e => e.target.style.borderColor = GOLD}
               onBlur={e => e.target.style.borderColor = "rgba(184,149,106,0.2)"}
             />
-            <p className="text-xs mt-1.5" style={{ color: MUTED }}>Point a CNAME record for this domain to khetha-iq-by-arriv.base44.app, then enter the domain here. Your careers hub and job pages will use this domain instead of the default.</p>
+            <p className="text-xs mt-1.5" style={{ color: MUTED }}>Point a CNAME record for this domain to App.arrivestatemedia.com, then enter the domain here. Your careers hub and job pages will use this domain instead of the default.</p>
           </div>
 
           {/* Contact Email */}
