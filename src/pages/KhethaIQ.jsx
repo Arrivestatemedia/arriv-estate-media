@@ -562,15 +562,32 @@ export default function KhethaIQ() {
                           <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: MUTED_LIGHT }}>
                             {job.experience_requirements && <span>{job.experience_requirements}</span>}
                           </div>
-                          {listingUrl && (
+                          <div className="flex items-center gap-2 shrink-0">
+                            {listingUrl && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); window.open(listingUrl, "_blank"); }}
+                                className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                                style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
+                              >
+                                View Listing
+                              </button>
+                            )}
                             <button
-                              onClick={(e) => { e.stopPropagation(); window.open(listingUrl, "_blank"); }}
-                              className="text-xs px-2.5 py-1 rounded-lg font-medium shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const match = jobOpenings.find(jo => jo.title === job.title);
+                                if (match) {
+                                  setEditingJobOpening(match);
+                                } else {
+                                  setShowJobPageBuilder(true);
+                                }
+                              }}
+                              className="text-xs px-2.5 py-1 rounded-lg font-medium"
                               style={{ backgroundColor: "rgba(184,149,106,0.15)", color: GOLD, border: "1px solid rgba(184,149,106,0.3)" }}
                             >
-                              View Listing
+                              Edit Page
                             </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                     );
