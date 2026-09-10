@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { useSalesDashboardData } from "@/hooks/useSalesDashboardData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,22 +62,38 @@ export default function IphoneDialer({ salesMemberId }) {
   useEffect(() => { callStateRef.current = callState; }, [callState]);
   useEffect(() => { currentCallRef.current = currentCall; }, [currentCall]);
 
+  // Fetch profile + all members via backend function (bypasses RLS)
+  const { data: dashboardData } = useSalesDashboardData(salesMemberId || localStorage.getItem('sales_member_id'));
+
+  useEffect(() => {
+    if (dashboardData?.profile) {
+      setHasTwilioNumber(!!dashboardData.profile.twilio_phone_number);
+      initDevice();
+    }
+    if (dashboardData?.all_active_members) {
+      setAllMembers(dashboardData.all_active_members);
+    }
+  }, [dashboardData?.profile, dashboardData?.all_active_members]);
+
   // Device init — only runs once when salesMemberId is available
   useEffect(() => {
     const id = salesMemberId || localStorage.getItem('sales_member_id');
     if (!id) return;
 
-    base44.entities.SalesTeamMember.filter({ id }).then(members => {
-      if (!members?.[0]) {
-        setError('Unable to verify your account. Contact your administrator.');
-        return;
-      }
-      setHasTwilioNumber(!!members[0].twilio_phone_number);
-      initDevice();
-      base44.entities.SalesTeamMember.filter({ is_active: true }).then(setAllMembers).catch(() => {});
-    }).catch(() => {
-      setError('Unable to verify account');
-    });
+    // Fallback: if hook hasn't loaded yet, try direct SDK (works for admins with tokens)
+    if (!dashboardData?.profile) {
+      base44.entities.SalesTeamMember.filter({ id }).then(members => {
+        if (!members?.[0]) {
+          setError('Unable to verify your account. Contact your administrator.');
+          return;
+        }
+        setHasTwilioNumber(!!members[0].twilio_phone_number);
+        initDevice();
+        base44.entities.SalesTeamMember.filter({ is_active: true }).then(setAllMembers).catch(() => {});
+      }).catch(() => {
+        setError('Unable to verify account');
+      });
+    }
     
     // Check for pre-loaded phone number from dialer click
     const dialerPhone = localStorage.getItem('_dialerPhone');

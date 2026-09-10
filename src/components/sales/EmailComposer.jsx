@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useSalesDashboardData } from "@/hooks/useSalesDashboardData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,14 +47,18 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
 
   const lastInboxCountRef = React.useRef(null);
 
+  // Fetch profile via backend function (bypasses RLS for sales-authenticated users)
+  const { data: dashboardData } = useSalesDashboardData(isAdmin ? null : salesMemberId);
+
   useEffect(() => {
     if (isAdmin) {
       base44.auth.me().then(adminUser => {
         if (adminUser?.email) {
-          base44.entities.SalesTeamMember.filter({ email: adminUser.email }).then(members => {
-            if (members?.[0]) {
-              setSalesMember(members[0]);
-              if (members[0].company_email) setFromEmail(members[0].company_email);
+          base44.functions.invoke('getSalesDashboardData', { sales_member_id: salesMemberId }).then(res => {
+            const data = res?.data || res;
+            if (data?.profile) {
+              setSalesMember(data.profile);
+              if (data.profile.company_email) setFromEmail(data.profile.company_email);
             } else {
               setSalesMember(adminUser);
             }
@@ -62,13 +67,11 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
           setSalesMember(adminUser);
         }
       }).catch(() => {});
-    } else if (salesMemberId) {
-      base44.entities.SalesTeamMember.get(salesMemberId).then(member => {
-        setSalesMember(member);
-        if (member?.company_email) setFromEmail(member.company_email);
-      }).catch(() => {});
+    } else if (dashboardData?.profile) {
+      setSalesMember(dashboardData.profile);
+      if (dashboardData.profile.company_email) setFromEmail(dashboardData.profile.company_email);
     }
-  }, [salesMemberId, isAdmin]);
+  }, [salesMemberId, isAdmin, dashboardData?.profile]);
 
   useEffect(() => {
     if (tab === "replies" && salesMember) loadReplies();

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { useSalesDashboardData } from "@/hooks/useSalesDashboardData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,23 @@ export default function MyContacts({ salesMemberId, salesMemberEmail, isAdmin })
   const [listingsContact, setListingsContact] = useState(null);
   const [convertContact, setConvertContact] = useState(null);
   const [discountContact, setDiscountContact] = useState(null);
+
+  // Fetch all data via backend function (bypasses RLS for sales-authenticated users)
+  const { data: dashboardData, refetch } = useSalesDashboardData(salesMemberId);
+
+  // Sync data from dashboard response
+  useEffect(() => {
+    if (dashboardData) {
+      setActivities(dashboardData.activities || []);
+      setDbContacts(dashboardData.contacts || []);
+      const secMap = {};
+      (dashboardData.secondary_contact_info || []).forEach(info => {
+        secMap[info.contact_email] = info;
+      });
+      setSecondaryInfo(secMap);
+      setLoading(false);
+    }
+  }, [dashboardData]);
 
   // In-app navigation stack: clicking a contact's NAME opens their listings
   // inline, replacing that contact's card — identical functioning to the

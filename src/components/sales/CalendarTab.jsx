@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useSalesDashboardData } from "@/hooks/useSalesDashboardData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,13 +18,14 @@ export default function CalendarTab({ salesMemberId }) {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
 
+  // Fetch profile via backend function (bypasses RLS for sales-authenticated users)
+  const { data: dashboardData } = useSalesDashboardData(salesMemberId);
+
   useEffect(() => {
-    if (salesMemberId) {
-      base44.entities.SalesTeamMember.get(salesMemberId).then(member => {
-        setSalesMember(member);
-      }).catch(() => {});
+    if (dashboardData?.profile) {
+      setSalesMember(dashboardData.profile);
     }
-  }, [salesMemberId]);
+  }, [dashboardData?.profile]);
 
   useEffect(() => {
     if (salesMember) loadEvents(salesMember);
