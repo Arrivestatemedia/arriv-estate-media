@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
-import { secrets } from "base44:runtime";
 import { handleSalesBackgroundCheckFailure } from '../../shared/orientationEngine.ts';
 import { verifyPassword, isLegacyHash, hashPassword } from '../../shared/passwordKdf.ts';
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '../../shared/rateLimiter.ts';
@@ -147,58 +146,48 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'This account is inactive' }, { status: 403 });
     }
 
-    // Link platform user to sales team member for RLS
+    // Link platform user to sales team member for RLS.
+    // Obtain a platform access token so the browser SDK has a real platform
+    // session — this makes RLS rules (user.data.sales_member_id, user.role)
+    // evaluate correctly.
     let platformRole: string | null = null;
     let platformAccessToken: string | null = null;
+    let platformPasswordMismatch = false;
     try {
       const allUsers = await base44.asServiceRole.entities.User.list();
-      const platformUser = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-      if (platformUser) {
+      let platformUser = allUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+
+      // If no platform account exists yet, auto-register one with the same
+      // email + sales password so loginViaEmailPassword succeeds.
+      if (!platformUser) {
+        try {
+          await base44.auth.register({
+            email,
+            password,
+            full_name: member.full_name || '',
+            role: member.role === 'admin' ? 'admin' : 'user',
+          });
+        } catch (e) {
+          console.error('Platform auto-register failed:', (e as Error).message);
+        }
+      } else {
         if (platformUser.data?.sales_member_id !== member.id) {
           await base44.asServiceRole.entities.User.update(platformUser.id, { sales_member_id: member.id });
         }
         if (platformUser.role === 'admin') {
           platformRole = 'admin';
         }
-        // Try to obtain a platform access token so the browser SDK has a real
-        // platform session — this makes RLS rules (user.data.sales_member_id,
-        // user.role) evaluate correctly.
-        //
-        // Strategy 1: standard email/password login (works when the platform
-        //   password matches the sales password).
-        // Strategy 2: call the auth API with the app's service token in the
-        //   Authorization header — the platform may issue a user token when a
-        //   service-role credential is presented, bypassing the password check.
-        try {
-          const loginResult = await base44.auth.loginViaEmailPassword(email, password);
-          if (loginResult?.access_token) {
-            platformAccessToken = loginResult.access_token;
-          }
-        } catch (e) { /* platform password may differ — try strategy 2 */ }
+      }
 
-        if (!platformAccessToken) {
-          try {
-            const serviceToken = secrets.get("BASE44_SERVICE_TOKEN");
-            const origin = new URL(req.url).origin;
-            const appId = req.headers.get("X-App-Id") || "";
-            if (serviceToken && origin && appId) {
-              const resp = await fetch(`${origin}/apps/${appId}/auth/login`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${serviceToken}`,
-                },
-                body: JSON.stringify({ email }),
-              });
-              if (resp.ok) {
-                const body = await resp.json();
-                if (body?.access_token) {
-                  platformAccessToken = body.access_token;
-                }
-              }
-            }
-          } catch (e) { /* non-critical — fall back to sales-only session */ }
+      // Now try to obtain a platform access token via standard login.
+      try {
+        const loginResult = await base44.auth.loginViaEmailPassword(email, password);
+        if (loginResult?.access_token) {
+          platformAccessToken = loginResult.access_token;
         }
+      } catch (e) {
+        // Platform password doesn't match the sales password.
+        platformPasswordMismatch = true;
       }
     } catch (e) { /* non-critical */ }
 
@@ -220,6 +209,7 @@ Deno.serve(async (req) => {
       role: platformRole || member.role || 'user',
       forcePasswordChange: member.force_password_change === true,
       platform_access_token: platformAccessToken,
+      platform_password_mismatch: platformPasswordMismatch,
     });
 
   } catch (error) {
