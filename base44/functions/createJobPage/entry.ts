@@ -4,11 +4,6 @@ import { generateJobId, slugify, emitRecruitingMutation } from '../../shared/car
 
 export default async function(req: Request): Promise<Response> {
   try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
-
     const body = await req.json();
     const {
       action, // "create" | "analyze" | "update"
@@ -25,7 +20,37 @@ export default async function(req: Request): Promise<Response> {
       performance_expectations, compensation, work_schedule,
       employment_type, work_arrangement, location, travel_requirements,
       benefits,
+      email: bodyEmail,
     } = body;
+
+    const base44 = createClientFromRequest(req);
+
+    // Dual auth: sales admins log in via SalesLogin (custom auth) and may not
+    // have a platform session token, so auth.me() can throw. Try platform auth
+    // first, then fall back to SalesTeamMember lookup by email.
+    let isAdmin = false;
+    let actorName = "Admin";
+    try {
+      const user = await base44.auth.me();
+      if (user) {
+        isAdmin = user.role === 'admin';
+        actorName = user.full_name || user.email || "Admin";
+      }
+    } catch (e) { /* no platform session — try sales admin below */ }
+
+    if (!isAdmin && bodyEmail) {
+      try {
+        const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ email: bodyEmail });
+        const list = members?.data ?? members ?? [];
+        const member = Array.isArray(list) && list.length > 0 ? list[0] : null;
+        if (member && member.role === 'admin') {
+          isAdmin = true;
+          actorName = member.full_name || member.email || "Admin";
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    if (!isAdmin) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     if (action === "analyze") {
       // Step 2: AI analysis of the job description
@@ -149,7 +174,7 @@ export default async function(req: Request): Promise<Response> {
       publicSlug = `${publicSlug}-${Math.random().toString(36).slice(2, 6)}`;
     }
 
-    const createdBy = user.full_name || user.email || "Admin";
+    const createdBy = actorName;
 
     const jobOpening = await base44.asServiceRole.entities.JobOpening.create({
       tenant_id: tenantId,

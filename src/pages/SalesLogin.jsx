@@ -24,7 +24,7 @@ export default function SalesLogin() {
         navigate(target, { replace: true });
       } else {
         const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
-        const redirectPage = salesRole === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
+        const redirectPage = salesRole === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
         navigate(createPageUrl(redirectPage), { replace: true });
       }
       return;
@@ -82,8 +82,8 @@ export default function SalesLogin() {
         }
         localStorage.removeItem('sales_force_password_change');
         sessionStorage.removeItem('sales_force_password_change');
-        // Route admins to Dashboard, others to HubSpotActivityLog
-        const redirectPage = data.role === 'admin' ? 'Dashboard' : 'HubSpotActivityLog';
+        // Route admins to Admin Hub, others to HubSpotActivityLog
+        const redirectPage = data.role === 'admin' ? 'AdminHub' : 'HubSpotActivityLog';
         navigate(createPageUrl(redirectPage) + tabSuffix);
       } else {
         setError(data?.error || "Incorrect email or password. Please try again.");

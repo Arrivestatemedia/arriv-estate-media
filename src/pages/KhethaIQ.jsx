@@ -240,6 +240,7 @@ export default function KhethaIQ() {
             action: "update",
             job_opening_id: match.id,
             source_url: legacyUrl,
+            email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "",
           });
           const updated = upd?.data?.job_opening || upd?.job_opening || { ...match, source_url: legacyUrl };
           setJobOpenings(prev => prev.map(j => j.id === match.id ? { ...j, ...updated } : j));
@@ -276,6 +277,7 @@ export default function KhethaIQ() {
         source_url: legacyUrl || hireJob.source_url || "",
         source_type: "text",
         page_description: d.page_description || hireJob.description || "",
+        email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "",
       });
       const data = res?.data ?? res;
       if (data?.success && data?.job_opening) {
@@ -299,6 +301,7 @@ export default function KhethaIQ() {
   // linked JobOpening (public job page), so the copy carries over every
   // field the original had.
   const handleDuplicateJob = async (job) => {
+    if (!window.confirm(`This will create a copy of "${job.title || 'Untitled'}" including its job details and linked job page. The copy will be saved as a draft with "(Copy)" added to the title. Continue?`)) return;
     setDuplicating(job);
     try {
       const newTitle = `${job.title || "Untitled"} (Copy)`;
@@ -333,6 +336,7 @@ export default function KhethaIQ() {
           await base44.functions.invoke("createJobPage", {
             action: "create",
             title: newTitle,
+            email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "",
             department: linkedOpening.department || "",
             description: linkedOpening.description_text || "",
             responsibilities: linkedOpening.responsibilities || [],
@@ -366,12 +370,14 @@ export default function KhethaIQ() {
   // Duplicate a JobOpening (job page) that has no matching HireJob — creates
   // a copy of the public page with a "(Copy)" title suffix.
   const handleDuplicateJobOpening = async (jobOpening) => {
+    if (!window.confirm(`This will create a copy of the "${jobOpening.title || 'Untitled'}" job page with all its content. The copy will have "(Copy)" added to the title. Continue?`)) return;
     setDuplicating(jobOpening);
     try {
       const newTitle = `${jobOpening.title || "Untitled"} (Copy)`;
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
         title: newTitle,
+        email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "",
         department: jobOpening.department || "",
         description: jobOpening.description_text || "",
         responsibilities: jobOpening.responsibilities || [],

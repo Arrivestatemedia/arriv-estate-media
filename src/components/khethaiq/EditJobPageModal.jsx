@@ -68,9 +68,11 @@ export default function EditJobPageModal({ jobOpening, previewUrl, onClose, onSa
     if (!fields.title) return;
     setSaving(true);
     try {
+      const adminEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "";
       const res = await base44.functions.invoke("createJobPage", {
         action: "update",
         job_opening_id: jobOpening.id,
+        email: adminEmail,
         ...fields,
       });
       const data = res?.data ?? res;

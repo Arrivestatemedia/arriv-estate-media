@@ -59,8 +59,8 @@ export default function AdminLogin() {
         localStorage.setItem('sales_member_email', response.data.admin.email);
         localStorage.setItem('admin_role', 'admin');
 
-        // Redirect to activity log page
-        navigate(createPageUrl('HubSpotActivityLog'));
+        // Redirect to Admin Hub
+        navigate(createPageUrl('AdminHub'));
       } else {
         setError(response.data.error || 'Login failed');
       }
