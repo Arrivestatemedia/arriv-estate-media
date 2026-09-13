@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
+import { toast } from "sonner";
 import ChatTab from "./ChatTab";
 import { ArrivOneConnectBadge } from "@/components/chat/ArrivOneConnectBadge";
 import { useCallStatus } from "@/components/CallStatusContext";
@@ -31,6 +32,8 @@ const playNotificationDing = () => {
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, onVideoCallStarted, isVideoCallActive, onOpenChat, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
   const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
   const [open, setOpen] = useState(false);
+  const openRef = useRef(false);
+  useEffect(() => { openRef.current = open; }, [open]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [crossAppUnread, setCrossAppUnread] = useState(0);
   const [localRemoteCallLive, setLocalRemoteCallLive] = useState(localStorage.getItem('remoteCallLive') === 'true');
@@ -122,6 +125,16 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
         if (newCount > 0) {
           setCrossAppUnread(newCount);
           playNotificationDing();
+          // Show a visible toast ONLY when the chat panel is closed, so the
+          // user gets a desktop notification for new cross-app messages.
+          if (!openRef.current) {
+            const latest = data?.latest_message;
+            if (latest) {
+              toast.message(latest.sender_name || 'New message', {
+                description: latest.content,
+              });
+            }
+          }
           // Advance the watermark so already-notified messages don't re-trigger
           const latestTs = data?.latest_message?.timestamp || data?.latest_message?.created_date;
           if (latestTs) {
