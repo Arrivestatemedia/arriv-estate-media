@@ -115,8 +115,11 @@ export default async function (req) {
     });
 
     // 2. Deliver to Arriv One. Try the dedicated chat receiver first (derived from
-    //    the sync endpoint URL), then fall back to the chat webhook URL, then the
-    //    sync event endpoint.
+    //    the sync endpoint URL), then fall back to the chat webhook URL.
+    //    NOTE: The sync event endpoint is intentionally NOT used as a fallback —
+    //    it accepts any validly-signed envelope and returns `accepted: true`, but
+    //    silently drops ChatMessage events (ChatMessage is not in shared_entity_types).
+    //    Using it as a fallback produces a false-positive `delivered: true`.
     const cfg = await getTenantConfig(base44);
     const syncEndpoint = cfg?.arriv_one_sync_endpoint || "";
     // Derive chat receiver URL: replace receiveEstateMediaSyncEvent with receiveEstateMediaChatMessage
@@ -125,11 +128,11 @@ export default async function (req) {
       "receiveEstateMediaChatMessage"
     );
     const chatWebhookUrl = secrets.get("ARRIV_ONE_CHAT_WEBHOOK_URL");
-    // Priority: dedicated chat receiver > configured chat webhook > sync endpoint
+    // Priority: dedicated chat receiver > configured chat webhook.
+    // Sync endpoint excluded — it cannot process chat messages.
     const endpointsToTry = [
       derivedChatEndpoint,
       chatWebhookUrl,
-      syncEndpoint,
     ].filter(Boolean);
     if (endpointsToTry.length === 0) {
       return Response.json({
