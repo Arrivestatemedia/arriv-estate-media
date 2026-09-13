@@ -4,7 +4,7 @@ import { useSalesDashboardData } from "@/hooks/useSalesDashboardData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar, SendHorizontal } from "lucide-react";
+import { Search, Send, Loader2, Inbox, PenLine, ChevronDown, ChevronUp, Clock, Trash2, Calendar, SendHorizontal, Mail } from "lucide-react";
 import AiAssistButton from "./AiAssistButton";
 import GmailLikeInbox from "./GmailLikeInbox";
 import { format } from "date-fns";
@@ -103,7 +103,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     }
     const checkInbox = async () => {
       try {
-        const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: emailToUse });
+        const res = await base44.functions.invoke('canonicalCommunicationService', { action: 'thread_list', salesMemberId, contactEmails: [], toEmail: emailToUse });
         const threads = res.data?.threads || [];
         if (lastInboxCountRef.current !== null && threads.length > lastInboxCountRef.current) {
           const newCount = threads.length - lastInboxCountRef.current;
@@ -155,7 +155,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     setLoadingReplies(true);
     try {
       const emailToUse = fromEmail || salesMember?.company_email || salesMember?.email;
-      const res = await base44.functions.invoke('getGmailReplies', { contactEmails: [], toEmail: emailToUse });
+      const res = await base44.functions.invoke('canonicalCommunicationService', { action: 'thread_list', salesMemberId, contactEmails: [], toEmail: emailToUse });
       setReplies(res.data?.threads || []);
     } catch (e) {
       console.error(e);
@@ -235,7 +235,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
     setSending(true);
     try {
       const emailToUse = fromEmail || salesMember?.company_email || salesMember?.email;
-      await base44.functions.invoke('sendEmailViaGmail', {
+      await base44.functions.invoke('sendHubEmail', {
         ...formData,
         cc: ccRecipients.join(", ") || undefined,
         bcc: bccRecipients.join(", ") || undefined,
@@ -322,17 +322,10 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
       {/* COMPOSE */}
       {tab === "compose" && (
         <div className="space-y-4">
-          {fromOptions.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#1A1A1A' }}>From</label>
-              <div className="flex flex-col gap-2">
-                {fromOptions.map(opt => (
-                  <label key={opt.value} className="flex items-center gap-3 cursor-pointer p-2 rounded-lg border transition" style={{ borderColor: fromEmail === opt.value ? '#B8956A' : 'rgba(184,149,106,0.2)', backgroundColor: fromEmail === opt.value ? 'rgba(184,149,106,0.08)' : 'transparent' }}>
-                    <input type="radio" name="from" value={opt.value} checked={fromEmail === opt.value} onChange={() => setFromEmail(opt.value)} className="accent-[#B8956A]" />
-                    <span className="text-sm" style={{ color: '#1A1A1A' }}>{opt.label}</span>
-                  </label>
-                ))}
-              </div>
+          {fromEmail && (
+            <div className="flex items-center gap-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.2)' }}>
+              <Mail className="w-4 h-4 shrink-0" style={{ color: '#B8956A' }} />
+              <span className="text-sm font-medium" style={{ color: '#1A1A1A' }}>Sending from: {fromEmail}</span>
             </div>
           )}
 

@@ -51,6 +51,7 @@ import JobDetail from './pages/JobDetail';
 import CareersHub from './pages/CareersHub';
 import PublicJobPage from './pages/PublicJobPage';
 import PublicJobApplication from './pages/PublicJobApplication';
+import SalesRepMicrosoftAuthCallback from './pages/SalesRepMicrosoftAuthCallback';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -442,6 +443,7 @@ const AuthenticatedApp = () => {
         path="/careers/:jobId"
         element={<PublicJobPage />}
       />
+      <Route path="/SalesRepMicrosoftAuthCallback" element={<SalesRepMicrosoftAuthCallback />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </ErrorBoundary>

@@ -44,9 +44,20 @@ Deno.serve(async (req) => {
     // Store the access token and refresh token for this sales rep
     const base44 = createClientFromRequest(req);
     await base44.asServiceRole.entities.SalesTeamMember.update(memberId, {
+      email_connection_type: 'gmail_oauth',
       company_email: profile.emailAddress,
       gmail_access_token: tokenData.access_token,
-      gmail_refresh_token: tokenData.refresh_token || null
+      gmail_refresh_token: tokenData.refresh_token || null,
+      gmail_token_expires_at: new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString(),
+      // Clear Microsoft/SMTP fields
+      microsoft_access_token: null,
+      microsoft_refresh_token: null,
+      microsoft_token_expires_at: null,
+      microsoft_email: null,
+      smtp_host: null,
+      smtp_port: null,
+      smtp_username: null,
+      smtp_password_encrypted: null,
     });
     
     return Response.json({ success: true, email: profile.emailAddress });

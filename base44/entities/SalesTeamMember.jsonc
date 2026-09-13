@@ -10,6 +10,63 @@
       "type": "string",
       "description": "Company email address to send emails from"
     },
+    "email_connection_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "gmail_oauth",
+        "microsoft_oauth",
+        "smtp"
+      ],
+      "default": "none",
+      "description": "Per-rep email connection type for the Email Hub. Admin-provisioned via the team member editor."
+    },
+    "gmail_access_token": {
+      "type": "string",
+      "description": "Per-rep Gmail OAuth access token"
+    },
+    "gmail_refresh_token": {
+      "type": "string",
+      "description": "Per-rep Gmail OAuth refresh token"
+    },
+    "gmail_token_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the per-rep Gmail access token expires"
+    },
+    "microsoft_access_token": {
+      "type": "string",
+      "description": "Per-rep Microsoft Graph OAuth access token"
+    },
+    "microsoft_refresh_token": {
+      "type": "string",
+      "description": "Per-rep Microsoft Graph OAuth refresh token"
+    },
+    "microsoft_token_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the per-rep Microsoft access token expires"
+    },
+    "microsoft_email": {
+      "type": "string",
+      "description": "Email address from the connected Microsoft 365 account"
+    },
+    "smtp_host": {
+      "type": "string",
+      "description": "SMTP server host (stored for reference; sending uses Brevo relay with rep's email as From)"
+    },
+    "smtp_port": {
+      "type": "integer",
+      "description": "SMTP server port"
+    },
+    "smtp_username": {
+      "type": "string",
+      "description": "SMTP username \u2014 used as the From address for Brevo relay"
+    },
+    "smtp_password_encrypted": {
+      "type": "string",
+      "description": "AES-GCM encrypted SMTP password (not used for direct SMTP; sandbox blocks TCP)"
+    },
     "full_name": {
       "type": "string",
       "description": "Full name of sales team member"

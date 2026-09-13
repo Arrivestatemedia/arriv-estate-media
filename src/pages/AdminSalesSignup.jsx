@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, CheckCircle, Pencil, Eye, EyeOff, Mail } from "lucide-react";
 import PoweredByFooter from "@/components/PoweredByFooter";
+import RepEmailConnectionControl from "@/components/admin/RepEmailConnectionControl";
 
 export default function AdminSalesSignup() {
   const [user, setUser] = useState(null);
@@ -321,8 +322,8 @@ export default function AdminSalesSignup() {
               <Input value={editData.phone_number || ""} onChange={(e) => setEditData({...editData, phone_number: e.target.value})} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Company Email (Send As)</label>
-              <Input type="email" placeholder="john@arriv.com" value={editData.company_email || ""} onChange={(e) => setEditData({...editData, company_email: e.target.value})} />
+              <label className="block text-sm font-medium mb-2">Email Hub Connection</label>
+              <RepEmailConnectionControl member={editingMember} onUpdated={() => queryClient.invalidateQueries({ queryKey: ['salesTeam'] })} />
             </div>
 
             <div>
