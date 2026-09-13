@@ -8,8 +8,6 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const { cross_app_channel_id, user_email } = body;
@@ -18,8 +16,17 @@ export default async function (req) {
       return Response.json({ error: "Missing cross_app_channel_id" }, { status: 400 });
     }
 
-    // Determine the caller's email — from Base44 auth or the frontend param
-    const callerEmail = (user.email || user_email || "").toLowerCase();
+    // Determine the caller's email — try Base44 auth first, fall back to the
+    // frontend param. Sales reps use custom auth (salesTeamLogin) and don't
+    // have a Base44 platform session, so base44.auth.me() will throw for them.
+    let authEmail = "";
+    try {
+      const user = await base44.auth.me();
+      authEmail = user?.email || "";
+    } catch {
+      // Not logged in via Base44 platform — use the frontend-provided email
+    }
+    const callerEmail = (authEmail || user_email || "").toLowerCase();
     if (!callerEmail) {
       return Response.json({ error: "Could not determine caller email" }, { status: 400 });
     }
