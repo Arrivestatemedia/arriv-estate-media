@@ -61,6 +61,23 @@
     "error_message": {
       "type": "string",
       "description": "Error details if message failed"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "system",
+        "email_hub"
+      ],
+      "default": "system",
+      "description": "Origin of the message. 'email_hub' = manually sent from the Email Hub by a sales rep. 'system' = automated/system-generated (reminders, invoices, notifications, etc.)."
+    },
+    "sales_member_email": {
+      "type": "string",
+      "description": "Email address of the sales rep who sent this message (set for email_hub messages). Used to filter the Outbox per rep."
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the rep who sent this message (set for email_hub messages)."
     }
   },
   "required": [

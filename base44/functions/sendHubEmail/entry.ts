@@ -118,4 +118,20 @@ async function logActivityAndHubSpot(base44, { salesMemberId, to, subject, body,
       });
     } catch (_) {}
   }
+
+  // Log to MessageLog with source: "email_hub" so the Email Hub Outbox
+  // can show ONLY emails sent from the Email Hub (not system-generated emails).
+  try {
+    await base44.asServiceRole.entities.MessageLog.create({
+      message_type: 'email',
+      recipient_type: 'client',
+      recipient_email: to,
+      message_content: body,
+      subject: subject,
+      status: 'success',
+      source: 'email_hub',
+      sales_member_email: fromEmail || null,
+      sales_member_id: salesMemberId || null,
+    });
+  } catch (_) {}
 }

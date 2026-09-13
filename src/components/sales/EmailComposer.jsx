@@ -170,6 +170,7 @@ export default function EmailComposer({ salesMemberId, isAdmin = false }) {
       const emailToFilter = fromEmail || salesMember?.company_email || salesMember?.email;
       const emails = await base44.entities.MessageLog.filter({ 
         message_type: "email", 
+        source: "email_hub",
         sales_member_email: emailToFilter
       });
       setSentEmails(emails.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
