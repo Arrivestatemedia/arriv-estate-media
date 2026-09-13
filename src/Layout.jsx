@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
-import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors, Loader2 } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, LayoutDashboard, Settings, ArrowLeft, Key, FileText, CalendarClock, Send, ShieldCheck, Shield, Wallet, Landmark, TrendingUp, Award, Film, Brain, CalendarOff, Heart, MapPin, Gift, Tag, CheckCircle2, Video, Users, Scissors, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleMapsLoader from "@/components/GoogleMapsLoader";
 import TwilioSdkLoader from "@/components/TwilioSdkLoader";
@@ -171,6 +171,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },
             { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark },
             { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
+            { label: "Email Settings", page: "AdminEmailSettings", icon: Mail },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
             { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
             { label: "Editing Queue", page: "EditingQueuePage", icon: Scissors },

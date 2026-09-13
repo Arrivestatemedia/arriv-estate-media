@@ -19,6 +19,7 @@ import AdminBackgroundChecks from './pages/AdminBackgroundChecks';
 import ApplicationPreview from './pages/ApplicationPreview';
 import OrientationAddress from './pages/OrientationAddress';
 import AdminPayrollSettings from './pages/AdminPayrollSettings';
+import AdminEmailSettings from './pages/AdminEmailSettings';
 import AdminPayrollDashboard from './pages/AdminPayrollDashboard';
 import AdminCommissions from './pages/AdminCommissions';
 import AdminSalesOrientation from './pages/AdminSalesOrientation';
@@ -200,6 +201,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="AdminPayrollSettings">
             <AdminPayrollSettings />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/AdminEmailSettings"
+        element={
+          <LayoutWrapper currentPageName="AdminEmailSettings">
+            <AdminEmailSettings />
           </LayoutWrapper>
         }
       />

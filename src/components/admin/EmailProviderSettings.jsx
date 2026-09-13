@@ -36,9 +36,10 @@ export default function EmailProviderSettings() {
     setSaving(true);
     try {
       const res = await base44.functions.invoke("manageEmailProvider", { action: "enable_inbound" });
-      setConfig(res?.data);
-      if (res?.data?.inbound_webhook_token) {
-        setInboundUrl(`${window.location.origin}/functions/smtpInboundWebhook?token=${res.data.inbound_webhook_token}`);
+      const d = res?.data || res;
+      setConfig(d);
+      if (d?.inbound_webhook_token) {
+        setInboundUrl(`${window.location.origin}/functions/smtpInboundWebhook?token=${d.inbound_webhook_token}`);
       }
       toast.success("Inbound email forwarding enabled");
     } catch (e) {
@@ -52,7 +53,8 @@ export default function EmailProviderSettings() {
     setSaving(true);
     try {
       const res = await base44.functions.invoke("manageEmailProvider", { action: "disable_inbound" });
-      setConfig(res?.data);
+      const d = res?.data || res;
+      setConfig(d);
       setInboundUrl("");
       toast.success("Inbound email forwarding disabled");
     } catch (e) {
