@@ -258,8 +258,12 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           setMessages(msgs);
       } else if (chatType === "cross_app_dm") {
         const channelId = generateCrossAppChannelId(currentUserEmail, chatId);
-        const msgs = await base44.entities.ChatMessage.filter({ cross_app_channel_id: channelId, parent_message_id: null }, "timestamp", 50);
-        setMessages(msgs);
+        // ChatMessage RLS is admin-only — use backend function for non-admin reps
+        const res = await base44.functions.invoke('loadCrossAppMessages', {
+          cross_app_channel_id: channelId,
+          user_email: currentUserEmail,
+        });
+        setMessages(res?.data?.messages || []);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
           { $or: [
@@ -283,10 +287,14 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             const recipientEmail = transferTargets.find(m => m.id === chatId)?.email;
             if (recipientEmail) {
               const crossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
-              crossAppMsgs = await base44.entities.ChatMessage.filter(
-                { cross_app_channel_id: crossAppChannelId, parent_message_id: null, origin_app: "arriv_one" },
-                "timestamp", 50
-              );
+              // ChatMessage RLS is admin-only, so non-admin reps can't read
+              // cross-app messages via the SDK. Use a backend function that
+              // validates participation and loads via asServiceRole.
+              const res = await base44.functions.invoke('loadCrossAppMessages', {
+                cross_app_channel_id: crossAppChannelId,
+                user_email: currentUserEmail,
+              });
+              crossAppMsgs = res?.data?.messages || [];
             }
           } catch (e) {
             console.error('Cross-app message load error:', e);
@@ -313,7 +321,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
 
     // Subscribe to real-time updates
     const crossAppChannelId = chatType === "cross_app_dm" ? generateCrossAppChannelId(currentUserEmail, chatId) : null;
-    let unsubscribeCrossApp = null;
     let unsubscribe = () => {};
     try {
       unsubscribe = (chatType === "channel" || chatType === "cross_app_dm")
@@ -415,42 +422,48 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       console.error('[ChatWindow] message subscribe failed:', e);
     }
 
-    // For "dm" chatType, also subscribe to cross-app ChatMessage events so
-    // inbound Arriv One messages appear in the unified local DM conversation.
+    // For "dm" chatType, poll for cross-app ChatMessage updates so inbound
+    // Arriv One messages appear in the unified local DM conversation.
+    // ChatMessage RLS is admin-only, so we can't use the SDK subscription for
+    // non-admin reps. Instead, poll the loadCrossAppMessages backend function
+    // (which bypasses RLS with participation verification) every 5 seconds.
+    let crossAppPollInterval = null;
     if (chatType === "dm" && currentUserEmail) {
-      (async () => {
-        try {
-          // Use transferTargets (bypasses RLS) instead of querying SalesTeamMember
-          // directly, which only returns the current user for non-admin reps.
-          const recipientEmail = transferTargets.find(m => m.id === chatId)?.email;
-          if (!recipientEmail) return;
-          const dmCrossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
-          unsubscribeCrossApp = base44.entities.ChatMessage.subscribe((event) => {
-            if (event.data?.cross_app_channel_id !== dmCrossAppChannelId) return;
-            if (event.data?.parent_message_id) return;
-            if (event.data?.origin_app !== "arriv_one") return;
-            if (event.type === "create") {
-              setMessages(prev => {
-                const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-') || m.sender_id !== currentUserId || m.content !== event.data.content);
-                return [...withoutOptimistic, event.data].sort((a, b) =>
-                  new Date(a.timestamp || a.created_date) - new Date(b.timestamp || b.created_date)
-                );
-              });
-              if (event.data?.sender_id !== currentUserId) {
+      const recipientEmail = transferTargets.find(m => m.id === chatId)?.email;
+      if (recipientEmail) {
+        const dmCrossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
+        crossAppPollInterval = setInterval(async () => {
+          try {
+            const res = await base44.functions.invoke('loadCrossAppMessages', {
+              cross_app_channel_id: dmCrossAppChannelId,
+              user_email: currentUserEmail,
+            });
+            const crossAppMsgs = res?.data?.messages || [];
+            setMessages(prev => {
+              // Remove old cross-app messages, keep DirectMessage records
+              const dmMsgs = prev.filter(m => !m.cross_app_channel_id);
+              const knownIds = new Set(prev.map(m => m.id));
+              // Play sound for genuinely new messages
+              const newMsgs = crossAppMsgs.filter(m => !knownIds.has(m.id));
+              if (newMsgs.length > 0) {
                 playDing();
-                toast.message(event.data?.sender_name, { description: event.data?.content });
+                const latest = newMsgs[newMsgs.length - 1];
+                toast.message(latest.sender_name, { description: latest.content });
               }
-            }
-          });
-        } catch (e) {
-          console.error('Cross-app subscription error:', e);
-        }
-      })();
+              return [...dmMsgs, ...crossAppMsgs].sort((a, b) =>
+                new Date(a.timestamp || a.created_date) - new Date(b.timestamp || b.created_date)
+              );
+            });
+          } catch (e) {
+            // Silent — polling will retry
+          }
+        }, 5000);
+      }
     }
 
     return () => {
       if (unsubscribe) unsubscribe();
-      if (unsubscribeCrossApp) unsubscribeCrossApp();
+      if (crossAppPollInterval) clearInterval(crossAppPollInterval);
     };
   }, [chatId, chatType, currentUserId, currentUserEmail, transferTargets]);
 
