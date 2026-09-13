@@ -471,10 +471,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               const newMsgs = crossAppMsgs.filter(m => !existingIds.has(m.id));
               if (newMsgs.length > 0) {
                 try { playDing(); } catch (e) {}
-                try {
-                  const latest = newMsgs[newMsgs.length - 1];
-                  toast.message(latest.sender_name, { description: latest.content });
-                } catch (e) {}
               }
               // For "dm": replace cross-app messages with fresh set (removes stale,
               // adds new), keep DirectMessages. For "cross_app_dm": same merge approach.
