@@ -434,8 +434,17 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     // non-admin reps. Instead, poll the loadCrossAppMessages backend function
     // (which bypasses RLS with participation verification) every 5 seconds.
     let crossAppPollInterval = null;
-    if (chatType === "dm" && currentUserEmail) {
-      const recipientEmail = transferTargets.find(m => m.id === chatId)?.email;
+    // Poll for both "dm" (local team member) and "cross_app_dm" (external Arriv
+    // One contact) chat types. The ChatMessage subscription is admin-only due
+    // to RLS, so non-admin reps can't receive real-time updates. Polling the
+    // loadCrossAppMessages backend function (which bypasses RLS with service
+    // role + participation verification) is the reliable path for both types.
+    if ((chatType === "dm" || chatType === "cross_app_dm") && currentUserEmail) {
+      // For "dm", chatId is the recipient's SalesTeamMember ID — look up email.
+      // For "cross_app_dm", chatId IS the recipient's email already.
+      const recipientEmail = chatType === "cross_app_dm"
+        ? chatId
+        : transferTargets.find(m => m.id === chatId)?.email;
       if (recipientEmail) {
         const dmCrossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
         crossAppPollInterval = setInterval(async () => {
@@ -444,23 +453,29 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               cross_app_channel_id: dmCrossAppChannelId,
               user_email: currentUserEmail,
             });
-            // Only show messages from OTHER people — the user's own sent
-            // messages are already in the DM list. Sender-based filter is
-            // more reliable than origin_app (which may be missing or default
-            // to "estate_media" even for some inbound messages).
-            const crossAppMsgs = ((res?.data || res)?.messages || []).filter(m =>
-              (m.sender_email || "").toLowerCase() !== (currentUserEmail || "").toLowerCase()
-            );
+            // For "dm": only show messages from OTHER people — the user's own
+            // sent messages are already shown as DirectMessages. Sender-based
+            // filter is more reliable than origin_app.
+            // For "cross_app_dm": show ALL messages — there are no DirectMessages
+            // to duplicate with, so we need both sent and received.
+            const allMessages = ((res?.data || res)?.messages || []);
+            const crossAppMsgs = chatType === "cross_app_dm"
+              ? allMessages
+              : allMessages.filter(m =>
+                  (m.sender_email || "").toLowerCase() !== (currentUserEmail || "").toLowerCase()
+                );
             setMessages(prev => {
               // Remove old cross-app messages, keep DirectMessage records
               const dmMsgs = prev.filter(m => !m.cross_app_channel_id);
               const knownIds = new Set(prev.map(m => m.id));
-              // Play sound for genuinely new messages
+              // Play sound for genuinely new messages (never let side effects block the update)
               const newMsgs = crossAppMsgs.filter(m => !knownIds.has(m.id));
               if (newMsgs.length > 0) {
-                playDing();
-                const latest = newMsgs[newMsgs.length - 1];
-                toast.message(latest.sender_name, { description: latest.content });
+                try { playDing(); } catch (e) {}
+                try {
+                  const latest = newMsgs[newMsgs.length - 1];
+                  toast.message(latest.sender_name, { description: latest.content });
+                } catch (e) {}
               }
               return [...dmMsgs, ...crossAppMsgs].sort((a, b) =>
                 new Date(a.timestamp || a.created_date) - new Date(b.timestamp || b.created_date)
@@ -871,7 +886,8 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           messages.map((msg) => {
             const profileUrl = memberProfiles[msg.sender_id];
             const initials = (msg.sender_name || "?")[0].toUpperCase();
-            const isOutgoing = msg.sender_id === currentUserId;
+            const isOutgoing = msg.sender_id === currentUserId ||
+              (msg.sender_email || "").toLowerCase() === (currentUserEmail || "").toLowerCase();
             return (
               <div key={msg.id} className={`flex gap-2.5 ${isOutgoing ? 'flex-row-reverse' : ''}`}>
                 {!isOutgoing && (
