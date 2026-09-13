@@ -42,10 +42,13 @@ export default async function (req) {
       return Response.json({ error: "Not a participant in this channel" }, { status: 403 });
     }
 
-    // Load messages via service role (bypasses admin-only RLS on ChatMessage)
+    // Load messages via service role (bypasses admin-only RLS on ChatMessage).
+    // Sort DESCENDING (newest first) so the most recent messages are always
+    // returned. With 50+ messages in a channel, ascending sort would cut off
+    // the newest messages and they'd never appear in the frontend.
     const messages = await base44.asServiceRole.entities.ChatMessage.filter(
       { cross_app_channel_id, parent_message_id: null },
-      "timestamp",
+      "-timestamp",
       50
     );
 
