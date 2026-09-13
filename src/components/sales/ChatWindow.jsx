@@ -294,7 +294,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 cross_app_channel_id: crossAppChannelId,
                 user_email: currentUserEmail,
               });
-              crossAppMsgs = res?.data?.messages || [];
+              // Only show INBOUND (arriv_one) messages from the cross-app store.
+              // The user's own sent messages are already shown as DirectMessages;
+              // including origin_app="estate_media" ChatMessages here would duplicate them.
+              crossAppMsgs = (res?.data?.messages || []).filter(m => m.origin_app === "arriv_one");
             }
           } catch (e) {
             console.error('Cross-app message load error:', e);
@@ -438,7 +441,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               cross_app_channel_id: dmCrossAppChannelId,
               user_email: currentUserEmail,
             });
-            const crossAppMsgs = res?.data?.messages || [];
+            // Only poll for INBOUND (arriv_one) messages — the user's own
+            // sent messages are already in the DM list. Including
+            // origin_app="estate_media" here would duplicate every sent message.
+            const crossAppMsgs = (res?.data?.messages || []).filter(m => m.origin_app === "arriv_one");
             setMessages(prev => {
               // Remove old cross-app messages, keep DirectMessage records
               const dmMsgs = prev.filter(m => !m.cross_app_channel_id);
