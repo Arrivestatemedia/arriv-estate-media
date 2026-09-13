@@ -294,12 +294,12 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 cross_app_channel_id: crossAppChannelId,
                 user_email: currentUserEmail,
               });
-              // Only show messages from OTHER people — the user's own sent
-              // messages are already shown as DirectMessages. Filtering by
-              // sender_email is more reliable than origin_app (which can be
-              // missing or default to "estate_media" even for inbound messages).
-              crossAppMsgs = ((res?.data || res)?.messages || []).filter(m =>
-                (m.sender_email || "").toLowerCase() !== (currentUserEmail || "").toLowerCase()
+              // Show messages from Arriv One (origin_app !== "estate_media").
+              // Messages sent FROM Estate Media are duplicated as DirectMessages,
+              // so exclude them. Messages from Arriv One — including the current
+              // user's own messages sent via Arriv One — must all be shown.
+              crossAppMsgs = ((res?.data || res)?.messages || []).filter(
+                m => m.origin_app !== "estate_media"
               );
             }
           } catch (e) {
@@ -453,23 +453,22 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               cross_app_channel_id: dmCrossAppChannelId,
               user_email: currentUserEmail,
             });
-            // For "dm": only show messages from OTHER people — the user's own
-            // sent messages are already shown as DirectMessages. Sender-based
-            // filter is more reliable than origin_app.
+            // For "dm": show only messages from Arriv One (origin_app !== "estate_media").
+            // Messages sent FROM Estate Media (origin_app = "estate_media") are
+            // duplicated as DirectMessages, so excluding them prevents duplicates.
+            // Messages from Arriv One — including the current user's own messages
+            // sent via Arriv One — must ALL be shown, regardless of sender.
             // For "cross_app_dm": show ALL messages — there are no DirectMessages
             // to duplicate with, so we need both sent and received.
             const allMessages = ((res?.data || res)?.messages || []);
             const crossAppMsgs = chatType === "cross_app_dm"
               ? allMessages
-              : allMessages.filter(m =>
-                  (m.sender_email || "").toLowerCase() !== (currentUserEmail || "").toLowerCase()
-                );
+              : allMessages.filter(m => m.origin_app !== "estate_media");
             setMessages(prev => {
-              // Remove old cross-app messages, keep DirectMessage records
-              const dmMsgs = prev.filter(m => !m.cross_app_channel_id);
-              const knownIds = new Set(prev.map(m => m.id));
-              // Play sound for genuinely new messages (never let side effects block the update)
-              const newMsgs = crossAppMsgs.filter(m => !knownIds.has(m.id));
+              // Merge by ID: keep existing messages, add new cross-app messages.
+              // This never removes messages, preventing transient display gaps.
+              const existingIds = new Set(prev.map(m => m.id));
+              const newMsgs = crossAppMsgs.filter(m => !existingIds.has(m.id));
               if (newMsgs.length > 0) {
                 try { playDing(); } catch (e) {}
                 try {
@@ -477,6 +476,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                   toast.message(latest.sender_name, { description: latest.content });
                 } catch (e) {}
               }
+              // For "dm": replace cross-app messages with fresh set (removes stale,
+              // adds new), keep DirectMessages. For "cross_app_dm": same merge approach.
+              const dmMsgs = prev.filter(m => !m.cross_app_channel_id);
               return [...dmMsgs, ...crossAppMsgs].sort((a, b) =>
                 new Date(a.timestamp || a.created_date) - new Date(b.timestamp || b.created_date)
               );
