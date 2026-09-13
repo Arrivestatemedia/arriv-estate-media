@@ -8,10 +8,31 @@ import { useCallStatus } from "@/components/CallStatusContext";
 const DRAG_THRESHOLD = 6;
 const EDGE_PADDING = 8;
 
+// Play a short notification ding (same sound used in ChatWindow)
+const playNotificationDing = () => {
+  try {
+    if (!window.AudioContext && !window.webkitAudioContext) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch (e) { /* audio not available */ }
+};
+
 export default function FloatingChatBubble({ currentUserId, currentUserName, onInitiateTransfer, onVideoCallStarted, isVideoCallActive, onOpenChat, disabled, isInLiveCall, activeVideoCall, isVideoWindowOpen }) {
   const { isInLiveCall: contextIsInLiveCall, remoteCallLive } = useCallStatus();
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [crossAppUnread, setCrossAppUnread] = useState(0);
   const [localRemoteCallLive, setLocalRemoteCallLive] = useState(localStorage.getItem('remoteCallLive') === 'true');
 
   // ── Drag state ──
@@ -77,7 +98,66 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const displayCount = open ? 0 : unreadCount;
+  // ── Cross-app message notification polling ──
+  // ChatMessage RLS is admin-only, so we can't use the SDK subscription for
+  // non-admin reps. Poll the backend function (bypasses RLS) every 10 seconds
+  // for new cross-app messages across ALL channels the user participates in.
+  // Tracks the last-seen timestamp in localStorage so only genuinely new
+  // messages increment the badge and trigger the sound.
+  useEffect(() => {
+    const sessionEmail = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email');
+    if (!sessionEmail) return;
+
+    const storageKey = 'cross_app_last_seen_ts';
+    const getSinceTs = () => localStorage.getItem(storageKey) || sessionStorage.getItem(storageKey) || null;
+
+    const poll = async () => {
+      try {
+        const res = await base44.functions.invoke('getCrossAppMessageNotifications', {
+          user_email: sessionEmail,
+          since_timestamp: getSinceTs(),
+        });
+        const data = res?.data || res;
+        const newCount = data?.count || 0;
+        if (newCount > 0) {
+          setCrossAppUnread(newCount);
+          playNotificationDing();
+          // Advance the watermark so already-notified messages don't re-trigger
+          const latestTs = data?.latest_message?.timestamp || data?.latest_message?.created_date;
+          if (latestTs) {
+            const store = localStorage.getItem('sales_member_id') ? localStorage : sessionStorage;
+            store.setItem(storageKey, latestTs);
+          }
+        }
+      } catch (e) {
+        // Silent — polling will retry
+      }
+    };
+
+    // Initialize watermark to now on first ever load so we don't badge
+    // every historical message as unread.
+    if (!getSinceTs()) {
+      const now = new Date().toISOString();
+      const store = localStorage.getItem('sales_member_id') ? localStorage : sessionStorage;
+      store.setItem(storageKey, now);
+    }
+
+    poll();
+    const interval = setInterval(poll, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // When chat panel opens, reset cross-app badge and advance watermark to now
+  useEffect(() => {
+    if (open) {
+      setCrossAppUnread(0);
+      const storageKey = 'cross_app_last_seen_ts';
+      const store = localStorage.getItem('sales_member_id') ? localStorage : sessionStorage;
+      store.setItem(storageKey, new Date().toISOString());
+    }
+  }, [open]);
+
+  const displayCount = open ? 0 : (unreadCount + crossAppUnread);
 
   // ── Drag handlers ──
   const clampPos = useCallback((x, y) => {
