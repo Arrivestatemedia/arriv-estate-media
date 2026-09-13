@@ -263,7 +263,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
           cross_app_channel_id: channelId,
           user_email: currentUserEmail,
         });
-        setMessages(res?.data?.messages || []);
+        setMessages((res?.data || res)?.messages || []);
       } else if (chatType === "dm") {
         const msgs = await base44.entities.DirectMessage.filter(
           { $or: [
@@ -298,7 +298,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
               // messages are already shown as DirectMessages. Filtering by
               // sender_email is more reliable than origin_app (which can be
               // missing or default to "estate_media" even for inbound messages).
-              crossAppMsgs = (res?.data?.messages || []).filter(m =>
+              crossAppMsgs = ((res?.data || res)?.messages || []).filter(m =>
                 (m.sender_email || "").toLowerCase() !== (currentUserEmail || "").toLowerCase()
               );
             }
@@ -448,7 +448,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             // messages are already in the DM list. Sender-based filter is
             // more reliable than origin_app (which may be missing or default
             // to "estate_media" even for some inbound messages).
-            const crossAppMsgs = (res?.data?.messages || []).filter(m =>
+            const crossAppMsgs = ((res?.data || res)?.messages || []).filter(m =>
               (m.sender_email || "").toLowerCase() !== (currentUserEmail || "").toLowerCase()
             );
             setMessages(prev => {
