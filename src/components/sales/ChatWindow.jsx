@@ -231,10 +231,21 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     return () => window.removeEventListener('openContactSearch', handleOpenContact);
   }, []);
 
+  // Load all team members via backend function to bypass RLS — sales reps
+  // can only read their own SalesTeamMember record via the SDK, so a direct
+  // filter returns just themselves. Without this, cross-app DM propagation
+  // and inbound Arriv One message loading both fail for non-admin users.
   useEffect(() => {
-    base44.entities.SalesTeamMember.filter({ is_active: true }).then(members => {
-      setTransferTargets(members || []);
-    }).catch(() => {});
+    base44.functions.invoke('listAllSalesTeamMembers').then(res => {
+      const data = res?.data || res;
+      const members = data?.members || [];
+      setTransferTargets(members.filter(m => m.is_active !== false) || []);
+    }).catch(() => {
+      // Fallback to direct query (works for admins)
+      base44.entities.SalesTeamMember.filter({ is_active: true }).then(members => {
+        setTransferTargets(members || []);
+      }).catch(() => {});
+    });
   }, []);
 
   useEffect(() => {
@@ -266,8 +277,10 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         let crossAppMsgs = [];
         if (currentUserEmail) {
           try {
-            const recipientMembers = await base44.entities.SalesTeamMember.filter({ id: chatId });
-            const recipientEmail = recipientMembers?.[0]?.email;
+            // Use transferTargets (loaded via listAllSalesTeamMembers to bypass
+            // RLS) instead of querying SalesTeamMember directly, which only
+            // returns the current user's own record for non-admin reps.
+            const recipientEmail = transferTargets.find(m => m.id === chatId)?.email;
             if (recipientEmail) {
               const crossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
               crossAppMsgs = await base44.entities.ChatMessage.filter(
@@ -407,8 +420,9 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     if (chatType === "dm" && currentUserEmail) {
       (async () => {
         try {
-          const members = await base44.entities.SalesTeamMember.filter({ id: chatId });
-          const recipientEmail = members?.[0]?.email;
+          // Use transferTargets (bypasses RLS) instead of querying SalesTeamMember
+          // directly, which only returns the current user for non-admin reps.
+          const recipientEmail = transferTargets.find(m => m.id === chatId)?.email;
           if (!recipientEmail) return;
           const dmCrossAppChannelId = generateCrossAppChannelId(currentUserEmail, recipientEmail);
           unsubscribeCrossApp = base44.entities.ChatMessage.subscribe((event) => {
@@ -438,7 +452,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
       if (unsubscribe) unsubscribe();
       if (unsubscribeCrossApp) unsubscribeCrossApp();
     };
-  }, [chatId, chatType, currentUserId, currentUserEmail]);
+  }, [chatId, chatType, currentUserId, currentUserEmail, transferTargets]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
