@@ -1,11 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { resolveRepEmailConnection, getInboxViaConnection } from "../../shared/repEmailConnection.ts";
+import { resolveRepEmailConnection, getInboxViaConnection, getInboundEmail, markInboundEmailRead } from "../../shared/repEmailConnection.ts";
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { action, salesMemberId, contactEmails, toEmail } = body;
+    const { action, salesMemberId, contactEmails, toEmail, messageId } = body;
 
     if (!salesMemberId) return Response.json({ error: 'salesMemberId is required' }, { status: 400 });
 
@@ -66,6 +66,36 @@ Deno.serve(async (req) => {
       // Use per-rep connection
       const result = await getInboxViaConnection(base44, connection, { toEmail, contactEmails });
       return Response.json(result);
+    }
+
+    // --- Message get (open individual email) ---
+    if (action === 'message_get') {
+      if (!messageId) return Response.json({ error: 'messageId is required' }, { status: 400 });
+
+      // SMTP connections: read from InboundEmail entity
+      if (connection.type === 'smtp') {
+        const email = await getInboundEmail(base44, messageId);
+        if (!email) return Response.json({ error: 'Email not found' }, { status: 404 });
+        await markInboundEmailRead(base44, messageId);
+        return Response.json({
+          message: {
+            id: email.id,
+            subject: email.subject || '(no subject)',
+            from_email: email.from_email,
+            from_name: email.from_name,
+            to_email: email.to_email,
+            date: email.received_at,
+            body_text: email.body_text || '',
+            body_html: email.body_html || '',
+            is_read: true,
+          },
+          provider: 'smtp_inbound',
+        });
+      }
+
+      // Gmail/Microsoft: fetch full message via provider API
+      // (Future: implement full message fetch for OAuth providers)
+      return Response.json({ error: 'message_get not yet supported for this connection type' }, { status: 400 });
     }
 
     return Response.json({ error: 'Unknown action' }, { status: 400 });

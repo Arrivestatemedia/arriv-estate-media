@@ -1,0 +1,112 @@
+{
+  "name": "InboundEmail",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant isolation key",
+      "default": "tnt_estate_media"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "The user's email address that received this email (lowercase). Used to route to the correct inbox."
+    },
+    "from_email": {
+      "type": "string",
+      "description": "Sender email address"
+    },
+    "from_name": {
+      "type": "string",
+      "description": "Sender display name"
+    },
+    "to_email": {
+      "type": "string",
+      "description": "Full To header value"
+    },
+    "cc_email": {
+      "type": "string",
+      "description": "Full Cc header value, if present"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject"
+    },
+    "body_text": {
+      "type": "string",
+      "description": "Plain text body of the email"
+    },
+    "body_html": {
+      "type": "string",
+      "description": "HTML body of the email"
+    },
+    "message_id": {
+      "type": "string",
+      "description": "RFC 822 Message-ID header, used for deduplication"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the email was received (from Date header or webhook receipt time)"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user has opened this email"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "raw_forward",
+        "mailgun",
+        "sendgrid",
+        "postmark",
+        "cloudflare",
+        "generic"
+      ],
+      "default": "generic",
+      "description": "Which inbound email service forwarded this email"
+    },
+    "attachments": {
+      "type": "array",
+      "description": "Email attachments (filename + public URL if uploaded)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "tenant_id",
+    "recipient_email",
+    "from_email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

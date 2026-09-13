@@ -220,8 +220,67 @@ export async function getInboxViaConnection(base44, connection: ResolvedEmailCon
   }
 
   if (connection.type === "smtp") {
-    return { threads: [], available: false, reason: "Inbox isn't available for SMTP connections. Check your email client directly." };
+    // SMTP connections read inbox from InboundEmail (populated by smtpInboundWebhook)
+    const emails = await listInboundEmails(base44, connection.member.tenant_id || "tnt_estate_media", connection.emailAddress || "", options?.contactEmails);
+    const threads = emails.map((e: any) => ({
+      id: e.id,
+      from: e.from_name ? `${e.from_name} <${e.from_email}>` : e.from_email,
+      subject: e.subject || "(no subject)",
+      date: e.received_at,
+      snippet: (e.body_text || "").substring(0, 200),
+      messageId: e.id,
+      is_read: e.is_read,
+    }));
+    return { threads, available: true };
   }
 
   return { threads: [], available: false, reason: "Email not connected. Ask your admin to connect an email account." };
+}
+
+// ── Inbound email reading for SMTP connections ──
+// SMTP-connected users read their inbox from the InboundEmail entity, which
+// is populated by the smtpInboundWebhook when the tenant forwards incoming
+// emails to the webhook URL.
+
+export async function listInboundEmails(
+  base44: any,
+  tenantId: string,
+  recipientEmail: string,
+  contactEmails?: string[]
+): Promise<any[]> {
+  if (!recipientEmail) return [];
+  try {
+    const emails = await base44.asServiceRole.entities.InboundEmail.filter(
+      { tenant_id: tenantId, recipient_email: recipientEmail.toLowerCase() },
+      "-received_at",
+      50
+    );
+    if (!emails || emails.length === 0) return [];
+    if (contactEmails && contactEmails.length > 0) {
+      const lower = contactEmails.filter(Boolean).map((e) => e.toLowerCase());
+      return emails.filter((e: any) =>
+        lower.some((ce) => e.from_email?.toLowerCase().includes(ce))
+      );
+    }
+    return emails;
+  } catch {
+    return [];
+  }
+}
+
+export async function getInboundEmail(base44: any, emailId: string): Promise<any | null> {
+  try {
+    const emails = await base44.asServiceRole.entities.InboundEmail.filter({ id: emailId });
+    return (emails && emails.length > 0) ? emails[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function markInboundEmailRead(base44: any, emailId: string): Promise<void> {
+  try {
+    await base44.asServiceRole.entities.InboundEmail.update(emailId, { is_read: true });
+  } catch {
+    // ignore
+  }
 }

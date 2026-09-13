@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Activity, Settings } from "lucide-react";
+import { LayoutDashboard, Activity, Settings, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import AdminDashboardGrid from "@/components/admin/AdminDashboardGrid";
 import ContactReassignmentSettingToggle from "@/components/sales/ContactReassignmentSettingToggle";
+import EmailProviderSettings from "@/components/admin/EmailProviderSettings";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
@@ -363,6 +364,14 @@ export default function AdminHub() {
                 enabled={repReassignmentEnabled}
                 onToggle={setRepReassignmentEnabled}
               />
+            </div>
+            <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(184,149,106,0.25)' }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Mail className="w-5 h-5 shrink-0" style={{ color: '#B8956A' }} />
+                <p className="text-sm font-semibold" style={{ color: '#1A1A1A' }}>Email Provider Settings</p>
+              </div>
+              <p className="text-xs mb-3" style={{ color: 'rgba(26,26,26,0.6)' }}>Configure inbound email forwarding for SMTP-connected reps.</p>
+              <EmailProviderSettings />
             </div>
             <AdminDashboardGrid />
           </TabsContent>

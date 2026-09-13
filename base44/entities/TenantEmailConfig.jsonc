@@ -1,0 +1,50 @@
+{
+  "name": "TenantEmailConfig",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "inbound_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether inbound email forwarding is enabled for this tenant. When true, the tenant can forward incoming emails to the smtpInboundWebhook URL and they'll be stored in InboundEmail for users to read."
+    },
+    "inbound_webhook_token": {
+      "type": "string",
+      "description": "Random token used to authenticate the inbound email webhook. Generated when inbound is enabled. Included in the webhook URL the tenant configures in their email provider."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this config was last updated"
+    }
+  },
+  "required": [
+    "tenant_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
