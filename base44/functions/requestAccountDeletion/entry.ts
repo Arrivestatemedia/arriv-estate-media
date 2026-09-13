@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -57,10 +58,10 @@ ${deletionLink}
 Or paste this token: ${tokenHex}
       `;
     
-    await base44.integrations.Core.SendEmail({
+    await sendBrevoEmail({
       to: adminEmail,
       subject: `Account Deletion Request - ${user.full_name} (${email})`,
-      body: emailBody,
+      textContent: emailBody,
     });
 
     await base44.asServiceRole.entities.MessageLog.create({

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
+import { sendBrevoEmail } from "../../shared/brevoClient.ts";
 
 /**
  * inviteToAsyncInterview
@@ -90,10 +91,10 @@ Deno.serve(async (req) => {
 
     let emailSent = false;
     try {
-      await base44.integrations.Core.SendEmail({
+      await sendBrevoEmail({
         to: app.email,
         subject: `Arriv Estate Media | Complete Your First-Round Interview`,
-        body: html,
+        htmlContent: html,
       });
       emailSent = true;
     } catch (e) {

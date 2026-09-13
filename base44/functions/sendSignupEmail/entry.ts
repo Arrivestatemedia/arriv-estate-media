@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
     try {
@@ -27,10 +28,10 @@ Best regards,
 Arriv Estate Media Team
             `;
         
-        await base44.asServiceRole.integrations.Core.SendEmail({
+        await sendBrevoEmail({
             to: email,
             subject: "Complete Your Arriv Estate Media Account Setup",
-            body: emailBody
+            textContent: emailBody
         });
 
         await base44.asServiceRole.entities.MessageLog.create({

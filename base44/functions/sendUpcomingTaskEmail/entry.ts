@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -44,11 +45,10 @@ Deno.serve(async (req) => {
         .map(a => `• ${a.contact_name || a.company_name || 'Unnamed'} at ${new Date(a.activity_date).toLocaleTimeString()}`)
         .join('\n');
 
-      await base44.asServiceRole.integrations.Core.SendEmail({
+      await sendBrevoEmail({
         to: member.email,
-        from_name: 'Arriv',
         subject: `You have ${todaysActivities.length} task${todaysActivities.length > 1 ? 's' : ''} today`,
-        body: `Hi ${member.full_name},\n\nYou have ${todaysActivities.length} upcoming task${todaysActivities.length > 1 ? 's' : ''} scheduled for today:\n\n${tasksList}\n\nBest regards,\nArriv Team`
+        textContent: `Hi ${member.full_name},\n\nYou have ${todaysActivities.length} upcoming task${todaysActivities.length > 1 ? 's' : ''} scheduled for today:\n\n${tasksList}\n\nBest regards,\nArriv Team`
       });
     }
 

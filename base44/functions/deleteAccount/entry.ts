@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
     try {
@@ -25,10 +26,10 @@ Deno.serve(async (req) => {
         // Send email to all admins
         for (const admin of adminUsers) {
             try {
-                await base44.asServiceRole.integrations.Core.SendEmail({
+                await sendBrevoEmail({
                     to: admin.email,
                     subject: `Account Deletion Request - ${user.full_name}`,
-                    body: `
+                    htmlContent: `
                         <h2>Account Deletion Request</h2>
                         <p><strong>User:</strong> ${user.full_name}</p>
                         <p><strong>Email:</strong> ${user.email}</p>

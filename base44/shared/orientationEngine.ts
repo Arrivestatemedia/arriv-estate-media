@@ -601,13 +601,13 @@ export async function sendDeadlineReminders(base44) {
         });
       } catch (e) { /* ignore */ }
     }
-    // Owner/HR alert via SendEmail (registered admin)
+    // Owner/HR alert via Brevo (registered admin)
     if (adminEmail) {
       try {
-        await base44.integrations.Core.SendEmail({
+        await sendBrevoEmail({
           to: adminEmail,
           subject,
-          body: `<div style="font-family:Arial,sans-serif;color:#1A1A1A">
+          htmlContent: `<div style="font-family:Arial,sans-serif;color:#1A1A1A">
             <p><strong>${o.employee_name}</strong> (${o.arriv_employee_id})</p>
             <p>Deadline: ${o.orientation_deadline} — ${overdue ? "OVERDUE by " + Math.abs(daysAway) + " day(s)" : "due in " + daysAway + " day(s)"}</p>
             <p>Readiness: ${readiness.percent}%. Missing: ${readiness.missing.join(", ") || "none"}. ${o.payroll_hold ? "PAYROLL HOLD active." : ""}</p>

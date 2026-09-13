@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -150,11 +151,10 @@ The Arriv Team
 
       // Email
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({
+        await sendBrevoEmail({
           to: mediaPartner.email,
           subject: `New Job Posted: ${job.title}`,
-          body: emailBody,
-          from_name: 'Arriv'
+          textContent: emailBody,
         });
         await base44.asServiceRole.entities.MessageLog.create({
           message_type: 'email',

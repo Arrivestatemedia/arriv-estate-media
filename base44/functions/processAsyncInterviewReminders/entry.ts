@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
+import { sendBrevoEmail } from "../../shared/brevoClient.ts";
 
 /**
  * processAsyncInterviewReminders
@@ -132,10 +133,10 @@ export default async function(req: Request): Promise<Response> {
         // ── 24h reminder ──
         if (!session.reminder_24h_sent && msRemaining <= REMINDER_24H_MS && msRemaining > REMINDER_4H_MS) {
           try {
-            await base44.integrations.Core.SendEmail({
+            await sendBrevoEmail({
               to: session.candidate_email,
               subject: `Reminder: Your Arriv Estate Media Interview Closes in 24 Hours`,
-              body: buildReminderHtml(firstName, 24, deadlineDisplay, interviewUrl),
+              htmlContent: buildReminderHtml(firstName, 24, deadlineDisplay, interviewUrl),
             });
             await base44.asServiceRole.entities.InterviewSession.update(session.id, { reminder_24h_sent: true });
             counts.reminder_24h++;
@@ -148,10 +149,10 @@ export default async function(req: Request): Promise<Response> {
         // ── 4h reminder ──
         if (!session.reminder_4h_sent && msRemaining <= REMINDER_4H_MS && msRemaining > 0) {
           try {
-            await base44.integrations.Core.SendEmail({
+            await sendBrevoEmail({
               to: session.candidate_email,
               subject: `Reminder: Your Arriv Estate Media Interview Closes in 4 Hours`,
-              body: buildReminderHtml(firstName, 4, deadlineDisplay, interviewUrl),
+              htmlContent: buildReminderHtml(firstName, 4, deadlineDisplay, interviewUrl),
             });
             await base44.asServiceRole.entities.InterviewSession.update(session.id, { reminder_4h_sent: true });
             counts.reminder_4h++;
@@ -166,10 +167,10 @@ export default async function(req: Request): Promise<Response> {
           const startedAge = now - new Date(session.started_at).getTime();
           if (startedAge >= STARTED_INCOMPLETE_MS) {
             try {
-              await base44.integrations.Core.SendEmail({
+              await sendBrevoEmail({
                 to: session.candidate_email,
                 subject: `Don't Forget to Finish Your Arriv Estate Media Interview`,
-                body: buildStartedIncompleteHtml(firstName, deadlineDisplay, interviewUrl),
+                htmlContent: buildStartedIncompleteHtml(firstName, deadlineDisplay, interviewUrl),
               });
               await base44.asServiceRole.entities.InterviewSession.update(session.id, { reminder_started_sent: true });
               counts.started_incomplete++;

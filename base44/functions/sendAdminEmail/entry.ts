@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
     try {
@@ -10,11 +11,10 @@ Deno.serve(async (req) => {
 
         const emailBody = `Account Deletion Request\n\nUser: ${userName}\nEmail: ${userEmail}\nUser Type: ${userType}\nScheduled Deletion Date: ${deletionDate}\n\nThe user has requested to delete their account. The account is scheduled for automatic deletion in 30 days.\n\nTo delete this account immediately, visit:\n${deleteUrl}`;
         
-        await base44.asServiceRole.integrations.Core.SendEmail({
+        await sendBrevoEmail({
             to: to,
-            from_name: 'Arriv Estate Media',
             subject: subject,
-            body: emailBody
+            textContent: emailBody
         });
 
         await base44.asServiceRole.entities.MessageLog.create({

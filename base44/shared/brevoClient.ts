@@ -1,15 +1,42 @@
 const DEFAULT_SENDER_EMAIL = "careers@arrivestatemedia.com";
 const DEFAULT_SENDER_NAME = "Arriv Estate Media";
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function textToHtml(text: string): string {
+  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#1A1A1A;white-space:pre-wrap;line-height:1.5;">${escapeHtml(text)}</div>`;
+}
+
+/**
+ * Send an email through Brevo. All app-generated email goes through Brevo —
+ * the Base44 Core.SendEmail integration is never used for app communications.
+ *
+ * Pass `htmlContent` for HTML bodies, or `textContent` for plain-text bodies
+ * (auto-converted to safe HTML preserving line breaks).
+ */
 export async function sendBrevoEmail({
   to,
   subject,
   htmlContent,
+  textContent,
   senderName = DEFAULT_SENDER_NAME,
   senderEmail = DEFAULT_SENDER_EMAIL,
 }) {
   const apiKey = Deno.env.get("BREVO_API_KEY");
   if (!apiKey) throw new Error("BREVO_API_KEY not configured");
+
+  const finalHtml = htmlContent != null
+    ? htmlContent
+    : textContent != null
+      ? textToHtml(textContent)
+      : "";
 
   let lastError;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -25,7 +52,7 @@ export async function sendBrevoEmail({
           sender: { name: senderName, email: senderEmail },
           to: [{ email: to }],
           subject,
-          htmlContent,
+          htmlContent: finalHtml,
         }),
       });
       if (!res.ok) {

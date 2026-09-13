@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { generateSecurePassword, hashPassword } from '../../shared/passwordKdf.ts';
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '../../shared/rateLimiter.ts';
 import { auditLog } from '../../shared/securityAudit.ts';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -67,10 +68,10 @@ Deno.serve(async (req) => {
     });
 
     // Send email with new password
-    await base44.asServiceRole.integrations.Core.SendEmail({
+    await sendBrevoEmail({
       to: email,
       subject: 'Your Password Has Been Reset',
-      body: `Your password has been reset.\n\nYour new temporary password is: ${newPassword}\n\nPlease log in and change your password immediately.`
+      textContent: `Your password has been reset.\n\nYour new temporary password is: ${newPassword}\n\nPlease log in and change your password immediately.`
     });
 
     await auditLog(base44, req, {

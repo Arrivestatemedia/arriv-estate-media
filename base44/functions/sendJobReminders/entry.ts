@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { toZonedTime, zonedTimeToUtc, fromZonedTime } from 'npm:date-fns-tz@3.0.0';
 import { parse as parseDate, format } from 'npm:date-fns@3.6.0';
+import { sendBrevoEmail } from '../../shared/brevoClient.ts';
 
 function convertTo12HourFormat(time24) {
   const [hour, minute] = time24.split(':').map(Number);
@@ -148,10 +149,10 @@ Deno.serve(async (req) => {
               if (gmailAccessToken) {
                 await sendEmailViaGmail(gmailAccessToken, job.booked_by, 'Shoot Reminder - Today at ' + jobTime, emailBody);
               } else {
-                await base44.asServiceRole.integrations.Core.SendEmail({
+                await sendBrevoEmail({
                   to: job.booked_by,
                   subject: 'Shoot Reminder - Today at ' + jobTime,
-                  body: emailBody
+                  textContent: emailBody
                 });
               }
             } catch (e) {
@@ -195,10 +196,10 @@ Deno.serve(async (req) => {
               if (gmailAccessToken) {
                 await sendEmailViaGmail(gmailAccessToken, job.client_email, 'Shoot Reminder - Today at ' + jobTime, emailBody);
               } else {
-                await base44.asServiceRole.integrations.Core.SendEmail({
+                await sendBrevoEmail({
                   to: job.client_email,
                   subject: 'Shoot Reminder - Today at ' + jobTime,
-                  body: emailBody
+                  textContent: emailBody
                 });
               }
             } catch (e) {

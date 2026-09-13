@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { verifyAndGet, computeStep } from "../../shared/salesOnboardingShared.ts";
 import { sendSalesAccountReadyEmail } from "../../shared/brevoSalesAccountReady.ts";
+import { sendBrevoEmail } from "../../shared/brevoClient.ts";
 
 const STEP_FIELDS = {
   personal_info: ["mailing_address", "city", "state", "zip", "phone", "emergency_contact_name", "emergency_contact_phone"],
@@ -65,10 +66,10 @@ Deno.serve(async (req) => {
       try {
         const adminEmail = Deno.env.get("ADMIN_EMAIL");
         if (adminEmail) {
-          await base44.asServiceRole.integrations.Core.SendEmail({
+          await sendBrevoEmail({
             to: adminEmail,
             subject: `Sales onboarding complete: ${v.app.full_name}`,
-            body: `${v.app.full_name} has completed all onboarding steps and is ready to begin training.\n\nApplication email: ${v.app.email}\nCompleted at: ${now}`,
+            textContent: `${v.app.full_name} has completed all onboarding steps and is ready to begin training.\n\nApplication email: ${v.app.email}\nCompleted at: ${now}`,
           });
         }
       } catch (e) {
