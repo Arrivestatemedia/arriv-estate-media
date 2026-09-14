@@ -1172,11 +1172,31 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
             callerExtension={incomingVideoCall.callerExtension}
             isProcessing={videoCallProcessing}
             onDecline={() => setIncomingVideoCall(null)}
-            onAccept={() => {
-              if (onVideoCallStarted) onVideoCallStarted('accepting');
-              setAcceptedIncomingCall(incomingVideoCall);
-              setIncomingVideoCall(null);
-              setShowVideoCall(true);
+            onAccept={async () => {
+              setVideoCallProcessing(true);
+              try {
+                let token = incomingVideoCall.recipientToken;
+                if (!token) {
+                  // Cross-tenant call — token not included in the notification;
+                  // fetch it on demand via generateDirectVideoToken.
+                  const res = await base44.functions.invoke('generateDirectVideoToken', {
+                    roomName: incomingVideoCall.roomName,
+                    participantName: currentUserName,
+                  });
+                  const tokenData = res?.data || res;
+                  token = tokenData?.token;
+                }
+                if (!token) throw new Error('No video token returned');
+                if (onVideoCallStarted) onVideoCallStarted('accepting');
+                setAcceptedIncomingCall({ ...incomingVideoCall, recipientToken: token });
+                setIncomingVideoCall(null);
+                setShowVideoCall(true);
+              } catch (err) {
+                setVideoCallError('Failed to join call: ' + (err.message || 'Unknown error'));
+                setTimeout(() => setVideoCallError(null), 4000);
+              } finally {
+                setVideoCallProcessing(false);
+              }
             }}
           />
         )}
