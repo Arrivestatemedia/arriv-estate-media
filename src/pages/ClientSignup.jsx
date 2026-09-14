@@ -268,6 +268,25 @@ export default function ClientSignup() {
                   I would like to receive optional SMS updates from Arriv Estate Media LLC about my bookings (including confirmations, scheduling updates, arrival notifications, job completion notices, invoices, and payment reminders). Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help. SMS consent is not required to create an account or use our services.
                 </span>
               </label>
+              <p className="text-xs text-[#1A1A1A]/70 px-1">
+                <a
+                  href="https://app.arrivestatemedia.com/PrivacyPolicy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#B8956A] font-medium hover:underline"
+                >
+                  Privacy Policy
+                </a>
+                <span className="mx-1 text-[#1A1A1A]/40">|</span>
+                <a
+                  href="https://app.arrivestatemedia.com/ClientTermsConditions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#B8956A] font-medium hover:underline"
+                >
+                  Terms & Conditions
+                </a>
+              </p>
               <p className="text-xs text-[#1A1A1A]/50 px-1">
                 For support, contact <a href="mailto:support@arrivestatemedia.com" className="text-[#B8956A] hover:underline">support@arrivestatemedia.com</a>
               </p>
