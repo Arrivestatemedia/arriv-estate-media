@@ -836,7 +836,22 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                                recipientMemberId: crossAppRecipient.id,
                              });
                              if (res.data?.success) {
-                               const callData = { roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName };
+                               const roomName = res.data.roomName;
+                               // Send a cross-app chat message with a join link
+                               const joinLink = `${window.location.origin}/Conference?room=${encodeURIComponent(roomName)}`;
+                               const linkMessage = `🎥 Video call — join here: ${joinLink}`;
+                               try {
+                                 await base44.functions.invoke('sendCrossAppChatMessage', {
+                                   recipient_email: chatId,
+                                   content: linkMessage,
+                                   sender_name: currentUserName,
+                                   sender_email: currentUserEmail,
+                                 });
+                               } catch (e) {
+                                 console.error('Cross-app link message failed:', e);
+                               }
+                               // Open the video panel for the caller
+                               const callData = { roomName, token: res.data.caller.token, recipientName: chatName };
                                if (onVideoCallStarted) {
                                  onVideoCallStarted(callData);
                                } else {
