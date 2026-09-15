@@ -53,8 +53,17 @@ import CareersHub from './pages/CareersHub';
 import PublicJobPage from './pages/PublicJobPage';
 import PublicJobApplication from './pages/PublicJobApplication';
 import SalesRepMicrosoftAuthCallback from './pages/SalesRepMicrosoftAuthCallback';
+import { Navigate } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+
+// Short link redirect: /v/:room -> /Conference?room=:room
+function VideoShortLinkRedirect() {
+  const path = window.location.pathname;
+  const match = path.match(/^\/v\/(.+)$/);
+  const room = match ? decodeURIComponent(match[1]) : '';
+  return <Navigate to={`/Conference?room=${encodeURIComponent(room)}`} replace />;
+}
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -453,6 +462,7 @@ const AuthenticatedApp = () => {
         element={<PublicJobPage />}
       />
       <Route path="/SalesRepMicrosoftAuthCallback" element={<SalesRepMicrosoftAuthCallback />} />
+      <Route path="/v/:room" element={<VideoShortLinkRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </ErrorBoundary>
