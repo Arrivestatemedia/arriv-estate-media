@@ -556,16 +556,15 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         return <a href={match[2]} target="_blank" rel="noopener noreferrer" className="underline text-sm mt-1 block" style={{ color: 'var(--chat-accent)' }}>📎 {match[1]}</a>;
       }
     }
-    // Markdown-style link: [text](url) — renders as hyperlinked text.
-    // Used for video call invitations so both Estate Media and Arriv One
-    // (which uses react-markdown) display "Arriv conference room" as the link.
-    const mdLinkMatch = content.match(/^(.+?)\[([^\]]+)\]\(([^)]+)\)$/);
-    if (mdLinkMatch) {
+    // Video call invitation: "...click here to join: Arriv conference room {url}"
+    // Renders "Arriv conference room" as the hyperlink text (no markdown brackets).
+    const videoLinkMatch = content.match(/^(.+?click here to join: )Arriv conference room (\S+)$/);
+    if (videoLinkMatch) {
       return (
         <p className={`text-sm mt-1 break-words ${isOutgoing ? 'text-white' : 'text-slate-800'}`}>
-          {mdLinkMatch[1]}
-          <a href={mdLinkMatch[3]} target="_blank" rel="noopener noreferrer" className={`underline font-medium ${isOutgoing ? 'text-white' : ''}`} style={!isOutgoing ? { color: 'var(--chat-accent)' } : undefined}>
-            {mdLinkMatch[2]}
+          {videoLinkMatch[1]}
+          <a href={videoLinkMatch[2]} target="_blank" rel="noopener noreferrer" className={`underline font-medium ${isOutgoing ? 'text-white' : ''}`} style={!isOutgoing ? { color: 'var(--chat-accent)' } : undefined}>
+            Arriv conference room
           </a>
         </p>
       );
@@ -804,7 +803,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                               const roomName = res.data.roomName;
                               if (isArrivOneLinked && dmRecipient?.email) {
                                 const joinLink = `${window.location.origin}/Conference?room=${encodeURIComponent(roomName)}`;
-                                const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: [](${joinLink})`;
+                                const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: Arriv conference room ${joinLink}`;
                                 setMessages(prev => [...prev, {
                                   id: `temp-video-${Date.now()}`,
                                   sender_id: currentUserId,
@@ -881,7 +880,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                                const roomName = res.data.roomName;
                                // Send a cross-app chat message with a join link
                                const joinLink = `${window.location.origin}/Conference?room=${encodeURIComponent(roomName)}`;
-                               const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: [](${joinLink})`;
+                               const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: Arriv conference room ${joinLink}`;
                                // Optimistic update so the sender sees the link message immediately
                                setMessages(prev => [...prev, {
                                  id: `temp-video-${Date.now()}`,
