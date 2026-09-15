@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import AboutJob from './pages/AboutJob';
 import AboutJobAtlanta from './pages/AboutJobAtlanta';
@@ -53,9 +53,10 @@ import CareersHub from './pages/CareersHub';
 import PublicJobPage from './pages/PublicJobPage';
 import PublicJobApplication from './pages/PublicJobApplication';
 import SalesRepMicrosoftAuthCallback from './pages/SalesRepMicrosoftAuthCallback';
-import { Navigate } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Short link redirect: /v/:room -> /Conference?room=:room
 function VideoShortLinkRedirect() {
@@ -64,8 +65,6 @@ function VideoShortLinkRedirect() {
   const room = match ? decodeURIComponent(match[1]) : '';
   return <Navigate to={`/Conference?room=${encodeURIComponent(room)}`} replace />;
 }
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import ErrorBoundary from '@/components/ErrorBoundary';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
