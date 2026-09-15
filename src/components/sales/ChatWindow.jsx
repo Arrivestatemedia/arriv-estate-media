@@ -839,7 +839,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                                const roomName = res.data.roomName;
                                // Send a cross-app chat message with a join link
                                const joinLink = `${window.location.origin}/Conference?room=${encodeURIComponent(roomName)}`;
-                               const linkMessage = `🎥 Video call — join here: ${joinLink}`;
+                               const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: ${joinLink}`;
                                try {
                                  await base44.functions.invoke('sendCrossAppChatMessage', {
                                    recipient_email: chatId,
