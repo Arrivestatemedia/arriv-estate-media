@@ -556,18 +556,21 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
         return <a href={match[2]} target="_blank" rel="noopener noreferrer" className="underline text-sm mt-1 block" style={{ color: 'var(--chat-accent)' }}>📎 {match[1]}</a>;
       }
     }
-    // Video call invitation: "...click here to join: Connect conference room {url}"
-    // Renders "Connect conference room" as the hyperlink text (no markdown brackets).
-    const videoLinkMatch = content.match(/^(.+?click here to join: )Connect conference room (\S+)$/);
-    if (videoLinkMatch) {
-      return (
-        <p className={`text-sm mt-1 break-words ${isOutgoing ? 'text-white' : 'text-slate-800'}`}>
-          {videoLinkMatch[1]}
-          <a href={videoLinkMatch[2]} target="_blank" rel="noopener noreferrer" className={`underline font-medium ${isOutgoing ? 'text-white' : ''}`} style={!isOutgoing ? { color: 'var(--chat-accent)' } : undefined}>
-            Connect conference room
-          </a>
-        </p>
-      );
+    // Video call invitation (inbound only): "...click here to join: Connect conference room {url}"
+    // Renders "Connect conference room" as the hyperlink text for received messages.
+    // Outbound messages are left as plain text — no change to outbound rendering.
+    if (!isOutgoing) {
+      const videoLinkMatch = content.match(/^(.+?click here to join: )Connect conference room (\S+)/);
+      if (videoLinkMatch) {
+        return (
+          <p className="text-sm mt-1 break-words text-slate-800">
+            {videoLinkMatch[1]}
+            <a href={videoLinkMatch[2]} target="_blank" rel="noopener noreferrer" className="underline font-medium" style={{ color: 'var(--chat-accent)' }}>
+              Connect conference room
+            </a>
+          </p>
+        );
+      }
     }
     return <p className={`text-sm mt-1 break-words ${isOutgoing ? 'text-white' : 'text-slate-800'}`}>{content}</p>;
   };
