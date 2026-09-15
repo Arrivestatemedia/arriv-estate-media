@@ -2,18 +2,24 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.6";
 import { secrets } from "base44:runtime";
 import {
   signEnvelope,
+  buildCanonicalString,
   SCHEMA_VERSION,
 } from "../../shared/syncEnvelope.ts";
 import { SIGNATURE_VERSION } from "../../shared/syncEntityAdapters.ts";
 
 // Estate Media → Arriv One cross-tenant video call initiation.
 //
-// Architecture: Estate Media creates the Twilio room and mints BOTH tokens
-// locally (caller + recipient), then sends a signed notification to Arriv One
-// with the room_name + recipient_token. Arriv One creates a PendingNotification
-// for the Arriv One recipient so they can join the call.
+// Arriv One owns Twilio room creation and token minting. This function:
+//   1. Resolves the local caller + cross-tenant recipient SalesTeamMember records.
+//   2. Builds a signed cross-app envelope with caller + recipient identity.
+//   3. POSTs it to Arriv One's canonical cross-tenant video service endpoint.
+//   4. Arriv One creates the room, mints the Estate Media caller's token, writes
+//      the PendingNotification on Arriv One's side for the Arriv One recipient
+//      (room name + caller identity only — no token), and returns { roomName, callerToken }.
+//   5. Returns { success, roomName, caller: { id, name, token } } to the frontend.
 //
-// This avoids requiring Twilio credentials on the Arriv One side.
+// Twilio credentials stay solely in Arriv One. Estate Media never mints tokens
+// for cross-tenant calls. Intra-app calls (initiateVideoCall) still mint locally.
 
 export default async function (req) {
   try {
@@ -61,53 +67,7 @@ export default async function (req) {
       );
     }
 
-    // ─── Create Twilio room and mint both tokens locally ───
-    const roomName = `cross-tenant-video-${caller.id}-${recipient.id}-${Date.now()}`;
-
-    const twilio = await import("npm:twilio@4.10.0");
-    const Twilio = twilio.default;
-    const AccessToken = Twilio.jwt.AccessToken;
-    const VideoGrant = AccessToken.VideoGrant;
-
-    const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const apiKey = Deno.env.get("TWILIO_API_KEY");
-    const apiSecret = Deno.env.get("TWILIO_API_SECRET");
-
-    if (!accountSid || !apiKey || !apiSecret) {
-      return Response.json(
-        { error: "Missing Twilio credentials in environment" },
-        { status: 500 }
-      );
-    }
-
-    const callerToken = new AccessToken(accountSid, apiKey, apiSecret, {
-      identity: `${caller.id}:${caller.full_name}`,
-    });
-    callerToken.addGrant(new VideoGrant({ room: roomName }));
-    const callerTokenJwt = callerToken.toJwt();
-
-    const recipientToken = new AccessToken(accountSid, apiKey, apiSecret, {
-      identity: `${recipient.id}:${recipient.full_name}`,
-    });
-    recipientToken.addGrant(new VideoGrant({ room: roomName }));
-    const recipientTokenJwt = recipientToken.toJwt();
-
-    // ─── Create local outgoing notification for the caller ───
-    await base44.asServiceRole.entities.PendingNotification.create({
-      recipient_id: caller.id,
-      event_type: "outgoing_video_call",
-      event_data: {
-        roomName,
-        recipientName: recipient.full_name,
-        recipientId: recipient.id,
-        callerToken: callerTokenJwt,
-        recipientExtension: recipient.extension,
-        isCrossTenant: true,
-      },
-      is_read: false,
-    });
-
-    // ─── Build the signed cross-app envelope for Arriv One ───
+    // Build the signed cross-app envelope
     const timestamp = new Date().toISOString();
     const callId = crypto.randomUUID();
 
@@ -116,10 +76,8 @@ export default async function (req) {
       event_type: "video.call.initiated",
       schema_version: SCHEMA_VERSION,
       signature_version: SIGNATURE_VERSION,
-      // Arriv One receiver checks source === "arriv_one" and dest === "estate_media"
-      // (uses its own SOURCE/DEST constants). Send values it accepts.
-      source_application: "arriv_one",
-      destination_application: "estate_media",
+      source_application: "estate_media",
+      destination_application: "arriv_one",
       tenant_id: "tnt_estate_media",
       entity_type: "VideoCall",
       entity_id: callId,
@@ -131,28 +89,29 @@ export default async function (req) {
       idempotency_key: `${callId}|${timestamp}|create`,
       payload: {
         call_id: callId,
-        room_name: roomName,
-        caller_name: caller.full_name,
         caller_id: caller.id,
+        caller_name: caller.full_name,
         caller_email: caller.email,
         caller_extension: caller.extension,
         recipient_arriv_employee_id: recipient.arriv_employee_id,
         recipient_email: recipient.email,
         recipient_extension: recipient.extension,
-        recipient_name: recipient.full_name,
-        recipient_token: recipientTokenJwt,
       },
       signature_timestamp: new Date().toISOString(),
       signature_nonce:
         crypto.randomUUID().replace(/-/g, "") + Date.now().toString(36),
     };
 
-    // Try each shared secret until Arriv One accepts.
+    // Try each shared secret until Arriv One accepts. The Arriv One video
+    // receiver may use any of these cross-app secrets.
+    const OUTBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET";
+    const INBOUND_SECRET = "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET";
+    const SHARED_SECRET = "ARRIV_ESTATE_MEDIA_SECRET";
     const secretsToTry = [
       "ARRIV_ONE_CHAT_SECRET",
-      "ESTATE_MEDIA_ARRIV_ONE_SYNC_OUTBOUND_SECRET",
-      "ESTATE_MEDIA_ARRIV_ONE_SYNC_INBOUND_SECRET",
-      "ARRIV_ESTATE_MEDIA_SECRET",
+      OUTBOUND_SECRET,
+      INBOUND_SECRET,
+      SHARED_SECRET,
     ].filter((s) => secrets.get(s));
 
     const serviceToken = secrets.get("ARRIV_ONE_SERVICE_TOKEN");
@@ -193,7 +152,7 @@ export default async function (req) {
         body: rawBody.substring(0, 200),
       });
 
-      if (response.ok && ackBody.accepted) {
+      if (response.ok && (ackBody.accepted || ackBody.roomName)) {
         break;
       }
       // 401 = wrong secret, try next; other errors = stop
@@ -202,17 +161,17 @@ export default async function (req) {
       }
     }
 
-    if (response && response.ok && ackBody.accepted) {
+    if (response && response.ok && ackBody.roomName && ackBody.callerToken) {
       console.log(
-        `[CROSS_TENANT_VIDEO_OUTBOUND] ${caller.full_name} → ${recipient.full_name} (room: ${roomName})`
+        `[CROSS_TENANT_VIDEO_OUTBOUND] ${caller.full_name} → ${recipient.full_name} (room: ${ackBody.roomName})`
       );
       return Response.json({
         success: true,
-        roomName,
+        roomName: ackBody.roomName,
         caller: {
           id: caller.id,
           name: caller.full_name,
-          token: callerTokenJwt,
+          token: ackBody.callerToken,
         },
         recipient: {
           id: recipient.id,
