@@ -804,7 +804,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                               const roomName = res.data.roomName;
                               if (isArrivOneLinked && dmRecipient?.email) {
                                 const joinLink = `${window.location.origin}/Conference?room=${encodeURIComponent(roomName)}`;
-                                const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: [Arriv conference room](${joinLink})`;
+                                const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: [](${joinLink})`;
                                 setMessages(prev => [...prev, {
                                   id: `temp-video-${Date.now()}`,
                                   sender_id: currentUserId,
@@ -881,7 +881,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                                const roomName = res.data.roomName;
                                // Send a cross-app chat message with a join link
                                const joinLink = `${window.location.origin}/Conference?room=${encodeURIComponent(roomName)}`;
-                               const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: [Arriv conference room](${joinLink})`;
+                               const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: [](${joinLink})`;
                                // Optimistic update so the sender sees the link message immediately
                                setMessages(prev => [...prev, {
                                  id: `temp-video-${Date.now()}`,
