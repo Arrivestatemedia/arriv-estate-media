@@ -768,25 +768,59 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                       </button>
                       <button
                         onClick={async () => {
-                          const ext = transferTargets.find(m => m.id === chatId)?.extension;
+                          const dmRecipient = transferTargets.find(m => m.id === chatId);
+                          const ext = dmRecipient?.extension;
                           if (!ext) {
                             setVideoCallError('No extension found for video call');
                             setTimeout(() => setVideoCallError(null), 3000);
                             return;
                           }
+                          const isArrivOneLinked = dmRecipient && (
+                            dmRecipient.arriv_employee_id ||
+                            dmRecipient.sync_source === "arriv_one" ||
+                            dmRecipient.immutable_shared_id
+                          );
                           try {
-                            const res = await base44.functions.invoke('initiateVideoCall', {
-                              salesMemberId: currentUserId,
-                              recipientExtension: String(ext),
-                              callerName: currentUserName
-                            });
+                            // Arriv One-linked recipients: use cross-tenant flow (create room + send chat link)
+                            // so the video invitation arrives on the Arriv One side via the same path as
+                            // regular messages. Local-only recipients: use the original initiateVideoCall
+                            // flow (PendingNotification).
+                            const fnName = isArrivOneLinked ? 'initiateCrossTenantVideoCall' : 'initiateVideoCall';
+                            const fnArgs = isArrivOneLinked
+                              ? { salesMemberId: currentUserId, recipientMemberId: chatId }
+                              : { salesMemberId: currentUserId, recipientExtension: String(ext), callerName: currentUserName };
+                            const res = await base44.functions.invoke(fnName, fnArgs);
                             if (res.data?.success) {
-                              const callData = { roomName: res.data.roomName, token: res.data.caller.token, recipientName: chatName };
+                              const roomName = res.data.roomName;
+                              // For Arriv One-linked recipients, send the join link as a cross-app chat
+                              // message (same path as regular messages) so it arrives on the Arriv One side.
+                              if (isArrivOneLinked && dmRecipient?.email) {
+                                const joinLink = `${window.location.origin}/Conference?room=${encodeURIComponent(roomName)}`;
+                                const linkMessage = `${currentUserName} would like to have a video conference with you, click here to join: ${joinLink}`;
+                                setMessages(prev => [...prev, {
+                                  id: `temp-video-${Date.now()}`,
+                                  sender_id: currentUserId,
+                                  sender_name: currentUserName,
+                                  sender_email: currentUserEmail,
+                                  content: linkMessage,
+                                  timestamp: new Date().toISOString(),
+                                  cross_app_channel_id: generateCrossAppChannelId(currentUserEmail, dmRecipient.email),
+                                }]);
+                                try {
+                                  await base44.functions.invoke('sendCrossAppChatMessage', {
+                                    recipient_email: dmRecipient.email,
+                                    content: linkMessage,
+                                    sender_name: currentUserName,
+                                    sender_email: currentUserEmail,
+                                  });
+                                } catch (e) {
+                                  console.error('Cross-app video link message failed:', e);
+                                }
+                              }
+                              const callData = { roomName, token: res.data.caller.token, recipientName: chatName };
                               if (onVideoCallStarted) {
-                                // Pass full data to parent so it renders the panel at page level (survives chat bubble hiding)
                                 onVideoCallStarted(callData);
                               } else {
-                                // Fallback: render locally if no parent handler
                                 setOutgoingCallData(callData);
                                 setShowVideoCall(true);
                               }
