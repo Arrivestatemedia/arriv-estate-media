@@ -6,12 +6,21 @@ import ChatWindow from "./ChatWindow";
 import { ArrivOneConnectBadge } from "@/components/chat/ArrivOneConnectBadge";
 import "@/components/chat/connectChat.css";
 
-export default function ChatTab({ currentUserId, currentUserName, salesMemberId, isAdmin, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded }) {
+export default function ChatTab({ currentUserId, currentUserName, salesMemberId, isAdmin, onInitiateTransfer, onVideoCallStarted, onVideoCallEnded, autoSelectChat, onAutoSelectConsumed }) {
   const [selectedChat, setSelectedChat] = useState(null);
   const [memberProfiles, setMemberProfiles] = useState({});
   const [memberStatuses, setMemberStatuses] = useState({});
   const [currentUserEmail, setCurrentUserEmail] = useState("");
   const syncIntervalRef = React.useRef(null);
+
+  // Auto-select a conversation when an external trigger (e.g. video call
+  // notification banner) provides one. Consumed once then cleared.
+  useEffect(() => {
+    if (autoSelectChat && autoSelectChat.type && autoSelectChat.id) {
+      setSelectedChat({ type: autoSelectChat.type, id: autoSelectChat.id, name: autoSelectChat.name || autoSelectChat.id });
+      if (onAutoSelectConsumed) onAutoSelectConsumed();
+    }
+  }, [autoSelectChat, onAutoSelectConsumed]);
 
   // Resolve current user's email for cross-app chat (sales session or Base44 auth)
   useEffect(() => {

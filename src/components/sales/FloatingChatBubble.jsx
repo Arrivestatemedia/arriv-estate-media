@@ -3,8 +3,15 @@ import { base44 } from "@/api/base44Client";
 import { MessageSquare, X } from "lucide-react";
 import { toast } from "sonner";
 import ChatTab from "./ChatTab";
+import VideoCallNotificationBanner from "./VideoCallNotificationBanner";
 import { ArrivOneConnectBadge } from "@/components/chat/ArrivOneConnectBadge";
 import { useCallStatus } from "@/components/CallStatusContext";
+
+// Detect video call invitation messages (content format set in ChatWindow)
+const isVideoCallMessage = (content) => {
+  if (!content) return false;
+  return content.includes("would like to have a video conference with you");
+};
 
 const DRAG_THRESHOLD = 6;
 const EDGE_PADDING = 8;
@@ -36,6 +43,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   useEffect(() => { openRef.current = open; }, [open]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [crossAppUnread, setCrossAppUnread] = useState(0);
+  const [videoCallBanner, setVideoCallBanner] = useState(null);
+  const [pendingChatSelection, setPendingChatSelection] = useState(null);
   const [localRemoteCallLive, setLocalRemoteCallLive] = useState(localStorage.getItem('remoteCallLive') === 'true');
 
   // ── Drag state ──
@@ -125,9 +134,19 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
         if (newCount > 0) {
           setCrossAppUnread(newCount);
           playNotificationDing();
-          // Show a visible toast ONLY when the chat panel is closed, so the
-          // user gets a desktop notification for new cross-app messages.
-          if (!openRef.current) {
+          // Check for video call invitation messages — show a prominent
+          // banner card for those. For non-video-call messages, fall back to
+          // the standard toast (only when chat is closed).
+          const newMessages = data?.messages || [];
+          const videoCallMsg = newMessages.find(m => isVideoCallMessage(m.content));
+          if (videoCallMsg) {
+            setVideoCallBanner({
+              senderName: videoCallMsg.sender_name || 'Unknown',
+              senderRole: 'Arriv One',
+              message: videoCallMsg.content,
+              senderEmail: videoCallMsg.sender_email || '',
+            });
+          } else if (!openRef.current) {
             const latest = data?.latest_message;
             if (latest) {
               toast.message(latest.sender_name || 'New message', {
@@ -276,6 +295,22 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
 
   return (
     <div>
+      {/* Video Call Notification Banner — top-right card */}
+      <VideoCallNotificationBanner
+        notification={videoCallBanner}
+        onOpenChat={() => {
+          if (videoCallBanner?.senderEmail) {
+            setPendingChatSelection({
+              type: 'cross_app_dm',
+              id: videoCallBanner.senderEmail,
+              name: videoCallBanner.senderName,
+            });
+          }
+          setOpen(true);
+        }}
+        onDismiss={() => setVideoCallBanner(null)}
+      />
+
       {/* Floating Chat Panel — Arriv One Connect */}
       {open && (
         <div
@@ -297,6 +332,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
               currentUserName={userName}
               onInitiateTransfer={onInitiateTransfer}
               onVideoCallStarted={onVideoCallStarted}
+              autoSelectChat={pendingChatSelection}
+              onAutoSelectConsumed={() => setPendingChatSelection(null)}
             />
           </div>
         </div>
