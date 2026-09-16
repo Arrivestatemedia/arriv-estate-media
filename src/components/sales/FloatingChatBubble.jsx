@@ -41,6 +41,7 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
   const [open, setOpen] = useState(false);
   const openRef = useRef(false);
   useEffect(() => { openRef.current = open; }, [open]);
+  const hasInitialized = useRef(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [crossAppUnread, setCrossAppUnread] = useState(0);
   const [videoCallBanner, setVideoCallBanner] = useState(null);
@@ -133,25 +134,29 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
         const newCount = data?.count || 0;
         if (newCount > 0) {
           setCrossAppUnread(newCount);
-          playNotificationDing();
-          // Check for video call invitation messages — show a prominent
-          // banner card for those. For non-video-call messages, fall back to
-          // the standard toast (only when chat is closed).
-          const newMessages = data?.messages || [];
-          const videoCallMsg = newMessages.find(m => isVideoCallMessage(m.content));
-          if (videoCallMsg) {
-            setVideoCallBanner({
-              senderName: videoCallMsg.sender_name || 'Unknown',
-              senderRole: 'Arriv One',
-              message: videoCallMsg.content,
-              senderEmail: videoCallMsg.sender_email || '',
-            });
-          } else if (!openRef.current) {
-            const latest = data?.latest_message;
-            if (latest) {
-              toast.message(latest.sender_name || 'New message', {
-                description: latest.content,
+          // Only show the banner, toast, and sound for messages that arrive
+          // in real-time (after the initial page-load poll). The first poll
+          // on page load only updates the badge count without triggering
+          // notifications, so refreshing the page doesn't re-fire the banner
+          // for messages that arrived while the user was away.
+          if (hasInitialized.current) {
+            playNotificationDing();
+            const newMessages = data?.messages || [];
+            const videoCallMsg = newMessages.find(m => isVideoCallMessage(m.content));
+            if (videoCallMsg) {
+              setVideoCallBanner({
+                senderName: videoCallMsg.sender_name || 'Unknown',
+                senderRole: 'Arriv One',
+                message: videoCallMsg.content,
+                senderEmail: videoCallMsg.sender_email || '',
               });
+            } else if (!openRef.current) {
+              const latest = data?.latest_message;
+              if (latest) {
+                toast.message(latest.sender_name || 'New message', {
+                  description: latest.content,
+                });
+              }
             }
           }
           // Advance the watermark so already-notified messages don't re-trigger
@@ -163,6 +168,8 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
         }
       } catch (e) {
         // Silent — polling will retry
+      } finally {
+        hasInitialized.current = true;
       }
     };
 
@@ -188,6 +195,22 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
       store.setItem(storageKey, new Date().toISOString());
     }
   }, [open]);
+
+  // When chat panel opens, mark all unread DirectMessages as read so the
+  // badge doesn't reappear with the same count after a page refresh.
+  useEffect(() => {
+    if (open && userId) {
+      setUnreadCount(0);
+      (async () => {
+        try {
+          await base44.entities.DirectMessage.updateMany(
+            { recipient_id: userId, read: false },
+            { $set: { read: true } }
+          );
+        } catch (_) { /* silent */ }
+      })();
+    }
+  }, [open, userId]);
 
   const displayCount = open ? 0 : (unreadCount + crossAppUnread);
 
