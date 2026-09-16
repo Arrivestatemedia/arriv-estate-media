@@ -23,6 +23,7 @@ import Customer360 from "@/components/sales/Customer360";
 import { CallStatusProvider } from "@/components/CallStatusContext";
 import CallMapModal from "@/components/sales/CallMapModal";
 import ContactOwnerDropdown from "@/components/sales/ContactOwnerDropdown";
+import { useSalesDashboardData } from "@/hooks/useSalesDashboardData";
 
 export default function ContactDetailPage() {
   const location = useLocation();
@@ -51,9 +52,100 @@ export default function ContactDetailPage() {
 
   const queryClient = useQueryClient();
 
+  const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+  const { data: dashboardData, refetch: refetchDashboard } = useSalesDashboardData(salesMemberId);
+
+  // Process data from backend function (bypasses RLS for sales reps whose
+  // platform user doesn't have sales_member_id set — direct SDK calls are
+  // RLS-blocked, so we use getSalesDashboardData which runs asServiceRole).
   useEffect(() => {
+    if (!contactKey) { setLoading(false); return; }
+    if (!salesMemberId) return; // admin fallback uses loadActivities below
+    if (!dashboardData) { setLoading(true); return; }
+
+    const allActivities = dashboardData.activities || [];
+    const allContacts = dashboardData.contacts || [];
+
+    const filtered = allActivities.filter(a => {
+      if (a.contact_email !== contactKey && a.contact_name !== contactKey) return false;
+      const notes = a.notes || '';
+      if (/^Contact updated:/i.test(notes)) return false;
+      return true;
+    }).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
+    setActivities(filtered);
+
+    let contactEntity = allContacts.find(c => c.email === contactKey) || null;
+
+    if (contactEntity && contactEntity.lifecycle_stage === 'customer') {
+      setIsCustomer(true);
+      const fullName = [contactEntity.firstname, contactEntity.lastname].filter(Boolean).join(' ') || contactEntity.email || contactKey;
+      setContact({
+        ...contactEntity,
+        key: contactKey,
+        name: fullName,
+        email: contactEntity.email || contactKey,
+        company: contactEntity.company || '',
+        phone: contactEntity.phone || '',
+        lead_status: contactEntity.lead_status,
+        lifecycle_stage: contactEntity.lifecycle_stage,
+      });
+      setLoading(false);
+    } else if (filtered.length > 0) {
+      setIsCustomer(false);
+      const contactEmail = filtered[0].contact_email || '';
+      const contactName = filtered[0].contact_name || '';
+      const phone = filtered[0].contact_phone || '';
+
+      setContact({
+        key: contactKey,
+        name: contactName,
+        email: contactEmail,
+        company: filtered[0].company_name || '',
+        phone,
+        id: contactEntity?.id,
+        sales_member_id: contactEntity?.sales_member_id,
+      });
+      setLoading(false);
+
+      (async () => {
+        if (!contactEntity && contactEmail) {
+          const [firstname, ...rest] = contactName.split(' ');
+          const lastname = rest.join(' ');
+          try {
+            const created = await base44.entities.Contact.create({
+              firstname: firstname || '', lastname: lastname || '',
+              email: contactEmail, phone: phone || '',
+              company: filtered[0].company_name || '',
+              sales_member_id: salesMemberId,
+              lifecycle_stage: 'lead', lead_status: 'OPEN',
+            });
+            setContact(prev => prev ? { ...prev, id: created.id, sales_member_id: created.sales_member_id } : prev);
+          } catch (ce) { console.error('Auto-create Contact entity failed:', ce); }
+        }
+        if (!phone && contactEmail) {
+          try {
+            const res = await base44.functions.invoke('searchHubSpotContacts', { query: contactEmail });
+            const contacts = res?.data?.contacts || [];
+            if (contacts.length > 0) {
+              let match = contacts.find(r => r.email?.toLowerCase() === contactEmail.toLowerCase());
+              if (!match) match = contacts[0];
+              const hsPhone = match?.phone || '';
+              if (hsPhone) setContact(prev => ({ ...prev, phone: hsPhone }));
+            }
+          } catch (hsError) { console.error('HubSpot search error:', hsError); }
+        }
+      })();
+    } else {
+      setContact(null);
+      setLoading(false);
+    }
+  }, [dashboardData, contactKey, salesMemberId]);
+
+  // Admin fallback: direct SDK calls (RLS allows admin role)
+  useEffect(() => {
+    if (!contactKey || salesMemberId) return;
     loadActivities();
-  }, [contactKey]);
+  }, [contactKey, salesMemberId]);
 
   // Determine admin status (sales session role or platform auth role)
   useEffect(() => {
@@ -97,7 +189,7 @@ export default function ContactDetailPage() {
     
     const unsubscribe = base44.entities.ActivityLog.subscribe((event) => {
       if (event.data?.contact_email === contactKey || event.data?.contact_name === contactKey) {
-        loadActivities();
+        if (salesMemberId) refetchDashboard(); else loadActivities();
       }
     });
     
