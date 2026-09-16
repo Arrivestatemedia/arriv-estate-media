@@ -9,7 +9,7 @@ import { Phone, Mail, MessageSquare, Calendar, Users, DollarSign, Wallet, Trendi
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MetricCard from "@/components/performance/MetricCard";
 import PipelineFunnel from "@/components/performance/PipelineFunnel";
-import HealthScoreGauge from "@/components/performance/HealthScoreGauge";
+import HealthScoreBreakdown from "@/components/performance/HealthScoreBreakdown";
 
 const METRIC_CONFIG = {
   calls: { label: 'Calls', icon: Phone, format: (v) => v },
@@ -90,15 +90,33 @@ export default function SalesPerformanceDashboard() {
     loadData();
   }, [loadData]);
 
-  // Generate AI health score + coaching
+  // Generate AI coaching (uses deterministic health score + configurable targets)
   useEffect(() => {
     if (!perfData?.reps?.[0]?.metrics) return;
     const rep = perfData.reps[0];
     const m = rep.metrics;
+    const hs = rep.health_score;
+    setHealthScore(hs); // Use deterministic score for the gauge
     setAiLoading(true);
+
+    // Build health score component summary for the AI prompt
+    const componentSummary = hs?.components?.map(c =>
+      `${c.label}: ${c.score}/${c.max} pts — ${c.detail}`
+    ).join('\n') || 'N/A';
+
+    const coachingHints = hs?.coaching_hints?.join('; ') || 'None';
+
     const prompt = `You are a sales performance coach analyzing a Sales Growth Advisor at Arriv Estate Media.
 
 REP: ${rep.rep_name}
+RAMP STAGE: ${rep.ramp_stage || 'full_production'}
+WORK MODE: ${rep.work_mode_label || 'Remote Prospecting'}
+
+DETERMINISTIC SALES HEALTH SCORE: ${hs?.total || 0}/100
+${componentSummary}
+
+COACHING HINTS FROM ENGINE: ${coachingHints}
+
 PERIOD METRICS:
 - Today: ${m.daily.calls_completed} calls, ${m.daily.emails_sent} emails, ${m.daily.meaningful_conversations} conversations, ${m.daily.appointments_scheduled} appointments, ${m.daily.deals_closed} deals, $${m.daily.revenue_generated} revenue
 - This Week: ${m.weekly.calls_completed} calls, ${m.weekly.meaningful_conversations} conversations, ${m.weekly.appointments_scheduled} appointments, ${m.weekly.deals_closed} deals, $${m.weekly.revenue_generated} revenue, ${m.weekly.talk_time_minutes}m talk time
@@ -106,37 +124,37 @@ PERIOD METRICS:
 - Call streak: ${m.daily.call_streak} consecutive days
 - Pipeline: ${m.weekly.pipeline.leads} leads → ${m.weekly.pipeline.conversations} conversations → ${m.weekly.pipeline.appointments} appointments → ${m.weekly.pipeline.clients} clients → $${m.weekly.pipeline.revenue} revenue
 
-Generate a JSON response with:
-1. health_score: 0-100 integer considering daily activity consistency, follow-up completion, pipeline balance, goal completion, conversion performance
-2. summary: one sentence overall assessment
-3. strengths: array of 2-3 specific strengths based on the data
-4. areas_for_improvement: array of 2-3 specific areas to improve
-5. recommended_actions: array of 2-3 specific actionable recommendations
-6. growth_trends: array of 1-2 trend observations (comparing daily vs weekly vs monthly if possible)
+FIELD METRICS (this week): ${rep.field_metrics?.field_visits || 0} visits, ${rep.field_metrics?.field_qualified_prospects || 0} qualified
 
-Be specific and data-driven. Reference actual numbers. Keep each item to one sentence.`;
+The health score above is computed deterministically from the data. Your job is to provide qualitative coaching that EXPLAINS and EXPANDS on the score — do not recompute it.
+
+Generate a JSON response with:
+1. summary: one sentence overall assessment referencing the deterministic score
+2. strengths: array of 2-3 specific strengths based on the data and score components
+3. areas_for_improvement: array of 2-3 specific areas to improve, tied to the weakest score components
+4. recommended_actions: array of 2-3 specific actionable recommendations for this week
+5. growth_trends: array of 1-2 trend observations (comparing daily vs weekly vs monthly if possible)
+
+Be specific and data-driven. Reference actual numbers and the score breakdown. Keep each item to one sentence.`;
 
     base44.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: 'object',
         properties: {
-          health_score: { type: 'number' },
           summary: { type: 'string' },
           strengths: { type: 'array', items: { type: 'string' } },
           areas_for_improvement: { type: 'array', items: { type: 'string' } },
           recommended_actions: { type: 'array', items: { type: 'string' } },
           growth_trends: { type: 'array', items: { type: 'string' } },
         },
-        required: ['health_score', 'summary', 'strengths', 'areas_for_improvement', 'recommended_actions', 'growth_trends'],
+        required: ['summary', 'strengths', 'areas_for_improvement', 'recommended_actions', 'growth_trends'],
       },
     }).then(result => {
       const data = typeof result === 'string' ? JSON.parse(result) : result;
-      setHealthScore(data);
       setCoaching(data);
     }).catch(e => {
       console.error('AI coaching error:', e);
-      setHealthScore({ health_score: 0, summary: 'Unable to generate score.' });
     }).finally(() => setAiLoading(false));
   }, [perfData]);
 
@@ -366,6 +384,21 @@ Be specific and data-driven. Reference actual numbers. Keep each item to one sen
           </div>
         </div>
 
+        {/* HR Eligibility Banner */}
+        {rep.employment_status && !['active', 'offer_accepted'].includes(rep.employment_status) && (
+          <div className="mb-6 rounded-xl p-4 flex items-center gap-3" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)' }}>
+            <Wallet className="w-5 h-5 flex-shrink-0" style={{ color: '#f59e0b' }} />
+            <div>
+              <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>
+                HR Status: {rep.employment_status.replace(/_/g, ' ')}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                Commission and payroll data may not reflect current eligibility. Contact HR for questions.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Pipeline + Health Score */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <PipelineFunnel data={rep.metrics.weekly.pipeline} title="Pipeline Health (This Week)" />
@@ -375,11 +408,11 @@ Be specific and data-driven. Reference actual numbers. Keep each item to one sen
                 <Sparkles className="w-5 h-5" style={{ color: '#B8956A' }} /> Sales Health Score
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              <HealthScoreGauge
-                score={healthScore?.health_score || 0}
-                summary={healthScore?.summary}
-                loading={aiLoading}
+            <CardContent>
+              <HealthScoreBreakdown
+                healthScore={rep.health_score}
+                rampStage={rep.ramp_stage}
+                workModeLabel={rep.work_mode_label}
               />
             </CardContent>
           </Card>

@@ -13,10 +13,12 @@ const SORT_OPTIONS = [
   { key: "meetings", label: "Most Meetings" },
   { key: "newClients", label: "Most New Clients" },
   { key: "followups", label: "Best Follow-up Rate" },
+  { key: "healthScore", label: "Highest Health Score" },
 ];
 
 export default function OwnerDashboard() {
   const [data, setData] = useState(null);
+  const [healthScores, setHealthScores] = useState({});
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("revenue");
 
@@ -24,8 +26,17 @@ export default function OwnerDashboard() {
     (async () => {
       try {
         const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
-        const res = await base44.functions.invoke("getOwnerDashboard", { sales_member_id: salesMemberId });
-        setData(res.data);
+        const [ownerRes, perfRes] = await Promise.all([
+          base44.functions.invoke("getOwnerDashboard", { sales_member_id: salesMemberId }),
+          base44.functions.invoke("computeSalesPerformance", {}),
+        ]);
+        setData(ownerRes.data);
+        // Build health score map from performance data
+        const scoreMap = {};
+        for (const rep of (perfRes.data?.reps || [])) {
+          scoreMap[rep.rep_id] = rep.health_score;
+        }
+        setHealthScores(scoreMap);
       } catch (e) { console.error(e); }
       setLoading(false);
     })();
@@ -34,20 +45,34 @@ export default function OwnerDashboard() {
   if (loading) return <div className="p-8 text-center text-slate-400">Loading company dashboard...</div>;
   if (!data) return <div className="p-8 text-center text-slate-400">Admin access required.</div>;
 
-  const sorted = [...(data.rankings || [])].sort((a, b) => (b[sortBy] || 0) - (a[sortBy] || 0));
+  const sorted = [...(data.rankings || [])].sort((a, b) => {
+    if (sortBy === "healthScore") {
+      return (healthScores[b.id]?.total || 0) - (healthScores[a.id]?.total || 0);
+    }
+    return (b[sortBy] || 0) - (a[sortBy] || 0);
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold text-slate-900 mb-1">Owner Dashboard</h1>
       <p className="text-slate-500 mb-6">Company-wide sales performance · {data.memberCount} reps</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 mb-8">
         <KpiCard kpi="revenue" value={data.totals.totalRevenue} />
         <KpiCard kpi="newContacts" value={data.totals.totalLeads} />
         <KpiCard kpi="dealsWon" value={data.totals.totalClients} />
         <KpiCard kpi="closeRate" value={data.totals.avgCloseRate} />
         <KpiCard kpi="avgDealSize" value={data.totals.avgRevenuePerClient} />
         <KpiCard kpi="revenue" value={data.totals.pipelineValue} />
+        <div className="bg-white border border-[#2563EB]/15 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-slate-400 mb-1">Avg Health Score</p>
+          {(() => {
+            const scores = Object.values(healthScores).filter(hs => hs?.total != null);
+            const avg = scores.length > 0 ? Math.round(scores.reduce((s, hs) => s + hs.total, 0) / scores.length) : 0;
+            const color = avg >= 80 ? '#B8956A' : avg >= 60 ? '#D4A574' : avg >= 40 ? '#E8A33D' : avg >= 20 ? '#F59E0B' : '#EF4444';
+            return <p className="text-2xl font-bold" style={{ color }}>{avg}<span className="text-sm font-normal text-slate-400">/100</span></p>;
+          })()}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
@@ -91,6 +116,7 @@ export default function OwnerDashboard() {
                 <th className="text-right py-2 px-2">Revenue</th>
                 <th className="text-right py-2 px-2">Meetings</th>
                 <th className="text-right py-2 px-2">New Clients</th>
+                <th className="text-right py-2 px-2">Health Score</th>
                 <th className="text-right py-2 px-2">Follow-ups</th>
               </tr>
             </thead>
@@ -107,6 +133,15 @@ export default function OwnerDashboard() {
                   <td className="text-right py-2 px-2 font-medium">${r.revenue.toLocaleString()}</td>
                   <td className="text-right py-2 px-2">{r.meetings}</td>
                   <td className="text-right py-2 px-2">{r.newClients}</td>
+                  <td className="text-right py-2 px-2">
+                    {(() => {
+                      const hs = healthScores[r.id];
+                      if (!hs) return <span className="text-slate-300">—</span>;
+                      const score = hs.total || 0;
+                      const color = score >= 80 ? '#B8956A' : score >= 60 ? '#D4A574' : score >= 40 ? '#E8A33D' : score >= 20 ? '#F59E0B' : '#EF4444';
+                      return <span className="font-bold" style={{ color }}>{score}</span>;
+                    })()}
+                  </td>
                   <td className="text-right py-2 px-2">{r.followups}</td>
                 </tr>
               ))}

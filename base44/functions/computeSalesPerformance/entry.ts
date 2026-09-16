@@ -3,7 +3,13 @@ import { computeSalesHealthScore, computeRampStage, detectWorkMode, workModeLabe
 import { loadWorkModeTargets } from '../../shared/salesWorkModeConfig.ts';
 
 function getPeriodRanges(now) {
-  const today = new Date(now);
+  // Standardized with performanceEngine.periodBounds: end-of-day boundary
+  // so all dashboards (computeSalesPerformance, getOwnerDashboard, etc.)
+  // use identical period definitions.
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+
+  const today = new Date(end);
   today.setHours(0, 0, 0, 0);
 
   const weekStart = new Date(today);
@@ -16,12 +22,12 @@ function getPeriodRanges(now) {
   const yearStart = new Date(today.getFullYear(), 0, 1);
 
   return {
-    daily: { start: today, end: now },
-    weekly: { start: weekStart, end: now },
-    monthly: { start: monthStart, end: now },
-    quarterly: { start: quarterStart, end: now },
-    yearly: { start: yearStart, end: now },
-    lifetime: { start: new Date(0), end: now },
+    daily: { start: today, end },
+    weekly: { start: weekStart, end },
+    monthly: { start: monthStart, end },
+    quarterly: { start: quarterStart, end },
+    yearly: { start: yearStart, end },
+    lifetime: { start: new Date(0), end },
   };
 }
 
