@@ -45,11 +45,17 @@ export default function Recordings() {
           ? base44.entities.VideoRecording.list('-created_date', 200)
           : base44.entities.VideoRecording.filter({ recorded_by_id: userId }, '-created_date', 100);
 
-        // 2. Interview recordings from Conference entities
-        const confPromise = base44.entities.Conference.list('-created_date', 200);
+        // 2. Interview recordings from Conference entities (admin only —
+        // these are recruiting interviews, NOT the rep's personal recordings)
+        const confPromise = isAdmin
+          ? base44.entities.Conference.list('-created_date', 200)
+          : Promise.resolve([]);
 
-        // 3. Interview recordings from HireCandidate documents
-        const candPromise = base44.entities.HireCandidate.list('-created_date', 200);
+        // 3. Interview recordings from HireCandidate documents (admin only —
+        // these are recruiting interviews, NOT the rep's personal recordings)
+        const candPromise = isAdmin
+          ? base44.entities.HireCandidate.list('-created_date', 200)
+          : Promise.resolve([]);
 
         const [recRes, confRes, candRes] = await Promise.all([recPromise, confPromise, candPromise]);
 
