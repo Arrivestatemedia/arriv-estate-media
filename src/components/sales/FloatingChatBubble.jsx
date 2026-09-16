@@ -150,13 +150,6 @@ export default function FloatingChatBubble({ currentUserId, currentUserName, onI
                 message: videoCallMsg.content,
                 senderEmail: videoCallMsg.sender_email || '',
               });
-            } else if (!openRef.current) {
-              const latest = data?.latest_message;
-              if (latest) {
-                toast.message(latest.sender_name || 'New message', {
-                  description: latest.content,
-                });
-              }
             }
           }
           // Advance the watermark so already-notified messages don't re-trigger
