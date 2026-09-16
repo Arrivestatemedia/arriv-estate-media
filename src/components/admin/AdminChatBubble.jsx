@@ -72,6 +72,22 @@ export default function AdminChatBubble({ currentUserId, currentUserName, onInit
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // When chat panel opens, mark all unread DirectMessages as read so the
+  // badge doesn't reappear with the same count after a page refresh.
+  useEffect(() => {
+    if (open && currentUserId) {
+      setUnreadCount(0);
+      (async () => {
+        try {
+          await base44.entities.DirectMessage.updateMany(
+            { recipient_id: currentUserId, read: false },
+            { $set: { read: true } }
+          );
+        } catch (_) { /* silent */ }
+      })();
+    }
+  }, [open, currentUserId]);
+
   const displayCount = open ? 0 : unreadCount;
 
   // ── Drag handlers ──
