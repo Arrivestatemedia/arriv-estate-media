@@ -13,6 +13,7 @@ import DailyCallQueue from "@/components/sales/DailyCallQueue";
 import CalendarTab from "@/components/sales/CalendarTab";
 import AiAssistantTab from "@/components/sales/AiAssistantTab";
 import ChatTab from "@/components/sales/ChatTab";
+import DailyReportDownloadButton from "@/components/sales/DailyReportDownloadButton";
 
 export default function AdminSalesRepActivity() {
   const [user, setUser] = useState(null);
@@ -123,9 +124,15 @@ export default function AdminSalesRepActivity() {
                       <p className="font-semibold text-lg" style={{ color: '#1A1A1A' }}>{rep.full_name}</p>
                       <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{rep.email}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Badge variant="outline">{stats.total} activities</Badge>
                       <Badge variant="outline"><Phone className="w-3 h-3 mr-1" />{stats.calls} calls</Badge>
+                      <DailyReportDownloadButton
+                        salesMemberId={rep.id}
+                        repName={rep.full_name}
+                        variant="ghost"
+                        size="sm"
+                      />
                     </div>
                   </div>
                 </button>
@@ -149,10 +156,16 @@ export default function AdminSalesRepActivity() {
           <Button variant="ghost" size="sm" onClick={() => setSelectedRep(null)} className="gap-1" style={{ color: 'rgba(26,26,26,0.6)' }}>
             <ArrowLeft className="w-4 h-4" /> All Reps
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold" style={{ color: '#1A1A1A' }}>{selectedRep.full_name}</h1>
             <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>{selectedRep.email} · Viewing as Admin</p>
           </div>
+          <DailyReportDownloadButton
+            salesMemberId={selectedRep.id}
+            repName={selectedRep.full_name}
+            variant="outline"
+            size="default"
+          />
         </div>
 
         {/* Tabs — same as rep dashboard */}
