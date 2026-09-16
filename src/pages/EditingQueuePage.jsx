@@ -42,6 +42,17 @@ export default function EditingQueuePage() {
   const [activeTab, setActiveTab] = useState("queue");
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Read-only mode: sales reps without an editor profile can view the queue
+  // but cannot perform any actions (assign, edit, QC, deliver, cancel, etc.).
+  // Only editors (EditorProfile) and admins have full access.
+  const isReadOnly = (() => {
+    const userRole = localStorage.getItem('user_role');
+    const salesMemberRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+    const hasEditorProfile = localStorage.getItem('has_editor_profile') === 'true';
+    const isAdmin = userRole === 'admin' || salesMemberRole === 'admin';
+    return !isAdmin && !hasEditorProfile;
+  })();
+
   const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
@@ -92,6 +103,9 @@ export default function EditingQueuePage() {
           <p className="text-sm text-[#1A1A1A]/60 mt-1">
             In-house post-production operations — Arriv editors only
           </p>
+          {isReadOnly && (
+            <Badge className="mt-1 bg-[#B8956A]/15 text-[#B8956A] text-xs">Read-only view</Badge>
+          )}
         </div>
         <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
@@ -100,10 +114,10 @@ export default function EditingQueuePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 max-w-md">
+        <TabsList className={`grid w-full max-w-md ${isReadOnly ? 'grid-cols-3' : 'grid-cols-4'}`}>
           <TabsTrigger value="queue">Queue</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="editors">Editors</TabsTrigger>
+          {!isReadOnly && <TabsTrigger value="editors">Editors</TabsTrigger>}
           <TabsTrigger value="exceptions">Exceptions</TabsTrigger>
         </TabsList>
 
@@ -158,10 +172,12 @@ export default function EditingQueuePage() {
           <EditingAnalytics refreshKey={refreshKey} />
         </TabsContent>
 
-        {/* EDITORS TAB */}
+        {/* EDITORS TAB — hidden for read-only (sales rep) viewers */}
+        {!isReadOnly && (
         <TabsContent value="editors">
           <EditorManager editors={queueData?.editors || []} onRefresh={refresh} />
         </TabsContent>
+        )}
 
         {/* EXCEPTIONS TAB */}
         <TabsContent value="exceptions" className="space-y-4">
@@ -202,6 +218,7 @@ export default function EditingQueuePage() {
         <EditingTaskDetail
           task={selectedTask}
           editors={queueData?.editors || []}
+          readOnly={isReadOnly}
           onClose={() => setSelectedTask(null)}
           onActionComplete={() => {
             setSelectedTask(null);

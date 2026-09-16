@@ -27,7 +27,7 @@ function LayoutContent({ children, currentPageName }) {
   const [adminMode, setAdminMode] = useState(
     localStorage.getItem('admin_mode') || null
   );
-  const [hasEditorProfile, setHasEditorProfile] = useState(null);
+  const [hasEditorProfile, setHasEditorProfile] = useState(localStorage.getItem('has_editor_profile') === 'true');
 
   // Force password change gate for newly-onboarded sales reps
   useEffect(() => {
@@ -116,38 +116,43 @@ function LayoutContent({ children, currentPageName }) {
   // Check if this dual admin has an EditorProfile — only show the mode
   // selection prompt if they do. If not, auto-default to Sales mode.
   useEffect(() => {
-    if (!isDualAdmin) return;
-    const checkEditorProfile = async () => {
-      try {
-        const email = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || user?.email;
-        const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
-        const params = new URLSearchParams();
-        if (email) params.set('email', email);
-        if (salesMemberId) params.set('sales_member_id', salesMemberId);
-        const qs = params.toString();
-        const fnName = qs ? `getEditorWorkspace?${qs}` : 'getEditorWorkspace';
-        const res = await base44.functions.invoke(fnName, { email, sales_member_id: salesMemberId });
-        const resData = res?.data || res;
-        setHasEditorProfile(!!resData?.editor_profile);
-        if (!resData?.editor_profile && !localStorage.getItem('admin_mode')) {
-          localStorage.setItem('admin_mode', 'sales');
-          setAdminMode('sales');
-        }
-      } catch (e) {
-        setHasEditorProfile(false);
-        if (!localStorage.getItem('admin_mode')) {
-          localStorage.setItem('admin_mode', 'sales');
-          setAdminMode('sales');
-        }
+  if (!hasSalesSession) return;
+  const checkEditorProfile = async () => {
+    try {
+      const email = localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || user?.email;
+      const salesMemberId = localStorage.getItem('sales_member_id') || sessionStorage.getItem('sales_member_id');
+      const params = new URLSearchParams();
+      if (email) params.set('email', email);
+      if (salesMemberId) params.set('sales_member_id', salesMemberId);
+      const qs = params.toString();
+      const fnName = qs ? `getEditorWorkspace?${qs}` : 'getEditorWorkspace';
+      const res = await base44.functions.invoke(fnName, { email, sales_member_id: salesMemberId });
+      const resData = res?.data || res;
+      setHasEditorProfile(!!resData?.editor_profile);
+      localStorage.setItem('has_editor_profile', resData?.editor_profile ? 'true' : 'false');
+      // Auto-default to Sales mode only for dual admins without an editor profile
+      if (isDualAdmin && !resData?.editor_profile && !localStorage.getItem('admin_mode')) {
+        localStorage.setItem('admin_mode', 'sales');
+        setAdminMode('sales');
       }
-    };
-    checkEditorProfile();
-  }, [isDualAdmin, user?.email]);
+    } catch (e) {
+      setHasEditorProfile(false);
+      localStorage.setItem('has_editor_profile', 'false');
+      if (isDualAdmin && !localStorage.getItem('admin_mode')) {
+        localStorage.setItem('admin_mode', 'sales');
+        setAdminMode('sales');
+      }
+    }
+  };
+  checkEditorProfile();
+  }, [hasSalesSession, isDualAdmin, user?.email]);
   const navItems = effectiveIsSalesTeam
       ? [
           { label: "My Dashboard", page: "HubSpotActivityLog", icon: LayoutDashboard },
           { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
-          { label: "Editor Workspace", page: "EditorWorkspace", icon: Scissors },
+          ...(hasEditorProfile
+            ? [{ label: "Editor Workspace", page: "EditorWorkspace", icon: Scissors }]
+            : [{ label: "Editing Queue", page: "EditingQueuePage", icon: Scissors }]),
           { label: "Training", page: "SalesTrainingPortal", icon: Award },
           { label: "Field Prospecting", page: "FieldProspectingPage", icon: MapPin },
           { label: "Referrals", page: "ReferralProgramPage", icon: Gift },
@@ -156,7 +161,7 @@ function LayoutContent({ children, currentPageName }) {
           { label: "My Profile", page: "EmployeeProfile", icon: Award },
           { label: "Time Off", page: "TimeOff", icon: CalendarOff },
           { label: "My Benefits", page: "Benefits", icon: Heart },
-          ...((isDualAdmin && adminMode === 'editing') ? [{ label: "Editing Queue", page: "EditingQueuePage", icon: Scissors }] : []),
+          ...((isDualAdmin && adminMode === 'editing' && hasEditorProfile) ? [{ label: "Editing Queue", page: "EditingQueuePage", icon: Scissors }] : []),
         ]
       : (isAdmin || isSalesAdmin)
         ? [

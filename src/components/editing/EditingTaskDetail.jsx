@@ -20,7 +20,7 @@ const STATUS_LABELS = {
   cancelled: "Cancelled",
 };
 
-export default function EditingTaskDetail({ task, editors, onClose, onActionComplete }) {
+export default function EditingTaskDetail({ task, editors, onClose, onActionComplete, readOnly = false }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [selectedEditor, setSelectedEditor] = useState(task.editor_id || "");
@@ -206,7 +206,17 @@ export default function EditingTaskDetail({ task, editors, onClose, onActionComp
             </div>
           )}
 
-          {/* Actions based on status */}
+          {/* Read-only notice for sales reps viewing the queue */}
+          {readOnly && (
+            <div className="rounded-lg border border-[#B8956A]/30 bg-[#FFFBF5] p-3 text-center">
+              <p className="text-sm text-[#1A1A1A]/60">
+                Read-only view — only assigned editors can perform actions on editing tasks.
+              </p>
+            </div>
+          )}
+
+          {/* Actions based on status — hidden for read-only (sales rep) viewers */}
+          {!readOnly && (
           <div className="border-t pt-4 space-y-3">
             {/* ASSIGN: ready_for_editing or revision_required (reassign) */}
             {(task.status === "ready_for_editing" || task.status === "revision_required" || task.status === "assigned") && (
@@ -397,9 +407,10 @@ export default function EditingTaskDetail({ task, editors, onClose, onActionComp
                 )}
               </div>
             )}
-          </div>
-        </div>
-      </DialogContent>
+            </div>
+            )}
+            </div>
+            </DialogContent>
     </Dialog>
   );
 }
