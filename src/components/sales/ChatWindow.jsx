@@ -344,9 +344,11 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 });
                 if (event.data?.sender_id !== currentUserId) {
                   playDing();
-                  toast.message(chatType === "cross_app_dm" ? (event.data?.sender_name || chatName) : `#${chatName}`, {
-                    description: `${event.data?.sender_name}: ${event.data?.content}`,
-                  });
+                  if (chatType === "cross_app_dm" && event.data?.content?.includes("would like to have a video conference with you")) {
+                    toast.message(event.data?.sender_name || chatName, {
+                      description: event.data?.content,
+                    });
+                  }
                   if (Notification.permission === "granted") {
                     try {
                       new Notification(`#${chatName}`, {
@@ -390,9 +392,6 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
                 });
                 if (event.data?.sender_id !== currentUserId) {
                   playDing();
-                  toast.message(event.data?.sender_name, {
-                    description: event.data?.content,
-                  });
                   if (Notification.permission === "granted") {
                     try {
                       new Notification(event.data?.sender_name, {
