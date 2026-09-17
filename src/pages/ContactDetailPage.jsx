@@ -76,8 +76,18 @@ export default function ContactDetailPage() {
     }).sort((a, b) => new Date(b.activity_date) - new Date(a.activity_date));
     setActivities(filtered);
 
-    let contactEntity = allContacts.find(c => c.email === contactKey) || null;
+    // Prefer customer-stage record when duplicates exist (same email, different lifecycle)
+    let contactEntity = allContacts.find(c => c.email === contactKey && c.lifecycle_stage === 'customer') || null;
+    if (!contactEntity) {
+      contactEntity = allContacts.find(c => c.email === contactKey) || null;
+    }
     // Also search by full name — MyContacts uses email OR name as the key
+    if (!contactEntity) {
+      contactEntity = allContacts.find(c => {
+        const fullName = `${c.firstname || ''} ${c.lastname || ''}`.trim();
+        return fullName && fullName === contactKey && c.lifecycle_stage === 'customer';
+      }) || null;
+    }
     if (!contactEntity) {
       contactEntity = allContacts.find(c => {
         const fullName = `${c.firstname || ''} ${c.lastname || ''}`.trim();
@@ -268,12 +278,22 @@ export default function ContactDetailPage() {
       let contactEntity = null;
       try {
         let contactResults = await base44.entities.Contact.filter({ email: contactKey });
+        // Prefer customer-stage record when duplicates exist (same email, different lifecycle)
+        if (contactResults && contactResults.length > 1) {
+          const customer = contactResults.find(c => c.lifecycle_stage === 'customer');
+          if (customer) contactResults = [customer];
+        }
         if (!contactResults || contactResults.length === 0) {
           // Try searching by name — MyContacts uses email OR name as the key
           const [firstname, ...rest] = contactKey.split(' ');
           const lastname = rest.join(' ');
           if (firstname && lastname) {
             contactResults = await base44.entities.Contact.filter({ firstname, lastname });
+          }
+          // Prefer customer-stage record from name search too
+          if (contactResults && contactResults.length > 1) {
+            const customer = contactResults.find(c => c.lifecycle_stage === 'customer');
+            if (customer) contactResults = [customer];
           }
         }
         if (contactResults && contactResults.length > 0) {
