@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Mail, Building2, User, UserPlus, Tag, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus, Trash2, Pencil, Briefcase } from "lucide-react";
+import { Phone, Mail, Building2, User, UserPlus, Tag, Clock, ChevronDown, ChevronUp, X, ArrowLeft, Plus, Trash2, Pencil, Briefcase, Sparkles } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { createPortal } from "react-dom";
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import FloatingChatBubble from "@/components/sales/FloatingChatBubble";
+import ProspectBriefPanel from "@/components/sales/ProspectBriefPanel";
 import LogActivityModal from "@/components/sales/LogActivityModal";
 import ConvertToJobModal from "@/components/sales/ConvertToJobModal";
 import ConvertToCustomerModal from "@/components/sales/ConvertToCustomerModal";
@@ -49,6 +50,7 @@ export default function ContactDetailPage() {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [isCustomer, setIsCustomer] = useState(false);
   const [repReassignmentEnabled, setRepReassignmentEnabled] = useState(true);
+  const [showBriefPanel, setShowBriefPanel] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -557,8 +559,33 @@ export default function ContactDetailPage() {
           </div>
         </div>
 
+        {/* Prospect Brief / Call Prep */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-bold" style={{ color: '#1A1A1A' }}>Prospect Brief</h3>
+              <p className="text-xs" style={{ color: 'rgba(26,26,26,0.5)' }}>Pre-call research & call prep</p>
+            </div>
+            <Button
+              size="sm"
+              className="gap-2"
+              style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+              onClick={() => setShowBriefPanel(true)}
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate Brief
+            </Button>
+          </div>
+          <div className="rounded-lg border p-6 text-center" style={{ borderColor: 'rgba(184,149,106,0.2)', backgroundColor: 'rgba(184,149,106,0.03)' }}>
+            <Sparkles className="w-8 h-8 mx-auto mb-2" style={{ color: '#B8956A' }} />
+            <p className="text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
+              Generate a research brief to prepare for your call.
+            </p>
+          </div>
+        </div>
+
         {/* Activities */}
-        <div className="space-y-3">
+        <div className="space-y-3 mt-6">
           {activities.length === 0 ? (
             <Card>
               <CardContent className="pt-8 pb-8 text-center" style={{ color: 'rgba(26,26,26,0.5)' }}>
@@ -922,6 +949,24 @@ export default function ContactDetailPage() {
         salesMemberEmail={localStorage.getItem('sales_member_email')}
         onLogged={() => { setShowLogActivity(false); loadActivities(); }}
       />
+
+      {/* Prospect Brief Panel */}
+      {showBriefPanel && (
+        <ProspectBriefPanel
+          prospect={{
+            name: contact.name || contactKey,
+            brokerage: contact.company || "",
+            market: "",
+            listing_address: "",
+            phone: contact.phone || "",
+            email: contact.email || "",
+            website: "",
+            contact_id: contact.id || "",
+          }}
+          salesMemberId={salesMemberId}
+          onClose={() => setShowBriefPanel(false)}
+        />
+      )}
 
       {/* Floating Chat Bubble */}
       <CallStatusProvider>
