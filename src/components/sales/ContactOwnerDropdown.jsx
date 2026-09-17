@@ -18,8 +18,12 @@ export default function ContactOwnerDropdown({ contactId, salesMemberId }) {
   const [saving, setSaving] = useState(false);
 
   const { data: reps = [] } = useQuery({
-    queryKey: ['salesTeamMembers'],
-    queryFn: () => base44.entities.SalesTeamMember.list(),
+    queryKey: ['salesReps'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listSalesReps', {});
+      const data = res?.data || res;
+      return data?.reps || [];
+    },
   });
 
   const activeReps = useMemo(
