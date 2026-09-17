@@ -77,6 +77,13 @@ export default function ContactDetailPage() {
     setActivities(filtered);
 
     let contactEntity = allContacts.find(c => c.email === contactKey) || null;
+    // Also search by full name — MyContacts uses email OR name as the key
+    if (!contactEntity) {
+      contactEntity = allContacts.find(c => {
+        const fullName = `${c.firstname || ''} ${c.lastname || ''}`.trim();
+        return fullName && fullName === contactKey;
+      }) || null;
+    }
 
     if (contactEntity && contactEntity.lifecycle_stage === 'customer') {
       setIsCustomer(true);
@@ -88,6 +95,26 @@ export default function ContactDetailPage() {
         email: contactEntity.email || contactKey,
         company: contactEntity.company || '',
         phone: contactEntity.phone || '',
+        lead_status: contactEntity.lead_status,
+        lifecycle_stage: contactEntity.lifecycle_stage,
+      });
+      setLoading(false);
+    } else if (contactEntity) {
+      // Contact entity exists but is a lead (not customer) — may have no activities
+      setIsCustomer(false);
+      const fullName = [contactEntity.firstname, contactEntity.lastname].filter(Boolean).join(' ') || contactEntity.email || contactKey;
+      const contactEmail = contactEntity.email || (filtered[0]?.contact_email || '');
+      const phone = contactEntity.phone || (filtered[0]?.contact_phone || '');
+      const company = contactEntity.company || (filtered[0]?.company_name || '');
+      setContact({
+        ...contactEntity,
+        key: contactKey,
+        name: fullName,
+        email: contactEmail,
+        company,
+        phone,
+        id: contactEntity.id,
+        sales_member_id: contactEntity.sales_member_id,
         lead_status: contactEntity.lead_status,
         lifecycle_stage: contactEntity.lifecycle_stage,
       });
@@ -240,7 +267,15 @@ export default function ContactDetailPage() {
       // ── Also fetch the Contact entity to check customer status ──
       let contactEntity = null;
       try {
-        const contactResults = await base44.entities.Contact.filter({ email: contactKey });
+        let contactResults = await base44.entities.Contact.filter({ email: contactKey });
+        if (!contactResults || contactResults.length === 0) {
+          // Try searching by name — MyContacts uses email OR name as the key
+          const [firstname, ...rest] = contactKey.split(' ');
+          const lastname = rest.join(' ');
+          if (firstname && lastname) {
+            contactResults = await base44.entities.Contact.filter({ firstname, lastname });
+          }
+        }
         if (contactResults && contactResults.length > 0) {
           contactEntity = contactResults[0];
         }
@@ -262,6 +297,25 @@ export default function ContactDetailPage() {
           email: contactEntity.email || contactKey,
           company: contactEntity.company || '',
           phone: contactEntity.phone || '',
+          lead_status: contactEntity.lead_status,
+          lifecycle_stage: contactEntity.lifecycle_stage,
+        });
+      } else if (contactEntity) {
+        // Contact entity exists but is a lead (not customer) — may have no activities
+        setIsCustomer(false);
+        const fullName = [contactEntity.firstname, contactEntity.lastname].filter(Boolean).join(' ') || contactEntity.email || contactKey;
+        const contactEmail = contactEntity.email || (filtered[0]?.contact_email || '');
+        const phone = contactEntity.phone || (filtered[0]?.contact_phone || '');
+        const company = contactEntity.company || (filtered[0]?.company_name || '');
+        setContact({
+          ...contactEntity,
+          key: contactKey,
+          name: fullName,
+          email: contactEmail,
+          company,
+          phone,
+          id: contactEntity.id,
+          sales_member_id: contactEntity.sales_member_id,
           lead_status: contactEntity.lead_status,
           lifecycle_stage: contactEntity.lifecycle_stage,
         });
