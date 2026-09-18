@@ -1,0 +1,99 @@
+{
+  "name": "PerformanceIngestionStaging",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "PerformanceDataSource source_id this record came from"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "needs_matching",
+        "resolved",
+        "discarded"
+      ],
+      "default": "needs_matching",
+      "description": "Current staging status"
+    },
+    "raw_payload": {
+      "type": "object",
+      "description": "The original payload as received"
+    },
+    "identity_hints": {
+      "type": "object",
+      "description": "Identity hints extracted from the payload (email, external_employee_id, etc.)",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "external_employee_id": {
+          "type": "string"
+        },
+        "candidate_id": {
+          "type": "string"
+        },
+        "job_id": {
+          "type": "string"
+        }
+      }
+    },
+    "potential_matches": {
+      "type": "array",
+      "description": "Potential HireCandidate matches found during auto-resolution",
+      "items": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "match_type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "resolved_candidate_id": {
+      "type": "string",
+      "description": "HireCandidate ID this was resolved to (when status is resolved)"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this record was resolved"
+    }
+  },
+  "required": [
+    "source_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

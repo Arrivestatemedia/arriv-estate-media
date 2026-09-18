@@ -53,6 +53,7 @@ import CareersHub from './pages/CareersHub';
 import PublicJobPage from './pages/PublicJobPage';
 import PublicJobApplication from './pages/PublicJobApplication';
 import SalesRepMicrosoftAuthCallback from './pages/SalesRepMicrosoftAuthCallback';
+import PostHireIntelligence from './pages/PostHireIntelligence';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -453,6 +454,14 @@ const AuthenticatedApp = () => {
         element={<PublicJobPage />}
       />
       <Route path="/SalesRepMicrosoftAuthCallback" element={<SalesRepMicrosoftAuthCallback />} />
+      <Route
+        path="/PostHireIntelligence"
+        element={
+          <LayoutWrapper currentPageName="PostHireIntelligence">
+            <PostHireIntelligence />
+          </LayoutWrapper>
+        }
+      />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </ErrorBoundary>

@@ -1,0 +1,61 @@
+{
+  "name": "PerformanceIdentityLink",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "PerformanceDataSource source_id this link belongs to"
+    },
+    "identity_email": {
+      "type": "string",
+      "description": "Email from the external system used for matching"
+    },
+    "identity_external_id": {
+      "type": "string",
+      "description": "External employee ID from the source system"
+    },
+    "candidate_id": {
+      "type": "string",
+      "description": "HireCandidate ID this identity is linked to"
+    },
+    "confirmed_by": {
+      "type": "string",
+      "description": "Admin email who confirmed this link"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this link was confirmed"
+    }
+  },
+  "required": [
+    "candidate_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "name": "PerformanceDataSource",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "Unique stable identifier for this data source (generated as pds_{timestamp}_{random})"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-friendly name for this data source"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "arriv_one",
+        "custom_webhook",
+        "generic_api",
+        "hubspot",
+        "salesforce",
+        "pipedrive",
+        "lattice",
+        "15five",
+        "manual_import"
+      ],
+      "default": "custom_webhook",
+      "description": "Provider type"
+    },
+    "connection_mode": {
+      "type": "string",
+      "enum": [
+        "webhook_push",
+        "generic_api_pull"
+      ],
+      "default": "webhook_push",
+      "description": "How data flows in: webhook push or API pull"
+    },
+    "connection_status": {
+      "type": "string",
+      "enum": [
+        "not_configured",
+        "connecting",
+        "connected",
+        "syncing",
+        "degraded",
+        "auth_required",
+        "error",
+        "disabled"
+      ],
+      "default": "not_configured",
+      "description": "Current connection status"
+    },
+    "webhook_token": {
+      "type": "string",
+      "description": "Secret token for webhook authentication"
+    },
+    "api_config": {
+      "type": "object",
+      "description": "Configuration for generic API pull sources",
+      "properties": {
+        "base_url": {
+          "type": "string"
+        },
+        "auth_type": {
+          "type": "string",
+          "enum": [
+            "none",
+            "api_key",
+            "bearer",
+            "basic"
+          ]
+        },
+        "credential_secret_name": {
+          "type": "string"
+        },
+        "records_path": {
+          "type": "string"
+        },
+        "cursor_field": {
+          "type": "string"
+        },
+        "pagination_type": {
+          "type": "string",
+          "enum": [
+            "offset",
+            "cursor",
+            "none"
+          ],
+          "default": "offset"
+        },
+        "page_size": {
+          "type": "integer",
+          "default": 100
+        },
+        "backfill_days": {
+          "type": "integer",
+          "default": 90
+        }
+      }
+    },
+    "sync_cadence": {
+      "type": "string",
+      "description": "Sync schedule (e.g. 'hourly', 'daily', 'manual')",
+      "default": "manual"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this source is active"
+    },
+    "total_records_received": {
+      "type": "integer",
+      "default": 0,
+      "description": "Total records received from this source"
+    },
+    "last_received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last record was received"
+    },
+    "last_sync_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last API sync completed"
+    },
+    "records_imported": {
+      "type": "integer",
+      "default": 0,
+      "description": "Total records successfully imported as observations"
+    },
+    "last_error": {
+      "type": "string",
+      "description": "Last error message if any"
+    }
+  },
+  "required": [
+    "source_id",
+    "name",
+    "provider"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
