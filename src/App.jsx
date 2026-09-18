@@ -288,7 +288,6 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
-
       <Route
         path="/TimeOff"
         element={

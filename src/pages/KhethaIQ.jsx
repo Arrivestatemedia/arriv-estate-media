@@ -12,7 +12,7 @@ import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
 import CandidateDetailPanel from "@/components/hireiq/CandidateDetailPanel";
 import ComparePanel from "@/components/hireiq/ComparePanel";
-import PostHireIntelligenceView from "@/components/hireiq/PostHireIntelligenceView";
+import LearningPanel from "@/components/hireiq/LearningPanel";
 import { syncApplicationsToKhethaIQ } from "@/lib/hireiq";
 import ApplicationsPanel from "@/components/hireiq/ApplicationsPanel";
 import ApplicantPortalPanel from "@/components/hireiq/ApplicantPortalPanel";
@@ -28,6 +28,7 @@ import GlobalSearch from "@/components/khethaiq/GlobalSearch";
 import { CandidatesView, InterviewsView, OffersView } from "@/components/khethaiq/KhethaIQViews";
 import ReminderQueueView from "@/components/khethaiq/ReminderQueueView";
 import AsyncInterviewManagerContent from "@/components/interviews/AsyncInterviewManagerContent";
+import PerformanceDataView from "@/components/hireiq/PerformanceDataView";
 import JobPageBuilder from "@/components/khethaiq/JobPageBuilder";
 import EditJobPageModal from "@/components/khethaiq/EditJobPageModal";
 import CareersHubSettings from "@/components/khethaiq/CareersHubSettings";
@@ -529,7 +530,8 @@ export default function KhethaIQ() {
     { id: "tasks", label: "Tasks", icon: "CheckSquare" },
     { id: "applications", label: "Applications", icon: "FileText" },
     { id: "portal", label: "Applicant Portal", icon: "Search" },
-    { id: "post-hire", label: "Post-Hire Intelligence", icon: "Activity" },
+    { id: "learning", label: "Learning", icon: "Brain" },
+    { id: "posthire", label: "Performance Data", icon: "Activity" },
     { id: "analytics", label: "Analytics", icon: "BarChart3" },
   ];
 
@@ -552,7 +554,8 @@ export default function KhethaIQ() {
     tasks: "tasks",
     applications: "applications",
     portal: "portal",
-    "post-hire": "post-hire",
+    learning: "learning",
+    posthire: "posthire",
     analytics: "analytics",
   };
 
@@ -728,8 +731,10 @@ export default function KhethaIQ() {
                 </div>
               ) : activeView === "analytics" ? (
                 <AnalyticsPanel />
-              ) : activeView === "post-hire" ? (
-                <PostHireIntelligenceView />
+              ) : activeView === "learning" ? (
+                <LearningPanel />
+              ) : activeView === "posthire" ? (
+                <PerformanceDataView />
               ) : activeView === "jobs" ? (
             <div className="space-y-5">
               {/* Header */}
