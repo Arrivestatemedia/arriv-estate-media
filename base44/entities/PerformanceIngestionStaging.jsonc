@@ -1,0 +1,107 @@
+{
+  "name": "PerformanceIngestionStaging",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "PerformanceDataSource source_id this staged record came from"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "needs_matching",
+        "matched",
+        "rejected"
+      ],
+      "default": "needs_matching",
+      "description": "Current matching status"
+    },
+    "raw_payload": {
+      "type": "object",
+      "description": "Raw payload as received from the source"
+    },
+    "identity_hints": {
+      "type": "object",
+      "description": "Identity hints extracted from the payload (email, external_employee_id, etc.)",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "external_employee_id": {
+          "type": "string"
+        },
+        "candidate_id": {
+          "type": "string"
+        },
+        "job_id": {
+          "type": "string"
+        }
+      }
+    },
+    "potential_matches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entity_type": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          }
+        }
+      },
+      "description": "Potential identity matches found by the system"
+    },
+    "resolved_observation_id": {
+      "type": "string",
+      "description": "PerformanceObservation ID created after resolution"
+    },
+    "resolved_by": {
+      "type": "string",
+      "description": "Who resolved this staged record"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "source_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Brain, Sparkles, TrendingUp, AlertTriangle, Lightbulb, BarChart3 } from "lucide-react";
+import { Loader2, Brain, Sparkles, TrendingUp, AlertTriangle, Lightbulb, BarChart3, Activity, Database, Wifi } from "lucide-react";
 import { generateLearningInsights } from "@/lib/hireiq";
 
 const CREAM = "#FFFBF5";
@@ -20,10 +20,12 @@ const card = {
   boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
 };
 
-export default function LearningPanel() {
+export default function LearningPanel({ tenantId, arrivOneConnected }) {
   const [performances, setPerformances] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [sources, setSources] = useState([]);
+  const [observations, setObservations] = useState([]);
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
@@ -31,17 +33,25 @@ export default function LearningPanel() {
 
   const loadData = async () => {
     try {
-      const [perfsRes, candsRes, allJobsRes] = await Promise.all([
+      const tid = tenantId || "tnt_estate_media";
+      const [perfsRes, candsRes, allJobsRes, srcRes, obsRes] = await Promise.all([
         base44.entities.HirePerformance.list("-created_date", 200).catch(() => null),
         base44.entities.HireCandidate.list("-created_date", 200).catch(() => null),
         base44.entities.HireJob.list("-created_date", 100).catch(() => null),
+        base44.entities.PerformanceDataSource.filter({ tenant_id: tid, enabled: true }, "-created_date", 50).catch(() => null),
+        base44.entities.PerformanceObservation.filter({ tenant_id: tid, is_test: false }, "-recorded_at", 200).catch(() => null),
       ]);
       const perfs = perfsRes?.data ?? perfsRes;
       const cands = candsRes?.data ?? candsRes;
       const allJobs = allJobsRes?.data ?? allJobsRes;
+      const srcs = srcRes?.data ?? srcRes ?? [];
+      const obs = obsRes?.data ?? obsRes ?? [];
       setPerformances(Array.isArray(perfs) ? perfs : []);
       setCandidates(Array.isArray(cands) ? cands : []);
       setJobs(Array.isArray(allJobs) ? allJobs : []);
+      setSources(Array.isArray(srcs) ? srcs : []);
+      const matchedObs = (Array.isArray(obs) ? obs : []).filter(o => o.match_status === "auto_matched" || o.match_status === "confirmed");
+      setObservations(matchedObs);
 
       const settingRes = await base44.entities.AppSetting.filter({ key: "hireiq_learning_enabled" }, null, 1).catch(() => null);
       const setting = settingRes?.data ?? settingRes;
@@ -50,9 +60,20 @@ export default function LearningPanel() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [tenantId]);
+
+  const hasIntegration = arrivOneConnected || sources.length > 0;
+  const hasConnectedSource = arrivOneConnected || sources.some(s => s.connection_status === "connected" || s.connection_status === "syncing");
+
+  const learningState = useMemo(() => {
+    if (!hasIntegration) return "NO_SOURCE";
+    if (!hasConnectedSource) return "SOURCE_CONFIGURED";
+    if (observations.length === 0) return "WAITING_FOR_DATA";
+    return "DATA_AVAILABLE";
+  }, [hasIntegration, hasConnectedSource, observations.length]);
 
   const toggleEnabled = async () => {
+    if (!hasIntegration) return;
     const newVal = !enabled;
     setEnabled(newVal);
     try {
@@ -78,7 +99,38 @@ export default function LearningPanel() {
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{ color: MUTED_DARK }} /></div>;
 
-  const hasEnoughData = performances.length >= 3;
+  // State machine cards
+  if (learningState === "NO_SOURCE") {
+    return (
+      <div className="p-6 text-center" style={card}>
+        <Database className="w-12 h-12 mx-auto mb-4" style={{ color: "rgba(184,149,106,0.4)" }} />
+        <p className="font-semibold mb-1" style={{ ...SERIF, color: CREAM }}>Performance data source required</p>
+        <p className="text-sm" style={{ color: MUTED_LIGHT }}>Connect a data source or Arriv One to start ingesting post-hire performance outcomes.</p>
+      </div>
+    );
+  }
+
+  if (learningState === "SOURCE_CONFIGURED") {
+    return (
+      <div className="p-6 text-center" style={card}>
+        <Wifi className="w-12 h-12 mx-auto mb-4" style={{ color: "rgba(59,130,246,0.6)" }} />
+        <p className="font-semibold mb-1" style={{ ...SERIF, color: CREAM }}>Source configured but not connected</p>
+        <p className="text-sm" style={{ color: MUTED_LIGHT }}>Your data source is set up but hasn't received any data yet. Send a test webhook or run a sync to begin.</p>
+      </div>
+    );
+  }
+
+  if (learningState === "WAITING_FOR_DATA") {
+    return (
+      <div className="p-6 text-center" style={card}>
+        <Activity className="w-12 h-12 mx-auto mb-4" style={{ color: "rgba(59,130,246,0.6)" }} />
+        <p className="font-semibold mb-1" style={{ ...SERIF, color: CREAM }}>Waiting for performance data</p>
+        <p className="text-sm" style={{ color: MUTED_LIGHT }}>Your source is connected but no matched observations yet. Records will appear here once identity matching completes.</p>
+      </div>
+    );
+  }
+
+  const hasEnoughData = performances.length >= 3 || observations.length >= 3;
   const hiredCount = candidates.filter(c => performances.some(p => p.candidate_id === c.id)).length;
 
   return (
@@ -90,7 +142,12 @@ export default function LearningPanel() {
             <p className="font-bold mb-1" style={{ ...SERIF, color: CREAM }}>Learning System</p>
             <p className="text-sm" style={{ color: MUTED_LIGHT }}>Enable to track post-hire performance and correlate hiring predictions with actual outcomes.</p>
           </div>
-          <button onClick={toggleEnabled} className="relative w-12 h-6 rounded-full transition-colors flex-shrink-0" style={{ backgroundColor: enabled ? GOLD : "rgba(255,251,245,0.15)" }}>
+          <button
+            onClick={toggleEnabled}
+            disabled={!hasIntegration}
+            className="relative w-12 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ backgroundColor: enabled ? GOLD : "rgba(255,251,245,0.15)" }}
+          >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${enabled ? "translate-x-6" : ""}`} />
           </button>
         </div>

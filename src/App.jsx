@@ -30,6 +30,7 @@ import OwnerDashboard from './pages/OwnerDashboard';
 import EmployeeProfile from './pages/EmployeeProfile';
 import Recordings from './pages/Recordings';
 import KhethaIQ from './pages/KhethaIQ';
+import PostHireIntelligence from './pages/PostHireIntelligence';
 import TimeOff from './pages/TimeOff';
 import Benefits from './pages/Benefits';
 import PayoutRecords from './pages/PayoutRecords';
@@ -285,6 +286,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="KhethaIQ">
             <KhethaIQ />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/PostHireIntelligence"
+        element={
+          <LayoutWrapper currentPageName="PostHireIntelligence">
+            <PostHireIntelligence />
           </LayoutWrapper>
         }
       />

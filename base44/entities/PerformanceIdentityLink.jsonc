@@ -1,0 +1,69 @@
+{
+  "name": "PerformanceIdentityLink",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "Canonical tenant ID for multi-tenant isolation",
+      "default": "tnt_estate_media"
+    },
+    "identity_email": {
+      "type": "string",
+      "description": "Email address used as identity key"
+    },
+    "external_employee_id": {
+      "type": "string",
+      "description": "External employee ID used as identity key"
+    },
+    "candidate_id": {
+      "type": "string",
+      "description": "HireCandidate ID this identity maps to"
+    },
+    "hire_candidate_id": {
+      "type": "string",
+      "description": "Alternate HireCandidate ID reference"
+    },
+    "sales_member_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID if mapped to a sales rep"
+    },
+    "confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether an admin confirmed this link"
+    },
+    "confirmed_by": {
+      "type": "string",
+      "description": "Who confirmed this identity link"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "identity_email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
