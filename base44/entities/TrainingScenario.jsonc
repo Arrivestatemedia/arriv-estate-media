@@ -1,0 +1,147 @@
+{
+  "name": "TrainingScenario",
+  "type": "object",
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "description": "Stable scenario identifier (e.g. 'prospect_research_do_it')"
+    },
+    "version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Scenario definition version. Bumped when steps, validation, or initial state change."
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "WATCH_IT",
+        "FOLLOW_IT",
+        "DO_IT",
+        "SOLVE_IT",
+        "ONBOARD_IT",
+        "TEACH_IT",
+        "PROVE_IT"
+      ],
+      "description": "Training level this scenario belongs to"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "role_context": {
+      "type": "string",
+      "enum": [
+        "sales_rep",
+        "customer",
+        "media_specialist",
+        "manager"
+      ],
+      "default": "sales_rep",
+      "description": "Role perspective the learner practices in"
+    },
+    "scenario_type": {
+      "type": "string",
+      "enum": [
+        "prospect_research",
+        "crm_pipeline",
+        "discovery",
+        "pricing_package",
+        "first_booking",
+        "project_lifecycle",
+        "customer_account",
+        "billing_membership",
+        "post_service_followup",
+        "media_specialist_boundary",
+        "customer_onboarding",
+        "customer_teachback",
+        "final_certification"
+      ],
+      "description": "Required scenario category"
+    },
+    "initial_state": {
+      "type": "object",
+      "description": "Initial simulated state (synthetic prospects, properties, etc.) \u2014 never real data"
+    },
+    "expected_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "expected_category": {
+            "type": "string"
+          },
+          "criticality": {
+            "type": "string",
+            "enum": [
+              "low",
+              "normal",
+              "high",
+              "critical"
+            ]
+          }
+        }
+      },
+      "description": "Actions expected during this scenario, with validation categories"
+    },
+    "validation_rules": {
+      "type": "object",
+      "description": "Rules for validating learner actions (required actions, critical failures, branching)"
+    },
+    "criticality": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "critical"
+      ],
+      "default": "normal"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "scenario_id",
+    "version",
+    "level",
+    "title",
+    "scenario_type"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

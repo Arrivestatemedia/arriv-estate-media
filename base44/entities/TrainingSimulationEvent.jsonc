@@ -1,0 +1,169 @@
+{
+  "name": "TrainingSimulationEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique event ID (session-scoped)"
+    },
+    "learner_id": {
+      "type": "string",
+      "description": "SalesTeamMember ID of the learner"
+    },
+    "learner_email": {
+      "type": "string",
+      "description": "Learner email (denormalized for display)"
+    },
+    "learner_name": {
+      "type": "string",
+      "description": "Learner full name (denormalized)"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Simulation session ID (groups events for one simulation run)"
+    },
+    "scenario_id": {
+      "type": "string",
+      "description": "TrainingScenario scenario_id"
+    },
+    "scenario_version": {
+      "type": "integer",
+      "description": "Scenario definition version executed"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "WATCH_IT",
+        "FOLLOW_IT",
+        "DO_IT",
+        "SOLVE_IT",
+        "ONBOARD_IT",
+        "TEACH_IT",
+        "PROVE_IT"
+      ]
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "sales_rep",
+        "customer",
+        "media_specialist",
+        "manager"
+      ]
+    },
+    "screen": {
+      "type": "string",
+      "description": "Simulated screen name where the action occurred"
+    },
+    "action": {
+      "type": "string",
+      "description": "Action performed by the learner"
+    },
+    "input_metadata": {
+      "type": "object",
+      "description": "Relevant input metadata (sanitized \u2014 never full PII, secrets, or production data)"
+    },
+    "before_state": {
+      "type": "object",
+      "description": "Simulated state snapshot before the action"
+    },
+    "after_state": {
+      "type": "object",
+      "description": "Simulated state snapshot after the action"
+    },
+    "expected_category": {
+      "type": "string",
+      "description": "Expected action category for this step"
+    },
+    "validation_result": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "correct",
+        "incorrect",
+        "warning",
+        "critical_failure"
+      ],
+      "default": "pending"
+    },
+    "validation_notes": {
+      "type": "string",
+      "description": "Validation explanation or coaching feedback"
+    },
+    "criticality": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "critical"
+      ],
+      "default": "normal"
+    },
+    "manager_override": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a manager overrode the validation result"
+    },
+    "manager_override_by": {
+      "type": "string",
+      "description": "Manager email who overrode the validation"
+    },
+    "manager_override_notes": {
+      "type": "string",
+      "description": "Manager override explanation"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "latency_ms": {
+      "type": "integer",
+      "description": "Action processing latency in milliseconds"
+    }
+  },
+  "required": [
+    "event_id",
+    "learner_id",
+    "session_id",
+    "scenario_id",
+    "action",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.learner_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.learner_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
