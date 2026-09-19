@@ -36,7 +36,7 @@
         "INDEPENDENT_CALLING_AUTHORIZED"
       ],
       "default": "CALLING_LOCKED",
-      "description": "Calling authorization level"
+      "description": "Calling authorization level. Automated scores do NOT authorize live work \u2014 only explicit manager authorization upgrades this."
     },
     "modules_completed": {
       "type": "array",
@@ -67,6 +67,10 @@
       ],
       "default": "PENDING"
     },
+    "knowledge_bank_version": {
+      "type": "string",
+      "description": "Version of the knowledge bank (quiz questions, critical questions, rubrics) this certification is assessed against. Bumped when questions or rubrics change."
+    },
     "final_exam_score": {
       "type": "number"
     },
@@ -79,7 +83,8 @@
       "format": "date-time"
     },
     "roleplay_score": {
-      "type": "number"
+      "type": "number",
+      "description": "Role-play rubric score (0-100). Passing: 95."
     },
     "roleplay_passed": {
       "type": "boolean",
@@ -92,8 +97,54 @@
     "roleplay_evaluator": {
       "type": "string"
     },
+    "system_crm_score": {
+      "type": "number",
+      "description": "CRM/System practical rubric score (0-100). Passing: 95."
+    },
+    "system_crm_passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "system_crm_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "system_crm_evaluator": {
+      "type": "string"
+    },
+    "onboarding_score": {
+      "type": "number",
+      "description": "Customer onboarding rubric score (0-100). Passing: 95."
+    },
+    "onboarding_passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "onboarding_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "onboarding_evaluator": {
+      "type": "string"
+    },
+    "teachback_score": {
+      "type": "number",
+      "description": "Teach-back rubric score (0-100). Passing: 95."
+    },
+    "teachback_passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "teachback_completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "teachback_evaluator": {
+      "type": "string"
+    },
     "practicum_score": {
-      "type": "number"
+      "type": "number",
+      "description": "Legacy practicum score (mapped to system_crm_score for backward compatibility)"
     },
     "practicum_passed": {
       "type": "boolean",
@@ -106,12 +157,63 @@
     "practicum_evaluator": {
       "type": "string"
     },
+    "certification_domains": {
+      "type": "object",
+      "description": "ARRIV CERTIFIED domain statuses. Each domain must be passed for full certification.",
+      "properties": {
+        "product_knowledge": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "PASSED",
+            "FAILED"
+          ],
+          "default": "PENDING"
+        },
+        "system_operation": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "PASSED",
+            "FAILED"
+          ],
+          "default": "PENDING"
+        },
+        "sales_execution": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "PASSED",
+            "FAILED"
+          ],
+          "default": "PENDING"
+        },
+        "customer_onboarding": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "PASSED",
+            "FAILED"
+          ],
+          "default": "PENDING"
+        },
+        "customer_training": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "PASSED",
+            "FAILED"
+          ],
+          "default": "PENDING"
+        }
+      }
+    },
     "critical_failures": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "List of active critical failures"
+      "description": "List of active critical failures. Any unresolved critical failure blocks certification."
     },
     "remediation_modules": {
       "type": "array",
@@ -120,13 +222,154 @@
       },
       "description": "Module IDs requiring remediation"
     },
+    "manager_coaching_notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "note_id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "enum": [
+              "general",
+              "product_knowledge",
+              "system_operation",
+              "sales_execution",
+              "customer_onboarding",
+              "customer_training",
+              "critical_failure",
+              "remediation"
+            ]
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "created_by_email": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acknowledged": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "description": "Manager coaching notes. Managers may add notes at any time (unscheduled intervention)."
+    },
+    "manager_interventions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "intervention_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "coaching",
+              "remediation_assignment",
+              "calling_lock",
+              "calling_unlock",
+              "score_override",
+              "authorization_hold",
+              "authorization_grant",
+              "suspension",
+              "restoration"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "manager_email": {
+            "type": "string"
+          },
+          "manager_name": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      },
+      "description": "Manager intervention log. Managers may intervene at any time, unscheduled."
+    },
+    "authorization_readiness": {
+      "type": "object",
+      "description": "Computed checklist of certification authorization readiness. All must be true for manager authorization.",
+      "properties": {
+        "all_modules_passed": {
+          "type": "boolean"
+        },
+        "quiz_average_met": {
+          "type": "boolean"
+        },
+        "critical_questions_all_correct": {
+          "type": "boolean"
+        },
+        "final_exam_passed": {
+          "type": "boolean"
+        },
+        "roleplay_passed": {
+          "type": "boolean"
+        },
+        "system_crm_passed": {
+          "type": "boolean"
+        },
+        "onboarding_passed": {
+          "type": "boolean"
+        },
+        "teachback_passed": {
+          "type": "boolean"
+        },
+        "no_critical_failures": {
+          "type": "boolean"
+        },
+        "no_remediation_pending": {
+          "type": "boolean"
+        },
+        "ready_for_authorization": {
+          "type": "boolean"
+        }
+      }
+    },
     "certified_at": {
       "type": "string",
       "format": "date-time"
     },
     "certified_by": {
       "type": "string",
-      "description": "Manager who authorized certification (explicit manager authorization required)"
+      "description": "Manager who authorized certification (explicit manager authorization required). Automated scores do NOT authorize."
+    },
+    "certified_domains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Product Knowledge",
+          "System Operation",
+          "Sales Execution",
+          "Customer Onboarding",
+          "Customer Training"
+        ]
+      },
+      "description": "Domains certified as part of ARRIV CERTIFIED status."
     },
     "suspended_at": {
       "type": "string",
@@ -160,5 +403,48 @@
   },
   "required": [
     "sales_member_id"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.sales_member_id": "{{user.data.sales_member_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

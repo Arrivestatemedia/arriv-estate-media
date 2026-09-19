@@ -27,12 +27,33 @@ export const CERTIFICATION_REQUIREMENTS = {
   final_exam_min_score: 95,
   final_exam_total_questions: 50,
   roleplay_min_score: 95,
-  practicum_min_score: 95,
+  system_crm_min_score: 95,
+  onboarding_min_score: 95,
+  teachback_min_score: 95,
+  practicum_min_score: 95, // legacy alias for system_crm
   min_watch_percentage: 95,
   prospect_prep_exercise_required: true,
   modules_total: 20,
   manager_authorization_required: true,
+  overall_passing_score: 95,
 } as const;
+
+// ─── Versioned Knowledge Bank ──────────────────────────────────────────────
+// Bumped when quiz questions, critical questions, or rubrics change.
+// Historical completions against older versions remain valid; new attempts
+// are assessed against the current version.
+export const KNOWLEDGE_BANK_VERSION = "KB-2026.03";
+
+export const KNOWLEDGE_BANK_CRITICAL_TOPICS = [
+  "pricing_authority",
+  "product_truth",
+  "provider_boundary",
+  "staging_boundary",
+  "discount_authority",
+  "deceptive_outreach",
+  "training_mode_isolation",
+  "authorization_requirement",
+] as const;
 
 // ─── Historical Module ID Aliases ──────────────────────────────────────────
 // Maps old mod_XX IDs to new E0–E19 IDs so historical completions are preserved.
@@ -71,16 +92,55 @@ export const PROSPECT_PREP_EXERCISE = {
 export const CRITICAL_FAILURES = [
   "material_arriv_misrepresentation",
   "invented_pricing",
+  "quoting_stale_pricing_as_authoritative",
   "unauthorized_discount",
   "false_guarantee",
   "unauthorized_turnaround_guarantee",
   "invented_service_capability",
   "deceptive_sales_behavior",
+  "deceptive_outreach",
   "serious_unprofessional_conduct",
   "critical_customer_data_crm_violation",
   "fundamental_inability_to_explain_estate_media",
   "blindly_trusting_ai_without_verification",
   "selling_unauthorized_staging",
+  "exposing_internal_provider_payout",
+  "production_side_effects_from_training_mode",
+  "bypassing_required_authorization",
+] as const;
+
+// ─── Certification Domains (ARRIV CERTIFIED) ───────────────────────────────
+export const CERTIFICATION_DOMAINS = [
+  {
+    key: "product_knowledge",
+    label: "Product Knowledge",
+    description: "E0–E3, E5: Accurate product truth, pricing authority, package/tier knowledge, provider boundary awareness.",
+    assessed_by: ["module_quizzes", "critical_questions", "final_exam"],
+  },
+  {
+    key: "system_operation",
+    label: "System Operation",
+    description: "E4: CRM navigation, pipeline management, activity logging, booking flow, editing queue awareness.",
+    assessed_by: ["system_crm_practical", "simulation_events"],
+  },
+  {
+    key: "sales_execution",
+    label: "Sales Execution",
+    description: "E6–E13: Discovery, cold calling, objections, pricing conversations, boundary classification, follow-up.",
+    assessed_by: ["roleplay", "simulation_events", "final_exam"],
+  },
+  {
+    key: "customer_onboarding",
+    label: "Customer Onboarding",
+    description: "E14, E16: New customer welcome, account access, service orientation, first-booking preparation, billing/membership setup.",
+    assessed_by: ["onboarding_practical", "simulation_events"],
+  },
+  {
+    key: "customer_training",
+    label: "Customer Training",
+    description: "E17: Training the customer to book, find deliverables, understand billing, and know where to get help.",
+    assessed_by: ["teachback_practical", "simulation_events"],
+  },
 ] as const;
 
 export const ROLEPLAY_RUBRIC = {
@@ -107,6 +167,48 @@ export const PRACTICUM_RUBRIC = {
     { key: "follow_up_execution", label: "Follow-Up Execution", points: 15 },
     { key: "crm_accuracy", label: "CRM Accuracy / Completeness", points: 15 },
     { key: "judgment_boundaries", label: "Judgment / Sales Boundaries", points: 15 },
+  ],
+} as const;
+
+// ─── CRM / System Practical Rubric (E4 System Operation) ───────────────────
+export const CRM_SYSTEM_RUBRIC = {
+  total_points: 100,
+  passing_score: 95,
+  categories: [
+    { key: "crm_navigation", label: "CRM Navigation & Data Entry", points: 20 },
+    { key: "pipeline_management", label: "Pipeline / Deal Stage Management", points: 15 },
+    { key: "activity_logging", label: "Activity Logging Accuracy", points: 15 },
+    { key: "booking_flow_execution", label: "Booking Flow Execution", points: 15 },
+    { key: "follow_up_scheduling", label: "Follow-Up Scheduling & Cadence", points: 15 },
+    { key: "system_boundaries", label: "System Boundary Awareness (no production side effects from training)", points: 20 },
+  ],
+} as const;
+
+// ─── Customer Onboarding Rubric (E14/E16) ──────────────────────────────────
+export const ONBOARDING_RUBRIC = {
+  total_points: 100,
+  passing_score: 95,
+  categories: [
+    { key: "welcome_communication", label: "Welcome Communication Quality", points: 15 },
+    { key: "account_access_setup", label: "Account Access Setup & Verification", points: 20 },
+    { key: "service_orientation", label: "Service Orientation (packages, process, SLA)", points: 20 },
+    { key: "first_booking_preparation", label: "First Booking Preparation", points: 20 },
+    { key: "billing_membership_setup", label: "Billing / Preferred Membership Setup", points: 15 },
+    { key: "support_pathway", label: "Support Pathway Communication", points: 10 },
+  ],
+} as const;
+
+// ─── Teach-Back Rubric (E17 Customer Training) ────────────────────────────
+export const TEACH_BACK_RUBRIC = {
+  total_points: 100,
+  passing_score: 95,
+  categories: [
+    { key: "accuracy", label: "Accuracy of Information Delivered", points: 25 },
+    { key: "clarity", label: "Clarity & Structure of Explanation", points: 20 },
+    { key: "booking_guidance", label: "Booking Process Guidance", points: 15 },
+    { key: "deliverables_guidance", label: "Deliverables Location & Access Guidance", points: 15 },
+    { key: "billing_guidance", label: "Billing & Membership Guidance", points: 15 },
+    { key: "support_guidance", label: "Support & Help-Seeking Guidance", points: 10 },
   ],
 } as const;
 
@@ -173,7 +275,114 @@ export function evaluateScoredAssessment(
 }
 
 /**
+ * Compute the authorization readiness checklist from a certification record.
+ * Automated scores populate this checklist, but do NOT authorize live work.
+ * Only explicit manager authorization upgrades calling_authorization and training_status.
+ */
+export function computeAuthorizationReadiness(cert: {
+  modules_passed_count?: number;
+  quiz_average_score?: number;
+  critical_questions_status?: string;
+  final_exam_passed?: boolean;
+  roleplay_passed?: boolean;
+  system_crm_passed?: boolean;
+  practicum_passed?: boolean;
+  onboarding_passed?: boolean;
+  teachback_passed?: boolean;
+  critical_failures?: string[];
+  remediation_modules?: string[];
+}): {
+  all_modules_passed: boolean;
+  quiz_average_met: boolean;
+  critical_questions_all_correct: boolean;
+  final_exam_passed: boolean;
+  roleplay_passed: boolean;
+  system_crm_passed: boolean;
+  onboarding_passed: boolean;
+  teachback_passed: boolean;
+  no_critical_failures: boolean;
+  no_remediation_pending: boolean;
+  ready_for_authorization: boolean;
+} {
+  const all_modules_passed = (cert.modules_passed_count || 0) >= CERTIFICATION_REQUIREMENTS.modules_total;
+  const quiz_average_met = (cert.quiz_average_score || 0) >= CERTIFICATION_REQUIREMENTS.module_quiz_min_score;
+  const critical_questions_all_correct = cert.critical_questions_status === "ALL_CORRECT";
+  const final_exam_passed = !!cert.final_exam_passed;
+  const roleplay_passed = !!cert.roleplay_passed;
+  // system_crm_passed: check new field, fall back to legacy practicum_passed
+  const system_crm_passed = !!(cert.system_crm_passed || cert.practicum_passed);
+  const onboarding_passed = !!cert.onboarding_passed;
+  const teachback_passed = !!cert.teachback_passed;
+  const no_critical_failures = (cert.critical_failures || []).length === 0;
+  const no_remediation_pending = (cert.remediation_modules || []).length === 0;
+
+  const ready_for_authorization =
+    all_modules_passed &&
+    quiz_average_met &&
+    critical_questions_all_correct &&
+    final_exam_passed &&
+    roleplay_passed &&
+    system_crm_passed &&
+    onboarding_passed &&
+    teachback_passed &&
+    no_critical_failures &&
+    no_remediation_pending;
+
+  return {
+    all_modules_passed,
+    quiz_average_met,
+    critical_questions_all_correct,
+    final_exam_passed,
+    roleplay_passed,
+    system_crm_passed,
+    onboarding_passed,
+    teachback_passed,
+    no_critical_failures,
+    no_remediation_pending,
+    ready_for_authorization,
+  };
+}
+
+/**
+ * Determine the certification domain statuses from a certification record.
+ */
+export function computeDomainStatuses(cert: {
+  modules_passed_count?: number;
+  quiz_average_score?: number;
+  critical_questions_status?: string;
+  final_exam_passed?: boolean;
+  roleplay_passed?: boolean;
+  system_crm_passed?: boolean;
+  practicum_passed?: boolean;
+  onboarding_passed?: boolean;
+  teachback_passed?: boolean;
+  critical_failures?: string[];
+}): Record<string, "PENDING" | "PASSED" | "FAILED"> {
+  const hasCriticalFailures = (cert.critical_failures || []).length > 0;
+  const productKnowledgePassed =
+    (cert.modules_passed_count || 0) >= CERTIFICATION_REQUIREMENTS.modules_total &&
+    (cert.quiz_average_score || 0) >= CERTIFICATION_REQUIREMENTS.module_quiz_min_score &&
+    cert.critical_questions_status === "ALL_CORRECT" &&
+    !!cert.final_exam_passed &&
+    !hasCriticalFailures;
+
+  const systemOperationPassed = !!(cert.system_crm_passed || cert.practicum_passed) && !hasCriticalFailures;
+  const salesExecutionPassed = !!cert.roleplay_passed && !hasCriticalFailures;
+  const customerOnboardingPassed = !!cert.onboarding_passed && !hasCriticalFailures;
+  const customerTrainingPassed = !!cert.teachback_passed && !hasCriticalFailures;
+
+  return {
+    product_knowledge: productKnowledgePassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
+    system_operation: systemOperationPassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
+    sales_execution: salesExecutionPassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
+    customer_onboarding: customerOnboardingPassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
+    customer_training: customerTrainingPassed ? "PASSED" : hasCriticalFailures ? "FAILED" : "PENDING",
+  };
+}
+
+/**
  * Check all certification requirements and return eligibility.
+ * Automated scores populate this — but manager authorization is still required.
  */
 export function checkCertificationEligibility(cert: {
   modules_passed_count?: number;
@@ -183,18 +392,26 @@ export function checkCertificationEligibility(cert: {
   final_exam_score?: number;
   roleplay_passed?: boolean;
   roleplay_score?: number;
+  system_crm_passed?: boolean;
+  system_crm_score?: number;
   practicum_passed?: boolean;
   practicum_score?: number;
+  onboarding_passed?: boolean;
+  onboarding_score?: number;
+  teachback_passed?: boolean;
+  teachback_score?: number;
   critical_failures?: string[];
   remediation_modules?: string[];
 }): { eligible: boolean; missing: string[] } {
   const missing: string[] = [];
-  if ((cert.modules_passed_count || 0) < 20) missing.push("All 20 modules (E0–E19) passed");
+  if ((cert.modules_passed_count || 0) < CERTIFICATION_REQUIREMENTS.modules_total) missing.push("All 20 modules (E0–E19) passed");
   if ((cert.quiz_average_score || 0) < CERTIFICATION_REQUIREMENTS.module_quiz_min_score) missing.push("Quiz average >= 95%");
-  if (cert.critical_questions_status !== "ALL_CORRECT") missing.push("All critical questions correct");
-  if (!cert.final_exam_passed) missing.push("Final exam passed");
+  if (cert.critical_questions_status !== "ALL_CORRECT") missing.push("All critical questions correct (100% required)");
+  if (!cert.final_exam_passed) missing.push("Final exam passed (>= 95%)");
   if (!cert.roleplay_passed) missing.push("Role-play passed (>= 95/100)");
-  if (!cert.practicum_passed) missing.push("Practicum passed (>= 95/100)");
+  if (!(cert.system_crm_passed || cert.practicum_passed)) missing.push("CRM/System practical passed (>= 95/100)");
+  if (!cert.onboarding_passed) missing.push("Onboarding practical passed (>= 95/100)");
+  if (!cert.teachback_passed) missing.push("Teach-back practical passed (>= 95/100)");
   if ((cert.critical_failures || []).length > 0) missing.push("No unresolved critical failures");
   if ((cert.remediation_modules || []).length > 0) missing.push("No pending remediation modules");
   return { eligible: missing.length === 0, missing };
