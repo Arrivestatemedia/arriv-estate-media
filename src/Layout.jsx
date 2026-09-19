@@ -154,6 +154,7 @@ function LayoutContent({ children, currentPageName }) {
             ? [{ label: "Editor Workspace", page: "EditorWorkspace", icon: Scissors }]
             : [{ label: "Editing Queue", page: "EditingQueuePage", icon: Scissors }]),
           { label: "Training", page: "SalesTrainingPortal", icon: Award },
+          { label: "Simulation Lab", page: "TrainingSimulation", icon: GraduationCap },
           { label: "Field Prospecting", page: "FieldProspectingPage", icon: MapPin },
           { label: "Referrals", page: "ReferralProgramPage", icon: Gift },
           { label: "Customer Success", page: "CustomerSuccessPage", icon: CheckCircle2 },
@@ -168,6 +169,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Admin Hub", page: "AdminHub", icon: LayoutDashboard },
             { label: "My Performance", page: "SalesPerformanceDashboard", icon: TrendingUp },
             { label: "Training Admin", page: "SalesTrainingAdmin", icon: Shield },
+            { label: "Simulation Lab", page: "TrainingSimulation", icon: GraduationCap },
             { label: "Discount Approvals", page: "DiscountApprovalPage", icon: Tag },
             { label: "Sales Team", page: "AdminSalesSignup", icon: FileText },
             { label: "Sales Rep Activity", page: "AdminSalesRepActivity", icon: FileText },

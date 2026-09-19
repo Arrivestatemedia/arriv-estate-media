@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { SimulationProvider, useSimulation } from "@/components/simulation/SimulationContext";
 import SimulationBanner from "@/components/simulation/SimulationBanner";
 import ScenarioRunner from "@/components/simulation/ScenarioRunner";
 import ManagerReview from "@/components/simulation/ManagerReview";
 import { SIMULATION_LEVELS, getScenariosByLevel } from "@/lib/simulationScenarios";
-import { GraduationCap, ArrowLeft, ClipboardList, Play, Lock } from "lucide-react";
+import { GraduationCap, ArrowLeft, ClipboardList, Play } from "lucide-react";
 
 function SimulationContent() {
   const { currentScenario, currentLevel, startScenario, resetScenario } = useSimulation();
