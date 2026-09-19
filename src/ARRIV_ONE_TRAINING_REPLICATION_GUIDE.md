@@ -6,34 +6,83 @@
 
 ---
 
-## 1. EXACT VISUAL DESIGN (replicate identically — same look, same pages)
+## 1. EXACT PAGE LAYOUTS (replicate the structure identically)
 
-The training system's look must be IDENTICAL in Arriv One — same colors, fonts, layout, spacing, component styling, and page structure down to the pixel.
+Copy the JSX structure, component arrangement, section order, spacing, and layout of each page exactly as it exists in the Estate Media app. The Arriv One builder must read each source file and reproduce the same layout — same sections in the same order with the same component composition.
 
-### Design Tokens
-- Page background: Cream `#FFFBF5` (light mode), `#0A0A0A` (dark mode)
-- Card backgrounds: `#FFFFFF` (light), `#1A1A1A` (dark) — SOLID, never glassmorphic/semi-transparent
-- Accent / primary active: Gold `#B8956A`
-- Accent hover: `#A68559` (light), `#C9A87B` (dark)
-- Text: `#1A1A1A` (light), `#FFFBF5` (dark)
-- Border: `rgba(184, 149, 106, 0.2)` (light), `rgba(184, 149, 106, 0.3)` (dark)
-- Headings: Serif font (Georgia / serif stack)
-- Body: Sans font (Inter)
-- Border radius: `0.5rem` default, `rounded-2xl` for cards
+### Page: SalesTrainingPortal (`src/pages/SalesTrainingPortal.jsx`)
+- Full-height page with padding (`p-4 md:p-8`), max-width `5xl` centered container
+- Page header: large bold title "Sales Training Portal" + subtitle below
+- Single child component: `<SalesTrainingContent />` which renders 3 views toggled by internal state:
 
-### Layout & Structure
-- Header: Sticky, `#1A1A1A` background, gold border-bottom, Arriv logo left, nav center, user info right
-- Nav items: Gold `#B8956A` active with `#1A1A1A` text; inactive `#FFFBF5/70` with hover `bg-[#FFFBF5]/10`
-- Cards: `rounded-2xl border border-[#B8956A]/30 bg-white`, hover lifts border to full gold + `bg-[#B8956A]/5`
-- Buttons: Gold `#B8956A` primary with `#1A1A1A` text; ghost variant for secondary
-- Badges: `bg-[#B8956A]/15 text-[#B8956A]`
-- TRAINING MODE banner: Persistent, full-width, amber/gold tone, on every simulated screen
-- Score indicators: NEVER green — amber/gold/orange/red only
+  **View 1 — Module List (default):**
+  - Section header: Award icon + "Sales Certification" heading
+  - **Certification status card** (dark `#1A1A1A` background): left side shows training status badge + calling authorization label with icon; right side shows 3-column metric grid (Modules passed count, Quiz average %, Final exam ✓/—); if critical failures exist, red-tinted alert bar appears below
+  - **Module list**: vertical stack of module cards, each card is a horizontal row: left = status icon (checkmark if passed, play if unlocked, lock if locked), center = module ID label (small) + module title (bold) + badges showing watch % and quiz score, right = "Start"/"Review" button. Locked modules are dimmed (opacity-60). Modules unlock sequentially — must pass previous to access next.
 
-### Pages (exact layout — copy JSX structure, Tailwind classes, and spacing)
-1. **SalesTrainingPortal** — Learner portal: certification status card at top (status + calling authorization + metrics + critical failures), module list with progress bars and unlock gating, video player with watch tracking, quiz interface with per-question feedback
-2. **SalesTrainingAdmin** — Admin dashboard: stats row (counts), rep roster table with progress/scores/statuses, expandable certification detail with 5-domain grid, practical score modals (roleplay, CRM, onboarding, teachback), critical failure management, coaching notes
-3. **TrainingSimulation** — Simulation lab: level selector (7 levels), scenario runner with step progress bar, TRAINING MODE banner, synthetic data UI, manager review panel with readiness checklist
+  **View 2 — Video Player:**
+  - Back button to return to list
+  - Video player with watch progress tracking (tracks unique watched segments, requires 95% watch to unlock quiz)
+  - "Continue to Quiz" button appears when watch threshold met
+
+  **View 3 — Quiz Interface:**
+  - Back button
+  - Question display with multiple choice answers
+  - Per-question feedback after submission
+  - Score calculation with pass/fail result display
+  - "Back to Modules" button after completion
+
+### Page: SalesTrainingAdmin (`src/pages/SalesTrainingAdmin.jsx`)
+- Full-height page with padding, max-width `6xl` centered
+- Header row: title "Training Admin" + subtitle on left, "Refresh" button on right
+- **3-tab navigation** (Tabs component): Dashboard | Modules | Roster
+
+  **Tab 1 — Dashboard:**
+  - Stats grid (2 cols mobile, 4 cols desktop): 8 stat cards — Total Reps, Certified, In Progress, Remediation, Awaiting Cert, Calling Locked, Calling Authorized, Roleplay Passed
+  - Certification Requirements card: 2-column grid listing all min scores (quiz 95%, critical 100%, final 95%, roleplay 95/100, practicum 95/100, video watch 95%)
+
+  **Tab 2 — Modules:**
+  - `<TrainingModuleManager />` component (admin module CRUD)
+
+  **Tab 3 — Roster:**
+  - Rep roster table: each row shows rep name/email, training status badge, calling authorization badge, modules passed count, quiz average, roleplay/practicum status
+  - Click a rep to expand certification detail: 5-domain status grid (Product Knowledge, System Operation, Sales Execution, Customer Onboarding, Customer Training — each PENDING/PASSED/FAILED), readiness checklist (10 items), practical score modals (roleplay, CRM, onboarding, teachback — each with rubric category breakdown), critical failure management, coaching notes section, authorize/hold/suspend/restore action buttons
+
+### Page: TrainingSimulation (`src/pages/TrainingSimulation.jsx`)
+- Wrapped in `<SimulationProvider>`
+- Max-width `4xl` centered with padding
+- Header: GraduationCap icon + "Training Simulation Lab" title + subtitle
+- **View toggle buttons** (3 options): "By Level" | "Module Practicals (E4–E19)" | "Manager Review" (admin only)
+
+  **View: By Level:**
+  - Horizontal scrollable level selector (7 level buttons: Watch It, Follow It, Do It, Solve It, Onboard It, Teach It, Prove It)
+  - Description box below selector showing selected level's description
+  - 2-column grid of scenario cards: each card has title + play icon, description, criticality badge (red/amber/gray) + step count
+
+  **View: Module Practicals:**
+  - Horizontal scrollable module selector (E4–E19 buttons)
+  - Module info card: module ID + title, chapter label, core flow description
+  - 2-column grid of practical type cards (Follow Me, Do It Yourself, Customer Scenario, Onboarding, Teach-Back): each has icon + label, description, and if a scenario exists — criticality badge + step count + level; if no scenario — italic "no simulation scenario" text
+
+  **View: Manager Review:**
+  - Back button
+  - `<ManagerReview />` component: readiness checklist (10 requirements with pass/fail indicators), domain status grid, simulation event log, practical score entry
+
+  **Active Scenario View (when a scenario is running):**
+  - `<SimulationBanner />` at top — persistent "TRAINING MODE" banner on every simulated screen
+  - Back to Scenarios button
+  - `<ScenarioRunner />` — step-by-step scenario execution with progress indicator, synthetic data UI, action buttons, validation feedback (correct/incorrect/warning/critical failure)
+
+### Component: SimulationBanner (`src/components/simulation/SimulationBanner.jsx`)
+- Full-width persistent banner at the top of every simulated screen
+- Shows "TRAINING MODE" label + current level + scenario title
+- Must be visible at ALL times during simulation — never hidden
+
+### Layout Rules
+- All pages use the app's existing Layout wrapper (header + nav)
+- Cards use solid backgrounds (white or `#1A1A1A`), never semi-transparent
+- Score/status indicators never use green — use amber/gold/orange/red tones
+- Icons from lucide-react only
 
 ---
 
