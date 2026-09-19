@@ -240,7 +240,7 @@ export default function SalesTrainingAdmin() {
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="text-center">
-                          <p className="text-xl font-bold text-[#1A1A1A]">{cert.modules_passed_count || 0}/13</p>
+                          <p className="text-xl font-bold text-[#1A1A1A]">{cert.modules_passed_count || 0}/20</p>
                           <p className="text-xs text-slate-400">Modules</p>
                         </div>
                         <div className="text-center">

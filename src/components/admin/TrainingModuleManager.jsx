@@ -21,9 +21,11 @@ export default function TrainingModuleManager() {
   const [editingModule, setEditingModule] = useState(null);
   const [creating, setCreating] = useState(false);
 
+  const [showArchived, setShowArchived] = useState(false);
+
   const loadModules = useCallback(async () => {
     try {
-      const mods = await base44.entities.TrainingModule.list('order', 50);
+      const mods = await base44.entities.TrainingModule.list('order', 100);
       setModules(mods || []);
     } catch (err) {
       console.error("Failed to load modules:", err);
@@ -90,32 +92,41 @@ export default function TrainingModuleManager() {
   }
 
   const sorted = [...modules].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const visible = showArchived ? sorted : sorted.filter(m => m.active !== false);
+  const activeCount = sorted.filter(m => m.active !== false).length;
+  const archivedCount = sorted.length - activeCount;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold" style={{ color: '#1A1A1A' }}>Training Modules</h2>
-          <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{sorted.length} modules • Click edit to manage content, video, and quiz questions</p>
+          <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)' }}>{activeCount} active • {archivedCount} archived • Click edit to manage content, video, and quiz questions</p>
         </div>
-        <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
-          onClick={() => setCreating(true)}>
-          <Plus className="w-4 h-4" /> Add Module
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}
+            className="border-[#B8956A]/30 text-[#B8956A]" style={{ fontSize: '0.75rem' }}>
+            {showArchived ? 'Show Active Only' : `Show Archived (${archivedCount})`}
+          </Button>
+          <Button className="gap-2" style={{ backgroundColor: '#B8956A', color: '#1A1A1A' }}
+            onClick={() => setCreating(true)}>
+            <Plus className="w-4 h-4" /> Add Module
+          </Button>
+        </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {visible.length === 0 ? (
         <Card><CardContent className="pt-8 pb-8 text-center">
           <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" style={{ color: '#B8956A' }} />
-          <p style={{ color: 'rgba(26,26,26,0.5)' }}>No modules yet. Click "Add Module" to create your first one.</p>
+          <p style={{ color: 'rgba(26,26,26,0.5)' }}>{showArchived ? 'No archived modules.' : 'No active modules.'}</p>
         </CardContent></Card>
       ) : (
-        sorted.map((mod, idx) => (
-          <Card key={mod.id} className="hover:shadow-md transition">
+        visible.map((mod, idx) => (
+          <Card key={mod.id} className={`hover:shadow-md transition ${mod.active === false ? 'opacity-60' : ''}`}>
             <CardContent className="pt-5">
               <div className="flex items-start gap-3">
                 <div className="p-2.5 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(184,149,106,0.12)' }}>
-                  <span className="text-sm font-bold" style={{ color: '#B8956A' }}>{mod.order || idx + 1}</span>
+                  <span className="text-sm font-bold" style={{ color: '#B8956A' }}>{mod.module_id || mod.order || idx + 1}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -123,7 +134,7 @@ export default function TrainingModuleManager() {
                     {mod.active ? (
                       <Badge className="bg-[#B8956A] text-[#1A1A1A]">Published</Badge>
                     ) : (
-                      <Badge className="bg-slate-200 text-slate-600">Draft</Badge>
+                      <Badge className="bg-slate-300 text-slate-500">Archived</Badge>
                     )}
                   </div>
                   <p className="text-sm mt-1" style={{ color: 'rgba(26,26,26,0.6)' }}>{mod.description || 'No description'}</p>

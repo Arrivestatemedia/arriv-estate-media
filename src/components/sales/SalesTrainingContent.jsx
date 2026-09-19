@@ -151,7 +151,7 @@ export default function SalesTrainingContent() {
                      <Lock className="w-7 h-7 text-slate-300" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs font-medium text-slate-400">Module {mod.order}</span>
+                    <span className="text-xs font-medium text-slate-400">{mod.module_id || `Module ${mod.order}`}</span>
                     <h3 className="font-semibold text-[#1A1A1A] truncate">{mod.title}</h3>
                     <div className="flex items-center gap-2 mt-1">
                       {watchComplete !== undefined && (

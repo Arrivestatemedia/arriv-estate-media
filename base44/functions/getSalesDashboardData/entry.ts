@@ -39,9 +39,9 @@ export default async function(req) {
       base44.asServiceRole.entities.Contact.filter({ sales_member_id }, '-updated_date', 500),
       // 7. Secondary contact info (for MyContacts)
       base44.asServiceRole.entities.SecondaryContactInfo.list(),
-      // 8. Training modules (for TrainingTab)
+      // 8. Training modules (for TrainingTab) — all active canonical E0–E19 modules
       base44.asServiceRole.entities.TrainingModule.filter(
-        { active: true, module_type: "sales_training" }, 'order', 50
+        { active: true }, 'order', 50
       ),
       // 9. Sales certification (for TrainingTab)
       base44.asServiceRole.entities.SalesCertification.filter({ sales_member_id }),
