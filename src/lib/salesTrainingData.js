@@ -36,8 +36,17 @@ export const COMPETENCIES = [
   "OPENING",
 ];
 
-// ─── 13 Training Modules ──────────────────────────────────────────────────
-export const TRAINING_MODULES = [
+// ─── E0–E19 Training Modules (from Estate Media Employee Training Manual & Workbook) ──
+// Canonical 20-module curriculum. See estateMediaWorkbook.js for full workbook content.
+// Historical mod_01–mod_14 completions are preserved via MODULE_ID_ALIASES.
+import { WORKBOOK_MODULES, MODULE_ID_ALIASES, resolveModuleId } from "./estateMediaWorkbook";
+
+export { MODULE_ID_ALIASES, resolveModuleId };
+export const TRAINING_MODULES = WORKBOOK_MODULES;
+export const MODULES_TOTAL = 20;
+
+// Legacy module array retained for backward compatibility — now points to E0–E19
+const _LEGACY_TRAINING_MODULES = [
   { module_id: "mod_01", order: 1, title: "Welcome to Arriv Estate Media", description: "Company overview, mission, marketplace/service model, role of sales, role of media specialists, role of customer accounts.", competency_tags: ["OPENING", "VALUE_CONNECTION"] },
   { module_id: "mod_02", order: 2, title: "What We Sell", description: "Current media-service model: photography, videography, approved combined packages. Combined photo+video jobs require a provider qualified for BOTH. Staging awareness (not currently sellable).", competency_tags: ["VALUE_CONNECTION"] },
   { module_id: "mod_03", order: 3, title: "Current Products, Packages & Pricing", description: "Canonical pricing engine: property address → sqft → tier → package → authoritative price. TIER_1 (up to 2,500 sqft): $100/$275/$475/$675. Add-ons, Preferred pricing, 10,000+ sqft custom.", competency_tags: ["VALUE_CONNECTION", "BOUNDARIES"] },
@@ -205,16 +214,18 @@ export const WORK_TYPES = [
   "FOLLOW_UP", "CRM", "POST_SERVICE_FOLLOWUP", "MEETING_COACHING", "OTHER",
 ];
 
-// ─── Training Schedule (2-week) ───────────────────────────────────────────
+// ─── Training Schedule (self-paced, E0–E19) ───────────────────────────────
+// Self-paced progression: modules are unlocked sequentially via prerequisites.
+// The 2-week schedule below is a recommended cadence, not a hard gate.
 export const TRAINING_SCHEDULE = [
-  { day: "Week 1 Monday", calling_auth: "CALLING_LOCKED", videos: ["mod_01", "mod_02", "mod_03"], activities: "Product truth; research; live 2:30-5:30" },
-  { day: "Week 1 Tuesday", calling_auth: "CALLING_LOCKED", videos: ["mod_04", "mod_05"], activities: "Research; live 3:30-5:30; first supervised calls" },
-  { day: "Week 1 Wednesday", calling_auth: "CALLING_LOCKED", videos: ["mod_06", "mod_07"], activities: "Intentional field + digital prospecting; live 12:30-1:45; 4 PM manager window" },
-  { day: "Week 1 Thursday", calling_auth: "CALLING_LOCKED", videos: ["mod_08", "mod_09"], activities: "Live 10:00-11:15 and 3:30-5:30; determine training-independent readiness" },
-  { day: "Week 2 Monday", calling_auth: "TRAINING_INDEPENDENT_CALLING_AUTHORIZED", videos: [], activities: "Independent work before 2:30; live 2:30-5:30 review/coaching" },
-  { day: "Week 2 Tuesday", calling_auth: "TRAINING_INDEPENDENT_CALLING_AUTHORIZED", videos: ["mod_11"], activities: "Independent work before 3:30; live 3:30-5:30" },
-  { day: "Week 2 Wednesday", calling_auth: "TRAINING_INDEPENDENT_CALLING_AUTHORIZED", videos: ["mod_12"], activities: "Formal Independent Sales Practicum (field + solo); review 12:30-1:45; 4 PM window" },
-  { day: "Week 2 Thursday", calling_auth: "TRAINING_INDEPENDENT_CALLING_AUTHORIZED", videos: ["mod_13"], activities: "Final exam; role-play 10:00-11:15; final review 3:30-5:30" },
+  { day: "Week 1 Monday", calling_auth: "CALLING_LOCKED", videos: ["E0", "E1", "E2"], activities: "Know It: welcome, what we sell, products & pricing; live 2:30-5:30" },
+  { day: "Week 1 Tuesday", calling_auth: "CALLING_LOCKED", videos: ["E3", "E4"], activities: "Know/Operate: who we sell to, system mastery; live 3:30-5:30; first supervised calls" },
+  { day: "Week 1 Wednesday", calling_auth: "CALLING_LOCKED", videos: ["E5", "E6"], activities: "Sell It: Arriv One CRM, sales method; intentional field + digital prospecting; live 12:30-1:45" },
+  { day: "Week 1 Thursday", calling_auth: "CALLING_LOCKED", videos: ["E7", "E8", "E9"], activities: "Sell It: prospect research, cold calling, discovery; live 10:00-11:15 and 3:30-5:30" },
+  { day: "Week 2 Monday", calling_auth: "TRAINING_INDEPENDENT_CALLING_AUTHORIZED", videos: ["E10", "E11"], activities: "Sell/Support: objection handling, follow-up & referrals; independent work before 2:30; live 2:30-5:30" },
+  { day: "Week 2 Tuesday", calling_auth: "TRAINING_INDEPENDENT_CALLING_AUTHORIZED", videos: ["E12", "E13"], activities: "Operate/Boundaries: CRM & pipeline, sales boundaries; independent work before 3:30; live 3:30-5:30" },
+  { day: "Week 2 Wednesday", calling_auth: "TRAINING_INDEPENDENT_CALLING_AUTHORIZED", videos: ["E14", "E15", "E16", "E17"], activities: "Onboard It: booking, media specialist boundary, customer onboarding, customer training; review 12:30-1:45" },
+  { day: "Week 2 Thursday", calling_auth: "TRAINING_INDEPENDENT_CALLING_AUTHORIZED", videos: ["E18", "E19"], activities: "Operational mastery + final certification; final exam; role-play 10:00-11:15; final review 3:30-5:30; manager authorization" },
 ];
 
 // ─── Certification Requirements ───────────────────────────────────────────
@@ -222,13 +233,15 @@ export const CERTIFICATION_REQUIREMENTS = {
   module_quiz_min_score: 95,
   critical_questions_required: 100,
   final_exam_min_score: 95,
-  final_exam_total_questions: 43,
-  final_exam_randomized: 35,
-  final_exam_critical: 8,
+  final_exam_total_questions: 50,
+  final_exam_randomized: 40,
+  final_exam_critical: 10,
   roleplay_min_score: 95,
   practicum_min_score: 95,
   min_watch_percentage: 95,
   prospect_prep_exercise_required: true,
+  modules_total: 20,
+  manager_authorization_required: true,
 };
 
 // ─── Prospect Preparation Exercise (Practicum Component) ─────────────────

@@ -4,17 +4,21 @@
   "properties": {
     "module_id": {
       "type": "string",
-      "description": "Stable module identifier (e.g. 'mod_01_welcome')"
+      "description": "Stable module identifier. Canonical E0\u2013E19 for the Estate Media academy. Legacy mod_01\u2013mod_14 IDs are resolved to E-IDs via the alias map."
     },
     "module_type": {
       "type": "string",
       "enum": [
         "orientation",
         "sales_training",
-        "staging_certification"
+        "staging_certification",
+        "system_mastery",
+        "customer_onboarding",
+        "customer_training",
+        "operational_mastery"
       ],
       "default": "sales_training",
-      "description": "Module type: orientation (O1-O7 sales orientation), sales_training (13-module sales certification), or staging_certification (future add-on)"
+      "description": "Module type: orientation (O1-O7 sales orientation), sales_training (E0\u2013E19 academy), staging_certification (future add-on), system_mastery (E4), customer_onboarding (E14/E16), customer_training (E17), operational_mastery (E18)"
     },
     "title": {
       "type": "string"
@@ -25,7 +29,7 @@
     "order": {
       "type": "integer",
       "default": 0,
-      "description": "Display/sequence order (1-13)"
+      "description": "Display/sequence order (0-19 for E0\u2013E19 academy)"
     },
     "video_url": {
       "type": "string",
@@ -97,7 +101,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Module IDs that must be completed before this module"
+      "description": "Module IDs that must be completed before this module (E-IDs; legacy mod_XX resolved via alias map)"
     },
     "has_assignment": {
       "type": "boolean",
@@ -114,6 +118,23 @@
         "type": "string"
       },
       "description": "Competencies covered by this module"
+    },
+    "certification_phase": {
+      "type": "string",
+      "enum": [
+        "KNOW_IT",
+        "OPERATE_IT",
+        "SELL_IT",
+        "ONBOARD_IT",
+        "TEACH_IT",
+        "SUPPORT_RELATIONSHIP"
+      ],
+      "description": "Certification progression phase from the workbook"
+    },
+    "is_critical_boundary": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this module requires 100% on critical boundary questions (E1, E2, E13, E15, E19)"
     },
     "active": {
       "type": "boolean",

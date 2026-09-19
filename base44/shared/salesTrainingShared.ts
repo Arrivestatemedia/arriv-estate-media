@@ -25,12 +25,28 @@ export const CERTIFICATION_REQUIREMENTS = {
   module_quiz_min_score: 95,
   critical_questions_required: 100,
   final_exam_min_score: 95,
-  final_exam_total_questions: 43,
+  final_exam_total_questions: 50,
   roleplay_min_score: 95,
   practicum_min_score: 95,
   min_watch_percentage: 95,
   prospect_prep_exercise_required: true,
+  modules_total: 20,
+  manager_authorization_required: true,
 } as const;
+
+// ─── Historical Module ID Aliases ──────────────────────────────────────────
+// Maps old mod_XX IDs to new E0–E19 IDs so historical completions are preserved.
+export const MODULE_ID_ALIASES: Record<string, string> = {
+  mod_01: "E0", mod_02: "E1", mod_03: "E2", mod_04: "E3",
+  mod_05: "E6", mod_06: "E7", mod_07: "E8", mod_08: "E9",
+  mod_09: "E10", mod_10: "E11", mod_11: "E5", mod_12: "E13",
+  mod_13: "E19", mod_14: "E13",
+};
+
+export function resolveModuleId(moduleId: string | undefined | null): string | undefined | null {
+  if (!moduleId) return moduleId;
+  return MODULE_ID_ALIASES[moduleId] || moduleId;
+}
 
 export const PROSPECT_PREP_EXERCISE = {
   title: "Prospect Brief Preparation Exercise",
@@ -173,7 +189,7 @@ export function checkCertificationEligibility(cert: {
   remediation_modules?: string[];
 }): { eligible: boolean; missing: string[] } {
   const missing: string[] = [];
-  if ((cert.modules_passed_count || 0) < 14) missing.push("All 14 modules passed");
+  if ((cert.modules_passed_count || 0) < 20) missing.push("All 20 modules (E0–E19) passed");
   if ((cert.quiz_average_score || 0) < CERTIFICATION_REQUIREMENTS.module_quiz_min_score) missing.push("Quiz average >= 95%");
   if (cert.critical_questions_status !== "ALL_CORRECT") missing.push("All critical questions correct");
   if (!cert.final_exam_passed) missing.push("Final exam passed");

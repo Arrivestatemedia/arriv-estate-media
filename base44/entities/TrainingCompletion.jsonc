@@ -15,7 +15,7 @@
     },
     "module_id": {
       "type": "string",
-      "description": "TrainingModule module_id"
+      "description": "TrainingModule module_id. Canonical E0\u2013E19 IDs for the current academy. Legacy mod_01\u2013mod_14 IDs are preserved and resolved to E-IDs via the MODULE_ID_ALIASES map (see estateMediaWorkbook.js / salesTrainingShared.ts). Historical completions with mod_XX IDs remain valid."
     },
     "module_version": {
       "type": "integer",

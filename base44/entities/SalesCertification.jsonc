@@ -43,7 +43,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Module IDs completed (watch + quiz passed)"
+      "description": "Module IDs completed (watch + quiz passed). E0\u2013E19 canonical IDs; legacy mod_XX IDs resolved via alias map."
     },
     "modules_passed_count": {
       "type": "integer",
@@ -51,7 +51,8 @@
     },
     "modules_total": {
       "type": "integer",
-      "default": 13
+      "default": 20,
+      "description": "Total modules in the E0\u2013E19 curriculum (20 modules)"
     },
     "quiz_average_score": {
       "type": "number",
@@ -124,7 +125,8 @@
       "format": "date-time"
     },
     "certified_by": {
-      "type": "string"
+      "type": "string",
+      "description": "Manager who authorized certification (explicit manager authorization required)"
     },
     "suspended_at": {
       "type": "string",
