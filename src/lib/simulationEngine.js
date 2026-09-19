@@ -248,6 +248,94 @@ export function simulationReducer(state, action, input, scenario) {
       newState.boundary_violation = action;
       return newState;
 
+    // E4 System Mastery
+    case "e4_review_account":
+    case "e4_review_packages":
+    case "e4_review_project":
+      return newState;
+
+    // E8 Cold Calling
+    case "e8_submit_opener":
+      newState.opener_submitted = true;
+      return newState;
+    case "e8_ask_permission":
+    case "e8_explore_backup":
+      newState.call_response_handled = true;
+      return newState;
+    case "e8_start_discovery":
+      newState.discovery_started = true;
+      newState.completed = true;
+      return newState;
+
+    // E13 Boundary Classification
+    case "e13_safe_pricing":
+    case "e13_safe_provider":
+    case "e13_safe_staging_discount":
+      newState.boundary_safe = true;
+      return newState;
+
+    // E16 Jordan Onboarding
+    case "e16_send_welcome":
+      newState.onboarding_steps = { ...state.onboarding_steps, welcome_sent: true, account_confirmed: true };
+      return newState;
+    case "e16_orient_service":
+      newState.onboarding_steps = { ...state.onboarding_steps, service_oriented: true };
+      return newState;
+    case "e16_prepare_booking_support":
+      newState.onboarding_steps = { ...state.onboarding_steps, first_booking_prepared: true, billing_explained: true, support_explained: true };
+      newState.completed = true;
+      return newState;
+
+    // E17 Jordan Customer Training
+    case "e17_submit_booking_training":
+    case "e17_submit_deliverables_training":
+    case "e17_submit_billing_help_training":
+      newState.training_steps = { ...state.training_steps, ...input };
+      return newState;
+
+    // E19 Jordan Final Certification
+    case "e19_onboard_jordan":
+      newState.cert_steps = { ...state.cert_steps, onboarded: true };
+      return newState;
+    case "e19_prepare_booking_train":
+      newState.cert_steps = { ...state.cert_steps, first_booking_prepared: true, trained: true };
+      newState.pricing_result = calculateSimPricing(newState.property?.sqft, input.package_id);
+      return newState;
+    case "e19_confirm_boundaries":
+      newState.cert_steps = { ...state.cert_steps, boundaries_confirmed: true };
+      newState.completed = true;
+      return newState;
+
+    // Customer Full Lifecycle
+    case "customer_submit_discovery":
+      newState.discovery_data = { ...state.discovery_data, ...input };
+      return newState;
+    case "customer_confirm_pricing":
+      newState.selected_package = input.package_id;
+      newState.pricing_result = calculateSimPricing(
+        newState.property?.sqft,
+        input.package_id,
+        input.add_ons || state.selected_add_ons,
+        input.preferred_active ?? state.preferred_active
+      );
+      return newState;
+    case "customer_complete_lifecycle":
+      newState.current_phase = (state.phases || []).length - 1;
+      newState.completed = true;
+      return newState;
+
+    // Provider Boundary
+    case "provider_review_qualification":
+    case "provider_review_assignment":
+      newState.current_step = (state.current_step || 0) + 1;
+      return newState;
+    case "provider_safe_boundary":
+      newState.completed = true;
+      return newState;
+    case "perform_provider_craft":
+      newState.critical_failure = action;
+      return newState;
+
     // Critical failure actions (state doesn't change, but violation is recorded)
     case "skip_video_check":
     case "create_real_prospect":

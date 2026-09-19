@@ -512,6 +512,116 @@ function MediaSpecialistViewUI({ step, dispatch, simState }) {
   );
 }
 
+// --- Customer Simulation UI (full lifecycle) ---
+function CustomerSimulationUI({ step, dispatch, simState }) {
+  const phases = simState.phases || [];
+  const currentPhase = simState.current_phase || 0;
+  const customer = simState.customer;
+  const property = simState.property;
+  const pricing = simState.pricing_result;
+
+  const phaseLabels = ["Discovery", "Pricing", "Booking", "Project", "Deliverables", "Billing", "Support", "Satisfaction", "Follow-Up"];
+
+  return (
+    <div className="space-y-4">
+      {customer && (
+        <div className="p-3 rounded-lg bg-[#B8956A]/10 border border-[#B8956A]/20">
+          <p className="font-medium text-[#1A1A1A]">{customer.name} — {customer.company}</p>
+          <p className="text-sm text-[#1A1A1A]/60">{property?.address} · {property?.sqft} sqft</p>
+        </div>
+      )}
+      <div className="flex items-center gap-1 overflow-x-auto pb-2">
+        {phaseLabels.map((label, i) => (
+          <div key={i} className="flex items-center">
+            <div className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap ${i < currentPhase ? "bg-emerald-100 text-emerald-700" : i === currentPhase ? "bg-[#B8956A] text-white" : "bg-[#1A1A1A]/5 text-[#1A1A1A]/40"}`}>
+              {i + 1}. {label}
+            </div>
+            {i < phaseLabels.length - 1 && <div className={`w-3 h-0.5 ${i < currentPhase ? "bg-emerald-300" : "bg-[#1A1A1A]/10"}`} />}
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2">
+        <div className="p-3 rounded-lg border border-[#B8956A]/20 bg-white">
+          <p className="text-sm font-medium text-[#1A1A1A] mb-1">Project Status → Deliverables → Billing → Support → Satisfaction → Follow-Up</p>
+          <p className="text-sm text-[#1A1A1A]/60">After booking, the project moves through capture, editing, and delivery. The customer receives notifications at each stage.</p>
+        </div>
+        {pricing?.status === "OK" && (
+          <div className="p-3 rounded-lg bg-[#1A1A1A] text-[#FFFBF5] text-sm">
+            <p className="font-medium">Pricing Confirmed: ${pricing.total.toFixed(2)}</p>
+            <p className="text-xs text-[#FFFBF5]/60 mt-1">Tier: {pricing.tier} · Package: ${pricing.packagePrice}</p>
+          </div>
+        )}
+        <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+          <p className="text-sm text-amber-800"><AlertTriangle className="w-4 h-4 inline mr-1" />Do NOT expose internal provider payout details to the customer.</p>
+        </div>
+        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+          <p className="text-sm text-emerald-800"><CheckCircle2 className="w-4 h-4 inline mr-1" />Satisfaction check within 1 business day. Follow-up 7–14 days later.</p>
+        </div>
+      </div>
+      <button onClick={() => dispatch(step.expected_action, {})} className="w-full py-2.5 rounded-lg bg-[#B8956A] text-white font-medium hover:bg-[#A68559] transition-colors flex items-center justify-center gap-2">
+        Complete Lifecycle <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// --- Provider Boundary UI (customer-visible provider lifecycle) ---
+function ProviderBoundaryUI({ step, dispatch, simState }) {
+  const ms = simState.media_specialist;
+  const lifecycleSteps = simState.lifecycle_steps || [];
+
+  return (
+    <div className="space-y-4">
+      {step.ui_config?.show_qualification && (
+        <div className="p-4 rounded-lg border border-[#B8956A]/20 bg-white">
+          <p className="font-medium text-[#1A1A1A] mb-2">Provider Qualification</p>
+          <p className="text-sm text-[#1A1A1A]/70 mb-2">A Media Specialist is matched based on <strong>verified capabilities</strong> and <strong>coverage area</strong>. Only verified capabilities determine job eligibility.</p>
+          {ms && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {ms.capabilities?.map(c => <span key={c} className="text-xs bg-[#B8956A]/15 text-[#B8956A] px-2 py-0.5 rounded-full">{c}</span>)}
+            </div>
+          )}
+          <p className="text-xs text-[#1A1A1A]/40 mt-2">Sales does NOT recruit providers through AO prospecting.</p>
+        </div>
+      )}
+      {step.ui_config?.show_job_board && (
+        <div className="p-4 rounded-lg border border-[#B8956A]/20 bg-white">
+          <p className="font-medium text-[#1A1A1A] mb-2">Job Board</p>
+          <p className="text-sm text-[#1A1A1A]/70">The job appears on the Job Board for qualified Media Specialists. Jobs are filtered by verified capabilities and coverage area.</p>
+        </div>
+      )}
+      {step.ui_config?.show_assignment && (
+        <div className="p-4 rounded-lg border border-[#B8956A]/20 bg-white">
+          <p className="font-medium text-[#1A1A1A] mb-2">Accepted Assignment</p>
+          <p className="text-sm text-[#1A1A1A]/70">A Media Specialist accepts the assignment. The customer is notified: assigned → on the way → on site → completed.</p>
+        </div>
+      )}
+      {step.ui_config?.show_capture && (
+        <div className="p-4 rounded-lg border border-[#B8956A]/20 bg-white">
+          <p className="font-medium text-[#1A1A1A] mb-2">On-Site Capture</p>
+          <p className="text-sm text-[#1A1A1A]/70">The Media Specialist captures photos/videos on site. Customer gets status updates at each stage.</p>
+        </div>
+      )}
+      <div className="flex items-center gap-1 overflow-x-auto pb-2">
+        {lifecycleSteps.map((s, i) => (
+          <div key={s.id} className="flex items-center">
+            <div className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap ${s.customer_visible ? "bg-[#B8956A]/15 text-[#B8956A]" : "bg-red-50 text-red-600"}`}>
+              {s.label}
+            </div>
+            {i < lifecycleSteps.length - 1 && <div className="w-3 h-0.5 bg-[#1A1A1A]/10" />}
+          </div>
+        ))}
+      </div>
+      <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+        <p className="text-sm text-red-700"><XCircle className="w-4 h-4 inline mr-1" />Payout Status is INTERNAL — not shared with the customer. Provider payout details are internal. Do not expose them.</p>
+      </div>
+      <button onClick={() => dispatch(step.expected_action, {})} className="w-full py-2.5 rounded-lg bg-[#B8956A] text-white font-medium hover:bg-[#A68559] transition-colors flex items-center justify-center gap-2">
+        Continue <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 // --- Main Renderer Switch ---
 export default function SimUIRenderer({ step }) {
   const { dispatch, simState } = useSimulation();
@@ -530,6 +640,8 @@ export default function SimUIRenderer({ step }) {
     case "lifecycle": return <LifecycleUI step={step} dispatch={dispatch} simState={simState} />;
     case "customer_view": return <CustomerViewUI step={step} dispatch={dispatch} simState={simState} />;
     case "media_specialist_view": return <MediaSpecialistViewUI step={step} dispatch={dispatch} simState={simState} />;
+    case "customer_simulation": return <CustomerSimulationUI step={step} dispatch={dispatch} simState={simState} />;
+    case "provider_boundary": return <ProviderBoundaryUI step={step} dispatch={dispatch} simState={simState} />;
     default: return <div className="text-sm text-[#1A1A1A]/40">Unknown UI type: {step.ui_type}</div>;
   }
 }
