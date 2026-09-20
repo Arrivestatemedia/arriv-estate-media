@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
 
     const emailLower = email.trim().toLowerCase();
 
-    // Use filtered queries instead of .list() to avoid loading all records
-    // Try PendingSignup first with targeted filter
+    // Try PendingSignup first with targeted filter, then fall back to full list
+    // (database filters are case-sensitive, but emails may be stored in mixed case)
     let foundPending = null;
     try {
       const pending = await base44.asServiceRole.entities.PendingSignup.filter({ email: emailLower });
@@ -42,6 +42,11 @@ Deno.serve(async (req) => {
         // Try original-case email
         const pendingOrig = await base44.asServiceRole.entities.PendingSignup.filter({ email: email });
         foundPending = (pendingOrig || []).find(u => u.email && u.email.toLowerCase() === emailLower);
+      }
+      if (!foundPending) {
+        // Fall back to full list with case-insensitive match
+        const allPending = await base44.asServiceRole.entities.PendingSignup.list();
+        foundPending = (allPending || []).find(u => u.email && u.email.toLowerCase() === emailLower);
       }
     } catch (e) { /* table may not exist */ }
 
@@ -93,7 +98,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Try User entity with targeted filter
+    // Try User entity with targeted filter, then fall back to full list
     let foundUser = null;
     try {
       const users = await base44.asServiceRole.entities.User.filter({ email: emailLower });
@@ -101,6 +106,10 @@ Deno.serve(async (req) => {
       if (!foundUser) {
         const usersOrig = await base44.asServiceRole.entities.User.filter({ email: email });
         foundUser = (usersOrig || []).find(u => u.email && u.email.toLowerCase() === emailLower);
+      }
+      if (!foundUser) {
+        const allUsers = await base44.asServiceRole.entities.User.list();
+        foundUser = (allUsers || []).find(u => u.email && u.email.toLowerCase() === emailLower);
       }
     } catch (e) { /* table may not exist */ }
 
