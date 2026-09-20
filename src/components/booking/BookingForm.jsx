@@ -10,6 +10,7 @@ import { ArrowLeft, Clock, Lock } from "lucide-react";
 import { format, isWeekend, setHours, setMinutes, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getPackagePriceForTier, getTierLabel } from "@/lib/services";
 
 const inputStyles = "";
 
@@ -36,9 +37,11 @@ const timeSlots = {
   ],
 };
 
-export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null }) {
-  const totalPrice = (selectedPackage?.price || 0) + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
-  
+export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null, propertySqft = null, pricingTier = null }) {
+  const tierPackagePrice = selectedPackage ? (getPackagePriceForTier(selectedPackage.id, pricingTier) ?? selectedPackage.price) : 0;
+  const isCustomQuote = pricingTier === "CUSTOM";
+  const totalPrice = isCustomQuote ? 0 : tierPackagePrice + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
+
   const [formData, setFormData] = useState({
     client_name: "",
     client_email: "",
@@ -54,7 +57,12 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
     add_ons: (cartAddOns || []).map(a => a.id),
     sales_member_id: lockedSalesRepId || defaultSalesRepId || editingBooking?.sales_member_id || "",
     total_price: totalPrice,
+    property_sqft: editingBooking?.property_sqft || propertySqft || null,
   });
+
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, total_price: totalPrice, property_sqft: editingBooking?.property_sqft || propertySqft || null }));
+  }, [totalPrice, propertySqft, editingBooking]);
 
   useEffect(() => {
     // Pre-fill client info from localStorage or user data
@@ -240,11 +248,18 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
                     {selectedPackage && (
                       <p className="text-lg font-semibold text-[#1A1A1A]">{selectedPackage.name}</p>
                     )}
+                    {formData.property_sqft && (
+                      <p className="text-xs text-[#1A1A1A]/50 mt-1">
+                        {formData.property_sqft.toLocaleString()} sq ft{pricingTier && pricingTier !== "CUSTOM" ? ` · ${getTierLabel(pricingTier)}` : ""}
+                      </p>
+                    )}
                   </div>
                   {requestPayAtClosing ? (
                     <p className="text-xl font-bold text-[#B8956A] italic">Pricing will be discussed</p>
+                  ) : isCustomQuote ? (
+                    <p className="text-xl font-bold text-[#B8956A] italic">Custom Quote</p>
                   ) : (
-                    <p className="text-2xl font-bold text-[#B8956A]">${formData.total_price}</p>
+                    <p className="text-2xl font-bold text-[#B8956A]">${totalPrice}</p>
                   )}
                 </div>
               </div>

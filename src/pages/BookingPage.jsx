@@ -8,9 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ChevronDown, ChevronUp, Check, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
-import { packages, addOns } from "@/lib/services";
+import { packages, addOns, determinePricingTier, getTierLabel, getPackagePriceForTier, computeTotalForTier } from "@/lib/services";
 
-function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked }) {
+function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -30,7 +30,11 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked
           )}
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-2xl font-bold text-[#B8956A]">${pkg.price}</span>
+          {isCustomQuote ? (
+            <span className="text-lg font-bold text-[#B8956A] italic">Custom Quote</span>
+          ) : (
+            <span className="text-2xl font-bold text-[#B8956A]">${displayPrice ?? pkg.price}</span>
+          )}
           {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
         </div>
       </button>
@@ -83,6 +87,11 @@ export default function BookingPage() {
   const [showPayAtClosingDialog, setShowPayAtClosingDialog] = useState(false);
   const [lockedInvite, setLockedInvite] = useState(null);
   const [salesReps, setSalesReps] = useState([]);
+  const [propertySqft, setPropertySqft] = useState("");
+
+  const pricingTier = determinePricingTier(propertySqft ? parseInt(propertySqft, 10) : null);
+  const isCustomQuote = pricingTier === "CUSTOM";
+  const tierLabel = getTierLabel(pricingTier);
 
   useEffect(() => {
     // Load active sales reps for the "Who did you work with?" dropdown
@@ -165,7 +174,8 @@ export default function BookingPage() {
     setCartAddOns(cartAddOns.filter(a => a.id !== addonId));
   };
 
-  const totalPrice = (selectedPackage?.price || 0) + cartAddOns.reduce((sum, a) => sum + a.price, 0);
+  const tierPackagePrice = selectedPackage ? (getPackagePriceForTier(selectedPackage.id, pricingTier) ?? selectedPackage.price) : 0;
+  const totalPrice = tierPackagePrice + cartAddOns.reduce((sum, a) => sum + a.price, 0);
 
   const handleSubmitBooking = async (bookingData) => {
     return new Promise((resolve) => {
@@ -192,6 +202,8 @@ export default function BookingPage() {
       cartAddOns={cartAddOns}
       addOns={addOns}
       requestPayAtClosing={requestPayAtClosing}
+      propertySqft={propertySqft ? parseInt(propertySqft, 10) : null}
+      pricingTier={pricingTier}
       onSubmit={editingBooking ? async (formData) => {
         return new Promise((resolve) => {
           requestChangesMutation.mutate({
@@ -272,6 +284,43 @@ export default function BookingPage() {
           </div>
         </div>
 
+        {/* Sqft-based pricing tier selector */}
+        <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                Property Square Footage
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={propertySqft}
+                onChange={(e) => setPropertySqft(e.target.value)}
+                className="w-full px-4 py-2.5 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A]"
+                placeholder="Enter sq ft to see tier-adjusted pricing"
+              />
+            </div>
+            <div className="text-sm text-[#1A1A1A]/60 sm:pb-3">
+              {propertySqft ? (
+                pricingTier ? (
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/30 text-[#B8956A] font-medium">
+                    {isCustomQuote ? "Custom Quote Required" : `Pricing Tier: ${tierLabel}`}
+                  </span>
+                ) : (
+                  <span className="text-[#1A1A1A]/40">Enter a valid square footage</span>
+                )
+              ) : (
+                <span className="text-[#1A1A1A]/40">Pricing shown below is for 0–2,500 sq ft</span>
+              )}
+            </div>
+          </div>
+          {isCustomQuote && (
+            <p className="text-xs text-[#1A1A1A]/60 italic mt-3">
+              Properties over 10,000 sq ft require a custom quote. Please call 678-242-9107 or add a note in your booking request.
+            </p>
+          )}
+        </div>
+
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
           {packages.map((pkg) => (
             <PackageCard
@@ -282,6 +331,8 @@ export default function BookingPage() {
               onSelect={handleSelectPackage}
               isSelected={selectedPackage?.id === pkg.id}
               isLocked={lockedInvite?.package === pkg.id}
+              displayPrice={getPackagePriceForTier(pkg.id, pricingTier)}
+              isCustomQuote={isCustomQuote}
             />
           ))}
         </div>
@@ -426,8 +477,10 @@ export default function BookingPage() {
                 <span className="text-[#1A1A1A]">{selectedPackage.name}</span>
                 {requestPayAtClosing ? (
                   <span className="font-semibold text-[#B8956A] italic">Pricing will be discussed</span>
+                ) : isCustomQuote ? (
+                  <span className="font-semibold text-[#B8956A] italic">Custom Quote</span>
                 ) : (
-                  <span className="font-semibold text-[#B8956A]">${selectedPackage.price}</span>
+                  <span className="font-semibold text-[#B8956A]">${tierPackagePrice}</span>
                 )}
               </div>
             )}

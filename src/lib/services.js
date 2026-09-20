@@ -68,9 +68,52 @@ export const addOnNames = {
   ai_staging: "AI Staging",
 };
 
+// --- Sqft-based tier pricing (mirrors the server-side mediaPricingEngine) ---
+
+export const tierPrices = [
+  { tier: "TIER_1", label: "0–2,500 sq ft", min: 0, prices: { mls_walkthrough: 100, photo_essentials: 275, photo_cinematic: 475, premium_bundle: 675 } },
+  { tier: "TIER_2", label: "2,501–3,500 sq ft", min: 2501, prices: { mls_walkthrough: 125, photo_essentials: 325, photo_cinematic: 525, premium_bundle: 750 } },
+  { tier: "TIER_3", label: "3,501–5,000 sq ft", min: 3501, prices: { mls_walkthrough: 150, photo_essentials: 375, photo_cinematic: 575, premium_bundle: 825 } },
+  { tier: "TIER_4", label: "5,001–7,500 sq ft", min: 5001, prices: { mls_walkthrough: 200, photo_essentials: 450, photo_cinematic: 650, premium_bundle: 950 } },
+  { tier: "TIER_5", label: "7,501–10,000 sq ft", min: 7501, prices: { mls_walkthrough: 275, photo_essentials: 575, photo_cinematic: 775, premium_bundle: 1100 } },
+];
+
+export function determinePricingTier(sqft) {
+  if (!sqft || sqft <= 0) return null;
+  if (sqft > 10000) return "CUSTOM";
+  for (const t of tierPrices) {
+    if (sqft >= t.min) return t.tier;
+  }
+  return null;
+}
+
+export function getTierPriceMap(tier) {
+  if (!tier || tier === "CUSTOM") return null;
+  return tierPrices.find((t) => t.tier === tier)?.prices || null;
+}
+
+export function getTierLabel(tier) {
+  if (!tier) return null;
+  if (tier === "CUSTOM") return "10,001+ sq ft (Custom Quote)";
+  return tierPrices.find((t) => t.tier === tier)?.label || null;
+}
+
+export function getPackagePriceForTier(pkgId, tier) {
+  if (!tier || tier === "CUSTOM") return null;
+  const priceMap = getTierPriceMap(tier);
+  return priceMap ? priceMap[pkgId] : null;
+}
+
 export function computeTotal(pkgId, addOnIds) {
   const pkg = packages.find((p) => p.id === pkgId);
   const pkgPrice = pkg ? pkg.price : 0;
+  const addOnPrice = (addOnIds || [])
+    .reduce((sum, id) => sum + (addOns.find((a) => a.id === id)?.price || 0), 0);
+  return pkgPrice + addOnPrice;
+}
+
+export function computeTotalForTier(pkgId, addOnIds, tier) {
+  const pkgPrice = getPackagePriceForTier(pkgId, tier) ?? (packages.find((p) => p.id === pkgId)?.price || 0);
   const addOnPrice = (addOnIds || [])
     .reduce((sum, id) => sum + (addOns.find((a) => a.id === id)?.price || 0), 0);
   return pkgPrice + addOnPrice;
