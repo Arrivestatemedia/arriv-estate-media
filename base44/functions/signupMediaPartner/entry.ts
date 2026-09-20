@@ -2,7 +2,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
-    const { email, full_name, phone_number, password, user_type, user_role } = await req.json();
+    const { email: rawEmail, full_name, phone_number, password, user_type, user_role } = await req.json();
+    const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
     if (!email || !full_name || !phone_number || !password) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });

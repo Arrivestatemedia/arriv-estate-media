@@ -4,7 +4,8 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
-        const { email, full_name, phone_number, password, user_type, user_role, invite_token } = await req.json();
+        const { email: rawEmail, full_name, phone_number, password, user_type, user_role, invite_token } = await req.json();
+        const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
         if (!email || !full_name || !phone_number || !password || !user_type) {
             return Response.json({ error: 'All fields are required' }, { status: 400 });

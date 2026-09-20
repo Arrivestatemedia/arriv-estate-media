@@ -4,14 +4,20 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
 
-        const { email, full_name, phone_number, password, user_type } = await req.json();
+        const { email: rawEmail, full_name, phone_number, password, user_type } = await req.json();
+        const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
         if (!email || !full_name || !phone_number || !password || !user_type) {
             return Response.json({ error: 'All fields are required' }, { status: 400 });
         }
 
-        // Check if user already exists
-        const existingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email });
+        // Check if user already exists (case-insensitive — emails are normalized to lowercase at signup)
+        const existingSignups = await base44.asServiceRole.entities.PendingSignup.filter({ email: email.toLowerCase() });
+        if (existingSignups.length === 0) {
+            const allPending = await base44.asServiceRole.entities.PendingSignup.list();
+            const match = (allPending || []).find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+            if (match) existingSignups.push(match);
+        }
         if (existingSignups.length > 0) {
             return Response.json({ error: 'Email already registered' }, { status: 400 });
         }
