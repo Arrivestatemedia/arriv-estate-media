@@ -7,33 +7,33 @@ import {
   computeRevenueByMarket,
 } from "../../shared/performanceEngine.ts";
 
-async function resolveAdminTenant(base44, salesMemberId) {
+async function resolveAdmin(base44, salesMemberId) {
   if (salesMemberId) {
     try {
       const m = await base44.asServiceRole.entities.SalesTeamMember.filter({ id: salesMemberId });
       if (m?.[0]?.role === "admin") {
-        return { tenantId: m[0].tenant_id || "", ok: true };
+        return { ok: true };
       }
     } catch {}
   }
   try {
     const u = await base44.auth.me();
     if (u && (u.role === "admin" || u.role === "tenant_admin")) {
-      return { tenantId: u.tenant_id || "", ok: true };
+      return { ok: true };
     }
   } catch {}
-  return { tenantId: "", ok: false };
+  return { ok: false };
 }
 
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { tenantId, ok } = await resolveAdminTenant(base44, body.sales_member_id);
+    const { ok } = await resolveAdmin(base44, body.sales_member_id);
     if (!ok) return Response.json({ error: "Admin access required" }, { status: 403 });
 
-    const data = await loadTenantData(base44, tenantId);
-    const members = await base44.asServiceRole.entities.SalesTeamMember.filter({ tenant_id: tenantId });
+    const data = await loadTenantData(base44, "tnt_estate_media");
+    const members = await base44.asServiceRole.entities.SalesTeamMember.list();
     const activeMembers = members.filter((m) => m.is_active !== false);
 
     const dailyBounds = periodBounds("daily");
