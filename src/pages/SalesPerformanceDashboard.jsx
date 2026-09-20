@@ -53,6 +53,7 @@ export default function SalesPerformanceDashboard() {
   const [repSource, setRepSource] = useState(() => localStorage.getItem('culture_banner_source') || 'bible');
   const [bannerMode, setBannerMode] = useState('manual');
   const [loadError, setLoadError] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const id = localStorage.getItem('sales_member_id');
@@ -63,6 +64,9 @@ export default function SalesPerformanceDashboard() {
     }
     setRepId(id);
     setRepName(name || '');
+    const role = localStorage.getItem('user_role') || sessionStorage.getItem('user_role');
+    const salesRole = localStorage.getItem('sales_member_role') || sessionStorage.getItem('sales_member_role');
+    setIsAdmin(role === 'admin' || salesRole === 'admin');
   }, []);
 
   const loadData = useCallback(async () => {
@@ -71,7 +75,7 @@ export default function SalesPerformanceDashboard() {
     try {
       const [perfRes, bannerRes] = await Promise.all([
         base44.functions.invoke('computeSalesPerformance', { sales_member_id: repId }),
-        base44.functions.invoke('getDailyCultureBanner', { source: repSource }),
+        base44.functions.invoke('getDailyCultureBanner', isAdmin ? { source: repSource } : {}),
       ]);
       setPerfData(perfRes.data);
       setGoals((perfRes.data?.goals || []).filter(g => !g.sales_member_id || g.sales_member_id === repId));
@@ -84,7 +88,7 @@ export default function SalesPerformanceDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [repId, repSource]);
+  }, [repId, repSource, isAdmin]);
 
   useEffect(() => {
     loadData();
@@ -242,7 +246,7 @@ Be specific and data-driven. Reference actual numbers and the score breakdown. K
                 </button>
               )}
             </div>
-            {bannerMode === 'automated' && (
+            {bannerMode === 'automated' && isAdmin && (
               <Select
                 value={repSource}
                 onValueChange={(v) => {
