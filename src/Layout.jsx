@@ -314,7 +314,7 @@ function LayoutContent({ children, currentPageName }) {
                   </Link>
                 )}
 
-            <nav className="hidden md:flex items-center gap-1 overflow-x-auto whitespace-nowrap flex-nowrap" style={{ scrollbarWidth: 'none' }}>
+            <nav className="hidden md:flex items-center gap-1 overflow-x-auto whitespace-nowrap flex-nowrap flex-1 min-w-0" style={{ scrollbarWidth: 'none' }}>
               {navItems.length > 0 && navItems.map((item) => {
                   const Icon = item.icon;
                   const active = currentPageName === item.page;
