@@ -174,6 +174,17 @@ export default function BookingPage() {
   const [sqftLookupError, setSqftLookupError] = useState(null);
   const [showManualSqft, setShowManualSqft] = useState(false);
   const [manualSqftInput, setManualSqftInput] = useState("");
+  const [payAtClosingEnabled, setPayAtClosingEnabled] = useState(false);
+
+  // Load the org-wide pay-at-closing toggle (default OFF). The backend logic
+  // stays intact; this only gates the client-facing UI.
+  useEffect(() => {
+    base44.entities.AppSetting.filter({ key: "pay_at_closing_enabled" })
+      .then(rows => {
+        if (rows && rows.length > 0) setPayAtClosingEnabled(rows[0].value === "true");
+      })
+      .catch(() => {});
+  }, []);
 
   const pricingTier = determinePricingTier(propertySqft);
   const isCustomQuote = pricingTier === "CUSTOM";
@@ -547,10 +558,12 @@ export default function BookingPage() {
           <h3 className="font-semibold text-[#1A1A1A]">Payment</h3>
           <ul className="space-y-2 text-sm text-[#1A1A1A]/70">
             <li>• Standard invoicing upon delivery</li>
-            <li>
-              • <strong>Pay-at-closing available upon request</strong> (settled as a small
-              percentage of the final sale price)
-            </li>
+            {payAtClosingEnabled && (
+              <li>
+                • <strong>Pay-at-closing available upon request</strong> (settled as a small
+                percentage of the final sale price)
+              </li>
+            )}
             <li>
               • <strong>Availability is limited and scheduled on a first-come basis.</strong>
             </li>
@@ -601,7 +614,7 @@ export default function BookingPage() {
           </div>
         )}
 
-        {(selectedPackage || cartAddOns.length > 0) && (
+        {payAtClosingEnabled && (selectedPackage || cartAddOns.length > 0) && (
           <div className="flex items-center justify-center gap-2 mt-8 mb-4">
             <input
               type="checkbox"
@@ -619,7 +632,7 @@ export default function BookingPage() {
         <div className="text-center mt-4">
           <Button
             onClick={() => {
-              if (requestPayAtClosing) {
+              if (payAtClosingEnabled && requestPayAtClosing) {
                 setShowPayAtClosingDialog(true);
               } else {
                 setShowBookingForm(true);
