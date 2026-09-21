@@ -59,7 +59,7 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked
               {/* Sqft-based pricing lookup tucked into each package */}
               <div className="mt-4 pt-4 border-t border-[#1A1A1A]/10">
                 <p className="text-xs text-[#1A1A1A]/70 mb-3">
-                  Includes properties up to 2,500 sq. ft. Enter the property address to see exact pricing for this package.
+                  <strong>Includes properties up to 2,500 sq. ft.</strong> Enter the property address to see exact pricing for this package.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
