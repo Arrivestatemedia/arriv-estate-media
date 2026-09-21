@@ -10,7 +10,7 @@ import { ArrowLeft, Clock, Lock } from "lucide-react";
 import { format, isWeekend, setHours, setMinutes, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getPackagePriceForTier, getTierLabel } from "@/lib/services";
+import { getPackagePriceForTier, getTierLabel, determinePricingTier } from "@/lib/services";
 
 const inputStyles = "";
 
@@ -38,8 +38,17 @@ const timeSlots = {
 };
 
 export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null, propertySqft = null, pricingTier = null, propertyAddress = null }) {
-  const tierPackagePrice = selectedPackage ? (getPackagePriceForTier(selectedPackage.id, pricingTier) ?? selectedPackage.price) : 0;
-  const isCustomQuote = pricingTier === "CUSTOM";
+  // Local sqft lookup state — used when the client didn't look up the address
+  // on the previous page and enters it directly here.
+  const [localSqft, setLocalSqft] = useState(null);
+  const [localTier, setLocalTier] = useState(null);
+  const [sqftLookingUp, setSqftLookingUp] = useState(false);
+
+  const effectiveTier = pricingTier || localTier;
+  const effectiveSqft = propertySqft || localSqft;
+
+  const tierPackagePrice = selectedPackage ? (getPackagePriceForTier(selectedPackage.id, effectiveTier) ?? selectedPackage.price) : 0;
+  const isCustomQuote = effectiveTier === "CUSTOM";
   const totalPrice = isCustomQuote ? 0 : tierPackagePrice + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
 
   const [formData, setFormData] = useState({
@@ -64,10 +73,40 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
     setFormData(prev => ({
       ...prev,
       total_price: totalPrice,
-      property_sqft: editingBooking?.property_sqft || propertySqft || null,
+      property_sqft: editingBooking?.property_sqft || effectiveSqft || null,
       street_address: editingBooking?.street_address || prev.street_address || propertyAddress || "",
     }));
-  }, [totalPrice, propertySqft, propertyAddress, editingBooking]);
+  }, [totalPrice, effectiveSqft, propertyAddress, editingBooking]);
+
+  // Auto-lookup sqft when the client enters the full address here and didn't
+  // already look it up on the previous page. Debounced so we only fire once
+  // the user pauses typing.
+  useEffect(() => {
+    if (propertySqft || editingBooking?.property_sqft) return;
+    const street = formData.street_address?.trim();
+    const city = formData.city?.trim();
+    const state = formData.state?.trim();
+    if (!street || !city || !state) return;
+
+    const fullAddress = `${street}, ${city}, ${state}`;
+    const timer = setTimeout(async () => {
+      setSqftLookingUp(true);
+      try {
+        const res = await base44.functions.invoke('lookupPropertySqft', { address: fullAddress, lookup_by: 'client_booking_form' });
+        const result = res?.data?.property || res?.property;
+        if (result?.property_sqft) {
+          setLocalSqft(result.property_sqft);
+          setLocalTier(determinePricingTier(result.property_sqft));
+        }
+      } catch (err) {
+        // Silent failure — base price remains in effect.
+      } finally {
+        setSqftLookingUp(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [formData.street_address, formData.city, formData.state, propertySqft, editingBooking]);
 
   useEffect(() => {
     // Pre-fill client info from localStorage or user data
@@ -253,10 +292,13 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
                     {selectedPackage && (
                       <p className="text-lg font-semibold text-[#1A1A1A]">{selectedPackage.name}</p>
                     )}
-                    {formData.property_sqft && (
+                    {effectiveSqft && (
                       <p className="text-xs text-[#1A1A1A]/50 mt-1">
-                        {formData.property_sqft.toLocaleString()} sq ft{pricingTier && pricingTier !== "CUSTOM" ? ` · ${getTierLabel(pricingTier)}` : ""}
+                        {effectiveSqft.toLocaleString()} sq ft{effectiveTier && effectiveTier !== "CUSTOM" ? ` · ${getTierLabel(effectiveTier)}` : ""}
                       </p>
+                    )}
+                    {sqftLookingUp && !effectiveSqft && (
+                      <p className="text-xs text-[#B8956A] mt-1 italic">Looking up property pricing…</p>
                     )}
                   </div>
                   {requestPayAtClosing ? (
