@@ -7,6 +7,7 @@ import AdminChatBubble from "@/components/admin/AdminChatBubble";
 import AdminDashboardGrid from "@/components/admin/AdminDashboardGrid";
 import ContactReassignmentSettingToggle from "@/components/sales/ContactReassignmentSettingToggle";
 import PayAtClosingSettingToggle from "@/components/admin/PayAtClosingSettingToggle";
+import CustomerLifecyclePricingControl from "@/components/admin/CustomerLifecyclePricingControl";
 import ProfilePictureUpload from "@/components/sales/ProfilePictureUpload";
 import PoweredByFooter from "@/components/PoweredByFooter";
 import EditMyProfileModal from "@/components/sales/EditMyProfileModal";
@@ -387,6 +388,7 @@ export default function AdminHub() {
                   onToggle={setPayAtClosingEnabled}
                 />
               </div>
+              <CustomerLifecyclePricingControl />
             </div>
             <AdminDashboardGrid />
           </TabsContent>

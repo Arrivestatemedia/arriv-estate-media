@@ -1,0 +1,87 @@
+{
+  "name": "CustomerTenureProfile",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Customer email (lowercase). Primary lookup key. Unique per customer."
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Customer name (denormalized for display)"
+    },
+    "contact_id": {
+      "type": "string",
+      "description": "Contact entity ID if the customer exists in the CRM"
+    },
+    "tenure_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Immutable: the delivery date of the customer's first successfully completed, delivered, and paid service. Established once and never reset \u2014 not by inactivity, cancellations, later bookings, membership changes, or package changes."
+    },
+    "tenure_basis_job_id": {
+      "type": "string",
+      "description": "The Job ID that established the tenure start date"
+    },
+    "tenure_basis_invoice_id": {
+      "type": "string",
+      "description": "The Invoice ID that confirmed payment for the basis job"
+    },
+    "established_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this tenure profile was first established"
+    },
+    "review_flag": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when tenure could not be reliably determined. The customer is charged the canonical base price (no lifecycle adjustment) until an admin reviews and resolves."
+    },
+    "review_reason": {
+      "type": "string",
+      "description": "Why tenure could not be determined (e.g. 'no completed+delivered+paid jobs found', 'ambiguous customer identity')"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When an admin resolved a review flag (if applicable)"
+    },
+    "resolved_by": {
+      "type": "string",
+      "description": "Admin who resolved the review flag"
+    }
+  },
+  "required": [
+    "client_email",
+    "tenure_start_date"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

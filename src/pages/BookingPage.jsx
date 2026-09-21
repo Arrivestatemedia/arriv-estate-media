@@ -175,6 +175,7 @@ export default function BookingPage() {
   const [showManualSqft, setShowManualSqft] = useState(false);
   const [manualSqftInput, setManualSqftInput] = useState("");
   const [payAtClosingEnabled, setPayAtClosingEnabled] = useState(false);
+  const [displayPricing, setDisplayPricing] = useState(null);
 
   // Load the org-wide pay-at-closing toggle (default OFF). The backend logic
   // stays intact; this only gates the client-facing UI.
@@ -182,6 +183,19 @@ export default function BookingPage() {
     base44.entities.AppSetting.filter({ key: "pay_at_closing_enabled" })
       .then(rows => {
         if (rows && rows.length > 0) setPayAtClosingEnabled(rows[0].value === "true");
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch the customer's tenure-adjusted display prices so the already-adjusted
+  // price is shown everywhere package pricing is displayed — never a surprise
+  // surcharge at checkout. Falls back to canonical prices if the call fails.
+  useEffect(() => {
+    const clientEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email') || '';
+    base44.functions.invoke('getCustomerDisplayPricing', { client_email: clientEmail, property_sqft: null })
+      .then(res => {
+        const data = res?.data;
+        if (data?.success) setDisplayPricing(data);
       })
       .catch(() => {});
   }, []);
@@ -307,7 +321,17 @@ export default function BookingPage() {
     setCartAddOns(cartAddOns.filter(a => a.id !== addonId));
   };
 
-  const tierPackagePrice = selectedPackage ? (getPackagePriceForTier(selectedPackage.id, pricingTier) ?? selectedPackage.price) : 0;
+  // Use tenure-adjusted package price when available; fall back to tier/canonical price.
+  const getAdjustedPackagePriceDollars = (pkgId) => {
+    if (displayPricing?.adjusted_package_prices?.[pkgId] != null) {
+      return displayPricing.adjusted_package_prices[pkgId] / 100;
+    }
+    return getPackagePriceForTier(pkgId, pricingTier) ?? packages.find(p => p.id === pkgId)?.price ?? 0;
+  };
+
+  const lifecycleAdjustmentDollars = displayPricing?.customer_tenure?.adjustment_dollars || 0;
+
+  const tierPackagePrice = selectedPackage ? getAdjustedPackagePriceDollars(selectedPackage.id) : 0;
   const totalPrice = tierPackagePrice + cartAddOns.reduce((sum, a) => sum + a.price, 0);
 
   const handleSubmitBooking = async (bookingData) => {
@@ -338,6 +362,8 @@ export default function BookingPage() {
       propertySqft={propertySqft}
       pricingTier={pricingTier}
       propertyAddress={propertyAddress}
+      adjustedPackagePrice={selectedPackage ? getAdjustedPackagePriceDollars(selectedPackage.id) : null}
+      lifecycleAdjustmentDollars={lifecycleAdjustmentDollars}
       onSubmit={editingBooking ? async (formData) => {
         return new Promise((resolve) => {
           requestChangesMutation.mutate({
@@ -398,6 +424,27 @@ export default function BookingPage() {
           </div>
         )}
         <div className="text-center mb-12">
+          {displayPricing?.customer_tenure && !displayPricing.customer_tenure.review_flag && lifecycleAdjustmentDollars > 0 && (
+            <div className="mb-6 rounded-lg border border-[#B8956A]/30 bg-[#B8956A]/5 p-4 text-left">
+              <p className="text-sm font-semibold text-[#B8956A]">
+                Loyalty Pricing Active — {displayPricing.customer_tenure.band_label}
+              </p>
+              <p className="text-xs text-[#1A1A1A]/70 mt-1">
+                As a returning customer, your package prices reflect your tenure with us
+                (+${lifecycleAdjustmentDollars.toFixed(2)} per service). Add-on prices remain at standard rates.
+              </p>
+            </div>
+          )}
+          {displayPricing?.customer_tenure?.review_flag && (
+            <div className="mb-6 rounded-lg border border-[#B8956A]/20 bg-white p-4 text-left">
+              <p className="text-sm font-semibold text-[#1A1A1A]/80">
+                Welcome{displayPricing.client_email ? ` back` : ''}!
+              </p>
+              <p className="text-xs text-[#1A1A1A]/60 mt-1">
+                Standard pricing is shown below. Your account is being reviewed for loyalty pricing eligibility.
+              </p>
+            </div>
+          )}
           <h1 className="text-4xl md:text-5xl font-bold text-[#1A1A1A] mb-4">
             TRANSPARENT PRICING FOR PROFESSIONAL REAL ESTATE MEDIA
           </h1>
@@ -428,7 +475,7 @@ export default function BookingPage() {
               onSelect={handleSelectPackage}
               isSelected={selectedPackage?.id === pkg.id}
               isLocked={lockedInvite?.package === pkg.id}
-              displayPrice={getPackagePriceForTier(pkg.id, pricingTier)}
+              displayPrice={getAdjustedPackagePriceDollars(pkg.id)}
               isCustomQuote={isCustomQuote}
               tierLabel={tierLabel}
               propertyAddress={propertyAddress}

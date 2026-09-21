@@ -1,0 +1,59 @@
+{
+  "name": "CustomerLifecyclePricingConfig",
+  "type": "object",
+  "properties": {
+    "config_version": {
+      "type": "string",
+      "description": "Unique version identifier (e.g. AEM_LIFECYCLE_PRICING_V1)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this is the currently active lifecycle pricing configuration"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this config version became effective. Config changes only affect NEW pricing snapshots; historical snapshots are immutable."
+    },
+    "config_json": {
+      "type": "string",
+      "description": "Full canonical JSON of the lifecycle pricing rules: introductory_duration_months, first_adjustment_cents, recurring_annual_adjustment_cents, future_adjustments_enabled, tenure_basis."
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Admin who created/activated this config version"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "config_version",
+    "is_active",
+    "config_json"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

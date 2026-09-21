@@ -37,7 +37,7 @@ const timeSlots = {
   ],
 };
 
-export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null, propertySqft = null, pricingTier = null, propertyAddress = null }) {
+export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null, propertySqft = null, pricingTier = null, propertyAddress = null, adjustedPackagePrice = null, lifecycleAdjustmentDollars = 0 }) {
   // Local sqft lookup state — used when the client didn't look up the address
   // on the previous page and enters it directly here.
   const [localSqft, setLocalSqft] = useState(null);

@@ -3,6 +3,7 @@ import { calculateMediaPricing } from "../../shared/mediaPricingEngine.ts";
 import { calculateMediaCompensation } from "../../shared/mediaCompensationEngine.ts";
 import { getActivePricingConfig, getActiveCompensationConfig } from "../../shared/mediaConfigLoader.ts";
 import { getRequiredCapabilities } from "../../shared/mediaCapabilities.ts";
+import { getActiveLifecycleConfig, resolveTenureStart } from "../../shared/customerLifecycleEngine.ts";
 
 // ============================================================================
 // calculateFullMediaPricing — THE canonical entry point for all booking paths.
@@ -43,8 +44,15 @@ export default async function (req) {
     // 1. Load configs
     const pricingConfig = await getActivePricingConfig(base44);
     const compensationConfig = await getActiveCompensationConfig(base44);
+    const lifecycleConfig = await getActiveLifecycleConfig(base44);
 
-    // 2. Calculate authoritative pricing
+    // 1b. Resolve customer tenure start date (immutable once established)
+    const customerEmail = contact_email || body.client_email || "";
+    const tenureResolution = customerEmail
+      ? await resolveTenureStart(base44, customerEmail)
+      : { tenure_start_date: null, tenure_basis_job_id: "", review_flag: !customerEmail, review_reason: "No customer email provided" };
+
+    // 2. Calculate authoritative pricing (with lifecycle adjustment applied to package price)
     const pricingResult = calculateMediaPricing(pricingConfig, {
       package_id,
       property_sqft: property_sqft || null,
@@ -52,6 +60,9 @@ export default async function (req) {
       preferred_active: preferred_active || false,
       approved_discount_amount: approved_discount_amount || 0,
       referral_tender_amount: referral_tender_amount || 0,
+      tenure_start_date: tenureResolution.tenure_start_date,
+      lifecycle_config: lifecycleConfig,
+      pricing_as_of: new Date().toISOString(),
     });
 
     if (pricingResult.status !== "OK") {
@@ -126,6 +137,13 @@ export default async function (req) {
           customer_service_total: pricingResult.customer_service_total,
           payment_amount_due: pricingResult.payment_amount_due,
           payment_timing: payment_timing || "pay_up_front",
+          customer_tenure_start_date: pricingResult.customer_tenure_start_date || "",
+          customer_tenure_band: pricingResult.customer_tenure_band || "",
+          customer_tenure_band_label: pricingResult.customer_tenure_band_label || "",
+          lifecycle_adjustment_cents: pricingResult.lifecycle_adjustment_cents || 0,
+          lifecycle_config_version: pricingResult.lifecycle_config_version || "",
+          tenure_review_flag: tenureResolution.review_flag || false,
+          tenure_review_reason: tenureResolution.review_reason || "",
           sales_member_id: sales_member_id || "",
           sales_compensation_rule: compensationResult.sales_compensation_rule,
           sales_compensation_amount: compensationResult.sales_commission,

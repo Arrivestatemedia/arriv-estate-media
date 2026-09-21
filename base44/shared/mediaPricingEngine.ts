@@ -23,6 +23,7 @@ import {
   subtractCents,
 } from "./moneyUtils.ts";
 import { determinePricingTier } from "./propertyDataProvider.ts";
+import { computeTenureBand, LifecyclePricingConfig, DEFAULT_LIFECYCLE_CONFIG } from "./customerLifecycleEngine.ts";
 
 // --- Versioned Configuration Types ---
 
@@ -70,6 +71,10 @@ export interface PricingInput {
   preferred_active: boolean;
   approved_discount_amount: number; // in DOLLARS (from approved DiscountApproval)
   referral_tender_amount: number; // in DOLLARS (from referral wallet)
+  // Customer lifecycle tenure (optional — null/omitted means no adjustment)
+  tenure_start_date: string | null; // ISO date of first completed+delivered+paid service
+  lifecycle_config: LifecyclePricingConfig | null; // active lifecycle rules
+  pricing_as_of: string | null; // ISO timestamp for tenure calc (defaults to now)
 }
 
 // --- Pricing Result ---
@@ -93,6 +98,13 @@ export interface PricingResult {
   // Breakdown detail
   selected_add_ons: { id: string; name: string; price: number }[];
   preferred_savings_display: number; // for "Save $X" display
+
+  // Customer lifecycle adjustment (applied to package price only, not add-ons)
+  customer_tenure_start_date: string | null;
+  customer_tenure_band: string; // "INTRODUCTORY", "TIER_1", ..., "UNDETERMINED"
+  customer_tenure_band_label: string;
+  lifecycle_adjustment_cents: number; // added to the package price
+  lifecycle_config_version: string;
 }
 
 // --- The Engine ---
@@ -101,7 +113,7 @@ export function calculateMediaPricing(
   config: MediaPricingConfig,
   input: PricingInput
 ): PricingResult {
-  const { package_id, property_sqft, add_on_ids, preferred_active, approved_discount_amount, referral_tender_amount } = input;
+  const { package_id, property_sqft, add_on_ids, preferred_active, approved_discount_amount, referral_tender_amount, tenure_start_date, lifecycle_config, pricing_as_of } = input;
 
   // 1. Determine tier (default to TIER_1 when sqft not yet available — matches legacy flat prices)
   const tier = property_sqft == null ? "TIER_1" : determinePricingTier(property_sqft);
@@ -133,7 +145,19 @@ export function calculateMediaPricing(
   if (packagePriceDollars == null) {
     return { ...emptyResult(config.pricing_version, package_id, tier), status: "INVALID_INPUT" };
   }
-  const packagePriceCents = dollarsToCents(packagePriceDollars);
+  const basePackagePriceCents = dollarsToCents(packagePriceDollars);
+
+  // 2b. Apply customer lifecycle adjustment to the PACKAGE price only.
+  // This flows through Preferred discount, approved discount, and CSV.
+  // Add-ons are NEVER adjusted by lifecycle.
+  const lifecycleConfig = lifecycle_config || DEFAULT_LIFECYCLE_CONFIG;
+  const tenureResult = computeTenureBand(
+    tenure_start_date || null,
+    pricing_as_of || new Date().toISOString(),
+    lifecycleConfig
+  );
+  const lifecycleAdjustmentCents = tenureResult.adjustment_cents;
+  const packagePriceCents = addCents(basePackagePriceCents, lifecycleAdjustmentCents);
 
   // 3. Sum add-on prices
   const selectedAddOns = (add_on_ids || [])
@@ -189,6 +213,11 @@ export function calculateMediaPricing(
       price: dollarsToCents(a.customer_price),
     })),
     preferred_savings_display: preferredDiscountCents,
+    customer_tenure_start_date: tenureResult.tenure_start_date,
+    customer_tenure_band: tenureResult.band,
+    customer_tenure_band_label: tenureResult.band_label,
+    lifecycle_adjustment_cents: lifecycleAdjustmentCents,
+    lifecycle_config_version: lifecycleConfig.config_version,
   };
 }
 
@@ -208,6 +237,11 @@ function emptyResult(version: string, packageId: string, tier: string): PricingR
     payment_amount_due: 0,
     selected_add_ons: [],
     preferred_savings_display: 0,
+    customer_tenure_start_date: null,
+    customer_tenure_band: "UNDETERMINED",
+    customer_tenure_band_label: "",
+    lifecycle_adjustment_cents: 0,
+    lifecycle_config_version: "",
   };
 }
 

@@ -49,7 +49,7 @@
     },
     "property_adjusted_package_price": {
       "type": "integer",
-      "description": "Package price after property-size adjustment, in CENTS"
+      "description": "Package price after property-size AND customer-lifecycle adjustment, in CENTS"
     },
     "selected_add_ons": {
       "type": "array",
@@ -114,6 +114,37 @@
         "pay_at_closing"
       ],
       "description": "Payment timing selection"
+    },
+    "customer_tenure_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The customer's immutable tenure start date (delivery date of first completed+delivered+paid service). Empty if tenure was undetermined."
+    },
+    "customer_tenure_band": {
+      "type": "string",
+      "description": "The tenure band at time of pricing: INTRODUCTORY, TIER_1, TIER_2, ..., UNDETERMINED"
+    },
+    "customer_tenure_band_label": {
+      "type": "string",
+      "description": "Human-readable tenure band label for audit display"
+    },
+    "lifecycle_adjustment_cents": {
+      "type": "integer",
+      "default": 0,
+      "description": "Customer lifecycle adjustment applied to the package price, in CENTS. Applied to the core package price only \u2014 never to add-ons."
+    },
+    "lifecycle_config_version": {
+      "type": "string",
+      "description": "The CustomerLifecyclePricingConfig version used for this snapshot. Historical snapshots are immutable and never recalculate when config changes."
+    },
+    "tenure_review_flag": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when tenure could not be reliably determined. The customer was charged the canonical base price (no lifecycle adjustment) and the account is flagged for admin review."
+    },
+    "tenure_review_reason": {
+      "type": "string",
+      "description": "Why tenure could not be determined (when review_flag is true)"
     },
     "sales_member_id": {
       "type": "string",
