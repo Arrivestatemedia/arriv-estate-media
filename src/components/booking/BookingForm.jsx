@@ -37,7 +37,7 @@ const timeSlots = {
   ],
 };
 
-export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null, propertySqft = null, pricingTier = null }) {
+export default function BookingForm({ selectedPackage, cartAddOns, addOns, requestPayAtClosing, onSubmit, onCancel, isEditing, editingBooking, salesReps = [], lockedSalesRepId = null, lockedSalesRepName = null, defaultSalesRepId = null, propertySqft = null, pricingTier = null, propertyAddress = null }) {
   const tierPackagePrice = selectedPackage ? (getPackagePriceForTier(selectedPackage.id, pricingTier) ?? selectedPackage.price) : 0;
   const isCustomQuote = pricingTier === "CUSTOM";
   const totalPrice = isCustomQuote ? 0 : tierPackagePrice + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
@@ -46,7 +46,7 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
     client_name: "",
     client_email: "",
     client_phone: "",
-    street_address: editingBooking?.street_address || "",
+    street_address: editingBooking?.street_address || propertyAddress || "",
     city: editingBooking?.city || "",
     state: editingBooking?.state || "",
     preferred_date: editingBooking?.preferred_date || null,
@@ -61,8 +61,13 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
   });
 
   useEffect(() => {
-    setFormData(prev => ({ ...prev, total_price: totalPrice, property_sqft: editingBooking?.property_sqft || propertySqft || null }));
-  }, [totalPrice, propertySqft, editingBooking]);
+    setFormData(prev => ({
+      ...prev,
+      total_price: totalPrice,
+      property_sqft: editingBooking?.property_sqft || propertySqft || null,
+      street_address: editingBooking?.street_address || prev.street_address || propertyAddress || "",
+    }));
+  }, [totalPrice, propertySqft, propertyAddress, editingBooking]);
 
   useEffect(() => {
     // Pre-fill client info from localStorage or user data

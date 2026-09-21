@@ -5,7 +5,7 @@ import { createPageUrl } from "../utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChevronDown, ChevronUp, Check, Lock } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, Lock, Search, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
 import { packages, addOns, determinePricingTier, getTierLabel, getPackagePriceForTier, computeTotalForTier } from "@/lib/services";
@@ -87,11 +87,49 @@ export default function BookingPage() {
   const [showPayAtClosingDialog, setShowPayAtClosingDialog] = useState(false);
   const [lockedInvite, setLockedInvite] = useState(null);
   const [salesReps, setSalesReps] = useState([]);
-  const [propertySqft, setPropertySqft] = useState("");
+  const [propertyAddress, setPropertyAddress] = useState("");
+  const [propertySqft, setPropertySqft] = useState(null);
+  const [sqftSource, setSqftSource] = useState(null);
+  const [sqftLookingUp, setSqftLookingUp] = useState(false);
+  const [sqftLookupError, setSqftLookupError] = useState(null);
+  const [showManualSqft, setShowManualSqft] = useState(false);
+  const [manualSqftInput, setManualSqftInput] = useState("");
 
-  const pricingTier = determinePricingTier(propertySqft ? parseInt(propertySqft, 10) : null);
+  const pricingTier = determinePricingTier(propertySqft);
   const isCustomQuote = pricingTier === "CUSTOM";
   const tierLabel = getTierLabel(pricingTier);
+
+  const handleLookupSqft = async () => {
+    if (!propertyAddress.trim()) return;
+    setSqftLookingUp(true);
+    setSqftLookupError(null);
+    try {
+      const res = await base44.functions.invoke('lookupPropertySqft', { address: propertyAddress, lookup_by: 'client_booking' });
+      const result = res?.data?.property || res?.property;
+      if (result?.property_sqft) {
+        setPropertySqft(result.property_sqft);
+        setSqftSource(result.property_sqft_source || 'provider');
+        setShowManualSqft(false);
+      } else {
+        // Provider couldn't determine sqft — offer manual entry
+        setShowManualSqft(true);
+        setSqftSource(null);
+      }
+    } catch (err) {
+      setSqftLookupError('Could not look up property. Enter sq ft manually.');
+      setShowManualSqft(true);
+    } finally {
+      setSqftLookingUp(false);
+    }
+  };
+
+  const handleManualSqftSet = () => {
+    const val = parseInt(manualSqftInput, 10);
+    if (val > 0) {
+      setPropertySqft(val);
+      setSqftSource('manual_customer');
+    }
+  };
 
   useEffect(() => {
     // Load active sales reps for the "Who did you work with?" dropdown
@@ -202,8 +240,9 @@ export default function BookingPage() {
       cartAddOns={cartAddOns}
       addOns={addOns}
       requestPayAtClosing={requestPayAtClosing}
-      propertySqft={propertySqft ? parseInt(propertySqft, 10) : null}
+      propertySqft={propertySqft}
       pricingTier={pricingTier}
+      propertyAddress={propertyAddress}
       onSubmit={editingBooking ? async (formData) => {
         return new Promise((resolve) => {
           requestChangesMutation.mutate({
@@ -285,35 +324,91 @@ export default function BookingPage() {
         </div>
 
         {/* Sqft-based pricing tier selector */}
-        <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 mb-8">
+        <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 mb-4">
+          <p className="text-sm text-[#1A1A1A]/70 mb-4">
+            <strong>This pricing is up to 2,500 sq ft.</strong> Final pricing is contingent upon the
+            square footage of the property. Enter your property address to see exact pricing.
+          </p>
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
-                Property Square Footage
+                Property Address
               </label>
-              <input
-                type="number"
-                min="0"
-                value={propertySqft}
-                onChange={(e) => setPropertySqft(e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A]"
-                placeholder="Enter sq ft to see tier-adjusted pricing"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={propertyAddress}
+                  onChange={(e) => setPropertyAddress(e.target.value)}
+                  className="flex-1 px-4 py-2.5 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A]"
+                  placeholder="Enter your property address"
+                />
+                <Button
+                  onClick={handleLookupSqft}
+                  disabled={!propertyAddress.trim() || sqftLookingUp}
+                  className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white px-4"
+                >
+                  {sqftLookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  <span className="ml-1.5">Look Up</span>
+                </Button>
+              </div>
             </div>
             <div className="text-sm text-[#1A1A1A]/60 sm:pb-3">
               {propertySqft ? (
-                pricingTier ? (
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/30 text-[#B8956A] font-medium">
-                    {isCustomQuote ? "Custom Quote Required" : `Pricing Tier: ${tierLabel}`}
-                  </span>
-                ) : (
-                  <span className="text-[#1A1A1A]/40">Enter a valid square footage</span>
-                )
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/30 text-[#B8956A] font-medium">
+                  {isCustomQuote ? "Custom Quote Required" : `Pricing Tier: ${tierLabel}`}
+                </span>
               ) : (
                 <span className="text-[#1A1A1A]/40">Pricing shown below is for 0–2,500 sq ft</span>
               )}
             </div>
           </div>
+
+          {sqftLookupError && (
+            <p className="text-xs text-red-600 mt-3">{sqftLookupError}</p>
+          )}
+
+          {showManualSqft && !propertySqft && (
+            <div className="mt-4 pt-4 border-t border-[#1A1A1A]/10">
+              <p className="text-xs text-[#1A1A1A]/60 mb-2">
+                We couldn't auto-determine the square footage for this address. Enter it manually to
+                see your exact pricing:
+              </p>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="number"
+                  min="0"
+                  value={manualSqftInput}
+                  onChange={(e) => setManualSqftInput(e.target.value)}
+                  className="w-48 px-4 py-2 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A]"
+                  placeholder="Square footage"
+                />
+                <Button
+                  onClick={handleManualSqftSet}
+                  disabled={!manualSqftInput || parseInt(manualSqftInput, 10) <= 0}
+                  size="sm"
+                  className="bg-[#B8956A] hover:bg-[#A68559] text-white"
+                >
+                  Set Sq Ft
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {propertySqft && (
+            <div className="mt-3 flex items-center gap-2">
+              <p className="text-xs text-[#1A1A1A]/60">
+                {propertySqft.toLocaleString()} sq ft
+                {sqftSource === 'manual_customer' && ' (manually entered)'}
+              </p>
+              <button
+                onClick={() => { setPropertySqft(null); setManualSqftInput(""); setShowManualSqft(false); setSqftSource(null); }}
+                className="text-xs text-[#B8956A] hover:underline"
+              >
+                Reset
+              </button>
+            </div>
+          )}
+
           {isCustomQuote && (
             <p className="text-xs text-[#1A1A1A]/60 italic mt-3">
               Properties over 10,000 sq ft require a custom quote. Please call 678-242-9107 or add a note in your booking request.
