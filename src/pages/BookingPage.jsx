@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
 import { packages, addOns, determinePricingTier, getTierLabel, getPackagePriceForTier, computeTotalForTier } from "@/lib/services";
 
-function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote }) {
+function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote, tierLabel, propertyAddress, onAddressChange, onLookup, sqftLookingUp, propertySqft, sqftSource, sqftLookupError, showManualSqft, manualSqftInput, onManualSqftInput, onManualSqftSet, onResetSqft }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -55,6 +55,86 @@ function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked
                   <span className="text-sm">{feature}</span>
                 </div>
               ))}
+
+              {/* Sqft-based pricing lookup tucked into each package */}
+              <div className="mt-4 pt-4 border-t border-[#1A1A1A]/10">
+                <p className="text-xs text-[#1A1A1A]/70 mb-3">
+                  <strong>This pricing is up to 2,500 sq ft.</strong> Enter your property address to see exact pricing for this package.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={propertyAddress}
+                    onChange={(e) => onAddressChange(e.target.value)}
+                    className="flex-1 px-3 py-2 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A] text-sm"
+                    placeholder="Enter your property address"
+                  />
+                  <Button
+                    onClick={onLookup}
+                    disabled={!propertyAddress.trim() || sqftLookingUp}
+                    size="sm"
+                    className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white"
+                  >
+                    {sqftLookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    <span className="ml-1.5">Look Up</span>
+                  </Button>
+                </div>
+
+                {propertySqft && (
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/30 text-[#B8956A] text-xs font-medium">
+                      {isCustomQuote ? "Custom Quote Required" : `Tier: ${tierLabel}`}
+                    </span>
+                    <span className="text-xs text-[#1A1A1A]/60">
+                      {propertySqft.toLocaleString()} sq ft
+                      {sqftSource === 'manual_customer' && ' (manual)'}
+                    </span>
+                    <button
+                      onClick={onResetSqft}
+                      className="text-xs text-[#B8956A] hover:underline"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                )}
+
+                {sqftLookupError && (
+                  <p className="text-xs text-red-600 mt-2">{sqftLookupError}</p>
+                )}
+
+                {showManualSqft && !propertySqft && (
+                  <div className="mt-3">
+                    <p className="text-xs text-[#1A1A1A]/60 mb-2">
+                      Couldn't auto-detect. Enter sq ft manually:
+                    </p>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="number"
+                        min="0"
+                        value={manualSqftInput}
+                        onChange={(e) => onManualSqftInput(e.target.value)}
+                        className="w-40 px-3 py-2 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A] text-sm"
+                        placeholder="Square footage"
+                      />
+                      <Button
+                        onClick={onManualSqftSet}
+                        disabled={!manualSqftInput || parseInt(manualSqftInput, 10) <= 0}
+                        size="sm"
+                        className="bg-[#B8956A] hover:bg-[#A68559] text-white"
+                      >
+                        Set
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {isCustomQuote && (
+                  <p className="text-xs text-[#1A1A1A]/60 italic mt-2">
+                    Properties over 10,000 sq ft require a custom quote. Call 678-242-9107 or add a note in your booking.
+                  </p>
+                )}
+              </div>
+
               {isLocked ? (
                 <div className="w-full mt-4 flex items-center justify-center gap-2 py-2 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/40 text-[#B8956A] text-sm font-medium">
                   <Lock className="w-4 h-4" /> Selected by your sales rep
@@ -111,7 +191,6 @@ export default function BookingPage() {
         setSqftSource(result.property_sqft_source || 'provider');
         setShowManualSqft(false);
       } else {
-        // Provider couldn't determine sqft — offer manual entry
         setShowManualSqft(true);
         setSqftSource(null);
       }
@@ -131,11 +210,17 @@ export default function BookingPage() {
     }
   };
 
+  const handleResetSqft = () => {
+    setPropertySqft(null);
+    setManualSqftInput("");
+    setShowManualSqft(false);
+    setSqftSource(null);
+    setSqftLookupError(null);
+  };
+
   useEffect(() => {
-    // Load active sales reps for the "Who did you work with?" dropdown
     base44.functions.invoke('listSalesReps', {}).then(res => setSalesReps(res?.data?.reps || [])).catch(() => {});
 
-    // Check if we're editing a booking
     const urlParams = new URLSearchParams(window.location.search);
     const bookingId = urlParams.get('booking_id');
     if (bookingId) {
@@ -149,7 +234,6 @@ export default function BookingPage() {
       return;
     }
 
-    // Load a sales-rep invite (convert-to-job) if present
     const inviteToken = urlParams.get('invite') || localStorage.getItem('pending_invite_token');
     if (inviteToken) {
       base44.functions.invoke('getSignupInvite', { token: inviteToken }).then(res => {
@@ -193,7 +277,7 @@ export default function BookingPage() {
   });
 
   const handleSelectPackage = (pkg) => {
-    if (lockedInvite && lockedInvite.package === pkg.id) return; // can't remove rep's package
+    if (lockedInvite && lockedInvite.package === pkg.id) return;
     if (selectedPackage?.id === pkg.id) {
       setSelectedPackage(null);
     } else {
@@ -208,7 +292,7 @@ export default function BookingPage() {
   };
 
   const handleRemoveFromCart = (addonId) => {
-    if (lockedInvite && (lockedInvite.locked_add_ons || []).includes(addonId)) return; // locked
+    if (lockedInvite && (lockedInvite.locked_add_ons || []).includes(addonId)) return;
     setCartAddOns(cartAddOns.filter(a => a.id !== addonId));
   };
 
@@ -323,99 +407,6 @@ export default function BookingPage() {
           </div>
         </div>
 
-        {/* Sqft-based pricing tier selector */}
-        <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 mb-4">
-          <p className="text-sm text-[#1A1A1A]/70 mb-4">
-            <strong>This pricing is up to 2,500 sq ft.</strong> Final pricing is contingent upon the
-            square footage of the property. Enter your property address to see exact pricing.
-          </p>
-          <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
-                Property Address
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={propertyAddress}
-                  onChange={(e) => setPropertyAddress(e.target.value)}
-                  className="flex-1 px-4 py-2.5 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A]"
-                  placeholder="Enter your property address"
-                />
-                <Button
-                  onClick={handleLookupSqft}
-                  disabled={!propertyAddress.trim() || sqftLookingUp}
-                  className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white px-4"
-                >
-                  {sqftLookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  <span className="ml-1.5">Look Up</span>
-                </Button>
-              </div>
-            </div>
-            <div className="text-sm text-[#1A1A1A]/60 sm:pb-3">
-              {propertySqft ? (
-                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#B8956A]/10 border border-[#B8956A]/30 text-[#B8956A] font-medium">
-                  {isCustomQuote ? "Custom Quote Required" : `Pricing Tier: ${tierLabel}`}
-                </span>
-              ) : (
-                <span className="text-[#1A1A1A]/40">Pricing shown below is for 0–2,500 sq ft</span>
-              )}
-            </div>
-          </div>
-
-          {sqftLookupError && (
-            <p className="text-xs text-red-600 mt-3">{sqftLookupError}</p>
-          )}
-
-          {showManualSqft && !propertySqft && (
-            <div className="mt-4 pt-4 border-t border-[#1A1A1A]/10">
-              <p className="text-xs text-[#1A1A1A]/60 mb-2">
-                We couldn't auto-determine the square footage for this address. Enter it manually to
-                see your exact pricing:
-              </p>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="number"
-                  min="0"
-                  value={manualSqftInput}
-                  onChange={(e) => setManualSqftInput(e.target.value)}
-                  className="w-48 px-4 py-2 border-2 border-[#B8956A]/30 rounded-lg focus:border-[#B8956A] focus:outline-none text-[#1A1A1A]"
-                  placeholder="Square footage"
-                />
-                <Button
-                  onClick={handleManualSqftSet}
-                  disabled={!manualSqftInput || parseInt(manualSqftInput, 10) <= 0}
-                  size="sm"
-                  className="bg-[#B8956A] hover:bg-[#A68559] text-white"
-                >
-                  Set Sq Ft
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {propertySqft && (
-            <div className="mt-3 flex items-center gap-2">
-              <p className="text-xs text-[#1A1A1A]/60">
-                {propertySqft.toLocaleString()} sq ft
-                {sqftSource === 'manual_customer' && ' (manually entered)'}
-              </p>
-              <button
-                onClick={() => { setPropertySqft(null); setManualSqftInput(""); setShowManualSqft(false); setSqftSource(null); }}
-                className="text-xs text-[#B8956A] hover:underline"
-              >
-                Reset
-              </button>
-            </div>
-          )}
-
-          {isCustomQuote && (
-            <p className="text-xs text-[#1A1A1A]/60 italic mt-3">
-              Properties over 10,000 sq ft require a custom quote. Please call 678-242-9107 or add a note in your booking request.
-            </p>
-          )}
-        </div>
-
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
           {packages.map((pkg) => (
             <PackageCard
@@ -428,6 +419,19 @@ export default function BookingPage() {
               isLocked={lockedInvite?.package === pkg.id}
               displayPrice={getPackagePriceForTier(pkg.id, pricingTier)}
               isCustomQuote={isCustomQuote}
+              tierLabel={tierLabel}
+              propertyAddress={propertyAddress}
+              onAddressChange={setPropertyAddress}
+              onLookup={handleLookupSqft}
+              sqftLookingUp={sqftLookingUp}
+              propertySqft={propertySqft}
+              sqftSource={sqftSource}
+              sqftLookupError={sqftLookupError}
+              showManualSqft={showManualSqft}
+              manualSqftInput={manualSqftInput}
+              onManualSqftInput={setManualSqftInput}
+              onManualSqftSet={handleManualSqftSet}
+              onResetSqft={handleResetSqft}
             />
           ))}
         </div>
@@ -457,7 +461,6 @@ export default function BookingPage() {
                     const isInCart = cartAddOns.find(a => a.id === addon.id);
                     const isLockedAddOn = lockedInvite && (lockedInvite.locked_add_ons || []).includes(addon.id);
                     
-                    // Check if add-on requires a package
                     const requiresPackage = ['ai_staging', 'twilight', 'rush_delivery'].includes(addon.id);
                     const requiresPhotoPackage = ['twilight', 'ai_staging'].includes(addon.id);
                     
