@@ -81,8 +81,10 @@ export const tierPrices = [
 export function determinePricingTier(sqft) {
   if (!sqft || sqft <= 0) return null;
   if (sqft > 10000) return "CUSTOM";
-  for (const t of tierPrices) {
-    if (sqft >= t.min) return t.tier;
+  // Check from highest tier down so the correct tier is matched
+  // (TIER_1 has min: 0, so an ascending loop would match everything to TIER_1).
+  for (let i = tierPrices.length - 1; i >= 0; i--) {
+    if (sqft >= tierPrices[i].min) return tierPrices[i].tier;
   }
   return null;
 }
