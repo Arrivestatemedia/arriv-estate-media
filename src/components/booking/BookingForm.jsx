@@ -47,7 +47,13 @@ export default function BookingForm({ selectedPackage, cartAddOns, addOns, reque
   const effectiveTier = pricingTier || localTier;
   const effectiveSqft = propertySqft || localSqft;
 
-  const tierPackagePrice = selectedPackage ? (getPackagePriceForTier(selectedPackage.id, effectiveTier) ?? selectedPackage.price) : 0;
+  // Use the lifecycle-adjusted package price when provided by the BookingPage;
+  // fall back to the tier/canonical price.
+  const tierPackagePrice = selectedPackage
+    ? (adjustedPackagePrice != null
+      ? adjustedPackagePrice
+      : (getPackagePriceForTier(selectedPackage.id, effectiveTier) ?? selectedPackage.price))
+    : 0;
   const isCustomQuote = effectiveTier === "CUSTOM";
   const totalPrice = isCustomQuote ? 0 : tierPackagePrice + (cartAddOns || []).reduce((sum, a) => sum + a.price, 0);
 
