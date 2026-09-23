@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Film, ArrowRight, Sparkles } from "lucide-react";
 import { postDeliveryActions } from "@/lib/arrivStudioConfig";
 import { createPageUrl } from "@/utils";
+import StudioLogo from "@/components/studio/StudioLogo";
 
 // Post-delivery Studio prompt — CONDITIONAL on entitlement.
 // WITH Studio: shows direct creation actions that navigate to the native Studio workspace.
@@ -55,9 +56,9 @@ export default function PostDeliveryStudioPrompt({ booking }) {
 
   // WITH Studio — show direct creation actions
   return (
-    <div className="mt-4 rounded-xl border-2 p-4" style={{ borderColor: "rgba(255,90,79,0.3)", background: "#111111" }}>
+    <div className="mt-4 rounded-xl border-2 p-4" style={{ borderColor: "rgba(255,90,79,0.3)", background: "#111111", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
       <div className="flex items-center gap-2 mb-3">
-        <Film className="w-5 h-5" style={{ color: "#FF5A4F" }} />
+        <StudioLogo size={24} showWordmark={false} />
         <h4 className="text-sm font-bold tracking-wide" style={{ color: "#FAF8F5" }}>
           CREATE WITH ARRIV STUDIO
         </h4>

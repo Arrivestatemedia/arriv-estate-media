@@ -1,8 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Film, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { createPageUrl } from "@/utils";
+import StudioLogo from "@/components/studio/StudioLogo";
 
 // Client Portal entry tile for Arriv Studio.
 // Navigates to the native embedded Studio workspace inside Estate Media.
@@ -14,11 +15,9 @@ export default function ArrivStudioTile({ subscription, onManage }) {
     <div className="rounded-2xl border-2 overflow-hidden mb-8" style={{ background: "#111111", borderColor: "rgba(255,90,79,0.3)" }}>
       <div className="p-6 sm:p-8">
         <div className="flex items-start gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #FF5A4F, #FF806F)" }}>
-            <Film className="w-6 h-6 text-white" />
-          </div>
+          <StudioLogo size={44} showWordmark={false} />
           <div className="flex-1">
-            <h2 className="text-2xl font-bold tracking-wide" style={{ color: "#FAF8F5" }}>ARRIV STUDIO</h2>
+            <h2 className="text-2xl font-extrabold tracking-tight" style={{ color: "#FAF8F5", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>ARRIV STUDIO</h2>
             <p className="text-sm mt-1" style={{ color: "rgba(250,248,245,0.6)" }}>
               Create professional real-estate videos, social content, promotions, and training.
             </p>

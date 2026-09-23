@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
 import {
-  Film, Home, FolderPlus, Clock, TrendingUp, Image, Video,
-  MapPin, Upload, Sparkles, Calendar, ArrowRight, Loader2
+  Home, FolderPlus, MapPin, Upload, Sparkles, Calendar,
+  ArrowRight, Loader2, Image, Video
 } from "lucide-react";
 import { studioCreationChoices, studioTemplates } from "@/lib/arrivStudioConfig";
+import StudioLogo from "@/components/studio/StudioLogo";
+import StudioProductionMinutesCard from "@/components/studio/StudioProductionMinutesCard";
+
+const STUDIO_FONT = { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" };
 
 // Studio Home — the native real-estate-specific Studio landing experience.
-// Shows creation choices, templates, My Listings, My Estate Media, and usage.
+// CANONICAL STUDIO VISUAL SYSTEM: #111111 background, #1C1C1F cards, #FAF8F5 text, #FF5A4F coral.
+// Shows creation choices, templates, My Listings, My Estate Media, production minutes, and projects.
 // When the user starts a project, it transitions to the embedded Studio editor.
 export default function StudioHome({ entitlement, onStartProject }) {
   const [bookings, setBookings] = useState([]);
@@ -16,7 +20,6 @@ export default function StudioHome({ entitlement, onStartProject }) {
   const [deliveredMedia, setDeliveredMedia] = useState([]);
 
   useEffect(() => {
-    // Load the client's bookings (for My Listings) and delivered media (for My Estate Media)
     const clientEmail = localStorage.getItem("user_email") || sessionStorage.getItem("user_email");
     if (!clientEmail) {
       setLoadingBookings(false);
@@ -35,50 +38,52 @@ export default function StudioHome({ entitlement, onStartProject }) {
   }, []);
 
   const categoryLabels = {
-    listing: "Listing Promotion",
-    agent: "Realtor Promotion",
-    education: "Client Education",
-    brokerage: "Brokerage Marketing",
-    training: "Realty Training",
+    listing: "Listing",
+    agent: "Agent",
+    education: "Education",
+    brokerage: "Brokerage",
+    training: "Training",
     custom: "Custom",
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "#FAF8F5" }}>
+    <div className="min-h-screen" style={{ background: "#111111", ...STUDIO_FONT }}>
       {/* Studio Header Bar */}
-      <div className="sticky top-0 z-10 border-b" style={{ background: "#111111", borderColor: "rgba(255,90,79,0.2)" }}>
+      <div className="sticky top-0 z-10 border-b" style={{ background: "#111111", borderColor: "rgba(255,90,79,0.15)" }}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #FF5A4F, #FF806F)" }}>
-              <Film className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-bold" style={{ color: "#FAF8F5" }}>Arriv Studio</span>
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(255,90,79,0.15)", color: "#FF746B" }}>
-              Real Estate
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-xs" style={{ color: "rgba(250,248,245,0.6)" }}>
+          <StudioLogo size={32} />
+          <div className="flex items-center gap-3 text-xs" style={{ color: "rgba(250,248,245,0.5)" }}>
             <span>{entitlement?.plan_name?.split("—")[1]?.trim() || "Studio"}</span>
             <span>·</span>
-            <span>{entitlement?.minutes_remaining ?? 0} min remaining</span>
+            <span style={{ color: "#FF746B" }}>{entitlement?.minutes_remaining ?? 0} min</span>
           </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
-        {/* Create New */}
+        {/* Studio Production Minutes */}
+        <StudioProductionMinutesCard entitlement={entitlement} />
+
+        {/* Create With Studio */}
         <section>
-          <h2 className="text-xl font-bold mb-4" style={{ color: "#111111" }}>Create New</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: "rgba(250,248,245,0.5)" }}>
+            Create With Studio
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {studioCreationChoices.map((choice) => (
               <button
                 key={choice.id}
                 onClick={() => onStartProject?.({ type: "creation", choiceId: choice.id, templateIds: choice.templateIds })}
-                className="p-4 rounded-xl border-2 text-left transition-all hover:scale-[1.02]"
-                style={{ borderColor: "rgba(255,90,79,0.15)", background: "#FFF0ED" }}
+                className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
+                style={{ background: "#1C1C1F", border: "1px solid rgba(255,90,79,0.1)" }}
               >
-                <FolderPlus className="w-5 h-5 mb-2" style={{ color: "#FF5A4F" }} />
-                <p className="text-sm font-semibold" style={{ color: "#111111" }}>{choice.label}</p>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
+                  style={{ background: "rgba(255,90,79,0.12)" }}
+                >
+                  <FolderPlus className="w-4 h-4" style={{ color: "#FF5A4F" }} />
+                </div>
+                <p className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>{choice.label}</p>
               </button>
             ))}
           </div>
@@ -86,19 +91,24 @@ export default function StudioHome({ entitlement, onStartProject }) {
 
         {/* Real Estate Templates */}
         <section>
-          <h2 className="text-xl font-bold mb-4" style={{ color: "#111111" }}>Real Estate Templates</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: "rgba(250,248,245,0.5)" }}>
+            Real Estate Templates
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {studioTemplates.map((tpl) => (
               <button
                 key={tpl.id}
                 onClick={() => onStartProject?.({ type: "template", templateId: tpl.id })}
-                className="p-3 rounded-xl border text-left transition-all hover:border-[#FF5A4F]"
-                style={{ borderColor: "rgba(28,28,31,0.1)", background: "white" }}
+                className="p-3 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+                style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
               >
-                <span className="text-xs px-2 py-0.5 rounded-full mb-2 inline-block" style={{ background: "#FFF0ED", color: "#FF5A4F" }}>
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full mb-2 inline-block font-semibold"
+                  style={{ background: "rgba(255,90,79,0.12)", color: "#FF746B" }}
+                >
                   {categoryLabels[tpl.category] || tpl.category}
                 </span>
-                <p className="text-sm font-medium" style={{ color: "#111111" }}>{tpl.name}</p>
+                <p className="text-sm font-medium" style={{ color: "#FAF8F5" }}>{tpl.name}</p>
               </button>
             ))}
           </div>
@@ -107,15 +117,17 @@ export default function StudioHome({ entitlement, onStartProject }) {
         {/* My Listings */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <MapPin className="w-5 h-5" style={{ color: "#FF5A4F" }} />
-            <h2 className="text-xl font-bold" style={{ color: "#111111" }}>My Listings</h2>
+            <MapPin className="w-4 h-4" style={{ color: "#FF5A4F" }} />
+            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "rgba(250,248,245,0.5)" }}>
+              My Listings
+            </h2>
           </div>
           {loadingBookings ? (
-            <div className="flex items-center gap-2 text-sm" style={{ color: "rgba(28,28,31,0.5)" }}>
+            <div className="flex items-center gap-2 text-sm" style={{ color: "rgba(250,248,245,0.4)" }}>
               <Loader2 className="w-4 h-4 animate-spin" /> Loading your listings...
             </div>
           ) : bookings.length === 0 ? (
-            <div className="p-4 rounded-xl border text-sm" style={{ borderColor: "rgba(28,28,31,0.1)", color: "rgba(28,28,31,0.5)" }}>
+            <div className="p-4 rounded-xl text-sm" style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)", color: "rgba(250,248,245,0.4)" }}>
               No listings yet. Book a shoot to get started.
             </div>
           ) : (
@@ -124,21 +136,21 @@ export default function StudioHome({ entitlement, onStartProject }) {
                 <button
                   key={b.id}
                   onClick={() => onStartProject?.({ type: "listing", bookingId: b.id, propertyAddress: b.property_address })}
-                  className="p-3 rounded-xl border text-left transition-all hover:border-[#FF5A4F] flex items-center gap-3"
-                  style={{ borderColor: "rgba(28,28,31,0.1)", background: "white" }}
+                  className="p-3 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40 flex items-center gap-3"
+                  style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
                 >
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#FFF0ED" }}>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,90,79,0.12)" }}>
                     <Home className="w-5 h-5" style={{ color: "#FF5A4F" }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: "#111111" }}>
+                    <p className="text-sm font-medium truncate" style={{ color: "#FAF8F5" }}>
                       {b.property_address || "Property"}
                     </p>
-                    <p className="text-xs" style={{ color: "rgba(28,28,31,0.5)" }}>
+                    <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>
                       {b.package || "Estate Media"} · {b.status}
                     </p>
                   </div>
-                  <ArrowRight className="w-4 h-4 shrink-0" style={{ color: "rgba(28,28,31,0.3)" }} />
+                  <ArrowRight className="w-4 h-4 shrink-0" style={{ color: "rgba(250,248,245,0.2)" }} />
                 </button>
               ))}
             </div>
@@ -148,11 +160,13 @@ export default function StudioHome({ entitlement, onStartProject }) {
         {/* My Estate Media */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <Image className="w-5 h-5" style={{ color: "#FF5A4F" }} />
-            <h2 className="text-xl font-bold" style={{ color: "#111111" }}>My Estate Media</h2>
+            <Image className="w-4 h-4" style={{ color: "#FF5A4F" }} />
+            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "rgba(250,248,245,0.5)" }}>
+              My Estate Media
+            </h2>
           </div>
           {deliveredMedia.length === 0 ? (
-            <div className="p-4 rounded-xl border text-sm" style={{ borderColor: "rgba(28,28,31,0.1)", color: "rgba(28,28,31,0.5)" }}>
+            <div className="p-4 rounded-xl text-sm" style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)", color: "rgba(250,248,245,0.4)" }}>
               No delivered media yet. Once your shoots are delivered, they'll appear here for use in Studio projects.
             </div>
           ) : (
@@ -161,13 +175,13 @@ export default function StudioHome({ entitlement, onStartProject }) {
                 <button
                   key={b.id}
                   onClick={() => onStartProject?.({ type: "estate_media", bookingId: b.id, assetSource: "my_estate_media" })}
-                  className="p-3 rounded-xl border text-left transition-all hover:border-[#FF5A4F]"
-                  style={{ borderColor: "rgba(28,28,31,0.1)", background: "white" }}
+                  className="p-3 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+                  style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
                 >
-                  <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center" style={{ background: "#FFF0ED" }}>
+                  <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center" style={{ background: "rgba(255,90,79,0.08)" }}>
                     <Video className="w-6 h-6" style={{ color: "#FF5A4F" }} />
                   </div>
-                  <p className="text-xs font-medium truncate" style={{ color: "#111111" }}>
+                  <p className="text-xs font-medium truncate" style={{ color: "#FAF8F5" }}>
                     {b.property_address || "Delivered Media"}
                   </p>
                 </button>
@@ -178,34 +192,36 @@ export default function StudioHome({ entitlement, onStartProject }) {
 
         {/* Other Asset Sources */}
         <section>
-          <h2 className="text-xl font-bold mb-4" style={{ color: "#111111" }}>Other Asset Sources</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: "rgba(250,248,245,0.5)" }}>
+            Other Asset Sources
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <button
               onClick={() => onStartProject?.({ type: "asset_source", assetSource: "upload" })}
-              className="p-4 rounded-xl border-2 text-left transition-all hover:border-[#FF5A4F]"
-              style={{ borderColor: "rgba(28,28,31,0.1)", background: "white" }}
+              className="p-4 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+              style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
             >
               <Upload className="w-5 h-5 mb-2" style={{ color: "#FF5A4F" }} />
-              <p className="text-sm font-semibold" style={{ color: "#111111" }}>Upload</p>
-              <p className="text-xs" style={{ color: "rgba(28,28,31,0.5)" }}>Upload your own files</p>
+              <p className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>Upload</p>
+              <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>Upload your own files</p>
             </button>
             <button
               onClick={() => onStartProject?.({ type: "asset_source", assetSource: "generative_media" })}
-              className="p-4 rounded-xl border-2 text-left transition-all hover:border-[#FF5A4F]"
-              style={{ borderColor: "rgba(28,28,31,0.1)", background: "white" }}
+              className="p-4 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+              style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
             >
               <Sparkles className="w-5 h-5 mb-2" style={{ color: "#FF5A4F" }} />
-              <p className="text-sm font-semibold" style={{ color: "#111111" }}>Generative Media</p>
-              <p className="text-xs" style={{ color: "rgba(28,28,31,0.5)" }}>AI-generated assets</p>
+              <p className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>Generative Media</p>
+              <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>AI-generated assets</p>
             </button>
             <button
               onClick={() => { window.location.href = "/BookingPage"; }}
-              className="p-4 rounded-xl border-2 text-left transition-all hover:border-[#FF5A4F]"
-              style={{ borderColor: "rgba(28,28,31,0.1)", background: "white" }}
+              className="p-4 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+              style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
             >
               <Calendar className="w-5 h-5 mb-2" style={{ color: "#FF5A4F" }} />
-              <p className="text-sm font-semibold" style={{ color: "#111111" }}>Book a New Shoot</p>
-              <p className="text-xs" style={{ color: "rgba(28,28,31,0.5)" }}>Book Estate Media photography</p>
+              <p className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>Book a New Shoot</p>
+              <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>Book Estate Media photography</p>
             </button>
           </div>
         </section>

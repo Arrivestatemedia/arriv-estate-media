@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import StudioLogo from "@/components/studio/StudioLogo";
 
 // Embeds the canonical Arriv Studio editor inside Estate Media via SSO.
 // The user never leaves Estate Media — the Studio platform renders in an iframe.
@@ -69,11 +70,14 @@ export default function StudioEmbeddedEditor({ projectContext, onExit }) {
   return (
     <div className="relative" style={{ background: "#111111" }}>
       {/* Exit bar — Estate Media shell remains available */}
-      <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "rgba(255,90,79,0.2)" }}>
-        <span className="text-xs font-medium" style={{ color: "rgba(250,248,245,0.5)" }}>
-          Arriv Studio — {projectContext?.templateId || projectContext?.choiceId || "New Project"}
-        </span>
-        <button onClick={onExit} className="flex items-center gap-1 text-xs hover:opacity-70" style={{ color: "rgba(250,248,245,0.6)" }}>
+      <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "rgba(255,90,79,0.15)" }}>
+        <div className="flex items-center gap-3">
+          <StudioLogo size={24} showWordmark={false} />
+          <span className="text-xs font-medium" style={{ color: "rgba(250,248,245,0.5)", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+            {projectContext?.templateId || projectContext?.choiceId || "New Project"}
+          </span>
+        </div>
+        <button onClick={onExit} className="flex items-center gap-1 text-xs hover:opacity-70" style={{ color: "rgba(250,248,245,0.6)", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
           <X className="w-3.5 h-3.5" />
           Exit to Studio Home
         </button>
