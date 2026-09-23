@@ -28,6 +28,25 @@ function LayoutContent({ children, currentPageName }) {
     localStorage.getItem('admin_mode') || null
   );
   const [hasEditorProfile, setHasEditorProfile] = useState(localStorage.getItem('has_editor_profile') === 'true');
+  const [studioEntitlementActive, setStudioEntitlementActive] = useState(() => {
+    try {
+      const cached = localStorage.getItem("studio_entitlement");
+      return cached ? JSON.parse(cached)?.active === true : false;
+    } catch { return false; }
+  });
+
+  // Refresh Studio entitlement for conditional client nav
+  useEffect(() => {
+    if (!user || user.user_type !== "client") return;
+    base44.functions.invoke("getStudioEntitlement", {})
+      .then((res) => {
+        const data = res?.data || res;
+        const active = !!data?.active;
+        setStudioEntitlementActive(active);
+        localStorage.setItem("studio_entitlement", JSON.stringify({ active }));
+      })
+      .catch(() => {});
+  }, [user?.user_type, user?.email]);
 
   // Force password change gate for newly-onboarded sales reps
   useEffect(() => {
@@ -193,6 +212,7 @@ function LayoutContent({ children, currentPageName }) {
     ? [
         { label: "Book a Shoot", page: "BookingPage", icon: Briefcase },
         { label: "My Bookings", page: "ClientBookings", icon: Briefcase },
+        ...(studioEntitlementActive ? [{ label: "Studio", page: "StudioWorkspace", icon: Film }] : []),
       ]
     : isMediaPartner
     ? [
@@ -206,7 +226,7 @@ function LayoutContent({ children, currentPageName }) {
   const dashboardPage = (isDualAdmin && adminMode === 'editing') ? "EditorWorkspace" : isAdmin ? "AdminHub" : isClient ? "BookingPage" : isMediaPartner ? "MediaPartnerDashboard" : "JobBoard";
 
   // Determine if current page is a primary route (shows bottom tabs)
-  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess", "PayoutRecords"];
+  const primaryRoutes = ["JobBoard", "MediaPartnerDashboard", "Dashboard", "BookingPage", "ClientBookings", "PublicAccountSettings", "SupraAccess", "PayoutRecords", "StudioWorkspace"];
   const isPrimaryRoute = primaryRoutes.includes(currentPageName);
   const showBackButton = user && !isPrimaryRoute && !effectiveIsSalesTeam && !["SignIn", "ClientSignup", "MediaPartnerSignup", "SalesLogin"].includes(currentPageName);
 

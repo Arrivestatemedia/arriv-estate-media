@@ -181,6 +181,7 @@ export default function BookingPage() {
   const [displayPricing, setDisplayPricing] = useState(null);
   const [studioSubscription, setStudioSubscription] = useState(null);
   const [studioAddOns, setStudioAddOns] = useState([]);
+  const [studioBundle, setStudioBundle] = useState(null);
 
   // Load the org-wide pay-at-closing toggle (default OFF). The backend logic
   // stays intact; this only gates the client-facing UI.
@@ -343,6 +344,9 @@ export default function BookingPage() {
     setStudioAddOns(studioAddOns.filter(a => a.id !== addonId));
   };
 
+  const handleSelectStudioBundle = (plan) => setStudioBundle(plan);
+  const handleRemoveStudioBundle = () => setStudioBundle(null);
+
   // Use tenure-adjusted package price when available; fall back to tier/canonical price.
   const getAdjustedPackagePriceDollars = (pkgId) => {
     if (displayPricing?.adjusted_package_prices?.[pkgId] != null) {
@@ -355,7 +359,8 @@ export default function BookingPage() {
 
   const tierPackagePrice = selectedPackage ? getAdjustedPackagePriceDollars(selectedPackage.id) : 0;
   const studioAddOnTotal = studioAddOns.reduce((sum, a) => sum + (a.price || 0), 0);
-  const totalPrice = tierPackagePrice + cartAddOns.reduce((sum, a) => sum + a.price, 0) + studioAddOnTotal;
+  const studioBundleTotal = studioBundle?.price || 0;
+  const totalPrice = tierPackagePrice + cartAddOns.reduce((sum, a) => sum + a.price, 0) + studioAddOnTotal + studioBundleTotal;
 
   const handleSubmitBooking = async (bookingData) => {
     return new Promise((resolve) => {
@@ -363,6 +368,7 @@ export default function BookingPage() {
         ...bookingData,
         request_pay_at_closing: requestPayAtClosing,
         studio_add_ons: studioAddOns.map(a => a.id),
+        studio_bundle_plan: studioBundle?.id || null,
         ...(lockedInvite ? {
           sales_member_id: lockedInvite.sales_member_id,
           sales_member_name: lockedInvite.sales_member_name,
@@ -491,7 +497,7 @@ export default function BookingPage() {
 
         <ArrivStudioTile
           subscription={studioSubscription}
-          onManage={() => window.open('https://arrivestatemedia.base44.app/studio-plans', '_blank')}
+          onManage={() => { window.location.href = createPageUrl("StudioWorkspace"); }}
         />
 
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
@@ -523,18 +529,15 @@ export default function BookingPage() {
             ))}
             </div>
 
-            <StudioCommerceSection
-            onExplore={() => base44.functions.invoke('launchArrivStudio', {}).then(res => {
-            const data = res?.data;
-            if (data?.launch_url) window.open(data.launch_url, '_blank', 'noopener,noreferrer');
-            })}
-            onSeePlans={() => window.open('https://arrivestatemedia.base44.app/studio-plans', '_blank')}
-            />
+            <StudioCommerceSection />
 
             <StudioCheckoutAddOns
             selectedAddOns={studioAddOns}
             onAdd={handleAddStudioAddOn}
             onRemove={handleRemoveStudioAddOn}
+            selectedBundle={studioBundle}
+            onSelectBundle={handleSelectStudioBundle}
+            onRemoveBundle={handleRemoveStudioBundle}
             />
 
             <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
@@ -710,6 +713,19 @@ export default function BookingPage() {
                 )}
               </div>
             ))}
+            {studioBundle && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[#1A1A1A]/70 text-sm flex items-center gap-1">
+                  <Film className="w-3 h-3" style={{ color: '#FF5A4F' }} />
+                  {studioBundle.name.split("—")[1]?.trim() || studioBundle.name} (monthly)
+                </span>
+                {requestPayAtClosing ? (
+                  <span className="font-semibold text-[#1A1A1A] text-sm italic">Pricing will be discussed</span>
+                ) : (
+                  <span className="font-semibold text-[#1A1A1A] text-sm">${studioBundle.price}/mo</span>
+                )}
+              </div>
+            )}
             {!requestPayAtClosing && (
               <div className="border-t border-[#1A1A1A]/10 mt-4 pt-4 flex justify-between items-center">
                 <span className="font-semibold text-[#1A1A1A]">Total</span>

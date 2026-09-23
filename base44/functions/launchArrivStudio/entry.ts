@@ -18,6 +18,7 @@ export default async function(req) {
       template_id,
       creation_choice_id,
       asset_source,
+      embedded,
     } = body;
 
     const studioBaseUrl = secrets.get('ARRIV_STUDIO_BASE_URL');
@@ -93,6 +94,7 @@ export default async function(req) {
       template_id: template_id || null,
       creation_choice_id: creation_choice_id || null,
       asset_source: asset_source || 'my_estate_media',
+      embedded: embedded === true,
       launched_at: new Date().toISOString(),
     };
 

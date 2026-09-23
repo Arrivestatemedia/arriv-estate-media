@@ -55,6 +55,7 @@ import PublicJobPage from './pages/PublicJobPage';
 import PublicJobApplication from './pages/PublicJobApplication';
 import SalesRepMicrosoftAuthCallback from './pages/SalesRepMicrosoftAuthCallback';
 import TrainingSimulation from './pages/TrainingSimulation';
+import StudioWorkspace from './pages/StudioWorkspace';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -468,6 +469,14 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="TrainingSimulation">
             <TrainingSimulation />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/StudioWorkspace"
+        element={
+          <LayoutWrapper currentPageName="StudioWorkspace">
+            <StudioWorkspace />
           </LayoutWrapper>
         }
       />

@@ -801,6 +801,64 @@ Deno.serve(async (req) => {
       }
     }
 
+    // PATH A — BUNDLE: If the customer added a Studio subscription bundle at checkout,
+    // activate the canonical Studio entitlement. Estate Media handles the transaction
+    // with its existing commerce/payment architecture — no separate Studio checkout.
+    if (booking.studio_bundle_plan) {
+      try {
+        const PLAN_DETAILS = {
+          studio_creator: { name: 'Studio for Real Estate — Creator', priceCents: 4900, minutes: 5 },
+          studio_pro: { name: 'Studio for Real Estate — Pro', priceCents: 9900, minutes: 15 },
+          studio_brokerage: { name: 'Studio for Real Estate — Brokerage', priceCents: 24900, minutes: 40 },
+        };
+        const plan = PLAN_DETAILS[booking.studio_bundle_plan];
+        if (plan) {
+          const clientEmail = (booking.client_email || '').toLowerCase();
+          const now = new Date();
+          const periodEnd = new Date(now);
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+          const existing = await base44.asServiceRole.entities.ArrivStudioSubscription.filter({
+            client_email: clientEmail,
+            status: 'active',
+          });
+
+          if (existing && existing.length > 0) {
+            const sub = existing[0];
+            await base44.asServiceRole.entities.ArrivStudioSubscription.update(sub.id, {
+              plan_id: booking.studio_bundle_plan,
+              plan_name: plan.name,
+              monthly_price_cents: plan.priceCents,
+              production_minutes_per_month: plan.minutes,
+              minutes_remaining: plan.minutes,
+              minutes_used_this_period: 0,
+              current_period_start: now.toISOString(),
+              current_period_end: periodEnd.toISOString(),
+            });
+          } else {
+            await base44.asServiceRole.entities.ArrivStudioSubscription.create({
+              client_email: clientEmail,
+              client_name: booking.client_name || '',
+              organization_id: `estate_media_${clientEmail}`,
+              plan_id: booking.studio_bundle_plan,
+              plan_name: plan.name,
+              monthly_price_cents: plan.priceCents,
+              production_minutes_per_month: plan.minutes,
+              minutes_remaining: plan.minutes,
+              minutes_used_this_period: 0,
+              status: 'active',
+              current_period_start: now.toISOString(),
+              current_period_end: periodEnd.toISOString(),
+              entitlement_overrides: null,
+              created_at: now.toISOString(),
+            });
+          }
+        }
+      } catch (studioErr) {
+        console.error('Studio bundle activation error:', studioErr.message);
+      }
+    }
+
     return Response.json({ success: true, booking: createdBooking });
   } catch (error) {
     console.error('Booking submission error:', error);

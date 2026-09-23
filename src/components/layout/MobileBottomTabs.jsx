@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "../../utils";
-import { Briefcase, LayoutDashboard, Settings, Key, Wallet } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { Briefcase, LayoutDashboard, Settings, Key, Wallet, Film } from "lucide-react";
 import NewJobsBadge from "./NewJobsBadge";
 
 const SESSION_STORAGE_KEY = 'mobile_tab_scroll_positions';
@@ -12,11 +13,42 @@ export default function MobileBottomTabs({ user }) {
   const currentPath = location.pathname;
   const scrollPositions = useRef({});
   const isRestoringScroll = useRef(false);
+  const [studioActive, setStudioActive] = useState(() => {
+    try {
+      const cached = localStorage.getItem("studio_entitlement");
+      return cached ? JSON.parse(cached)?.active === true : false;
+    } catch {
+      return false;
+    }
+  });
+
+  // Refresh Studio entitlement on mount and when user changes
+  useEffect(() => {
+    if (!user || user.user_type !== "client") return;
+    base44.functions.invoke("getStudioEntitlement", {})
+      .then((res) => {
+        const data = res?.data || res;
+        const active = !!data?.active;
+        setStudioActive(active);
+        localStorage.setItem("studio_entitlement", JSON.stringify({ active }));
+      })
+      .catch(() => {});
+  }, [user?.user_type, user?.email]);
 
   const isSalesTeam = !!localStorage.getItem('sales_member_id');
   const isAdmin = user?.role === "admin";
   const isClient = user?.user_type === "client";
   const isMediaPartner = user?.user_type === "media_partner";
+
+  const clientTabs = [
+    { label: "Book", page: "BookingPage", icon: Briefcase },
+    { label: "Bookings", page: "ClientBookings", icon: Briefcase },
+  ];
+  // CONDITIONAL: Studio tab only appears when entitlement is active
+  if (studioActive) {
+    clientTabs.push({ label: "Studio", page: "StudioWorkspace", icon: Film });
+  }
+  clientTabs.push({ label: "Settings", page: "PublicAccountSettings", icon: Settings });
 
   const tabs = isAdmin
     ? [
@@ -25,11 +57,7 @@ export default function MobileBottomTabs({ user }) {
         { label: "Settings", page: "PublicAccountSettings", icon: Settings },
       ]
     : isClient
-    ? [
-        { label: "Book", page: "BookingPage", icon: Briefcase },
-        { label: "Bookings", page: "ClientBookings", icon: Briefcase },
-        { label: "Settings", page: "PublicAccountSettings", icon: Settings },
-      ]
+    ? clientTabs
     : isMediaPartner
     ? [
         { label: "Jobs", page: "JobBoard", icon: Briefcase, showBadge: true },
