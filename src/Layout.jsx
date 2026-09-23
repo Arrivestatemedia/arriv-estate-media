@@ -178,6 +178,7 @@ function LayoutContent({ children, currentPageName }) {
             { label: "Sales Orientation", page: "AdminSalesOrientation", icon: ShieldCheck },
             { label: "Payroll Dashboard", page: "AdminPayrollDashboard", icon: Landmark },
             { label: "Payroll Settings", page: "AdminPayrollSettings", icon: Settings },
+            { label: "Admin Settings", page: "AdminSettings", icon: Settings },
             { label: "Email Settings", page: "AdminEmailSettings", icon: Mail },
             { label: "Owner Dashboard", page: "OwnerDashboard", icon: TrendingUp },
             { label: "Khetha IQ by Arriv", page: "KhethaIQ", icon: Brain },
