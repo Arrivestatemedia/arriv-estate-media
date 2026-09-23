@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, DollarSign, Edit2 } from "lucide-react";
 import PullToRefresh from "@/components/shared/PullToRefresh";
+import PostDeliveryStudioPrompt from "@/components/studio/PostDeliveryStudioPrompt";
 
 export default function ClientBookings() {
   const [user, setUser] = useState(null);
@@ -140,6 +141,10 @@ export default function ClientBookings() {
                       <p className="text-sm text-[var(--text-secondary)] mb-1">Notes</p>
                       <p className="text-[var(--text-primary)]">{booking.notes}</p>
                     </div>
+                  )}
+
+                  {booking.status === 'completed' && (
+                    <PostDeliveryStudioPrompt booking={booking} />
                   )}
                 </CardContent>
               </Card>

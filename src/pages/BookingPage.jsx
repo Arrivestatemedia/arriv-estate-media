@@ -5,10 +5,13 @@ import { createPageUrl } from "../utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChevronDown, ChevronUp, Check, Lock, Search, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, Lock, Search, Loader2, Film } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
 import { packages, addOns, determinePricingTier, getTierLabel, getPackagePriceForTier, computeTotalForTier } from "@/lib/services";
+import ArrivStudioTile from "@/components/studio/ArrivStudioTile";
+import StudioCommerceSection from "@/components/studio/StudioCommerceSection";
+import StudioCheckoutAddOns from "@/components/studio/StudioCheckoutAddOns";
 
 function PackageCard({ pkg, isExpanded, onToggle, onSelect, isSelected, isLocked, displayPrice, isCustomQuote, tierLabel, propertyAddress, onAddressChange, onLookup, sqftLookingUp, propertySqft, sqftSource, sqftLookupError, showManualSqft, manualSqftInput, onManualSqftInput, onManualSqftSet, onResetSqft }) {
   return (
@@ -176,6 +179,8 @@ export default function BookingPage() {
   const [manualSqftInput, setManualSqftInput] = useState("");
   const [payAtClosingEnabled, setPayAtClosingEnabled] = useState(false);
   const [displayPricing, setDisplayPricing] = useState(null);
+  const [studioSubscription, setStudioSubscription] = useState(null);
+  const [studioAddOns, setStudioAddOns] = useState([]);
 
   // Load the org-wide pay-at-closing toggle (default OFF). The backend logic
   // stays intact; this only gates the client-facing UI.
@@ -196,6 +201,13 @@ export default function BookingPage() {
       .then(res => {
         const data = res?.data;
         if (data?.success) setDisplayPricing(data);
+      })
+      .catch(() => {});
+    // Fetch active Arriv Studio subscription (if any) for the tile display.
+    base44.functions.invoke('manageStudioSubscription', { action: 'get' })
+      .then(res => {
+        const data = res?.data;
+        if (data?.success && data?.subscription) setStudioSubscription(data.subscription);
       })
       .catch(() => {});
   }, []);
@@ -321,6 +333,16 @@ export default function BookingPage() {
     setCartAddOns(cartAddOns.filter(a => a.id !== addonId));
   };
 
+  const handleAddStudioAddOn = (addon) => {
+    if (!studioAddOns.find(a => a.id === addon.id)) {
+      setStudioAddOns([...studioAddOns, addon]);
+    }
+  };
+
+  const handleRemoveStudioAddOn = (addonId) => {
+    setStudioAddOns(studioAddOns.filter(a => a.id !== addonId));
+  };
+
   // Use tenure-adjusted package price when available; fall back to tier/canonical price.
   const getAdjustedPackagePriceDollars = (pkgId) => {
     if (displayPricing?.adjusted_package_prices?.[pkgId] != null) {
@@ -332,13 +354,15 @@ export default function BookingPage() {
   const lifecycleAdjustmentDollars = displayPricing?.customer_tenure?.adjustment_dollars || 0;
 
   const tierPackagePrice = selectedPackage ? getAdjustedPackagePriceDollars(selectedPackage.id) : 0;
-  const totalPrice = tierPackagePrice + cartAddOns.reduce((sum, a) => sum + a.price, 0);
+  const studioAddOnTotal = studioAddOns.reduce((sum, a) => sum + (a.price || 0), 0);
+  const totalPrice = tierPackagePrice + cartAddOns.reduce((sum, a) => sum + a.price, 0) + studioAddOnTotal;
 
   const handleSubmitBooking = async (bookingData) => {
     return new Promise((resolve) => {
       createBookingMutation.mutate({
         ...bookingData,
         request_pay_at_closing: requestPayAtClosing,
+        studio_add_ons: studioAddOns.map(a => a.id),
         ...(lockedInvite ? {
           sales_member_id: lockedInvite.sales_member_id,
           sales_member_name: lockedInvite.sales_member_name,
@@ -465,6 +489,11 @@ export default function BookingPage() {
           </div>
         </div>
 
+        <ArrivStudioTile
+          subscription={studioSubscription}
+          onManage={() => window.open('https://arrivestatemedia.base44.app/studio-plans', '_blank')}
+        />
+
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
           {packages.map((pkg) => (
             <PackageCard
@@ -491,11 +520,25 @@ export default function BookingPage() {
               onManualSqftSet={handleManualSqftSet}
               onResetSqft={handleResetSqft}
             />
-          ))}
-        </div>
+            ))}
+            </div>
 
-        <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
-          <button
+            <StudioCommerceSection
+            onExplore={() => base44.functions.invoke('launchArrivStudio', {}).then(res => {
+            const data = res?.data;
+            if (data?.launch_url) window.open(data.launch_url, '_blank', 'noopener,noreferrer');
+            })}
+            onSeePlans={() => window.open('https://arrivestatemedia.base44.app/studio-plans', '_blank')}
+            />
+
+            <StudioCheckoutAddOns
+            selectedAddOns={studioAddOns}
+            onAdd={handleAddStudioAddOn}
+            onRemove={handleRemoveStudioAddOn}
+            />
+
+            <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
+            <button
             onClick={() => setExpandedAddOns(!expandedAddOns)}
             className="w-full px-6 py-4 flex items-center justify-between hover:bg-[#B8956A]/5 transition-colors"
           >
@@ -649,6 +692,21 @@ export default function BookingPage() {
                   <span className="font-semibold text-[#1A1A1A] text-sm italic">Pricing will be discussed</span>
                 ) : (
                   <span className="font-semibold text-[#1A1A1A] text-sm">${addon.price}</span>
+                )}
+              </div>
+            ))}
+            {studioAddOns.map((addon) => (
+              <div key={addon.id} className="flex justify-between items-center mb-2">
+                <span className="text-[#1A1A1A]/70 text-sm flex items-center gap-1">
+                  <Film className="w-3 h-3 text-[#B8956A]" />
+                  {addon.name}
+                </span>
+                {requestPayAtClosing ? (
+                  <span className="font-semibold text-[#1A1A1A] text-sm italic">Pricing will be discussed</span>
+                ) : (
+                  <span className="font-semibold text-[#1A1A1A] text-sm">
+                    {addon.isCustomQuote ? 'Custom Quote' : `$${addon.price}`}
+                  </span>
                 )}
               </div>
             ))}

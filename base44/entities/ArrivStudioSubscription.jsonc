@@ -1,0 +1,156 @@
+{
+  "name": "ArrivStudioSubscription",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Customer email (lowercase). Primary lookup key."
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Customer name (denormalized for display)"
+    },
+    "organization_id": {
+      "type": "string",
+      "description": "Estate Media organization ID for this customer"
+    },
+    "plan_id": {
+      "type": "string",
+      "enum": [
+        "studio_creator",
+        "studio_pro",
+        "studio_brokerage"
+      ],
+      "description": "Studio for Real Estate subscription plan ID"
+    },
+    "plan_name": {
+      "type": "string",
+      "description": "Plan display name (denormalized)"
+    },
+    "monthly_price_cents": {
+      "type": "integer",
+      "description": "Monthly subscription price in CENTS"
+    },
+    "production_minutes_per_month": {
+      "type": "integer",
+      "description": "Studio production minutes included per month"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "canceled",
+        "past_due",
+        "trialing"
+      ],
+      "default": "active",
+      "description": "Subscription status"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "Stripe subscription ID (when payment is via Stripe)"
+    },
+    "current_period_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Current billing period start"
+    },
+    "current_period_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Current billing period end"
+    },
+    "minutes_used_this_period": {
+      "type": "integer",
+      "default": 0,
+      "description": "Studio production minutes used in the current billing period"
+    },
+    "minutes_remaining": {
+      "type": "integer",
+      "description": "Studio production minutes remaining in the current billing period"
+    },
+    "entitlement_overrides": {
+      "type": "object",
+      "description": "Preferred membership entitlement overrides applied to this subscription (STUDIO_DISCOUNT, STUDIO_INCLUDED_MINUTES, STUDIO_PRIORITY, CUSTOM_PRESENTER_DISCOUNT). Admin-configured; no permanent benefit values assigned unless explicitly set.",
+      "properties": {
+        "studio_discount_percent": {
+          "type": "number",
+          "description": "Discount percentage applied to subscription price (0-100)"
+        },
+        "studio_included_minutes_bonus": {
+          "type": "integer",
+          "description": "Additional production minutes included per month beyond plan default"
+        },
+        "studio_priority": {
+          "type": "boolean",
+          "description": "Whether priority rendering queue is enabled"
+        },
+        "custom_presenter_discount_percent": {
+          "type": "number",
+          "description": "Discount percentage on custom presenter creation (0-100)"
+        }
+      }
+    },
+    "preferred_membership_id": {
+      "type": "string",
+      "description": "PreferredMembership ID if entitlement overrides come from a Preferred membership"
+    },
+    "canceled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the subscription was canceled"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "client_email",
+    "plan_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
