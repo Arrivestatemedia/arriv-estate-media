@@ -7,7 +7,7 @@ import StudioLogo from "@/components/studio/StudioLogo";
 // Embeds the canonical Arriv Studio editor inside Estate Media via SSO.
 // The user never leaves Estate Media — the Studio platform renders in an iframe.
 // Estate Media shell/navigation remains available around the iframe.
-export default function StudioEmbeddedEditor({ projectContext, onExit }) {
+export default function StudioEmbeddedEditor({ projectContext, section, onExit }) {
   const [launchUrl, setLaunchUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,6 +23,7 @@ export default function StudioEmbeddedEditor({ projectContext, onExit }) {
           template_id: projectContext?.templateId || null,
           creation_choice_id: projectContext?.choiceId || null,
           asset_source: projectContext?.assetSource || "my_estate_media",
+          studio_section: section || null,
           embedded: true,
         });
         const data = res?.data || res;
@@ -40,7 +41,7 @@ export default function StudioEmbeddedEditor({ projectContext, onExit }) {
     };
     launch();
     return () => { cancelled = true; };
-  }, [projectContext?.bookingId, projectContext?.templateId, projectContext?.choiceId, projectContext?.assetSource]);
+  }, [projectContext?.bookingId, projectContext?.templateId, projectContext?.choiceId, projectContext?.assetSource, section]);
 
   if (loading) {
     return (
@@ -74,7 +75,7 @@ export default function StudioEmbeddedEditor({ projectContext, onExit }) {
         <div className="flex items-center gap-3">
           <StudioLogo size={24} showWordmark={false} />
           <span className="text-xs font-medium" style={{ color: "rgba(250,248,245,0.5)", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
-            {projectContext?.templateId || projectContext?.choiceId || "New Project"}
+            {section ? section.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase()) : (projectContext?.templateId || projectContext?.choiceId || "New Project")}
           </span>
         </div>
         <button onClick={onExit} className="flex items-center gap-1 text-xs hover:opacity-70" style={{ color: "rgba(250,248,245,0.6)", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>

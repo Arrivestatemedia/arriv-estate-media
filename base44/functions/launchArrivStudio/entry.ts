@@ -18,6 +18,7 @@ export default async function(req) {
       template_id,
       creation_choice_id,
       asset_source,
+      studio_section,
       embedded,
     } = body;
 
@@ -94,6 +95,7 @@ export default async function(req) {
       template_id: template_id || null,
       creation_choice_id: creation_choice_id || null,
       asset_source: asset_source || 'my_estate_media',
+      studio_section: studio_section || null,
       embedded: embedded === true,
       launched_at: new Date().toISOString(),
     };

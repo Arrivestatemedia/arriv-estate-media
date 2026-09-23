@@ -1,0 +1,253 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import {
+  Home, FolderPlus, MapPin, Upload, Sparkles, Calendar,
+  ArrowRight, Loader2, Image, Video, FolderOpen,
+} from "lucide-react";
+import { studioCreationChoices, studioTemplates } from "@/lib/arrivStudioConfig";
+
+const STUDIO_FONT = { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" };
+
+// Studio Dashboard — canonical Studio dashboard layout with real-estate content.
+// Rendered inside StudioShell content area (shell provides sidebar + identity).
+// Real-estate specific: Create with Studio, templates, My Listings, My Estate Media.
+export default function StudioDashboard({ entitlement, onStartProject, onNavigate }) {
+  const [bookings, setBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [deliveredMedia, setDeliveredMedia] = useState([]);
+
+  useEffect(() => {
+    const clientEmail = localStorage.getItem("user_email") || sessionStorage.getItem("user_email");
+    if (!clientEmail) {
+      setLoadingBookings(false);
+      return;
+    }
+    base44.entities.Booking.filter({ client_email: clientEmail })
+      .then((rows) => {
+        setBookings(rows || []);
+        const delivered = (rows || []).filter(
+          (b) => b.status === "completed" || b.status === "delivered"
+        );
+        setDeliveredMedia(delivered);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingBookings(false));
+  }, []);
+
+  const categoryLabels = {
+    listing: "Listing",
+    agent: "Agent",
+    education: "Education",
+    brokerage: "Brokerage",
+    training: "Training",
+    custom: "Custom",
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-10" style={{ ...STUDIO_FONT }}>
+      {/* Page heading */}
+      <div>
+        <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: "#FAF8F5" }}>
+          Dashboard
+        </h1>
+        <p className="text-sm mt-1" style={{ color: "rgba(250,248,245,0.4)" }}>
+          Create professional real-estate videos, social content, and promotions with Arriv Studio.
+        </p>
+      </div>
+
+      {/* Create With Studio */}
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: "rgba(250,248,245,0.5)" }}>
+          Create With Studio
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {studioCreationChoices.map((choice) => (
+            <button
+              key={choice.id}
+              onClick={() => onStartProject?.({ type: "creation", choiceId: choice.id, templateIds: choice.templateIds })}
+              className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
+              style={{ background: "#1C1C1F", border: "1px solid rgba(255,90,79,0.1)" }}
+            >
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
+                style={{ background: "rgba(255,90,79,0.12)" }}
+              >
+                <FolderPlus className="w-4 h-4" style={{ color: "#FF5A4F" }} />
+              </div>
+              <p className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>{choice.label}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Real Estate Templates */}
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: "rgba(250,248,245,0.5)" }}>
+          Real Estate Templates
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {studioTemplates.map((tpl) => (
+            <button
+              key={tpl.id}
+              onClick={() => onStartProject?.({ type: "template", templateId: tpl.id })}
+              className="p-3 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+              style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
+            >
+              <span
+                className="text-xs px-2 py-0.5 rounded-full mb-2 inline-block font-semibold"
+                style={{ background: "rgba(255,90,79,0.12)", color: "#FF746B" }}
+              >
+                {categoryLabels[tpl.category] || tpl.category}
+              </span>
+              <p className="text-sm font-medium" style={{ color: "#FAF8F5" }}>{tpl.name}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Recent Projects — links to canonical Studio Projects via iframe */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4" style={{ color: "#FF5A4F" }} />
+            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "rgba(250,248,245,0.5)" }}>
+              Recent Projects
+            </h2>
+          </div>
+          <button
+            onClick={() => onNavigate?.("projects")}
+            className="text-xs font-medium flex items-center gap-1 hover:opacity-70"
+            style={{ color: "#FF746B" }}
+          >
+            View All <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+        <button
+          onClick={() => onNavigate?.("projects")}
+          className="w-full p-6 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40 flex items-center gap-3"
+          style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
+        >
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,90,79,0.12)" }}>
+            <FolderOpen className="w-5 h-5" style={{ color: "#FF5A4F" }} />
+          </div>
+          <div>
+            <p className="text-sm font-medium" style={{ color: "#FAF8F5" }}>Open Studio Projects</p>
+            <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>View and manage all your Studio projects</p>
+          </div>
+        </button>
+      </section>
+
+      {/* My Listings */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <MapPin className="w-4 h-4" style={{ color: "#FF5A4F" }} />
+          <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "rgba(250,248,245,0.5)" }}>
+            My Listings
+          </h2>
+        </div>
+        {loadingBookings ? (
+          <div className="flex items-center gap-2 text-sm" style={{ color: "rgba(250,248,245,0.4)" }}>
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading your listings...
+          </div>
+        ) : bookings.length === 0 ? (
+          <div className="p-4 rounded-xl text-sm" style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)", color: "rgba(250,248,245,0.4)" }}>
+            No listings yet. Book a shoot to get started.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {bookings.slice(0, 6).map((b) => (
+              <button
+                key={b.id}
+                onClick={() => onStartProject?.({ type: "listing", bookingId: b.id, propertyAddress: b.property_address })}
+                className="p-3 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40 flex items-center gap-3"
+                style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
+              >
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,90,79,0.12)" }}>
+                  <Home className="w-5 h-5" style={{ color: "#FF5A4F" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: "#FAF8F5" }}>
+                    {b.property_address || "Property"}
+                  </p>
+                  <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>
+                    {b.package || "Estate Media"} · {b.status}
+                  </p>
+                </div>
+                <ArrowRight className="w-4 h-4 shrink-0" style={{ color: "rgba(250,248,245,0.2)" }} />
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* My Estate Media */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <Image className="w-4 h-4" style={{ color: "#FF5A4F" }} />
+          <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "rgba(250,248,245,0.5)" }}>
+            My Estate Media
+          </h2>
+        </div>
+        {deliveredMedia.length === 0 ? (
+          <div className="p-4 rounded-xl text-sm" style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)", color: "rgba(250,248,245,0.4)" }}>
+            No delivered media yet. Once your shoots are delivered, they'll appear here for use in Studio projects.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {deliveredMedia.slice(0, 8).map((b) => (
+              <button
+                key={b.id}
+                onClick={() => onStartProject?.({ type: "estate_media", bookingId: b.id, assetSource: "my_estate_media" })}
+                className="p-3 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+                style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
+              >
+                <div className="w-full h-20 rounded-lg mb-2 flex items-center justify-center" style={{ background: "rgba(255,90,79,0.08)" }}>
+                  <Video className="w-6 h-6" style={{ color: "#FF5A4F" }} />
+                </div>
+                <p className="text-xs font-medium truncate" style={{ color: "#FAF8F5" }}>
+                  {b.property_address || "Delivered Media"}
+                </p>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Other Asset Sources */}
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: "rgba(250,248,245,0.5)" }}>
+          Other Asset Sources
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <button
+            onClick={() => onStartProject?.({ type: "asset_source", assetSource: "upload" })}
+            className="p-4 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+            style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
+          >
+            <Upload className="w-5 h-5 mb-2" style={{ color: "#FF5A4F" }} />
+            <p className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>Upload</p>
+            <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>Upload your own files</p>
+          </button>
+          <button
+            onClick={() => onStartProject?.({ type: "asset_source", assetSource: "generative_media" })}
+            className="p-4 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+            style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
+          >
+            <Sparkles className="w-5 h-5 mb-2" style={{ color: "#FF5A4F" }} />
+            <p className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>Generative Media</p>
+            <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>AI-generated assets</p>
+          </button>
+          <button
+            onClick={() => { window.location.href = "/BookingPage"; }}
+            className="p-4 rounded-xl text-left transition-all hover:border-[#FF5A4F]/40"
+            style={{ background: "#1C1C1F", border: "1px solid rgba(250,248,245,0.06)" }}
+          >
+            <Calendar className="w-5 h-5 mb-2" style={{ color: "#FF5A4F" }} />
+            <p className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>Book a New Shoot</p>
+            <p className="text-xs" style={{ color: "rgba(250,248,245,0.4)" }}>Book Estate Media photography</p>
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}

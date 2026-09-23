@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useStudioEntitlement } from "@/hooks/useStudioEntitlement";
-import StudioHome from "@/components/studio/StudioHome";
+import StudioShell from "@/components/studio/StudioShell";
+import StudioDashboard from "@/components/studio/StudioDashboard";
 import StudioPlans from "@/components/studio/StudioPlans";
 import StudioEmbeddedEditor from "@/components/studio/StudioEmbeddedEditor";
+import StudioUsage from "@/components/studio/StudioUsage";
+import StudioSettings from "@/components/studio/StudioSettings";
 import StudioLogo from "@/components/studio/StudioLogo";
 import { Loader2 } from "lucide-react";
 
@@ -14,8 +17,13 @@ import { Loader2 } from "lucide-react";
 // - Estate Media owns: customer, property, booking, order, deliverables
 // - Studio backend owns: StudioProject, CreativeBrief, scripts, production data
 // - Estate Media embeds Studio via SSO iframe — no redirect, no second login
+//
+// Canonical Studio shell: 256px sidebar with Dashboard, Projects, Brand Kits,
+// Libraries, Usage & Billing, Settings. Heavy sections load canonical Studio
+// via SSO iframe; Dashboard and Usage are native with real-estate content.
 export default function StudioWorkspace() {
   const { entitlement, loading, refresh } = useStudioEntitlement();
+  const [section, setSection] = useState("dashboard");
   const [projectContext, setProjectContext] = useState(null);
 
   const handleStartProject = (ctx) => {
@@ -53,7 +61,7 @@ export default function StudioWorkspace() {
     );
   }
 
-  // Active entitlement — show full Studio experience
+  // Active project editing — Studio editor takes over content area
   if (projectContext) {
     return (
       <StudioEmbeddedEditor
@@ -63,5 +71,34 @@ export default function StudioWorkspace() {
     );
   }
 
-  return <StudioHome entitlement={entitlement} onStartProject={handleStartProject} />;
+  // Canonical Studio shell with sidebar navigation
+  return (
+    <StudioShell entitlement={entitlement} activeSection={section} onSectionChange={setSection}>
+      {section === "dashboard" && (
+        <StudioDashboard
+          entitlement={entitlement}
+          onStartProject={handleStartProject}
+          onNavigate={setSection}
+        />
+      )}
+      {section === "projects" && (
+        <StudioEmbeddedEditor section="projects" onExit={() => setSection("dashboard")} />
+      )}
+      {section === "brand_kits" && (
+        <StudioEmbeddedEditor section="brand_kits" onExit={() => setSection("dashboard")} />
+      )}
+      {section === "libraries" && (
+        <StudioEmbeddedEditor section="libraries" onExit={() => setSection("dashboard")} />
+      )}
+      {section === "usage" && (
+        <StudioUsage entitlement={entitlement} onRefresh={refresh} />
+      )}
+      {section === "settings" && (
+        <StudioSettings
+          entitlement={entitlement}
+          onManageSubscription={() => setSection("usage")}
+        />
+      )}
+    </StudioShell>
+  );
 }
