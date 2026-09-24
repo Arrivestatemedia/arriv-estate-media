@@ -14,9 +14,19 @@ Deno.serve(async (req) => {
 
     const job = data;
 
-    // Fetch all media partners
-    const allUsers = await base44.asServiceRole.entities.User.list();
-    const mediaPartners = allUsers.filter(user => user.user_type === 'media_partner');
+    // Fetch all media partners from BOTH PendingSignup (where active media-partner
+    // accounts live in this app) and User, then dedupe by email.
+    const [pendingSignups, allUsers] = await Promise.all([
+      base44.asServiceRole.entities.PendingSignup.list().catch(() => []),
+      base44.asServiceRole.entities.User.list().catch(() => []),
+    ]);
+    const byEmail = new Map();
+    for (const p of [...(pendingSignups || []), ...(allUsers || [])]) {
+      if (p.user_type !== 'media_partner') continue;
+      const key = String(p.email || '').toLowerCase();
+      if (key && !byEmail.has(key)) byEmail.set(key, p);
+    }
+    const mediaPartners = [...byEmail.values()];
 
     if (mediaPartners.length === 0) {
       return Response.json({ message: 'No media partners to notify' });
@@ -32,14 +42,9 @@ Deno.serve(async (req) => {
       console.error('Job geocode failed:', e.message);
     }
 
-    // State filter: if the job has a state, only notify partners in that state
-    // (partners with no state set see all jobs on the board, so they pass through).
+    // No state pre-filter — notify every partner whose coverage radius reaches
+    // the job, regardless of state ("everyone within the selected mileage").
     let stateFiltered = mediaPartners;
-    if (job.state) {
-      stateFiltered = mediaPartners.filter(
-        (p) => !p.state || String(p.state).toUpperCase() === String(job.state).toUpperCase()
-      );
-    }
 
     let eligiblePartners;
     if (!jobCoords) {

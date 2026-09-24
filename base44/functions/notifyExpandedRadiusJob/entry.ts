@@ -47,9 +47,19 @@ export default async function(req: Request): Promise<Response> {
 
     const appBase = buildAppUrl();
 
-    // Load all media partners once (filter same-state per job in code).
-    const allUsers = await base44.asServiceRole.entities.User.list();
-    const mediaPartners = allUsers.filter((u) => u.user_type === 'media_partner');
+    // Load all media partners once from BOTH PendingSignup (where active
+    // media-partner accounts live in this app) and User, deduped by email.
+    const [pendingSignups, allUsers] = await Promise.all([
+      base44.asServiceRole.entities.PendingSignup.list().catch(() => []),
+      base44.asServiceRole.entities.User.list().catch(() => []),
+    ]);
+    const byEmail = new Map();
+    for (const p of [...(pendingSignups || []), ...(allUsers || [])]) {
+      if (p.user_type !== 'media_partner') continue;
+      const key = String(p.email || '').toLowerCase();
+      if (key && !byEmail.has(key)) byEmail.set(key, p);
+    }
+    const mediaPartners = [...byEmail.values()];
 
     let totalNotified = 0;
     const jobCoordsCache = {};
