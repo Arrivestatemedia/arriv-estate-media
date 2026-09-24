@@ -45,10 +45,10 @@ export default function StudioEmbeddedEditor({ projectContext, section, onExit }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center" style={{ background: "#111111", minHeight: "60vh" }}>
+      <div className="flex items-center justify-center" style={{ background: "#0f0f0f", minHeight: "60vh" }}>
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: "#FF5A4F" }} />
-          <p className="text-sm" style={{ color: "rgba(250,248,245,0.6)" }}>Loading Arriv Studio...</p>
+          <p className="text-sm" style={{ color: "#a0a0a0" }}>Loading Arriv Studio...</p>
         </div>
       </div>
     );
@@ -56,11 +56,11 @@ export default function StudioEmbeddedEditor({ projectContext, section, onExit }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center p-8" style={{ background: "#111111", minHeight: "60vh" }}>
+      <div className="flex items-center justify-center p-8" style={{ background: "#0f0f0f", minHeight: "60vh" }}>
         <div className="text-center max-w-sm">
           <AlertCircle className="w-8 h-8 mx-auto mb-3" style={{ color: "#FF5A4F" }} />
-          <p className="text-sm mb-4" style={{ color: "rgba(250,248,245,0.7)" }}>{error}</p>
-          <Button onClick={onExit} variant="outline" className="border-[#FF5A4F]/40 text-[#FAF8F5] hover:bg-[#FF5A4F]/10">
+          <p className="text-sm mb-4" style={{ color: "#a0a0a0" }}>{error}</p>
+          <Button onClick={onExit} variant="outline" className="border-[#FF5A4F]/40 text-white hover:bg-[#FF5A4F]/10">
             Back to Studio Home
           </Button>
         </div>
@@ -69,16 +69,16 @@ export default function StudioEmbeddedEditor({ projectContext, section, onExit }
   }
 
   return (
-    <div className="relative" style={{ background: "#111111" }}>
-      {/* Exit bar — Estate Media shell remains available */}
-      <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "rgba(255,90,79,0.15)" }}>
+    <div className="relative" style={{ background: "#0f0f0f" }}>
+      {/* Exit bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "#2d2d2d" }}>
         <div className="flex items-center gap-3">
           <StudioLogo size={24} showWordmark={false} />
-          <span className="text-xs font-medium" style={{ color: "rgba(250,248,245,0.5)", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+          <span className="text-xs font-medium" style={{ color: "#a0a0a0", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
             {section ? section.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase()) : (projectContext?.templateId || projectContext?.choiceId || "New Project")}
           </span>
         </div>
-        <button onClick={onExit} className="flex items-center gap-1 text-xs hover:opacity-70" style={{ color: "rgba(250,248,245,0.6)", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+        <button onClick={onExit} className="flex items-center gap-1 text-xs hover:opacity-70" style={{ color: "#a0a0a0", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
           <X className="w-3.5 h-3.5" />
           Exit to Studio Home
         </button>
@@ -88,7 +88,7 @@ export default function StudioEmbeddedEditor({ projectContext, section, onExit }
         src={launchUrl}
         title="Arriv Studio for Real Estate"
         className="w-full"
-        style={{ border: "none", minHeight: "calc(100vh - 120px)", background: "#111111" }}
+        style={{ border: "none", minHeight: "calc(100vh - 120px)", background: "#0f0f0f" }}
         allow="camera; microphone; fullscreen; clipboard-read; clipboard-write"
       />
     </div>

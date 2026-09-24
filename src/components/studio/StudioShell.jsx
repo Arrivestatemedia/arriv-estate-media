@@ -8,10 +8,9 @@ import StudioProductionMinutesCard from "@/components/studio/StudioProductionMin
 
 const STUDIO_FONT = { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" };
 
-// Canonical Arriv Studio application shell — 256px sidebar + content area.
-// Background #111111, panels #1C1C1F, text #FAF8F5, coral #FF5A4F accents.
-// Sidebar: Studio identity, navigation, production minutes card at bottom.
-// Responsive: full sidebar on desktop, slide-out drawer on mobile.
+// Canonical Arriv Studio application shell — sidebar + content area.
+// Matches Arriv Studio reference: #0f0f0f bg, #121212 sidebar, #331b1b active nav,
+// #1a1a1a containers, coral #FF5A4F accents, white/a0a0a0 text.
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "projects", label: "Projects", icon: FolderOpen },
@@ -32,7 +31,7 @@ export default function StudioShell({ entitlement, activeSection, onSectionChang
   const sidebarContent = (
     <div className="flex flex-col h-full" style={{ ...STUDIO_FONT }}>
       {/* Studio Identity */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: "rgba(250,248,245,0.06)" }}>
+      <div className="px-5 py-5 border-b" style={{ borderColor: "#2d2d2d" }}>
         <StudioLogo size={32} />
       </div>
 
@@ -47,10 +46,10 @@ export default function StudioShell({ entitlement, activeSection, onSectionChang
               onClick={() => handleSelect(item.id)}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
               style={{
-                background: active ? "rgba(255,90,79,0.15)" : "transparent",
-                color: active ? "#FF5A4F" : "rgba(250,248,245,0.5)",
+                background: active ? "#331b1b" : "transparent",
+                color: active ? "#ffffff" : "#a0a0a0",
               }}
-              onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "rgba(250,248,245,0.04)"; }}
+              onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
               onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -68,11 +67,11 @@ export default function StudioShell({ entitlement, activeSection, onSectionChang
   );
 
   return (
-    <div className="flex" style={{ minHeight: "calc(100vh - 64px)", background: "#111111" }}>
-      {/* Desktop sidebar — 256px fixed */}
+    <div className="flex" style={{ minHeight: "calc(100vh - 64px)", background: "#0f0f0f" }}>
+      {/* Desktop sidebar */}
       <aside
         className="hidden md:flex flex-col shrink-0"
-        style={{ width: "256px", background: "#0D0D0D", borderRight: "1px solid rgba(250,248,245,0.06)" }}
+        style={{ width: "256px", background: "#121212", borderRight: "1px solid #2d2d2d" }}
       >
         {sidebarContent}
       </aside>
@@ -87,12 +86,12 @@ export default function StudioShell({ entitlement, activeSection, onSectionChang
           />
           <aside
             className="md:hidden fixed left-0 top-0 bottom-0 z-50 w-64 flex flex-col"
-            style={{ background: "#0D0D0D", borderRight: "1px solid rgba(250,248,245,0.06)" }}
+            style={{ background: "#121212", borderRight: "1px solid #2d2d2d" }}
           >
             <button
               onClick={() => setMobileNavOpen(false)}
               className="absolute top-4 right-3 p-1.5 rounded-lg"
-              style={{ color: "rgba(250,248,245,0.5)" }}
+              style={{ color: "#a0a0a0" }}
             >
               <X className="w-5 h-5" />
             </button>
@@ -106,22 +105,22 @@ export default function StudioShell({ entitlement, activeSection, onSectionChang
         {/* Mobile top bar */}
         <div
           className="md:hidden flex items-center gap-3 px-4 py-3 border-b"
-          style={{ background: "#111111", borderColor: "rgba(250,248,245,0.06)" }}
+          style={{ background: "#0f0f0f", borderColor: "#2d2d2d" }}
         >
           <button
             onClick={() => setMobileNavOpen(true)}
             className="p-1.5 rounded-lg"
-            style={{ color: "rgba(250,248,245,0.6)" }}
+            style={{ color: "#a0a0a0" }}
           >
             <Menu className="w-5 h-5" />
           </button>
-          <span className="text-sm font-semibold" style={{ color: "#FAF8F5" }}>
+          <span className="text-sm font-semibold" style={{ color: "#ffffff" }}>
             {NAV_ITEMS.find((n) => n.id === activeSection)?.label || "Studio"}
           </span>
         </div>
 
         {/* Section content */}
-        <div className="flex-1 overflow-y-auto" style={{ background: "#111111" }}>
+        <div className="flex-1 overflow-y-auto" style={{ background: "#0f0f0f" }}>
           {children}
         </div>
       </div>

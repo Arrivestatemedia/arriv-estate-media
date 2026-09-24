@@ -6,11 +6,12 @@ import { studioPlans } from "@/lib/arrivStudioConfig";
 import StudioLogo from "@/components/studio/StudioLogo";
 
 const STUDIO_FONT = { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" };
+const C = {
+  bg: "#0f0f0f", container: "#1a1a1a", border: "#2d2d2d",
+  text: "#ffffff", muted: "#a0a0a0", accent: "#FF5A4F",
+};
 
-// Studio plan selection and purchase for customers without an active entitlement.
-// CANONICAL STUDIO VISUAL SYSTEM: dark background, charcoal cards, coral accents.
-// Estate Media handles the transaction via manageStudioSubscription.
-// After verified subscription activation, the Studio tab appears.
+// Studio plan selection for customers without an active entitlement.
 export default function StudioPlans({ onSubscribed, compact = false }) {
   const [subscribing, setSubscribing] = useState(null);
   const [error, setError] = useState(null);
@@ -48,10 +49,8 @@ export default function StudioPlans({ onSubscribed, compact = false }) {
           <div className="flex flex-col items-center gap-3 mb-4">
             <StudioLogo size={40} />
           </div>
-          <h2 className="text-2xl font-extrabold mb-2" style={{ color: "#FAF8F5" }}>
-            Studio for Real Estate
-          </h2>
-          <p className="text-sm max-w-md mx-auto" style={{ color: "rgba(250,248,245,0.5)" }}>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: C.text }}>Studio for Real Estate</h2>
+          <p className="text-sm max-w-md mx-auto" style={{ color: C.muted }}>
             Create professional listing promos, property videos, social content, agent marketing,
             and training — all powered by Arriv Studio, built for real estate.
           </p>
@@ -71,33 +70,27 @@ export default function StudioPlans({ onSubscribed, compact = false }) {
             <div
               key={plan.id}
               className="rounded-xl p-6 flex flex-col transition-all"
-              style={{
-                background: "#1C1C1F",
-                border: isPro ? "2px solid #FF5A4F" : "1px solid rgba(250,248,245,0.08)",
-              }}
+              style={{ background: C.container, border: isPro ? "2px solid #FF5A4F" : `1px solid ${C.border}` }}
             >
               {isPro && (
                 <div className="mb-3">
-                  <span
-                    className="text-xs font-bold px-3 py-1 rounded-full text-white"
-                    style={{ background: "linear-gradient(135deg, #FF4F46 0%, #FF806F 100%)" }}
-                  >
+                  <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: "linear-gradient(135deg, #FF4F46 0%, #FF806F 100%)" }}>
                     MOST POPULAR
                   </span>
                 </div>
               )}
-              <h3 className="text-lg font-bold mb-1" style={{ color: "#FAF8F5" }}>
+              <h3 className="text-lg font-bold mb-1" style={{ color: C.text }}>
                 {plan.name.split("—")[1]?.trim() || plan.name}
               </h3>
               <div className="mb-4">
-                <span className="text-3xl font-extrabold" style={{ color: "#FAF8F5" }}>${plan.price}</span>
-                <span className="text-sm" style={{ color: "rgba(250,248,245,0.4)" }}>/month</span>
+                <span className="text-3xl font-bold" style={{ color: C.text }}>${plan.price}</span>
+                <span className="text-sm" style={{ color: C.muted }}>/month</span>
               </div>
-              <p className="text-xs mb-4" style={{ color: "rgba(250,248,245,0.5)" }}>{plan.description}</p>
+              <p className="text-xs mb-4" style={{ color: C.muted }}>{plan.description}</p>
               <ul className="space-y-2 mb-6 flex-1">
                 {plan.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs" style={{ color: "rgba(250,248,245,0.7)" }}>
-                    <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "#FF5A4F" }} />
+                  <li key={i} className="flex items-start gap-2 text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>
+                    <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: C.accent }} />
                     {f}
                   </li>
                 ))}
@@ -107,10 +100,8 @@ export default function StudioPlans({ onSubscribed, compact = false }) {
                 disabled={subscribing !== null}
                 className="w-full"
                 style={{
-                  background: isPro
-                    ? "linear-gradient(135deg, #FF4F46 0%, #FF806F 100%)"
-                    : "rgba(250,248,245,0.08)",
-                  color: "#FAF8F5",
+                  background: isPro ? "linear-gradient(135deg, #FF4F46 0%, #FF806F 100%)" : "rgba(255,255,255,0.06)",
+                  color: C.text,
                   border: isPro ? "none" : "1px solid rgba(255,90,79,0.3)",
                 }}
               >

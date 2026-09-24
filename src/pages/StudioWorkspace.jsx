@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useStudioEntitlement } from "@/hooks/useStudioEntitlement";
 import StudioShell from "@/components/studio/StudioShell";
 import StudioDashboard from "@/components/studio/StudioDashboard";
+import StudioNewProduction from "@/components/studio/StudioNewProduction";
+import StudioProjectDetail from "@/components/studio/StudioProjectDetail";
 import StudioPlans from "@/components/studio/StudioPlans";
 import StudioEmbeddedEditor from "@/components/studio/StudioEmbeddedEditor";
 import StudioUsage from "@/components/studio/StudioUsage";
@@ -9,65 +11,113 @@ import StudioSettings from "@/components/studio/StudioSettings";
 import StudioLogo from "@/components/studio/StudioLogo";
 import { Loader2 } from "lucide-react";
 
-// StudioWorkspace — the native Arriv Studio for Real Estate experience inside Estate Media.
+// StudioWorkspace — native Arriv Studio for Real Estate experience inside Estate Media.
 // CONDITIONAL: only accessible when the customer has an active Studio entitlement.
-// The Studio tab in bottom navigation is hidden until entitlement is active.
 //
 // Architecture:
 // - Estate Media owns: customer, property, booking, order, deliverables
 // - Studio backend owns: StudioProject, CreativeBrief, scripts, production data
-// - Estate Media embeds Studio via SSO iframe — no redirect, no second login
-//
-// Canonical Studio shell: 256px sidebar with Dashboard, Projects, Brand Kits,
-// Libraries, Usage & Billing, Settings. Heavy sections load canonical Studio
-// via SSO iframe; Dashboard and Usage are native with real-estate content.
+// - Estate Media embeds Studio via SSO iframe for heavy editing (script, storyboard, production)
+// - Dashboard, New Production wizard, and Project Detail are native UI matching canonical Studio
 export default function StudioWorkspace() {
   const { entitlement, loading, refresh } = useStudioEntitlement();
   const [section, setSection] = useState("dashboard");
-  const [projectContext, setProjectContext] = useState(null);
+  const [projectData, setProjectData] = useState(null);
+  const [editorSection, setEditorSection] = useState(null);
 
   const handleStartProject = (ctx) => {
-    setProjectContext(ctx);
+    if (ctx?.mode === "new_production") {
+      setProjectData(null);
+      setSection("new_production");
+    } else if (ctx?.mode === "from_booking") {
+      // Pre-fill wizard with booking data
+      setProjectData({
+        projectName: ctx.propertyAddress ? `${ctx.propertyAddress} Video` : "",
+        sourceProduct: "Estate Media Booking",
+        industryContext: "Real estate",
+      });
+      setSection("new_production");
+    }
   };
 
-  const handleExitEditor = () => {
-    setProjectContext(null);
+  const handleCreateProject = (formData) => {
+    setProjectData(formData);
+    setSection("project_detail");
     refresh();
   };
 
-  const handleSubscribed = () => {
-    refresh();
+  const handleCancelWizard = () => {
+    setSection("dashboard");
+  };
+
+  const handleBackToDashboard = () => {
+    setSection("dashboard");
+    setProjectData(null);
+  };
+
+  const handleLaunchStudio = (ctx) => {
+    setEditorSection(ctx?.section || "projects");
+    setSection("editor");
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center" style={{ background: "#111111", minHeight: "60vh" }}>
+      <div className="flex items-center justify-center" style={{ background: "#0f0f0f", minHeight: "60vh" }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#FF5A4F" }} />
       </div>
     );
   }
 
-  // No active entitlement — show purchase options (discovery is allowed, access is not)
+  // No active entitlement — show purchase options
   if (!entitlement?.active) {
     return (
-      <div className="min-h-screen" style={{ background: "#111111", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
-        <div className="border-b" style={{ borderColor: "rgba(255,90,79,0.15)" }}>
+      <div className="min-h-screen" style={{ background: "#0f0f0f", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+        <div className="border-b" style={{ borderColor: "#2d2d2d" }}>
           <div className="max-w-6xl mx-auto px-4 py-3">
             <StudioLogo size={32} />
           </div>
         </div>
-        <StudioPlans onSubscribed={handleSubscribed} />
+        <StudioPlans onSubscribed={refresh} />
       </div>
     );
   }
 
-  // Active project editing — Studio editor takes over content area
-  if (projectContext) {
+  // Editor view — Studio iframe for heavy editing
+  if (section === "editor") {
     return (
-      <StudioEmbeddedEditor
-        projectContext={projectContext}
-        onExit={handleExitEditor}
-      />
+      <StudioShell entitlement={entitlement} activeSection="projects" onSectionChange={(s) => { setSection(s); setEditorSection(null); }}>
+        <StudioEmbeddedEditor
+          section={editorSection}
+          projectContext={projectData ? { bookingId: projectData.bookingId, templateId: projectData.templateId } : null}
+          onExit={() => { setSection(projectData ? "project_detail" : "dashboard"); setEditorSection(null); }}
+        />
+      </StudioShell>
+    );
+  }
+
+  // New Production wizard — full screen (no sidebar)
+  if (section === "new_production") {
+    return (
+      <div style={{ background: "#0f0f0f", minHeight: "calc(100vh - 64px)" }}>
+        <StudioNewProduction
+          project={projectData}
+          onCreate={handleCreateProject}
+          onCancel={handleCancelWizard}
+        />
+      </div>
+    );
+  }
+
+  // Project Detail — full screen with tabs (no sidebar, has its own back nav)
+  if (section === "project_detail") {
+    return (
+      <div style={{ background: "#0f0f0f", minHeight: "calc(100vh - 64px)" }}>
+        <StudioProjectDetail
+          project={projectData}
+          onBack={handleBackToDashboard}
+          onLaunchStudio={handleLaunchStudio}
+        />
+      </div>
     );
   }
 
