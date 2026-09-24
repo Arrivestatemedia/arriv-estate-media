@@ -480,7 +480,11 @@ export default function JobBoard() {
      if (job.id === highlightJobId) return true;
      if (!hasCoverage) return true;
      const d = jobDistances[job.id];
-     return d != null && d <= maxDistance;
+     // Fail open: if the distance couldn't be computed (geocoding failed/stalled),
+     // show the job rather than hide it. Only hide when we've CONFIRMED it's
+     // beyond the partner's travel radius.
+     if (d == null) return true;
+     return d <= maxDistance;
    })
    .filter((job) => {
      // Capability filtering — hide jobs the provider isn't verified for
