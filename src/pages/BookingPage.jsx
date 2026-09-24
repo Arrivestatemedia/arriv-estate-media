@@ -182,6 +182,38 @@ export default function BookingPage() {
   const [studioAddOns, setStudioAddOns] = useState([]);
   const [studioBundle, setStudioBundle] = useState(null);
 
+  // Persist the cart so it survives a round-trip to the Studio exploration page.
+  // Restored on mount; saved on every change. A plan chosen on the Studio page
+  // is picked up here and dropped into the Studio bundle slot.
+  useEffect(() => {
+    const saved = sessionStorage.getItem('booking_cart_state');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.selectedPackage) setSelectedPackage(parsed.selectedPackage);
+        if (parsed.cartAddOns?.length) setCartAddOns(parsed.cartAddOns);
+        if (parsed.studioAddOns?.length) setStudioAddOns(parsed.studioAddOns);
+        if (parsed.studioBundle) setStudioBundle(parsed.studioBundle);
+      } catch {}
+    }
+    const selectedBundle = sessionStorage.getItem('studio_selected_bundle');
+    if (selectedBundle) {
+      try {
+        setStudioBundle(JSON.parse(selectedBundle));
+        sessionStorage.removeItem('studio_selected_bundle');
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem('booking_cart_state', JSON.stringify({
+      selectedPackage,
+      cartAddOns,
+      studioAddOns,
+      studioBundle,
+    }));
+  }, [selectedPackage, cartAddOns, studioAddOns, studioBundle]);
+
   // Load the org-wide pay-at-closing toggle (default OFF). The backend logic
   // stays intact; this only gates the client-facing UI.
   useEffect(() => {
@@ -294,6 +326,7 @@ export default function BookingPage() {
       localStorage.removeItem('pending_invite_token');
       localStorage.removeItem('selected_sales_member_id');
       localStorage.removeItem('selected_sales_member_name');
+      sessionStorage.removeItem('booking_cart_state');
       setShowBookingForm(false);
       setSelectedPackage(null);
       window.location.href = createPageUrl('ClientBookings');

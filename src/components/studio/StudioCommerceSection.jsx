@@ -6,16 +6,14 @@ import { createPageUrl } from "@/utils";
 
 // "TURN YOUR MEDIA INTO MORE" commerce section shown after core Estate Media packages.
 // Discovery is allowed before purchase — but the Studio tab only appears after entitlement.
-export default function StudioCommerceSection({ onExplore, onSeePlans }) {
+export default function StudioCommerceSection({ onExplore }) {
   const navigate = useNavigate();
 
   const handleExplore = () => {
     if (onExplore) return onExplore();
-    navigate(createPageUrl("StudioWorkspace"));
-  };
-
-  const handleSeePlans = () => {
-    if (onSeePlans) return onSeePlans();
+    // Flag so StudioPlans knows to add the selection to the booking cart
+    // and return here, rather than subscribing immediately.
+    sessionStorage.setItem('studio_exploring_from_booking', 'true');
     navigate(createPageUrl("StudioWorkspace"));
   };
 
@@ -46,14 +44,6 @@ export default function StudioCommerceSection({ onExplore, onSeePlans }) {
           >
             Explore Arriv Studio
             <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-          <Button
-            onClick={handleSeePlans}
-            variant="outline"
-            className="border-[#FF5A4F]/40 hover:bg-[#FF5A4F]/5"
-            style={{ color: "#111111" }}
-          >
-            See Studio Plans
           </Button>
         </div>
       </div>

@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check } from "lucide-react";
 import { studioPlans } from "@/lib/arrivStudioConfig";
 import StudioLogo from "@/components/studio/StudioLogo";
+import { createPageUrl } from "@/utils";
 
 const STUDIO_FONT = { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" };
 const C = {
@@ -13,10 +15,21 @@ const C = {
 
 // Studio plan selection for customers without an active entitlement.
 export default function StudioPlans({ onSubscribed, compact = false }) {
+  const navigate = useNavigate();
   const [subscribing, setSubscribing] = useState(null);
   const [error, setError] = useState(null);
+  // When the client arrived here from the BookingPage, selecting a plan should
+  // drop it into the booking cart and return — not activate a subscription.
+  const exploringFromBooking = sessionStorage.getItem('studio_exploring_from_booking') === 'true';
 
   const handleSubscribe = async (planId) => {
+    if (exploringFromBooking) {
+      const plan = studioPlans.find((p) => p.id === planId);
+      sessionStorage.setItem('studio_selected_bundle', JSON.stringify(plan));
+      sessionStorage.removeItem('studio_exploring_from_booking');
+      navigate(createPageUrl("BookingPage"));
+      return;
+    }
     setSubscribing(planId);
     setError(null);
     try {
@@ -107,6 +120,8 @@ export default function StudioPlans({ onSubscribed, compact = false }) {
               >
                 {subscribing === plan.id ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Activating...</>
+                ) : exploringFromBooking ? (
+                  `Select ${plan.name.split("—")[1]?.trim() || plan.name}`
                 ) : (
                   `Get ${plan.name.split("—")[1]?.trim() || plan.name}`
                 )}
