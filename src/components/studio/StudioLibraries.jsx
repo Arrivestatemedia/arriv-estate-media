@@ -114,59 +114,51 @@ function PresenterCard({ presenter, onEdit, onDelete }) {
 // ── Voice Card ──
 function VoiceCard({ voice, onEdit, onDelete }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const audioRef = React.useRef(null);
 
   const handlePreview = async () => {
-    // If we have an uploaded audio file, play it
-    if (voice.audio_url) {
-      if (!audioRef.current) {
-        audioRef.current = new Audio(voice.audio_url);
-        audioRef.current.onended = () => setIsPlaying(false);
-      }
-      if (isPlaying) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-      return;
-    }
-
-    // No audio file — use browser speech synthesis as a live preview
-    if (!("speechSynthesis" in window)) return;
-
-    // Stop any currently playing speech
-    window.speechSynthesis.cancel();
-
-    if (isPlaying) {
+    // If already playing, stop
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
       setIsPlaying(false);
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(
-      `Hi, I'm ${voice.name.replace(/\s*\(.*?\)\s*/g, "")}. This is a preview of my voice for your real estate productions.`
-    );
-    utterance.rate = 0.95;
-    utterance.pitch = voice.category === "FEMALE" ? 1.05 : 0.92;
+    // If we already have an audio URL (uploaded or previously generated), just play it
+    if (audioRef.current && audioRef.current.src) {
+      audioRef.current.play();
+      setIsPlaying(true);
+      return;
+    }
 
-    // Try to match a system voice to the language
-    const lang = voice.metadata?.language || "en-US";
-    utterance.lang = lang;
-    const voices = window.speechSynthesis.getVoices();
-    const match = voices.find((v) => v.lang === lang) || voices.find((v) => v.lang.startsWith(lang.split("-")[0]));
-    if (match) utterance.voice = match;
+    // Generate a voice preview via the backend TTS function
+    setIsLoading(true);
+    try {
+      const res = await base44.functions.invoke("generateVoicePreview", {
+        voice_name: voice.name,
+        language_code: voice.metadata?.language || "en-US",
+      });
+      const audioUrl = res?.data?.audio_url || res?.audio_url;
+      if (!audioUrl) throw new Error("No audio URL returned");
 
-    utterance.onend = () => setIsPlaying(false);
-    utterance.onerror = () => setIsPlaying(false);
-    setIsPlaying(true);
-    window.speechSynthesis.speak(utterance);
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.onended = () => setIsPlaying(false);
+      audioRef.current.play();
+      setIsPlaying(true);
+    } catch (e) {
+      console.error("Voice preview failed:", e);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Cancel speech if component unmounts
+  // Cleanup on unmount
   React.useEffect(() => () => {
-    if (isPlaying) window.speechSynthesis?.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
   }, []);
 
   return (
@@ -192,10 +184,16 @@ function VoiceCard({ voice, onEdit, onDelete }) {
 
       <button
         onClick={handlePreview}
-        className="w-full py-2 rounded-lg text-sm font-medium mb-3 transition-colors hover:border-[#FF5A4F]/40 flex items-center justify-center gap-2"
+        disabled={isLoading}
+        className="w-full py-2 rounded-lg text-sm font-medium mb-3 transition-colors hover:border-[#FF5A4F]/40 flex items-center justify-center gap-2 disabled:opacity-50"
         style={{ border: `1px solid ${C.border}`, color: isPlaying ? C.accent : C.text }}
       >
-        {isPlaying ? (
+        {isLoading ? (
+          <>
+            <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: C.border, borderTopColor: C.accent }} />
+            Generating…
+          </>
+        ) : isPlaying ? (
           <>
             <span className="flex gap-0.5 items-end h-3">
               <span className="w-0.5 bg-[#FF5A4F] animate-pulse" style={{ height: "60%" }} />

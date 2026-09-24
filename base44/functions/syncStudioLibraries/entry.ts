@@ -46,29 +46,63 @@ export default async function(req) {
       });
     }
 
-    // Pull the canonical library catalog from Arriv Studio
-    const libraryUrl = `${studioBaseUrl.replace(/\/$/, '')}/api/v1/libraries`;
+    // Probe common API paths to find the correct libraries endpoint
+    const base = studioBaseUrl.replace(/\/$/, '');
     const headers = { 'Content-Type': 'application/json' };
-    if (ssoSecret) headers['X-Arriv-Studio-Secret'] = ssoSecret;
-
-    const studioRes = await fetch(libraryUrl, { headers });
-    if (!studioRes.ok) {
-      return Response.json({
-        synced: false,
-        reason: `Studio returned ${studioRes.status}`,
-      });
+    if (ssoSecret) {
+      headers['X-Arriv-Studio-Secret'] = ssoSecret;
+      headers['Authorization'] = `Bearer ${ssoSecret}`;
     }
 
-    // Guard against non-JSON responses (HTML login pages, 404 pages, etc.)
-    const contentType = studioRes.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-      return Response.json({
-        synced: false,
-        reason: `Studio returned non-JSON response (content-type: ${contentType || 'unknown'}). The /api/v1/libraries endpoint may not exist on the configured ARRIV_STUDIO_BASE_URL. Canonical defaults remain active.`,
-      });
+    const candidatePaths = [
+      '/functions/getStudioLibraries',
+      '/functions/getLibraries',
+      '/functions/getLibraryAssets',
+      '/functions/listLibraries',
+      '/functions/listStudioLibraries',
+      '/functions/getStudioAssets',
+      '/functions/getPresenters',
+      '/functions/getVoices',
+      '/functions/getMusic',
+      '/functions/getStudioLibrary',
+      '/functions/getAllLibraries',
+      '/functions/getLibraryCatalog',
+      '/functions/getStudioCatalog',
+      '/functions/getAssets',
+      '/functions/listAssets',
+    ];
+
+    let studioData = null;
+    let foundPath = null;
+    let probeResults = [];
+
+    for (const path of candidatePaths) {
+      try {
+        const res = await fetch(`${base}${path}`, { headers });
+        const ct = res.headers.get('content-type') || '';
+        probeResults.push({ path, status: res.status, contentType: ct });
+        if (res.ok && ct.includes('application/json')) {
+          const json = await res.json();
+          // Check if this response has library data
+          if (json.presenters || json.voices || json.music || Array.isArray(json)) {
+            studioData = json;
+            foundPath = path;
+            break;
+          }
+        }
+      } catch (e) {
+        probeResults.push({ path, error: e.message });
+      }
     }
 
-    const studioData = await studioRes.json();
+    if (!studioData) {
+      return Response.json({
+        synced: false,
+        reason: 'No libraries API endpoint found on Studio backend',
+        probed: probeResults,
+        base_url: base,
+      });
+    }
     const remoteAssets = [
       ...(studioData.presenters || []).map((p) => ({ ...p, asset_type: 'presenter' })),
       ...(studioData.voices || []).map((v) => ({ ...v, asset_type: 'voice' })),
