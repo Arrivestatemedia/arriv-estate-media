@@ -483,12 +483,6 @@ export default function JobBoard() {
      return d != null && d <= maxDistance;
    })
    .filter((job) => {
-     if (job.id === highlightJobId) return true;
-     // Only show jobs in the partner's state (when they've set a coverage state).
-     if (!coverage?.state) return true;
-     return !!job.state && String(job.state).toUpperCase() === String(coverage.state).toUpperCase();
-   })
-   .filter((job) => {
      // Capability filtering — hide jobs the provider isn't verified for
      const requiredCaps = job.required_capabilities || [];
      if (requiredCaps.length === 0) return true;
