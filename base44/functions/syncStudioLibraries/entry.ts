@@ -56,7 +56,16 @@ export default async function(req) {
       return Response.json({
         synced: false,
         reason: `Studio returned ${studioRes.status}`,
-      }, { status: 502 });
+      });
+    }
+
+    // Guard against non-JSON responses (HTML login pages, 404 pages, etc.)
+    const contentType = studioRes.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      return Response.json({
+        synced: false,
+        reason: `Studio returned non-JSON response (content-type: ${contentType || 'unknown'}). The /api/v1/libraries endpoint may not exist on the configured ARRIV_STUDIO_BASE_URL. Canonical defaults remain active.`,
+      });
     }
 
     const studioData = await studioRes.json();
