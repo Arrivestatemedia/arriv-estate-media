@@ -61,15 +61,89 @@ export default async function(req) {
       launched_at: new Date().toISOString(),
     };
 
+    // Strategy 1: Try calling Studio's generateVoicePreview with the user's
+    // own Base44 access token (forwarded from the Estate Media frontend).
+    // Base44 user tokens may be valid across apps in the same workspace.
+    const userAuthHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    const previewPayload = {
+      text: text || `Hi, I'm ${voice_name.replace(/\s*\(.*?\)\s*/g, '')}. This is a preview of my voice for your real estate productions.`,
+      voice_name,
+      language_code: language_code || 'en-US',
+      provider: provider || undefined,
+      voice_id: voice_id || undefined,
+      provider_voice_id: provider_voice_id || undefined,
+    };
+
+    if (userAuthHeader) {
+      const directRes = await fetch(`${studioBaseUrl}/functions/generateVoicePreview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': userAuthHeader,
+        },
+        body: JSON.stringify(previewPayload),
+      });
+
+      const directData = await directRes.json().catch(() => ({}));
+
+      if (directRes.ok && (directData.audio_url || directData.data?.audio_url || directData.data?.audio_data_url)) {
+        return Response.json({
+          audio_url: directData.audio_url || directData.data?.audio_url || directData.data?.audio_data_url,
+          audio_data_url: directData.audio_data_url || directData.data?.audio_data_url,
+          source: 'arriv_studio',
+        });
+      }
+
+      // If non-auth error, return it; otherwise fall through to service token
+      const directErr = directData.error || directData.message || '';
+      if (directRes.status !== 401 && !directErr.includes('Unauthorized') && !directErr.includes('auth')) {
+        return Response.json({
+          error: directErr || `Studio returned ${directRes.status}`,
+          status: directRes.status,
+        }, { status: directRes.status });
+      }
+    }
+
+    // Strategy 1b: Try with the Estate Media service token
+    const serviceToken = secrets.get('BASE44_SERVICE_TOKEN');
+    if (serviceToken) {
+      const svcRes = await fetch(`${studioBaseUrl}/functions/generateVoicePreview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceToken}`,
+        },
+        body: JSON.stringify(previewPayload),
+      });
+
+      const svcData = await svcRes.json().catch(() => ({}));
+
+      if (svcRes.ok && (svcData.audio_url || svcData.data?.audio_url || svcData.data?.audio_data_url)) {
+        return Response.json({
+          audio_url: svcData.audio_url || svcData.data?.audio_url || svcData.data?.audio_data_url,
+          audio_data_url: svcData.audio_data_url || svcData.data?.audio_data_url,
+          source: 'arriv_studio',
+        });
+      }
+
+      const svcErr = svcData.error || svcData.message || '';
+      if (svcRes.status !== 401 && !svcErr.includes('Unauthorized') && svcErr !== 'Authentication required to view users') {
+        return Response.json({
+          error: svcErr || `Studio returned ${svcRes.status}`,
+          status: svcRes.status,
+        }, { status: svcRes.status });
+      }
+    }
+
+    // Strategy 2: SSO launch flow — exchange signed context for a Studio token
     const { contextB64, signature } = await signContext(launchContext, ssoSecret);
 
-    // Try Studio's /api/auth/launch endpoint with the SSO secret as api_key
-    // This endpoint exchanges the signed SSO context for a Base44 access token
     const launchRes = await fetch(
-      `${studioBaseUrl}/api/auth/launch?ctx=${contextB64}&sig=${signature}&api_key=${encodeURIComponent(ssoSecret)}`,
+      `${studioBaseUrl}/api/auth/launch?ctx=${contextB64}&sig=${signature}`,
       {
         headers: {
           'Accept': 'application/json',
+          'Authorization': `Bearer ${ssoSecret}`,
         },
       }
     );
@@ -84,7 +158,6 @@ export default async function(req) {
       }, { status: 502 });
     }
 
-    // Extract the access token from the launch response
     const studioToken = launchData.access_token || launchData.token || launchData.data?.access_token;
 
     if (!studioToken) {
@@ -95,33 +168,26 @@ export default async function(req) {
     }
 
     // Call Studio's generateVoicePreview with the Studio access token
-    const previewRes = await fetch(`${studioBaseUrl}/functions/generateVoicePreview`, {
+    const ssoPreviewRes = await fetch(`${studioBaseUrl}/functions/generateVoicePreview`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${studioToken}`,
       },
-      body: JSON.stringify({
-        text: text || `Hi, I'm ${voice_name.replace(/\s*\(.*?\)\s*/g, '')}. This is a preview of my voice for your real estate productions.`,
-        voice_name,
-        language_code: language_code || 'en-US',
-        provider: provider || undefined,
-        voice_id: voice_id || undefined,
-        provider_voice_id: provider_voice_id || undefined,
-      }),
+      body: JSON.stringify(previewPayload),
     });
 
-    const previewData = await previewRes.json().catch(() => ({}));
+    const ssoPreviewData = await ssoPreviewRes.json().catch(() => ({}));
 
-    if (!previewRes.ok) {
+    if (!ssoPreviewRes.ok) {
       return Response.json({
-        error: previewData.error || `Studio returned ${previewRes.status}`,
-      }, { status: previewRes.status });
+        error: ssoPreviewData.error || `Studio returned ${ssoPreviewRes.status}`,
+      }, { status: ssoPreviewRes.status });
     }
 
     return Response.json({
-      audio_url: previewData.audio_url || previewData.data?.audio_url || previewData.data?.audio_data_url,
-      audio_data_url: previewData.audio_data_url || previewData.data?.audio_data_url,
+      audio_url: ssoPreviewData.audio_url || ssoPreviewData.data?.audio_url || ssoPreviewData.data?.audio_data_url,
+      audio_data_url: ssoPreviewData.audio_data_url || ssoPreviewData.data?.audio_data_url,
       source: 'arriv_studio',
     });
   } catch (error) {
