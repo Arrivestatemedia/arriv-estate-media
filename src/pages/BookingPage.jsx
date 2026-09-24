@@ -9,7 +9,6 @@ import { ChevronDown, ChevronUp, Check, Lock, Search, Loader2, Film } from "luci
 import { motion, AnimatePresence } from "framer-motion";
 import BookingForm from "../components/booking/BookingForm";
 import { packages, addOns, determinePricingTier, getTierLabel, getPackagePriceForTier, computeTotalForTier } from "@/lib/services";
-import ArrivStudioTile from "@/components/studio/ArrivStudioTile";
 import StudioCommerceSection from "@/components/studio/StudioCommerceSection";
 import StudioCheckoutAddOns from "@/components/studio/StudioCheckoutAddOns";
 
@@ -466,12 +465,9 @@ export default function BookingPage() {
             </div>
           )}
           {displayPricing?.customer_tenure?.review_flag && (
-            <div className="mb-6 rounded-lg border border-[#B8956A]/20 bg-white p-4 text-left">
+            <div className="mb-6">
               <p className="text-sm font-semibold text-[#1A1A1A]/80">
-                Welcome{displayPricing.client_email ? ` back` : ''}!
-              </p>
-              <p className="text-xs text-[#1A1A1A]/60 mt-1">
-                Standard pricing is shown below. Your account is being reviewed for loyalty pricing eligibility.
+                Welcome Back, {displayPricing?.client_name || (localStorage.getItem('user_name') || sessionStorage.getItem('user_name'))?.split(' ')[0] || 'there'}
               </p>
             </div>
           )}
@@ -494,11 +490,6 @@ export default function BookingPage() {
             </p>
           </div>
         </div>
-
-        <ArrivStudioTile
-          subscription={studioSubscription}
-          onManage={() => { window.location.href = createPageUrl("StudioWorkspace"); }}
-        />
 
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
           {packages.map((pkg) => (
@@ -528,17 +519,6 @@ export default function BookingPage() {
             />
             ))}
             </div>
-
-            <StudioCommerceSection />
-
-            <StudioCheckoutAddOns
-            selectedAddOns={studioAddOns}
-            onAdd={handleAddStudioAddOn}
-            onRemove={handleRemoveStudioAddOn}
-            selectedBundle={studioBundle}
-            onSelectBundle={handleSelectStudioBundle}
-            onRemoveBundle={handleRemoveStudioBundle}
-            />
 
             <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 overflow-hidden mb-8">
             <button
@@ -647,6 +627,17 @@ export default function BookingPage() {
           </AnimatePresence>
         </div>
 
+            <StudioCommerceSection />
+
+            <StudioCheckoutAddOns
+            selectedAddOns={studioAddOns}
+            onAdd={handleAddStudioAddOn}
+            onRemove={handleRemoveStudioAddOn}
+            selectedBundle={studioBundle}
+            onSelectBundle={handleSelectStudioBundle}
+            onRemoveBundle={handleRemoveStudioBundle}
+            />
+
         <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A]/20 p-6 space-y-4">
           <h3 className="font-semibold text-[#1A1A1A]">Payment</h3>
           <ul className="space-y-2 text-sm text-[#1A1A1A]/70">
@@ -673,7 +664,7 @@ export default function BookingPage() {
           </p>
         </div>
 
-        {(selectedPackage || cartAddOns.length > 0) && (
+        {(selectedPackage || cartAddOns.length > 0 || studioAddOns.length > 0 || studioBundle) && (
           <div className="bg-white rounded-lg shadow-lg border-2 border-[#B8956A] p-6 mb-8">
             <h3 className="font-semibold text-[#1A1A1A] mb-4">Your Cart</h3>
             {selectedPackage && (
@@ -735,7 +726,7 @@ export default function BookingPage() {
           </div>
         )}
 
-        {payAtClosingEnabled && (selectedPackage || cartAddOns.length > 0) && (
+        {payAtClosingEnabled && (selectedPackage || cartAddOns.length > 0 || studioAddOns.length > 0 || studioBundle) && (
           <div className="flex items-center justify-center gap-2 mt-8 mb-4">
             <input
               type="checkbox"
@@ -761,9 +752,9 @@ export default function BookingPage() {
             }}
             size="lg"
             className="bg-[#1A1A1A] hover:bg-[#1A1A1A]/90 text-white px-12 py-6 text-lg"
-            disabled={!selectedPackage && cartAddOns.length === 0}
+            disabled={!selectedPackage && cartAddOns.length === 0 && studioAddOns.length === 0 && !studioBundle}
           >
-            {selectedPackage || cartAddOns.length > 0 ? "Take me to my cart" : "Select items to continue"}
+            {selectedPackage || cartAddOns.length > 0 || studioAddOns.length > 0 || studioBundle ? "Take me to my cart" : "Select items to continue"}
           </Button>
         </div>
       </div>
