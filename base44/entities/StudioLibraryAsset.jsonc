@@ -1,0 +1,114 @@
+{
+  "name": "StudioLibraryAsset",
+  "type": "object",
+  "properties": {
+    "asset_type": {
+      "type": "string",
+      "enum": [
+        "presenter",
+        "voice",
+        "music"
+      ],
+      "description": "Library asset category"
+    },
+    "studio_id": {
+      "type": "string",
+      "description": "Canonical ID from Arriv Studio. Used for sync deduplication and updates."
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name (presenter name, voice name, or music track title)"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source label (ARRIV_AI, ARRIV_PREFERRED, ELEVENLABS, HEYGEN, ARRIV)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "limited"
+      ],
+      "default": "available",
+      "description": "Availability status (presenters)"
+    },
+    "category": {
+      "type": "string",
+      "description": "Multi-purpose: HUMAN/AI for presenters, FEMALE/MALE for voices, genre (CORPORATE, CINEMATIC, etc.) for music"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short descriptive line"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags (camera angles for presenters, etc.)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Type-specific metadata: bpm, duration_sec, energy, mood, recommended_use, language for music/voices",
+      "properties": {
+        "bpm": {
+          "type": "integer"
+        },
+        "duration_sec": {
+          "type": "integer"
+        },
+        "energy": {
+          "type": "string"
+        },
+        "mood": {
+          "type": "string"
+        },
+        "recommended_use": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        }
+      }
+    },
+    "preview_url": {
+      "type": "string",
+      "description": "Preview/demo URL from Studio"
+    },
+    "audio_url": {
+      "type": "string",
+      "description": "Audio file URL (for music/voices)"
+    },
+    "studio_version": {
+      "type": "string",
+      "description": "Version hash from Studio for change detection during sync"
+    },
+    "last_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this record was last synced from canonical Arriv Studio"
+    }
+  },
+  "required": [
+    "asset_type",
+    "name"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

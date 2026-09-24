@@ -1,0 +1,45 @@
+{
+  "description": "Pulls the latest presenter, voice, and music catalog from canonical Arriv Studio once per hour and updates the local cache.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "studio_library_hourly_sync",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sync": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "syncStudioLibraries",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Sync Studio Libraries",
+            "description": "Pull latest catalog from Arriv Studio"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Studio Library Hourly Sync"
+}
