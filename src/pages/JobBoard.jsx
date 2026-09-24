@@ -171,39 +171,44 @@ export default function JobBoard() {
       setFilteringByDistance(false);
       return;
     }
+    // Coverage center is now geocoded server-side by getCoverageArea and stored
+    // as coverage_lat/coverage_lng — no client-side geocoding needed.
+    const cLat = coverage?.coverage_lat;
+    const cLng = coverage?.coverage_lng;
+    if (cLat == null || cLng == null) {
+      setJobDistances({});
+      setFilteringByDistance(false);
+      return;
+    }
     let cancelled = false;
     setFilteringByDistance(true);
     (async () => {
-      // Resolve the coverage center: use stored lat/lng, otherwise geocode coverage_area.
-      let cLat = coverage?.coverage_lat;
-      let cLng = coverage?.coverage_lng;
-      if ((cLat == null || cLng == null) && coverage?.coverage_area) {
-        const center = await geocodeAddress(coverage.coverage_area);
-        if (center) {
-          cLat = center.lat;
-          cLng = center.lng;
-        }
-      }
-      if (cancelled) return;
-      if (cLat == null || cLng == null) {
-        setJobDistances({});
-        setFilteringByDistance(false);
-        return;
-      }
-      const coordsByLocation = {};
       const uniqueLocations = [
         ...new Set(jobs.map((j) => j.location).filter(Boolean)),
       ];
+      // Use cached coords where available; geocode the rest SERVER-SIDE via the
+      // geocodeJobLocations function (the client-side JS Geocoder fails under
+      // API-key referrer restrictions).
+      const toGeocode = uniqueLocations.filter((loc) => !geocodeCache.current[loc]);
+      let serverResults = {};
+      if (toGeocode.length > 0) {
+        try {
+          const res = await base44.functions.invoke('geocodeJobLocations', { addresses: toGeocode });
+          serverResults = (res?.data || res)?.results || {};
+        } catch (e) {
+          console.error('Server geocode failed:', e);
+        }
+      }
+      if (cancelled) return;
+      const coordsByLocation = {};
       for (const loc of uniqueLocations) {
         if (geocodeCache.current[loc]) {
           coordsByLocation[loc] = geocodeCache.current[loc];
-          continue;
+        } else if (serverResults[loc]) {
+          geocodeCache.current[loc] = serverResults[loc];
+          coordsByLocation[loc] = serverResults[loc];
         }
-        const coords = await geocodeAddress(loc);
-        geocodeCache.current[loc] = coords;
-        coordsByLocation[loc] = coords;
       }
-      if (cancelled) return;
       const distMap = {};
       for (const job of jobs) {
         const coords = job.location ? coordsByLocation[job.location] : null;
@@ -217,7 +222,7 @@ export default function JobBoard() {
     return () => {
       cancelled = true;
     };
-  }, [jobs, hasCoverage, coverage?.coverage_area, coverage?.coverage_lat, coverage?.coverage_lng]);
+  }, [jobs, hasCoverage, coverage?.coverage_lat, coverage?.coverage_lng]);
 
   useEffect(() => {
     const unsubscribe = base44.entities.Job.subscribe((event) => {

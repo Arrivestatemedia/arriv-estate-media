@@ -71,6 +71,40 @@ Deno.serve(async (req) => {
       application_address: applicationAddress
     };
 
+    // Geocode the coverage_area server-side if lat/lng aren't stored yet, so
+    // the Job Board can compute distance without the client-side JS Geocoder
+    // (which fails under API-key referrer restrictions). Persist for next time.
+    if (response.coverage_area && (response.coverage_lat == null || response.coverage_lng == null)) {
+      try {
+        const gmapsKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_MAPS_API_KEY');
+        if (gmapsKey) {
+          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(response.coverage_area)}&key=${gmapsKey}`;
+          const res = await fetch(url);
+          const json = await res.json();
+          if (json.status === 'OK' && json.results?.[0]) {
+            const loc = json.results[0].geometry.location;
+            response.coverage_lat = loc.lat;
+            response.coverage_lng = loc.lng;
+            try {
+              if (recordKind === 'PendingSignup') {
+                await base44.asServiceRole.entities.PendingSignup.update(record.id, {
+                  coverage_lat: loc.lat, coverage_lng: loc.lng,
+                });
+              } else {
+                await base44.asServiceRole.entities.User.update(record.id, {
+                  coverage_lat: loc.lat, coverage_lng: loc.lng,
+                });
+              }
+            } catch (e) {
+              console.error('Persist coverage coords failed:', e.message);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Geocode coverage_area failed:', e.message);
+      }
+    }
+
     // Derive the partner's state from the address on their job application if the
     // record doesn't already have one — so even partners who never set a coverage
     // area are filtered to jobs in their state. Persist it so the new-job message
