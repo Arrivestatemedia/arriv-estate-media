@@ -15,9 +15,12 @@ export default function ClientBookings() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const userEmail = localStorage.getItem('user_email');
+    const userEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email');
     if (userEmail) {
       setUser({ email: userEmail });
+    } else {
+      // No session at all — bounce to sign-in instead of hanging on "Loading..."
+      window.location.replace(createPageUrl('SignIn'));
     }
   }, []);
 
