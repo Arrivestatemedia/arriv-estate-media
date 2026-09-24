@@ -243,6 +243,11 @@
       "format": "date-time",
       "description": "When footage upload reminder was sent"
     },
+    "expanded_radius_notified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the expanded-radius (same-state, beyond-coverage) notification was sent for this job. Set once the 1-hour-unbooked expanded notification runs, to prevent re-sending."
+    },
     "delivered_to_customer": {
       "type": "boolean",
       "default": false,

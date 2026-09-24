@@ -1,0 +1,45 @@
+{
+  "description": "Every 5 minutes, sends a follow-up message to same-state media partners outside the coverage radius for jobs still unbooked 1 hour after posting.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "America/New_York",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Expanded Radius Job Notification",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "expanded_radius_job_notification",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "notify_expanded_radius": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "notifyExpandedRadiusJob",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Notify same-state partners beyond radius",
+            "description": "1-hour unbooked follow-up"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Briefcase, LayoutDashboard, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import JobCard from "../components/jobs/JobCard";
 import CancelJobDialog from "../components/jobs/CancelJobDialog";
@@ -39,6 +39,9 @@ export default function JobBoard() {
     const navigate = useNavigate();
 
   const [userEmail, setUserEmail] = React.useState(null);
+  const [searchParams] = useSearchParams();
+  const highlightJobId = searchParams.get("job_id");
+  const highlightRef = React.useRef(null);
 
   React.useEffect(() => {
     setUserEmail(localStorage.getItem('user_email'));
@@ -474,11 +477,13 @@ export default function JobBoard() {
      );
    })
    .filter((job) => {
+     if (job.id === highlightJobId) return true;
      if (!hasCoverage) return true;
      const d = jobDistances[job.id];
      return d != null && d <= maxDistance;
    })
    .filter((job) => {
+     if (job.id === highlightJobId) return true;
      // Only show jobs in the partner's state (when they've set a coverage state).
      if (!coverage?.state) return true;
      return !!job.state && String(job.state).toUpperCase() === String(coverage.state).toUpperCase();
@@ -489,9 +494,15 @@ export default function JobBoard() {
      if (requiredCaps.length === 0) return true;
      const verifiedCaps = user?.verified_capabilities || [];
      return requiredCaps.every(cap => verifiedCaps.includes(cap));
-   });
+     });
 
-  return (
+     React.useEffect(() => {
+     if (highlightJobId && highlightRef.current) {
+     highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+     }
+     }, [highlightJobId, filteredJobs]);
+
+     return (
     <div 
       className="min-h-screen bg-[var(--bg-primary)]"
       onTouchStart={handleTouchStart}
@@ -572,9 +583,14 @@ export default function JobBoard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredJobs.map((job) => {
               const userRole = localStorage.getItem('user_role') || user?.role;
+              const isHighlighted = job.id === highlightJobId;
               return (
+                <div
+                  key={job.id}
+                  ref={isHighlighted ? highlightRef : null}
+                  className={isHighlighted ? "ring-4 ring-[#B8956A] rounded-2xl" : ""}
+                >
                 <JobCard 
-                  key={job.id} 
                   job={job} 
                   isAdmin={userRole === 'admin'} 
                   userRole={userRole}
@@ -587,6 +603,7 @@ export default function JobBoard() {
                   onCompleteBackgroundCheck={handleCompleteBackgroundCheck}
                   onJobUpdate={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
                 />
+                </div>
               );
             })}
           </div>
