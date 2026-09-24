@@ -18,6 +18,29 @@ Deno.serve(async (req) => {
     if (body.coverage_lng !== undefined) updateData.coverage_lng = body.coverage_lng;
     if (body.max_travel_distance !== undefined) updateData.max_travel_distance = body.max_travel_distance;
 
+    // When the coverage area (zip) changes, derive the US state from it so the
+    // Job Board's state filter matches jobs in the partner's NEW coverage state.
+    // Without this, a partner who moves their coverage zip to a new state still
+    // has their old state on record, so jobs in the new state stay hidden.
+    if (body.coverage_area !== undefined) {
+      try {
+        const gmapsKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY') || Deno.env.get('GOOGLE_MAPS_API_KEY');
+        if (gmapsKey) {
+          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(String(body.coverage_area))}&key=${gmapsKey}`;
+          const res = await fetch(url);
+          const json = await res.json();
+          if (json.status === 'OK' && json.results?.[0]) {
+            const c = (json.results[0].address_components || []).find((comp) => comp.types?.includes('administrative_area_level_1'));
+            if (c?.short_name) {
+              updateData.state = String(c.short_name).toUpperCase();
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Derive state from coverage_area failed:', e.message);
+      }
+    }
+
     // Case-insensitive email match — stored records may use mixed case.
     const normalized = String(email).toLowerCase();
     const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
