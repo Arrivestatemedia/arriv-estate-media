@@ -6,6 +6,9 @@ import StudioNewProduction from "@/components/studio/StudioNewProduction";
 import StudioProjectDetail from "@/components/studio/StudioProjectDetail";
 import StudioPlans from "@/components/studio/StudioPlans";
 import StudioEmbeddedEditor from "@/components/studio/StudioEmbeddedEditor";
+import StudioProjects from "@/components/studio/StudioProjects";
+import StudioBrandKits from "@/components/studio/StudioBrandKits";
+import StudioLibraries from "@/components/studio/StudioLibraries";
 import StudioUsage from "@/components/studio/StudioUsage";
 import StudioSettings from "@/components/studio/StudioSettings";
 import StudioLogo from "@/components/studio/StudioLogo";
@@ -132,13 +135,13 @@ export default function StudioWorkspace() {
         />
       )}
       {section === "projects" && (
-        <StudioEmbeddedEditor section="projects" onExit={() => setSection("dashboard")} />
+        <StudioProjects onStartProject={handleStartProject} />
       )}
       {section === "brand_kits" && (
-        <StudioEmbeddedEditor section="brand_kits" onExit={() => setSection("dashboard")} />
+        <StudioBrandKits />
       )}
       {section === "libraries" && (
-        <StudioEmbeddedEditor section="libraries" onExit={() => setSection("dashboard")} />
+        <StudioLibraries />
       )}
       {section === "usage" && (
         <StudioUsage entitlement={entitlement} onRefresh={refresh} />
