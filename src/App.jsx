@@ -56,6 +56,8 @@ import PublicJobApplication from './pages/PublicJobApplication';
 import SalesRepMicrosoftAuthCallback from './pages/SalesRepMicrosoftAuthCallback';
 import TrainingSimulation from './pages/TrainingSimulation';
 import StudioWorkspace from './pages/StudioWorkspace';
+import Flyers from './pages/Flyers';
+import FlyerBuilderPage from './pages/FlyerBuilderPage';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -477,6 +479,22 @@ const AuthenticatedApp = () => {
         element={
           <LayoutWrapper currentPageName="StudioWorkspace">
             <StudioWorkspace />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/Flyers"
+        element={
+          <LayoutWrapper currentPageName="Flyers">
+            <Flyers />
+          </LayoutWrapper>
+        }
+      />
+      <Route
+        path="/FlyerBuilderPage"
+        element={
+          <LayoutWrapper currentPageName="FlyerBuilderPage">
+            <FlyerBuilderPage />
           </LayoutWrapper>
         }
       />
