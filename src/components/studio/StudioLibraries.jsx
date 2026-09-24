@@ -113,6 +113,62 @@ function PresenterCard({ presenter, onEdit, onDelete }) {
 
 // ── Voice Card ──
 function VoiceCard({ voice, onEdit, onDelete }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef(null);
+
+  const handlePreview = async () => {
+    // If we have an uploaded audio file, play it
+    if (voice.audio_url) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(voice.audio_url);
+        audioRef.current.onended = () => setIsPlaying(false);
+      }
+      if (isPlaying) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+      return;
+    }
+
+    // No audio file — use browser speech synthesis as a live preview
+    if (!("speechSynthesis" in window)) return;
+
+    // Stop any currently playing speech
+    window.speechSynthesis.cancel();
+
+    if (isPlaying) {
+      setIsPlaying(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(
+      `Hi, I'm ${voice.name.replace(/\s*\(.*?\)\s*/g, "")}. This is a preview of my voice for your real estate productions.`
+    );
+    utterance.rate = 0.95;
+    utterance.pitch = voice.category === "FEMALE" ? 1.05 : 0.92;
+
+    // Try to match a system voice to the language
+    const lang = voice.metadata?.language || "en-US";
+    utterance.lang = lang;
+    const voices = window.speechSynthesis.getVoices();
+    const match = voices.find((v) => v.lang === lang) || voices.find((v) => v.lang.startsWith(lang.split("-")[0]));
+    if (match) utterance.voice = match;
+
+    utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
+    setIsPlaying(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Cancel speech if component unmounts
+  React.useEffect(() => () => {
+    if (isPlaying) window.speechSynthesis?.cancel();
+  }, []);
+
   return (
     <div className="rounded-xl p-5" style={{ background: C.container, border: `1px solid ${C.border}` }}>
       <div className="flex items-center gap-3 mb-3">
@@ -135,10 +191,24 @@ function VoiceCard({ voice, onEdit, onDelete }) {
       </p>
 
       <button
-        className="w-full py-2 rounded-lg text-sm font-medium mb-3 transition-colors hover:border-[#FF5A4F]/40"
-        style={{ border: `1px solid ${C.border}`, color: C.text }}
+        onClick={handlePreview}
+        className="w-full py-2 rounded-lg text-sm font-medium mb-3 transition-colors hover:border-[#FF5A4F]/40 flex items-center justify-center gap-2"
+        style={{ border: `1px solid ${C.border}`, color: isPlaying ? C.accent : C.text }}
       >
-        Preview voice
+        {isPlaying ? (
+          <>
+            <span className="flex gap-0.5 items-end h-3">
+              <span className="w-0.5 bg-[#FF5A4F] animate-pulse" style={{ height: "60%" }} />
+              <span className="w-0.5 bg-[#FF5A4F] animate-pulse" style={{ height: "100%", animationDelay: "0.15s" }} />
+              <span className="w-0.5 bg-[#FF5A4F] animate-pulse" style={{ height: "40%", animationDelay: "0.3s" }} />
+            </span>
+            Stop preview
+          </>
+        ) : (
+          <>
+            <Play className="w-3.5 h-3.5" /> Preview voice
+          </>
+        )}
       </button>
 
       <div className="flex items-center gap-4">
