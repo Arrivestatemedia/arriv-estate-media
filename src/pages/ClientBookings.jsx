@@ -18,10 +18,25 @@ export default function ClientBookings() {
     const userEmail = localStorage.getItem('user_email') || sessionStorage.getItem('user_email');
     if (userEmail) {
       setUser({ email: userEmail });
-    } else {
-      // No session at all — bounce to sign-in instead of hanging on "Loading..."
-      window.location.replace(createPageUrl('SignIn'));
+      return;
     }
+    // Fallback: the user may be authenticated via Base44 auth without the
+    // localStorage keys being set (e.g. session survived a cache clear).
+    // Resolve the email from the auth session so we don't bounce a logged-in
+    // client back to the sign-in page.
+    base44.auth.isAuthenticated().then((isAuth) => {
+      if (!isAuth) {
+        window.location.replace(createPageUrl('SignIn'));
+        return;
+      }
+      base44.auth.me().then((userData) => {
+        if (userData?.email) {
+          setUser({ email: userData.email });
+        } else {
+          window.location.replace(createPageUrl('SignIn'));
+        }
+      }).catch(() => window.location.replace(createPageUrl('SignIn')));
+    }).catch(() => window.location.replace(createPageUrl('SignIn')));
   }, []);
 
   const { data: bookings = [], isLoading, refetch } = useQuery({
