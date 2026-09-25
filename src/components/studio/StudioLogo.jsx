@@ -19,7 +19,7 @@ export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
   const imageDisplayedWidth = size * (789 / 370);
   // Left-align the subtitle with the ARRIV/STUDIO text in the image,
   // then shift it forward (right) to sit beneath the STUDIO wordmark.
-  const subtitleLeft = imageMarginLeft + studioLeftFraction * imageDisplayedWidth + size * 0.35;
+  const subtitleLeft = imageMarginLeft + studioLeftFraction * imageDisplayedWidth + size * 0.7;
 
   return (
     <div
