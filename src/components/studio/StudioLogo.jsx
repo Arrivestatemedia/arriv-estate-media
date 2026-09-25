@@ -11,7 +11,7 @@ export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
       <img
         src={STUDIO_LOGO_URL}
         alt="Arriv Studio"
-        style={{ height: `${size}px`, width: "auto", display: "block" }}
+        style={{ height: `${size}px`, width: "auto", display: "block", marginLeft: -size * 0.25 }}
       />
       {subtitle && (
         <span

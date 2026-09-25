@@ -32,7 +32,7 @@ export default function StudioShell({ entitlement, activeSection, onSectionChang
   const sidebarContent = (
     <div className="flex flex-col h-full" style={{ ...STUDIO_FONT }}>
       {/* Studio Identity */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: "#2d2d2d" }}>
+      <div className="pl-2 pr-5 py-5 border-b" style={{ borderColor: "#2d2d2d" }}>
         <StudioLogo size={72} />
       </div>
 
