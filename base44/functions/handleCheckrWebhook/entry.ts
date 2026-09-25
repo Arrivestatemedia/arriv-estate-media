@@ -81,9 +81,38 @@ Deno.serve(async (req) => {
     const partners = await base44.asServiceRole.entities.User.filter({ checkr_candidate_id: candidateId });
     const partner = partners && partners[0];
     if (!partner) {
-      // Not a media partner — try a sales rep (SalesOrientation stores checkr_candidate_id).
-      const oResult = await applyCheckrResultToOrientation(base44, { candidateId, status, reportId });
-      return Response.json({ received: true, partnerNotFound: !oResult, salesOrientation: oResult });
+      // Not a User — check PendingSignup (media partners who haven't completed signup).
+      const pending = await base44.asServiceRole.entities.PendingSignup.filter({ checkr_candidate_id: candidateId });
+      const pendingPartner = pending && pending[0];
+      if (!pendingPartner) {
+        // Not a media partner — try a sales rep (SalesOrientation stores checkr_candidate_id).
+        const oResult = await applyCheckrResultToOrientation(base44, { candidateId, status, reportId });
+        return Response.json({ received: true, partnerNotFound: !oResult, salesOrientation: oResult });
+      }
+
+      const nowIso = new Date().toISOString();
+      if (status === 'clear') {
+        await base44.asServiceRole.entities.PendingSignup.update(pendingPartner.id, {
+          background_check_status: 'clear',
+          background_check_completed_at: nowIso,
+          checkr_report_id: reportId || pendingPartner.checkr_report_id,
+          background_check_pending_job_id: null,
+        });
+        return Response.json({ received: true, result: 'clear' });
+      }
+      if (status === 'consider' || status === 'suspended') {
+        await base44.asServiceRole.entities.PendingSignup.update(pendingPartner.id, {
+          background_check_status: 'failed',
+          background_check_completed_at: nowIso,
+          checkr_report_id: reportId || pendingPartner.checkr_report_id,
+        });
+        const outcome = await processBackgroundCheckFailure(base44, { email: pendingPartner.email, full_name: pendingPartner.full_name, phone_number: pendingPartner.phone_number });
+        return Response.json({ received: true, result: 'failed', ...outcome });
+      }
+      if (reportId) {
+        await base44.asServiceRole.entities.PendingSignup.update(pendingPartner.id, { checkr_report_id: reportId });
+      }
+      return Response.json({ received: true, result: status });
     }
 
     const nowIso = new Date().toISOString();

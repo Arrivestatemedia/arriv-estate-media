@@ -165,6 +165,45 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the partner completed Stripe Connect onboarding details"
+    },
+    "background_check_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "clear",
+        "failed"
+      ],
+      "description": "Background check status for media partners who exist only in PendingSignup (no User record yet)"
+    },
+    "background_check_authorized_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the media partner authorized the background check"
+    },
+    "background_check_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the background check result was recorded"
+    },
+    "background_check_pending_job_id": {
+      "type": "string",
+      "description": "Job ID the partner booked while their background check is pending"
+    },
+    "checkr_candidate_id": {
+      "type": "string",
+      "description": "Checkr candidate ID (automated mode)"
+    },
+    "checkr_invitation_id": {
+      "type": "string",
+      "description": "Checkr invitation ID (automated mode)"
+    },
+    "checkr_invitation_url": {
+      "type": "string",
+      "description": "Checkr invitation URL the partner uses to complete screening"
+    },
+    "checkr_report_id": {
+      "type": "string",
+      "description": "Checkr report ID from the webhook result"
     }
   },
   "required": [

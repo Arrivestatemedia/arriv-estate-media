@@ -15,17 +15,18 @@ Deno.serve(async (req) => {
     // (custom auth flow), not the User entity, so check both.
     const partnerUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
     let user = partnerUsers[0];
+    let pendingSignup = null;
     if (!user) {
       const pending = await base44.asServiceRole.entities.PendingSignup.filter({ email: mediaPartnerEmail });
-      const p = pending[0];
-      if (p) {
+      pendingSignup = pending[0];
+      if (pendingSignup) {
         user = {
-          id: null, // no User record — can't persist bg status on User
-          email: p.email,
-          full_name: p.full_name,
-          phone_number: p.phone_number,
-          background_check_status: null,
-          checkr_invitation_url: null,
+          id: null,
+          email: pendingSignup.email,
+          full_name: pendingSignup.full_name,
+          phone_number: pendingSignup.phone_number,
+          background_check_status: pendingSignup.background_check_status || null,
+          checkr_invitation_url: pendingSignup.checkr_invitation_url || null,
         };
       }
     }
@@ -50,10 +51,14 @@ Deno.serve(async (req) => {
 
     // ---- MANUAL MODE (no Checkr API key configured yet) ----
     if (!apiKey) {
-      // Only persist status if the partner has a User record. Partners in
-      // PendingSignup don't have background_check_status fields yet.
       if (user.id) {
         await base44.asServiceRole.entities.User.update(user.id, {
+          background_check_status: 'pending',
+          background_check_authorized_at: nowIso,
+          background_check_pending_job_id: jobId || null,
+        });
+      } else if (pendingSignup) {
+        await base44.asServiceRole.entities.PendingSignup.update(pendingSignup.id, {
           background_check_status: 'pending',
           background_check_authorized_at: nowIso,
           background_check_pending_job_id: jobId || null,
@@ -126,14 +131,25 @@ Deno.serve(async (req) => {
     }
     const invitation = await invRes.json();
 
-    await base44.asServiceRole.entities.User.update(user.id, {
-      checkr_candidate_id: candidate.id,
-      checkr_invitation_id: invitation.id,
-      checkr_invitation_url: invitation.invitation_url,
-      background_check_status: 'pending',
-      background_check_authorized_at: nowIso,
-      background_check_pending_job_id: jobId || null,
-    });
+    if (user.id) {
+      await base44.asServiceRole.entities.User.update(user.id, {
+        checkr_candidate_id: candidate.id,
+        checkr_invitation_id: invitation.id,
+        checkr_invitation_url: invitation.invitation_url,
+        background_check_status: 'pending',
+        background_check_authorized_at: nowIso,
+        background_check_pending_job_id: jobId || null,
+      });
+    } else if (pendingSignup) {
+      await base44.asServiceRole.entities.PendingSignup.update(pendingSignup.id, {
+        checkr_candidate_id: candidate.id,
+        checkr_invitation_id: invitation.id,
+        checkr_invitation_url: invitation.invitation_url,
+        background_check_status: 'pending',
+        background_check_authorized_at: nowIso,
+        background_check_pending_job_id: jobId || null,
+      });
+    }
 
     if (bookJob && jobId && jobData) {
       await base44.asServiceRole.functions.invoke('bookJobAndSendCalendarInvite', { jobId, jobData, mediaPartnerEmail });

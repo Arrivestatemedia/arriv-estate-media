@@ -70,6 +70,19 @@ export default function JobBoard() {
     retry: 1,
   });
 
+  // Media partners in PendingSignup don't have a User record, so
+  // base44.auth.me() won't return their background_check_status. Fetch it
+  // from PendingSignup and merge it into the status check.
+  const bgLookupEmail = user?.email || userEmail;
+  const { data: pendingSignup } = useQuery({
+    queryKey: ["pending-signup-bg", bgLookupEmail],
+    queryFn: () => base44.entities.PendingSignup.filter({ email: bgLookupEmail }),
+    enabled: !!bgLookupEmail && user?.user_type === "media_partner" && !user?.background_check_status,
+    retry: 1,
+  });
+  const pendingBgStatus = pendingSignup?.[0]?.background_check_status;
+  const bgStatus = user?.background_check_status || pendingBgStatus;
+
   const { data: acceptedJobs = [] } = useQuery({
     queryKey: ["accepted-jobs-count", user?.email],
     queryFn: () => base44.entities.Job.filter({ booked_by: user?.email }),
@@ -363,7 +376,6 @@ export default function JobBoard() {
       booked_by_phone: phone,
     };
 
-    const bgStatus = user?.background_check_status;
     if (bgStatus === "pending") {
       setBgPendingOpen(true);
       return;
@@ -390,6 +402,7 @@ export default function JobBoard() {
     setBgAuthOpen(false);
     setBgAuthContext(null);
     queryClient.invalidateQueries({ queryKey: ["user"] });
+    queryClient.invalidateQueries({ queryKey: ["pending-signup-bg"] });
     if (data?.invitation_url) {
       navigate(createPageUrl("BackgroundCheck"), { state: { invitationUrl: data.invitation_url } });
     } else if (data?.manual) {
