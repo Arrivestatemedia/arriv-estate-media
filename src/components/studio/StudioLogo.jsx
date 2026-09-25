@@ -1,43 +1,25 @@
 import React from "react";
-import { Aperture } from "lucide-react";
 
-// Canonical Arriv Studio logo mark — rounded-square dark tile with coral aperture icon,
-// ARRIV (white) / STUDIO (coral) wordmark, and "Real Estate" beneath. Used anywhere
-// Arriv Studio identity appears within Estate Media. size prop overrides default 36px.
-export default function StudioLogo({ size = 36, showWordmark = true, subtitle = "Real Estate" }) {
-  const px = `${size}px`;
+// Canonical Arriv Studio logo — uses the official uploaded logo image with
+// "Real Estate" centered beneath it in proportionate coral text. Used anywhere
+// Arriv Studio identity appears within Estate Media. size = logo image height.
+const STUDIO_LOGO_URL = "https://media.base44.com/images/public/698b3b9e4b7d348873dbf213/721174ccf_Screenshot2026-09-24at90728PM.png";
+
+export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
   return (
-    <div className="flex items-center gap-2.5" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
-      <div
-        className="rounded-lg flex items-center justify-center shrink-0"
-        style={{
-          width: px,
-          height: px,
-          background: "#1a1a1a",
-        }}
-      >
-        <Aperture style={{ width: size * 0.62, height: size * 0.62, color: "#f17c5b" }} strokeWidth={2} />
-      </div>
-      {showWordmark && (
-        <div className="flex flex-col leading-none">
-          <span className="font-extrabold tracking-tight" style={{ color: "#ffffff", fontSize: size * 0.42 }}>
-            ARRIV
-          </span>
-          <span
-            className="font-semibold uppercase"
-            style={{ color: "#f17c5b", fontSize: size * 0.22, letterSpacing: "0.15em" }}
-          >
-            STUDIO
-          </span>
-          {subtitle && (
-            <span
-              className="font-semibold uppercase"
-              style={{ color: "#f17c5b", fontSize: size * 0.22, letterSpacing: "0.15em" }}
-            >
-              {subtitle}
-            </span>
-          )}
-        </div>
+    <div className="flex flex-col items-center" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+      <img
+        src={STUDIO_LOGO_URL}
+        alt="Arriv Studio"
+        style={{ height: `${size}px`, width: "auto", display: "block" }}
+      />
+      {subtitle && (
+        <span
+          className="font-semibold uppercase"
+          style={{ color: "#f17c5b", fontSize: size * 0.3, letterSpacing: "0.15em", marginTop: 2 }}
+        >
+          {subtitle}
+        </span>
       )}
     </div>
   );
