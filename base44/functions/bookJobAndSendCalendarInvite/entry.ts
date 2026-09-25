@@ -87,6 +87,29 @@ Deno.serve(async (req) => {
       folderUrl: folderUrl,
     });
 
+    // Notify admin via SMS if the media partner booked without a cleared
+    // background check. Partners can temporarily book; admin follows up.
+    try {
+      const partnerUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+      const partner = partnerUsers[0];
+      const bgStatus = partner?.background_check_status;
+      if (bgStatus !== 'clear') {
+        const adminPhone = Deno.env.get('ADMIN_PHONE');
+        if (adminPhone) {
+          const partnerName = jobData.booked_by_name || mediaPartnerEmail;
+          const statusLabel = !bgStatus ? 'not started' : bgStatus;
+          const smsBody = `Arriv Alert: ${partnerName} just booked "${updatedJob.title}" in ${updatedJob.location} but their background check is ${statusLabel}. Follow up to get it cleared. Email: ${mediaPartnerEmail}`;
+          await base44.asServiceRole.functions.invoke('sendSms', {
+            toNumber: adminPhone,
+            body: smsBody,
+            newConversation: true,
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Admin background check notification failed:', e.message);
+    }
+
     return Response.json({ success: true, message: 'Job booked and calendar invite sent' }, { status: 200 });
   } catch (error) {
     console.error('Error in bookJobAndSendCalendarInvite:', error);
