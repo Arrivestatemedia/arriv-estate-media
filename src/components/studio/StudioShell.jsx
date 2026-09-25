@@ -4,6 +4,7 @@ import {
   CreditCard, Settings as SettingsIcon, Menu, X, LayoutTemplate,
 } from "lucide-react";
 import StudioLogo from "@/components/studio/StudioLogo";
+import ArrivStudioLogo from "@/components/studio/ArrivStudioLogo";
 import StudioProductionMinutesCard from "@/components/studio/StudioProductionMinutesCard";
 
 const STUDIO_FONT = { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" };
@@ -33,7 +34,10 @@ export default function StudioShell({ entitlement, activeSection, onSectionChang
     <div className="flex flex-col h-full" style={{ ...STUDIO_FONT }}>
       {/* Studio Identity */}
       <div className="px-5 py-5 border-b" style={{ borderColor: "#2d2d2d" }}>
-        <StudioLogo size={32} />
+        <ArrivStudioLogo size={40} />
+        <div className="mt-4">
+          <StudioLogo size={28} />
+        </div>
       </div>
 
       {/* Navigation */}
