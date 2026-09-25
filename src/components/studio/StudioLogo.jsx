@@ -1,22 +1,22 @@
 import React from "react";
-import { Play } from "lucide-react";
+import { Aperture } from "lucide-react";
 
-// Canonical Arriv Studio logo mark — 36px rounded-square with coral gradient + white play triangle.
-// Used inside the Studio section to establish Studio identity within Estate Media.
-// size prop overrides default 36px.
+// Canonical Arriv Studio logo mark — rounded-square dark tile with coral aperture icon,
+// ARRIV (white) / STUDIO (coral) wordmark, and "Real Estate" beneath. Used anywhere
+// Arriv Studio identity appears within Estate Media. size prop overrides default 36px.
 export default function StudioLogo({ size = 36, showWordmark = true, subtitle = "Real Estate" }) {
   const px = `${size}px`;
   return (
     <div className="flex items-center gap-2.5" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
       <div
-        className="rounded-full flex items-center justify-center shrink-0"
+        className="rounded-lg flex items-center justify-center shrink-0"
         style={{
           width: px,
           height: px,
-          background: "linear-gradient(135deg, #FF4F46 0%, #FF806F 100%)",
+          background: "#1a1a1a",
         }}
       >
-        <Play className="text-white fill-white" style={{ width: size * 0.36, height: size * 0.36, marginLeft: 2 }} />
+        <Aperture style={{ width: size * 0.62, height: size * 0.62, color: "#f17c5b" }} strokeWidth={2} />
       </div>
       {showWordmark && (
         <div className="flex flex-col leading-none">
@@ -25,10 +25,18 @@ export default function StudioLogo({ size = 36, showWordmark = true, subtitle = 
           </span>
           <span
             className="font-semibold uppercase"
-            style={{ color: "#FF5A4F", fontSize: size * 0.22, letterSpacing: "0.15em" }}
+            style={{ color: "#f17c5b", fontSize: size * 0.22, letterSpacing: "0.15em" }}
           >
-            STUDIO{subtitle ? ` · ${subtitle}` : ""}
+            STUDIO
           </span>
+          {subtitle && (
+            <span
+              className="font-semibold uppercase"
+              style={{ color: "#f17c5b", fontSize: size * 0.22, letterSpacing: "0.15em" }}
+            >
+              {subtitle}
+            </span>
+          )}
         </div>
       )}
     </div>
