@@ -363,10 +363,21 @@ export default function JobBoard() {
       booked_by_phone: phone,
     };
 
-    // Background check is NOT a booking gate — partners can temporarily book
-    // without a cleared background check. The backend notifies the admin via
-    // SMS so they can follow up. The partner can still proactively authorize
-    // their background check from the JobCard button.
+    const bgStatus = user?.background_check_status;
+    if (bgStatus === "pending") {
+      setBgPendingOpen(true);
+      return;
+    }
+    if (bgStatus === "failed") {
+      setBgFailedOpen(true);
+      return;
+    }
+    if (bgStatus !== "clear") {
+      setBgAuthContext({ jobId: bookingJob.id, jobData, mediaPartnerEmail: email, bookJob: true });
+      setBgAuthOpen(true);
+      setBookingJob(null);
+      return;
+    }
 
     bookMutation.mutate({
       id: bookingJob.id,
