@@ -76,7 +76,15 @@ export default function FlyerForm({ content, setContent, onPickImage }) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 flyer-form">
+      <style>{`
+        .flyer-form { color: #c0c0c0; }
+        .flyer-form * { border-color: #404040 !important; }
+        .flyer-form input, .flyer-form textarea, .flyer-form button[role="combobox"] { background-color: #2a2a2a !important; color: #fff !important; }
+        .flyer-form input::placeholder, .flyer-form textarea::placeholder { color: #777 !important; }
+        .flyer-form input:focus, .flyer-form textarea:focus { border-color: #FF5A4F !important; }
+        .flyer-form label { color: #c0c0c0 !important; }
+      `}</style>
       <Section title="Property Details">
         <div><Label className="text-xs">Eyebrow</Label><Input value={content.eyebrow || ""} onChange={(e) => set("eyebrow", e.target.value)} className="h-8 text-sm" /></div>
         <div><Label className="text-xs">Headline</Label><Input value={content.headline || ""} onChange={(e) => set("headline", e.target.value)} className="h-8 text-sm" /></div>
