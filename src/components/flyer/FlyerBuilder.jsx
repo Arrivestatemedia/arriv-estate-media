@@ -11,20 +11,25 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
 const EMPTY = {
-  eyebrow: "", headline: "", subheadline: "", body_text: "", tagline: "",
-  hero_image: "", hero_callout: "", gallery_images: ["", ""],
+  eyebrow: "NEW LISTING",
+  headline: "Luxury Estate Living",
+  subheadline: "A Rare Opportunity in an Unrivaled Location",
+  body_text: "Experience refined elegance in this meticulously crafted residence. From the grand entrance to the serene outdoor spaces, every detail has been thoughtfully designed for the discerning homeowner.",
+  tagline: "Schedule your private showing today",
+  hero_image: "", hero_callout: "Coming Soon",
+  gallery_images: ["", ""],
   features: [
-    { icon: "diamond", title: "", description: "" },
-    { icon: "home", title: "", description: "" },
-    { icon: "pin", title: "", description: "" },
+    { icon: "diamond", title: "Premium Finishes", description: "Hand-selected materials and designer fixtures throughout." },
+    { icon: "home", title: "Open Concept", description: "Spacious, light-filled living areas perfect for entertaining." },
+    { icon: "pin", title: "Prime Location", description: "Nestled in one of the area's most sought-after neighborhoods." },
   ],
   stats: [
-    { icon: "bed", value: "", label: "" }, { icon: "bath", value: "", label: "" },
-    { icon: "ruler", value: "", label: "" }, { icon: "building", value: "", label: "" },
-    { icon: "tree", value: "", label: "" },
+    { icon: "bed", value: "5", label: "Bedrooms" }, { icon: "bath", value: "4", label: "Bathrooms" },
+    { icon: "ruler", value: "4,200", label: "Sq Ft" }, { icon: "building", value: "2", label: "Stories" },
+    { icon: "tree", value: "0.5", label: "Acres" },
   ],
-  agent_name: "", agent_title: "", agent_phone: "", agent_office_phone: "",
-  agent_headshot: "", company_name: "", company_logo: "",
+  agent_name: "Agent Name", agent_title: "Real Estate Advisor", agent_phone: "(555) 123-4567", agent_office_phone: "(555) 987-6543",
+  agent_headshot: "", company_name: "Arriv Estate Media", company_logo: "",
 };
 
 // Two-panel flyer builder, themed for the Arriv Studio shell (dark + coral).
