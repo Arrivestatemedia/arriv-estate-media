@@ -10,9 +10,9 @@ const STUDIO_LOGO_URL = "https://media.base44.com/images/public/698b3b9e4b7d3488
 
 export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
   // Image native dimensions: 789 x 370
-  // STUDIO text spans x=108–223 native → right edge at 789-223=566 from image right
+  // STUDIO "S" starts at x=108 native → 108/789 of image width
   // STUDIO text bottom is at y=298 native → 298/370 of image height
-  const studioRightPx = 566 / 370 * size; // distance from image right to STUDIO right edge
+  const studioLeftFraction = 108 / 789; // fraction of image width
   const studioBottomFraction = 298 / 370; // fraction of image height
   const imageMarginLeft = -size * 0.1; // shift image left to align icon with sidebar edge
 
@@ -43,7 +43,7 @@ export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
             letterSpacing: "0.15em",
             lineHeight: 1,
             position: "absolute",
-            right: `${studioRightPx}px`,
+            left: `${imageMarginLeft + studioLeftFraction * (789 * size / 370)}px`,
             top: `${studioBottomFraction * size + 1}px`,
           }}
         >
