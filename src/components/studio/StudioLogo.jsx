@@ -1,96 +1,55 @@
 import React from "react";
 
-// Canonical Arriv Studio logo — clean icon + text composition.
-// Icon: circular aperture/shutter with orange-red gradient.
-// Text: "ARRIV" bold, "STUDIO" and "REAL ESTATE" stacked below, left-aligned to icon.
-// `size` = icon diameter in px; text scales proportionally.
-const STUDIO_FONT = "Inter, ui-sans-serif, system-ui, sans-serif";
-
-function ApertureIcon({ size, gradId }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
-      style={{ display: "block", flexShrink: 0 }}
-    >
-      <defs>
-        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ff6b3d" />
-          <stop offset="100%" stopColor="#c70039" />
-        </linearGradient>
-      </defs>
-      {/* Outer gradient circle */}
-      <circle cx="50" cy="50" r="48" fill={`url(#${gradId})`} />
-      {/* 6 dark aperture blades */}
-      <g fill="#0f0f0f">
-        <path d="M65.6 41 L96 50 A46 46 0 0 1 73 89.9 L65.6 59 Z" />
-        <path d="M65.6 59 L73 89.9 A46 46 0 0 1 27 89.9 L50 68 Z" />
-        <path d="M50 68 L27 89.9 A46 46 0 0 1 4 50 L34.4 59 Z" />
-        <path d="M34.4 59 L4 50 A46 46 0 0 1 27 10.1 L34.4 41 Z" />
-        <path d="M34.4 41 L27 10.1 A46 46 0 0 1 73 10.1 L50 32 Z" />
-        <path d="M50 32 L73 10.1 A46 46 0 0 1 96 50 L65.6 41 Z" />
-      </g>
-      {/* Gradient center hexagon (the opening) */}
-      <polygon points="50,32 65.6,41 65.6,59 50,68 34.4,59 34.4,41" fill={`url(#${gradId})`} />
-    </svg>
-  );
-}
+// Canonical Arriv Studio logo — uses the official uploaded logo image with
+// "Real Estate" positioned directly below the "STUDIO" text in the image.
+// The image has empty space at the bottom (content ends at ~80.5% of height),
+// so we use absolute positioning to place the subtitle at the STUDIO baseline
+// rather than below the full image (which would create a visible gap).
+// size = logo image height in px.
+const STUDIO_LOGO_URL = "https://media.base44.com/images/public/698b3b9e4b7d348873dbf213/721174ccf_Screenshot2026-09-24at90728PM.png";
 
 export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
-  const rawId = React.useId();
-  const gradId = `aperture-${rawId.replace(/:/g, "")}`;
-  const arrivFs = size * 0.38;
-  const subFs = size * 0.19;
-  const gap = size * 0.05;
+  // Image native dimensions: 789 x 370
+  // STUDIO "S" starts at x=108 native → 108/789 of image width
+  // STUDIO text bottom is at y=298 native → 298/370 of image height
+  const studioLeftFraction = 108 / 789; // fraction of image width
+  const studioBottomFraction = 298 / 370; // fraction of image height
+  const imageMarginLeft = -size * 0.1; // shift image left to align icon with sidebar edge
 
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: size * 0.14,
-        fontFamily: STUDIO_FONT,
+        position: "relative",
+        display: "inline-block",
+        fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
       }}
     >
-      <ApertureIcon size={size} gradId={gradId} />
-      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.05 }}>
+      <img
+        src={STUDIO_LOGO_URL}
+        alt="Arriv Studio"
+        style={{
+          height: `${size}px`,
+          width: "auto",
+          display: "block",
+          marginLeft: `${imageMarginLeft}px`,
+        }}
+      />
+      {subtitle && (
         <span
+          className="font-semibold uppercase"
           style={{
-            fontSize: `${arrivFs}px`,
-            fontWeight: 700,
-            color: "#ffffff",
-            letterSpacing: "0.01em",
+            color: "#f17c5b",
+            fontSize: 8,
+            letterSpacing: "0.15em",
+            lineHeight: 1,
+            position: "absolute",
+            right: '28px',
+            top: `${studioBottomFraction * size + 3}px`,
           }}
         >
-          ARRIV
+          {subtitle}
         </span>
-        <span
-          style={{
-            fontSize: `${subFs}px`,
-            fontWeight: 600,
-            color: "#ffffff",
-            letterSpacing: "0.18em",
-            marginTop: `${gap}px`,
-          }}
-        >
-          STUDIO
-        </span>
-        {subtitle && (
-          <span
-            style={{
-              fontSize: `${subFs}px`,
-              fontWeight: 600,
-              color: "#ffffff",
-              letterSpacing: "0.18em",
-              marginTop: `${gap * 0.6}px`,
-            }}
-          >
-            {subtitle.toUpperCase()}
-          </span>
-        )}
-      </div>
+      )}
     </div>
   );
 }
