@@ -11,10 +11,24 @@ Deno.serve(async (req) => {
     const { jobId, jobData, mediaPartnerEmail, bookJob = true } = body;
     if (!mediaPartnerEmail) return Response.json({ error: 'mediaPartnerEmail is required' }, { status: 400 });
 
-    // Look up the media partner by email — they auth through the custom
-    // PendingSignup flow, not Base44 auth, so auth.me() won't resolve them.
+    // Look up the media partner by email. Most partners live in PendingSignup
+    // (custom auth flow), not the User entity, so check both.
     const partnerUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
-    const user = partnerUsers[0];
+    let user = partnerUsers[0];
+    if (!user) {
+      const pending = await base44.asServiceRole.entities.PendingSignup.filter({ email: mediaPartnerEmail });
+      const p = pending[0];
+      if (p) {
+        user = {
+          id: null, // no User record — can't persist bg status on User
+          email: p.email,
+          full_name: p.full_name,
+          phone_number: p.phone_number,
+          background_check_status: null,
+          checkr_invitation_url: null,
+        };
+      }
+    }
     if (!user) return Response.json({ error: 'Media partner not found' }, { status: 404 });
 
     const apiKey = Deno.env.get('CHECKR_API_KEY');
@@ -36,11 +50,15 @@ Deno.serve(async (req) => {
 
     // ---- MANUAL MODE (no Checkr API key configured yet) ----
     if (!apiKey) {
-      await base44.asServiceRole.entities.User.update(user.id, {
-        background_check_status: 'pending',
-        background_check_authorized_at: nowIso,
-        background_check_pending_job_id: jobId || null,
-      });
+      // Only persist status if the partner has a User record. Partners in
+      // PendingSignup don't have background_check_status fields yet.
+      if (user.id) {
+        await base44.asServiceRole.entities.User.update(user.id, {
+          background_check_status: 'pending',
+          background_check_authorized_at: nowIso,
+          background_check_pending_job_id: jobId || null,
+        });
+      }
       if (bookJob && jobId && jobData) {
         await base44.asServiceRole.functions.invoke('bookJobAndSendCalendarInvite', { jobId, jobData, mediaPartnerEmail });
       }
