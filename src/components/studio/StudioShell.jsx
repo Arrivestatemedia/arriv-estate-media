@@ -33,7 +33,7 @@ export default function StudioShell({ entitlement, activeSection, onSectionChang
     <div className="flex flex-col h-full" style={{ ...STUDIO_FONT }}>
       {/* Studio Identity */}
       <div className="px-5 py-5 border-b" style={{ borderColor: "#2d2d2d" }}>
-        <StudioLogo size={32} />
+        <StudioLogo size={52} />
       </div>
 
       {/* Navigation */}
