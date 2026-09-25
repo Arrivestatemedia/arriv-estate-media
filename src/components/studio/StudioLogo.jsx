@@ -16,7 +16,7 @@ export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
       {subtitle && (
         <span
           className="font-semibold uppercase"
-          style={{ color: "#f17c5b", fontSize: 8, letterSpacing: "0.15em", marginTop: -4, marginLeft: size * 0.95 }}
+          style={{ color: "#f17c5b", fontSize: 8, letterSpacing: "0.15em", marginTop: -4, marginLeft: size * 0.6 }}
         >
           {subtitle}
         </span>
