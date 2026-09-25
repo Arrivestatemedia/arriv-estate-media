@@ -6,12 +6,16 @@ const CHECKR_BASE = 'https://api.checkr.com/v1';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { jobId, jobData, mediaPartnerEmail, bookJob = true } = body;
     if (!mediaPartnerEmail) return Response.json({ error: 'mediaPartnerEmail is required' }, { status: 400 });
+
+    // Look up the media partner by email — they auth through the custom
+    // PendingSignup flow, not Base44 auth, so auth.me() won't resolve them.
+    const partnerUsers = await base44.asServiceRole.entities.User.filter({ email: mediaPartnerEmail });
+    const user = partnerUsers[0];
+    if (!user) return Response.json({ error: 'Media partner not found' }, { status: 404 });
 
     const apiKey = Deno.env.get('CHECKR_API_KEY');
     const checkrAuth = apiKey ? 'Basic ' + btoa(apiKey + ':') : null;
