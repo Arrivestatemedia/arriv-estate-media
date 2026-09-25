@@ -7,7 +7,7 @@ const STUDIO_LOGO_URL = "https://media.base44.com/images/public/698b3b9e4b7d3488
 
 export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
   return (
-    <div className="flex flex-col items-center" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="flex flex-col items-start" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
       <img
         src={STUDIO_LOGO_URL}
         alt="Arriv Studio"
@@ -16,7 +16,7 @@ export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
       {subtitle && (
         <span
           className="font-semibold uppercase"
-          style={{ color: "#f17c5b", fontSize: 11, letterSpacing: "0.15em", marginTop: 2 }}
+          style={{ color: "#f17c5b", fontSize: 8, letterSpacing: "0.15em", marginTop: 1 }}
         >
           {subtitle}
         </span>
