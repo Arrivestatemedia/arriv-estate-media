@@ -391,7 +391,8 @@ Deno.serve(async (req) => {
     });
 
     await base44.asServiceRole.entities.Booking.update(bookingId, {
-      invoice_id: invoice.id
+      invoice_id: invoice.id,
+      payment_locked: true
     });
 
     return Response.json({ 

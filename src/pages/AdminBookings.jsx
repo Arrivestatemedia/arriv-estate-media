@@ -167,13 +167,24 @@ export default function AdminBookings() {
   const handlePostToJobBoard = async (booking) => {
     setLoadingBookingId(booking.id);
     try {
-      if (booking.request_pay_at_closing && !booking.invoice_id) {
-        // Pay-at-closing, no invoice yet: generate deposit invoice and lock
-        await base44.functions.invoke('generatePayAtClosingInvoice', { bookingId: booking.id });
-        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-        alert('Deposit invoice sent to client. Button will unlock after payment.');
+      if (!booking.invoice_id) {
+        // No invoice yet — generate one before posting to job board
+        if (booking.request_pay_at_closing) {
+          await base44.functions.invoke('generatePayAtClosingInvoice', { bookingId: booking.id });
+          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+          alert('Deposit invoice sent to client. Button will unlock after payment.');
+        } else {
+          // Pay-up-front: invoice generation failed at submission — generate now
+          await base44.functions.invoke('generatePayUpFrontInvoice', {
+            bookingId: booking.id,
+            booking,
+            total_price: booking.total_price
+          });
+          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+          alert('Invoice sent to client. Button will unlock after payment.');
+        }
       } else {
-        // Pay-up-front (invoice already sent at booking submission) OR pay-at-closing after deposit paid
+        // Invoice already exists — post to job board
         await base44.functions.invoke('postBookingToJobBoard', { bookingId: booking.id });
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       }
@@ -188,13 +199,24 @@ export default function AdminBookings() {
   const handleAcceptForMyself = async (booking) => {
     setLoadingBookingId(booking.id);
     try {
-      if (booking.request_pay_at_closing && !booking.invoice_id) {
-        // Pay-at-closing, no invoice yet: generate deposit invoice and lock
-        await base44.functions.invoke('generatePayAtClosingInvoice', { bookingId: booking.id });
-        queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
-        alert('Deposit invoice sent to client. Button will unlock after payment.');
+      if (!booking.invoice_id) {
+        // No invoice yet — generate one before accepting
+        if (booking.request_pay_at_closing) {
+          await base44.functions.invoke('generatePayAtClosingInvoice', { bookingId: booking.id });
+          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+          alert('Deposit invoice sent to client. Button will unlock after payment.');
+        } else {
+          // Pay-up-front: invoice generation failed at submission — generate now
+          await base44.functions.invoke('generatePayUpFrontInvoice', {
+            bookingId: booking.id,
+            booking,
+            total_price: booking.total_price
+          });
+          queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
+          alert('Invoice sent to client. Button will unlock after payment.');
+        }
       } else {
-        // Pay-up-front (invoice already sent at booking submission) OR pay-at-closing after deposit paid
+        // Invoice already exists — accept for self
         await base44.functions.invoke('acceptBookingForMyself', { bookingId: booking.id });
         queryClient.invalidateQueries({ queryKey: ['adminBookings'] });
       }
