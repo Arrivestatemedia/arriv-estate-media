@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Save, Trash2, Download, ArrowLeft } from "lucide-react";
@@ -28,12 +27,9 @@ const EMPTY = {
   agent_headshot: "", company_name: "", company_logo: "",
 };
 
-// Two-panel flyer builder: live scaled preview on the left, form on the right.
-export default function FlyerBuilder({ userEmail }) {
-  const [params] = useSearchParams();
-  const navigate = useNavigate();
-  const flyerId = params.get("flyer_id");
-
+// Two-panel flyer builder, themed for the Arriv Studio shell (dark + coral).
+// Props-driven (no router) so it renders as a Studio section.
+export default function FlyerBuilder({ userEmail, flyerId, onBack, onFlyerCreated }) {
   const [name, setName] = useState("");
   const [content, setContent] = useState(EMPTY);
   const [status, setStatus] = useState("DRAFT");
@@ -44,7 +40,8 @@ export default function FlyerBuilder({ userEmail }) {
   const exportRef = useRef(null);
 
   useEffect(() => {
-    if (!flyerId) return;
+    if (!flyerId) { setName(""); setContent(EMPTY); setStatus("DRAFT"); setLoading(false); return; }
+    setLoading(true);
     (async () => {
       try {
         const res = await getFlyer(userEmail, flyerId);
@@ -76,7 +73,7 @@ export default function FlyerBuilder({ userEmail }) {
       const data = { name, template: "LUXURY_ESTATE", content, status: publish ? "PUBLISHED" : status };
       if (flyerId) data.flyer_id = flyerId;
       const res = await saveFlyer(userEmail, data);
-      if (!flyerId && res.flyer?.id) navigate(`/FlyerBuilderPage?flyer_id=${res.flyer.id}`, { replace: true });
+      if (!flyerId && res.flyer?.id && onFlyerCreated) onFlyerCreated(res.flyer.id);
       if (publish) setStatus("PUBLISHED");
       alert("Saved");
     } catch (e) { alert("Save failed: " + e.message); }
@@ -86,7 +83,7 @@ export default function FlyerBuilder({ userEmail }) {
   const handleDelete = async () => {
     if (!flyerId) return;
     if (!confirm("Delete this flyer?")) return;
-    try { await deleteFlyer(userEmail, flyerId); navigate("/Flyers"); }
+    try { await deleteFlyer(userEmail, flyerId); onBack(); }
     catch (e) { alert("Delete failed: " + e.message); }
   };
 
@@ -103,25 +100,25 @@ export default function FlyerBuilder({ userEmail }) {
     } catch (e) { alert("Export failed: " + e.message); }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin w-8 h-8 text-[#B8956A]" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin w-8 h-8" style={{ color: "#FF5A4F" }} /></div>;
 
   return (
-    <div className="px-4 py-4">
+    <div className="dark px-4 py-4" style={{ background: "#0f0f0f", minHeight: "100%", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/Flyers")}><ArrowLeft className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="sm" onClick={onBack} style={{ color: "#a0a0a0" }}><ArrowLeft className="w-4 h-4 mr-1" />Back</Button>
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Flyer name..." className="max-w-xs" />
         <div className="flex-1" />
-        <Button variant="outline" size="sm" onClick={exportPDF}><Download className="w-4 h-4 mr-1" />PDF</Button>
-        {flyerId && <Button variant="outline" size="sm" onClick={handleDelete}><Trash2 className="w-4 h-4" /></Button>}
-        <Button size="sm" disabled={saving} onClick={() => handleSave(false)}><Save className="w-4 h-4 mr-1" />{saving ? "Saving..." : "Save"}</Button>
-        <Button size="sm" disabled={saving} onClick={() => handleSave(true)} className="bg-[#B8956A] text-white hover:bg-[#A68559]">Publish</Button>
+        <Button variant="outline" size="sm" onClick={exportPDF} style={{ color: "#fff", borderColor: "#3d3d3d", background: "#1a1a1a" }}><Download className="w-4 h-4 mr-1" />PDF</Button>
+        {flyerId && <Button variant="outline" size="sm" onClick={handleDelete} style={{ color: "#ff5a4f", borderColor: "#3d3d3d", background: "#1a1a1a" }}><Trash2 className="w-4 h-4" /></Button>}
+        <Button size="sm" disabled={saving} onClick={() => handleSave(false)} style={{ background: "#1a1a1a", color: "#fff", border: "1px solid #3d3d3d" }}><Save className="w-4 h-4 mr-1" />{saving ? "Saving..." : "Save"}</Button>
+        <Button size="sm" disabled={saving} onClick={() => handleSave(true)} style={{ background: "#FF5A4F", color: "#fff" }}>Publish</Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6">
-        <div className="bg-white rounded-lg border p-4">
+        <div className="rounded-lg p-4" style={{ background: "#1a1a1a", border: "1px solid #2d2d2d" }}>
           <FlyerPreview content={content} />
         </div>
-        <div className="bg-white rounded-lg border p-4 max-h-[75vh] overflow-y-auto">
+        <div className="rounded-lg p-4 max-h-[75vh] overflow-y-auto" style={{ background: "#1a1a1a", border: "1px solid #2d2d2d" }}>
           <FlyerForm content={content} setContent={setContent} onPickImage={pickImage} />
         </div>
       </div>

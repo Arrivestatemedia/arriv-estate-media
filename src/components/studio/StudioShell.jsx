@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   LayoutDashboard, FolderOpen, Palette, Library as LibraryIcon,
-  CreditCard, Settings as SettingsIcon, Menu, X,
+  CreditCard, Settings as SettingsIcon, Menu, X, LayoutTemplate,
 } from "lucide-react";
 import StudioLogo from "@/components/studio/StudioLogo";
 import StudioProductionMinutesCard from "@/components/studio/StudioProductionMinutesCard";
@@ -14,6 +14,7 @@ const STUDIO_FONT = { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "projects", label: "Projects", icon: FolderOpen },
+  { id: "flyers", label: "Flyers", icon: LayoutTemplate },
   { id: "brand_kits", label: "Brand Kits", icon: Palette },
   { id: "libraries", label: "Libraries", icon: LibraryIcon },
   { id: "usage", label: "Usage & Billing", icon: CreditCard },

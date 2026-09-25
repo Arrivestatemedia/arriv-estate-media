@@ -11,6 +11,7 @@ import StudioBrandKits from "@/components/studio/StudioBrandKits";
 import StudioLibraries from "@/components/studio/StudioLibraries";
 import StudioUsage from "@/components/studio/StudioUsage";
 import StudioSettings from "@/components/studio/StudioSettings";
+import StudioFlyers from "@/components/flyer/StudioFlyers";
 import StudioLogo from "@/components/studio/StudioLogo";
 import { Loader2 } from "lucide-react";
 
@@ -136,6 +137,9 @@ export default function StudioWorkspace() {
       )}
       {section === "projects" && (
         <StudioProjects onStartProject={handleStartProject} />
+      )}
+      {section === "flyers" && (
+        <StudioFlyers />
       )}
       {section === "brand_kits" && (
         <StudioBrandKits />

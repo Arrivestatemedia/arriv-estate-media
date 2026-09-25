@@ -69,7 +69,7 @@ export default function MediaPicker({ open, onClose, onPick, userEmail }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto dark">
         <DialogHeader><DialogTitle>Choose an image</DialogTitle></DialogHeader>
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-3 w-full">

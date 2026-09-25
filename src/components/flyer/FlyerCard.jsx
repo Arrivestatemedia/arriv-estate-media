@@ -1,11 +1,10 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import { Trash2, Pencil } from "lucide-react";
 import { deleteFlyer } from "@/lib/studioFlyerApi";
 
-export default function FlyerCard({ flyer, userEmail, onDeleted }) {
-  const navigate = useNavigate();
+// Dark-themed flyer card for the Studio shell. onEdit(id) opens the builder.
+export default function FlyerCard({ flyer, userEmail, onDeleted, onEdit }) {
   const thumb = flyer.thumbnail_url || flyer.content?.hero_image;
 
   const del = async () => {
@@ -15,17 +14,17 @@ export default function FlyerCard({ flyer, userEmail, onDeleted }) {
   };
 
   return (
-    <div className="bg-white rounded-lg border overflow-hidden flex flex-col">
-      <div className="aspect-[850/1100] bg-muted relative cursor-pointer" onClick={() => navigate(`/FlyerBuilderPage?flyer_id=${flyer.id}`)}>
+    <div className="rounded-lg overflow-hidden flex flex-col" style={{ background: "#1a1a1a", border: "1px solid #2d2d2d" }}>
+      <div className="aspect-[850/1100] relative cursor-pointer" style={{ background: "#2a2a2a" }} onClick={() => onEdit(flyer.id)}>
         {thumb
           ? <img src={thumb} alt={flyer.name} className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No preview</div>}
-        <div className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-black/60 text-white">{flyer.status}</div>
+          : <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: "#666" }}>No preview</div>}
+        <div className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}>{flyer.status}</div>
       </div>
       <div className="p-3 flex items-center justify-between">
-        <span className="text-sm font-medium truncate">{flyer.name}</span>
+        <span className="text-sm font-medium truncate" style={{ color: "#fff" }}>{flyer.name}</span>
         <div className="flex gap-1">
-          <Button size="icon" variant="ghost" onClick={() => navigate(`/FlyerBuilderPage?flyer_id=${flyer.id}`)}><Pencil className="w-4 h-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => onEdit(flyer.id)}><Pencil className="w-4 h-4" style={{ color: "#a0a0a0" }} /></Button>
           <Button size="icon" variant="ghost" onClick={del}><Trash2 className="w-4 h-4 text-red-500" /></Button>
         </div>
       </div>
