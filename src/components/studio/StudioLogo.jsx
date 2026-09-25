@@ -43,7 +43,7 @@ export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
             letterSpacing: "0.15em",
             lineHeight: 1,
             position: "absolute",
-            right: '24px',
+            right: '28px',
             top: `${studioBottomFraction * size + 1}px`,
           }}
         >
