@@ -1,0 +1,44 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 30,
+      "interval_unit": "minutes",
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "ensure_booking_invoices",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "ensure_invoices": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "ensureBookingInvoices"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Ensure booking invoices",
+            "description": "Generate missing invoices for recent bookings"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Safety net: scans for bookings missing invoices and generates them every 30 minutes. Catches invoice generation failures no matter how the booking was created.",
+  "name": "Ensure Booking Invoices (30min)"
+}
