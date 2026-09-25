@@ -45,7 +45,17 @@ Deno.serve(async (req) => {
     }
 
     // Already authorized and pending with an invitation (automated mode) — reuse it.
+    // Still book the gig temporarily and notify the admin about the booking.
     if (user.checkr_invitation_url && user.background_check_status === 'pending') {
+      if (bookJob && jobId && jobData) {
+        await base44.asServiceRole.functions.invoke('bookJobAndSendCalendarInvite', { jobId, jobData, mediaPartnerEmail });
+      }
+      const adminPhone = Deno.env.get('ADMIN_PHONE') || '4047891107';
+      let jobInfo = '';
+      if (jobId) {
+        try { const j = await base44.asServiceRole.entities.Job.get(jobId); jobInfo = `${j.title} — ${j.date}${j.start_time ? ' ' + j.start_time : ''} — ${j.location}`; } catch (e) { /* ignore */ }
+      }
+      await twilioSms(adminPhone, `Arriv: ${user.full_name} temporarily booked a gig while their background check is still pending. Gig: ${jobInfo}. Reminder: their screening is still in progress.`);
       return Response.json({ success: true, invitation_url: user.checkr_invitation_url, reused: true });
     }
 

@@ -30,7 +30,6 @@ export default function JobBoard() {
     const [showApparelRequired, setShowApparelRequired] = useState(false);
   const [bgAuthOpen, setBgAuthOpen] = useState(false);
   const [bgAuthContext, setBgAuthContext] = useState(null);
-  const [bgPendingOpen, setBgPendingOpen] = useState(false);
   const [bgFailedOpen, setBgFailedOpen] = useState(false);
     const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -376,12 +375,31 @@ export default function JobBoard() {
       booked_by_phone: phone,
     };
 
-    if (bgStatus === "pending") {
-      setBgPendingOpen(true);
-      return;
-    }
     if (bgStatus === "failed") {
       setBgFailedOpen(true);
+      return;
+    }
+    if (bgStatus === "pending") {
+      // Already authorized and pending — book temporarily and notify admin.
+      // No need to re-authorize; the background check is already in progress.
+      base44.functions.invoke('initiateBackgroundCheck', {
+        jobId: bookingJob.id,
+        jobData,
+        mediaPartnerEmail: email,
+        bookJob: true,
+      }).then((res) => {
+        const data = res?.data || res;
+        setBookingJob(null);
+        queryClient.invalidateQueries({ queryKey: ["jobs"] });
+        if (data?.invitation_url) {
+          navigate(createPageUrl("BackgroundCheck"), { state: { invitationUrl: data.invitation_url } });
+        } else {
+          navigate(createPageUrl("MediaPartnerDashboard"));
+        }
+      }).catch((err) => {
+        console.error('Pending booking error:', err);
+        alert(err?.data?.error || err?.message || 'Booking failed');
+      });
       return;
     }
     if (bgStatus !== "clear") {
@@ -721,21 +739,6 @@ export default function JobBoard() {
           context={bgAuthContext}
           onAuthorized={handleBgAuthorized}
         />
-
-        <Dialog open={bgPendingOpen} onOpenChange={setBgPendingOpen}>
-          <DialogContent className="border-2 border-[#B8956A]/30">
-            <DialogHeader>
-              <DialogTitle className="text-[#1A1A1A]">Background Check In Progress</DialogTitle>
-              <DialogDescription className="text-[#1A1A1A]/60">
-                Your background check is already in progress. You'll be able to book new gigs once it clears. You can finish your background check any time.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setBgPendingOpen(false)} className="border-[#1A1A1A]/20">Close</Button>
-              <Button onClick={() => { setBgPendingOpen(false); navigate(createPageUrl("BackgroundCheck"), { state: {} }); }} className="bg-[#B8956A] hover:bg-[#A68559] text-white">Resume Background Check</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <Dialog open={bgFailedOpen} onOpenChange={setBgFailedOpen}>
           <DialogContent className="border-2 border-[#B8956A]/30">
