@@ -1,26 +1,35 @@
 import React from "react";
+import { Play } from "lucide-react";
 
-// Canonical Arriv Studio logo — uses the official Arriv Studio brand mark
-// (camera-aperture icon + ARRIV STUDIO wordmark). Used inside the Studio
-// section to establish Studio identity within Estate Media.
-// size prop controls the image height in px (width scales proportionally).
-const STUDIO_LOGO_URL = "https://media.base44.com/images/public/698b3b9e4b7d348873dbf213/721174ccf_Screenshot2026-09-24at90728PM.png";
-
+// Canonical Arriv Studio logo mark — 36px rounded-square with coral gradient + white play triangle.
+// Used inside the Studio section to establish Studio identity within Estate Media.
+// size prop overrides default 36px.
 export default function StudioLogo({ size = 36, showWordmark = true, subtitle = "Real Estate" }) {
+  const px = `${size}px`;
   return (
-    <div className="flex flex-col" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
-      <img
-        src={STUDIO_LOGO_URL}
-        alt="Arriv Studio"
-        style={{ height: `${size}px`, width: "auto", objectFit: "contain", display: "block" }}
-      />
-      {showWordmark && subtitle && (
-        <span
-          className="font-semibold uppercase mt-1.5"
-          style={{ color: "#a0a0a0", fontSize: Math.max(10, size * 0.2), letterSpacing: "0.15em" }}
-        >
-          {subtitle}
-        </span>
+    <div className="flex items-center gap-2.5" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+      <div
+        className="rounded-full flex items-center justify-center shrink-0"
+        style={{
+          width: px,
+          height: px,
+          background: "linear-gradient(135deg, #FF4F46 0%, #FF806F 100%)",
+        }}
+      >
+        <Play className="text-white fill-white" style={{ width: size * 0.36, height: size * 0.36, marginLeft: 2 }} />
+      </div>
+      {showWordmark && (
+        <div className="flex flex-col leading-none">
+          <span className="font-extrabold tracking-tight" style={{ color: "#ffffff", fontSize: size * 0.42 }}>
+            ARRIV
+          </span>
+          <span
+            className="font-semibold uppercase"
+            style={{ color: "#FF5A4F", fontSize: size * 0.22, letterSpacing: "0.15em" }}
+          >
+            STUDIO{subtitle ? ` · ${subtitle}` : ""}
+          </span>
+        </div>
       )}
     </div>
   );
