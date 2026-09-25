@@ -49,20 +49,25 @@ export default function StudioFlyers() {
 
   return (
     <div className="dark px-6 py-6" style={{ background: "#0f0f0f", minHeight: "100%", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold" style={{ color: "#fff" }}>Promotional Flyers</h1>
-        <Button onClick={() => openBuilder(null)} style={{ background: "#FF5A4F", color: "#fff" }}><Plus className="w-4 h-4 mr-1" />New Flyer</Button>
-      </div>
+      <h1 className="text-2xl font-semibold mb-6" style={{ color: "#fff" }}>Promotional Flyers</h1>
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin w-8 h-8" style={{ color: "#FF5A4F" }} /></div>
       ) : flyers.length === 0 ? (
-        <div className="text-center py-20" style={{ color: "#a0a0a0" }}>No flyers yet. Click "New Flyer" to create one.</div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {flyers.map((f) => (
-            <FlyerCard key={f.id} flyer={f} userEmail={email} onDeleted={onDeleted} onEdit={openBuilder} />
-          ))}
+        <div className="flex flex-col items-center justify-center text-center py-24">
+          <p className="mb-6" style={{ color: "#a0a0a0" }}>No flyers yet. Create your first one.</p>
+          <Button onClick={() => openBuilder(null)} style={{ background: "#FF5A4F", color: "#fff" }}><Plus className="w-4 h-4 mr-1" />New Flyer</Button>
         </div>
+      ) : (
+        <>
+          <div className="flex justify-center mb-6">
+            <Button onClick={() => openBuilder(null)} style={{ background: "#FF5A4F", color: "#fff" }}><Plus className="w-4 h-4 mr-1" />New Flyer</Button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {flyers.map((f) => (
+              <FlyerCard key={f.id} flyer={f} userEmail={email} onDeleted={onDeleted} onEdit={openBuilder} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
