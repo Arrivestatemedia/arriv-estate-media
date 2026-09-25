@@ -15,6 +15,10 @@ export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
   const studioLeftFraction = 108 / 789; // fraction of image width
   const studioBottomFraction = 298 / 370; // fraction of image height
   const imageMarginLeft = -size * 0.1; // shift image left to align icon with sidebar edge
+  // Displayed image width at the given height (native 789 x 370)
+  const imageDisplayedWidth = size * (789 / 370);
+  // Left-align the subtitle with the ARRIV/STUDIO text in the image
+  const subtitleLeft = imageMarginLeft + studioLeftFraction * imageDisplayedWidth;
 
   return (
     <div
@@ -43,7 +47,7 @@ export default function StudioLogo({ size = 36, subtitle = "Real Estate" }) {
             letterSpacing: "0.15em",
             lineHeight: 1,
             position: "absolute",
-            right: '28px',
+            left: `${subtitleLeft}px`,
             top: `${studioBottomFraction * size + 3}px`,
           }}
         >
