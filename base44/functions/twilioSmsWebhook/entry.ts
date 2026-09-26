@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   try {
     const body = await req.text();
+    // v2: candidate-URL based Twilio signature validation
 
     // DEBUG: Write request info to MessageLog BEFORE validation
     try {
