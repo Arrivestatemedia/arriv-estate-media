@@ -122,8 +122,8 @@ Deno.serve(async (req) => {
         if (reminder.type === '9am_morning') {
           // Send to client and media partner
           const jobTime12 = convertTo12HourFormat(jobTime);
-          const message = `Good Morning ${job.client_name}!\nJust confirming our shoot today at ${jobTime12} at your ${job.location} listing. Looking forward to it.\n-Brad`;
-          const emailBody = `Good Morning ${job.client_name}!\n\nJust confirming our shoot today at ${jobTime12} at your ${job.location} listing. Looking forward to it.\n\n-Brad`;
+          const message = `Good Morning ${job.client_name}!\nJust confirming our shoot today at ${jobTime12} at your ${job.location} listing. Looking forward to it.\n-Arriv Estate Media`;
+          const emailBody = `Good Morning ${job.client_name}!\n\nJust confirming our shoot today at ${jobTime12} at your ${job.location} listing. Looking forward to it.\n\n-Arriv Estate Media`;
 
           // Send to media partner
           if (job.booked_by_phone) {
