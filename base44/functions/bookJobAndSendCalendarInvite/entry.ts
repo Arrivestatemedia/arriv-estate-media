@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { sendBrevoEmail } from '../../shared/brevoClient.ts';
+import { formatPhoneDisplay, toE164 } from '../../shared/phoneNumberBlocker.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -175,6 +176,48 @@ Deno.serve(async (req) => {
       }
     } catch (notifyErr) {
       console.error('Client booking notification failed:', notifyErr.message);
+    }
+
+    // ── Send confirmation SMS to the media specialist ──
+    try {
+      const partnerPhone = updatedJob.booked_by_phone || jobData.booked_by_phone;
+      if (partnerPhone) {
+        const companyPhone = Deno.env.get('TWILIO_CALLING_PHONE_NUMBER') || Deno.env.get('TWILIO_PHONE_NUMBER');
+        const companyDisplay = formatPhoneDisplay(companyPhone || '');
+        const partnerFirstName = (updatedJob.booked_by_name || jobData.booked_by_name || '').trim().split(/\s+/)[0] || 'there';
+        const partnerSms = `Hi ${partnerFirstName}! Thank you for booking this job. A calendar invite has been sent to your email — please check your inbox. After the shoot, upload your completed footage to the Google Drive folder linked in the calendar event. If you need to contact your client, text or call ${companyDisplay}. - Arriv`;
+
+        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+        const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+        const toPhone = toE164(partnerPhone);
+        try {
+          const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: fromPhone,
+              To: toPhone,
+              Body: partnerSms,
+            }).toString(),
+          });
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'sms',
+            recipient_type: 'media_partner',
+            recipient_phone: partnerPhone,
+            message_content: partnerSms,
+            job_id: jobId,
+            status: smsResponse.ok ? 'success' : 'failed',
+          });
+        } catch (smsErr) {
+          console.error('Media specialist booking SMS failed:', smsErr.message);
+        }
+      }
+    } catch (partnerNotifyErr) {
+      console.error('Media specialist booking notification failed:', partnerNotifyErr.message);
     }
 
     return Response.json({ success: true, message: 'Job booked and calendar invite sent' }, { status: 200 });

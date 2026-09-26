@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { auditLog } from '../../shared/securityAudit.ts';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
+import { containsPersonalPhoneNumber } from '../../shared/phoneNumberBlocker.ts';
 
 const norm = (n) => {
   if (!n) return '';
@@ -160,6 +161,30 @@ Deno.serve(async (req) => {
             direction: 'inbound',
             twilio_sid: twilioSid,
           });
+
+          // ── Personal phone number blocking ──
+          // If the sender's own phone number appears in the message (digit
+          // or word form), block it from being relayed and notify the sender.
+          if (containsPersonalPhoneNumber(from, messageBody)) {
+            const blockMsg = "Your message was not sent because it contains your personal phone number. Please remove your phone number from the message and try again. - Arriv";
+            try {
+              const senderE164 = from.startsWith('+') ? from : `+1${from.replace(/\D/g, '')}`;
+              const sent = await sendTwilioSms(senderE164, blockMsg);
+              await base44.asServiceRole.entities.SmsMessage.create({
+                conversation_id: conversation.id,
+                from_number: to,
+                to_number: from,
+                body: blockMsg,
+                direction: 'outbound',
+                twilio_sid: sent?.sid || '',
+              });
+            } catch (e) {
+              console.error('Block notification SMS send failed:', e.message);
+            }
+            return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+              headers: { 'Content-Type': 'text/xml' },
+            });
+          }
 
           const recordOutbound = async (toNum, body, sid) => {
             await base44.asServiceRole.entities.SmsMessage.create({
