@@ -1,0 +1,40 @@
+{
+  "name": "ShortLink",
+  "type": "object",
+  "properties": {
+    "short_code": {
+      "type": "string",
+      "description": "Short unique code used in the /r/:code URL"
+    },
+    "target_url": {
+      "type": "string",
+      "description": "Full URL to redirect to"
+    },
+    "label": {
+      "type": "string",
+      "description": "Optional internal label for this link"
+    }
+  },
+  "required": [
+    "short_code",
+    "target_url"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
