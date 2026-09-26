@@ -109,31 +109,48 @@ export async function validateTwilioRequest(
   const contentType = req.headers.get('content-type') || '';
   const url = getExternalUrl(req);
 
-  let dataString: string;
-
-  if (contentType.includes('application/json') && body.length > 0) {
-    // JSON webhook: Twilio appends bodySHA256=<sha256(rawBody)> to the URL
-    // and signs the URL with no additional POST parameters.
-    const bodyHash = await sha256Hex(body);
-    const separator = url.includes('?') ? '&' : '?';
-    dataString = `${url}${separator}bodySHA256=${bodyHash}`;
-  } else if (body.length > 0) {
-    // Form-encoded: sort parameters alphabetically, concatenate key+value
-    const params = new URLSearchParams(body);
-    const sortedKeys = Array.from(params.keys()).sort();
-    let paramStr = '';
-    for (const key of sortedKeys) {
-      paramStr += key + (params.get(key) || '');
+  // Build the candidate data strings for each supported content type.
+  // We try multiple URL variants because Base44's internal routing may
+  // expose a different pathname than the public URL Twilio signed.
+  const urlVariants = [url];
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.pathname.startsWith('/api/functions/')) {
+      // Also try without /api prefix (public URL format)
+      const stripped = urlObj.pathname.replace(/^\/api/, '');
+      urlVariants.push(urlObj.origin + stripped + urlObj.search);
+    } else if (urlObj.pathname.startsWith('/functions/')) {
+      // Also try with /api prefix (internal routing format)
+      urlVariants.push(urlObj.origin + '/api' + urlObj.pathname + urlObj.search);
     }
-    dataString = url + paramStr;
-  } else {
-    // No body (GET or empty POST): sign URL only
-    dataString = url;
+  } catch { /* ignore URL parse errors */ }
+
+  // For each URL variant, compute the signature and check.
+  for (const candidateUrl of urlVariants) {
+    let dataString: string;
+    if (contentType.includes('application/json') && body.length > 0) {
+      const bodyHash = await sha256Hex(body);
+      const separator = candidateUrl.includes('?') ? '&' : '?';
+      dataString = `${candidateUrl}${separator}bodySHA256=${bodyHash}`;
+    } else if (body.length > 0) {
+      const params = new URLSearchParams(body);
+      const sortedKeys = Array.from(params.keys()).sort();
+      let paramStr = '';
+      for (const key of sortedKeys) {
+        paramStr += key + (params.get(key) || '');
+      }
+      dataString = candidateUrl + paramStr;
+    } else {
+      dataString = candidateUrl;
+    }
+
+    const computedSignature = await hmacSha1Base64(authToken, dataString);
+    if (timingSafeEqual(computedSignature, signature)) {
+      return true;
+    }
   }
 
-  const computedSignature = await hmacSha1Base64(authToken, dataString);
-
-  return timingSafeEqual(computedSignature, signature);
+  return false;
 }
 
 /**
