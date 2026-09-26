@@ -57,6 +57,7 @@ import SalesRepMicrosoftAuthCallback from './pages/SalesRepMicrosoftAuthCallback
 import TrainingSimulation from './pages/TrainingSimulation';
 import StudioWorkspace from './pages/StudioWorkspace';
 import PropertyAccess from './pages/PropertyAccess';
+import DriveRedirect from './pages/DriveRedirect';
 
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -489,6 +490,7 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         }
       />
+      <Route path="/g/:fileId" element={<DriveRedirect />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </ErrorBoundary>
