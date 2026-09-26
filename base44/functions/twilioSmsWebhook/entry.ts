@@ -38,20 +38,54 @@ Deno.serve(async (req) => {
   try {
     const body = await req.text();
 
-    // ── Twilio webhook signature verification ──
-    // Round 1 found NO authentication on this webhook. Now verified.
-    const signatureValid = await validateTwilioRequest(req, body);
-    if (!signatureValid) {
-      await auditLog(base44, req, {
-        event_type: 'webhook_verification_failure',
-        actor_type: 'webhook',
-        action: 'twilioSmsWebhook',
-        result: 'denied',
-        reason: 'invalid_twilio_signature',
+    // DEBUG: Write request info to MessageLog BEFORE validation
+    try {
+      const appDomain = Deno.env.get('BASE44_APP_DOMAIN');
+      const candidates = [];
+      const bases = [];
+      if (appDomain) bases.push(appDomain.replace(/\/+$/, ''));
+      bases.push('https://arrivestatemedia.base44.app');
+      for (const base of bases) {
+        for (const prefix of ['', '/api']) {
+          candidates.push(`${base}${prefix}/functions/twilioSmsWebhook`);
+        }
+      }
+      const debugInfo = {
+        reqUrl: req.url,
+        method: req.method,
+        contentType: req.headers.get('content-type'),
+        hasSignature: !!req.headers.get('x-twilio-signature'),
+        bodyPreview: body.substring(0, 500),
+        appDomain: appDomain,
+        candidateUrls: candidates,
+      };
+      await base44.asServiceRole.entities.MessageLog.create({
+        message_type: 'sms',
+        recipient_type: 'admin',
+        message_content: JSON.stringify(debugInfo),
+        subject: 'TWILIO_WEBHOOK_DEBUG',
+        status: 'success',
       });
-      return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
+    } catch (e) { console.log('debug log failed:', e.message); }
+
+    // ── Twilio webhook signature verification ──
+    const signatureValid = await validateTwilioRequest(req, body, 'twilioSmsWebhook');
+    if (!signatureValid) {
+      const debug = (req as any).__twilioDebug;
+      console.log('TWILIO SMS VALIDATION FAILED', JSON.stringify(debug, null, 2));
+      try {
+        await auditLog(base44, req, {
+          event_type: 'webhook_verification_failure',
+          actor_type: 'webhook',
+          action: 'twilioSmsWebhook',
+          result: 'denied',
+          reason: 'invalid_twilio_signature',
+        });
+      } catch (_) {}
+      // TEMPORARY: return debug info as JSON for diagnosis
+      return new Response(JSON.stringify(debug, null, 2), {
         status: 403,
-        headers: { 'Content-Type': 'text/xml' },
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 

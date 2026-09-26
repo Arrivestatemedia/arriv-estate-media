@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const body = await req.text();
 
     // ── Twilio webhook signature verification ──
-    const signatureValid = await validateTwilioRequest(req, body);
+    const signatureValid = await validateTwilioRequest(req, body, 'twilioVoiceHandler');
     if (!signatureValid) {
       try {
         const base44Audit = createClientFromRequest(req);

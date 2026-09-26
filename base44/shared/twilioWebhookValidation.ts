@@ -52,23 +52,41 @@ async function sha256Hex(data: string): Promise<string> {
 }
 
 /**
- * Reconstruct the externally-visible URL that Twilio signed.
+ * Build candidate public URLs that Twilio might have signed.
  *
- * Behind a reverse proxy, req.url may reflect an internal host rather than
- * the public URL Twilio called. We prefer the BASE44_APP_DOMAIN env var
- * (the canonical external domain) and append the original path + query.
+ * Behind Base44's Cloudflare Workers dispatch, req.url is an internal URL
+ * (base44-dispatcher-production.base44.workers.dev/run/<id>) that does NOT
+ * match the public URL Twilio called. We cannot rely on req.url or
+ * BASE44_APP_DOMAIN alone, so we generate candidates from every known
+ * public base and try each one.
+ *
+ * @param functionName - The webhook function name (e.g. "twilioSmsWebhook")
+ * @param queryString  - Optional query string from the original request (e.g. "?menu=1")
  */
-function getExternalUrl(req: Request): string {
-  const urlObj = new URL(req.url);
-  const appDomain = Deno.env.get('BASE44_APP_DOMAIN');
+function getCandidateUrls(functionName: string, queryString: string): string[] {
+  const bases: string[] = [];
 
+  // Custom domain (if set)
+  const appDomain = Deno.env.get('BASE44_APP_DOMAIN');
   if (appDomain) {
-    const base = appDomain.replace(/\/+$/, '');
-    return base + urlObj.pathname + urlObj.search;
+    bases.push(appDomain.replace(/\/+$/, ''));
   }
 
-  // Fallback: use req.url as-is (Base44 typically passes the full public URL)
-  return req.url;
+  // Published app domain (always a candidate)
+  bases.push('https://arrivestatemedia.base44.app');
+
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  for (const base of bases) {
+    for (const prefix of ['', '/api']) {
+      const url = `${base}${prefix}/functions/${functionName}${queryString || ''}`;
+      if (!seen.has(url)) {
+        seen.add(url);
+        candidates.push(url);
+      }
+    }
+  }
+  return candidates;
 }
 
 /**
@@ -94,11 +112,15 @@ function timingSafeEqual(a: string, b: string): boolean {
  * @param req - The original Request object (body must NOT have been consumed yet;
  *              pass the raw body string separately)
  * @param body - The raw request body string (may be empty for GET)
+ * @param functionName - The webhook function name (e.g. "twilioSmsWebhook").
+ *                       Used to construct candidate public URLs, since req.url
+ *                       behind Base44's Cloudflare dispatch is internal.
  * @returns true if the signature is valid, false otherwise
  */
 export async function validateTwilioRequest(
   req: Request,
-  body: string
+  body: string,
+  functionName?: string
 ): Promise<boolean> {
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   if (!authToken) return false; // fail-secure
@@ -107,25 +129,30 @@ export async function validateTwilioRequest(
   if (!signature) return false; // missing signature → reject
 
   const contentType = req.headers.get('content-type') || '';
-  const url = getExternalUrl(req);
 
-  // Build the candidate data strings for each supported content type.
-  // We try multiple URL variants because Base44's internal routing may
-  // expose a different pathname than the public URL Twilio signed.
-  const urlVariants = [url];
+  // Extract query string from the original request (e.g. "?menu=1" for voice)
+  let queryString = '';
   try {
-    const urlObj = new URL(url);
-    if (urlObj.pathname.startsWith('/api/functions/')) {
-      // Also try without /api prefix (public URL format)
-      const stripped = urlObj.pathname.replace(/^\/api/, '');
-      urlVariants.push(urlObj.origin + stripped + urlObj.search);
-    } else if (urlObj.pathname.startsWith('/functions/')) {
-      // Also try with /api prefix (internal routing format)
-      urlVariants.push(urlObj.origin + '/api' + urlObj.pathname + urlObj.search);
-    }
-  } catch { /* ignore URL parse errors */ }
+    const urlObj = new URL(req.url);
+    queryString = urlObj.search;
+  } catch { /* ignore */ }
+
+  // Build candidate URLs — req.url is internal (Cloudflare Workers dispatch),
+  // so we construct public URLs from known domains + function name.
+  const urlVariants = functionName
+    ? getCandidateUrls(functionName, queryString)
+    : [req.url];
 
   // For each URL variant, compute the signature and check.
+  let debugInfo: any = {
+    reqUrl: req.url,
+    appDomain: Deno.env.get('BASE44_APP_DOMAIN'),
+    signatureHeader: signature,
+    contentType,
+    bodyLength: body.length,
+    functionName,
+    variants: [],
+  };
   for (const candidateUrl of urlVariants) {
     let dataString: string;
     if (contentType.includes('application/json') && body.length > 0) {
@@ -145,10 +172,19 @@ export async function validateTwilioRequest(
     }
 
     const computedSignature = await hmacSha1Base64(authToken, dataString);
+    debugInfo.variants.push({
+      url: candidateUrl,
+      dataStringPreview: dataString.substring(0, 200),
+      computedSig: computedSignature,
+      matches: timingSafeEqual(computedSignature, signature),
+    });
     if (timingSafeEqual(computedSignature, signature)) {
       return true;
     }
   }
+
+  // Store debug info on the request for the caller to log
+  (req as any).__twilioDebug = debugInfo;
 
   return false;
 }
