@@ -195,7 +195,7 @@ export default function AboutJobAtlanta() {
           >
             <Star className="w-3.5 h-3.5" style={{ color: GOLD }} />
             <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>
-              Founding Media Specialist – Metro Atlanta Launch
+              {job?.department || "Founding Media Specialist – Metro Atlanta Launch"}
             </span>
           </div>
           <div className="flex items-center gap-2 mb-6">
