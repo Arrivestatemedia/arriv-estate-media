@@ -167,6 +167,25 @@
       "type": "string",
       "description": "Text for the small badge shown at the top of the hero section on the public job page"
     },
+    "faqs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ]
+      },
+      "description": "FAQ entries (question/answer pairs) shown on the public job page"
+    },
     "description_text": {
       "type": "string",
       "description": "Raw job description text"

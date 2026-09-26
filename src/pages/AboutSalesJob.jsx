@@ -189,6 +189,7 @@ export default function AboutSalesJob() {
   const preferred = job?.preferred_qualifications || [];
   const skills = job?.skills || [];
   const benefits = job?.benefits || [];
+  const faqs = job?.faqs || [];
   const whyJoin = benefits.length ? benefits : null; // when admin sets benefits, they replace WHY_JOIN
 
   const heroBadges = [];
@@ -497,8 +498,8 @@ export default function AboutSalesJob() {
       {/* FAQ */}
       <Section eyebrow="FAQ" title="Frequently asked questions">
         <div className="space-y-3">
-          {DEFAULT_FAQ.map((item) => (
-            <FaqItem key={item.q} q={item.q} a={item.a} />
+          {(faqs.length ? faqs : DEFAULT_FAQ).map((item, i) => (
+            <FaqItem key={item.q || i} q={item.q} a={item.a} />
           ))}
         </div>
       </Section>

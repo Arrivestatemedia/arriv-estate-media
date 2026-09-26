@@ -170,6 +170,7 @@ export default function AboutJobAtlanta() {
     ? job.preferred_qualifications
     : (job?.skills?.length ? job.skills : MEDIA_JOB_ATLANTA_DEFAULTS.preferred_qualifications);
   const benefits = job?.benefits?.length ? job.benefits : MEDIA_JOB_ATLANTA_DEFAULTS.benefits;
+  const faqs = job?.faqs || [];
   const locationLabel = job?.location || "Metro Atlanta";
 
   if (loading) {
@@ -427,8 +428,8 @@ export default function AboutJobAtlanta() {
       {/* FAQ */}
       <Section eyebrow="FAQ" title="Frequently asked questions">
         <div className="space-y-3">
-          {FAQ.map((item) => (
-            <FaqItem key={item.q} q={item.q} a={item.a} />
+          {(faqs.length ? faqs : FAQ).map((item, i) => (
+            <FaqItem key={item.q || i} q={item.q} a={item.a} />
           ))}
         </div>
       </Section>

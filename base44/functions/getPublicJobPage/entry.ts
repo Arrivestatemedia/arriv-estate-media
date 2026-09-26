@@ -97,6 +97,7 @@ export default async function(req: Request): Promise<Response> {
         location: job.location || "",
         travel_requirements: job.travel_requirements || "",
         benefits: job.benefits || [],
+        faqs: job.faqs || [],
         published_at: job.published_at,
         status: job.status,
       },

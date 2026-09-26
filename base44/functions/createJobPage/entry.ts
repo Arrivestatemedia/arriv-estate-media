@@ -20,6 +20,7 @@ export default async function(req: Request): Promise<Response> {
       performance_expectations, compensation, work_schedule,
       employment_type, work_arrangement, location, travel_requirements,
       benefits,
+      faqs,
       email: bodyEmail,
       design_spec: bodyDesignSpec,
     } = body;
@@ -164,6 +165,7 @@ export default async function(req: Request): Promise<Response> {
         location: location || existingData.location || "",
         travel_requirements: travel_requirements || existingData.travel_requirements || "",
         benefits: benefits || existingData.benefits || [],
+        faqs: faqs || existingData.faqs || [],
         page_description: page_description || existingData.page_description || "",
         design_description: design_description || existingData.design_description || "",
         design_spec: bodyDesignSpec || existingData.design_spec || null,
@@ -246,6 +248,7 @@ export default async function(req: Request): Promise<Response> {
       location: location || "",
       travel_requirements: travel_requirements || "",
       benefits: benefits || [],
+      faqs: faqs || [],
       design_spec: bodyDesignSpec || null,
       public_visibility: true,
       published_at: new Date().toISOString(),

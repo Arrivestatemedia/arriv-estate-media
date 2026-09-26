@@ -200,6 +200,7 @@ export default function PublicJobPage() {
   const heroBadgeText = job.hero_badge || "Now Hiring";
   const preferredItems = job.preferred_qualifications || [];
   const skillsItems = job.skills || [];
+  const faqs = job.faqs || [];
 
   // Hero meta badges
   const heroBadges = [];
@@ -492,8 +493,8 @@ export default function PublicJobPage() {
       {/* FAQ */}
       <Section eyebrow="FAQ" title="Frequently asked questions">
         <div className="space-y-3">
-          {DEFAULT_FAQ.map((item) => (
-            <FaqItem key={item.q} q={item.q} a={item.a} />
+          {(faqs.length ? faqs : DEFAULT_FAQ).map((item, i) => (
+            <FaqItem key={item.q || i} q={item.q} a={item.a} />
           ))}
         </div>
       </Section>

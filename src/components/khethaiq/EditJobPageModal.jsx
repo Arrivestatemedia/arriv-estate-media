@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Loader2, Palette, Save, Eye } from "lucide-react";
+import { X, Loader2, Palette, Save, Eye, Plus, Trash2 } from "lucide-react";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -57,6 +57,7 @@ export default function EditJobPageModal({ jobOpening, previewUrl, onClose, onSa
     required_qualifications: Array.isArray(jobOpening.required_qualifications) ? jobOpening.required_qualifications : [],
     preferred_qualifications: Array.isArray(jobOpening.preferred_qualifications) ? jobOpening.preferred_qualifications : [],
     benefits: Array.isArray(jobOpening.benefits) ? jobOpening.benefits : [],
+    faqs: Array.isArray(jobOpening.faqs) ? jobOpening.faqs.map(f => ({ question: f.question || "", answer: f.answer || "" })) : [],
     page_description: jobOpening.page_description || "",
     design_description: jobOpening.design_description || "",
     public_visibility: jobOpening.public_visibility !== false,
@@ -391,6 +392,78 @@ export default function EditJobPageModal({ jobOpening, previewUrl, onClose, onSa
               style={{ ...inputStyle, resize: "vertical" }}
               {...focusProps}
             />
+          </div>
+
+          {/* FAQs */}
+          <div>
+            <label style={labelStyle}>FAQs</label>
+            <p className="text-xs mb-2" style={{ color: MUTED }}>
+              Add question/answer pairs that appear on the public job page.
+            </p>
+            <div className="space-y-3">
+              {fields.faqs.map((faq, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-lg p-3"
+                  style={{ border: "1px solid rgba(184,149,106,0.2)", backgroundColor: "rgba(184,149,106,0.04)" }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold" style={{ color: GOLD }}>
+                      FAQ {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        set("faqs", fields.faqs.filter((_, i) => i !== idx))
+                      }
+                      className="p-1 rounded hover:bg-red-50 transition-colors"
+                      style={{ color: "#dc2626" }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <input
+                    value={faq.question}
+                    onChange={(e) => {
+                      const next = [...fields.faqs];
+                      next[idx] = { ...next[idx], question: e.target.value };
+                      set("faqs", next);
+                    }}
+                    placeholder="Question"
+                    style={inputStyle}
+                    {...focusProps}
+                  />
+                  <textarea
+                    value={faq.answer}
+                    onChange={(e) => {
+                      const next = [...fields.faqs];
+                      next[idx] = { ...next[idx], answer: e.target.value };
+                      set("faqs", next);
+                    }}
+                    placeholder="Answer"
+                    rows={2}
+                    className="mt-2"
+                    style={{ ...inputStyle, resize: "vertical" }}
+                    {...focusProps}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  set("faqs", [...fields.faqs, { question: "", answer: "" }])
+                }
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  border: "1px dashed rgba(184,149,106,0.4)",
+                  color: GOLD,
+                  backgroundColor: "transparent",
+                }}
+              >
+                <Plus className="w-4 h-4" />
+                Add FAQ
+              </button>
+            </div>
           </div>
 
           {/* Status + Visibility */}
