@@ -80,6 +80,7 @@ export default async function(req: Request): Promise<Response> {
         public_slug: job.public_slug,
         title: job.title,
         department: job.department,
+        hero_badge: job.hero_badge || "",
         description_text: job.description_text,
         responsibilities: job.responsibilities || [],
         required_qualifications: job.required_qualifications || [],
