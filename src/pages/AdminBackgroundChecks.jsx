@@ -27,7 +27,7 @@ export default function AdminBackgroundChecks() {
     }
   }, []);
 
-  const { data: allUsers = [], isLoading } = useQuery({
+  const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ["all-users"],
     queryFn: async () => {
       const res = await base44.functions.invoke('listAllUsers');
@@ -35,7 +35,27 @@ export default function AdminBackgroundChecks() {
     },
   });
 
-  const partners = allUsers.filter((u) => u.user_type === "media_partner" && u.background_check_status);
+  const { data: pendingSignups = [], isLoading: isLoadingPending } = useQuery({
+    queryKey: ["pending-signups-bg"],
+    queryFn: async () => {
+      const res = await base44.entities.PendingSignup.filter({ user_type: "media_partner" }, "-created_date", 500);
+      return res || [];
+    },
+  });
+
+  const isLoading = isLoadingUsers || isLoadingPending;
+
+  const userPartners = allUsers.filter((u) => u.user_type === "media_partner" && u.background_check_status);
+  const pendingPartners = pendingSignups
+    .filter((p) => p.background_check_status)
+    .map((p) => ({ ...p, id: p.id, source: "pending" }));
+
+  // Deduplicate by email — User record takes precedence
+  const userEmails = new Set(userPartners.map((u) => u.email?.toLowerCase()));
+  const partners = [
+    ...userPartners,
+    ...pendingPartners.filter((p) => !p.email || !userEmails.has(p.email.toLowerCase())),
+  ];
 
   const markMutation = useMutation({
     mutationFn: ({ email, status }) => base44.functions.invoke('updateBackgroundCheckStatus', { email, status }),
