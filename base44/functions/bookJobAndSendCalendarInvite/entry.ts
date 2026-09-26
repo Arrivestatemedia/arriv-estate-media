@@ -87,6 +87,89 @@ Deno.serve(async (req) => {
       folderUrl: folderUrl,
     });
 
+    // Notify the client that their job has been booked by a Media Specialist
+    try {
+      const partnerDisplayName = (() => {
+        const full = updatedJob.booked_by_name || jobData.booked_by_name || '';
+        const parts = full.trim().split(/\s+/);
+        if (parts.length === 0 || !parts[0]) return 'your Media Specialist';
+        if (parts.length === 1) return parts[0];
+        return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+      })();
+
+      const clientFirstName = (updatedJob.client_name || '').split(' ')[0] || 'there';
+      const shootDate = updatedJob.date || '';
+      const shootTime = updatedJob.start_time || '';
+      const whenStr = [shootDate, shootTime].filter(Boolean).join(' at ');
+
+      const smsMessage = `Hi ${clientFirstName}! Your job at ${updatedJob.location || 'your property'}${whenStr ? ` on ${whenStr}` : ''} has been booked by ${partnerDisplayName}, your Arriv Media Specialist. We'll let you know when they're on the way. Thank you for choosing Arriv!`;
+
+      const emailSubject = 'Your Arriv Job Has Been Booked!';
+      const emailBody = `Hi ${clientFirstName},\n\nGreat news — your job at ${updatedJob.location || 'your property'}${whenStr ? ` on ${whenStr}` : ''} has been booked by ${partnerDisplayName}, your Arriv Media Specialist.\n\nWe'll send you another notification when they're on the way to the shoot. If you have any questions in the meantime, feel free to reach out.\n\nThank you for choosing Arriv!\n\nArriv Team`;
+
+      // SMS via Twilio
+      if (updatedJob.client_phone) {
+        const formattedPhone = updatedJob.client_phone.startsWith('+') ? updatedJob.client_phone : `+1${updatedJob.client_phone}`;
+        const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+        const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+        const fromPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
+        try {
+          const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: fromPhone,
+              To: formattedPhone,
+              Body: smsMessage,
+            }).toString(),
+          });
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'sms',
+            recipient_type: 'client',
+            recipient_phone: updatedJob.client_phone,
+            message_content: smsMessage,
+            job_id: jobId,
+            status: smsResponse.ok ? 'success' : 'failed',
+          });
+        } catch (smsErr) {
+          console.error('Client booking SMS failed:', smsErr.message);
+        }
+      }
+
+      // Email via Gmail
+      if (updatedJob.client_email) {
+        try {
+          const gmailAccessToken = await base44.asServiceRole.connectors.getAccessToken('gmail');
+          const message = `To: ${updatedJob.client_email}\r\nSubject: ${emailSubject}\r\n\r\n${emailBody}`;
+          const encodedMessage = btoa(message);
+          const emailResponse = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${gmailAccessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ raw: encodedMessage }),
+          });
+          await base44.asServiceRole.entities.MessageLog.create({
+            message_type: 'email',
+            recipient_type: 'client',
+            recipient_email: updatedJob.client_email,
+            message_content: emailBody,
+            subject: emailSubject,
+            job_id: jobId,
+            status: emailResponse.ok ? 'success' : 'failed',
+          });
+        } catch (emailErr) {
+          console.error('Client booking email failed:', emailErr.message);
+        }
+      }
+    } catch (notifyErr) {
+      console.error('Client booking notification failed:', notifyErr.message);
+    }
+
     return Response.json({ success: true, message: 'Job booked and calendar invite sent' }, { status: 200 });
   } catch (error) {
     console.error('Error in bookJobAndSendCalendarInvite:', error);
