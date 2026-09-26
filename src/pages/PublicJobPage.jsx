@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import {
-  ArrowRight, Check, Star, MapPin, Clock, DollarSign, GripVertical, X,
-  Loader2, CheckCircle2, Camera, Wallet, Briefcase,
+  ArrowRight, Star, MapPin, Clock, Wallet, Briefcase, GripVertical, X,
+  Loader2, CheckCircle2, Target, ChevronDown, Heart,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ const MUTED = "rgba(26,26,26,0.65)";
 
 const DEFAULT_SECTION_ORDER = [
   "about", "responsibilities", "qualifications", "preferred",
-  "experience", "performance", "skills", "benefits", "compensation",
+  "experience", "performance", "skills", "compensation", "benefits",
 ];
 
 const SECTION_LABELS = {
@@ -27,9 +27,58 @@ const SECTION_LABELS = {
   experience: "Experience",
   performance: "What We Expect",
   skills: "Key Skills",
-  benefits: "Benefits",
-  compensation: "Job Type & Compensation",
+  compensation: "Compensation",
+  benefits: "Why Join Arriv",
 };
+
+const DEFAULT_TRUST = [
+  "Independent Contractor",
+  "Flexible Schedule",
+  "No Monthly Fees",
+  "Keep Your Existing Clients",
+];
+
+const DEFAULT_FAQ = [
+  { q: "Is this full-time?", a: "This is an independent contractor role. You choose which projects to accept, so you can work as much or as little as fits your schedule." },
+  { q: "Do I need experience?", a: "Relevant experience is preferred but not always required. We provide training and onboarding to set you up for success." },
+  { q: "How do I get paid?", a: "You're paid based on the services requested for each project. Payouts are issued after the project is completed and delivered." },
+  { q: "Can I keep my existing clients?", a: "Absolutely. There's no exclusivity. Arriv projects are meant to fill the gaps in your schedule while you keep growing your own business." },
+  { q: "Where is this role based?", a: "See the location details in the hero section above. We're expanding our network and looking for professionals in the specified area." },
+  { q: "How quickly will projects become available?", a: "As we launch in your area, we're building out our network now. Approved professionals receive opportunities as projects come online." },
+];
+
+function Section({ eyebrow, title, children, id }) {
+  return (
+    <section id={id} className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 py-12 sm:py-16">
+      {eyebrow && (
+        <p className="text-xs font-semibold tracking-[0.18em] uppercase mb-3" style={{ color: GOLD }}>
+          {eyebrow}
+        </p>
+      )}
+      {title && (
+        <h2 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: TEXT_DARK }}>
+          {title}
+        </h2>
+      )}
+      {children}
+    </section>
+  );
+}
+
+function FaqItem({ q, a }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-4 text-left px-5 py-4">
+        <span className="text-sm sm:text-base font-semibold" style={{ color: TEXT_DARK }}>{q}</span>
+        <ChevronDown className="w-5 h-5 flex-shrink-0 transition-transform" style={{ color: GOLD, transform: open ? "rotate(180deg)" : "none" }} />
+      </button>
+      {open && (
+        <p className="px-5 pb-5 text-sm leading-relaxed" style={{ color: "rgba(26,26,26,0.7)" }}>{a}</p>
+      )}
+    </div>
+  );
+}
 
 function getSessionId() {
   let id = sessionStorage.getItem("khetha_session");
@@ -53,24 +102,6 @@ function captureAttribution() {
     first_touch_at: new Date().toISOString(),
     session_id: getSessionId(),
   };
-}
-
-function Section({ eyebrow, title, children, id }) {
-  return (
-    <section id={id} className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 py-12 sm:py-16">
-      {eyebrow && (
-        <p className="text-xs font-semibold tracking-[0.18em] uppercase mb-3" style={{ color: GOLD }}>
-          {eyebrow}
-        </p>
-      )}
-      {title && (
-        <h2 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: TEXT_DARK }}>
-          {title}
-        </h2>
-      )}
-      {children}
-    </section>
-  );
 }
 
 export default function PublicJobPage() {
@@ -164,22 +195,34 @@ export default function PublicJobPage() {
   }
 
   const job = data?.job || {};
-  const tenant = data?.tenant || {};
-  const hubSlug = tenant.career_company_slug || "arriv-estate-media";
-
   const title = job.title || "Untitled";
   const subtitle = job.page_description || job.description_text || "";
-  const preferredItems = job.preferred_qualifications?.length > 0
-    ? job.preferred_qualifications
-    : job.skills || [];
+  const heroBadgeText = job.hero_badge || "Now Hiring";
+  const preferredItems = job.preferred_qualifications || [];
+  const skillsItems = job.skills || [];
 
-  // Build sections matching the /MediaSpecialist page format
+  // Hero meta badges
+  const heroBadges = [];
+  if (job.location) heroBadges.push({ icon: MapPin, label: job.location });
+  if (job.employment_type) heroBadges.push({ icon: Briefcase, label: job.employment_type.replace(/_/g, " ") });
+  if (job.work_arrangement) heroBadges.push({ icon: MapPin, label: job.work_arrangement });
+  if (job.compensation) heroBadges.push({ icon: Wallet, label: job.compensation });
+  if (job.work_schedule) heroBadges.push({ icon: Clock, label: job.work_schedule });
+
+  // Build sections matching the SalesGrowthAdvisor page format
   const sections = {
     about: (job.description_text || job.page_description) && (
       <Section key="about" eyebrow="About Arriv Estate Media" id="about">
         <p className="text-lg leading-relaxed max-w-3xl" style={{ color: "rgba(26,26,26,0.78)" }}>
           {job.description_text || job.page_description}
         </p>
+        {job.page_description && job.description_text && job.page_description !== job.description_text && (
+          <div className="mt-8 rounded-2xl p-6 sm:p-8" style={{ backgroundColor: "rgba(184,149,106,0.1)", border: "1px solid rgba(184,149,106,0.3)" }}>
+            <p className="text-base sm:text-lg leading-relaxed" style={{ color: TEXT_DARK }}>
+              {job.page_description}
+            </p>
+          </div>
+        )}
         {job.location && (
           <div className="mt-8 rounded-2xl p-6 sm:p-8" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.25)" }}>
             <div className="flex items-start gap-3">
@@ -196,12 +239,12 @@ export default function PublicJobPage() {
       </Section>
     ),
     responsibilities: job.responsibilities?.length > 0 && (
-      <Section key="responsibilities" eyebrow="What You'll Do" title="Projects you may be assigned">
+      <Section key="responsibilities" eyebrow="Responsibilities" title="What you'll do">
         <div className="grid sm:grid-cols-2 gap-3">
           {job.responsibilities.map((r, i) => (
-            <div key={i} className="flex items-center gap-3 rounded-xl px-4 py-3.5" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
-              <span className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>
-                <Camera className="w-5 h-5" style={{ color: GOLD }} />
+            <div key={i} className="flex items-center gap-4 rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
+              <span className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "rgba(184,149,106,0.12)" }}>
+                <Target className="w-5 h-5" style={{ color: GOLD }} />
               </span>
               <span className="text-sm font-medium" style={{ color: TEXT_DARK }}>{r}</span>
             </div>
@@ -222,23 +265,24 @@ export default function PublicJobPage() {
       </Section>
     ),
     preferred: preferredItems.length > 0 && (
-      <Section key="preferred" title="Preferred Experience">
-        <div className="flex flex-wrap gap-2">
+      <Section key="preferred" eyebrow="Nice to Have" title="Preferred qualifications">
+        <div className="space-y-2">
           {preferredItems.map((p, i) => (
-            <span key={i} className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: "rgba(184,149,106,0.12)", color: "#8a6f4d", border: "1px solid rgba(184,149,106,0.25)" }}>
-              {p}
-            </span>
+            <div key={i} className="flex items-start gap-2.5">
+              <Star className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: GOLD }} />
+              <span className="text-sm" style={{ color: "rgba(26,26,26,0.8)" }}>{p}</span>
+            </div>
           ))}
         </div>
       </Section>
     ),
     experience: job.experience_requirements && (
-      <Section key="experience" title="Experience">
+      <Section key="experience" eyebrow="Experience" title="Experience requirements">
         <p className="text-base leading-relaxed max-w-3xl" style={{ color: "rgba(26,26,26,0.78)" }}>{job.experience_requirements}</p>
       </Section>
     ),
     performance: job.performance_expectations?.length > 0 && (
-      <Section key="performance" title="What We Expect">
+      <Section key="performance" eyebrow="What We Expect" title="Performance expectations">
         <div className="grid sm:grid-cols-2 gap-x-10 gap-y-3">
           {job.performance_expectations.map((p, i) => (
             <div key={i} className="flex items-start gap-2.5 py-1">
@@ -249,30 +293,19 @@ export default function PublicJobPage() {
         </div>
       </Section>
     ),
-    skills: job.skills?.length > 0 && job.preferred_qualifications?.length > 0 && (
-      <Section key="skills" title="Key Skills">
+    skills: skillsItems.length > 0 && (
+      <Section key="skills" eyebrow="Skills" title="Key skills">
         <div className="flex flex-wrap gap-2">
-          {job.skills.map((s, i) => (
-            <span key={i} className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: "rgba(184,149,106,0.12)", color: "#8a6f4d", border: "1px solid rgba(184,149,106,0.25)" }}>
+          {skillsItems.map((s, i) => (
+            <span key={i} className="px-3 py-1.5 rounded-full text-sm font-medium" style={{ backgroundColor: "rgba(184,149,106,0.12)", color: TEXT_DARK, border: "1px solid rgba(184,149,106,0.3)" }}>
               {s}
             </span>
           ))}
         </div>
       </Section>
     ),
-    benefits: job.benefits?.length > 0 && (
-      <Section key="benefits" title="Benefits">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl px-6 py-4" style={{ backgroundColor: "rgba(26,26,26,0.04)", border: "1px solid rgba(184,149,106,0.2)" }}>
-          {job.benefits.map((b, i) => (
-            <span key={i} className="text-sm" style={{ color: "rgba(26,26,26,0.75)" }}>
-              {b}{i < job.benefits.length - 1 && <span className="mx-2">·</span>}
-            </span>
-          ))}
-        </div>
-      </Section>
-    ),
     compensation: (job.compensation || job.work_schedule || job.employment_type) && (
-      <Section key="compensation" eyebrow="Job Type & Compensation">
+      <Section key="compensation" eyebrow="Compensation" title="Uncapped earning potential">
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="rounded-2xl p-6" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
             <Clock className="w-5 h-5 mb-3" style={{ color: GOLD }} />
@@ -290,6 +323,20 @@ export default function PublicJobPage() {
               Transparent per-project payouts based on the services requested.
             </p>
           </div>
+        </div>
+      </Section>
+    ),
+    benefits: job.benefits?.length > 0 && (
+      <Section key="benefits" eyebrow="Why Join Arriv?" title="Be part of the founding team">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {job.benefits.map((b, i) => (
+            <div key={i} className="rounded-2xl p-6 h-full" style={{ backgroundColor: "#FFFFFF", border: "1px solid rgba(184,149,106,0.2)" }}>
+              <span className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: "#1A1A1A" }}>
+                <Heart className="w-5 h-5" style={{ color: GOLD }} />
+              </span>
+              <h3 className="font-semibold" style={{ color: TEXT_DARK }}>{b}</h3>
+            </div>
+          ))}
         </div>
       </Section>
     ),
@@ -353,13 +400,13 @@ export default function PublicJobPage() {
         </div>
       )}
 
-      {/* Hero — dark with gold accents, matching /MediaSpecialist */}
+      {/* Hero — dark with gold accents, matching SalesGrowthAdvisor */}
       <header className="px-5 sm:px-6 lg:px-8 pt-16 pb-14 sm:pt-20 sm:pb-20" style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
         <div className="max-w-5xl mx-auto">
           <BackToMainSiteButton />
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6" style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}>
             <Star className="w-3.5 h-3.5" style={{ color: GOLD }} />
-            <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>Now Hiring</span>
+            <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>{heroBadgeText}</span>
           </div>
           <div className="flex items-center gap-2 mb-6">
             <Briefcase className="w-4 h-4" style={{ color: GOLD }} />
@@ -368,6 +415,15 @@ export default function PublicJobPage() {
           <h1 className="text-3xl sm:text-5xl font-bold leading-tight max-w-3xl">{title}</h1>
           {subtitle && (
             <p className="mt-5 text-base sm:text-lg max-w-2xl" style={{ color: "rgba(255,251,245,0.78)" }}>{subtitle}</p>
+          )}
+          {heroBadges.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm" style={{ color: "rgba(255,251,245,0.7)" }}>
+              {heroBadges.map((b, i) => (
+                <span key={i} className="flex items-center gap-1.5">
+                  <b.icon className="w-4 h-4" style={{ color: GOLD }} /> {b.label}
+                </span>
+              ))}
+            </div>
           )}
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button onClick={handleApplyClick} className="rounded-lg font-semibold" style={{ backgroundColor: GOLD, color: TEXT_DARK }}>
@@ -381,6 +437,20 @@ export default function PublicJobPage() {
           </div>
         </div>
       </header>
+
+      {/* Trust badges */}
+      <div style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
+        <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 pb-10 -mt-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            {DEFAULT_TRUST.map((t) => (
+              <div key={t} className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" style={{ color: GOLD }} />
+                <span className="text-sm font-medium" style={{ color: "rgba(255,251,245,0.9)" }}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Content sections */}
       {editMode ? (
@@ -419,9 +489,24 @@ export default function PublicJobPage() {
         visibleSections.map((key) => sections[key])
       )}
 
-      {/* CTA — dark, matching /MediaSpecialist */}
+      {/* FAQ */}
+      <Section eyebrow="FAQ" title="Frequently asked questions">
+        <div className="space-y-3">
+          {DEFAULT_FAQ.map((item) => (
+            <FaqItem key={item.q} q={item.q} a={item.a} />
+          ))}
+        </div>
+      </Section>
+
+      {/* CTA — dark with badge, matching SalesGrowthAdvisor */}
       <section style={{ backgroundColor: "#1A1A1A", color: CREAM }}>
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 py-14 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5" style={{ backgroundColor: "rgba(184,149,106,0.15)", border: "1px solid rgba(184,149,106,0.4)" }}>
+            <Star className="w-3.5 h-3.5" style={{ color: GOLD }} />
+            <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>
+              {job.hero_badge ? `${job.hero_badge} — limited spots available` : "Limited spots available"}
+            </span>
+          </div>
           <h2 className="text-2xl sm:text-3xl font-bold">Ready to apply?</h2>
           <p className="mt-3 text-sm sm:text-base" style={{ color: "rgba(255,251,245,0.7)" }}>
             Take the next step and join our team.

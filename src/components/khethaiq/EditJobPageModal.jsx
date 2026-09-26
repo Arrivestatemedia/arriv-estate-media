@@ -43,6 +43,7 @@ export default function EditJobPageModal({ jobOpening, previewUrl, onClose, onSa
   const [fields, setFields] = useState({
     title: jobOpening.title || "",
     department: jobOpening.department || "",
+    hero_badge: jobOpening.hero_badge || "",
     description: jobOpening.description_text || "",
     location: jobOpening.location || "",
     employment_type: jobOpening.employment_type || "full_time",
@@ -182,6 +183,21 @@ export default function EditJobPageModal({ jobOpening, previewUrl, onClose, onSa
               style={inputStyle}
               {...focusProps}
             />
+          </div>
+
+          {/* Hero Badge */}
+          <div>
+            <label style={labelStyle}>Hero Badge Text</label>
+            <input
+              value={fields.hero_badge}
+              onChange={(e) => set("hero_badge", e.target.value)}
+              placeholder="e.g. Founding Sales Team – 100% Remote"
+              style={inputStyle}
+              {...focusProps}
+            />
+            <p className="text-xs mt-1.5" style={{ color: MUTED }}>
+              The small badge text shown at the top of the hero section. Leave blank to show "Now Hiring".
+            </p>
           </div>
 
           {/* Department + Location */}

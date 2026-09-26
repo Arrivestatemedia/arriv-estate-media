@@ -163,6 +163,10 @@
       "type": "string",
       "description": "Department or team"
     },
+    "hero_badge": {
+      "type": "string",
+      "description": "Text for the small badge shown at the top of the hero section on the public job page"
+    },
     "description_text": {
       "type": "string",
       "description": "Raw job description text"

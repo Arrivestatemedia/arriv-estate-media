@@ -226,7 +226,7 @@ export default function AboutSalesJob() {
           >
             <Star className="w-3.5 h-3.5" style={{ color: GOLD }} />
             <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>
-              Founding Sales Team – 100% Remote
+              {job?.hero_badge || "Founding Sales Team – 100% Remote"}
             </span>
           </div>
           <div className="flex items-center gap-2 mb-6">

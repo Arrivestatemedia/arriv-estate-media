@@ -194,7 +194,7 @@ export default function AboutJob() {
           >
             <Star className="w-3.5 h-3.5" style={{ color: GOLD }} />
             <span className="text-xs font-semibold tracking-wide" style={{ color: GOLD }}>
-              {job?.department || "Founding Media Specialist – Maryland Launch"}
+              {job?.hero_badge || "Founding Media Specialist – Maryland Launch"}
             </span>
           </div>
           <div className="flex items-center gap-2 mb-6">
