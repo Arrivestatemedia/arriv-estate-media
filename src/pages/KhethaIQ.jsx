@@ -523,6 +523,24 @@ export default function KhethaIQ() {
   };
 
   const handleDeleteJob = async (job) => {
+    // Find the linked JobOpening so we can clean it up too — otherwise the
+    // orphaned page reappears as a separate card in the jobs list.
+    const legacyUrl = getLegacyPath(job);
+    const linkedOpening = legacyUrl
+      ? jobOpenings.find(jo => normalizeSourcePath(jo.source_url) === legacyUrl)
+      : jobOpenings.find(jo => jo.title === job.title);
+
+    if (linkedOpening) {
+      const openingPath = normalizeSourcePath(linkedOpening.source_url);
+      // Only delete job-specific pages (source_url starts with /careers/).
+      // Shared legacy pages like /MediaSpecialist or /SalesGrowthAdvisor
+      // persist for other jobs and should never be removed here.
+      if (openingPath && openingPath.startsWith("/careers/")) {
+        try { await base44.entities.JobOpening.delete(linkedOpening.id); } catch (_) {}
+        setJobOpenings(prev => prev.filter(j => j.id !== linkedOpening.id));
+      }
+    }
+
     try {
       await base44.entities.HireCandidate.deleteMany({ job_id: job.id });
     } catch (_) {}
