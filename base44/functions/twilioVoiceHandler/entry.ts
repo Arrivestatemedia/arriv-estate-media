@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
-    <Say voice="Polly.Joanna">Thank you for calling Arriv Estate Media. To reach your client, press 1. To reach support, press 2.</Say>
+    <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. To reach your client, press 1. To reach support, press 2.</Say>
   </Gather>
   <Say voice="Polly.Joanna">Connecting you to support.</Say>
 </Response>`);
@@ -299,7 +299,7 @@ Deno.serve(async (req) => {
               return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather numDigits="1" action="${actionUrl}" method="POST" timeout="8" finishOnKey="">
-    <Say voice="Polly.Joanna">Thank you for calling Arriv Estate Media. To reach your media specialist, press 1. To reach support, press 2.</Say>
+    <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. To reach your media specialist, press 1. To reach support, press 2.</Say>
   </Gather>
   <Say voice="Polly.Joanna">Connecting you to support.</Say>
 </Response>`);
@@ -314,7 +314,7 @@ Deno.serve(async (req) => {
       console.log('No job match for caller → redirecting to Studio flow');
       return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">Thank you for calling Arriv Estate Media. Please hold while we connect you.</Say>
+  <Say voice="Polly.Joanna">Thank you for calling Arrive Estate Media. Please hold while we connect you.</Say>
   <Redirect>https://arriv-forwarding-1723.twil.io/call-router</Redirect>
 </Response>`);
     }
