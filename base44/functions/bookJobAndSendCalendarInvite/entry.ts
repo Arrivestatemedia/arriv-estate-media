@@ -183,7 +183,8 @@ Deno.serve(async (req) => {
       const partnerPhone = updatedJob.booked_by_phone || jobData.booked_by_phone;
       if (partnerPhone) {
         const partnerFirstName = (updatedJob.booked_by_name || jobData.booked_by_name || '').trim().split(/\s+/)[0] || 'there';
-        const partnerSms = `Hi ${partnerFirstName}! Thank you for booking this job. A calendar invite has been sent to your email — please check your inbox. After the shoot, upload your completed footage to the Google Drive folder linked in the calendar event. If you need to contact your client, text or call this number. - Arriv`;
+        const listingAddress = updatedJob.location || jobData.location || 'this';
+        const partnerSms = `Hi ${partnerFirstName}! Thank you for booking the ${listingAddress} job. A calendar invite has been sent to your email — please check your inbox. After the shoot, upload your completed footage to the Google Drive folder linked in the calendar event. If you need to contact your client or support, text or call this number. - Arriv`;
 
         const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
         const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
