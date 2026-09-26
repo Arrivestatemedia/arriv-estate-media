@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { PUBLIC_JOB_PAGE_FAQS as DEFAULT_FAQ } from "@/lib/jobFaqDefaults";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import {
@@ -38,14 +39,7 @@ const DEFAULT_TRUST = [
   "Keep Your Existing Clients",
 ];
 
-const DEFAULT_FAQ = [
-  { q: "Is this full-time?", a: "This is an independent contractor role. You choose which projects to accept, so you can work as much or as little as fits your schedule." },
-  { q: "Do I need experience?", a: "Relevant experience is preferred but not always required. We provide training and onboarding to set you up for success." },
-  { q: "How do I get paid?", a: "You're paid based on the services requested for each project. Payouts are issued after the project is completed and delivered." },
-  { q: "Can I keep my existing clients?", a: "Absolutely. There's no exclusivity. Arriv projects are meant to fill the gaps in your schedule while you keep growing your own business." },
-  { q: "Where is this role based?", a: "See the location details in the hero section above. We're expanding our network and looking for professionals in the specified area." },
-  { q: "How quickly will projects become available?", a: "As we launch in your area, we're building out our network now. Approved professionals receive opportunities as projects come online." },
-];
+
 
 function Section({ eyebrow, title, children, id }) {
   return (

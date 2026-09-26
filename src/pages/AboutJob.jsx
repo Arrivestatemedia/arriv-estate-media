@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { MEDIA_SPECIALIST_FAQS as FAQ } from "@/lib/jobFaqDefaults";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -56,32 +57,7 @@ const STEPS = [
   { icon: Wallet, label: "Complete the project and get paid." },
 ];
 
-const FAQ = [
-  {
-    q: "Is this full-time?",
-    a: "No. This is an independent contractor role. You choose which projects to accept, so you can work as much or as little as fits your schedule.",
-  },
-  {
-    q: "Do I have to accept every project?",
-    a: "Never. You only accept the projects you want. There's no penalty for declining, and you keep full control of your calendar.",
-  },
-  {
-    q: "How do I get paid?",
-    a: "You're paid a fixed rate per completed project, based on the services requested. Payouts are issued after the project is completed and the media is delivered.",
-  },
-  {
-    q: "Can I continue working with my own clients?",
-    a: "Absolutely. There's no exclusivity. Arriv projects are meant to fill the gaps in your schedule while you keep growing your own business.",
-  },
-  {
-    q: "Do I need drone experience?",
-    a: "Drone experience is preferred but not required. You'll still receive plenty of photo and video projects without it.",
-  },
-  {
-    q: "How quickly will projects become available?",
-    a: "As we launch in Maryland, we're building out our founding network now. Approved specialists receive opportunities as projects come online in their area.",
-  },
-];
+
 
 const TRUST = [
   "Independent Contractor",

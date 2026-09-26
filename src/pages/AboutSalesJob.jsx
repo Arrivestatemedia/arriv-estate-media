@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { SALES_GROWTH_ADVISOR_FAQS as DEFAULT_FAQ } from "@/lib/jobFaqDefaults";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -75,32 +76,7 @@ const DEFAULT_WHY_JOIN = [
   { icon: Star, label: "Shape the Future", desc: "Help build an innovative real estate technology company from the ground up." },
 ];
 
-const DEFAULT_FAQ = [
-  {
-    q: "Is this a salaried position?",
-    a: "No. This is a commission-based W-2 position. Your earning potential is uncapped — your income is directly tied to the relationships you build and the revenue you generate.",
-  },
-  {
-    q: "Do I need real estate experience?",
-    a: "No. No real estate experience is necessary — we provide the training. Sales experience is preferred but not required.",
-  },
-  {
-    q: "What is the $500 Training Bonus?",
-    a: "New Arriv Sales Growth Advisors who successfully complete our two-week onboarding and training program will receive a $500 Training Bonus.",
-  },
-  {
-    q: "Where is this role based?",
-    a: "This is a 100% remote role. You can work from anywhere — no office or hybrid requirements.",
-  },
-  {
-    q: "What does the training cover?",
-    a: "Training includes Arriv products and services, sales techniques, prospecting strategies, CRM training, client presentations, objection handling, and closing strategies.",
-  },
-  {
-    q: "Who will I be selling to?",
-    a: "You'll build relationships with real estate agents, real estate teams, brokerages, home builders, and property management companies.",
-  },
-];
+
 
 const DEFAULT_TRUST = [
   "Commission-Based W-2",

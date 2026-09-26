@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { X, Loader2, Palette, Save, Eye, Plus, Trash2 } from "lucide-react";
+import { getDefaultFaqsForJob } from "@/lib/jobFaqDefaults";
 
 const CREAM = "#FFFBF5";
 const GOLD = "#B8956A";
@@ -57,7 +58,9 @@ export default function EditJobPageModal({ jobOpening, previewUrl, onClose, onSa
     required_qualifications: Array.isArray(jobOpening.required_qualifications) ? jobOpening.required_qualifications : [],
     preferred_qualifications: Array.isArray(jobOpening.preferred_qualifications) ? jobOpening.preferred_qualifications : [],
     benefits: Array.isArray(jobOpening.benefits) ? jobOpening.benefits : [],
-    faqs: Array.isArray(jobOpening.faqs) ? jobOpening.faqs.map(f => ({ question: f.question || "", answer: f.answer || "" })) : [],
+    faqs: Array.isArray(jobOpening.faqs) && jobOpening.faqs.length
+      ? jobOpening.faqs.map(f => ({ question: f.question || "", answer: f.answer || "" }))
+      : getDefaultFaqsForJob(jobOpening).map(f => ({ question: f.q, answer: f.a })),
     page_description: jobOpening.page_description || "",
     design_description: jobOpening.design_description || "",
     public_visibility: jobOpening.public_visibility !== false,
