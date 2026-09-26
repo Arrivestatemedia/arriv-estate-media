@@ -6,7 +6,7 @@ import {
   BarChart3, Sparkles, Radar, Users2, Target, TrendingUp,
   MessageSquare, Award, HelpCircle, LayoutDashboard,
   GitBranch, Video, Globe, SquareCheckBig, ArrowLeft, Mail,
-  Activity, CheckSquare, CalendarClock, Copy, Share2,
+  Activity, CheckSquare, CalendarClock, Copy, Share2, Trash2,
 } from "lucide-react";
 import JobCreateForm from "@/components/hireiq/JobCreateForm";
 import JobDetailPanel from "@/components/hireiq/JobDetailPanel";
@@ -522,6 +522,16 @@ export default function KhethaIQ() {
     } catch (_) {}
   };
 
+  const handleDeleteJobOpening = async (jobOpening) => {
+    if (!window.confirm(`Delete the "${jobOpening.title || 'Untitled'}" job page? This cannot be undone.`)) return;
+    try {
+      await base44.entities.JobOpening.delete(jobOpening.id);
+      setJobOpenings(prev => prev.filter(j => j.id !== jobOpening.id));
+    } catch (err) {
+      alert("Failed to delete job page: " + (err.message || "unknown error"));
+    }
+  };
+
   const handleDeleteJob = async (job) => {
     // Find the linked JobOpening so we can clean it up too — otherwise the
     // orphaned page reappears as a separate card in the jobs list.
@@ -932,6 +942,14 @@ export default function KhethaIQ() {
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : <Copy className="w-3 h-3" />}
                             Duplicate
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteJobOpening(job); }}
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                            style={{ backgroundColor: "rgba(220,38,38,0.12)", color: "#FCA5A5", border: "1px solid rgba(220,38,38,0.3)" }}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Delete
                           </button>
                         </div>
                       </div>
