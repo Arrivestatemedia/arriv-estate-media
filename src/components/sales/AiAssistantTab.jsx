@@ -254,7 +254,7 @@ Respond with clear, actionable coaching. Use markdown formatting (bold headers, 
     setUploading(true);
     try {
       const uploaded = await Promise.all(files.map(async (file) => {
-        const result = await base44.integrations.Core.UploadFile({ file });
+        const result = await base44.integrations.Core.UploadPublicFile({ file });
         return { url: result.file_url, name: file.name };
       }));
       setAttachedImages(prev => [...prev, ...uploaded]);

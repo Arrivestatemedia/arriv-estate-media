@@ -36,7 +36,7 @@ export default function AttireVerificationDialog({ open, onOpenChange, jobId, on
 
     try {
       // Upload the file
-      const uploadResult = await base44.integrations.Core.UploadFile({ file: photo });
+      const uploadResult = await base44.integrations.Core.UploadPublicFile({ file: photo });
       const fileUrl = uploadResult.file_url;
 
       // Verify attire using AI

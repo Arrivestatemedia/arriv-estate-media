@@ -234,7 +234,7 @@ function EditorTaskRow({ task, actionLoading, onAction }) {
     if (!file) return;
     setUploading(true);
     try {
-      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const uploadRes = await base44.integrations.Core.UploadPublicFile({ file });
       const file_url = uploadRes?.file_url || uploadRes?.data?.file_url;
       if (!file_url) throw new Error("Failed to get file URL from upload");
 

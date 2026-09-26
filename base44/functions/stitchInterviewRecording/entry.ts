@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     const stitchedFile = new File([stitchedBlob], `stitched-${conference.room_name}.webm`, { type: "video/webm" });
 
     // Upload the stitched file
-    const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: stitchedFile as any });
+    const uploadRes = await base44.asServiceRole.integrations.Core.UploadPublicFile({ file: stitchedFile as any });
     const stitchedUrl = (uploadRes as any).file_url;
 
     // Update the conference to use the stitched recording as primary

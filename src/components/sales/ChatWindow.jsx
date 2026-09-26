@@ -496,7 +496,7 @@ export default function ChatWindow({ chatType, chatId, chatName, currentUserId, 
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       const isImage = file.type.startsWith("image/");
       const content = isImage ? `[image]${file_url}` : `[file|${file.name}]${file_url}`;
       const optimisticMsg = {

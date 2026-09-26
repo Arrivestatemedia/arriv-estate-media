@@ -478,7 +478,7 @@ export default function AdminActivityPage({ user: propsUser, initialSubTab, onVi
     setUploadingPictures(true);
     try {
       for (const file of files) {
-        const result = await base44.integrations.Core.UploadFile({ file });
+        const result = await base44.integrations.Core.UploadPublicFile({ file });
         const url = result?.file_url || result?.data?.file_url;
         if (url) {
           setFormData(prev => ({

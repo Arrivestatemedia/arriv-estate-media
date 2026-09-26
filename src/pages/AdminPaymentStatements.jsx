@@ -79,7 +79,7 @@ export default function AdminPaymentStatements() {
       const mediaPartnerName = fileName.replace(/\.[^/.]+$/, ""); // Remove file extension
       
       // Upload file to Base44
-      const uploadResponse = await base44.integrations.Core.UploadFile({
+      const uploadResponse = await base44.integrations.Core.UploadPublicFile({
         file: file
       });
 

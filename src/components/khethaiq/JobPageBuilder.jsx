@@ -105,7 +105,7 @@ export default function JobPageBuilder({ onClose, onCreated }) {
   const handleFileUpload = async (file) => {
     setUploading(true);
     try {
-      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const uploadRes = await base44.integrations.Core.UploadPublicFile({ file });
       const url = uploadRes?.file_url || uploadRes?.data?.file_url;
       setFileUrl(url);
       setFileName(file.name);

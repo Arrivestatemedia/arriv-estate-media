@@ -200,7 +200,7 @@ export default function QuestionnaireUploader({ job, candidates, onUpdateJob, on
     if (!file) return;
     setLoading(true); setError(null);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       setFileUrl(file_url);
     } catch (_) { setError("Failed to upload file"); }
     setLoading(false);

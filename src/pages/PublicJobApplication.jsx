@@ -130,13 +130,13 @@ export default function PublicJobApplication() {
       } catch {}
       setExtracting(false);
     } catch (err) {
-      alert("Upload failed: " + (err.message || "unknown error"));
+      setError("Resume upload failed — you can still submit your application without a resume, or try again.");
     }
     setUploading(false);
   };
 
   const canSubmit = form.full_name && form.email && form.phone && form.linkedin &&
-    form.last_related_job && form.why_good_fit && form.eeoc_agreed && form.signature && resumeUrl && !submitting;
+    form.last_related_job && form.why_good_fit && form.eeoc_agreed && form.signature && !submitting;
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -229,7 +229,7 @@ export default function PublicJobApplication() {
         </div>
 
         <div className="mb-5">
-          <label style={labelStyle}>Resume (Required)</label>
+          <label style={labelStyle}>Resume</label>
           <label
             className="flex flex-col items-center justify-center gap-2 p-8 rounded-xl cursor-pointer transition-all"
             style={{ border: "2px dashed rgba(184,149,106,0.3)", backgroundColor: "rgba(184,149,106,0.04)" }}

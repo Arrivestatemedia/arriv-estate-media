@@ -27,7 +27,7 @@ export default function JobCreateForm({ onCreate, onCancel }) {
         result = await analyzeJobFromText(text.trim());
       } else {
         if (!file) throw new Error("Please upload a job description file");
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
         result = await analyzeJobFromFile(file_url);
         result.source_url = file_url;
       }

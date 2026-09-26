@@ -51,7 +51,7 @@ export default function ProfilePictureUpload({ salesMemberId, currentUrl, onUplo
     try {
       const blob = await getCroppedImg(imageSrc, croppedAreaPixels);
       const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       await base44.entities.SalesTeamMember.update(salesMemberId, { profile_picture_url: file_url });
       onUploaded(file_url);
       setImageSrc(null);

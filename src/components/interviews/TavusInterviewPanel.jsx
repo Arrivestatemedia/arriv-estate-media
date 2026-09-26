@@ -146,7 +146,7 @@ export default function TavusInterviewPanel({
         `ai-interview-${roomName}-part${segmentNum}-${Date.now()}.webm`,
         { type: "video/webm" }
       );
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       segmentUrlsRef.current.push(file_url);
       await base44.functions.invoke("saveInterviewRecording", {
         roomName,

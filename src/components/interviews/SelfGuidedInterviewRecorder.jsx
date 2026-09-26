@@ -161,7 +161,7 @@ export default function SelfGuidedInterviewRecorder({ token, questions, candidat
     setSaveError(null);
     try {
       const file = new File([recordedBlob], `interview-${questionId}-${Date.now()}.webm`, { type: "video/webm" });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       await base44.functions.invoke("saveSelfGuidedResponse", {
         token,
         questionId,

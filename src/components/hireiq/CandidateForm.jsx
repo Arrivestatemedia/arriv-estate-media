@@ -28,7 +28,7 @@ export default function CandidateForm({ jobId, jobData, roleProfile, onCreated, 
       let analysis = null;
 
       if (resumeMode === "upload" && resumeFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: resumeFile });
+        const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: resumeFile });
         resumeUrl = file_url;
         analysis = await analyzeResumeFile(file_url, jobData, roleProfile);
       } else if (resumeMode === "text" && resumeText.trim()) {

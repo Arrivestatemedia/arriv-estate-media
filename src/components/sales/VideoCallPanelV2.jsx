@@ -554,7 +554,7 @@ export default function VideoCallPanelV2({
       const uploadWithTimeout = (file, timeoutMs) => {
         return new Promise((resolve, reject) => {
           const timer = setTimeout(() => reject(new Error("Upload timed out")), timeoutMs);
-          base44.integrations.Core.UploadFile({ file })
+          base44.integrations.Core.UploadPublicFile({ file })
             .then(res => { clearTimeout(timer); resolve(res); })
             .catch(err => { clearTimeout(timer); reject(err); });
         });

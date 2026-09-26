@@ -22,7 +22,7 @@ export default function OcrScorecardUpload({ candidate, job, roleProfile, onComp
     setLoading(true);
     setError(null);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       const result = await analyzeScorecardOCR(file_url, job, roleProfile);
       setExtracted(result);
       setQuestions((result.questions || []).map(q => ({ ...EMPTY_Q, ...q, rating: q.rating || 0 })));

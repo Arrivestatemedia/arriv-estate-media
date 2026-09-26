@@ -93,7 +93,7 @@ export default function LogActivityModal({ open, onClose, contact, salesMemberId
     setUploading(true);
     try {
       for (const file of files) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
         setScreenshots(prev => [...prev, { name: file.name, url: file_url }]);
       }
     } catch (err) {
