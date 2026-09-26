@@ -1,7 +1,9 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { validateTwilioRequest } from '../../shared/twilioWebhookValidation.ts';
 
-// Target phone that receives forwarded SMS from the 706 number.
-const FORWARD_TO = '+16786409268';
+// Default target (can be overridden via the manageSmsForwarding function).
+const SETTING_KEY = 'sms_forward_706_target';
+const DEFAULT_TARGET = '+16786409268';
 
 const e164 = (n) => {
   if (!n) return '';
@@ -42,9 +44,21 @@ Deno.serve(async (req) => {
     const to = params.get('To');
     const messageBody = params.get('Body');
 
+    // Read the current forwarding target from AppSetting (set via manageSmsForwarding).
+    const base44 = createClientFromRequest(req);
+    let forwardTo = DEFAULT_TARGET;
+    try {
+      const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: SETTING_KEY });
+      if (settings && settings.length > 0 && settings[0].value) {
+        forwardTo = settings[0].value;
+      }
+    } catch (e) {
+      console.error('Failed to read forwarding target setting:', e.message);
+    }
+
     // Loop prevention: don't forward messages sent FROM the target number
     // (e.g. the specialist replying to the 706 number).
-    if (e164(from) === FORWARD_TO) {
+    if (e164(from) === forwardTo) {
       return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
         headers: { 'Content-Type': 'text/xml' },
       });
@@ -52,7 +66,7 @@ Deno.serve(async (req) => {
 
     // Forward the inbound SMS to the target, preserving the original sender.
     const forwardedBody = `[Forwarded from ${from}] ${messageBody}`;
-    await sendTwilioSms(to, FORWARD_TO, forwardedBody);
+    await sendTwilioSms(to, forwardTo, forwardedBody);
 
     return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
       headers: { 'Content-Type': 'text/xml' },
