@@ -60,9 +60,8 @@ export function getPropertyAccessProvider(jobOrProperty) {
 }
 
 // Public configuration — these are public guide URLs, not secrets.
-export const SENTRILOCK_ACCESS_GUIDE_URL =
-  'https://drive.google.com/file/d/1Ap8EWP_Su2Wxl15Hn0URV_aJaq99OopT/view?usp=drive_link';
-export const SUPRA_ACCESS_GUIDE_URL = 'https://bit.ly/3OdUc80';
+export const SENTRILOCK_ACCESS_GUIDE_URL = 'https://app.arrivestatemedia.com/r/sl1k';
+export const SUPRA_ACCESS_GUIDE_URL = 'https://app.arrivestatemedia.com/r/pa7k';
 
 // Official SentriConnect app store links
 export const SENTRICONNECT_IOS_URL =

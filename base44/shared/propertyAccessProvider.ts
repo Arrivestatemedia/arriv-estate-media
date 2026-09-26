@@ -82,7 +82,7 @@ export function getAccessGuideUrl(provider: string): string {
   if (provider === PROVIDER_SENTRILOCK) {
     return (
       Deno.env.get('SENTRILOCK_ACCESS_GUIDE_URL') ||
-      'https://drive.google.com/file/d/1Ap8EWP_Su2Wxl15Hn0URV_aJaq99OopT/view?usp=drive_link'
+      'https://app.arrivestatemedia.com/r/sl1k'
     );
   }
   if (provider === PROVIDER_SUPRA) {
