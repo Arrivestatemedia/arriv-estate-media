@@ -324,39 +324,25 @@ export default function KhethaIQ() {
   // linked JobOpening (public job page), so the copy carries over every
   // field the original had.
   const handleDuplicateJob = async (job) => {
-    if (!window.confirm(`This will create a copy of "${job.title || 'Untitled'}" including its job details and linked job page. The copy will be saved as a draft with "(Copy)" added to the title. Continue?`)) return;
+    if (!window.confirm(`This will create a copy of "${job.title || 'Untitled'}" including its job details and linked job page. The copy will be saved as a draft. Continue?`)) return;
     setDuplicating(job);
     try {
-      const newTitle = `${job.title || "Untitled"} (Copy)`;
-      const res = await base44.entities.HireJob.create({
-        title: newTitle,
-        department: job.department,
-        description: job.description,
-        responsibilities: job.responsibilities || [],
-        required_qualifications: job.required_qualifications || [],
-        preferred_qualifications: job.preferred_qualifications || [],
-        skills: job.skills || [],
-        experience_requirements: job.experience_requirements || "",
-        performance_expectations: job.performance_expectations || "",
-        compensation: job.compensation || "",
-        work_schedule: job.work_schedule || "",
-        source_type: job.source_type,
-        source_url: job.source_url,
-        source_application_position: job.source_application_position,
-        role_success_profile: job.role_success_profile,
-        role_profile_approved: false,
-        scorecard_template: job.scorecard_template || [],
-        round1_scorecard: job.round1_scorecard,
-        status: "draft",
-        created_by_name: localStorage.getItem("sales_member_name") || localStorage.getItem("user_name") || "Admin",
-      });
-      const newJob = res?.data ?? res;
+      const newTitle = job.title || "Untitled";
 
-      // Duplicate the linked JobOpening (job page) if one exists
-      const linkedOpening = jobOpenings.find(jo => jo.title === job.title);
+      // Find the linked JobOpening (by legacy path or title) so we can copy it
+      const legacyUrl = getLegacyPath(job);
+      const linkedOpening = legacyUrl
+        ? jobOpenings.find(jo => normalizeSourcePath(jo.source_url) === legacyUrl)
+        : jobOpenings.find(jo => jo.title === job.title);
+
+      let linkPath = "";
+
+      // Duplicate the linked JobOpening (job page) FIRST so we can link the
+      // new HireJob to the COPY — not the original. The copy gets its own
+      // source_url (/careers/<slug>) so editing it never touches the original.
       if (linkedOpening) {
         try {
-          await base44.functions.invoke("createJobPage", {
+          const pageRes = await base44.functions.invoke("createJobPage", {
             action: "create",
             title: newTitle,
             email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "",
@@ -375,11 +361,48 @@ export default function KhethaIQ() {
             benefits: linkedOpening.benefits || [],
             page_description: linkedOpening.page_description || "",
             design_description: linkedOpening.design_description || "",
+            design_spec: linkedOpening.design_spec || null,
             source_type: "text",
             source_url: "",
           });
+          const pageData = pageRes?.data ?? pageRes;
+          if (pageData?.success && pageData?.job_opening) {
+            const newSlug = pageData.job_opening.public_slug || pageData.job_opening.job_id;
+            linkPath = `/careers/${newSlug}`;
+            // Stamp the copy's source_url so it links back to the duplicate HireJob
+            await base44.functions.invoke("createJobPage", {
+              action: "update",
+              job_opening_id: pageData.job_opening.id,
+              source_url: linkPath,
+              email: localStorage.getItem('sales_member_email') || sessionStorage.getItem('sales_member_email') || "",
+            });
+          }
         } catch (_) {}
       }
+
+      // Create the duplicate HireJob linked to the new page copy (not the original)
+      const res = await base44.entities.HireJob.create({
+        title: newTitle,
+        department: job.department,
+        description: job.description,
+        responsibilities: job.responsibilities || [],
+        required_qualifications: job.required_qualifications || [],
+        preferred_qualifications: job.preferred_qualifications || [],
+        skills: job.skills || [],
+        experience_requirements: job.experience_requirements || "",
+        performance_expectations: job.performance_expectations || "",
+        compensation: job.compensation || "",
+        work_schedule: job.work_schedule || "",
+        source_type: "text",
+        source_url: linkPath,
+        role_success_profile: job.role_success_profile,
+        role_profile_approved: false,
+        scorecard_template: job.scorecard_template || [],
+        round1_scorecard: job.round1_scorecard,
+        status: "draft",
+        created_by_name: localStorage.getItem("sales_member_name") || localStorage.getItem("user_name") || "Admin",
+      });
+      const newJob = res?.data ?? res;
 
       setJobs(prev => [newJob, ...prev]);
       await loadJobs();
@@ -393,10 +416,10 @@ export default function KhethaIQ() {
   // Duplicate a JobOpening (job page) that has no matching HireJob — creates
   // a copy of the public page with a "(Copy)" title suffix.
   const handleDuplicateJobOpening = async (jobOpening) => {
-    if (!window.confirm(`This will create a copy of the "${jobOpening.title || 'Untitled'}" job page with all its content. The copy will have "(Copy)" added to the title. Continue?`)) return;
+    if (!window.confirm(`This will create a copy of the "${jobOpening.title || 'Untitled'}" job page with all its content. Continue?`)) return;
     setDuplicating(jobOpening);
     try {
-      const newTitle = `${jobOpening.title || "Untitled"} (Copy)`;
+      const newTitle = jobOpening.title || "Untitled";
       const res = await base44.functions.invoke("createJobPage", {
         action: "create",
         title: newTitle,
@@ -416,6 +439,7 @@ export default function KhethaIQ() {
         benefits: jobOpening.benefits || [],
         page_description: jobOpening.page_description || "",
         design_description: jobOpening.design_description || "",
+        design_spec: jobOpening.design_spec || null,
         source_type: "text",
         source_url: "",
       });
